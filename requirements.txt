@@ -1,0 +1,22 @@
+appdirs==1.4.3
+args==0.1.0
+clint==0.5.1
+packaging==16.8
+pyparsing==2.2.0
+six==1.10.0
+
+# TODO Remove this to separate oasys SDK and sdk-examples repo
+--editable oasys
+
+# ----------- Some common libraries you may wish to include. Removing these may break the examples, but won't break the template :) ------------
+
+# Plotting tools to help create json based figure files (more powerful and better validation than creating the raw json yourself)
+#plotly==2.0.5
+
+# A numerical manipulation library
+numpy==1.12.1
+
+# A powerful database api library. Supply it with your db's uri (through environment variables) and read/add data to/from databases.
+# Note that results of analyses using externally managed databases as data sources cannot be guaranteed to be idempotent.
+#SQLAlchemy==1.0.12
+#SQLAlchemy-Utils==0.31.6
