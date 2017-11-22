@@ -1,7 +1,7 @@
 from .exceptions import NotImplementedYet
 
 
-def get(thing_name, set_analysis):
+def get(thing_name, set_analysis=None):
     """
     %GET Gets the current analysis (or named property of the current analysis)
 

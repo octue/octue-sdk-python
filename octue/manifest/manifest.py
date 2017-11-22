@@ -1,14 +1,34 @@
-from ..exceptions import InvalidOctueFileType
+import os
+import json
+from ..exceptions import *
+from ..get import get
+from ..resources import DataFile
+from .. import utils
+from json import JSONEncoder, JSONDecoder
+
+
+class ManifestEncoder(JSONEncoder):
+    """Base encoder for manifest files
+    """
+    def default(self, obj):
+        # TODO generalise to if __hasattr__('serialise') and abstract the Encoder class away
+        if isinstance(obj, DataFile):
+            return obj.serialise()
+
+        # TODO consider using object dict by default
+        # return o.__dict__
+
+        # Let the base class default method raise the TypeError
+        return json.JSONEncoder.default(self, obj)
 
 
 class Manifest(object):
-    """
-    TODO implement consistent to MATLAB
+    """ MANIFEST Manifest of files
+    A manifest is used to read list of files (and their associated properties)
+    input to an octue analysis or to compile a list of output files (results)
+    and their properties that will be sent back to the octue sytem.
+
     classdef Manifest < handle
-    %MANIFEST Manifest of files
-    % A manifest is used to read list of files (and their associated properties)
-    % input to an octue analysis or to compile a list of output files (results)
-    % and their properties that will be sent back to the octue sytem.
     %
     % Manifest Properties:
     %   Type - A string, 'input' for input (read-only) manifests and
@@ -21,257 +41,172 @@ class Manifest(object):
     %   Append - Append a file or files to the manifest
     %   Save - Serialise the manifest to a json type file
     %   Load - Deserialise a manifest from a json type file
-    properties(SetAccess = 'protected')
+
+    """
         
-        Uuid
-        Type = 'input'
-        Files = []
-    
-    end
-    
-    properties (Access = 'private')
-        AppendWarningTriggered = false
-    end
-    
-    methods
-        
-        function self = Manifest(type, json)
-            %MANIFEST Construct a file manifest object of given type.
+    uuid = None
+    type = 'input'
+    files = []
+
+    _appendWarningTriggered = False
+
+    def __init__(self, type='input', json=None):
+        """Construct a file manifest object of given type.
+        """
             
-            if ~ischar(type)
-                error('Instantiate a Manifest object like man = Manifest(type) where type is a string which can have the values ''input'' or ''output''.')
-            end
-            
-            % Create a UUID. This is overwritten if an existing manifest is
-            % deserialised or loaded.
-            self.Uuid = octue.utils.genUUID();
-            
-            switch lower(type)
-                case 'input' 
-                    self.Type = 'input';
-                    
-                case 'output'
-                    self.Type = 'output';
-                    
-                case 'cache'
-                    warning('cache type file manifests are unused by octue at present')
-                    
-                case 'build'
-                    self.Type = 'build';
-                    
-                case 'json'
-                    if (nargin ~= 2) 
-                        error('Constructing a manifest from a json string requires two inputs: try Manifest(''json'', json_str).')
-                    elseif ~ischar(json)
-                        error('Input json not a string')
-                    elseif isempty(json)
-                        error('Input json string is empty')
-                    end
-                    self = self.Deserialise(json);
-                    return
-                    
-                otherwise
-                    error('Unknown manifest type specified. Try ''input'' or ''output''.')
-                    
-            end
-            
-            if nargin ~= 1 
-                warning('Manifest was created with ''input'', ''output'', ''build'' or ''cache'' type, additional argument is ignored')
-            end
-            
-        end
-        
-        function Append(self, varargin)
-            %APPEND Adds a results file to the output manifest
-            
-            if ~(strcmpi(self.Type, 'output') || strcmpi(self.Type, 'build'))
-                if ~self.AppendWarningTriggered
-                    warning('Do not append files to an input manifest.')
-                    self.AppendWarningTriggered = true;
-                end
-            end
-            
-            if isa(varargin{1}, 'octue.DataFile')
-                % Append any number of file object arguments to the output manifest
-                for iArg = 1:nargin-1
-                    self.Files = [self.Files; varargin{iArg}];
-                end
-            else
-                % Append a single file, constructed by passing the arguments
-                % through to the output file object constructor
-                self.Files = [self.Files; octue.DataFile(varargin{:})];
-            end
-            
-        end
-        
-        function Save(self, manifestFile)
-            %SAVE Write a manifest file
-            % Used either as a utility for locally generating an input manifest
-            % (e.g. when testing an app), or to construct an output or build 
-            % manifest.
-            
-            % If no name passed, save in input or output directory based on
-            % type (or current dir by default)
-            if nargin == 1
-                switch self.Type
-                    case 'input'
-                        manifestFile = fullfile(octue.get('InputDir'), 'manifest.json');
-                    case 'output'
-                        manifestFile = fullfile(octue.get('OutputDir'), 'manifest.json');
-                    otherwise
-                        manifestFile = 'manifest.json';
-                end
-            end
-        
-            % Open a file for writing text (discarding existing contents if any), print to it, close it
-            fileId = fopen(manifestFile, 'wt');
-            nBytes = fprintf(fileId, '%s', Serialise(self));
-            status = fclose(fileId);
-            assert(status==0, ['Unable to write manifest file: ' manifestFile])
-            fprintf('Wrote %i bytes to file %s\n', nBytes, manifestFile)
-            
-        end
-        
-        function file = GetFileByTag(self, tagString)
-            %GETFILEBYTAG Gets a filename from a manifest by searching for
+        if type not in ['input', 'output', 'build', 'cache', 'json']:
+            raise InvalidManifestType('Instantiate a Manifest object like man = Manifest(type) where type is a string which can have the values ''input'' or ''output''.')
+
+        # Create a manifest UUID. This is overwritten if an existing manifest is deserialised or loaded.
+        self.uuid = utils.gen_uuid()
+
+        self.type = type
+
+        if self.type == 'cache':
+            raise NotImplementedYet('cache type file manifests are unused by octue at present')
+
+                # case 'json'
+                #     if (nargin ~= 2)
+                #         error('Constructing a manifest from a json string requires two inputs: try Manifest(''json'', json_str).')
+                #     elseif ~ischar(json)
+                #         error('Input json not a string')
+                #     elseif isempty(json)
+                #         error('Input json string is empty')
+                #     end
+                #     self = self.Deserialise(json);
+                #     return
+
+
+        if (self.type != 'json') and (json is not None):
+            raise InvalidInput('Manifest was created with "input", "output", "build" or "cache" type, but additional json argument is given. Use "json" to create a manifest from a json string.')
+
+    def append(self, **kwargs):
+        """APPEND Adds a results file to the output manifest
+        """
+
+        # TODO issue a non-recurring warning for appending files to an input manifest
+        # The matlab:
+        #     if ~(strcmpi(self.Type, 'output') || strcmpi(self.Type, 'build'))
+        #         if ~self.AppendWarningTriggered
+        #             warning('Do not append files to an input manifest.')
+        #             self.AppendWarningTriggered = true;
+        #         end
+        #     end
+
+        if 'datafile' in kwargs.keys():
+
+            # TODO allow for appending a list of datafiles
+            # TODO check it's actually a datafile class (Matlab: if isa(varargin{1}, 'octue.DataFile'))
+            self.files.append(kwargs['datafile'])
+
+        else:
+            # Append a single file, constructed by passing the arguments through to DataFile()
+            self.files.append(DataFile(**kwargs))
+
+    def get_file_by_tag(self, tag_string):
+        """ Gets a filename from a manifest by searching for
             %files with the provided tag(s). Gets exclusively one file; if no file
             %or more than one file is found this results in an error.
-            
-            % Split the input tagset into discrete tags
-            tags = strsplit(tagString);
-            
-            % Fill a logical matrix where individual tags are found in files
-            nTags = numel(tags);
-            nFiles = numel(self.Files);
-            found = false([nTags nFiles]);
-            
-            for iTag = 1:nTags
-                for iFile = 1:nFiles
-                    k = strfind(self.Files(iFile).Tags, tags{iTag});
-                    if ~isempty(k)
-                        found(iTag, nFiles) = true;
-                    end
-                end
-            end
-            
-            % Check for files where all tags were found. Error on zero or
-            % multiple files
-            found = all(found, 1);
-            if sum(found) == 0
-                error(['No files found in the manifest with tags ''' tagString '''.'])
-            elseif sum(found) > 1
-                error(['More than one file found in the manifest with tags ''' tagString '''.'])
-            end
-            
-            % Output the one file for which all tags were found
-            file = self.Files(found);
-            
-        end
-        
-        function str = Serialise(self)
-            %SERIALISE Serialises a manifest into a json string
-            
-            % TODO improved serialisation by passing MATLAB structures into
-            % jsonencode() (R2016b and later)
-            
-            % TODO Update toJson method in octue.DataFile to match the
-            % Serialise() api here.
-            
-            % Serialise each file into a list
-            files = '[';
-            for i = 1:numel(self.Files)-1
-                files = [files self.Files(i).toJson() ', ']; %#ok<AGROW>
-            end
-            files = [files self.Files(end).toJson() ']'];
-            
-            % Create the manifest string
-            str = sprintf('{"uuid": "%s", "type": "%s", "files": %s\n}',...
-                             self.Uuid, self.Type, files);
-        
-        end
-        
-        function self = Deserialise(self, json)
-            %DESERIALISE Initialises an manifest using the contents of a json
-            %string. Manages conversion from snake_case to CapCamelCase to
-            %comply with MATLAB style-guide-conformant classes.
-            
-            s = jsondecode(json);
-            
-            % Validate the input json
-            % TODO More validators on manifest contents
-            if ~ischar(json)
-                error('Input json must be a string')
-            end
-            if ~isfield(s, 'type')
-                error('Octue:InvalidManifest', 'No type key in the manifest json: %s', json)
-            end
-            if ~isfield(s, 'uuid')
-                error('Octue:InvalidManifest', 'No uuid key in the manifest json: %s', json)
-            end
-            if ~isfield(s, 'files')
-                error('Octue:InvalidManifest', 'No files key in the manifest json: %s', json)
-            end
-            
-            % Set the manifest properties, initialising a DataFile object array
-            self.Type = s.type;
-            self.Uuid = s.uuid;
-            self.Files = [];
-            for i = 1:numel(s.files)
-                % TODO remove cell references for R2016b onward
-                a = s.files{i};
-                self.Files = [self.Files, octue.DataFile(a)];
-            end
-        end
-        
-        
-    end
-    
-    methods (Static)
-            
-        function obj = Load(manifestFile)
-            %LOAD Load from and validate contents of a manifest file
-            
-            % If no name passed, load from current directory
-            if nargin > 1
-                manifestFile = 'manifest.json';
-            end
-            
-            % Get the json string from the file
-            json = fileread(manifestFile);
-            
-            % Construct a new Manifest object from the json
-            obj = octue.Manifest('json', json);
-        end
-        
-    end
-    
-end
-"""
+
+        :param tag_string:
+        :return: DataFile object
+        """
+
+        # TODO
+        # % Split the input tagset into discrete tags
+        # tags = strsplit(tagString);
+        #
+        # % Fill a logical matrix where individual tags are found in files
+        # nTags = numel(tags);
+        # nFiles = numel(self.Files);
+        # found = false([nTags nFiles]);
+        #
+        # for iTag = 1:nTags
+        #     for iFile = 1:nFiles
+        #         k = strfind(self.Files(iFile).Tags, tags{iTag});
+        #         if ~isempty(k)
+        #             found(iTag, nFiles) = true;
+        #         end
+        #     end
+        # end
+        #
+        # % Check for files where all tags were found. Error on zero or
+        # % multiple files
+        # found = all(found, 1);
+        # if sum(found) == 0
+        #     error(['No files found in the manifest with tags ''' tagString '''.'])
+        # elseif sum(found) > 1
+        #     error(['More than one file found in the manifest with tags ''' tagString '''.'])
+        # end
+        #
+        # % Output the one file for which all tags were found
+        # file = self.Files(found);
+        raise NotImplementedYet()
+
+    def save(self, manifest_file=None):
+        """ Write a manifest file
+        Used either as a utility for locally generating an input manifest (e.g. when testing an app), or to construct
+        an output or build manifest during app creation or analyses.
+        """
+
+        # If no name passed, save in input or output directory based on type (or current dir by default)
+        if not manifest_file:
+            if self.type == 'input':
+                manifest_file = os.path.join(get('InputDir'), 'manifest.json')
+            elif self.type == 'output':
+                manifest_file = os.path.join(get('OutputDir'), 'manifest.json')
+            else:
+                manifest_file = 'manifest.json'
+
+        json.dump(self, manifest_file, cls=ManifestEncoder, sort_keys=True, indent=4)
+
+    def serialise(self):
+        """ Serialises this manifest into a json string
+        """
+        return json.dumps(self, cls=ManifestEncoder)
+
+    @staticmethod
+    def deserialise(json):
+        """ Initialises a manifest using the contents of a json string. Note snake_case convention in the manifest and
+        config files is consistent with the PEP8 style used here, so no need for name conversion.
+        """
+
+        def as_data_file_list(json_object):
+            if 'files' in json_object:
+                return [DataFile.deserialise(data_file_json) for data_file_json in json_object['files']]
+            return json_object
+
+        # TODO validations
+        return JSONDecoder(object_hook=as_data_file_list).decode(json)
+
+    @staticmethod
+    def load(manifest_file=None):
+        """Load manifest from and validate contents of a manifest file
+        :return: Instantiated Manifest object
+        """
+
+        # If no name passed, load from current directory
+        if not manifest_file:
+            manifest_file = 'manifest.json'
+
+        return Manifest('file', manifest_file)
 
 
-def add_to_manifest(file_type, file_name, meta_data=None):
-    """Adds details of a results file to the output files manifest
-    """
-
-    global manifest
-
-    valid_types = ['figure', 'text', 'json_data', 'image', 'other_data']
-    if file_type not in valid_types:
-        raise InvalidOctueFileType('Provided file type "{ft}" is not in the list of valid types. Try one of: {vt}'.format(ft=file_type,vt=valid_types))
-
-    # Is manifest defined yet?
-    try:
-        manifest
-    except NameError:
-        manifest = list()
-
-    manifest.append({'file_type': file_type, 'file_name': file_name, 'meta_data': meta_data})
+# def add_to_manifest(file_type, file_name, meta_data=None):
+#     """Adds details of a results file to the output files manifest
+#     """
+#
+#     global manifest
+#
+#     # Is manifest defined yet?
+#     try:
+#         manifest
+#     except NameError:
+#         manifest = list()
 
 
 def add_figure(**kwargs):
-    """
-    %ADDFIGURE Adds a figure to the output file manifest. Automatically adds the
-    %tags 'type:fig extension:json'
+    """ Adds a figure to the output file manifest. Automatically adds the tags 'type:fig extension:json'
     %
     %   ADDFIGURE(p) writes a JSON file from a plotlyfig object p (see
     %   figure.m example file in octue-app-matlab).
