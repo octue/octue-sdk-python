@@ -1,31 +1,8 @@
+from .resources import Analysis, DataFile
 from .exceptions import InvalidOctueFileType
 import click
 
 
-class DataFile(object):
-
-    id = None
-    name = None
-    tags = list()
-    description = None
-
-
-class Analysis(object):
-
-    input_files = list()
-    input_tags = list()
-    id = None
-
-    def __init__(self):
-        pass
-
-    def parse_input_files(self, mapfile):
-        # TODO parse a json structure
-        pass
-
-    def init_log(self, logfile):
-        # TODO use the logger as in amy to mirror output between terminal and logfile
-        pass
 
 
 octue_analysis = click.make_pass_decorator(Analysis, ensure=True)
@@ -58,20 +35,70 @@ def octue_app(analysis, id, verbose, input_dir, tmp_dir, output_dir, log_dir, ma
     analysis.init_log(log_dir)
 
 
-def add_to_manifest(file_type, file_name, meta_data=None):
-    """Adds details of a results file to the output files manifesto.
-    """
 
-    global manifest
+# TODO Check these options match the MATLAB SDK command line argument structure:
+"""
+function [command, args] = argParser(varargin)
+%ARGPARSER Parses the Octue unix command line options
+% MATLAB style argument parsing (using inputParser) is recommended within your
+% MATLAB codebase, but is a nightmare when it comes to parsing the widely used 
+% unix style command line options (which are used by the octue executable
+% launcher). 
+%
+% Here, we do a quick and dirty parse of the input string argument to mimic a
+% unix style parser for our CLI options. You shouldn't need to touch this.
 
-    valid_types = ['figure', 'text', 'json_data', 'image', 'other_data']
-    if file_type not in valid_types:
-        raise InvalidOctueFileType('Provided file type "{ft}" is not in the list of valid types. Try one of: {vt}'.format(ft=file_type,vt=valid_types))
+% TODO implement a proper unix options parser class
 
-    # Is manifest defined yet?
-    try:
-        manifest
-    except NameError:
-        manifest = list()
+% Defaults
+args.Id = [];
+args.Local = true;
+args.InputDir = './input';
+args.OutputDir = './output';
+args.TmpDir = './tmp';
+args.LogDir = './log';
+command = [];
 
-    manifest.append({'file_type': file_type, 'file_name': file_name, 'meta_data': meta_data})
+for iArg = 1:numel(varargin)
+    switch varargin{iArg}
+        case '--id'
+            args.Id = varargin{iArg+1};
+        case '--local'
+            args.Local = varargin{iArg+1};
+        case '--verbose'
+            warning('Found deprecated verbose option: control output verbosity using log level.')
+        case '--input-dir'
+            args.InputDir = varargin{iArg+1};
+        case '--tmp-dir'
+            args.TmpDir = varargin{iArg+1};
+        case '--output-dir'
+            args.OutputDir = varargin{iArg+1};
+        case '--log-dir'
+            args.LogDir = varargin{iArg+1};
+        case 'run'
+            if ~isempty(command)
+                error('You cannot specify multiple commands. Use either ''run, ''version'' or ''schema''.')
+            end
+            command = 'run';
+        case 'version'
+            if ~isempty(command)
+                error('You cannot specify multiple commands. Use either ''run, ''version'' or ''schema''.')
+            end
+            command = 'version';
+        case 'schema'
+            if ~isempty(command)
+                error('You cannot specify multiple commands. Use either ''run, ''version'' or ''schema''.')
+            end
+            command = 'schema';
+        case 'mapfile'
+            warning('Found deprecated mapfile command: using <inputDir>/manifest.json and <inputDir>/config.json')
+    end
+end
+
+% Check for the required argument
+if isempty(command)
+    error('You must specify a command. ''run'', ''version'' and ''schema'' are valid options.')
+end
+
+end
+"""

@@ -7,6 +7,6 @@ setup(
     install_requires=['Click'],
     entry_points='''
     [console_scripts]
-    octue-app=octue_app
+    octue=octue_app
     ''',
 )
