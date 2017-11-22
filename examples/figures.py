@@ -1,8 +1,8 @@
-from oasys import oasys_analysis, add_to_manifest
+from octue import octue_analysis, add_to_manifest
 import json
 
 
-@oasys_analysis
+@octue_analysis
 def create_figure_file(analysis):
     """ Saves json file constructed from some analysis results. The json will be used later to create a figure. File can be saved to an arbitrary location, but by default is saved to the current directory
     """

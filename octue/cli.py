@@ -1,4 +1,4 @@
-from .exceptions import InvalidOasysFileType
+from .exceptions import InvalidOctueFileType
 import click
 
 
@@ -28,12 +28,7 @@ class Analysis(object):
         pass
 
 
-oasys_analysis = click.make_pass_decorator(Analysis, ensure=True)
-
-
-# @oasys_analysis
-# def get_analysis(analysis_instance):
-#     return analysis_instance
+octue_analysis = click.make_pass_decorator(Analysis, ensure=True)
 
 
 @click.group()
@@ -45,9 +40,9 @@ oasys_analysis = click.make_pass_decorator(Analysis, ensure=True)
 @click.option('--log-dir', type=click.Path(), default='./logs', help='Path to the location of log files')
 @click.argument('mapfile', type=click.File('r'), required=True)
 
-@oasys_analysis
-def oasys_app(analysis, id, verbose, input_dir, tmp_dir, output_dir, log_dir, mapfile):
-    """Creates the CLI for an OASYS application, which accepts the
+@octue_analysis
+def octue_app(analysis, id, verbose, input_dir, tmp_dir, output_dir, log_dir, mapfile):
+    """Creates the CLI for an Octue application
     """
 
     # Set analysis properties
@@ -71,7 +66,7 @@ def add_to_manifest(file_type, file_name, meta_data=None):
 
     valid_types = ['figure', 'text', 'json_data', 'image', 'other_data']
     if file_type not in valid_types:
-        raise InvalidOasysFileType('Provided file type "{ft}" is not in the list of valid types. Try one of: {vt}'.format(ft=file_type,vt=valid_types))
+        raise InvalidOctueFileType('Provided file type "{ft}" is not in the list of valid types. Try one of: {vt}'.format(ft=file_type,vt=valid_types))
 
     # Is manifest defined yet?
     try:

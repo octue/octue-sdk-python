@@ -1,12 +1,12 @@
-from oasys import oasys_app, oasys_analysis
+from octue import octue_app, octue_analysis
 import examples
 import os
 
 
-@oasys_app.command()
-@oasys_analysis
+@octue_app.command()
+@octue_analysis
 def run(analysis):
-    """ Runs the application on the oasys platform.
+    """ Runs the application on the octue platform.
 
     :parameter analysis: an Analysis class object which contains the analysis configuration, the input file
     manifest and locations of input, tmp and output directories.
@@ -28,15 +28,15 @@ def run(analysis):
     examples.create_figure_file()
 
 
-@oasys_app.command()
+@octue_app.command()
 def version():
     """ Returns the version number of the application
     """
 
     # Top Tip:
-    # For all OASYS' internal apps, we simply return the git revision of the code.
+    # For all Octue internal apps, we simply return the git revision of the code.
     # Every single commit creates a new version, we can always check out the exact version of the code that ran, and we
-    # can quickly look up the version state and history on github when we have to debug an app.
+    # can quickly look up the version state and history on github when we have to debug an app. Sweet!
     version_no = os.system('git rev-parse HEAD')
 
     # Return the version number as a string
