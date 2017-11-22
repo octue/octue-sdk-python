@@ -1,17 +1,12 @@
-import os
 from setuptools import setup
 
-
-def git_version():
-    return os.system('git rev-parse HEAD')
-
-
 setup(
-    name="my_application_name",
-    version=git_version(),
-    py_modules=['app'],
+    name="octue",
+    version=0.1,
+    py_modules=['cli'],
+    install_requires=['Click'],
     entry_points='''
     [console_scripts]
-    oasys-app=app:oasys_app
+    octue-app=octue_app
     ''',
 )
