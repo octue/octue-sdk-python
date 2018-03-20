@@ -1,7 +1,7 @@
-from distutils.core import setup
+from setuptools import setup
 
 
-setup(name='octue-sdk-python',
+setup(name='octue',
       version='0.1',
       # packages=['octue', 'octue.utils', 'octue.config', 'octue.manifest', 'octue.resources'],
       url='https://www.github.com/octue/octue-sdk-python',
