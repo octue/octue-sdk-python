@@ -3,7 +3,7 @@ from distutils.core import setup
 
 setup(name='octue-sdk-python',
       version='0.1',
-      packages=['octue', 'octue.utils', 'octue.config', 'octue.manifest', 'octue.resources'],
+      # packages=['octue', 'octue.utils', 'octue.config', 'octue.manifest', 'octue.resources'],
       url='https://www.github.com/octue/octue-sdk-python',
       license='',
       author='thclark',
