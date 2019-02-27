@@ -192,10 +192,11 @@ class Manifest(object):
         return Manifest('file', manifest_file)
 
 
-# def add_to_manifest(file_type, file_name, meta_data=None):
-#     """Adds details of a results file to the output files manifest
-#     """
-#
+def add_to_manifest(file_type, file_name, meta_data=None):
+    """Adds details of a results file to the output files manifest
+    """
+    pass
+
 #     global manifest
 #
 #     # Is manifest defined yet?
