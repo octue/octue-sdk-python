@@ -16,7 +16,8 @@ with open('LICENSE') as f:
 
 setup(name='octue',
       version='0.1.0',
-      # packages=['octue', 'octue.utils', 'octue.config', 'octue.manifest', 'octue.resources'],
+      py_modules=['cli'],
+      install_requires=['Click'],
       url='https://www.github.com/octue/octue-sdk-python',
       license=license_text,
       author='Thomas Clark',
