@@ -1,5 +1,5 @@
 import json
-from .. import utils
+from octue import utils
 
 
 class DataFile(object):

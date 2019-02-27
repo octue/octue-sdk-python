@@ -1,10 +1,10 @@
-import os
 import json
-from ..exceptions import *
-from ..get import get
-from ..resources import DataFile
-from .. import utils
 from json import JSONEncoder, JSONDecoder
+
+from octue.exceptions import InvalidManifestType, InvalidInput
+from octue import utils
+
+from .data_file import DataFile
 
 
 TYPE_REMOTE = 'remote'      # Remote file manifest (files not present on octue)
@@ -55,7 +55,8 @@ class Manifest(object):
 
         if self.type not in TYPE_CHOICES:
             raise InvalidManifestType(
-                'Attempted to specify an invalid manifest type. Valid types: {}'.format(TYPE_CHOICES))
+                'Attempted to specify an invalid manifest type. Valid types: {}'.format(TYPE_CHOICES)
+            )
 
         if self.uuid is None:
             self.uuid = utils.gen_uuid()
@@ -78,7 +79,8 @@ class Manifest(object):
         if 'data_file' in kwargs.keys():
             if kwargs['data_file'].__class__.__name__ != 'DataFile':
                 raise InvalidInput(
-                    'Object "{}" must be of type DataFile to append it to a manifest'.format(kwargs['data_file']))
+                    'Object "{}" must be of type DataFile to append it to a manifest'.format(kwargs['data_file'])
+                )
             self.files.append(kwargs['datafile'])
 
         else:
@@ -182,9 +184,11 @@ class Manifest(object):
         """
 
         def as_data_file_list(json_object):
+            files = []
             if 'files' in json_object:
-                return [DataFile.deserialise(data_file_json) for data_file_json in json_object['files']]
-            return json_object
+                files = [DataFile.deserialise(data_file_json) for data_file_json in json_object.pop('files')]
+
+            return {**json_object, 'files': files}
 
         return Manifest(**JSONDecoder(object_hook=as_data_file_list).decode(json))
 

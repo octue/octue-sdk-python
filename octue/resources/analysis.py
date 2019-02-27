@@ -2,20 +2,21 @@ import json
 import logging
 import os
 
-from ..manifest import Manifest
-from ..exceptions import FolderNotPresent
+from octue.exceptions import FolderNotPresent
+
+from .manifest import Manifest
 
 
 class Analysis(object):
     """ Analysis configuration for running an app
 
-     The Analysis class provides a set of configuration parameters for use by
-     your application, together with a range of methods for managing input and
-     output file parsing as well as controlling logging.
+    The Analysis class provides a set of configuration parameters for use by
+    your application, together with a range of methods for managing input and
+    output file parsing as well as controlling logging.
 
-     A single analysis object should exist, passed by reference so any additions or modifications made by one routine
-     are accessible wherever else the instance is used. This can be used for communication between functions, but such
-     usage is not recommended: modification or subclassing of the Analysis object should be treated with extreme caution
+    A single analysis object should exist, passed by reference so any additions or modifications made by one routine
+    are accessible wherever else the instance is used. This can be used for communication between functions, but such
+    usage is not recommended: modification or subclassing of the Analysis object should be treated with extreme caution
 
     TODO implement the following remaining methods for consistency with the MATLAB SDK
 
@@ -44,7 +45,7 @@ class Analysis(object):
         self.IsLocal = true;
     end
 
-"""
+    """
 
     id = None
     input_dir = None
@@ -63,14 +64,6 @@ class Analysis(object):
         """
         return ~(self.id is None)
 
-    def __init__(self, *args, **kwargs):
-        """ Instantiate an Analysis object
-
-        Accepts arguments as per the setup() method
-
-        """
-        self.setup(*args, **kwargs)
-
     def setup(self, id=None, data_dir='.', input_dir=None, log_dir=None, output_dir=None, tmp_dir=None, skip_checks=False):
         """ Sets up the analysis object
         :param id:
@@ -87,10 +80,14 @@ class Analysis(object):
         self.output_dir = output_dir if output_dir else data_dir + '/output'
         self.tmp_dir = tmp_dir if tmp_dir else data_dir + '/tmp'
 
-        if ~os.path.isdir(input_dir): raise FolderNotPresent('Missing input directory: {}'.format(input_dir))
-        if ~os.path.isdir(log_dir): raise FolderNotPresent('Missing log directory: {}'.format(log_dir))
-        if ~os.path.isdir(output_dir): raise FolderNotPresent('Missing output directory: {}'.format(output_dir))
-        if ~os.path.isdir(tmp_dir): raise FolderNotPresent('Missing tmp directory: {}'.format(tmp_dir))
+        if not os.path.isdir(self.input_dir):
+            raise FolderNotPresent('Missing input directory: {}'.format(self.input_dir))
+        if not os.path.isdir(self.log_dir):
+            raise FolderNotPresent('Missing log directory: {}'.format(self.log_dir))
+        if not os.path.isdir(self.output_dir):
+            raise FolderNotPresent('Missing output directory: {}'.format(self.output_dir))
+        if not os.path.isdir(self.tmp_dir):
+            raise FolderNotPresent('Missing tmp directory: {}'.format(self.tmp_dir))
 
         # Attach configuration properties to the analysis object
         self.config_from_file(skip_checks)
@@ -100,7 +97,7 @@ class Analysis(object):
 
         # Create input and output manifests
         self.input_manifest_from_file(skip_checks)
-        self.output_manifest = Manifest()
+        self.output_manifest = Manifest(type='dataset')
 
     def config_from_file(self, skip_checks=False):
         """ Read the config.json file into a dict
@@ -108,9 +105,9 @@ class Analysis(object):
         :return: None
         """
 
-        config_file_name = os.path.join(self.input_dir, 'config.json')
-
-        self.config = json.load(config_file_name)
+        config_file_name = str(os.path.join(self.input_dir, 'config.json'))
+        with open(config_file_name, 'r') as config_file:
+            self.config = json.load(config_file)
 
         if ~skip_checks:
             # TODO validate the config against the schema!!!
@@ -151,9 +148,8 @@ class Analysis(object):
     def input_manifest_from_file(self, skip_checks=False):
 
         input_manifest_file = os.path.join(self.input_dir, 'manifest.json')
-        self.input_manifest = Manifest()
-        self.input_manifest.load(input_manifest_file)
+        self.input_manifest = Manifest.load(input_manifest_file)
 
 
-# Instantiate so a single analysis instance is refered to by all code
+# Instantiate so a single analysis instance is referred to by all code
 analysis = Analysis()
