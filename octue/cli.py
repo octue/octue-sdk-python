@@ -23,6 +23,7 @@ def octue_app(analysis, id, verbose, skip_checks, data_dir, input_dir, tmp_dir, 
     analysis.setup(
         id=id,
         skip_checks=skip_checks,
+        data_dir=data_dir,
         input_dir=input_dir,
         tmp_dir=tmp_dir,
         output_dir=output_dir,
