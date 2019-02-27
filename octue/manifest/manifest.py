@@ -7,9 +7,23 @@ from .. import utils
 from json import JSONEncoder, JSONDecoder
 
 
+TYPE_REMOTE = 'remote'      # Remote file manifest (files not present on octue)
+TYPE_BUILD = 'build'        # Build system manifest (build files only, for octue internal use)
+TYPE_DATASET = 'dataset'    # Single-Dataset manifest (files in a dataset)
+TYPE_MULTI = 'multi'        # Multi-Dataset manifest (files in multiple datasets)
+TYPE_CHOICES = [TYPE_REMOTE, TYPE_BUILD, TYPE_DATASET, TYPE_MULTI]
+
+STATUS_CREATED = 'created'          # Manifest created
+STATUS_PROCESSING = 'processing'    # Running automatic manifesting algorithm
+STATUS_SUCCESS = 'success'          # Manifesting complete (success)
+STATUS_FAILED = 'failed'            # Manifesting complete (failed)
+STATUS_CHOICES = [STATUS_CREATED, STATUS_PROCESSING, STATUS_SUCCESS, STATUS_FAILED]
+
+
 class ManifestEncoder(JSONEncoder):
-    """Base encoder for manifest files
+    """Base encoder for manifests
     """
+
     def default(self, obj):
         # TODO generalise to if __hasattr__('serialise') and abstract the Encoder class away
         if isinstance(obj, DataFile):
@@ -23,142 +37,138 @@ class ManifestEncoder(JSONEncoder):
 
 
 class Manifest(object):
-    """ MANIFEST Manifest of files
-    A manifest is used to read list of files (and their associated properties)
-    input to an octue analysis or to compile a list of output files (results)
-    and their properties that will be sent back to the octue sytem.
+    """ Manifest of files in one or more datasets
 
-    classdef Manifest < handle
-    %
-    % Manifest Properties:
-    %   Type - A string, 'input' for input (read-only) manifests and
-    %   'output' for appendable output manifests
-    %   Files - An array of DataFile objects, each referencing a file and its
-    %   associated metadata
-    %
-    % Manifest Methods:
-    %   Manifest - Instantiate an object of class Manifest
-    %   Append - Append a file or files to the manifest
-    %   Save - Serialise the manifest to a json type file
-    %   Load - Deserialise a manifest from a json type file
+    A manifest is used to read a list of files (and their associated properties) into octue analysis, or to compile a
+    list of output files (results) and their properties that will be sent back to the octue system.
 
     """
-        
+
     uuid = None
-    type = 'input'
-    files = []
+    type = None
+    files = None
 
-    _appendWarningTriggered = False
-
-    def __init__(self, type='input', json=None):
-        """Construct a file manifest object of given type.
+    def __init__(self, **kwargs):
+        """Construct a file Manifest
         """
-            
-        if type not in ['input', 'output', 'build', 'cache', 'json']:
-            raise InvalidManifestType('Instantiate a Manifest object like man = Manifest(type) where type is a string which can have the values ''input'' or ''output''.')
+        self.__dict__.update(**kwargs)
 
-        # Create a manifest UUID. This is overwritten if an existing manifest is deserialised or loaded.
-        self.uuid = utils.gen_uuid()
+        if self.type not in TYPE_CHOICES:
+            raise InvalidManifestType(
+                'Attempted to specify an invalid manifest type. Valid types: {}'.format(TYPE_CHOICES))
 
-        self.type = type
+        if self.uuid is None:
+            self.uuid = utils.gen_uuid()
 
-        if self.type == 'cache':
-            raise NotImplementedYet('cache type file manifests are unused by octue at present')
-
-                # case 'json'
-                #     if (nargin ~= 2)
-                #         error('Constructing a manifest from a json string requires two inputs: try Manifest(''json'', json_str).')
-                #     elseif ~ischar(json)
-                #         error('Input json not a string')
-                #     elseif isempty(json)
-                #         error('Input json string is empty')
-                #     end
-                #     self = self.Deserialise(json);
-                #     return
-
-
-        if (self.type != 'json') and (json is not None):
-            raise InvalidInput('Manifest was created with "input", "output", "build" or "cache" type, but additional json argument is given. Use "json" to create a manifest from a json string.')
+        if self.files is None:
+            self.files = []
 
     def append(self, **kwargs):
-        """APPEND Adds a results file to the output manifest
+        """ Add a data/results file to the manifest
+
+        Usage:
+            my_file = octue.DataFile(...)
+            my_manifest.append(datafile=my_file)
+
+            # or more simply
+            my_manifest.append(**{...}) which implicitly creates the datafile from the starred list of input arguments
+
+        TODO allow for appending a list of datafiles
         """
-
-        # TODO issue a non-recurring warning for appending files to an input manifest
-        # The matlab:
-        #     if ~(strcmpi(self.Type, 'output') || strcmpi(self.Type, 'build'))
-        #         if ~self.AppendWarningTriggered
-        #             warning('Do not append files to an input manifest.')
-        #             self.AppendWarningTriggered = true;
-        #         end
-        #     end
-
-        if 'datafile' in kwargs.keys():
-
-            # TODO allow for appending a list of datafiles
-            # TODO check it's actually a datafile class (Matlab: if isa(varargin{1}, 'octue.DataFile'))
+        if 'data_file' in kwargs.keys():
+            if kwargs['data_file'].__class__.__name__ != 'DataFile':
+                raise InvalidInput(
+                    'Object "{}" must be of type DataFile to append it to a manifest'.format(kwargs['data_file']))
             self.files.append(kwargs['datafile'])
 
         else:
             # Append a single file, constructed by passing the arguments through to DataFile()
             self.files.append(DataFile(**kwargs))
 
-    def get_file_by_tag(self, tag_string):
-        """ Gets a filename from a manifest by searching for
-            %files with the provided tag(s). Gets exclusively one file; if no file
-            %or more than one file is found this results in an error.
+    def get_files(self, method='name_icontains', files=None, filter_value=None):
+        """ Get a list of data files in a manifest whose name contains the input string
 
-        :param tag_string:
+        TODO improved comprehension for compact search syntax here.
+         Searching in different fields, dates date ranges, case sensitivity, search in path, metadata searches,
+         filestartswith, search indexing of files, etc etc. Could have a list of tuples with different criteria, AND
+         them or OR them.
+
+        :return: results list of matching datafiles
+        """
+
+        # Search through the input list of files or by default all files in the manifest
+        files = files if files else self.files
+
+        results = []
+        for file in files:
+            if method == 'name_icontains' and filter_value.lower() in file.name.lower():
+                results.append(file)
+            if method == 'name_contains' and filter_value in file.name:
+                results.append(file)
+            if method == 'name_endswith' and file.name.endswith(filter_value):
+                results.append(file)
+            if method == 'tag_exact' and filter_value in file.tags:
+                results.append(file)
+            if method == 'tag_startswith':
+                for tag in file.tags:
+                    if tag.startswith(filter_value):
+                        results.append(file)
+                        break
+            if method == 'tag_endswith':
+                for tag in file.tags:
+                    if tag.endswith(filter_value):
+                        results.append(file)
+                        break
+            if method == 'in_sequence':
+                for tag in file.tags:
+                    if tag.startswith('sequence'):
+                        results.append(file)
+                        break
+
+        return results
+
+    def get_file_sequence(self, filter_value=None, method='name_icontains', files=None):
+        """ Get an ordered sequence of files matching a criterion
+
+        Accepts the same search arguments as `get_files`.
+
+        """
+
+        results = self.get_files(filter_value=filter_value, method=method, files=files)
+        results = self.get_files(method='in_sequence', files=results)
+
+        # Take second element for sort
+        def get_sequence_number(file):
+            for tag in file.tags:
+                if tag.startswith('sequence'):
+                    sequence_number = int(tag.split(':')[1])
+
+        # Sort the results on ascending sequence number
+        results.sort(key=get_sequence_number)
+
+    def get_file_by_tag(self, tag_string):
+        """ Gets a data file from a manifest by searching for files with the provided tag(s)\
+
+        Gets exclusively one file; if no file or more than one file is found this results in an error.
+
+        :param tag_string: if this string appears as an exact match in the tags
         :return: DataFile object
         """
+        results = self.get_files(method='tag_exact', filter_value=tag_string)
+        if len(results) > 1:
+            raise UnexpectedNumberOfResults('More than one result found when searching for a file by tag')
+        elif len(results) == 0:
+            raise UnexpectedNumberOfResults('No files found with this tag')
 
-        # TODO
-        # % Split the input tagset into discrete tags
-        # tags = strsplit(tagString);
-        #
-        # % Fill a logical matrix where individual tags are found in files
-        # nTags = numel(tags);
-        # nFiles = numel(self.Files);
-        # found = false([nTags nFiles]);
-        #
-        # for iTag = 1:nTags
-        #     for iFile = 1:nFiles
-        #         k = strfind(self.Files(iFile).Tags, tags{iTag});
-        #         if ~isempty(k)
-        #             found(iTag, nFiles) = true;
-        #         end
-        #     end
-        # end
-        #
-        # % Check for files where all tags were found. Error on zero or
-        # % multiple files
-        # found = all(found, 1);
-        # if sum(found) == 0
-        #     error(['No files found in the manifest with tags ''' tagString '''.'])
-        # elseif sum(found) > 1
-        #     error(['More than one file found in the manifest with tags ''' tagString '''.'])
-        # end
-        #
-        # % Output the one file for which all tags were found
-        # file = self.Files(found);
-        raise NotImplementedYet()
-
-    def save(self, manifest_file=None):
+    def save(self, manifest_file_name):
         """ Write a manifest file
+
         Used either as a utility for locally generating an input manifest (e.g. when testing an app), or to construct
         an output or build manifest during app creation or analyses.
+
+        :param: manifest_file_name the file to write to, including relative or absolute path and .json extension
         """
-
-        # If no name passed, save in input or output directory based on type (or current dir by default)
-        if not manifest_file:
-            if self.type == 'input':
-                manifest_file = os.path.join(get('InputDir'), 'manifest.json')
-            elif self.type == 'output':
-                manifest_file = os.path.join(get('OutputDir'), 'manifest.json')
-            else:
-                manifest_file = 'manifest.json'
-
-        json.dump(self, manifest_file, cls=ManifestEncoder, sort_keys=True, indent=4)
+        json.dump(self, manifest_file_name, cls=ManifestEncoder, sort_keys=True, indent=4)
 
     def serialise(self):
         """ Serialises this manifest into a json string
@@ -176,34 +186,15 @@ class Manifest(object):
                 return [DataFile.deserialise(data_file_json) for data_file_json in json_object['files']]
             return json_object
 
-        # TODO validations
-        return JSONDecoder(object_hook=as_data_file_list).decode(json)
+        return Manifest(**JSONDecoder(object_hook=as_data_file_list).decode(json))
 
     @staticmethod
-    def load(manifest_file=None):
+    def load(file_name=None):
         """Load manifest from and validate contents of a manifest file
         :return: Instantiated Manifest object
         """
-
-        # If no name passed, load from current directory
-        if not manifest_file:
-            manifest_file = 'manifest.json'
-
-        return Manifest('file', manifest_file)
-
-
-def add_to_manifest(file_type, file_name, meta_data=None):
-    """Adds details of a results file to the output files manifest
-    """
-    pass
-
-#     global manifest
-#
-#     # Is manifest defined yet?
-#     try:
-#         manifest
-#     except NameError:
-#         manifest = list()
+        with open(file_name, 'r') as file:
+            return Manifest.deserialise(file.read())
 
 
 def add_figure(**kwargs):
@@ -275,5 +266,5 @@ def add_figure(**kwargs):
 
     end
     """
-    uuid=None
+    uuid = None
     return uuid
