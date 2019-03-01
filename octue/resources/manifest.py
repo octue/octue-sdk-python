@@ -1,7 +1,7 @@
 import json
 from json import JSONEncoder, JSONDecoder
 
-from octue.exceptions import InvalidManifestType, InvalidInput
+from octue.exceptions import InvalidManifestType, InvalidInput, UnexpectedNumberOfResults, ManifestNotFound
 from octue import utils
 
 from .data_file import DataFile
@@ -36,21 +36,52 @@ class ManifestEncoder(JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
+class MultiManifest(object):
+    """ A manifest that can contain multiple datasets
+    """
+    def __init__(self, manifests):
+        self.manifests = manifests
+
+    def from_dataset(self, method='name_icontains', filter_value=None):
+        # Search through the input list of files or by default all files in the manifest
+
+        for man in self.manifests:
+            print(man.data_set)
+            if method == 'name_icontains' and filter_value.lower() in man.data_set['name'].lower():
+                return man
+            if method == 'name_contains' and filter_value in man.data_set['name']:
+                return man
+            if method == 'name_endswith' and man.data_set['name'].endswith(filter_value):
+                return man
+            if method == 'tag_exact' and filter_value in man.data_set['tags']:
+                return man
+            if method == 'tag_startswith':
+                for tag in man.data_set['tags']:
+                    if tag.startswith(filter_value):
+                        return man
+            if method == 'tag_endswith':
+                for tag in man.data_set['tags']:
+                    if tag.endswith(filter_value):
+                        return man
+        # TODO turn DataSet dict into an SDK object
+        raise ManifestNotFound('None of the datasets in the present manifest match this search criterion')
+
+
 class Manifest(object):
-    """ Manifest of files in one or more datasets
+    """ Manifest of files in a dataset
 
     A manifest is used to read a list of files (and their associated properties) into octue analysis, or to compile a
     list of output files (results) and their properties that will be sent back to the octue system.
 
     """
 
-    uuid = None
-    type = None
-    files = None
-
     def __init__(self, **kwargs):
         """Construct a file Manifest
         """
+        self.uuid = None
+        self.type = None
+        self.files = None
+
         self.__dict__.update(**kwargs)
 
         if self.type not in TYPE_CHOICES:
@@ -87,6 +118,9 @@ class Manifest(object):
             # Append a single file, constructed by passing the arguments through to DataFile()
             self.files.append(DataFile(**kwargs))
 
+    def get_dataset_manifest(self):
+        return self
+
     def get_files(self, method='name_icontains', files=None, filter_value=None):
         """ Get a list of data files in a manifest whose name contains the input string
 
@@ -122,14 +156,12 @@ class Manifest(object):
                         results.append(file)
                         break
             if method == 'in_sequence':
-                for tag in file.tags:
-                    if tag.startswith('sequence'):
-                        results.append(file)
-                        break
+                if file.sequence is not None:
+                    results.append(file)
 
         return results
 
-    def get_file_sequence(self, filter_value=None, method='name_icontains', files=None):
+    def get_file_sequence(self, method='name_icontains', filter_value=None, files=None):
         """ Get an ordered sequence of files matching a criterion
 
         Accepts the same search arguments as `get_files`.
@@ -139,14 +171,15 @@ class Manifest(object):
         results = self.get_files(filter_value=filter_value, method=method, files=files)
         results = self.get_files(method='in_sequence', files=results)
 
-        # Take second element for sort
         def get_sequence_number(file):
-            for tag in file.tags:
-                if tag.startswith('sequence'):
-                    sequence_number = int(tag.split(':')[1])
+            return file.sequence
 
         # Sort the results on ascending sequence number
         results.sort(key=get_sequence_number)
+
+        # TODO check sequence is unique and sequential!!!
+        return results
+
 
     def get_file_by_tag(self, tag_string):
         """ Gets a data file from a manifest by searching for files with the provided tag(s)\
@@ -186,11 +219,16 @@ class Manifest(object):
         def as_data_file_list(json_object):
             files = []
             if 'files' in json_object:
-                files = [DataFile.deserialise(data_file_json) for data_file_json in json_object.pop('files')]
+                files = [DataFile(**data_file_dict) for data_file_dict in json_object.pop('files')]
 
             return {**json_object, 'files': files}
-
-        return Manifest(**JSONDecoder(object_hook=as_data_file_list).decode(json))
+        decoded = JSONDecoder(object_hook=as_data_file_list).decode(json)
+        
+        # Handle multi-manifest case
+        if 'manifests' in decoded:
+            return MultiManifest(manifests=[Manifest(**man) for man in decoded['manifests']])
+        else:
+            return Manifest(**decoded)
 
     @staticmethod
     def load(file_name=None):

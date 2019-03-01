@@ -10,6 +10,10 @@ class FolderNotPresent(InvalidInput):
     """
 
 
+class ManifestNotFound(InvalidInput):
+    """ Raise when a multi manifest can not be refined to a single manifest in a search
+    """
+
 class InvalidManifest(InvalidInput):
     """Raise when a manifest loaded from JSON does not pass validation
     """
