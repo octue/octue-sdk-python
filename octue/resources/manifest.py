@@ -46,7 +46,6 @@ class MultiManifest(object):
         # Search through the input list of files or by default all files in the manifest
 
         for man in self.manifests:
-            print(man.data_set)
             if method == "name_icontains" and filter_value.lower() in man.data_set["name"].lower():
                 return man
             if method == "name_contains" and filter_value in man.data_set["name"]:
