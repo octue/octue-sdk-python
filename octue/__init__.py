@@ -1,3 +1,3 @@
-from .cli import octue_app, analysis
-from .config import write_config
-from .get import *
+from .cli import analysis, octue_app  # noqa: F401
+from .config import write_config  # noqa: F401
+from .get import get  # noqa: F401

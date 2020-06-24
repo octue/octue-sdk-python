@@ -35,7 +35,8 @@ class Analysis(object):
     function saveobj(self) %#ok<MANU>
         %SAVEOBJ Catches the possibility that an Analysis class is
         %serialised to disk, to avoid config parameters being saved.
-        error('Attempted to save Analysis class object. This should absolutely be avoided, since security settings from the environment (e.g. API keys for third party services) may be attached to Analysis.Config.')
+        error('Attempted to save Analysis class object. This should absolutely be avoided, since security settings from
+        the environment (e.g. API keys for third party services) may be attached to Analysis.Config.')
     end
 
     function SetLocal(self)
@@ -64,7 +65,9 @@ class Analysis(object):
         """
         return ~(self.id is None)
 
-    def setup(self, id=None, data_dir='.', input_dir=None, log_dir=None, output_dir=None, tmp_dir=None, skip_checks=False):
+    def setup(
+        self, id=None, data_dir=".", input_dir=None, log_dir=None, output_dir=None, tmp_dir=None, skip_checks=False
+    ):
         """ Sets up the analysis object
         :param id:
         :param data_dir:
@@ -75,19 +78,19 @@ class Analysis(object):
         :param skip_checks:
         :return:
         """
-        self.input_dir = input_dir if input_dir else data_dir + '/input'
-        self.log_dir = log_dir if log_dir else data_dir + '/log'
-        self.output_dir = output_dir if output_dir else data_dir + '/output'
-        self.tmp_dir = tmp_dir if tmp_dir else data_dir + '/tmp'
+        self.input_dir = input_dir if input_dir else data_dir + "/input"
+        self.log_dir = log_dir if log_dir else data_dir + "/log"
+        self.output_dir = output_dir if output_dir else data_dir + "/output"
+        self.tmp_dir = tmp_dir if tmp_dir else data_dir + "/tmp"
 
         if not os.path.isdir(self.input_dir):
-            raise FolderNotPresent('Missing input directory: {}'.format(self.input_dir))
+            raise FolderNotPresent("Missing input directory: {}".format(self.input_dir))
         if not os.path.isdir(self.log_dir):
-            raise FolderNotPresent('Missing log directory: {}'.format(self.log_dir))
+            raise FolderNotPresent("Missing log directory: {}".format(self.log_dir))
         if not os.path.isdir(self.output_dir):
-            raise FolderNotPresent('Missing output directory: {}'.format(self.output_dir))
+            raise FolderNotPresent("Missing output directory: {}".format(self.output_dir))
         if not os.path.isdir(self.tmp_dir):
-            raise FolderNotPresent('Missing tmp directory: {}'.format(self.tmp_dir))
+            raise FolderNotPresent("Missing tmp directory: {}".format(self.tmp_dir))
 
         # Attach configuration properties to the analysis object
         self.config_from_file(skip_checks)
@@ -97,7 +100,7 @@ class Analysis(object):
 
         # Create input and output manifests
         self.input_manifest_from_file(skip_checks)
-        self.output_manifest = Manifest(type='dataset')
+        self.output_manifest = Manifest(type="dataset")
 
     def config_from_file(self, skip_checks=False):
         """ Read the config.json file into a dict
@@ -105,8 +108,8 @@ class Analysis(object):
         :return: None
         """
 
-        config_file_name = str(os.path.join(self.input_dir, 'config.json'))
-        with open(config_file_name, 'r') as config_file:
+        config_file_name = str(os.path.join(self.input_dir, "config.json"))
+        with open(config_file_name, "r") as config_file:
             self.config = json.load(config_file)
 
         if ~skip_checks:
@@ -121,10 +124,9 @@ class Analysis(object):
 
         # TODO allow varied log level
         logging.basicConfig(
-            format='%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s',
-            level=logging.DEBUG
+            format="%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s", level=logging.DEBUG
         )
-        self.logger = logging.getLogger('octue')
+        self.logger = logging.getLogger("octue")
 
         # TODO add file handlers and octue-specific and app-specific loggers.
         #  See https://docs.python.org/3/howto/logging.html#logging-basic-tutorial  to understand the logger hierarchy
@@ -147,8 +149,8 @@ class Analysis(object):
 
     def input_manifest_from_file(self, skip_checks=False):
 
-        input_manifest_file = os.path.join(self.input_dir, 'manifest.json')
-        self.logger.info('Loading from manifest file: %s', input_manifest_file)
+        input_manifest_file = os.path.join(self.input_dir, "manifest.json")
+        self.logger.info("Loading from manifest file: %s", input_manifest_file)
         self.input_manifest = Manifest.load(input_manifest_file)
 
 

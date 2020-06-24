@@ -1,22 +1,21 @@
 import json
-from json import JSONEncoder, JSONDecoder
+from json import JSONDecoder, JSONEncoder
 
-from octue.exceptions import InvalidManifestType, InvalidInput, UnexpectedNumberOfResults, ManifestNotFound
 from octue import utils
+from octue.exceptions import InvalidInput, ManifestNotFound, UnexpectedNumberOfResults
 
 from .data_file import DataFile
 
-
-TYPE_REMOTE = 'remote'      # Remote file manifest (files not present on octue)
-TYPE_BUILD = 'build'        # Build system manifest (build files only, for octue internal use)
-TYPE_DATASET = 'dataset'    # Single-Dataset manifest (files in a dataset)
-TYPE_MULTI = 'multi'        # Multi-Dataset manifest (files in multiple datasets)
+TYPE_REMOTE = "remote"  # Remote file manifest (files not present on octue)
+TYPE_BUILD = "build"  # Build system manifest (build files only, for octue internal use)
+TYPE_DATASET = "dataset"  # Single-Dataset manifest (files in a dataset)
+TYPE_MULTI = "multi"  # Multi-Dataset manifest (files in multiple datasets)
 TYPE_CHOICES = [TYPE_REMOTE, TYPE_BUILD, TYPE_DATASET, TYPE_MULTI]
 
-STATUS_CREATED = 'created'          # Manifest created
-STATUS_PROCESSING = 'processing'    # Running automatic manifesting algorithm
-STATUS_SUCCESS = 'success'          # Manifesting complete (success)
-STATUS_FAILED = 'failed'            # Manifesting complete (failed)
+STATUS_CREATED = "created"  # Manifest created
+STATUS_PROCESSING = "processing"  # Running automatic manifesting algorithm
+STATUS_SUCCESS = "success"  # Manifesting complete (success)
+STATUS_FAILED = "failed"  # Manifesting complete (failed)
 STATUS_CHOICES = [STATUS_CREATED, STATUS_PROCESSING, STATUS_SUCCESS, STATUS_FAILED]
 
 
@@ -39,32 +38,33 @@ class ManifestEncoder(JSONEncoder):
 class MultiManifest(object):
     """ A manifest that can contain multiple datasets
     """
+
     def __init__(self, manifests):
         self.manifests = manifests
 
-    def from_dataset(self, method='name_icontains', filter_value=None):
+    def from_dataset(self, method="name_icontains", filter_value=None):
         # Search through the input list of files or by default all files in the manifest
 
         for man in self.manifests:
             print(man.data_set)
-            if method == 'name_icontains' and filter_value.lower() in man.data_set['name'].lower():
+            if method == "name_icontains" and filter_value.lower() in man.data_set["name"].lower():
                 return man
-            if method == 'name_contains' and filter_value in man.data_set['name']:
+            if method == "name_contains" and filter_value in man.data_set["name"]:
                 return man
-            if method == 'name_endswith' and man.data_set['name'].endswith(filter_value):
+            if method == "name_endswith" and man.data_set["name"].endswith(filter_value):
                 return man
-            if method == 'tag_exact' and filter_value in man.data_set['tags']:
+            if method == "tag_exact" and filter_value in man.data_set["tags"]:
                 return man
-            if method == 'tag_startswith':
-                for tag in man.data_set['tags']:
+            if method == "tag_startswith":
+                for tag in man.data_set["tags"]:
                     if tag.startswith(filter_value):
                         return man
-            if method == 'tag_endswith':
-                for tag in man.data_set['tags']:
+            if method == "tag_endswith":
+                for tag in man.data_set["tags"]:
                     if tag.endswith(filter_value):
                         return man
         # TODO turn DataSet dict into an SDK object
-        raise ManifestNotFound('None of the datasets in the present manifest match this search criterion')
+        raise ManifestNotFound("None of the datasets in the present manifest match this search criterion")
 
 
 class Manifest(object):
@@ -108,12 +108,12 @@ class Manifest(object):
 
         TODO allow for appending a list of datafiles
         """
-        if 'data_file' in kwargs.keys():
-            if kwargs['data_file'].__class__.__name__ != 'DataFile':
+        if "data_file" in kwargs.keys():
+            if kwargs["data_file"].__class__.__name__ != "DataFile":
                 raise InvalidInput(
-                    'Object "{}" must be of type DataFile to append it to a manifest'.format(kwargs['data_file'])
+                    'Object "{}" must be of type DataFile to append it to a manifest'.format(kwargs["data_file"])
                 )
-            self.files.append(kwargs['datafile'])
+            self.files.append(kwargs["datafile"])
 
         else:
             # Append a single file, constructed by passing the arguments through to DataFile()
@@ -122,7 +122,7 @@ class Manifest(object):
     def get_dataset_manifest(self):
         return self
 
-    def get_files(self, method='name_icontains', files=None, filter_value=None):
+    def get_files(self, method="name_icontains", files=None, filter_value=None):
         """ Get a list of data files in a manifest whose name contains the input string
 
         TODO improved comprehension for compact search syntax here.
@@ -138,31 +138,31 @@ class Manifest(object):
 
         results = []
         for file in files:
-            if method == 'name_icontains' and filter_value.lower() in file.name.lower():
+            if method == "name_icontains" and filter_value.lower() in file.name.lower():
                 results.append(file)
-            if method == 'name_contains' and filter_value in file.name:
+            if method == "name_contains" and filter_value in file.name:
                 results.append(file)
-            if method == 'name_endswith' and file.name.endswith(filter_value):
+            if method == "name_endswith" and file.name.endswith(filter_value):
                 results.append(file)
-            if method == 'tag_exact' and filter_value in file.tags:
+            if method == "tag_exact" and filter_value in file.tags:
                 results.append(file)
-            if method == 'tag_startswith':
+            if method == "tag_startswith":
                 for tag in file.tags:
                     if tag.startswith(filter_value):
                         results.append(file)
                         break
-            if method == 'tag_endswith':
+            if method == "tag_endswith":
                 for tag in file.tags:
                     if tag.endswith(filter_value):
                         results.append(file)
                         break
-            if method == 'in_sequence':
+            if method == "in_sequence":
                 if file.sequence is not None:
                     results.append(file)
 
         return results
 
-    def get_file_sequence(self, method='name_icontains', filter_value=None, files=None):
+    def get_file_sequence(self, method="name_icontains", filter_value=None, files=None):
         """ Get an ordered sequence of files matching a criterion
 
         Accepts the same search arguments as `get_files`.
@@ -170,7 +170,7 @@ class Manifest(object):
         """
 
         results = self.get_files(filter_value=filter_value, method=method, files=files)
-        results = self.get_files(method='in_sequence', files=results)
+        results = self.get_files(method="in_sequence", files=results)
 
         def get_sequence_number(file):
             return file.sequence
@@ -181,7 +181,6 @@ class Manifest(object):
         # TODO check sequence is unique and sequential!!!
         return results
 
-
     def get_file_by_tag(self, tag_string):
         """ Gets a data file from a manifest by searching for files with the provided tag(s)\
 
@@ -190,11 +189,11 @@ class Manifest(object):
         :param tag_string: if this string appears as an exact match in the tags
         :return: DataFile object
         """
-        results = self.get_files(method='tag_exact', filter_value=tag_string)
+        results = self.get_files(method="tag_exact", filter_value=tag_string)
         if len(results) > 1:
-            raise UnexpectedNumberOfResults('More than one result found when searching for a file by tag')
+            raise UnexpectedNumberOfResults("More than one result found when searching for a file by tag")
         elif len(results) == 0:
-            raise UnexpectedNumberOfResults('No files found with this tag')
+            raise UnexpectedNumberOfResults("No files found with this tag")
 
     def save(self, manifest_file_name):
         """ Write a manifest file
@@ -219,15 +218,16 @@ class Manifest(object):
 
         def as_data_file_list(json_object):
             files = []
-            if 'files' in json_object:
-                files = [DataFile(**data_file_dict) for data_file_dict in json_object.pop('files')]
+            if "files" in json_object:
+                files = [DataFile(**data_file_dict) for data_file_dict in json_object.pop("files")]
 
-            return {**json_object, 'files': files}
+            return {**json_object, "files": files}
+
         decoded = JSONDecoder(object_hook=as_data_file_list).decode(json)
-        
+
         # Handle multi-manifest case
-        if 'manifests' in decoded:
-            return MultiManifest(manifests=[Manifest(**man) for man in decoded['manifests']])
+        if "manifests" in decoded:
+            return MultiManifest(manifests=[Manifest(**man) for man in decoded["manifests"]])
         else:
             return Manifest(**decoded)
 
@@ -236,7 +236,7 @@ class Manifest(object):
         """Load manifest from and validate contents of a manifest file
         :return: Instantiated Manifest object
         """
-        with open(file_name, 'r') as file:
+        with open(file_name, "r") as file:
             return Manifest.deserialise(file.read())
 
 

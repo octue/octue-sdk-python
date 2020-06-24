@@ -19,7 +19,8 @@ def get(thing_name, set_analysis=None):
         % Get the analysis property
 
         if nargin > 1
-            error('Persistent analysis already registered. You cannot reset or duplicate the analysis once registered. Use ocute.clear() to remove the currently registered analysis if you wish to start fresh.')
+            # error('Persistent analysis already registered. You cannot reset or duplicate the analysis once registered.
+             Use ocute.clear() to remove the currently registered analysis if you wish to start fresh.')
         end
         switch lower(thingName)
             case 'analysis'

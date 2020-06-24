@@ -21,4 +21,4 @@ Not all of Octue's API functionality is implemented in the SDK yet, we're active
 
 .. rubric:: Footnotes
 
-.. [#f1] Bug reports and feature requests may also be made directly to your Octue support contact, or via the support pages. 
+.. [#f1] Bug reports and feature requests may also be made directly to your Octue support contact, or via the support pages.

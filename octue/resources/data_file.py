@@ -1,4 +1,5 @@
 import json
+
 from octue import utils
 
 
@@ -44,7 +45,8 @@ class DataFile(object):
     def addTags(self, tags):
         """ Adds a new tag string to the object tags, with correct whitespacing
         """
-        # TODO improved client - side validation to ensure input tags are compliant error('tags must be a character string expressing a set of space-delimited octue compliant tags.')
+        # TODO improved client - side validation to ensure input tags are compliant error('tags must be a character
+        #  string expressing a set of space-delimited octue compliant tags.')
         if isinstance(tags, list):
             self.tags += tags
         else:

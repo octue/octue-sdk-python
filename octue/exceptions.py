@@ -1,5 +1,3 @@
-
-
 class InvalidInput(Exception):
     """Raise when an object is instantiated or a function called with invalid inputs
     """
@@ -13,6 +11,7 @@ class FolderNotPresent(InvalidInput):
 class ManifestNotFound(InvalidInput):
     """ Raise when a multi manifest can not be refined to a single manifest in a search
     """
+
 
 class InvalidManifest(InvalidInput):
     """Raise when a manifest loaded from JSON does not pass validation
@@ -35,6 +34,6 @@ class NotImplementedYet(Exception):
 
 
 class UnexpectedNumberOfResults(Exception):
-    """ Raise when searching for a single data file (or a particular number of data files) and the number of results exceeds that expected
+    """ Raise when searching for a single data file (or a particular number of data files) and the number of results
+    exceeds that expected
     """
-
