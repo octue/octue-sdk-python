@@ -11,29 +11,19 @@ from setuptools import setup, find_packages
 with open('README.md') as f:
     readme_text = f.read()
 
-with open('LICENSE') as f:
-    license_text = f.read()
-
-setup(name='octue',
+setup(
+      name='octue',
       version='0.1.2',
       py_modules=['cli'],
-      install_requires=['click'],
+      install_requires=[
+            'click>=7.1.2',
+            'twined==0.0.10'
+      ],
       url='https://www.github.com/octue/octue-sdk-python',
-      license=license_text,
+      license='MIT',
       author='Thomas Clark (github: thclark)',
       author_email='support@octue.com',
       description='A package providing a python SDK to the Octue API and supporting functions for Octue applications',
       long_description=readme_text,
       packages=find_packages(exclude=('tests', 'docs'))
-      )
-
-
-# TODO move the following into octue example app template
-# setup(
-#     py_modules=['cli'],
-#     install_requires=['Click'],
-#     entry_points='''
-#     [console_scripts]
-#     octue=octue_app
-#     ''',
-# )
+)
