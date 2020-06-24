@@ -148,6 +148,7 @@ class Analysis(object):
     def input_manifest_from_file(self, skip_checks=False):
 
         input_manifest_file = os.path.join(self.input_dir, 'manifest.json')
+        self.logger.info('Loading from manifest file: %s', input_manifest_file)
         self.input_manifest = Manifest.load(input_manifest_file)
 
 
