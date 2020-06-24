@@ -84,10 +84,11 @@ class Manifest(object):
 
         self.__dict__.update(**kwargs)
 
-        if self.type not in TYPE_CHOICES:
-            raise InvalidManifestType(
-                'Attempted to specify an invalid manifest type. Valid types: {}'.format(TYPE_CHOICES)
-            )
+        # if self.type not in TYPE_CHOICES:
+        #
+        #     raise InvalidManifestType(
+        #         'Attempted to specify an invalid manifest type {}. Valid types: {}'.format(self.type, TYPE_CHOICES)
+        #     )
 
         if self.uuid is None:
             self.uuid = utils.gen_uuid()
