@@ -2,7 +2,6 @@ import os
 import sys
 
 from octue import analysis, octue_app
-
 from .fractal import mandelbrot
 
 

@@ -1,5 +1,4 @@
 from octue import analysis
-
 from .mandel import mandel
 
 

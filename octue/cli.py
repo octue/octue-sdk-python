@@ -1,4 +1,5 @@
 import click
+
 from octue.resources import analysis
 
 

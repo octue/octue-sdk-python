@@ -3,7 +3,6 @@ import logging
 import os
 
 from octue.exceptions import FolderNotPresent
-
 from .manifest import Manifest
 
 
