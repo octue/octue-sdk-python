@@ -3,14 +3,11 @@ from json import JSONDecoder, JSONEncoder
 
 from octue import utils
 from octue.exceptions import InvalidInput, ManifestNotFound, UnexpectedNumberOfResults
-
 from .data_file import DataFile
 
-TYPE_REMOTE = "remote"  # Remote file manifest (files not present on octue)
-TYPE_BUILD = "build"  # Build system manifest (build files only, for octue internal use)
-TYPE_DATASET = "dataset"  # Single-Dataset manifest (files in a dataset)
+
 TYPE_MULTI = "multi"  # Multi-Dataset manifest (files in multiple datasets)
-TYPE_CHOICES = [TYPE_REMOTE, TYPE_BUILD, TYPE_DATASET, TYPE_MULTI]
+TYPE_CHOICES = [TYPE_MULTI]
 
 STATUS_CREATED = "created"  # Manifest created
 STATUS_PROCESSING = "processing"  # Running automatic manifesting algorithm
