@@ -7,8 +7,7 @@ from octue.resources import analysis
     "--id",
     default=None,
     show_default=True,
-    help="Id of the analysis being undertaken. None (for local use) prevents "
-    "registration of the analysis or any of the results.",
+    help="Id of the analysis being undertaken. None (for local use) will cause a unique ID to be generated.",
 )
 # TODO Add --log-level option
 @click.option(
@@ -68,7 +67,7 @@ def octue_app(id, skip_checks, force_reset, data_dir, input_dir, tmp_dir, output
     """Creates the CLI for an Octue application
     """
 
-    # We want to show meaningful defaults in the CLI help but unfortunately have to strip out the real values here
+    # We want to show meaningful defaults in the CLI help but unfortunately have to strip out the displayed values here
     if input_dir.startswith("<data-dir>/"):
         input_dir = None
     if log_dir.startswith("<data-dir>/"):
