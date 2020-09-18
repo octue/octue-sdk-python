@@ -2,17 +2,16 @@ import hashlib
 import logging
 import os
 import time
-import uuid
 
-from octue import utils
 from octue.exceptions import FileNotFoundException, InvalidInputException
-from octue.mixins import Loggable, Serialisable, Taggable
+from octue.mixins import Identifiable, Loggable, Serialisable, Taggable
+from octue.utils import isfile
 
 
 module_logger = logging.getLogger(__name__)
 
 
-class Datafile(Taggable, Serialisable, Loggable):
+class Datafile(Taggable, Serialisable, Loggable, Identifiable):
     """ Class for representing data files on the Octue system
 
     Files in a manifest look like this:
@@ -60,10 +59,10 @@ class Datafile(Taggable, Serialisable, Loggable):
 
     def __init__(
         self,
+        id=None,
+        logger=None,
         local_path_prefix=".",
         path=None,
-        logger=None,
-        id=None,
         cluster=0,
         sequence=None,
         tags=None,
@@ -73,10 +72,7 @@ class Datafile(Taggable, Serialisable, Loggable):
     ):
         """ Construct a datafile
         """
-
-        super().__init__(tags=tags, logger=logger)
-
-        self.id = str(uuid.UUID(id) if id else uuid.uuid4())
+        super().__init__(id=id, logger=logger, tags=tags)
 
         self.cluster = cluster
 
@@ -160,4 +156,4 @@ class Datafile(Taggable, Serialisable, Loggable):
     def exists(self):
         """ Returns true if the datafile exists on the current system, false otherwise
         """
-        return utils.isfile(self.full_path)
+        return isfile(self.full_path)
