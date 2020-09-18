@@ -1,4 +1,4 @@
-from .exceptions import NotImplementedYet
+# from .exceptions import NotImplementedYetException
 
 
 def get(thing_name, set_analysis=None):
@@ -60,4 +60,5 @@ def get(thing_name, set_analysis=None):
 
     end
     """
-    raise NotImplementedYet()
+    pass
+    # raise NotImplementedYet()
