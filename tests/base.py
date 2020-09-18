@@ -13,9 +13,9 @@ class BaseTestCase(unittest.TestCase):
     def setUp(self):
 
         # Set up paths to the test data directory and to the app templates directory
-        tests_dir = os.path.dirname(os.path.abspath(__file__))
-        self.data_path = str(os.path.join(tests_dir, "data", ""))
-        self.templates_path = str(os.path.join(os.path.dirname(tests_dir), "templates", ""))
+        root_dir = os.path.dirname(os.path.abspath(__file__))
+        self.data_path = str(os.path.join(root_dir, "test_data", ""))
+        self.templates_path = str(os.path.join(os.path.dirname(root_dir), "templates", ""))
 
         super().setUp()
 
