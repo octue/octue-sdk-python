@@ -1,3 +1,5 @@
+import uuid
+
 from octue.exceptions import InvalidInputException
 from octue.utils import gen_uuid
 
@@ -20,7 +22,26 @@ class Identifiable:
     """
 
     def __init__(self, *args, id=None, **kwargs):
+        """ Constructor for Identifiable class
+        """
         super().__init__(*args, **kwargs)
+
+        if isinstance(id, uuid.UUID):
+            # If it's a uuid, stringify it
+            id = str(id)
+
+        elif isinstance(id, str):
+            # If it's a string (or something similar which can be converted to UUID) check it's valid
+            try:
+                id = str(uuid.UUID(id))
+            except ValueError:
+                raise InvalidInputException(f"Value of id '{id}' is not a valid uuid string or instance of class UUID")
+
+        elif id is not None:
+            raise InvalidInputException(
+                f"Value of id '{id}' must be a valid uuid string, an instance of class UUID or None"
+            )
+
         self._id = id or gen_uuid()
 
     def __str__(self):
@@ -32,4 +53,4 @@ class Identifiable:
 
     @id.setter
     def id(self, value):
-        raise InvalidInputException("You cannot set the id of an already-instantiated %s", self.__class__.__name__)
+        raise InvalidInputException(f"You cannot set the id of an already-instantiated {self.__class__.__name__}")
