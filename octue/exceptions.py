@@ -3,7 +3,7 @@ class OctueSDKException(Exception):
     """
 
 
-class InvalidInputException(OctueSDKException):
+class InvalidInputException(OctueSDKException, ValueError):
     """Raise when an object is instantiated or a function called with invalid inputs
     """
 
@@ -51,6 +51,12 @@ class NotImplementedYetException(OctueSDKException):
 class UnexpectedNumberOfResultsException(OctueSDKException):
     """ Raise when searching for a single data file (or a particular number of data files) and the number of results
     exceeds that expected
+    """
+
+
+class BrokenSequenceException(OctueSDKException):
+    """ Raise when filtering for a sequence of files whose numbering does not start at 0, or does not monotonically
+    increase
     """
 
 

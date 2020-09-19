@@ -16,11 +16,11 @@ class TaggableTestCase(BaseTestCase):
         """ Ensures datafile inherits correctly from the Taggable class and passes arguments through
         """
         tgd = Taggable(tags="")
-        self.assertEqual("", tgd.tags)
+        self.assertEqual("", str(tgd.tags))
         tgd = Taggable(tags=None)
-        self.assertEqual("", tgd.tags)
+        self.assertEqual("", str(tgd.tags))
         tgd = Taggable(tags="a b c")
-        self.assertEqual("a b c", tgd.tags)
+        self.assertEqual("a b c", str(tgd.tags))
         with self.assertRaises(exceptions.InvalidTagException):
             Taggable(tags=":a b c")
 
@@ -35,7 +35,9 @@ class TaggableTestCase(BaseTestCase):
         tgd.add_tags("1829")
         tgd.add_tags("number:1829")
         tgd.add_tags("multiple:discriminators:used")
-        self.assertEqual(tgd.tags, "a-valid-tag a:tag a:-tag a1829tag 1829 number:1829 multiple:discriminators:used")
+        self.assertEqual(
+            str(tgd.tags), "a-valid-tag a:tag a:-tag a1829tag 1829 number:1829 multiple:discriminators:used"
+        )
 
     def test_invalid_tags(self):
         """ Ensures invalid tags raise an error
@@ -68,4 +70,10 @@ class TaggableTestCase(BaseTestCase):
         except exceptions.InvalidTagException:
             pass
 
-        self.assertEqual("first-valid-should-be-added", tgd.tags)
+        self.assertEqual("first-valid-should-be-added", str(tgd.tags))
+
+    def test_serialises_to_string(self):
+        """ Ensures that adding a variety of tags, some of which are invalid, doesn't partially add them to the object
+        """
+        tgd = Taggable(tags="a b")
+        self.assertEqual("a b", tgd.tags.serialise())
