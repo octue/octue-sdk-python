@@ -1,6 +1,6 @@
 import logging
 
-from octue.exceptions import InvalidInputException, UnexpectedNumberOfResultsException
+from octue.exceptions import BrokenSequenceException, InvalidInputException, UnexpectedNumberOfResultsException
 from octue.mixins import Identifiable, Loggable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 
@@ -39,9 +39,9 @@ class Dataset(Taggable, Serialisable, Loggable, Identifiable):
             for arg in args:
                 self.append(arg, **kwargs)
         elif len(args) > 0:
-            if args[0].__class__.__name__ != "DataFile":
+            if not isinstance(args[0], Datafile):
                 raise InvalidInputException(
-                    'Object "{}" must be of class DataFile to append it to a manifest'.format(args[0])
+                    'Object "{}" must be of class Datafile to append it to a Dataset'.format(args[0])
                 )
             self.files.append(args[0])
 
@@ -49,59 +49,79 @@ class Dataset(Taggable, Serialisable, Loggable, Identifiable):
             # Append a single file, constructed by passing the arguments through to DataFile()
             self.files.append(Datafile(**kwargs))
 
-    def get_files(self, method="name_icontains", files=None, filter_value=None):
+    def get_files(self, field_lookup, files=None, filter_value=None):
         """ Get a list of data files in a manifest whose name contains the input string
 
-        TODO improved comprehension for compact search syntax here.
-         Searching in different fields, dates date ranges, case sensitivity, search in path, metadata searches,
-         filestartswith, search indexing of files, etc etc. Could have a list of tuples with different criteria, AND
-         them or OR them.
+        Django field lookups: https://docs.djangoproject.com/en/3.1/ref/models/querysets/
 
-        TODO consider returning a function that acts as a chainable filter so you can do like:
-         my_dataset.filter('sequence__not', True).filter('extension', 'csv').filter('posix_timestamp__between', [123456, 135790]).all()
-         The all() method should yield a generator. Basically, we're talking about django's filtering here!
+        :parameter field_lookup: filter specifier. Inspired by django queryset filters which in turn mimic SQL syntax.
+        Comprised of "<field_name>__<filter_kind>", so 'name__icontains' would perform case-insensitive matching on
+        Datafile.name. See https://github.com/octue/octue-sdk-python/issues/7 Currently supported combinations:
+
+            "name__icontains"
+            "name__contains"
+            "name__endswith"
+            "tag__exact"
+            "tag__startswith"
+            "tag__endswith"
+            "sequence__gt"
+
+        :parameter files: List of files to filter. This allows multiple separate filters to be applied. By default the
+        entire list of files in the dataset is used.
+        :type files: list
+
+        :parameter filter_value: Value, typically of the same type as the field, used to filter against.
+        : type filter_value: number, str
 
         :return: results list of matching datafiles
+        :rtype: list(Datafile)
         """
 
-        # Search through the input list of files or by default all files in the manifest
-        files = files if files else self.files
+        # Search through the input list of files or by default all files in the dataset
+        files = files or self.files
+
+        # Frequent error of typing only a single underscore causes no results to be returned... catch it
+        if "__" not in field_lookup:
+            raise InvalidInputException("Field lookups should be in the form '<field_name>__'<filter_kind>")
 
         results = []
         for file in files:
-            if method == "name_icontains" and filter_value.lower() in file.name.lower():
+            if field_lookup == "name__icontains" and filter_value.lower() in file.name.lower():
                 results.append(file)
-            if method == "name_contains" and filter_value in file.name:
+            if field_lookup == "name__contains" and filter_value in file.name:
                 results.append(file)
-            if method == "name_endswith" and file.name.endswith(filter_value):
+            if field_lookup == "name__endswith" and file.name.endswith(filter_value):
                 results.append(file)
-            if method == "tag_exact" and filter_value in file.tags:
+            if field_lookup == "name__startswith" and file.name.startswith(filter_value):
                 results.append(file)
-            if method == "tag_startswith":
-                for tag in file.tags:
-                    if tag.startswith(filter_value):
-                        results.append(file)
-                        break
-            if method == "tag_endswith":
-                for tag in file.tags:
-                    if tag.endswith(filter_value):
-                        results.append(file)
-                        break
-            if method == "in_sequence":
-                if file.sequence is not None:
-                    results.append(file)
+            if field_lookup == "tag__exact" and filter_value in file.tags:
+                results.append(file)
+            if field_lookup == "tag__startswith" and file.tags.startswith(filter_value):
+                results.append(file)
+            if field_lookup == "tag__endswith" and file.tags.endswith(filter_value):
+                results.append(file)
+            if field_lookup == "tag__contains" and file.tags.contains(filter_value):
+                results.append(file)
+            if field_lookup == "sequence__notnone" and file.sequence is not None:
+                results.append(file)
 
         return results
 
-    def get_file_sequence(self, method="name_icontains", filter_value=None, files=None):
+    def get_file_sequence(self, field_lookup, files=None, filter_value=None, strict=True):
         """ Get an ordered sequence of files matching a criterion
 
         Accepts the same search arguments as `get_files`.
 
+        :parameter strict: If True, applies a check that the resulting file sequence begins at 0 and ascends uniformly
+        by 1
+        :type strict: bool
+
+        :returns: Sorted list of Datafiles
+        :rtype: list(Datafile)
         """
 
-        results = self.get_files(filter_value=filter_value, method=method, files=files)
-        results = self.get_files(method="in_sequence", files=results)
+        results = self.get_files(field_lookup, files=files, filter_value=filter_value)
+        results = self.get_files("sequence__notnone", files=results)
 
         def get_sequence_number(file):
             return file.sequence
@@ -109,7 +129,14 @@ class Dataset(Taggable, Serialisable, Loggable, Identifiable):
         # Sort the results on ascending sequence number
         results.sort(key=get_sequence_number)
 
-        # TODO check sequence is unique and sequential!!!
+        # Check sequence is unique and sequential
+        if strict:
+            index = -1
+            for result in results:
+                index += 1
+                if result.sequence != index:
+                    raise BrokenSequenceException("Filtered file sequence numbers do not monotonically increase from 0")
+
         return results
 
     def get_file_by_tag(self, tag_string):
@@ -120,8 +147,11 @@ class Dataset(Taggable, Serialisable, Loggable, Identifiable):
         :param tag_string: if this string appears as an exact match in the tags
         :return: DataFile object
         """
-        results = self.get_files(method="tag_exact", filter_value=tag_string)
+        results = self.get_files("tag__exact", filter_value=tag_string)
+        print("RESKFNSDKJF", results)
         if len(results) > 1:
             raise UnexpectedNumberOfResultsException("More than one result found when searching for a file by tag")
         elif len(results) == 0:
             raise UnexpectedNumberOfResultsException("No files found with this tag")
+
+        return results[0]
