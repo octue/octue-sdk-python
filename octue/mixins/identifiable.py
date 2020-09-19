@@ -47,6 +47,9 @@ class Identifiable:
     def __str__(self):
         return f"{self.__class__.__name__} {self._id}"
 
+    def __repr__(self):
+        return self.__str__()
+
     @property
     def id(self):
         return self._id
