@@ -13,6 +13,11 @@ class FileNotFoundException(InvalidInputException, FileNotFoundError):
     """
 
 
+class ProtectedAttributeException(OctueSDKException, KeyError):
+    """ Raise when a user attempts to set an attribute whose value should be protected
+    """
+
+
 class FolderNotFoundException(InvalidInputException):
     """ Raise when a multi manifest can not be refined to a single manifest in a search
     """

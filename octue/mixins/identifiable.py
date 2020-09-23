@@ -26,6 +26,9 @@ class Identifiable:
         """
         super().__init__(*args, **kwargs)
 
+        # Store a boolean record of whether this object was created with a previously-existing uuid or was created new.
+        self._created = True if id is None else False
+
         if isinstance(id, uuid.UUID):
             # If it's a uuid, stringify it
             id = str(id)
