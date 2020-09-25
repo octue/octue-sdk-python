@@ -16,6 +16,11 @@ class Loggable:
 
     def __init__(self, *args, logger=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.__init_logger__(logger)
+
+    def __init_logger__(self, logger=None):
+        """ Overload this in a subclass to initialise your own logger using class attributes
+        """
         self._logger = logger or logging.getLogger(self.__class__.__module__)
 
     @property
