@@ -148,7 +148,6 @@ class Dataset(Taggable, Serialisable, Loggable, Identifiable):
         :return: DataFile object
         """
         results = self.get_files("tag__exact", filter_value=tag_string)
-        print("RESKFNSDKJF", results)
         if len(results) > 1:
             raise UnexpectedNumberOfResultsException("More than one result found when searching for a file by tag")
         elif len(results) == 0:
