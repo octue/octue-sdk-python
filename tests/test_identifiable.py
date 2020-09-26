@@ -6,9 +6,6 @@ from .base import BaseTestCase
 
 
 class IdentifiableTestCase(BaseTestCase):
-    """ Test case that ensures the methods of the Taggable class work correctly
-    """
-
     def test_instantiates_with_no_args(self):
         """ Ensures the class instantiates without arguments
         """

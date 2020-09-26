@@ -7,9 +7,6 @@ from .base import BaseTestCase
 
 
 class AnalysisTestCase(BaseTestCase):
-    """ Tests the Analysis class
-    """
-
     def test_instantiate_analysis(self):
         """ Ensures that the base analysis class can be instantiated
         """

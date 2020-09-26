@@ -4,9 +4,6 @@ from .base import BaseTestCase
 
 
 class DatafileTestCase(BaseTestCase):
-    """ Test case that runs the analyses in the templates.
-    """
-
     def test_instantiates_with_no_args(self):
         """ Ensures a Datafile instantiates using only a path and generates a uuid ID
         """
