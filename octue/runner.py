@@ -1,23 +1,14 @@
 import logging
-import os
-import uuid
 
-from octue.exceptions import FolderNotFoundException, InvalidInputException
-from octue.resources.manifest import Manifest
-from octue.utils import isfolder
+from octue.resources.analysis import CLASS_MAP, Analysis
+from octue.utils import gen_uuid
 from twined import Twine
 
 
 module_logger = logging.getLogger(__name__)
 
-
-FOLDERS = (
-    "configuration",
-    "input",
-    "log",
-    "tmp",
-    "output",
-)
+# Logging format for analysis runs. All handlers should use this logging format, to make logs consistently parseable
+LOG_FORMAT = "%(name)s %(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s"
 
 
 class Runner:
@@ -33,145 +24,129 @@ class Runner:
     dict, it should contain all of those keys, with each of their values being a path to a directory (which will be
     recursively created if it doesn't exist)
 
+    :parameter configuration_values: The strand data. Can be expressed as a string path of a *.json file (relative
+    or absolute), as an open file-like object (containing json data), as a string of json data or as an
+    already-parsed dict.
+
+    :parameter configuration_manifest: The strand data. Can be expressed as a string path of a *.json file
+    (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
+    already-parsed dict.
+
+    :parameter skip_file_checks: If true, skip the check that all files in the manifest are present on disc - this
+    can be an extremely long process for large datasets.
     """
 
-    def __init__(self, twine="twine.json", paths="data"):
-
-        # Set paths
-        self.paths = dict()
-        if isinstance(paths, str):
-            if not os.path.isdir(paths):
-                raise FolderNotFoundException(f"Specified data folder '{paths}' not present")
-
-            self.paths = dict([(folder, os.path.join(paths, folder)) for folder in FOLDERS])
-
-        else:
-            if (
-                not isinstance(paths, dict)
-                or (len(paths.keys()) != len(FOLDERS))
-                or not all([k in FOLDERS for k in paths.keys()])
-            ):
-                raise InvalidInputException(
-                    f"Input 'paths' should be a dict containing directory paths with the following keys: {FOLDERS}"
-                )
-
-            self.paths = paths
-
-        # Ensure paths exist on disc
-        for folder in FOLDERS:
-            isfolder(self.paths[folder], make_if_absent=True)
+    def __init__(
+        self, twine="twine.json", configuration_values=None, configuration_manifest=None, log_level=logging.INFO
+    ):
+        """ Constructor for the Runner class
+        """
 
         # Ensure the twine is present and instantiate it
         self.twine = Twine(source=twine)
 
-        # Initialise a run-specific logger, with unified formatting
-        self._init_log()
-
-        # Create configuration variables, which must be initialised with the configure() method before calling run()
-        self.configuration_manifest = None
-        self.configuration_values = None
-
-        # Analyses. Multiple analysis objects can be created
-        self.analyses = {}
-
-    @staticmethod
-    def get_run_logger(run_id, level=logging.INFO):
-        """ Configures application level console logging options
-
-        :parameter run_id: The id of the run to get the log for. Should be unique to the run
-        :type run_id: str
-
-        :parameter level: Log level for the run, see python's logging module for levels. Default: `logging.INFO`
-        :type level: int
-
-        :return: logger
-        """
-
-        # TODO add file handlers and octue-specific and app-specific loggers.
-        #  See https://docs.python.org/3/howto/logging.html#logging-basic-tutorial  to understand the logger hierarchy
-        # TODO allow varied log level
-        logging.basicConfig(
-            format="%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s", level=logging.DEBUG
+        # Validate and initialise configuration data
+        self.configuration_values = self.twine.validate(configuration_values=configuration_values)
+        self.configuration_manifest = self.twine.validate(
+            configuration_manifest=configuration_manifest, cls=CLASS_MAP["configuration_manifest"]
         )
 
-        run_logger = logging.getLogger(f"run-{run_id}")
+        # Store the log level (same log level used for all analyses)
+        self._log_level = log_level
 
+        # Store analyses. Multiple analysis objects can be created and coexist.
+        self.analyses = {}
+
+    def _get_default_handler(self):
+        """ Gets a basic console handler set up for logging analyses
+        """
         console_handler = logging.StreamHandler()
-        console_handler.setLevel(level)
-
-        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-
+        console_handler.setLevel(self._log_level)
+        formatter = logging.Formatter(LOG_FORMAT)
         console_handler.setFormatter(formatter)
 
-        run_logger.addHandler(console_handler)
+        return console_handler
 
-    @property
-    def logger(self):
-        """ Returns either the custom logger for this run, or the default module logger (for runner.py)
+    def _get_analysis_logger(self, analysis_id, handler=None):
+        """ Create a logger specific to the analysis
+
+        :parameter analysis_id: The id of the analysis to get the log for. Should be unique to the analysis
+        :type analysis_id: str
+
+        :parameter handler: The handler to use. If None, default console handler will be attached.
+
+        :return: logger named in the pattern `analysis-{analysis_id}`
+        :rtype logging.Logger
         """
-        return self._logger or module_logger
 
-    def configure(self, values=None, manifest=None, skip_file_checks=False):
-        """ Configure the runner, using configuration values and manifest (from file or passed in)
-        :parameter values: The configuration_values data. Can be expressed as a string path of a *.json file (relative
-        or absolute), as an open file-like object (containing json data), as a string of json data or as an
-        already-parsed dict.
-        :parameter manifest: The configuration_manifest data. Can be expressed as a string path of a *.json file
-        (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
-        already-parsed dict.
-        :parameter skip_file_checks: If true, skip the check that all files in the manifest are present on disc - this
-        can be an extremely long process for large datasets.
-        :return: None
-        """
-        if not values:
-            self.logger.info("No configuration values passed. Using {} as default")
-            values = {}
+        handler = handler or self._get_default_handler()
+        analysis_logger = logging.getLogger(f"analysis-{analysis_id}")
+        analysis_logger.addHandler(handler)
 
-        self.configuration_values = self.twine.validate_configuration_values(values)
+        return analysis_logger
 
-        if not manifest:
-            self.logger.info("No configuration manifest passed. Using empty manifest as default")
-            manifest = {
-                "id": str(uuid.uuid4()),
-                "datasets": [],
-            }
-
-        self.configuration_manifest = self.twine.validate_configuration_manifest(manifest, manifest_class=Manifest)
-
-    def run(self, values=None, manifest=None, skip_file_checks=False):
+    def run(self, fcn, handler=None, input_values=None, input_manifest=None, credentials=None, children=None):
         """ Run an analysis
-        :parameter values: The input_values data. Can be expressed as a string path of a *.json file (relative
-        or absolute), as an open file-like object (containing json data), as a string of json data or as an
-        already-parsed dict.
-        :parameter manifest: The input_manifest data. Can be expressed as a string path of a *.json file
+
+        :parameter input_values: The input_values strand data. Can be expressed as a string path of a *.json file
         (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
         already-parsed dict.
-        :parameter skip_file_checks: If true, skip the check that all files in the manifest are present on disc - this
-        can be an extremely long process for large datasets.
+        :type input_values (str, dict)
+
+        :parameter input_manifest: The input_manifest strand data. Can be expressed as a string path of a *.json file
+        (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
+        already-parsed dict.
+        :type input_manifest (str, Manifest)
+
+        :parameter credentials: The credentials strand data. Can be expressed as a string path of a *.json file
+        (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
+        already-parsed dict.
+        :type credentials (str, dict)
+
+        :parameter children: The children strand data. Can be expressed as a string path of a *.json file
+        (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
+        already-parsed dict.
+        :type children: (str, dict)
+
+        :parameter handler: the logging.Handler instance which will be used to handle logs for this analysis run.
+        handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but
+        should use the format defined above in LOG_FORMAT.
+        :type handler: logging.Handler
+
         :return: None
         """
 
-        # TODO collapse into a common method with the contents of configure
-        if not values:
-            self.logger.info("No input values passed. Using {} as default")
-            values = {}
+        inputs = self.twine.validate(
+            input_values=input_values,
+            input_manifest=input_manifest,
+            credentials=credentials,
+            children=children,
+            cls=CLASS_MAP,
+            allow_missing=False,
+            allow_extra=False,
+        )
 
-        input_values = self.twine.validate_input_values(values)
+        outputs_and_monitors = self.twine.prepare("monitors", "output_values", "output_manifest", cls=CLASS_MAP)
 
-        if not manifest:
-            self.logger.info("No input manifest passed. Using empty manifest as default")
-            manifest = {
-                "id": str(uuid.uuid4()),
-                "datasets": [],
-            }
+        analysis_id = gen_uuid()
+        analysis_logger = self._get_analysis_logger(analysis_id, handler)
+        analysis = Analysis(
+            id=analysis_id,
+            logger=analysis_logger,
+            twine=self.twine,
+            configuration_values=self.configuration_values,
+            configuration_manifest=self.configuration_manifest,
+            **inputs,
+            **outputs_and_monitors,
+        )
 
-        input_manifest = self.twine.validate_input_manifest(manifest, manifest_class=Manifest)
+        try:
+            fcn(analysis)
+            self.twine.validate(output_values=analysis.output_values)
+            self.twine.validate(output_manifest=analysis.output_manifest)
 
-        self.logger.info("DO SOMETHING WITH INPUT VALUES", input_values)
-        self.logger.info("DO SOMETHING WITH INPUT Manifest", input_manifest)
-        output_values = {}
-        output_manifest = Manifest()
+        except Exception as e:
+            analysis_logger.error(str(e))
+            raise e
 
-        output_manifest = self.twine.validate_output_manifest(output_manifest)
-
-        return output_values, output_manifest
+        return analysis
