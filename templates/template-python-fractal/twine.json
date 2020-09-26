@@ -1,5 +1,5 @@
 {
-	"configuration_schema": {
+	"configuration_values_schema": {
 		"title": "Configuration for a simple app",
 		"description": "The app creates a mandelbrot or julia plot",
 		"type": "object",
@@ -40,7 +40,6 @@
 				"items": [{
 					"type": "number"
 				}],
-				"additionalItems": false,
 				"minItems": 2,
 				"maxItems": 2,
 				"default": [-1.5, 0.6]
@@ -51,7 +50,6 @@
 				"items": [{
 					"type": "number"
 				}],
-				"additionalItems": false,
 				"minItems": 2,
 				"maxItems": 2,
 				"default": [-1.26, 1.26]
@@ -67,7 +65,5 @@
 				"maxItems": 2
 			}
 		}
-	},
-	"output_manifest": [
-	]
+	}
 }
