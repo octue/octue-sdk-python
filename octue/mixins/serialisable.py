@@ -26,7 +26,7 @@ class Serialisable:
         """
         self.logger.debug("Writing %s %s to file %s", self.__class__.__name__, self.id, file_name)
         with open(file_name, "w") as fp:
-            fp.write(self.serialise(to_string=True, **kwargs))
+            fp.write(self.serialise(**kwargs, to_string=True))
 
     def serialise(self, to_string=False, **kwargs):
         """ Serialise into a primitive dict or JSON string
