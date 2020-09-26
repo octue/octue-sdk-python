@@ -43,30 +43,3 @@ class AnalysisTestCase(BaseTestCase):
         )
         cfg = analysis.configuration_values
         self.assertIn("n_iterations", cfg.keys())
-
-    def test_exception_raised_when_strand_data_missing(self):
-        """ Ensures that protected attributes can't be set
-        """
-        with self.assertRaises(exceptions.InvalidInputException) as error:
-            Analysis(
-                twine=str(os.path.join(self.data_path, "twines", "valid_schema_twine.json")),
-                configuration_values={"n_iterations": 5},
-            )
-
-        self.assertIn(
-            "The input_values strand is defined in the twine, but no data is provided to Analysis()",
-            error.exception.args[0],
-        )
-
-    def test_exception_raised_when_strand_missing(self):
-        """ Ensures that protected attributes can't be set
-        """
-        with self.assertRaises(exceptions.InvalidInputException) as error:
-            Analysis(
-                twine="{}", configuration_values={},
-            )
-
-        self.assertIn(
-            "Data is provided for configuration_values but no such strand is defined in the twine",
-            error.exception.args[0],
-        )
