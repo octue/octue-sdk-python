@@ -35,7 +35,7 @@ class IdentifiableTestCase(BaseTestCase):
         """
         id = "07d38e81-6b00-4079-901b-e250ea3c7773"
         resource = Identifiable(id=id)
-        self.assertEqual(resource.__repr__, id)
+        self.assertEqual(resource.__repr__(), f"Identifiable {id}")
 
     def test_raises_error_with_non_uuid(self):
         """ Ensures that if a string is passed not matching the UUID pattern, that an exception is raised
