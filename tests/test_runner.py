@@ -1,65 +1,137 @@
-import os
-import shutil
-import uuid
-
-from octue import Runner, exceptions
-from octue.runner import FOLDERS
+import twined
+from octue import Runner
 from .base import BaseTestCase
 
 
 class RunnerTestCase(BaseTestCase):
-    """ Tests the Runner class
-    """
-
-    def test_instantiate_runner_with_string_paths(self):
-        """ Ensures that error is raised if instantiated with a string path that's not present
+    def test_instantiate_runner(self):
+        """ Ensures that runner whose twine requires configuration can be instantiated
         """
-        runner = Runner(twine="{}", paths=os.path.join(self.data_path, "basic_empty"))
+        runner = Runner(twine="{}")
         self.assertEqual(runner.__class__.__name__, "Runner")
 
-    def test_instantiate_runner_with_invalid_paths(self):
-        """ Ensures that error is raised if instantiated with a string path that's not present
+    def test_run_with_configuration_passes(self):
+        """ Ensures that runs can be made with configuration only
         """
-        with self.assertRaises(exceptions.FolderNotFoundException):
-            Runner(paths="floopitygibbet")
+        runner = Runner(
+            twine="""{
+            "configuration_values_schema": {
+                "type": "object",
+                "properties": {
+                    "n_iterations": {
+                        "type": "integer"
+                    }
+                }
+            }
+        }""",
+            configuration_values="{}",
+        )
 
-    def test_instantiate_runner_with_valid_dict_paths(self):
-        """ Ensures that error is raised if instantiated with a string path that's not present
+        def fcn(analysis):
+            pass
+
+        runner.run(fcn)
+
+    def test_instantiation_without_configuration_fails(self):
+        """ Ensures that runner can be instantiated with a string that points to a path
         """
-        paths = dict([(k, os.path.join(self.data_path, "basic_empty", k)) for k in FOLDERS])
-        Runner(twine="{}", paths=paths)
+        with self.assertRaises(twined.exceptions.TwineValueException) as error:
+            Runner(
+                twine="""{
+                "configuration_values_schema": {
+                    "type": "object",
+                    "properties": {
+                        "n_iterations": {
+                            "type": "integer"
+                        }
+                    }
+                }
+            }"""
+            )
 
-    def test_instantiate_runner_with_incomplete_dict_paths(self):
-        """ Ensures that error is raised if instantiated with a string path that's not present
+        self.assertIn(
+            "The 'configuration_values' strand is defined in the twine, but no data is provided in sources",
+            error.exception.args[0],
+        )
+
+    def test_run_output_values_validation(self):
+        """ Ensures that runner can be instantiated with a string that points to a path
         """
-        with self.assertRaises(exceptions.InvalidInputException):
-            Runner(paths={"wrong", "a path"})
+        runner = Runner(
+            twine="""{
+            "output_values_schema": {
+                "type": "object",
+                "required": ["n_iterations"],
+                "properties": {
+                    "n_iterations": {
+                        "type": "integer"
+                    }
+                }
+            }
+        }"""
+        )
 
-    def test_runner_instantiaties_if_path_subdirectories_if_not_present(self):
-        """ Ensures that subdirectories are created in the data dir
+        # Test for failure with an incorrect output
+        def fcn(analysis):
+            pass
+
+        with self.assertRaises(twined.exceptions.InvalidValuesContents) as error:
+            runner.run(fcn)
+
+        self.assertIn("'n_iterations' is a required property", error.exception.args[0])
+
+        # Test for success with a valid output
+        def fcn(analysis):
+            analysis.output_values["n_iterations"] = 10
+
+        runner.run(fcn)
+
+    def test_exception_raised_when_extra_strand_data_present(self):
+        """ Ensures that protected attributes can't be set
         """
-        # Make a data directory (uuid so this test doesn't conflict
-        new_path = os.path.join(self.data_path, str(uuid.uuid4()))
-        os.mkdir(new_path)
+        with self.assertRaises(twined.exceptions.StrandNotFound) as error:
+            Runner(
+                twine="{}", configuration_values={},
+            )
 
-        try:
-            Runner(twine="{}", paths=new_path)
-            for folder in FOLDERS:
-                self.assertTrue(os.path.isdir(os.path.join(new_path, folder)))
-        finally:
-            shutil.rmtree(new_path)
+        self.assertIn(
+            "Source data is provided for 'configuration_values' but no such strand is defined in the twine",
+            error.exception.args[0],
+        )
 
-    def test_runner_instantiates_if_path_subdirectories_present(self):
-        """ Ensures that if subdirectories are already present in the data directory there is no failure
+    def test_exception_raised_when_strand_data_missing(self):
+        """ Ensures that protected attributes can't be set
         """
-        # Make a data directory (uuid so this test doesn't conflict)
-        new_path = os.path.join(self.data_path, str(uuid.uuid4()))
-        os.mkdir(new_path)
-        for folder in ["configuration", "tmp", "input", "output", "log"]:
-            os.mkdir(os.path.join(new_path, folder))
+        runner = Runner(
+            twine="""{
+                "configuration_values_schema": {
+                    "type": "object",
+                    "properties": {
+                        "n_iterations": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "input_values_schema": {
+                    "type": "object",
+                    "properties": {
+                        "height": {
+                            "type": "integer"
+                        }
+                    },
+                    "required": ["height"]
+                }
+            }""",
+            configuration_values={"n_iterations": 5},
+        )
 
-        try:
-            runner = Runner(twine="{}", paths=new_path)
-            self.assertEqual(runner.__class__.__name__, "Runner")
-        finally:
-            shutil.rmtree(new_path)
+        def fcn(analysis):
+            pass
+
+        with self.assertRaises(twined.exceptions.TwineValueException) as error:
+            runner.run(fcn)
+
+        self.assertIn(
+            "The 'input_values' strand is defined in the twine, but no data is provided in sources",
+            error.exception.args[0],
+        )
