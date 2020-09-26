@@ -1,5 +1,6 @@
 from octue import exceptions
 from octue.mixins import Taggable
+from octue.mixins.taggable import TagGroup
 from .base import BaseTestCase
 
 
@@ -23,6 +24,35 @@ class TaggableTestCase(BaseTestCase):
         self.assertEqual("a b c", str(tgd.tags))
         with self.assertRaises(exceptions.InvalidTagException):
             Taggable(tags=":a b c")
+
+    def test_instantiates_with_tag_group(self):
+        """ Ensures datafile inherits correctly from the Taggable class and passes arguments through
+        """
+        tgd = Taggable(tags="")
+        self.assertIsInstance(tgd.tags, TagGroup)
+        tgd2 = Taggable(tags=tgd.tags)
+        self.assertFalse(tgd is tgd2)
+
+    def test_fails_to_instantiates_with_non_iterable(self):
+        """ Ensures datafile inherits correctly from the Taggable class and passes arguments through
+        """
+
+        class NoIter:
+            pass
+
+        with self.assertRaises(exceptions.InvalidTagException) as error:
+            Taggable(tags=NoIter())
+
+        self.assertIn(
+            "Tags must be expressed as a whitespace-delimited string or an iterable of strings", error.exception.args[0]
+        )
+
+    def test_reset_tags(self):
+        """ Ensures datafile inherits correctly from the Taggable class and passes arguments through
+        """
+        tgd = Taggable(tags="a b")
+        tgd.tags = "b c"
+        self.assertEqual(str(tgd.tags), "b c")
 
     def test_valid_tags(self):
         """ Ensures valid tags do not raise an error
