@@ -1,46 +1,75 @@
 import os
-import sys
 
-from octue import analysis, octue_app
+from octue import octue_cli, octue_run, octue_version
 from .fractal import mandelbrot
 
 
-@octue_app.command()
-def run():
-    """ Runs the application
+@octue_run
+def run(analysis):
+    """ Your main entrypoint to run the application
 
-    This is the function that gets run each time somebody requests an analysis from the digital twin / data service
+    This is the function that gets run each time somebody requests an analysis from the digital twin / data service.
+    You should write your own code and call it from here.
 
     ## The Analysis:
 
     `analysis` is an instantiated Analysis class object, which you can import here (as shown) or anywhere else in your
     code. It contains:
-        - The configuration values, which have been validated against the twine
-        - The input values, which have been validated against the twine
-        - The input manifest, which has been validated and whose files have been checked, instantiated as a
-           Manifest object (files are checked to be present and, if a `sha` field is given in the manifest, their
+        - ``configuration_values``, which have been validated against the twine
+        - ``configuration_manifest``, a Manifest instance whose contents have been validated and whose files have been
+           checked (files are checked to be present and, if a `sha` field is given in the manifest, their
            contents checked to match the sha)
-        - An empty output_values dict which can be added to as required (on completion, will be validated
-           against the twine)
-        - An empty, instantiated, output Manifest object to which newly created datasets and files can be added (on
-           completion, the presence of the files will be checked and their shas calculated)
-        - Locations of configuration, input, tmp and output directories as strings
+        - ``input_values``, which have been validated against the twine
+        - ``input_manifest``, a Manifest instance whose contents have been validated and whose files have been
+           checked (files are checked to be present and, if a `sha` field is given in the manifest, their
+           contents checked to match the sha)
+        - ``output_values``, dict which can be added to as required (on completion, it will be validated
+           against the twine and returned to the requester)
+        - ``output_manifest``, a Manifest instance to which newly created datasets and files should be added (on
+           completion, the presence of the files will be checked, their shas calculated and they'll be returned to the
+           requester or uploaded)
+        - ``children``, a dict of Child objects allowing you to access child twins/services
+        - ``credentials``, a dict of Credential objects
 
     """
 
-    # You can use the general purpose logger to record debug statements, general information, warnings or errors
-    analysis.logger.info(f"The input directory is {analysis.input_dir}")
-    analysis.logger.info(f"The output directory is {analysis.output_dir}")
-    analysis.logger.info(f"The tmp directory, where you can store temporary files or caches, is {analysis.tmp_dir}")
+    # You can use the attached logger to record debug statements, general information, warnings or errors
+    # analysis.logger.info(f"The input directory is {analysis.input_dir}")
+    # analysis.logger.info(f"The output directory is {analysis.output_dir}")
+    # analysis.logger.info(f"The tmp directory, where you can store temporary files or caches, is {analysis.tmp_dir}")
+
+    # Print statements will get logged (stdout and stderr are mirrored to the log files so you don't miss anything)...
+    print("Hello! The app is running!")
+
+    # ... but we encourage you to use the attached logger, which handles sending logs to remote services and allows them
+    # to be viewed with twined server
+    analysis.logger.info(
+        "The logger can be used for capturing different 'levels' of statement - for debug, info, warnings or errors."
+    )
 
     # You can access any of the configuration or input values, anywhere in your code, from the analysis object
-    analysis.logger.info(f"The maximum number of iterations will be {analysis.configuration['max_iterations']}")
+    analysis.logger.info(f"The maximum number of iterations will be {analysis.configuration_values['max_iterations']}")
 
-    #
     mandelbrot()
 
+    # `analysis` is an instantiated Analysis class object which contains the analysis configuration, the input file
+    #  manifest and locations of input, tmp and output directories.
 
-@octue_app.command()
+    # EDIT THE CONTENTS OF THIS FUNCTION TO RUN WHATEVER ANALYSES YOU WISH...
+    # ALTHOUGH WE RECOMMEND THE WORK IS PLACED IN A MODULE
+
+    # SOME (VERY) SIMPLE EXAMPLES:
+
+    # # Do some processing, and add the results files
+    # file_name = analysis.output_dir + '/data_file_from_a_legacy_module'
+    # print(file_name)
+    # examples.a_legacy_analysis_function(file_name)
+    #
+    # # Create a figure using the results. This function adds to the output file manifest at the same time as creating the
+    # examples.create_figure_file()
+
+
+@octue_version
 def version():
     """ Returns the version number of the application
     """
@@ -55,10 +84,19 @@ def version():
     return version_no
 
 
-# If running from an IDE or test console, you won't be using the command line... just run this file
+# If running from an IDE or test console, it'll run this file rather than calling the application from the CLI...
+# In that case we pass arguments through the CLI just as if it were called from the command line.
 if __name__ == "__main__":
 
+    # args = sys.argv[1:] if len(sys.argv) > 1 else []
+
+    # Invoke the CLI to process the arguments, set up an analysis and run it
+    octue_cli({})
+
+    # Just call the runner directly instead of invoking the CLI
+    # args = sys.argv[1:] if len(sys.argv) > 1 else []
+    # Runner(run, cli=args).go()
     # Manual setup
-    data_dir = sys.argv[1] if len(sys.argv) > 1 else "example_data"
-    analysis.setup(id=None, data_dir=data_dir)
-    run()
+    # data_dir = sys.argv[1] if len(sys.argv) > 1 else "example_data"
+    # analysis.setup(id=None, data_dir=data_dir)
+    # run()

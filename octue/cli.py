@@ -1,6 +1,14 @@
+from functools import update_wrapper
 import click
 
-from octue.resources import analysis
+
+FOLDERS = (
+    "configuration",
+    "input",
+    "log",
+    "tmp",
+    "output",
+)
 
 
 @click.group()
@@ -10,81 +18,139 @@ from octue.resources import analysis
     show_default=True,
     help="Id of the analysis being undertaken. None (for local use) will cause a unique ID to be generated.",
 )
-# TODO Add --log-level option
 @click.option(
     "--skip-checks/--no-skip-checks",
     default=False,
     is_flag=True,
     show_default=True,
     help="Skips the input checking. This can be a timesaver if you already checked "
-    "the data directory once, and its a big manifest.",
+    "data directories (especially if manifests are large).",
+)
+@click.option(
+    "--log-level",
+    default="info",
+    type=click.Choice(["debug", "info", "warning", "error"], case_sensitive=False),
+    show_default=True,
+    help="Log level used for the analysis.",
 )
 @click.option(
     "--force-reset/--no-force-reset",
     default=True,
     is_flag=True,
     show_default=True,
-    help="Forces a reset of analysis cache and outputs [For future use, currently not implemented)",
+    help="Forces a reset of analysis cache and outputs [For future use, currently not implemented]",
 )
 @click.option(
-    "--data-dir",
+    "--configuration-values",
     type=click.Path(),
-    default=".",
+    default="<data-dir>/input/input_values.json",
     show_default=True,
-    help="Absolute or relative path to the data directory (which will contain config, manifest files "
-    "and <data_dir>/input <data_dir>/output folders).",
+    help="Source for configuration_values strand data.",
 )
 @click.option(
-    "--input-dir",
+    "--configuration-manifest",
     type=click.Path(),
-    default="<data-dir>/input",
+    default="<data-dir>/input/input_values.json",
     show_default=True,
-    help="Absolute or relative path to a folder containing input files.",
+    help="Source for configuration_manifest strand data.",
 )
 @click.option(
-    "--tmp-dir",
+    "--input-values",
     type=click.Path(),
-    default="<data-dir>/tmp",
+    default="<data-dir>/input/input_values.json",
     show_default=True,
-    help="Absolute or relative path to a folder for temporary files, where you can save "
-    "cache files during your computation. This cache lasts the duration of the analysis "
-    "and may not be available beyond the end of an analysis.",
+    help="Source for input_values strand data.",
+)
+@click.option(
+    "--input-manifest",
+    type=click.Path(),
+    default="<data-dir>/input/input_manifest.json",
+    show_default=True,
+    help="Source for input_manifest strand data.",
 )
 @click.option(
     "--output-dir",
     type=click.Path(),
-    default="<data-dir>/output",
-    show_default=True,
-    help="Absolute or relative path to a folder where results should be saved.",
+    default="output",
+    show_default=False,
+    help="Directory to write outputs as files.",
 )
 @click.option(
-    "--log-dir",
-    type=click.Path(),
-    default="<data-dir>/logs",
-    show_default=True,
-    help="Path to the location of log files",
+    "--log-dir", type=click.Path(), default="logs", show_default=True, help="Path to the location of log files",
 )
-def octue_app(id, skip_checks, force_reset, data_dir, input_dir, tmp_dir, output_dir, log_dir):
-    """Creates the CLI for an Octue application
+@click.pass_context
+def octue_cli(
+    ctx,
+    id,
+    skip_checks,
+    log_level,
+    force_reset,
+    configuration_values,
+    configuration_manifest,
+    input_values,
+    input_manifest,
+    data_dir,
+    input_dir,
+    tmp_dir,
+    output_dir,
+    log_dir,
+):
+    """ Octue CLI, enabling a data service / digital twin to be run like a command line application.
+
+    Provide sources of configuration and/or input data and run the app. A source can be:
+
+    - A path (relative or absolute) to a directory containing a <strand>.json file (eg `path/to/dir`).
+    - A path to a <strand>.json file (eg `path/to/configuration_values.json`).
+    - A literal JSON string (eg `{"n_iterations": 10}`.
+
     """
 
     # We want to show meaningful defaults in the CLI help but unfortunately have to strip out the displayed values here
-    if input_dir.startswith("<data-dir>/"):
-        input_dir = None
+    if input_values.startswith("<data-dir>/"):
+        input_dir = None  # noqa
     if log_dir.startswith("<data-dir>/"):
-        log_dir = None
+        log_dir = None  # noqa
     if output_dir.startswith("<data-dir>/"):
-        output_dir = None
-    if tmp_dir.startswith("<data-dir>/"):
-        tmp_dir = None
+        output_dir = None  # noqa
 
-    # Use the setup method to update the existing analysis
-    analysis.setup(
-        id=id,
-        skip_checks=skip_checks,
-        data_dir=data_dir,
-        input_dir=input_dir,
-        tmp_dir=tmp_dir,
-        output_dir=output_dir,
-        log_dir=log_dir,
-    )
+    ctx.ensure_object(dict)
+    ctx.obj["analysis"] = "VIBRATION"
+
+
+def pass_analysis(f):
+    @click.pass_context
+    def new_func(ctx, *args, **kwargs):
+        return ctx.invoke(f, ctx.obj["analysis"], *args, **kwargs)
+
+    return update_wrapper(new_func, f)
+
+
+def octue_run(f):
+    """ Decorator for the main `run` function which adds a command to the CLI and prepares analysis ready for the run
+    """
+
+    @octue_cli.command()
+    @pass_analysis
+    def run(*args, **kwargs):
+        return f(*args, **kwargs)
+
+    return update_wrapper(run, f)
+
+
+def octue_version(f):
+    """ Decorator for the main `version` function which adds a command to the CLI
+    """
+
+    @octue_cli.command()
+    def version(*args, **kwargs):
+        return f(*args, **kwargs)
+
+    return update_wrapper(version, f)
+
+
+# def octue_cli():
+#     """ Utilty function allowing the CLI to be called from other python modules without invoking a subprocess.
+#     An alternative would be to use the Runner() class to manage analysis runs directly
+#     """
+#     ctx = {}
+#     octue_app(ctx)
