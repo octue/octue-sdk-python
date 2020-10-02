@@ -1,75 +1,48 @@
 import os
-import shutil
-import sys
 import uuid
+from tempfile import TemporaryDirectory, gettempdir
 
-from octue import Runner
+from octue import exceptions
+from octue.templates import copy_template
 from .base import BaseTestCase
 
 
 class TemplatesTestCase(BaseTestCase):
-    """ Test case that runs the analyses in the templates to ensure all the examples work.
+    """ Test parts of the utils library not otherwise covered by other tests
     """
 
     def setUp(self):
         super().setUp()
         self.start_path = os.getcwd()
-
-        # Initialise just so that pylint picks up these variables are present (reinitialised in set_template())
-        self.template_data_path = None
-        self.template_twine = None
-        self.template_path = None
-        self.teardown_templates = []
-
-        def set_template(template):
-            """ Sets up the working directory and data paths to run one of the provided templates
-            """
-            self.template_path = os.path.join(self.templates_path, template)
-            self.template_twine = os.path.join(self.templates_path, template, "twine.json")
-
-            # Duplicate the template's data/ directory to a test-specific replica
-            self.app_test_path = os.path.join(self.data_path, str(uuid.uuid4()))
-            shutil.copytree(self.template_path, self.app_test_path)
-
-            # Add this template to the list to remove in teardown
-            self.teardown_templates.append(self.app_test_path)
-            sys.path.insert(0, self.app_test_path)
-
-            # Run from within the app folder context
-            os.chdir(self.app_test_path)
-
-        self.set_template = set_template
+        self.test_id = str(uuid.uuid4())
+        self.tmp_dir_name = os.path.join(gettempdir(), "octue-sdk-python", f"test-{self.test_id}")
 
     def tearDown(self):
-        """ Remove data directories manufactured
+        """ Remove data directories manufactured and ensure we end up in the right place
         """
         super().tearDown()
         os.chdir(self.start_path)
-        for path in self.teardown_templates:
-            sys.path.remove(path)
-            shutil.rmtree(path)
 
-    def test_fractal_configuration(self):
-        """ Ensures fractal app can be configured with its default configuration
+    def test_copy_templates_to_directory(self):
+        """ Ensures that a known template will copy to a given directory
         """
-        self.set_template("template-python-fractal")
-        runner = Runner(
-            twine=self.template_twine,
-            configuration_values=os.path.join("data", "configuration", "configuration_values.json"),
-        )
-        from app import run
+        with TemporaryDirectory() as tmp_dir:
+            copy_template("template-python-fractal", tmp_dir)
+            twine_file_name = os.path.join(tmp_dir, "template-python-fractal", "twine.json")
+            self.assertTrue(os.path.isfile(twine_file_name))
 
-        runner.run(run)
-
-    def test_fractal_configuration_with_no_config(self):
-        """ Ensures fractal app can be configured with no configuration
+    def test_copy_templates_to_current_directory_by_default(self):
+        """ Ensures that a known template will copy to the current directory by default
         """
-        runner = Runner(twine=self.template_twine, paths=self.template_data_path)
-        runner.configure()
+        with TemporaryDirectory() as tmp_dir:
+            os.chdir(tmp_dir)
+            copy_template("template-python-fractal")
+            self.assertTrue(os.path.isfile(os.path.join(".", "template-python-fractal", "twine.json")))
 
-    def test_fractal(self):
-        """ Ensures fractal app can be configured with its default configuration
+    def test_copy_template_raises_if_unknown(self):
+        """ Ensures that a known template will copy to a given directory
         """
-        runner = Runner(twine=self.template_twine, paths=self.template_data_path)
-        runner.configure(values=os.path.join(runner.paths["configuration"], "configuration_values.json"))
-        runner.run()
+        with TemporaryDirectory() as dir:
+            with self.assertRaises(exceptions.InvalidInputException) as error:
+                copy_template("template-which-isnt-there", dir)
+            self.assertIn("Unknown template name 'template-which-isnt-there', try one of", error.exception.args[0])
