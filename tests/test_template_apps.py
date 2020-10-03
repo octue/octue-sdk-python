@@ -7,8 +7,8 @@ from octue import Runner
 from .base import BaseTestCase
 
 
-class TemplatesTestCase(BaseTestCase):
-    """ Test case that runs the analyses in the templates to ensure all the examples work.
+class TemplateAppsTestCase(BaseTestCase):
+    """ Test case that runs analyses using apps in the templates, to ensure all the examples work.
     """
 
     def setUp(self):
@@ -57,19 +57,4 @@ class TemplatesTestCase(BaseTestCase):
             twine=self.template_twine,
             configuration_values=os.path.join("data", "configuration", "configuration_values.json"),
         )
-        from app import run
-
-        runner.run(run)
-
-    def test_fractal_configuration_with_no_config(self):
-        """ Ensures fractal app can be configured with no configuration
-        """
-        runner = Runner(twine=self.template_twine, paths=self.template_data_path)
-        runner.configure()
-
-    def test_fractal(self):
-        """ Ensures fractal app can be configured with its default configuration
-        """
-        runner = Runner(twine=self.template_twine, paths=self.template_data_path)
-        runner.configure(values=os.path.join(runner.paths["configuration"], "configuration_values.json"))
-        runner.run()
+        runner.run(app_src=".")

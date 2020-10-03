@@ -27,7 +27,5 @@ def copy_template(template_name, destination_dir="."):
         )
 
     resource = resource_filename("octue.templates", template_name)
-    print("RES FN", str(resource))
     dest = os.path.join(destination_dir, template_name)
-    print(dest)
     copytree(resource, dest)
