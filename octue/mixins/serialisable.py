@@ -61,7 +61,13 @@ class Serialisable:
         )
         self_as_primitive = {attr: getattr(self, attr, None) for attr in attrs_to_serialise}
 
+        # TODO this conversion backward-and-forward is very inefficient but allows us to use the same encoder for
+        #  converting the object to a dict as to strings, which ensures that nested attributes are also cast to
+        #  primitive using their serialise() method. A more performant method would be to implement an encoder which
+        #  returns python primitives, not strings. The reason we do this is to validate outbound information the same
+        #  way as we validate incoming.
+        string = json.dumps(self_as_primitive, cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
         if to_string:
-            return json.dumps(self_as_primitive, cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
+            return string
 
-        return self_as_primitive
+        return json.loads(string)
