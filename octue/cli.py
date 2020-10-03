@@ -1,3 +1,6 @@
+import importlib
+import os
+import sys
 from functools import update_wrapper
 import click
 
@@ -148,9 +151,38 @@ def octue_version(f):
     return update_wrapper(version, f)
 
 
-# def octue_cli():
-#     """ Utilty function allowing the CLI to be called from other python modules without invoking a subprocess.
-#     An alternative would be to use the Runner() class to manage analysis runs directly
-#     """
-#     ctx = {}
-#     octue_app(ctx)
+def unwrap(fcn):
+    """ Recurse through wrapping to get the raw function without decorators.
+    """
+    if hasattr(fcn, "__wrapped__"):
+        return unwrap(fcn.__wrapped__)
+    return fcn
+
+
+class AppFrom:
+    """ Context manager that allows us to temporarily add an app's location to the system path and
+    extract its run function
+
+    with AppFrom('/path/to/dir') as app:
+        Runner().run(app)
+
+    """
+
+    def __init__(self, app_path="."):
+        self.app_path = os.path.abspath(os.path.normpath(app_path))
+        self.app_module = None
+
+    def __enter__(self):
+        sys.path.insert(0, self.app_path)
+        self.app_module = importlib.import_module("app")
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.app_path in sys.path:
+            sys.path.remove(self.app_path)
+
+    @property
+    def run(self):
+        """ Returns the unwrapped run function from app.py in the application's root directory
+        """
+        return unwrap(self.app_module.run)
