@@ -1,7 +1,7 @@
 {
   "width": 600,
   "height": 600,
-  "max_iterations": 64,
+  "n_iterations": 64,
   "color_scale": "YlGnBu",
   "type": "png",
   "x_range": [

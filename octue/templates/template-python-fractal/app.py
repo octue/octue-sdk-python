@@ -1,7 +1,8 @@
 import os
+import sys
 
+from fractal import fractal
 from octue import octue_cli, octue_run, octue_version
-from .fractal import mandelbrot
 
 
 @octue_run
@@ -48,25 +49,10 @@ def run(analysis):
     )
 
     # You can access any of the configuration or input values, anywhere in your code, from the analysis object
-    analysis.logger.info(f"The maximum number of iterations will be {analysis.configuration_values['max_iterations']}")
+    analysis.logger.info(f"The maximum number of iterations will be {analysis.configuration_values}")
 
-    mandelbrot()
-
-    # `analysis` is an instantiated Analysis class object which contains the analysis configuration, the input file
-    #  manifest and locations of input, tmp and output directories.
-
-    # EDIT THE CONTENTS OF THIS FUNCTION TO RUN WHATEVER ANALYSES YOU WISH...
-    # ALTHOUGH WE RECOMMEND THE WORK IS PLACED IN A MODULE
-
-    # SOME (VERY) SIMPLE EXAMPLES:
-
-    # # Do some processing, and add the results files
-    # file_name = analysis.output_dir + '/data_file_from_a_legacy_module'
-    # print(file_name)
-    # examples.a_legacy_analysis_function(file_name)
-    #
-    # # Create a figure using the results. This function adds to the output file manifest at the same time as creating the
-    # examples.create_figure_file()
+    # Run the code
+    fractal(analysis)
 
 
 @octue_version
@@ -88,15 +74,6 @@ def version():
 # In that case we pass arguments through the CLI just as if it were called from the command line.
 if __name__ == "__main__":
 
-    # args = sys.argv[1:] if len(sys.argv) > 1 else []
-
     # Invoke the CLI to process the arguments, set up an analysis and run it
-    octue_cli({})
-
-    # Just call the runner directly instead of invoking the CLI
-    # args = sys.argv[1:] if len(sys.argv) > 1 else []
-    # Runner(run, cli=args).go()
-    # Manual setup
-    # data_dir = sys.argv[1] if len(sys.argv) > 1 else "example_data"
-    # analysis.setup(id=None, data_dir=data_dir)
-    # run()
+    args = sys.argv[1:] if len(sys.argv) > 1 else []
+    octue_cli(args)

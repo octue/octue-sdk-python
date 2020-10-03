@@ -7,7 +7,7 @@ def git_version():
 
 
 setup(
-    name="change-this-to-your-app-name",
+    name="template-python-fractal",  # Change this if you want to make your module installable as a library
     version=git_version(),
     py_modules=["app"],
     entry_points="""

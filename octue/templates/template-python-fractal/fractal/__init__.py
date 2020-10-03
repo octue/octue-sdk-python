@@ -1,1 +1,1 @@
-from .main import mandelbrot  # noqa: F401
+from .fractal import fractal  # noqa: F401

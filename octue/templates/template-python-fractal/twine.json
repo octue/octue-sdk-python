@@ -16,8 +16,8 @@
 				"minimum": 2,
 				"default": 600
 			},
-			"max_iterations": {
-				"description": "Maximum number of iterations used to render each pixel",
+			"n_iterations": {
+				"description": "Number of iterations used to render each pixel",
 				"type": "integer",
 				"minimum": 2,
 				"default": 64
@@ -27,12 +27,6 @@
 				"type": "string",
 				"enum": ["PuBu", "YlGnBu"],
 				"default": "YlGnBu"
-			},
-			"image_type": {
-				"description": "Type (jpeg or png) of the image that will be produced as a results file",
-				"type": "string",
-				"enum": ["jpg", "png"],
-				"default": "png"
 			},
 			"x_range": {
 				"description": "The x_min to x_max range of space in which to render the fractal",
@@ -65,5 +59,12 @@
 				"maxItems": 2
 			}
 		}
-	}
+	},
+	"output_manifest": [
+		{
+			"key": "fractal_figure_files",
+			"purpose": "A dataset containing .json files containing the output figures",
+			"filters": "tags:(fractal AND figure) files:(extension:json)"
+		}
+	]
 }
