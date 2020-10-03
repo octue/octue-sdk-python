@@ -1,8 +1,10 @@
 import logging
+import os
 
 from octue.exceptions import BrokenSequenceException, InvalidInputException, UnexpectedNumberOfResultsException
 from octue.mixins import Identifiable, Loggable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
+from octue.utils import isfolder
 
 
 module_logger = logging.getLogger(__name__)
@@ -21,6 +23,9 @@ class Dataset(Taggable, Serialisable, Loggable, Identifiable):
         super().__init__(id=id, logger=logger, tags=tags)
         self.files = kwargs.pop("files", list())
         self.__dict__.update(**kwargs)
+
+        # TODO A much better way than relying on the current directory!
+        self._path = os.path.abspath(f"./dataset-{self.id}")
 
     def append(self, *args, **kwargs):
         """ Add a data/results file to the manifest
@@ -154,3 +159,9 @@ class Dataset(Taggable, Serialisable, Loggable, Identifiable):
             raise UnexpectedNumberOfResultsException("No files found with this tag")
 
         return results[0]
+
+    @property
+    def path(self):
+        # Lazily make the folder if absent
+        isfolder(self._path, make_if_absent=True)
+        return self._path
