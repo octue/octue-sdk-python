@@ -24,6 +24,11 @@ twine  # <---- nothing to do with the twined library!
 -r docs/requirements.txt
 
 
+# Templates
+# ------------------------------------------------------------------------------
+numpy  # Used in template apps but not necessarily a dependency of the library
+
+
 # Current library
 #    Installs any dependencies in setup.py
 # ------------------------------------------------------------------------------

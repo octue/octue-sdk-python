@@ -26,8 +26,18 @@ setup(
     author_email="support@octue.com",
     description="A package providing template applications for data services, and a python SDK to the Octue API",
     long_description=readme_text,
-    include_package_data=True,
     zip_safe=False,  # Allows copying of templates as whole directory trees
     packages=find_packages(exclude=("tests", "docs")),
+    include_package_data=True,
+    classifiers=[
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Developers",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Operating System :: OS Independent",
+    ],
     keywords=["digital", "twins", "twined", "data", "services", "science", "api", "apps", "ml"],
 )
