@@ -89,7 +89,12 @@ class DatafileTestCase(BaseTestCase):
         """
         local_path_prefix = os.path.join(self.data_path, "basic_files/configuration/test-dataset")
         path = "path-within-dataset/a_test_file.csv"
-        df = Datafile(local_path_prefix=local_path_prefix, path=path, skip_checks=False)
+        print("PATH", path)  # noqa
+        print("LOACL_PATH_PREFIX", local_path_prefix)  # noqa
+        df = Datafile(local_path_prefix=local_path_prefix, path=path, skip_checks=True)
+        print("df.FULL_PATH", df.full_path)  # noqa
+        # df = Datafile(local_path_prefix=local_path_prefix, path=path, skip_checks=False)
+
         with self.assertRaises(AttributeError):
             df.size_bytes = 1
 
