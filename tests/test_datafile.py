@@ -77,7 +77,7 @@ class DatafileTestCase(BaseTestCase):
         path = "path-within-dataset/a_test_file.csv"
         df = Datafile(local_path_prefix=local_path_prefix, path=path, skip_checks=False)
         self.assertIsInstance(df.size_bytes, int)
-        self.assertEqual(1598200190.5771205, df.last_modified)
+        self.assertGreaterEqual(df.last_modified, 1598200190.5771205)
         self.assertEqual("a_test_file.csv", df.name)
 
         df.sequence = 2
