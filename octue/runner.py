@@ -47,11 +47,9 @@ class Runner:
         self.twine = Twine(source=twine)
 
         # Validate and initialise configuration data
-        config = self.twine.validate(
+        self.configuration = self.twine.validate(
             configuration_values=configuration_values, configuration_manifest=configuration_manifest, cls=CLASS_MAP,
         )
-        self.configuration_values = config.get("configuration_values", None)
-        self.configuration_manifest = config.get("configuration_manifest", None)
 
         # Store the log level (same log level used for all analyses)
         self._log_level = log_level
@@ -94,27 +92,27 @@ class Runner:
         a function which accepts a single parameter (the instantiated analysis), or a string or path_like pointing
         a string or path_like pointing to an application folder (which should contain an 'app.py' function like the
         templates). This typically points to the run() function defined in the 'app.py' file.
-        :type app_src: (AppFrom, function, str)
+        :type app_src: Union[AppFrom, function, str]
 
         :parameter input_values: The input_values strand data. Can be expressed as a string path of a *.json file
         (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
         already-parsed dict.
-        :type input_values: (str, dict)
+        :type input_values: Union[str, dict]
 
         :parameter input_manifest: The input_manifest strand data. Can be expressed as a string path of a *.json file
         (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
         already-parsed dict.
-        :type input_manifest: (str, Manifest)
+        :type input_manifest: Union[str, Manifest]
 
         :parameter credentials: The credentials strand data. Can be expressed as a string path of a *.json file
         (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
         already-parsed dict.
-        :type credentials: (str, dict)
+        :type credentials: Union[str, dict]
 
         :parameter children: The children strand data. Can be expressed as a string path of a *.json file
         (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
         already-parsed dict.
-        :type children: (str, dict)
+        :type children: Union[str, dict]
 
         :parameter handler: the logging.Handler instance which will be used to handle logs for this analysis run.
         handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but
@@ -142,8 +140,7 @@ class Runner:
             id=analysis_id,
             logger=analysis_logger,
             twine=self.twine,
-            configuration_values=self.configuration_values,
-            configuration_manifest=self.configuration_manifest,
+            **self.configuration,
             **inputs,
             **outputs_and_monitors,
         )
