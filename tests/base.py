@@ -14,13 +14,8 @@ class BaseTestCase(unittest.TestCase):
 
         # Set up paths to the test data directory and to the app templates directory
         root_dir = os.path.dirname(os.path.abspath(__file__))
-        # For travis ci debug
-        print("ROOT_DIR", root_dir)  # noqa
         self.data_path = str(os.path.join(root_dir, "data", ""))
-        # For travis ci debug
-        print("DATA_PATH", self.data_path)  # noqa
         self.templates_path = str(os.path.join(os.path.dirname(root_dir), "octue", "templates", ""))
-        print("TEMPLATES_PATH", self.templates_path)  # noqa
         super().setUp()
 
     def callCli(self, args):
@@ -28,7 +23,6 @@ class BaseTestCase(unittest.TestCase):
         Enables testing that multiple processes aren't using the same memory space, or for running multiple apps in
         parallel to ensure they don't conflict
         """
-        #
         call_id = str(uuid.uuid4())
         tmp_dir_name = os.path.join(gettempdir(), "octue-sdk-python", f"test-{call_id}")
 
