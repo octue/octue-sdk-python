@@ -1,5 +1,6 @@
 import logging
 
+from octue.cli import AppFrom
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.utils import gen_uuid
 from twined import Twine
@@ -46,10 +47,11 @@ class Runner:
         self.twine = Twine(source=twine)
 
         # Validate and initialise configuration data
-        self.configuration_values = self.twine.validate(configuration_values=configuration_values)
-        self.configuration_manifest = self.twine.validate(
-            configuration_manifest=configuration_manifest, cls=CLASS_MAP["configuration_manifest"]
+        config = self.twine.validate(
+            configuration_values=configuration_values, configuration_manifest=configuration_manifest, cls=CLASS_MAP,
         )
+        self.configuration_values = config.get("configuration_values", None)
+        self.configuration_manifest = config.get("configuration_manifest", None)
 
         # Store the log level (same log level used for all analyses)
         self._log_level = log_level
@@ -85,23 +87,29 @@ class Runner:
 
         return analysis_logger
 
-    def run(self, fcn, handler=None, input_values=None, input_manifest=None, credentials=None, children=None):
+    def run(self, app_src, handler=None, input_values=None, input_manifest=None, credentials=None, children=None):
         """ Run an analysis
+
+        :parameter app_src: Either: an instance of the AppFrom manager class which has a run() method, or
+        a function which accepts a single parameter (the instantiated analysis), or a string or path_like pointing
+        a string or path_like pointing to an application folder (which should contain an 'app.py' function like the
+        templates). This typically points to the run() function defined in the 'app.py' file.
+        :type app_src: (AppFrom, function, str)
 
         :parameter input_values: The input_values strand data. Can be expressed as a string path of a *.json file
         (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
         already-parsed dict.
-        :type input_values (str, dict)
+        :type input_values: (str, dict)
 
         :parameter input_manifest: The input_manifest strand data. Can be expressed as a string path of a *.json file
         (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
         already-parsed dict.
-        :type input_manifest (str, Manifest)
+        :type input_manifest: (str, Manifest)
 
         :parameter credentials: The credentials strand data. Can be expressed as a string path of a *.json file
         (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
         already-parsed dict.
-        :type credentials (str, dict)
+        :type credentials: (str, dict)
 
         :parameter children: The children strand data. Can be expressed as a string path of a *.json file
         (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
@@ -141,7 +149,14 @@ class Runner:
         )
 
         try:
-            fcn(analysis)
+            if hasattr(app_src, "run"):
+                app_src.run(analysis)
+            elif isinstance(app_src, str):
+                with AppFrom(app_src) as app:
+                    app.run(analysis)
+            else:
+                app_src(analysis)
+
             self.twine.validate(output_values=analysis.output_values)
             self.twine.validate(output_manifest=analysis.output_manifest)
 
