@@ -1,0 +1,70 @@
+{
+	"configuration_values_schema": {
+		"title": "Configuration for a simple app",
+		"description": "The app creates a mandelbrot or julia plot",
+		"type": "object",
+		"properties": {
+			"width": {
+				"description": "Number of pixels the image contains in the x direction",
+				"type": "integer",
+				"minimum": 2,
+				"default": 600
+			},
+			"height": {
+				"description": "Number of pixels the image contains in the y direction",
+				"type": "integer",
+				"minimum": 2,
+				"default": 600
+			},
+			"n_iterations": {
+				"description": "Number of iterations used to render each pixel",
+				"type": "integer",
+				"minimum": 2,
+				"default": 64
+			},
+			"color_scale": {
+				"description": "The colour scale string to use when mapping colours. See https://plot.ly/ipython-notebooks/color-scales/ for valid scales",
+				"type": "string",
+				"enum": ["PuBu", "YlGnBu"],
+				"default": "YlGnBu"
+			},
+			"x_range": {
+				"description": "The x_min to x_max range of space in which to render the fractal",
+				"type": "array",
+				"items": [{
+					"type": "number"
+				}],
+				"minItems": 2,
+				"maxItems": 2,
+				"default": [-1.5, 0.6]
+			},
+			"y_range": {
+				"description": "The y_min to y_max range of space in which to render the fractal",
+				"type": "array",
+				"items": [{
+					"type": "number"
+				}],
+				"minItems": 2,
+				"maxItems": 2,
+				"default": [-1.26, 1.26]
+			},
+			"julia_c": {
+				"description": "Optional constant coefficients a and b (c = a + ib). If specified, a Julia set is created instead of the default mandelbrot set.",
+				"type": "array",
+				"items": [{
+					"type": "number"
+				}],
+				"additionalItems": false,
+				"minItems": 2,
+				"maxItems": 2
+			}
+		}
+	},
+	"output_manifest": [
+		{
+			"key": "fractal_figure_files",
+			"purpose": "A dataset containing .json files containing the output figures",
+			"filters": "tags:(fractal AND figure) files:(extension:json)"
+		}
+	]
+}

@@ -1,0 +1,37 @@
+appdirs==1.4.3
+args==0.1.0
+clint==0.5.1
+packaging==20.0
+pyparsing==2.4.6
+six==1.13.0
+octue==0.1.0
+twined==0.0.4
+click==7.0
+
+# ----------- Install the current app (as editable, so you can develop on it) ------------------------------------------
+
+--editable .
+
+
+# ----------- Some common libraries  -----------------------------------------------------------------------------------
+
+# You may wish to include these. Removing these may break the examples, but won't break the template :)
+
+
+# Plotting tools to help create json based figure files (more powerful and better validation than creating the raw json yourself)
+#plotly==3.6.1
+
+# A numerical manipulation library
+numpy==1.16.2
+
+# A powerful database api library. Supply it with your db's uri (through environment variables - don't commit URIs to git!!!!) and read/add data to/from databases.
+# Note that results of analyses using externally managed databases as data sources cannot be guaranteed to be idempotent.
+#SQLAlchemy==1.0.12
+#SQLAlchemy-Utils==0.31.6
+
+
+# ----------- Twined / SDK developer's reference only. Do not uncomment. ---------------------------------------------------------------
+
+# To develop twined or the SDK within the same environment as an app, install them as editable:
+# --editable ../twined
+# --editable ../octue-sdk-python

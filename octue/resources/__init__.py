@@ -1,3 +1,4 @@
-from .analysis import analysis  # <----- Note! This is the instantiated class object on purpose, not the class!
-from .data_file import DataFile
-from .manifest import Manifest
+from .analysis import Analysis  # noqa: F401
+from .datafile import Datafile  # noqa: F401
+from .dataset import Dataset  # noqa: F401
+from .manifest import Manifest  # noqa: F401
