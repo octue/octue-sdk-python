@@ -40,7 +40,7 @@ def run(analysis):
     # analysis.logger.info(f"The tmp directory, where you can store temporary files or caches, is {analysis.tmp_dir}")
 
     # Print statements will get logged (stdout and stderr are mirrored to the log files so you don't miss anything)...
-    print("Hello! The app is running!")
+    print("Hello! The app is running!")  # noqa: T001
 
     # ... but we encourage you to use the attached logger, which handles sending logs to remote services and allows them
     # to be viewed with twined server
