@@ -25,7 +25,6 @@ class Datafile(Taggable, Serialisable, Loggable, Identifiable):
           "posix_timestamp": 0,
           "id": "abff07bc-7c19-4ed5-be6d-a6546eae8e86",
           "last_modified": "2019-02-28T22:40:30.533005Z",
-          "name": "file_1.csv",
           "size_bytes": 59684813,
           "sha-512/256": "somesha"
         },
@@ -34,7 +33,7 @@ class Datafile(Taggable, Serialisable, Loggable, Identifiable):
     in which this file resides. Default is the current working directory.
     :type local_path_prefix: str
 
-    :parameter path: The path of this file, relative to the local_path_prefi(which may have a folder structure within it)
+    :parameter path: The path of this file, relative to the local_path_prefix (which may have a folder structure within it)
     :type path: str
 
     :parameter logger: A logger instance to which operations with this datafile will be logged. Defaults to the module logger.
@@ -87,12 +86,8 @@ class Datafile(Taggable, Serialisable, Loggable, Identifiable):
         # Strip to ensure path is always expressed as relative
         self.path = path
 
-        # Replace current directory specifier in the prefix with with absolute path
-        if local_path_prefix.startswith("."):
-            local_path_prefix = os.path.join(os.getcwd(), local_path_prefix.lstrip("."))
-        local_path_prefix = str(local_path_prefix)
-
-        self.local_path_prefix = str(local_path_prefix)
+        # Replace current directory specifier in the prefix with an absolute path
+        self.local_path_prefix = str(os.path.abspath(local_path_prefix))
 
         # Set up the file extension or get it from the file path if none passed
         self.extension = self._get_extension_from_path()
