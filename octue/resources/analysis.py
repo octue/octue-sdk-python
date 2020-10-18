@@ -55,8 +55,8 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         self.twine = twine
 
         # Pop any possible strand data sources before init superclasses (and tie them to protected attributes)
-        strand_kwargs = {name: kwargs.pop(name, None) for name in ALL_STRANDS}
-        for strand_name, strand_data in strand_kwargs.items():
+        strand_kwargs = ((name, kwargs.pop(name, None)) for name in ALL_STRANDS)
+        for strand_name, strand_data in strand_kwargs:
             self.__setattr__(f"_{strand_name}", strand_data)
 
         # Init superclasses
