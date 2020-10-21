@@ -90,21 +90,21 @@ class Dataset(Taggable, Serialisable, Loggable, Identifiable):
             raise InvalidInputException("Field lookups should be in the form '<field_name>__'<filter_kind>")
 
         field_lookups = {
-            "name__icontains": lambda lookup, value, file: lookup == "name__icontains" and value.lower() in file.name.lower(),
-            "name__contains": lambda lookup, value, file: lookup == "name__contains" and value in file.name,
-            "name__endswith": lambda lookup, value, file: lookup == "name__endswith" and file.name.endswith(value),
-            "name__startswith": lambda lookup, value, file: lookup == "name__startswith" and file.name.startswith(value),
-            "tag__exact": lambda lookup, value, file: lookup == "tag__exact" and value in file.tags,
-            "tag__startswith": lambda lookup, value, file: lookup == "tag__startswith" and file.tags.startswith(value),
-            "tag__endswith": lambda lookup, value, file: lookup == "tag__endswith" and file.tags.endswith(value),
-            "tag__contains": lambda lookup, value, file: lookup == "tag__contains" and file.tags.contains(value),
-            "sequence__notnone": lambda lookup, value, file: lookup == "sequence__notnone" and file.sequence is not None
+            "name__icontains": lambda filter_value, file: filter_value.lower() in file.name.lower(),
+            "name__contains": lambda filter_value, file: filter_value in file.name,
+            "name__endswith": lambda filter_value, file: file.name.endswith(filter_value),
+            "name__startswith": lambda filter_value, file: file.name.startswith(filter_value),
+            "tag__exact": lambda filter_value, file: filter_value in file.tags,
+            "tag__startswith": lambda filter_value, file: file.tags.startswith(filter_value),
+            "tag__endswith": lambda filter_value, file: file.tags.endswith(filter_value),
+            "tag__contains": lambda filter_value, file: file.tags.contains(filter_value),
+            "sequence__notnone": lambda filter_value, file: file.sequence is not None
         }
 
         results = []
 
         for file in files:
-            if field_lookups[field_lookup](field_lookup, filter_value, file):
+            if field_lookups[field_lookup](filter_value, file):
                 results.append(file)
 
         return results
