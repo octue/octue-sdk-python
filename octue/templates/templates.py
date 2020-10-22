@@ -8,7 +8,7 @@ from octue import exceptions
 # TODO add ONLINE_TEMPLATES and combine to AVAILABLE_TEMPLATES, to enable us to seamlessly deliver templates that are
 #  more complex (or have lots of data that we don't want packaged with the module).
 
-PACKAGED_TEMPLATES = tuple(filter(lambda name: name.startswith("template-"), resource_listdir("octue", "templates")))
+PACKAGED_TEMPLATES = tuple(name for name in resource_listdir("octue", "templates") if name.startswith("template-"))
 
 
 def copy_template(template_name, destination_dir="."):
