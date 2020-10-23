@@ -35,7 +35,7 @@ class DatafileTestCase(BaseTestCase):
     def test_default_local_path_prefix(self):
         """ Ensures the local path, by default, is set to the current working directory
         """
-        df = Datafile(path=os.path.join("/", self.PATH), skip_checks=True)
+        df = Datafile(path=os.sep + self.PATH, skip_checks=True)
         self.assertEqual(self.PATH, df.path)
         self.assertEqual(str(os.getcwd()), df.local_path_prefix.rstrip("\\/"))
 
@@ -49,7 +49,7 @@ class DatafileTestCase(BaseTestCase):
     def test_leading_slashes_on_path_are_stripped(self):
         """ Ensures the path is always relative
         """
-        df = Datafile(path=os.path.join("/", self.PATH), skip_checks=True)
+        df = Datafile(path=os.sep + self.PATH, skip_checks=True)
         self.assertEqual(self.PATH, df.path)
 
         df = Datafile(path=self.PATH, skip_checks=True)
