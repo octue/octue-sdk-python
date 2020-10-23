@@ -7,6 +7,20 @@ from octue.mixins import Serialisable
 from .base import BaseTestCase
 
 
+class Inherit(Serialisable):
+
+    def __init__(self):
+        super().__init__()
+        self.id = "id"
+        self.logger = logging.getLogger("test_returns_primitive_without_logger_or_protected_fields")
+        self.field_to_serialise = 0
+        self._field_not_to_serialise = 1
+
+
+class InheritWithFieldsToSerialise(Inherit):
+    _serialise_fields = ("field_to_serialise",)
+
+
 class SerialisableTestCase(BaseTestCase):
     def test_instantiates_with_no_args(self):
         """ Ensures the class instantiates without arguments
@@ -25,15 +39,6 @@ class SerialisableTestCase(BaseTestCase):
     def test_returns_primitive_without_logger_or_protected_fields(self):
         """ Ensures class instantiates with a UUID()
         """
-
-        class Inherit(Serialisable):
-            def __init__(self):
-                super().__init__()
-                self.id = "id"
-                self.logger = logging.getLogger("test_returns_primitive_without_logger_or_protected_fields")
-                self.field_to_serialise = 0
-                self._field_not_to_serialise = 1
-
         resource = Inherit()
         serialised = resource.serialise()
         self.assertTrue("id" in serialised.keys())
@@ -44,18 +49,7 @@ class SerialisableTestCase(BaseTestCase):
     def test_serialise_only_attrs(self):
         """ Restricts the id field, which would normally be serialised
         """
-
-        class Inherit(Serialisable):
-            _serialise_fields = ("field_to_serialise",)
-
-            def __init__(self):
-                super().__init__()
-                self.id = "id"
-                self.logger = logging.getLogger("test_returns_primitive_without_logger_or_protected_fields")
-                self.field_to_serialise = 0
-                self._field_not_to_serialise = 1
-
-        resource = Inherit()
+        resource = InheritWithFieldsToSerialise()
         serialised = resource.serialise()
         self.assertFalse("id" in serialised.keys())
         self.assertTrue("field_to_serialise" in serialised.keys())
@@ -65,32 +59,13 @@ class SerialisableTestCase(BaseTestCase):
     def test_serialise_to_string(self):
         """ Restricts the id field, which would normally be serialised
         """
-
-        class Inherit(Serialisable):
-            _serialise_fields = ("field_to_serialise",)
-
-            def __init__(self):
-                super().__init__()
-                self.id = "id"
-                self.logger = logging.getLogger("test_returns_primitive_without_logger_or_protected_fields")
-                self.field_to_serialise = 0
-                self._field_not_to_serialise = 1
-
-        resource = Inherit()
+        resource = InheritWithFieldsToSerialise()
         serialised = resource.serialise(to_string=True)
         self.assertIsInstance(serialised, str)
 
     def test_serialise_to_file(self):
         """ Restricts the id field, which would normally be serialised
         """
-
-        class Inherit(Serialisable):
-            def __init__(self):
-                super().__init__()
-                self.id = "id"
-                self.logger = logging.getLogger("test_returns_primitive_without_logger_or_protected_fields")
-                self.field_to_serialise = 0
-                self._field_not_to_serialise = 1
 
         with TemporaryDirectory() as dir_name:
             file_name = os.path.join(dir_name, "test_serialise_to_file.json")
