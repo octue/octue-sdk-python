@@ -42,7 +42,7 @@ class TemplatesTestCase(BaseTestCase):
     def test_copy_template_raises_if_unknown(self):
         """ Ensures that a known template will copy to a given directory
         """
-        with TemporaryDirectory() as dir:
+        with TemporaryDirectory() as tmp_dir:
             with self.assertRaises(exceptions.InvalidInputException) as error:
-                copy_template("template-which-isnt-there", dir)
+                copy_template("template-which-isnt-there", tmp_dir)
             self.assertIn("Unknown template name 'template-which-isnt-there', try one of", error.exception.args[0])
