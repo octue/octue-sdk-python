@@ -140,17 +140,6 @@ def octue_run(f):
     return update_wrapper(run, f)
 
 
-def octue_version(f):
-    """ Decorator for the main `version` function which adds a command to the CLI
-    """
-
-    @octue_cli.command()
-    def version(*args, **kwargs):
-        return f(*args, **kwargs)
-
-    return update_wrapper(version, f)
-
-
 def unwrap(fcn):
     """ Recurse through wrapping to get the raw function without decorators.
     """
