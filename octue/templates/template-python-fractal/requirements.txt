@@ -1,16 +1,16 @@
 appdirs==1.4.3
 args==0.1.0
 clint==0.5.1
-packaging==20.0
-pyparsing==2.4.6
-six==1.13.0
-octue==0.1.0
-twined==0.0.4
-click==7.0
+packaging==20.4
+pyparsing==2.4.7
+six==1.15.0
+octue==0.1.2
+twined==0.0.10
+click==7.1.2
 
 # ----------- Install the current app (as editable, so you can develop on it) ------------------------------------------
 
---editable .
+-e .
 
 
 # ----------- Some common libraries  -----------------------------------------------------------------------------------
@@ -22,7 +22,7 @@ click==7.0
 #plotly==3.6.1
 
 # A numerical manipulation library
-numpy==1.16.2
+numpy==1.19.2
 
 # A powerful database api library. Supply it with your db's uri (through environment variables - don't commit URIs to git!!!!) and read/add data to/from databases.
 # Note that results of analyses using externally managed databases as data sources cannot be guaranteed to be idempotent.
