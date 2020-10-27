@@ -153,17 +153,16 @@ class DatafileTestCase(BaseTestCase):
     def test_get_file_by_tag(self):
         """ Ensures that get_files works with tag lookups
         """
-        resource = Dataset(
-            files=[
-                Datafile(path="path-within-dataset/a_my_file.csv", tags="one a:2 b:3 all"),
-                Datafile(path="path-within-dataset/a_your_file.csv", tags="two a:2 b:3 all"),
-                Datafile(path="path-within-dataset/a_your_file.csv", tags="three all"),
-            ]
-        )
+        files = [
+            Datafile(path="path-within-dataset/a_my_file.csv", tags="one a:2 b:3 all"),
+            Datafile(path="path-within-dataset/a_your_file.csv", tags="two a:2 b:3 all"),
+            Datafile(path="path-within-dataset/a_your_file.csv", tags="three all"),
+        ]
+
+        resource = Dataset(files=files)
 
         # Check working for single result
-        df = resource.get_file_by_tag("three")
-        self.assertTrue(isinstance(df, Datafile))
+        self.assertIs(resource.get_file_by_tag("three"), files[2])
 
         # Check raises for too many results
         with self.assertRaises(exceptions.UnexpectedNumberOfResultsException) as e:
@@ -193,15 +192,14 @@ class DatafileTestCase(BaseTestCase):
     def test_get_file_sequence(self):
         """ Ensures that get_files works with sequence lookups
         """
-        resource = Dataset(
-            files=[
-                Datafile(path="path-within-dataset/a_my_file.csv", sequence=0),
-                Datafile(path="path-within-dataset/a_your_file.csv", sequence=1),
-                Datafile(path="path-within-dataset/a_your_file.csv", sequence=None),
-            ]
-        )
-        files = resource.get_file_sequence("name__endswith", filter_value=".csv", strict=True)
-        self.assertEqual(2, len(files))
+        files = [
+            Datafile(path="path-within-dataset/a_my_file.csv", sequence=0),
+            Datafile(path="path-within-dataset/a_your_file.csv", sequence=1),
+            Datafile(path="path-within-dataset/a_your_file.csv", sequence=None),
+        ]
+
+        got_files = Dataset(files=files).get_file_sequence("name__endswith", filter_value=".csv", strict=True)
+        self.assertEqual(got_files, files[:2])
 
     def test_get_broken_file_sequence(self):
         """ Ensures that get_files works with sequence lookups
@@ -219,14 +217,12 @@ class DatafileTestCase(BaseTestCase):
     def test_get_files_name_filters_include_extension(self):
         """ Ensures that filters applied to the name will catch terms in the extension
         """
-        resource = Dataset(
-            files=[
-                Datafile(path="path-within-dataset/a_test_file.csv"),
-                Datafile(path="path-within-dataset/a_test_file.txt"),
-            ]
-        )
-        files = resource.get_files("name__icontains", filter_value="txt")
-        self.assertEqual(1, len(files))
+        files = [
+            Datafile(path="path-within-dataset/a_test_file.csv"),
+            Datafile(path="path-within-dataset/a_test_file.txt"),
+        ]
+
+        self.assertEqual(Dataset(files=files).get_files("name__icontains", filter_value="txt"), [files[1]])
 
     def test_get_files_name_filters_exclude_path(self):
         """ Ensures that filters applied to the name will not catch terms in the extension

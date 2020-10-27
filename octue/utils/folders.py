@@ -23,7 +23,7 @@ def from_path(path_hints, folders=FOLDERS):
         if not os.path.isdir(path_hints):
             raise exceptions.FolderNotFoundException(f"Specified data folder '{path_hints}' not present")
 
-        paths = dict([(folder, os.path.join(path_hints, folder)) for folder in folders])
+        paths = {folder: os.path.join(path_hints, folder) for folder in folders}
 
     else:
         if (

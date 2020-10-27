@@ -4,9 +4,6 @@ from octue.mixins import Loggable
 from .base import BaseTestCase
 
 
-module_logger = logging.getLogger(__name__)
-
-
 class InheritLoggable(Loggable):
     """ Class used purely for testing to check the logger is instantiated
     """
