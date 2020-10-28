@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory, gettempdir
 
 from octue import exceptions
 from octue.templates import copy_template
-from .base import BaseTestCase
+from ..base import BaseTestCase
 
 
 class TemplatesTestCase(BaseTestCase):

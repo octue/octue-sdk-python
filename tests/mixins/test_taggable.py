@@ -1,7 +1,7 @@
 from octue import exceptions
 from octue.mixins import Taggable
 from octue.mixins.taggable import TagGroup
-from .base import BaseTestCase
+from ..base import BaseTestCase
 
 
 class TaggableTestCase(BaseTestCase):

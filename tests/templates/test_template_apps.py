@@ -4,7 +4,7 @@ import sys
 import uuid
 
 from octue import Runner
-from .base import BaseTestCase
+from ..base import BaseTestCase
 
 
 class TemplateAppsTestCase(BaseTestCase):
