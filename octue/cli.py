@@ -1,5 +1,6 @@
 import importlib
 import os
+import pkg_resources
 import sys
 from functools import update_wrapper
 import click
@@ -12,6 +13,10 @@ FOLDERS = (
     "tmp",
     "output",
 )
+
+
+def get_version():
+    return pkg_resources.get_distribution("octue").version
 
 
 @click.group()
@@ -81,6 +86,7 @@ FOLDERS = (
 @click.option(
     "--log-dir", type=click.Path(), default="logs", show_default=True, help="Path to the location of log files",
 )
+@click.version_option(version=get_version())
 @click.pass_context
 def octue_cli(
     ctx,
@@ -175,3 +181,8 @@ class AppFrom:
         """ Returns the unwrapped run function from app.py in the application's root directory
         """
         return unwrap(self.app_module.run)
+
+
+if __name__ == "__main__":
+    args = sys.argv[1:] if len(sys.argv) > 1 else []
+    octue_cli(args)
