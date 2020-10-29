@@ -29,6 +29,10 @@ setup(
     zip_safe=False,  # Allows copying of templates as whole directory trees
     packages=find_packages(exclude=("tests", "docs")),
     include_package_data=True,
+    entry_points="""
+    [console_scripts]
+    octue-app=octue.cli:octue_cli
+    """,
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
