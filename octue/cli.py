@@ -19,7 +19,7 @@ def get_version():
     return pkg_resources.get_distribution("octue").version
 
 
-@click.group()
+@click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.option(
     "--id",
     default=None,
