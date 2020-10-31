@@ -87,28 +87,28 @@ def get_version():
     "--config-dir",
     type=click.Path(),
     default=None,
-    show_default=False,
+    show_default=True,
     help="Directory containing configuration.",
 )
 @click.option(
     "--input-dir",
     type=click.Path(),
     default=None,
-    show_default=False,
+    show_default=True,
     help="Directory containing input.",
 )
 @click.option(
     "--tmp-dir",
     type=click.Path(),
     default=None,
-    show_default=False,
+    show_default=True,
     help="Directory to store intermediate files in.",
 )
 @click.option(
     "--output-dir",
     type=click.Path(),
     default=None,
-    show_default=False,
+    show_default=True,
     help="Directory to write outputs as files.",
 )
 @click.version_option(version=get_version())
