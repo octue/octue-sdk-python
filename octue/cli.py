@@ -68,14 +68,6 @@ def octue_cli(ctx, id, skip_checks, log_level, force_reset):
     ctx.obj["analysis"] = "VIBRATION"
 
 
-def pass_analysis(f):
-    @click.pass_context
-    def new_func(ctx, *args, **kwargs):
-        return ctx.invoke(f, ctx.obj["analysis"], *args, **kwargs)
-
-    return update_wrapper(new_func, f)
-
-
 def octue_run(f):
     """ Decorator for the main `run` function which adds a command to the CLI and prepares analysis ready for the run
     """
