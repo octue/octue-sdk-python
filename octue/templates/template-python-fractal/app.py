@@ -1,7 +1,5 @@
-import sys
-
 from fractal import fractal
-from octue import octue_cli, octue_run
+from octue import octue_run
 
 
 @octue_run
@@ -52,12 +50,3 @@ def run(analysis):
 
     # Run the code
     fractal(analysis)
-
-
-# If running from an IDE or test console, it'll run this file rather than calling the application from the CLI...
-# In that case we pass arguments through the CLI just as if it were called from the command line.
-if __name__ == "__main__":
-
-    # Invoke the CLI to process the arguments, set up an analysis and run it
-    args = sys.argv[1:] if len(sys.argv) > 1 else []
-    octue_cli(args)
