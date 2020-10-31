@@ -6,12 +6,12 @@ from functools import update_wrapper
 import click
 
 
-FOLDERS = (
-    "configuration",
-    "input",
-    "tmp",
-    "output",
-)
+FOLDER_DEFAULTS = {
+    "configuration": "configuration",
+    "input": "input",
+    "tmp": "tmp",
+    "output": "output",
+}
 
 
 def get_version():
@@ -76,9 +76,38 @@ def get_version():
     help="Source for input_manifest strand data.",
 )
 @click.option(
+    "--data-dir",
+    type=click.Path(),
+    default=".",
+    show_default=True,
+    help="Location of directories containing configuration values and manifest, input values and manifest, and output "
+         "directory."
+)
+@click.option(
+    "--config-dir",
+    type=click.Path(),
+    default=None,
+    show_default=False,
+    help="Directory containing configuration.",
+)
+@click.option(
+    "--input-dir",
+    type=click.Path(),
+    default=None,
+    show_default=False,
+    help="Directory containing input.",
+)
+@click.option(
+    "--tmp-dir",
+    type=click.Path(),
+    default=None,
+    show_default=False,
+    help="Directory to store intermediate files in.",
+)
+@click.option(
     "--output-dir",
     type=click.Path(),
-    default="output",
+    default=None,
     show_default=False,
     help="Directory to write outputs as files.",
 )
@@ -95,6 +124,7 @@ def octue_cli(
     input_values,
     input_manifest,
     data_dir,
+    config_dir,
     input_dir,
     tmp_dir,
     output_dir
@@ -108,12 +138,21 @@ def octue_cli(
     - A literal JSON string (eg `{"n_iterations": 10}`.
 
     """
+    if not config_dir:
+        config_dir = os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
+    if not input_dir:
+        input_dir = os.path.join(data_dir, FOLDER_DEFAULTS["input"])
+    if not tmp_dir:
+        tmp_dir = os.path.join(data_dir, FOLDER_DEFAULTS["tmp"])
+    if not output_dir:
+        output_dir = os.path.join(data_dir, FOLDER_DEFAULTS["output"])
 
-    # We want to show meaningful defaults in the CLI help but unfortunately have to strip out the displayed values here
-    if input_values.startswith("<data-dir>/"):
-        input_dir = None  # noqa
-    if output_dir.startswith("<data-dir>/"):
-        output_dir = None  # noqa
+
+    # # We want to show meaningful defaults in the CLI help but unfortunately have to strip out the displayed values here
+    # if input_values.startswith("<data-dir>/"):
+    #     input_dir = None  # noqa
+    # if output_dir.startswith("<data-dir>/"):
+    #     output_dir = None  # noqa
 
     ctx.ensure_object(dict)
     ctx.obj["analysis"] = "VIBRATION"
