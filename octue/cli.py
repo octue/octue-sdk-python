@@ -5,6 +5,8 @@ import sys
 from functools import update_wrapper
 import click
 
+from octue import exceptions
+
 
 FOLDER_DEFAULTS = {
     "configuration": "configuration",
@@ -12,6 +14,9 @@ FOLDER_DEFAULTS = {
     "tmp": "tmp",
     "output": "output",
 }
+
+VALUES_FILENAME = "values.json"
+MANIFEST_FILENAME = "manifest.json"
 
 
 def get_version():
@@ -47,56 +52,9 @@ def get_version():
     show_default=True,
     help="Forces a reset of analysis cache and outputs [For future use, currently not implemented]",
 )
-@click.option(
-    "--data-dir",
-    type=click.Path(),
-    default=".",
-    show_default=True,
-    help="Location of directories containing configuration values and manifest, input values and manifest, and output "
-         "directory."
-)
-@click.option(
-    "--config-dir",
-    type=click.Path(),
-    default=None,
-    show_default=True,
-    help="Directory containing configuration.",
-)
-@click.option(
-    "--input-dir",
-    type=click.Path(),
-    default=None,
-    show_default=True,
-    help="Directory containing input.",
-)
-@click.option(
-    "--tmp-dir",
-    type=click.Path(),
-    default=None,
-    show_default=True,
-    help="Directory to store intermediate files in.",
-)
-@click.option(
-    "--output-dir",
-    type=click.Path(),
-    default=None,
-    show_default=True,
-    help="Directory to write outputs as files.",
-)
 @click.version_option(version=get_version())
 @click.pass_context
-def octue_cli(
-    ctx,
-    id,
-    skip_checks,
-    log_level,
-    force_reset,
-    data_dir,
-    config_dir,
-    input_dir,
-    tmp_dir,
-    output_dir
-):
+def octue_cli(ctx, id, skip_checks, log_level, force_reset):
     """ Octue CLI, enabling a data service / digital twin to be run like a command line application.
 
     Provide sources of configuration and/or input data and run the app. A source can be:
@@ -106,15 +64,6 @@ def octue_cli(
     - A literal JSON string (eg `{"n_iterations": 10}`.
 
     """
-    if not config_dir:
-        config_dir = os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
-    if not input_dir:
-        input_dir = os.path.join(data_dir, FOLDER_DEFAULTS["input"])
-    if not tmp_dir:
-        tmp_dir = os.path.join(data_dir, FOLDER_DEFAULTS["tmp"])
-    if not output_dir:
-        output_dir = os.path.join(data_dir, FOLDER_DEFAULTS["output"])
-
     ctx.ensure_object(dict)
     ctx.obj["analysis"] = "VIBRATION"
 
@@ -132,11 +81,66 @@ def octue_run(f):
     """
 
     @octue_cli.command()
-    @pass_analysis
-    def run(*args, **kwargs):
-        return f(*args, **kwargs)
+    @click.option(
+        "--data-dir",
+        type=click.Path(),
+        default=".",
+        show_default=True,
+        help="Location of directories containing configuration values and manifest, input values and manifest, and output "
+             "directory."
+    )
+    @click.option(
+        "--config-dir",
+        type=click.Path(),
+        default=None,
+        show_default=True,
+        help="Directory containing configuration.",
+    )
+    @click.option(
+        "--input-dir",
+        type=click.Path(),
+        default=None,
+        show_default=True,
+        help="Directory containing input.",
+    )
+    @click.option(
+        "--tmp-dir",
+        type=click.Path(),
+        default=None,
+        show_default=True,
+        help="Directory to store intermediate files in.",
+    )
+    @click.option(
+        "--output-dir",
+        type=click.Path(),
+        default=None,
+        show_default=True,
+        help="Directory to write outputs as files.",
+    )
+    def run(analysis, data_dir, config_dir, input_dir, tmp_dir, output_dir):
+        if not config_dir:
+            config_dir = os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
+        if not input_dir:
+            input_dir = os.path.join(data_dir, FOLDER_DEFAULTS["input"])
+        if not tmp_dir:
+            tmp_dir = os.path.join(data_dir, FOLDER_DEFAULTS["tmp"])
+        if not output_dir:
+            output_dir = os.path.join(data_dir, FOLDER_DEFAULTS["output"])
 
-    return update_wrapper(run, f)
+        for filename in VALUES_FILENAME, MANIFEST_FILENAME:
+            if not file_in_directory(filename, config_dir):
+                raise exceptions.FileNotFoundException(f"No file named {filename} file found in {config_dir}")
+
+            if not file_in_directory(filename, input_dir):
+                raise exceptions.FileNotFoundException(f"No file named {filename} file found in {config_dir}")
+
+        analysis.config_values = os.path.join(config_dir, VALUES_FILENAME)
+        analysis.input_values = os.path.join(input_dir, VALUES_FILENAME)
+        analysis.output_values = os.path.join(output_dir, VALUES_FILENAME)
+
+
+def file_in_directory(filename, directory):
+    return os.path.isfile(os.path.join(directory, filename))
 
 
 def unwrap(fcn):
