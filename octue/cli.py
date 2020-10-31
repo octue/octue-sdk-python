@@ -9,7 +9,6 @@ import click
 FOLDERS = (
     "configuration",
     "input",
-    "log",
     "tmp",
     "output",
 )
@@ -83,9 +82,6 @@ def get_version():
     show_default=False,
     help="Directory to write outputs as files.",
 )
-@click.option(
-    "--log-dir", type=click.Path(), default="logs", show_default=True, help="Path to the location of log files",
-)
 @click.version_option(version=get_version())
 @click.pass_context
 def octue_cli(
@@ -101,8 +97,7 @@ def octue_cli(
     data_dir,
     input_dir,
     tmp_dir,
-    output_dir,
-    log_dir,
+    output_dir
 ):
     """ Octue CLI, enabling a data service / digital twin to be run like a command line application.
 
@@ -117,8 +112,6 @@ def octue_cli(
     # We want to show meaningful defaults in the CLI help but unfortunately have to strip out the displayed values here
     if input_values.startswith("<data-dir>/"):
         input_dir = None  # noqa
-    if log_dir.startswith("<data-dir>/"):
-        log_dir = None  # noqa
     if output_dir.startswith("<data-dir>/"):
         output_dir = None  # noqa
 
