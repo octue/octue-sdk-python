@@ -19,10 +19,6 @@ VALUES_FILENAME = "values.json"
 MANIFEST_FILENAME = "manifest.json"
 
 
-def get_version():
-    return pkg_resources.get_distribution("octue").version
-
-
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.option(
     "--id",
@@ -52,7 +48,7 @@ def get_version():
     show_default=True,
     help="Forces a reset of analysis cache and outputs [For future use, currently not implemented]",
 )
-@click.version_option(version=get_version())
+@click.version_option(version=pkg_resources.get_distribution("octue").version)
 @click.pass_context
 def octue_cli(ctx, id, skip_checks, log_level, force_reset):
     """ Octue CLI, enabling a data service / digital twin to be run like a command line application.
