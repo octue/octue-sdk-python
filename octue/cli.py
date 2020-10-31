@@ -48,34 +48,6 @@ def get_version():
     help="Forces a reset of analysis cache and outputs [For future use, currently not implemented]",
 )
 @click.option(
-    "--configuration-values",
-    type=click.Path(),
-    default="<data-dir>/input/input_values.json",
-    show_default=True,
-    help="Source for configuration_values strand data.",
-)
-@click.option(
-    "--configuration-manifest",
-    type=click.Path(),
-    default="<data-dir>/input/input_values.json",
-    show_default=True,
-    help="Source for configuration_manifest strand data.",
-)
-@click.option(
-    "--input-values",
-    type=click.Path(),
-    default="<data-dir>/input/input_values.json",
-    show_default=True,
-    help="Source for input_values strand data.",
-)
-@click.option(
-    "--input-manifest",
-    type=click.Path(),
-    default="<data-dir>/input/input_manifest.json",
-    show_default=True,
-    help="Source for input_manifest strand data.",
-)
-@click.option(
     "--data-dir",
     type=click.Path(),
     default=".",
@@ -119,10 +91,6 @@ def octue_cli(
     skip_checks,
     log_level,
     force_reset,
-    configuration_values,
-    configuration_manifest,
-    input_values,
-    input_manifest,
     data_dir,
     config_dir,
     input_dir,
@@ -146,13 +114,6 @@ def octue_cli(
         tmp_dir = os.path.join(data_dir, FOLDER_DEFAULTS["tmp"])
     if not output_dir:
         output_dir = os.path.join(data_dir, FOLDER_DEFAULTS["output"])
-
-
-    # # We want to show meaningful defaults in the CLI help but unfortunately have to strip out the displayed values here
-    # if input_values.startswith("<data-dir>/"):
-    #     input_dir = None  # noqa
-    # if output_dir.startswith("<data-dir>/"):
-    #     output_dir = None  # noqa
 
     ctx.ensure_object(dict)
     ctx.obj["analysis"] = "VIBRATION"
