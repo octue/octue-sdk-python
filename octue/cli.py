@@ -137,7 +137,9 @@ def octue_run(f):
         analysis.config_values = os.path.join(config_dir, VALUES_FILENAME)
         analysis.input_values = os.path.join(input_dir, VALUES_FILENAME)
         analysis.output_values = os.path.join(output_dir, VALUES_FILENAME)
+        return f(analysis)
 
+    return update_wrapper(run, f)
 
 def file_in_directory(filename, directory):
     return os.path.isfile(os.path.join(directory, filename))
