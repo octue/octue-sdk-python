@@ -1,7 +1,8 @@
 from click.testing import CliRunner
 
 from octue.cli import octue_cli
-from .base import BaseTestCase
+from tests import TESTS_DIR
+from tests.base import BaseTestCase
 
 
 class RunnerTestCase(BaseTestCase):
@@ -24,10 +25,10 @@ class RunnerTestCase(BaseTestCase):
         result = CliRunner().invoke(
             octue_cli,
             [   'run',
-                '--app-dir=tests',
-                '--twine=tests/data/twines/valid_schema_twine.json',
-                '--config-dir=tests/data/configuration',
-                '--input-dir=tests/data/input'
+                f'--app-dir={TESTS_DIR}',
+                f'--twine={TESTS_DIR}/data/twines/valid_schema_twine.json',
+                f'--config-dir={TESTS_DIR}/data/configuration',
+                f'--input-dir={TESTS_DIR}/data/input'
             ]
         )
 
