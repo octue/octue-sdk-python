@@ -115,14 +115,10 @@ def octue_cli(ctx, id, skip_checks, log_level, force_reset):
     help="Location of Twine file.",
 )
 def run(app_dir, data_dir, config_dir, input_dir, tmp_dir, output_dir, twine):
-    if not config_dir:
-        config_dir = os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
-    if not input_dir:
-        input_dir = os.path.join(data_dir, FOLDER_DEFAULTS["input"])
-    if not tmp_dir:
-        tmp_dir = os.path.join(data_dir, FOLDER_DEFAULTS["tmp"])
-    if not output_dir:
-        output_dir = os.path.join(data_dir, FOLDER_DEFAULTS["output"])
+    config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
+    input_dir = input_dir or  os.path.join(data_dir, FOLDER_DEFAULTS["input"])
+    tmp_dir = tmp_dir or os.path.join(data_dir, FOLDER_DEFAULTS["tmp"])
+    output_dir = output_dir or os.path.join(data_dir, FOLDER_DEFAULTS["output"])
 
     for filename in VALUES_FILENAME, MANIFEST_FILENAME:
         if not file_in_directory(filename, config_dir):
