@@ -135,14 +135,6 @@ def file_in_directory(filename, directory):
     return os.path.isfile(os.path.join(directory, filename))
 
 
-def unwrap(fcn):
-    """ Recurse through wrapping to get the raw function without decorators.
-    """
-    if hasattr(fcn, "__wrapped__"):
-        return unwrap(fcn.__wrapped__)
-    return fcn
-
-
 if __name__ == "__main__":
     args = sys.argv[1:] if len(sys.argv) > 1 else []
     octue_cli(args)
