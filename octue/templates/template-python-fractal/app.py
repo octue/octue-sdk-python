@@ -1,8 +1,6 @@
 from fractal import fractal
-from octue import octue_run
 
 
-@octue_run
 def run(analysis):
     """ Your main entrypoint to run the application
 

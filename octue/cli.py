@@ -1,11 +1,10 @@
-import importlib
 import os
 import pkg_resources
 import sys
-from functools import update_wrapper
 import click
 
 from octue import exceptions
+from octue.runner import Runner
 
 
 FOLDER_DEFAULTS = {
@@ -64,70 +63,77 @@ def octue_cli(ctx, id, skip_checks, log_level, force_reset):
     ctx.obj["analysis"] = "VIBRATION"
 
 
-def octue_run(f):
-    """ Decorator for the main `run` function which adds a command to the CLI and prepares analysis ready for the run
-    """
+@octue_cli.command()
+@click.option(
+    "--app-dir",
+    type=click.Path(),
+    default=".",
+    show_default=True,
+    help="Directory containing source code for custom Octue app."
+)
+@click.option(
+    "--data-dir",
+    type=click.Path(),
+    default=".",
+    show_default=True,
+    help="Location of directories containing configuration values and manifest, input values and manifest, and output "
+         "directory."
+)
+@click.option(
+    "--config-dir",
+    type=click.Path(),
+    default=None,
+    show_default=True,
+    help="Directory containing configuration.",
+)
+@click.option(
+    "--input-dir",
+    type=click.Path(),
+    default=None,
+    show_default=True,
+    help="Directory containing input.",
+)
+@click.option(
+    "--tmp-dir",
+    type=click.Path(),
+    default=None,
+    show_default=True,
+    help="Directory to store intermediate files in.",
+)
+@click.option(
+    "--output-dir",
+    type=click.Path(),
+    default=None,
+    show_default=True,
+    help="Directory to write outputs as files.",
+)
+@click.option(
+    "--twine",
+    type=click.Path(),
+    default="twine.json",
+    show_default=True,
+    help="Location of Twine file.",
+)
+def run(app_dir, data_dir, config_dir, input_dir, tmp_dir, output_dir, twine):
+    if not config_dir:
+        config_dir = os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
+    if not input_dir:
+        input_dir = os.path.join(data_dir, FOLDER_DEFAULTS["input"])
+    if not tmp_dir:
+        tmp_dir = os.path.join(data_dir, FOLDER_DEFAULTS["tmp"])
+    if not output_dir:
+        output_dir = os.path.join(data_dir, FOLDER_DEFAULTS["output"])
 
-    @octue_cli.command()
-    @click.option(
-        "--data-dir",
-        type=click.Path(),
-        default=".",
-        show_default=True,
-        help="Location of directories containing configuration values and manifest, input values and manifest, and output "
-             "directory."
-    )
-    @click.option(
-        "--config-dir",
-        type=click.Path(),
-        default=None,
-        show_default=True,
-        help="Directory containing configuration.",
-    )
-    @click.option(
-        "--input-dir",
-        type=click.Path(),
-        default=None,
-        show_default=True,
-        help="Directory containing input.",
-    )
-    @click.option(
-        "--tmp-dir",
-        type=click.Path(),
-        default=None,
-        show_default=True,
-        help="Directory to store intermediate files in.",
-    )
-    @click.option(
-        "--output-dir",
-        type=click.Path(),
-        default=None,
-        show_default=True,
-        help="Directory to write outputs as files.",
-    )
-    def run(analysis, data_dir, config_dir, input_dir, tmp_dir, output_dir):
-        if not config_dir:
-            config_dir = os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
-        if not input_dir:
-            input_dir = os.path.join(data_dir, FOLDER_DEFAULTS["input"])
-        if not tmp_dir:
-            tmp_dir = os.path.join(data_dir, FOLDER_DEFAULTS["tmp"])
-        if not output_dir:
-            output_dir = os.path.join(data_dir, FOLDER_DEFAULTS["output"])
+    for filename in VALUES_FILENAME, MANIFEST_FILENAME:
+        if not file_in_directory(filename, config_dir):
+            raise exceptions.FileNotFoundException(f"No file named {filename} file found in {config_dir}")
 
-        for filename in VALUES_FILENAME, MANIFEST_FILENAME:
-            if not file_in_directory(filename, config_dir):
-                raise exceptions.FileNotFoundException(f"No file named {filename} file found in {config_dir}")
+        if not file_in_directory(filename, input_dir):
+            raise exceptions.FileNotFoundException(f"No file named {filename} file found in {input_dir}")
 
-            if not file_in_directory(filename, input_dir):
-                raise exceptions.FileNotFoundException(f"No file named {filename} file found in {config_dir}")
+    runner = Runner(twine=twine, configuration_values=os.path.join(config_dir, VALUES_FILENAME))
+    runner.run(app_src=app_dir, input_values=os.path.join(input_dir, VALUES_FILENAME))
 
-        analysis.config_values = os.path.join(config_dir, VALUES_FILENAME)
-        analysis.input_values = os.path.join(input_dir, VALUES_FILENAME)
-        analysis.output_values = os.path.join(output_dir, VALUES_FILENAME)
-        return f(analysis)
-
-    return update_wrapper(run, f)
 
 def file_in_directory(filename, directory):
     return os.path.isfile(os.path.join(directory, filename))
@@ -139,35 +145,6 @@ def unwrap(fcn):
     if hasattr(fcn, "__wrapped__"):
         return unwrap(fcn.__wrapped__)
     return fcn
-
-
-class AppFrom:
-    """ Context manager that allows us to temporarily add an app's location to the system path and
-    extract its run function
-
-    with AppFrom('/path/to/dir') as app:
-        Runner().run(app)
-
-    """
-
-    def __init__(self, app_path="."):
-        self.app_path = os.path.abspath(os.path.normpath(app_path))
-        self.app_module = None
-
-    def __enter__(self):
-        sys.path.insert(0, self.app_path)
-        self.app_module = importlib.import_module("app")
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if self.app_path in sys.path:
-            sys.path.remove(self.app_path)
-
-    @property
-    def run(self):
-        """ Returns the unwrapped run function from app.py in the application's root directory
-        """
-        return unwrap(self.app_module.run)
 
 
 if __name__ == "__main__":
