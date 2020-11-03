@@ -1,7 +1,6 @@
 from click.testing import CliRunner
 
 from octue.cli import octue_cli
-from octue.cli import octue_run
 from .base import BaseTestCase
 
 
@@ -22,13 +21,14 @@ class RunnerTestCase(BaseTestCase):
 
     def test_run_command_can_be_added(self):
         """Test that an arbitrary run command can be added to the CLI via the octue_run decorator."""
+        result = CliRunner().invoke(
+            octue_cli,
+            [   'run',
+                '--app-dir=tests',
+                '--twine=tests/data/twines/valid_schema_twine.json',
+                '--config-dir=tests/data/configuration',
+                '--input-dir=tests/data/input'
+            ]
+        )
 
-        @octue_run
-        def run(analysis):
-            pass
-
-        help_result = CliRunner().invoke(octue_cli, ['run', '--help'])
-        assert help_result.output.startswith("Usage: octue-cli run")
-
-        result = CliRunner().invoke(octue_cli, ['run'])
         assert result.exception is None
