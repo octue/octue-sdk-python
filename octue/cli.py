@@ -125,7 +125,11 @@ def run(app_dir, data_dir, config_dir, input_dir, tmp_dir, output_dir, twine):
             if not file_in_directory(VALUES_FILENAME, directory):
                 raise exceptions.FileNotFoundException(f"No file named {filename} file found in {directory}.")
 
-    runner = Runner(twine=twine, configuration_values=os.path.join(config_dir, VALUES_FILENAME))
+    runner = Runner(
+        twine=twine,
+        configuration_values=os.path.join(config_dir, VALUES_FILENAME),
+        configuration_manifest=os.path.join(config_dir, MANIFEST_FILENAME)
+    )
     runner.run(app_src=app_dir, input_values=os.path.join(input_dir, VALUES_FILENAME))
 
 
