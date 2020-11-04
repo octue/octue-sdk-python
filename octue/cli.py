@@ -120,12 +120,10 @@ def run(app_dir, data_dir, config_dir, input_dir, tmp_dir, output_dir, twine):
     tmp_dir = tmp_dir or os.path.join(data_dir, FOLDER_DEFAULTS["tmp"])
     output_dir = output_dir or os.path.join(data_dir, FOLDER_DEFAULTS["output"])
 
-    for filename in VALUES_FILENAME, MANIFEST_FILENAME:
-        if not file_in_directory(filename, config_dir):
-            raise exceptions.FileNotFoundException(f"No file named {filename} file found in {config_dir}")
-
-        if not file_in_directory(filename, input_dir):
-            raise exceptions.FileNotFoundException(f"No file named {filename} file found in {input_dir}")
+    for directory in config_dir, input_dir:
+        for filename in VALUES_FILENAME, MANIFEST_FILENAME:
+            if not file_in_directory(VALUES_FILENAME, directory):
+                raise exceptions.FileNotFoundException(f"No file named {filename} file found in {directory}.")
 
     runner = Runner(twine=twine, configuration_values=os.path.join(config_dir, VALUES_FILENAME))
     runner.run(app_src=app_dir, input_values=os.path.join(input_dir, VALUES_FILENAME))
