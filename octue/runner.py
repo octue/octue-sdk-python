@@ -130,6 +130,8 @@ class Runner:
 
         :return: None
         """
+        if 'input_manifest' not in self.twine.available_strands:
+            input_manifest = None
 
         inputs = self.twine.validate(
             input_values=input_values,

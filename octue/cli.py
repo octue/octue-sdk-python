@@ -130,7 +130,11 @@ def run(app_dir, data_dir, config_dir, input_dir, tmp_dir, output_dir, twine):
         configuration_values=os.path.join(config_dir, VALUES_FILENAME),
         configuration_manifest=os.path.join(config_dir, MANIFEST_FILENAME)
     )
-    runner.run(app_src=app_dir, input_values=os.path.join(input_dir, VALUES_FILENAME))
+    runner.run(
+        app_src=app_dir,
+        input_values=os.path.join(input_dir, VALUES_FILENAME),
+        input_manifest=os.path.join(input_dir, MANIFEST_FILENAME)
+    )
 
 
 def file_in_directory(filename, directory):
