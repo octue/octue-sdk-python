@@ -33,8 +33,8 @@ class RunnerTestCase(BaseTestCase):
                 'run',
                 f'--app-dir={TESTS_DIR}',
                 f'--twine={self.TWINE_FILE_PATH}',
-                f'--config-dir={os.path.join(TESTS_DIR, "data", "configuration")}',
-                f'--input-dir={os.path.join(TESTS_DIR, "data", "input")}'
+                f'--config-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "configuration")}',
+                f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}'
             ]
         )
 
@@ -48,7 +48,7 @@ class RunnerTestCase(BaseTestCase):
                 'run',
                 f'--app-dir={TESTS_DIR}',
                 f'--twine={self.TWINE_FILE_PATH}',
-                f'--data-dir={os.path.join(TESTS_DIR, "data")}'
+                f'--data-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests")}'
             ]
         )
 
