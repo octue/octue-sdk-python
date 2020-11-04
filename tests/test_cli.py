@@ -1,3 +1,5 @@
+import os
+
 from click.testing import CliRunner
 
 from octue.cli import octue_cli
@@ -7,6 +9,8 @@ from tests.base import BaseTestCase
 
 
 class RunnerTestCase(BaseTestCase):
+
+    TWINE_FILE_PATH = os.path.join(TESTS_DIR, "data", "twines", "valid_schema_twine.json")
 
     def test_version(self):
         """Ensure the version command works in the CLI."""
@@ -28,9 +32,9 @@ class RunnerTestCase(BaseTestCase):
             [
                 'run',
                 f'--app-dir={TESTS_DIR}',
-                f'--twine={TESTS_DIR}/data/twines/valid_schema_twine.json',
-                f'--config-dir={TESTS_DIR}/data/configuration',
-                f'--input-dir={TESTS_DIR}/data/input'
+                f'--twine={self.TWINE_FILE_PATH}',
+                f'--config-dir={os.path.join(TESTS_DIR, "data", "configuration")}',
+                f'--input-dir={os.path.join(TESTS_DIR, "data", "input")}'
             ]
         )
 
@@ -43,8 +47,8 @@ class RunnerTestCase(BaseTestCase):
             [
                 'run',
                 f'--app-dir={TESTS_DIR}',
-                f'--twine={TESTS_DIR}/data/twines/valid_schema_twine.json',
-                f'--data-dir={TESTS_DIR}/data'
+                f'--twine={self.TWINE_FILE_PATH}',
+                f'--data-dir={os.path.join(TESTS_DIR, "data")}'
             ]
         )
 
