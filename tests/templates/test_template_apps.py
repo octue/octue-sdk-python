@@ -15,10 +15,11 @@ class TemplateAppsTestCase(BaseTestCase):
         super().setUp()
         self.start_path = os.getcwd()
 
-        # Initialise just so that pylint picks up these variables are present (reinitialised in set_template())
+        # Initialise so these variables are assigned on the instance
         self.template_data_path = None
         self.template_twine = None
         self.template_path = None
+        self.app_test_path = None
         self.teardown_templates = []
 
         def set_template(template):
