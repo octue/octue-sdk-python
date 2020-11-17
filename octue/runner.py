@@ -93,9 +93,8 @@ class Runner:
         """ Run an analysis
 
         :parameter app_src: Either: an instance of the AppFrom manager class which has a run() method, or
-        a function which accepts a single parameter (the instantiated analysis), or a string or path_like pointing
-        a string or path_like pointing to an application folder (which should contain an 'app.py' function like the
-        templates). This typically points to the run() function defined in the 'app.py' file.
+        a function which accepts a single parameter (the instantiated analysis), or a string pointing
+        to an application folder (which should contain an 'app.py' function like the templates).
         :type app_src: Union[AppFrom, function, str]
 
         :parameter input_values: The input_values strand data. Can be expressed as a string path of a *.json file
