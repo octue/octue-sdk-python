@@ -52,13 +52,11 @@ MANIFEST_FILENAME = "manifest.json"
 def octue_cli(ctx, id, skip_checks, log_level, force_reset):
     """ Octue CLI, enabling a data service / digital twin to be run like a command line application.
 
-    Provide sources of configuration and/or input data and run the app. A source can be:
-
-    - A path (relative or absolute) to a directory containing a <strand>.json file (eg `path/to/dir`).
-    - A path to a <strand>.json file (eg `path/to/configuration_values.json`).
-    - A literal JSON string (eg `{"n_iterations": 10}`.
-
+    When acting in CLI mode, results are read from and written to disk (see
+    https://octue-python-sdk.readthedocs.io/en/latest/ for how to run your application directly without the CLI).
+    Once your application has run, you'll be able to find output values and manifest in your specified --output-dir.
     """
+    # TODO Forward command line options to runner via ctx
     ctx.ensure_object(dict)
 
 
@@ -125,11 +123,16 @@ def run(app_dir, data_dir, config_dir, input_dir, tmp_dir, output_dir, twine):
         configuration_values=os.path.join(config_dir, VALUES_FILENAME),
         configuration_manifest=os.path.join(config_dir, MANIFEST_FILENAME),
     )
-    runner.run(
+    analysis = runner.run(
         app_src=app_dir,
         input_values=os.path.join(input_dir, VALUES_FILENAME),
         input_manifest=os.path.join(input_dir, MANIFEST_FILENAME),
     )
+    if analysis.output_values is not None:
+        analysis.output_values
+    if analysis.output_manifest is not None:
+        analysis.output_manifest.to_file(os.path.join(output_dir, "manifest.json"))
+        analysis.output_manifest.to_file(os.path.join(output_dir, "manifest.json"))
 
 
 def file_in_directory(filename, directory):
