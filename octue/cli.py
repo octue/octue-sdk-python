@@ -69,7 +69,7 @@ def octue_cli(ctx, id, skip_checks, log_level, force_reset):
     type=click.Path(),
     default=".",
     show_default=True,
-    help="Directory containing source code for custom Octue app.",
+    help="Directory containing your source code (app.py)",
 )
 @click.option(
     "--data-dir",
@@ -80,16 +80,32 @@ def octue_cli(ctx, id, skip_checks, log_level, force_reset):
     "directory.",
 )
 @click.option(
-    "--config-dir", type=click.Path(), default=None, show_default=True, help="Directory containing configuration.",
+    "--config-dir",
+    type=click.Path(),
+    default=None,
+    show_default=True,
+    help="Directory containing configuration (overrides --data-dir).",
 )
 @click.option(
-    "--input-dir", type=click.Path(), default=None, show_default=True, help="Directory containing input.",
+    "--input-dir",
+    type=click.Path(),
+    default=None,
+    show_default=True,
+    help="Directory containing input (overrides --data-dir).",
 )
 @click.option(
-    "--tmp-dir", type=click.Path(), default=None, show_default=True, help="Directory to store intermediate files in.",
+    "--tmp-dir",
+    type=click.Path(),
+    default=None,
+    show_default=True,
+    help="Directory to store intermediate files (overrides --data-dir).",
 )
 @click.option(
-    "--output-dir", type=click.Path(), default=None, show_default=True, help="Directory to write outputs as files.",
+    "--output-dir",
+    type=click.Path(),
+    default=None,
+    show_default=True,
+    help="Directory to write outputs as files (overrides --data-dir).",
 )
 @click.option(
     "--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.",
