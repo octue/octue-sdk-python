@@ -1,4 +1,4 @@
 from .fractal import fractal
 
 
-__all__ = 'fractal',
+__all__ = ("fractal",)

@@ -98,7 +98,7 @@ class Dataset(Taggable, Serialisable, Loggable, Identifiable):
             "tag__startswith": lambda filter_value, file: file.tags.startswith(filter_value),
             "tag__endswith": lambda filter_value, file: file.tags.endswith(filter_value),
             "tag__contains": lambda filter_value, file: file.tags.contains(filter_value),
-            "sequence__notnone": lambda filter_value, file: file.sequence is not None
+            "sequence__notnone": lambda filter_value, file: file.sequence is not None,
         }
 
         results = []

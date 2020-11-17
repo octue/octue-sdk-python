@@ -1,7 +1,7 @@
 import os
-import pkg_resources
 import sys
 import click
+import pkg_resources
 
 from octue import exceptions
 from octue.runner import Runner
@@ -69,7 +69,7 @@ def octue_cli(ctx, id, skip_checks, log_level, force_reset):
     type=click.Path(),
     default=".",
     show_default=True,
-    help="Directory containing source code for custom Octue app."
+    help="Directory containing source code for custom Octue app.",
 )
 @click.option(
     "--data-dir",
@@ -77,42 +77,22 @@ def octue_cli(ctx, id, skip_checks, log_level, force_reset):
     default=".",
     show_default=True,
     help="Location of directories containing configuration values and manifest, input values and manifest, and output "
-         "directory."
+    "directory.",
 )
 @click.option(
-    "--config-dir",
-    type=click.Path(),
-    default=None,
-    show_default=True,
-    help="Directory containing configuration.",
+    "--config-dir", type=click.Path(), default=None, show_default=True, help="Directory containing configuration.",
 )
 @click.option(
-    "--input-dir",
-    type=click.Path(),
-    default=None,
-    show_default=True,
-    help="Directory containing input.",
+    "--input-dir", type=click.Path(), default=None, show_default=True, help="Directory containing input.",
 )
 @click.option(
-    "--tmp-dir",
-    type=click.Path(),
-    default=None,
-    show_default=True,
-    help="Directory to store intermediate files in.",
+    "--tmp-dir", type=click.Path(), default=None, show_default=True, help="Directory to store intermediate files in.",
 )
 @click.option(
-    "--output-dir",
-    type=click.Path(),
-    default=None,
-    show_default=True,
-    help="Directory to write outputs as files.",
+    "--output-dir", type=click.Path(), default=None, show_default=True, help="Directory to write outputs as files.",
 )
 @click.option(
-    "--twine",
-    type=click.Path(),
-    default="twine.json",
-    show_default=True,
-    help="Location of Twine file.",
+    "--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.",
 )
 def run(app_dir, data_dir, config_dir, input_dir, tmp_dir, output_dir, twine):
     config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
@@ -128,12 +108,12 @@ def run(app_dir, data_dir, config_dir, input_dir, tmp_dir, output_dir, twine):
     runner = Runner(
         twine=twine,
         configuration_values=os.path.join(config_dir, VALUES_FILENAME),
-        configuration_manifest=os.path.join(config_dir, MANIFEST_FILENAME)
+        configuration_manifest=os.path.join(config_dir, MANIFEST_FILENAME),
     )
     runner.run(
         app_src=app_dir,
         input_values=os.path.join(input_dir, VALUES_FILENAME),
-        input_manifest=os.path.join(input_dir, MANIFEST_FILENAME)
+        input_manifest=os.path.join(input_dir, MANIFEST_FILENAME),
     )
 
 

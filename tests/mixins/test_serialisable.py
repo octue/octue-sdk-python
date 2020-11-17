@@ -8,7 +8,6 @@ from ..base import BaseTestCase
 
 
 class Inherit(Serialisable):
-
     def __init__(self):
         super().__init__()
         self.id = "id"

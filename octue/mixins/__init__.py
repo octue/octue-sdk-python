@@ -4,4 +4,4 @@ from .serialisable import Serialisable
 from .taggable import Taggable
 
 
-__all__ = 'Identifiable', 'Loggable', 'Serialisable', 'Taggable'
+__all__ = "Identifiable", "Loggable", "Serialisable", "Taggable"

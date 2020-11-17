@@ -3,4 +3,4 @@ from .isfile import isfile
 from .isfolder import isfolder
 
 
-__all__ = 'gen_uuid', 'isfile', 'isfolder'
+__all__ = "gen_uuid", "isfile", "isfolder"
