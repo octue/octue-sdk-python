@@ -47,24 +47,19 @@ class Runner:
         # Ensure the twine is present and instantiate it
         self.twine = Twine(source=twine)
 
-        if 'configuration_values' not in self.twine.available_strands:
+        if "configuration_values" not in self.twine.available_strands:
             configuration_values = None
 
-        if 'configuration_manifest' not in self.twine.available_strands:
+        if "configuration_manifest" not in self.twine.available_strands:
             configuration_manifest = None
 
         # Validate and initialise configuration data
         self.configuration = self.twine.validate(
-            configuration_values=configuration_values,
-            configuration_manifest=configuration_manifest,
-            cls=CLASS_MAP,
+            configuration_values=configuration_values, configuration_manifest=configuration_manifest, cls=CLASS_MAP,
         )
 
         # Store the log level (same log level used for all analyses)
         self._log_level = log_level
-
-        # Store analyses. Multiple analysis objects can be created and coexist.
-        self.analyses = {}
 
     def _get_default_handler(self):
         """ Gets a basic console handler set up for logging analyses
@@ -130,7 +125,7 @@ class Runner:
 
         :return: None
         """
-        if 'input_manifest' not in self.twine.available_strands:
+        if "input_manifest" not in self.twine.available_strands:
             input_manifest = None
 
         inputs = self.twine.validate(
@@ -184,8 +179,13 @@ def unwrap(fcn):
 
 
 class AppFrom:
-    """ Context manager that allows us to temporarily add an app's location to the system path and
-    extract its run function
+    """ Context manager that imports module 'app' from user's code base at a location app_path.
+
+     The manager will issue a warning if an existing module called "app" is already loaded.
+
+     The manager makes a temporary addition to the system path (to ensure app is loaded from the correct path)
+
+     The manager will unload the module (by deleting it from sys.modules) on exit, enabling
 
     with AppFrom('/path/to/dir') as app:
         Runner().run(app)
@@ -194,16 +194,36 @@ class AppFrom:
 
     def __init__(self, app_path="."):
         self.app_path = os.path.abspath(os.path.normpath(app_path))
+        module_logger.debug(f"Initialising AppFrom context at app_path {self.app_path}")
         self.app_module = None
 
     def __enter__(self):
+        # Warn on an app present on the system path
+        print(sys.modules.keys())
+        if "app" in sys.modules.keys():
+            module_logger.warning(
+                "Module 'app' already on system path. Using 'AppFrom' context will yield unexpected results. Avoid using 'app' as a python module, except for your main entrypoint"
+            )
+
+        # Insert the present directory first on the system path
         sys.path.insert(0, self.app_path)
+
+        # Import the app from the present directory
         self.app_module = importlib.import_module("app")
+
+        # Immediately clean up the entry to the system path (don't use "remove" because if the user has it in their
+        # path, this'll be an unexpected side effect, and don't do it in cleanup in case the called code inserts a path)
+        sys.path.pop(0)
+        module_logger.debug(
+            f"Imported app at app_path and cleaned up temporary modification to sys.path {self.app_path}"
+        )
+
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self.app_path in sys.path:
-            sys.path.remove(self.app_path)
+        # Unload the imported module
+        del sys.modules["app"]
+        module_logger.debug(f"Deleted app from sys.modules and cleaned up (app_path {self.app_path})")
 
     @property
     def run(self):
