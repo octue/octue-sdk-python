@@ -199,7 +199,6 @@ class AppFrom:
 
     def __enter__(self):
         # Warn on an app present on the system path
-        print(sys.modules.keys())
         if "app" in sys.modules.keys():
             module_logger.warning(
                 "Module 'app' already on system path. Using 'AppFrom' context will yield unexpected results. Avoid using 'app' as a python module, except for your main entrypoint"
