@@ -60,7 +60,6 @@ def octue_cli(ctx, id, skip_checks, log_level, force_reset):
 
     """
     ctx.ensure_object(dict)
-    ctx.obj["analysis"] = "VIBRATION"
 
 
 @octue_cli.command()
