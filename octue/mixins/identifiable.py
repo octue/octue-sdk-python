@@ -56,7 +56,3 @@ class Identifiable:
     @property
     def id(self):
         return self._id
-
-    @id.setter
-    def id(self, value):
-        raise InvalidInputException(f"You cannot set the id of an already-instantiated {self.__class__.__name__}")

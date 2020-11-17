@@ -3,7 +3,7 @@ import uuid
 
 from octue import exceptions
 from octue.resources import Datafile
-from .base import BaseTestCase
+from ..base import BaseTestCase
 
 
 class DatafileTestCase(BaseTestCase):

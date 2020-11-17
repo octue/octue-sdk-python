@@ -1,7 +1,7 @@
 import logging
 
 from octue.mixins import Loggable
-from .base import BaseTestCase
+from ..base import BaseTestCase
 
 
 class InheritLoggable(Loggable):

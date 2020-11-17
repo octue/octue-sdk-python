@@ -1,6 +1,6 @@
 from octue import exceptions
 from octue.resources import Datafile, Dataset
-from .base import BaseTestCase
+from ..base import BaseTestCase
 
 
 class DatafileTestCase(BaseTestCase):

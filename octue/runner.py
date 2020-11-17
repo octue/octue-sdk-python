@@ -1,6 +1,8 @@
+import importlib
 import logging
+import os
+import sys
 
-from octue.cli import AppFrom
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.utils import gen_uuid
 from twined import Twine
@@ -40,15 +42,22 @@ class Runner:
     def __init__(
         self, twine="twine.json", configuration_values=None, configuration_manifest=None, log_level=logging.INFO
     ):
-        """ Constructor for the Runner class
-        """
+        """ Constructor for the Runner class. """
 
         # Ensure the twine is present and instantiate it
         self.twine = Twine(source=twine)
 
+        if 'configuration_values' not in self.twine.available_strands:
+            configuration_values = None
+
+        if 'configuration_manifest' not in self.twine.available_strands:
+            configuration_manifest = None
+
         # Validate and initialise configuration data
         self.configuration = self.twine.validate(
-            configuration_values=configuration_values, configuration_manifest=configuration_manifest, cls=CLASS_MAP,
+            configuration_values=configuration_values,
+            configuration_manifest=configuration_manifest,
+            cls=CLASS_MAP,
         )
 
         # Store the log level (same log level used for all analyses)
@@ -121,6 +130,8 @@ class Runner:
 
         :return: None
         """
+        if 'input_manifest' not in self.twine.available_strands:
+            input_manifest = None
 
         inputs = self.twine.validate(
             input_values=input_values,
@@ -162,3 +173,40 @@ class Runner:
             raise e
 
         return analysis
+
+
+def unwrap(fcn):
+    """ Recurse through wrapping to get the raw function without decorators.
+    """
+    if hasattr(fcn, "__wrapped__"):
+        return unwrap(fcn.__wrapped__)
+    return fcn
+
+
+class AppFrom:
+    """ Context manager that allows us to temporarily add an app's location to the system path and
+    extract its run function
+
+    with AppFrom('/path/to/dir') as app:
+        Runner().run(app)
+
+    """
+
+    def __init__(self, app_path="."):
+        self.app_path = os.path.abspath(os.path.normpath(app_path))
+        self.app_module = None
+
+    def __enter__(self):
+        sys.path.insert(0, self.app_path)
+        self.app_module = importlib.import_module("app")
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.app_path in sys.path:
+            sys.path.remove(self.app_path)
+
+    @property
+    def run(self):
+        """ Returns the unwrapped run function from app.py in the application's root directory
+        """
+        return unwrap(self.app_module.run)

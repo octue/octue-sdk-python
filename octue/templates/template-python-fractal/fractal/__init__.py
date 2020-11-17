@@ -1,1 +1,4 @@
-from .fractal import fractal  # noqa: F401
+from .fractal import fractal
+
+
+__all__ = 'fractal',

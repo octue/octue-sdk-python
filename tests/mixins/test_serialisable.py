@@ -4,7 +4,7 @@ import os
 from tempfile import TemporaryDirectory
 
 from octue.mixins import Serialisable
-from .base import BaseTestCase
+from ..base import BaseTestCase
 
 
 class Inherit(Serialisable):

@@ -7,7 +7,6 @@ from .isfolder import isfolder
 FOLDERS = (
     "configuration",
     "input",
-    "log",
     "tmp",
     "output",
 )

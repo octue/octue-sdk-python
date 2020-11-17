@@ -4,7 +4,7 @@ import sys
 import uuid
 
 from octue import Runner
-from .base import BaseTestCase
+from ..base import BaseTestCase
 
 
 class TemplateAppsTestCase(BaseTestCase):
@@ -57,4 +57,4 @@ class TemplateAppsTestCase(BaseTestCase):
             twine=self.template_twine,
             configuration_values=os.path.join("data", "configuration", "configuration_values.json"),
         )
-        runner.run(app_src=".")
+        runner.run(app_src=self.template_path)

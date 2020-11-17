@@ -1,11 +1,6 @@
-import os
-import sys
-
 from fractal import fractal
-from octue import octue_cli, octue_run, octue_version
 
 
-@octue_run
 def run(analysis):
     """ Your main entrypoint to run the application
 
@@ -53,27 +48,3 @@ def run(analysis):
 
     # Run the code
     fractal(analysis)
-
-
-@octue_version
-def version():
-    """ Returns the version number of the application
-    """
-
-    # Top Tip:
-    # For all Octue internal apps, we simply return the git revision of the code.
-    # Every single commit creates a new version, we can always check out the exact version of the code that ran, and we
-    # can quickly look up the version state and history on github when we have to debug an app. Sweet!
-    version_no = os.system("git rev-parse HEAD")
-
-    # Return the version number as a string
-    return version_no
-
-
-# If running from an IDE or test console, it'll run this file rather than calling the application from the CLI...
-# In that case we pass arguments through the CLI just as if it were called from the command line.
-if __name__ == "__main__":
-
-    # Invoke the CLI to process the arguments, set up an analysis and run it
-    args = sys.argv[1:] if len(sys.argv) > 1 else []
-    octue_cli(args)
