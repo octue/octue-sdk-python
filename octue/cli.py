@@ -90,7 +90,7 @@ def octue_cli(ctx, id, skip_checks, log_level, force_reset):
 @click.option(
     "--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.",
 )
-def run(app_dir, data_dir, config_dir, input_dir, tmp_dir, output_dir, twine):
+def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
     input_dir = input_dir or os.path.join(data_dir, FOLDER_DEFAULTS["input"])
     output_dir = output_dir or os.path.join(data_dir, FOLDER_DEFAULTS["output"])
