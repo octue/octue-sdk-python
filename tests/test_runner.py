@@ -76,7 +76,7 @@ class RunnerTestCase(BaseTestCase):
             pass
 
         with self.assertRaises(twined.exceptions.InvalidValuesContents) as error:
-            runner.run(fcn)
+            runner.run(fcn).finalise()
 
         self.assertIn("'n_iterations' is a required property", error.exception.args[0])
 
@@ -84,7 +84,7 @@ class RunnerTestCase(BaseTestCase):
         def fcn(analysis):
             analysis.output_values["n_iterations"] = 10
 
-        runner.run(fcn)
+        runner.run(fcn).finalise()
 
     def test_exception_raised_when_strand_data_missing(self):
         """ Ensures that protected attributes can't be set
