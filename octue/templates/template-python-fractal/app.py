@@ -7,6 +7,9 @@ def run(analysis):
     This is the function that gets run each time somebody requests an analysis from the digital twin / data service.
     You should write your own code and call it from here.
 
+    It needs to be called 'run' and the file must be called 'app.py'; Octue will handle the rest, supplying
+    you with an "analysis" object with validated inputs for you to process.
+
     ## The Analysis:
 
     `analysis` is an instantiated Analysis class object, which you can import here (as shown) or anywhere else in your
@@ -34,7 +37,7 @@ def run(analysis):
     # analysis.logger.info(f"The output directory is {analysis.output_dir}")
     # analysis.logger.info(f"The tmp directory, where you can store temporary files or caches, is {analysis.tmp_dir}")
 
-    # Print statements will get logged (stdout and stderr are mirrored to the log files so you don't miss anything)...
+    # Print statements will get logged...
     print("Hello! The app is running!")  # noqa: T001
 
     # ... but we encourage you to use the attached logger, which handles sending logs to remote services and allows them
