@@ -3,7 +3,6 @@ import sys
 import click
 import pkg_resources
 
-from octue import exceptions
 from octue.definitions import FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.runner import Runner
 
@@ -95,11 +94,6 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     input_dir = input_dir or os.path.join(data_dir, FOLDER_DEFAULTS["input"])
     output_dir = output_dir or os.path.join(data_dir, FOLDER_DEFAULTS["output"])
 
-    for directory in config_dir, input_dir:
-        for filename in VALUES_FILENAME, MANIFEST_FILENAME:
-            if not file_in_directory(VALUES_FILENAME, directory):
-                raise exceptions.FileNotFoundException(f"No file named {filename} file found in {directory}.")
-
     runner = Runner(
         twine=twine,
         configuration_values=os.path.join(config_dir, VALUES_FILENAME),
@@ -112,10 +106,6 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     )
     analysis.finalise(output_dir=output_dir)
     return 0
-
-
-def file_in_directory(filename, directory):
-    return os.path.isfile(os.path.join(directory, filename))
 
 
 if __name__ == "__main__":
