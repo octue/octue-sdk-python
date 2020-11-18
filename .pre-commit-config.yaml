@@ -42,7 +42,6 @@ repos:
     hooks:
       - id: check-branch-name
         args:
-          - '^master$'
           - '^main$'
           - '^development$'
           - '^devops/([a-z][a-z0-9]*)(-[a-z0-9]+)*$'
