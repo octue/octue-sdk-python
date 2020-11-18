@@ -118,7 +118,7 @@ def run(app_dir, data_dir, config_dir, input_dir, tmp_dir, output_dir, twine):
         input_values=os.path.join(input_dir, VALUES_FILENAME),
         input_manifest=os.path.join(input_dir, MANIFEST_FILENAME),
     )
-    analysis.finalise()
+    analysis.finalise(output_dir=output_dir)
     return 0
 
 
