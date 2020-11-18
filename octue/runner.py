@@ -159,9 +159,6 @@ class Runner:
             else:
                 app_src(analysis)
 
-            self.twine.validate(output_values=analysis.output_values)
-            self.twine.validate(output_manifest=analysis.output_manifest)
-
         except Exception as e:
             analysis_logger.error(str(e))
             raise e

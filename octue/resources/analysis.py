@@ -1,8 +1,12 @@
+import json
 import logging
+import os
 
+from octue.definitions import OUTPUT_STRANDS, STRAND_FILENAME_MAP
 from octue.exceptions import ProtectedAttributeException
 from octue.mixins import Identifiable, Loggable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
+from octue.utils.encoders import OctueJSONEncoder
 from twined import ALL_STRANDS, Twine
 
 
@@ -76,4 +80,49 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         themselves shouldn't be changed after instantiation)
         """
         if name in ALL_STRANDS:
-            return getattr(self, f"_{name}")
+            return getattr(self, f"_{name}", None)
+
+    def finalise(self, output_dir=None):
+        """ Validates and serialises output_values and output_manifest, optionally writing them to files
+
+        If output_dir is given, then the serialised outputs are also written to files in the output directory
+
+        :parameter output_dir: path-like pointing to directory where the outputs should be saved to file (if None, files
+         are not written)
+        :type output_dir:  path-like
+
+        :return: dictionary of serialised strings for values and manifest data.
+        :rtype: dict
+        """
+        kwargs = {}
+        for k in OUTPUT_STRANDS:
+            att = getattr(self, k)
+            if att is not None:
+                att = json.dumps(att, cls=OctueJSONEncoder)
+
+            kwargs[k] = att
+
+        # Using twined's validate_strand method gives us sugar to check for both extra outputs
+        # (e.g. output_values where there shouldn't be any) and missing outputs (e.g. output_values is None when it
+        # should be a dict of data)
+        serialised = dict()
+        for k in OUTPUT_STRANDS:
+            self.logger.debug(f"Serialising {k}")
+            att = getattr(self, k)
+            if att is not None:
+                att = json.dumps(att, cls=OctueJSONEncoder)
+
+            serialised[k] = att
+
+        self.logger.debug("Validating serialised output json against twine")
+        self.twine.validate(**serialised)
+
+        # Optionally write the serialised strand to disk
+        for k in OUTPUT_STRANDS:
+            if output_dir and serialised[k] is not None:
+                file_name = os.path.join(output_dir, STRAND_FILENAME_MAP[k])
+                self.logger.debug(f"Writing {k} to file {file_name}")
+                with open(file_name, "w") as fp:
+                    fp.write(serialised[k])
+
+        return serialised
