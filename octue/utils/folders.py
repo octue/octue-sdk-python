@@ -1,16 +1,6 @@
 import os
 
 from octue.definitions import OUTPUT_STRANDS, STRAND_FILENAME_MAP
-from twined.twine import CHILDREN_STRANDS, CREDENTIAL_STRANDS, MANIFEST_STRANDS, MONITOR_STRANDS, SCHEMA_STRANDS
-
-
-ALL_STRANDS = (
-    *SCHEMA_STRANDS,
-    *MANIFEST_STRANDS,
-    *CREDENTIAL_STRANDS,
-    *CHILDREN_STRANDS,
-    *MONITOR_STRANDS,
-)
 
 
 def get_file_name_from_strand(strand, path):
