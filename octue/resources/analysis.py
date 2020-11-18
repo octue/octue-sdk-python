@@ -1,12 +1,12 @@
 import json
 import logging
-import os
 
-from octue.definitions import OUTPUT_STRANDS, STRAND_FILENAME_MAP
+from octue.definitions import OUTPUT_STRANDS
 from octue.exceptions import ProtectedAttributeException
 from octue.mixins import Identifiable, Loggable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
 from octue.utils.encoders import OctueJSONEncoder
+from octue.utils.folders import get_file_name_from_strand
 from twined import ALL_STRANDS, Twine
 
 
@@ -120,7 +120,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         # Optionally write the serialised strand to disk
         for k in OUTPUT_STRANDS:
             if output_dir and serialised[k] is not None:
-                file_name = os.path.join(output_dir, STRAND_FILENAME_MAP[k])
+                file_name = get_file_name_from_strand(k, output_dir)
                 self.logger.debug(f"Writing {k} to file {file_name}")
                 with open(file_name, "w") as fp:
                     fp.write(serialised[k])
