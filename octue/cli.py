@@ -4,18 +4,8 @@ import click
 import pkg_resources
 
 from octue import exceptions
+from octue.definitions import FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.runner import Runner
-
-
-FOLDER_DEFAULTS = {
-    "configuration": "configuration",
-    "input": "input",
-    "tmp": "tmp",
-    "output": "output",
-}
-
-VALUES_FILENAME = "values.json"
-MANIFEST_FILENAME = "manifest.json"
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -128,11 +118,8 @@ def run(app_dir, data_dir, config_dir, input_dir, tmp_dir, output_dir, twine):
         input_values=os.path.join(input_dir, VALUES_FILENAME),
         input_manifest=os.path.join(input_dir, MANIFEST_FILENAME),
     )
-    if analysis.output_values is not None:
-        analysis.output_values
-    if analysis.output_manifest is not None:
-        analysis.output_manifest.to_file(os.path.join(output_dir, "manifest.json"))
-        analysis.output_manifest.to_file(os.path.join(output_dir, "manifest.json"))
+    analysis.finalise()
+    return 0
 
 
 def file_in_directory(filename, directory):
