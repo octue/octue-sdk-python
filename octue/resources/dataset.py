@@ -37,7 +37,6 @@ class Dataset(Taggable, Serialisable, Loggable, Identifiable):
             # or more simply
             my_manifest.append(**{...}) which implicitly creates the datafile from the starred list of input arguments
 
-        TODO allow for appending a list of datafiles
         """
         if len(args) > 1:
             # Recurse to allow addition of many files at once
@@ -87,7 +86,9 @@ class Dataset(Taggable, Serialisable, Loggable, Identifiable):
 
         # Frequent error of typing only a single underscore causes no results to be returned... catch it
         if "__" not in field_lookup:
-            raise InvalidInputException("Field lookups should be in the form '<field_name>__'<filter_kind>")
+            raise InvalidInputException(
+                f"Invalid field lookup '{field_lookup}'. Field lookups should be in the form '<field_name>__'<filter_kind>"
+            )
 
         field_lookups = {
             "name__icontains": lambda filter_value, file: filter_value.lower() in file.name.lower(),
