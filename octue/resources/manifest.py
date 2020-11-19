@@ -1,6 +1,6 @@
 import logging
 
-from octue.exceptions import InvalidInputException
+from octue.exceptions import InvalidInputException, InvalidManifestException
 from octue.mixins import Identifiable, Loggable, Serialisable
 from .dataset import Dataset
 
@@ -18,14 +18,33 @@ class Manifest(Serialisable, Loggable, Identifiable):
         """ Construct a Manifest
         """
         super().__init__(id=id, logger=logger)
-        self.datasets = kwargs.pop("datasets", list())
+
+        # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
+        #  so that resources get automatically instantiated.
+        #  Add a proper `decoder` argument  to the load_json utility in twined so that datasets, datafiles and manifests
+        #  get initialised properly, then remove this hackjob.
+        datasets = kwargs.pop("datasets", list())
+        self.datasets = []
+        for ds in datasets:
+            dataset = ds if isinstance(ds, Dataset) else Dataset(**ds)
+            self.datasets.append(dataset)
+
         self.keys = kwargs.pop("keys", dict())
         self.__dict__.update(**kwargs)
 
-        # TODO we need to add keys to the manifest file schema so that we know what dataset(s) map to what keys
+        # TODO we need to add keys to the manifest file schema in twined so that we know what dataset(s) map to what keys
+        #  In the meantime, we enforce at this level that keys will match
+        n_keys = len(self.keys.keys())
+        n_datasets = len(self.datasets)
+        if n_keys != n_datasets:
+            raise InvalidManifestException(
+                f"Manifest instantiated with {n_keys} keys, and {n_datasets} datasets... keys must match datasets!"
+            )
 
     def get_dataset(self, key):
         """ Gets a dataset by its key name (as defined in the twine)
+        :return: Dataset selected by its key
+        :rtype: Dataset
         """
         idx = self.keys.get(key, None)
         if idx is None:

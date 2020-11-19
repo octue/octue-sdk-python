@@ -22,6 +22,17 @@ class Dataset(Taggable, Serialisable, Loggable, Identifiable):
         """
         super().__init__(id=id, logger=logger, tags=tags)
         self.files = kwargs.pop("files", list())
+
+        # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
+        #  so that resources get automatically instantiated.
+        #  Add a proper `decoder` argument  to the load_json utility in twined so that datasets, datafiles and manifests
+        #  get initialised properly, then remove this hackjob.
+        files = kwargs.pop("files", list())
+        self.files = []
+        for fi in files:
+            datafile = fi if isinstance(fi, Datafile) else Datafile(**fi)
+            self.files.append(datafile)
+
         self.__dict__.update(**kwargs)
 
         # TODO A much better way than relying on the current directory!
