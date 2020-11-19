@@ -53,7 +53,7 @@ class TagGroup:
             cleaned_tag = tag.strip()
             if not re.match(TAG_PATTERN, cleaned_tag):
                 raise InvalidTagException(
-                    "Tags must contain only characters 'a-z', '0-9', ':' and '-'. They must not start with '-' or ':'."
+                    f"Invalid tag '{cleaned_tag}'. Tags must contain only characters 'a-z', '0-9', ':' and '-'. They must not start with '-' or ':'."
                 )
             cleaned_tags.append(cleaned_tag)
 
