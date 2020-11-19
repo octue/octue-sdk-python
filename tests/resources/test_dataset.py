@@ -62,11 +62,6 @@ class DatafileTestCase(BaseTestCase):
 
         self.assertIn("must be of class Datafile to append it to a Dataset", e.exception.args[0])
 
-    def test_get_files_daisychains(Self):
-        """ Ensures that the output of get_files can be reused to filter down further
-        """
-        pass
-
     def test_get_files_catches_single_underscore_mistake(self):
         """ Ensures that if the field name is a single underscore, that gets caught as an error
         """
