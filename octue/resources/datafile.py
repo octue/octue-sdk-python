@@ -4,20 +4,20 @@ import os
 import time
 
 from octue.exceptions import FileNotFoundException, InvalidInputException
-from octue.mixins import Identifiable, Loggable, Serialisable, Taggable
+from octue.mixins import Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.utils import isfile
 
 
 module_logger = logging.getLogger(__name__)
 
 
-class Datafile(Taggable, Serialisable, Loggable, Identifiable):
+class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
     """ Class for representing data files on the Octue system
 
     Files in a manifest look like this:
 
         {
-          "path": "input/datasets/7ead7669/file_1.csv",
+          "path": "folder/subfolder/file_1.csv",
           "cluster": 0,
           "sequence": 0,
           "extension": "csv",
@@ -29,12 +29,15 @@ class Datafile(Taggable, Serialisable, Loggable, Identifiable):
           "sha-512/256": "somesha"
         },
 
-    :parameter local_path_prefix: A path, specific to the present local system, to the directory containing the dataset
-    in which this file resides. Default is the current working directory.
-    :type local_path_prefix: str
+    :parameter path_from: The root Pathable object (typically a Dataset) that this Datafile's path is relative to.
+    :type path_from: Pathable
 
-    :parameter path: The path of this file, relative to the local_path_prefix (which may have a folder structure within it)
-    :type path: str
+    :parameter base_from: A Pathable object, which in most circumstances is the same as the path_from object, upon which
+    the `relative_path` property is based (if not given, `relative_path` is relative to current working directory
+
+    :parameter path: The path of this file, which may include folders or subfolders, within the dataset. If no path_from
+    parameter is set, then absolute paths are acceptable, otherwise relative paths are required.
+    :type path: Union[str, path-like]
 
     :parameter logger: A logger instance to which operations with this datafile will be logged. Defaults to the module logger.
     :type logger: logging.Logger
@@ -60,8 +63,9 @@ class Datafile(Taggable, Serialisable, Loggable, Identifiable):
         self,
         id=None,
         logger=None,
-        local_path_prefix=".",
         path=None,
+        path_from=None,
+        base_from=None,
         cluster=0,
         sequence=None,
         tags=None,
@@ -71,7 +75,7 @@ class Datafile(Taggable, Serialisable, Loggable, Identifiable):
     ):
         """ Construct a datafile
         """
-        super().__init__(id=id, logger=logger, tags=tags)
+        super().__init__(id=id, logger=logger, tags=tags, path=path, path_from=path_from, base_from=base_from)
 
         self.cluster = cluster
 
@@ -79,15 +83,7 @@ class Datafile(Taggable, Serialisable, Loggable, Identifiable):
         self.posix_timestamp = posix_timestamp or time.time()
 
         if path is None:
-            raise InvalidInputException("You must supply a valid 'path' argument")
-        else:
-            path = str(path).lstrip("\\/")
-
-        # Strip to ensure path is always expressed as relative
-        self.path = path
-
-        # Replace current directory specifier in the prefix with an absolute path
-        self.local_path_prefix = str(os.path.abspath(local_path_prefix))
+            raise InvalidInputException("You must supply a valid 'path' for a Datafile")
 
         # Set up the file extension or get it from the file path if none passed
         self.extension = self._get_extension_from_path()
@@ -106,7 +102,7 @@ class Datafile(Taggable, Serialisable, Loggable, Identifiable):
         """ Calculate the SHA256 hash string of the file
         """
         sha256_hash = hashlib.sha256()
-        with open(self.full_path, "rb") as f:
+        with open(self.absolute_path, "rb") as f:
             # Read and update hash string value in blocks of 4K
             for byte_block in iter(lambda: f.read(4096), b""):
                 sha256_hash.update(byte_block)
@@ -118,16 +114,12 @@ class Datafile(Taggable, Serialisable, Loggable, Identifiable):
         return str(os.path.split(self.path)[-1])
 
     @property
-    def full_path(self):
-        return os.path.join(self.local_path_prefix, self.path)
-
-    @property
     def last_modified(self):
-        return os.path.getmtime(self.full_path)
+        return os.path.getmtime(self.absolute_path)
 
     @property
     def size_bytes(self):
-        return os.path.getsize(self.full_path)
+        return os.path.getsize(self.absolute_path)
 
     @property
     def sha_256(self):
@@ -146,9 +138,9 @@ class Datafile(Taggable, Serialisable, Loggable, Identifiable):
             )
 
         if not self.exists():
-            raise FileNotFoundException(f"No file found at {self.full_path}")
+            raise FileNotFoundException(f"No file found at {self.absolute_path}")
 
     def exists(self):
         """ Returns true if the datafile exists on the current system, false otherwise
         """
-        return isfile(self.full_path)
+        return isfile(self.absolute_path)

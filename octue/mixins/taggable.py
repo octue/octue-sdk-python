@@ -102,10 +102,10 @@ class Taggable:
     """ A mixin class allowing objects to be tagged
     """
 
-    def __init__(self, tags=None, **kwargs):
+    def __init__(self, *args, tags=None, **kwargs):
         """ Constructor for Taggable mixins
         """
-        super().__init__(**kwargs)
+        super().__init__(*args, **kwargs)
         self._tags = TagGroup(tags)
 
     def add_tags(self, *args):

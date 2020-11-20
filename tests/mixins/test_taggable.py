@@ -1,7 +1,11 @@
 from octue import exceptions
-from octue.mixins import Taggable
+from octue.mixins import MixinBase, Taggable
 from octue.mixins.taggable import TagGroup
 from ..base import BaseTestCase
+
+
+class MyTaggable(Taggable, MixinBase):
+    pass
 
 
 class TaggableTestCase(BaseTestCase):
@@ -13,21 +17,21 @@ class TaggableTestCase(BaseTestCase):
     def test_instantiates_with_tags(self):
         """ Ensures datafile inherits correctly from the Taggable class and passes arguments through
         """
-        tgd = Taggable(tags="")
+        tgd = MyTaggable(tags="")
         self.assertEqual("", str(tgd.tags))
-        tgd = Taggable(tags=None)
+        tgd = MyTaggable(tags=None)
         self.assertEqual("", str(tgd.tags))
-        tgd = Taggable(tags="a b c")
+        tgd = MyTaggable(tags="a b c")
         self.assertEqual("a b c", str(tgd.tags))
         with self.assertRaises(exceptions.InvalidTagException):
-            Taggable(tags=":a b c")
+            MyTaggable(tags=":a b c")
 
     def test_instantiates_with_tag_group(self):
         """ Ensures datafile inherits correctly from the Taggable class and passes arguments through
         """
-        tgd = Taggable(tags="")
+        tgd = MyTaggable(tags="")
         self.assertIsInstance(tgd.tags, TagGroup)
-        tgd2 = Taggable(tags=tgd.tags)
+        tgd2 = MyTaggable(tags=tgd.tags)
         self.assertFalse(tgd is tgd2)
 
     def test_fails_to_instantiates_with_non_iterable(self):
@@ -38,7 +42,7 @@ class TaggableTestCase(BaseTestCase):
             pass
 
         with self.assertRaises(exceptions.InvalidTagException) as error:
-            Taggable(tags=NoIter())
+            MyTaggable(tags=NoIter())
 
         self.assertIn(
             "Tags must be expressed as a whitespace-delimited string or an iterable of strings", error.exception.args[0]
@@ -47,14 +51,14 @@ class TaggableTestCase(BaseTestCase):
     def test_reset_tags(self):
         """ Ensures datafile inherits correctly from the Taggable class and passes arguments through
         """
-        tgd = Taggable(tags="a b")
+        tgd = MyTaggable(tags="a b")
         tgd.tags = "b c"
         self.assertEqual(str(tgd.tags), "b c")
 
     def test_valid_tags(self):
         """ Ensures valid tags do not raise an error
         """
-        tgd = Taggable()
+        tgd = MyTaggable()
         tgd.add_tags("a-valid-tag")
         tgd.add_tags("a:tag")
         tgd.add_tags("a:-tag")  # <--- yes, this is valid deliberately as it allows people to do negation
@@ -70,7 +74,7 @@ class TaggableTestCase(BaseTestCase):
         """ Ensures invalid tags raise an error
         """
 
-        tgd = Taggable()
+        tgd = MyTaggable()
         with self.assertRaises(exceptions.InvalidTagException):
             tgd.add_tags("-bah")
 
@@ -89,7 +93,7 @@ class TaggableTestCase(BaseTestCase):
     def test_mixture_valid_invalid(self):
         """ Ensures that adding a variety of tags, some of which are invalid, doesn't partially add them to the object
         """
-        tgd = Taggable()
+        tgd = MyTaggable()
         tgd.add_tags("first-valid-should-be-added")
         try:
             tgd.add_tags("second-valid-should-not-be-added-because", "-the-third-is-invalid:")

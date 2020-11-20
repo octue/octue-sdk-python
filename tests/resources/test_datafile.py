@@ -2,18 +2,23 @@ import os
 import uuid
 
 from octue import exceptions
+from octue.mixins import MixinBase, Pathable
 from octue.resources import Datafile
 from ..base import BaseTestCase
 
 
-class DatafileTestCase(BaseTestCase):
+class MyPathable(Pathable, MixinBase):
+    pass
 
-    LOCAL_PATH_PREFIX = os.path.join("basic_files", "configuration", "test-dataset")
-    PATH = os.path.join("path-within-dataset", "a_test_file.csv")
+
+class DatafileTestCase(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.path_from = MyPathable(path=os.path.join(self.data_path, "basic_files", "configuration", "test-dataset"))
+        self.path = os.path.join("path-within-dataset", "a_test_file.csv")
 
     def create_valid_datafile(self):
-        local_path_prefix = os.path.join(self.data_path, self.LOCAL_PATH_PREFIX)
-        return Datafile(local_path_prefix=local_path_prefix, path=self.PATH, skip_checks=False)
+        return Datafile(path_from=self.path_from, base_from=self.path_from, path=self.path, skip_checks=False)
 
     def test_instantiates(self):
         """ Ensures a Datafile instantiates using only a path and generates a uuid ID
@@ -30,36 +35,7 @@ class DatafileTestCase(BaseTestCase):
         with self.assertRaises(exceptions.InvalidInputException) as error:
             Datafile()
 
-        self.assertIn("You must supply a valid 'path' argument", error.exception.args[0])
-
-    def test_default_local_path_prefix(self):
-        """ Ensures the local path, by default, is set to the current working directory
-        """
-        df = Datafile(path=os.sep + self.PATH, skip_checks=True)
-        self.assertEqual(self.PATH, df.path)
-        self.assertEqual(str(os.getcwd()), df.local_path_prefix.rstrip("\\/"))
-
-    def test_local_path_prefix_with_checks(self):
-        """ Ensures the local path can be specified and that checks pass on instantiation
-        """
-        local_path = os.path.join(self.data_path, self.LOCAL_PATH_PREFIX)
-        df = Datafile(path=self.PATH, local_path_prefix=local_path, skip_checks=False)
-        self.assertEqual("csv", df.extension)
-
-    def test_leading_slashes_on_path_are_stripped(self):
-        """ Ensures the path is always relative
-        """
-        df = Datafile(path=os.sep + self.PATH, skip_checks=True)
-        self.assertEqual(self.PATH, df.path)
-
-        df = Datafile(path=self.PATH, skip_checks=True)
-        self.assertEqual(self.PATH, df.path)
-
-    def test_checks_pass_when_file_exists(self):
-        df = self.create_valid_datafile()
-        self.assertEqual(self.PATH, df.path)
-        self.assertEqual(os.path.join(self.data_path, self.LOCAL_PATH_PREFIX, self.PATH), df.full_path)
-        self.assertEqual("csv", df.extension)
+        self.assertIn("You must supply a valid 'path' for a Datafile", error.exception.args[0])
 
     def test_checks_fail_when_file_doesnt_exist(self):
         path = "not_a_real_file.csv"
@@ -68,9 +44,8 @@ class DatafileTestCase(BaseTestCase):
         self.assertIn("No file found at", error.exception.args[0])
 
     def test_conflicting_extension_fails_check(self):
-        local_path_prefix = os.path.join(self.data_path, self.LOCAL_PATH_PREFIX)
         with self.assertRaises(exceptions.InvalidInputException) as error:
-            Datafile(local_path_prefix=local_path_prefix, path=self.PATH, skip_checks=False, extension="notcsv")
+            Datafile(path_from=self.path_from, path=self.path, skip_checks=False, extension="notcsv")
 
         self.assertIn("Extension provided (notcsv) does not match file extension", error.exception.args[0])
 

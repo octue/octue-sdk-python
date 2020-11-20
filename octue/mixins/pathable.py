@@ -15,12 +15,12 @@ class Pathable:
         """
         super().__init__(*args, **kwargs)
 
-        if (path_from is not None) and not isinstance(path_from, self.__class__):
+        if (path_from is not None) and not isinstance(path_from, Pathable):
             raise InvalidInputException(
                 "paths_from argument must be an instance of an object inheriting from Pathable() mixin"
             )
 
-        if (base_from is not None) and not isinstance(base_from, self.__class__):
+        if (base_from is not None) and not isinstance(base_from, Pathable):
             raise InvalidInputException(
                 "base_from argument must be an instance of an object inheriting from Pathable() mixin"
             )
