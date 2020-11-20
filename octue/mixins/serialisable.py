@@ -13,7 +13,7 @@ class Serialisable:
     def __init__(self, *args, **kwargs):
         """ Constructor for serialisable mixin
         """
-        # Ensure it passes construction argumnets up the chain
+        # Ensure it passes construction arguments up the chain
         super().__init__(*args, **kwargs)
 
     _serialise_fields = None
