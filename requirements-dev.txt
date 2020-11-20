@@ -31,6 +31,7 @@ twine  # <---- nothing to do with the twined library!
 numpy==1.19.2
 dateparser==1.0.0
 pandas==1.1.4
+stringcase==1.2.0
 
 # Current library
 #    Installs any dependencies in setup.py
