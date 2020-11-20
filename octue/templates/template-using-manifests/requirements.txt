@@ -1,0 +1,30 @@
+octue==0.1.4
+
+
+# ----------- Some common libraries  -----------------------------------------------------------------------------------
+
+# You may wish to include these. Removing these may break the examples, but won't break the template :)
+
+
+# Plotting tools to help create json based figure files (more powerful and better validation than creating the raw json yourself)
+#plotly==3.6.1
+
+# A numerical manipulation library
+numpy==1.19.2
+
+# A library for operating on tabulated data
+pandas
+
+# An incredibly powerful date parsing utility
+dateparser==1.0.0
+
+# A utility library for converting text cases; useful for cleaning up column names and such
+stringcase==1.2.0
+
+
+# A powerful database api library. Supply it with your db's uri (through environment variables - don't commit URIs
+# to git!!!!) and read/add data to/from databases.
+# Note: Results from apps that use externally managed data sources cannot be guaranteed to be idempotent (reproducible),
+# because the data can change between runs.
+#SQLAlchemy==1.0.12
+#SQLAlchemy-Utils==0.31.6
