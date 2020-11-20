@@ -53,7 +53,6 @@ class PathableTestCase(BaseTestCase):
         """
         owner = MyPathable(path="owner")
         owned = MyPathable(path_from=owner, path="owned")
-        print(owned.absolute_path)
         self.assertEqual(os.path.join("owner", "owned"), owned.relative_path)
 
     def test_paths_relative_to_base(self):

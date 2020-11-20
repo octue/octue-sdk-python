@@ -19,7 +19,6 @@ def clean(data, date):
     """
 
     # Add a proper datestamp column (combining the time from the time column with the date from the metadata)
-    print("DATE", date)
     cleaned_timestamps = []
     for ts in data["TimeStamp"]:
         # Decimal minutes. REALLY? This is why our work is so hard. Learn from the gross lack of foresight of whoever
