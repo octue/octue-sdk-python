@@ -19,7 +19,7 @@ setup(
     name="octue",
     version="0.1.3",
     py_modules=["cli"],
-    install_requires=["click>=7.1.2", "twined==0.0.12"],  # Dev note: you also need to bump twined in tox.ini
+    install_requires=["click>=7.1.2", "twined==0.0.13"],  # Dev note: you also need to bump twined in tox.ini
     url="https://www.github.com/octue/octue-sdk-python",
     license="MIT",
     author="Thomas Clark (github: thclark)",
