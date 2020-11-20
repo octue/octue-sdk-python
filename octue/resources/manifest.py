@@ -76,6 +76,6 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable):
             self.keys[dataset_spec["key"]] = idx
             # TODO generate a unique name based on the filter key, tag datasets so that the tag filters in the spec
             #  apply automatically and generate a description of the dataset
-            self.datasets.append(Dataset(logger=self.logger))
+            self.datasets.append(Dataset(logger=self.logger, path_from=self, path=dataset_spec["key"]))
 
         return self
