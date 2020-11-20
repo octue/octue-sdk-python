@@ -1,10 +1,7 @@
 import logging
 
 from octue.mixins import Loggable
-from .base import BaseTestCase
-
-
-module_logger = logging.getLogger(__name__)
+from ..base import BaseTestCase
 
 
 class InheritLoggable(Loggable):

@@ -1,31 +1,38 @@
 import logging
-import os
 
 from octue.exceptions import BrokenSequenceException, InvalidInputException, UnexpectedNumberOfResultsException
-from octue.mixins import Identifiable, Loggable, Serialisable, Taggable
+from octue.mixins import Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
-from octue.utils import isfolder
 
 
 module_logger = logging.getLogger(__name__)
 
 
-class Dataset(Taggable, Serialisable, Loggable, Identifiable):
+class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable):
     """ A representation of a dataset, containing files, tags, etc
 
     This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
     list of output files (results) and their properties that will be sent back to the octue system.
     """
 
-    def __init__(self, id=None, logger=None, tags=None, **kwargs):
+    def __init__(self, id=None, logger=None, path=None, path_from=None, base_from=None, tags=None, **kwargs):
         """ Construct a Dataset
         """
-        super().__init__(id=id, logger=logger, tags=tags)
-        self.files = kwargs.pop("files", list())
-        self.__dict__.update(**kwargs)
+        super().__init__(id=id, logger=logger, tags=tags, path=path, path_from=path_from, base_from=base_from)
 
-        # TODO A much better way than relying on the current directory!
-        self._path = os.path.abspath(f"./dataset-{self.id}")
+        # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
+        #  so that resources get automatically instantiated.
+        #  Add a proper `decoder` argument  to the load_json utility in twined so that datasets, datafiles and manifests
+        #  get initialised properly, then remove this hackjob.
+        files = kwargs.pop("files", list())
+        self.files = []
+        for fi in files:
+            if isinstance(fi, Datafile):
+                self.files.append(fi)
+            else:
+                self.files.append(Datafile(**fi, path_from=self, base_from=self))
+
+        self.__dict__.update(**kwargs)
 
     def append(self, *args, **kwargs):
         """ Add a data/results file to the manifest
@@ -37,7 +44,6 @@ class Dataset(Taggable, Serialisable, Loggable, Identifiable):
             # or more simply
             my_manifest.append(**{...}) which implicitly creates the datafile from the starred list of input arguments
 
-        TODO allow for appending a list of datafiles
         """
         if len(args) > 1:
             # Recurse to allow addition of many files at once
@@ -87,27 +93,26 @@ class Dataset(Taggable, Serialisable, Loggable, Identifiable):
 
         # Frequent error of typing only a single underscore causes no results to be returned... catch it
         if "__" not in field_lookup:
-            raise InvalidInputException("Field lookups should be in the form '<field_name>__'<filter_kind>")
+            raise InvalidInputException(
+                f"Invalid field lookup '{field_lookup}'. Field lookups should be in the form '<field_name>__'<filter_kind>"
+            )
+
+        field_lookups = {
+            "name__icontains": lambda filter_value, file: filter_value.lower() in file.name.lower(),
+            "name__contains": lambda filter_value, file: filter_value in file.name,
+            "name__endswith": lambda filter_value, file: file.name.endswith(filter_value),
+            "name__startswith": lambda filter_value, file: file.name.startswith(filter_value),
+            "tag__exact": lambda filter_value, file: filter_value in file.tags,
+            "tag__startswith": lambda filter_value, file: file.tags.startswith(filter_value),
+            "tag__endswith": lambda filter_value, file: file.tags.endswith(filter_value),
+            "tag__contains": lambda filter_value, file: file.tags.contains(filter_value),
+            "sequence__notnone": lambda filter_value, file: file.sequence is not None,
+        }
 
         results = []
+
         for file in files:
-            if field_lookup == "name__icontains" and filter_value.lower() in file.name.lower():
-                results.append(file)
-            if field_lookup == "name__contains" and filter_value in file.name:
-                results.append(file)
-            if field_lookup == "name__endswith" and file.name.endswith(filter_value):
-                results.append(file)
-            if field_lookup == "name__startswith" and file.name.startswith(filter_value):
-                results.append(file)
-            if field_lookup == "tag__exact" and filter_value in file.tags:
-                results.append(file)
-            if field_lookup == "tag__startswith" and file.tags.startswith(filter_value):
-                results.append(file)
-            if field_lookup == "tag__endswith" and file.tags.endswith(filter_value):
-                results.append(file)
-            if field_lookup == "tag__contains" and file.tags.contains(filter_value):
-                results.append(file)
-            if field_lookup == "sequence__notnone" and file.sequence is not None:
+            if field_lookups[field_lookup](filter_value, file):
                 results.append(file)
 
         return results
@@ -159,9 +164,3 @@ class Dataset(Taggable, Serialisable, Loggable, Identifiable):
             raise UnexpectedNumberOfResultsException("No files found with this tag")
 
         return results[0]
-
-    @property
-    def path(self):
-        # Lazily make the folder if absent
-        isfolder(self._path, make_if_absent=True)
-        return self._path

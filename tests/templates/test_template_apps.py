@@ -4,7 +4,7 @@ import sys
 import uuid
 
 from octue import Runner
-from .base import BaseTestCase
+from ..base import BaseTestCase
 
 
 class TemplateAppsTestCase(BaseTestCase):
@@ -15,10 +15,11 @@ class TemplateAppsTestCase(BaseTestCase):
         super().setUp()
         self.start_path = os.getcwd()
 
-        # Initialise just so that pylint picks up these variables are present (reinitialised in set_template())
+        # Initialise so these variables are assigned on the instance
         self.template_data_path = None
         self.template_twine = None
         self.template_path = None
+        self.app_test_path = None
         self.teardown_templates = []
 
         def set_template(template):
@@ -57,4 +58,22 @@ class TemplateAppsTestCase(BaseTestCase):
             twine=self.template_twine,
             configuration_values=os.path.join("data", "configuration", "configuration_values.json"),
         )
-        runner.run(app_src=".")
+        analysis = runner.run(
+            app_src=self.template_path, output_manifest_path=os.path.join("data", "output", "manifest.json")
+        )
+        analysis.finalise(output_dir=os.path.join("data", "output"))
+
+    def test_using_manifests(self):
+        """ Ensures using-manifests app works correctly
+        """
+        self.set_template("template-using-manifests")
+        runner = Runner(
+            twine=self.template_twine, configuration_values=os.path.join("data", "configuration", "values.json"),
+        )
+        analysis = runner.run(
+            app_src=self.template_path,
+            input_manifest=os.path.join("data", "input", "manifest.json"),
+            output_manifest_path=os.path.join("data", "output", "manifest.json"),
+        )
+        analysis.finalise(output_dir=os.path.join("data", "output"))
+        self.assertTrue(os.path.isfile(os.path.join("data", "output", "cleaned_met_mast_data", "cleaned.csv")))

@@ -68,8 +68,7 @@ def fractal(analysis):
     )
 
     # Actually write the contents to the file specified by the Datafile
-    # TODO we should write a helper and/or context manager for this, like `df.write_json({})` or `with df('w') as fp:`
-    with open(df.full_path, "w") as fp:
+    with open(df.absolute_path, "w") as fp:
         json.dump(
             {"data": data, "layout": layout}, fp, cls=OctueJSONEncoder
         )  # The special encoder just makes it easy to handle numpy arrays

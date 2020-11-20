@@ -19,6 +19,9 @@ class TagGroup:
     def __init__(self, tags):
         """ Construct a TagGroup
         """
+
+        # TODO Call the superclass with *args anad **kwargs, then update everything to using ResourceBase
+
         if tags is None:
             tags = []
 
@@ -53,7 +56,7 @@ class TagGroup:
             cleaned_tag = tag.strip()
             if not re.match(TAG_PATTERN, cleaned_tag):
                 raise InvalidTagException(
-                    "Tags must contain only characters 'a-z', '0-9', ':' and '-'. They must not start with '-' or ':'."
+                    f"Invalid tag '{cleaned_tag}'. Tags must contain only characters 'a-z', '0-9', ':' and '-'. They must not start with '-' or ':'."
                 )
             cleaned_tags.append(cleaned_tag)
 
@@ -99,10 +102,10 @@ class Taggable:
     """ A mixin class allowing objects to be tagged
     """
 
-    def __init__(self, tags=None, **kwargs):
+    def __init__(self, *args, tags=None, **kwargs):
         """ Constructor for Taggable mixins
         """
-        super().__init__(**kwargs)
+        super().__init__(*args, **kwargs)
         self._tags = TagGroup(tags)
 
     def add_tags(self, *args):

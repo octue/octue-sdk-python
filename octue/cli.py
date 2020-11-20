@@ -1,20 +1,13 @@
-import importlib
 import os
 import sys
-from functools import update_wrapper
 import click
+import pkg_resources
+
+from octue.definitions import FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
+from octue.runner import Runner
 
 
-FOLDERS = (
-    "configuration",
-    "input",
-    "log",
-    "tmp",
-    "output",
-)
-
-
-@click.group()
+@click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.option(
     "--id",
     default=None,
@@ -43,146 +36,79 @@ FOLDERS = (
     show_default=True,
     help="Forces a reset of analysis cache and outputs [For future use, currently not implemented]",
 )
+@click.version_option(version=pkg_resources.get_distribution("octue").version)
+@click.pass_context
+def octue_cli(ctx, id, skip_checks, log_level, force_reset):
+    """ Octue CLI, enabling a data service / digital twin to be run like a command line application.
+
+    When acting in CLI mode, results are read from and written to disk (see
+    https://octue-python-sdk.readthedocs.io/en/latest/ for how to run your application directly without the CLI).
+    Once your application has run, you'll be able to find output values and manifest in your specified --output-dir.
+    """
+    # TODO Forward command line options to runner via ctx
+    ctx.ensure_object(dict)
+
+
+@octue_cli.command()
 @click.option(
-    "--configuration-values",
+    "--app-dir",
     type=click.Path(),
-    default="<data-dir>/input/input_values.json",
+    default=".",
     show_default=True,
-    help="Source for configuration_values strand data.",
+    help="Directory containing your source code (app.py)",
 )
 @click.option(
-    "--configuration-manifest",
+    "--data-dir",
     type=click.Path(),
-    default="<data-dir>/input/input_values.json",
+    default=".",
     show_default=True,
-    help="Source for configuration_manifest strand data.",
+    help="Location of directories containing configuration values and manifest, input values and manifest, and output "
+    "directory.",
 )
 @click.option(
-    "--input-values",
+    "--config-dir",
     type=click.Path(),
-    default="<data-dir>/input/input_values.json",
+    default=None,
     show_default=True,
-    help="Source for input_values strand data.",
+    help="Directory containing configuration (overrides --data-dir).",
 )
 @click.option(
-    "--input-manifest",
+    "--input-dir",
     type=click.Path(),
-    default="<data-dir>/input/input_manifest.json",
+    default=None,
     show_default=True,
-    help="Source for input_manifest strand data.",
+    help="Directory containing input (overrides --data-dir).",
 )
 @click.option(
     "--output-dir",
     type=click.Path(),
-    default="output",
-    show_default=False,
-    help="Directory to write outputs as files.",
+    default=None,
+    show_default=True,
+    help="Directory to write outputs as files (overrides --data-dir).",
 )
 @click.option(
-    "--log-dir", type=click.Path(), default="logs", show_default=True, help="Path to the location of log files",
+    "--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.",
 )
-@click.pass_context
-def octue_cli(
-    ctx,
-    id,
-    skip_checks,
-    log_level,
-    force_reset,
-    configuration_values,
-    configuration_manifest,
-    input_values,
-    input_manifest,
-    data_dir,
-    input_dir,
-    tmp_dir,
-    output_dir,
-    log_dir,
-):
-    """ Octue CLI, enabling a data service / digital twin to be run like a command line application.
+def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
+    config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
+    input_dir = input_dir or os.path.join(data_dir, FOLDER_DEFAULTS["input"])
+    output_dir = output_dir or os.path.join(data_dir, FOLDER_DEFAULTS["output"])
 
-    Provide sources of configuration and/or input data and run the app. A source can be:
-
-    - A path (relative or absolute) to a directory containing a <strand>.json file (eg `path/to/dir`).
-    - A path to a <strand>.json file (eg `path/to/configuration_values.json`).
-    - A literal JSON string (eg `{"n_iterations": 10}`.
-
-    """
-
-    # We want to show meaningful defaults in the CLI help but unfortunately have to strip out the displayed values here
-    if input_values.startswith("<data-dir>/"):
-        input_dir = None  # noqa
-    if log_dir.startswith("<data-dir>/"):
-        log_dir = None  # noqa
-    if output_dir.startswith("<data-dir>/"):
-        output_dir = None  # noqa
-
-    ctx.ensure_object(dict)
-    ctx.obj["analysis"] = "VIBRATION"
+    runner = Runner(
+        twine=twine,
+        configuration_values=os.path.join(config_dir, VALUES_FILENAME),
+        configuration_manifest=os.path.join(config_dir, MANIFEST_FILENAME),
+    )
+    analysis = runner.run(
+        app_src=app_dir,
+        input_values=os.path.join(input_dir, VALUES_FILENAME),
+        input_manifest=os.path.join(input_dir, MANIFEST_FILENAME),
+        output_manifest_path=os.path.join(output_dir, MANIFEST_FILENAME),
+    )
+    analysis.finalise(output_dir=output_dir)
+    return 0
 
 
-def pass_analysis(f):
-    @click.pass_context
-    def new_func(ctx, *args, **kwargs):
-        return ctx.invoke(f, ctx.obj["analysis"], *args, **kwargs)
-
-    return update_wrapper(new_func, f)
-
-
-def octue_run(f):
-    """ Decorator for the main `run` function which adds a command to the CLI and prepares analysis ready for the run
-    """
-
-    @octue_cli.command()
-    @pass_analysis
-    def run(*args, **kwargs):
-        return f(*args, **kwargs)
-
-    return update_wrapper(run, f)
-
-
-def octue_version(f):
-    """ Decorator for the main `version` function which adds a command to the CLI
-    """
-
-    @octue_cli.command()
-    def version(*args, **kwargs):
-        return f(*args, **kwargs)
-
-    return update_wrapper(version, f)
-
-
-def unwrap(fcn):
-    """ Recurse through wrapping to get the raw function without decorators.
-    """
-    if hasattr(fcn, "__wrapped__"):
-        return unwrap(fcn.__wrapped__)
-    return fcn
-
-
-class AppFrom:
-    """ Context manager that allows us to temporarily add an app's location to the system path and
-    extract its run function
-
-    with AppFrom('/path/to/dir') as app:
-        Runner().run(app)
-
-    """
-
-    def __init__(self, app_path="."):
-        self.app_path = os.path.abspath(os.path.normpath(app_path))
-        self.app_module = None
-
-    def __enter__(self):
-        sys.path.insert(0, self.app_path)
-        self.app_module = importlib.import_module("app")
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if self.app_path in sys.path:
-            sys.path.remove(self.app_path)
-
-    @property
-    def run(self):
-        """ Returns the unwrapped run function from app.py in the application's root directory
-        """
-        return unwrap(self.app_module.run)
+if __name__ == "__main__":
+    args = sys.argv[1:] if len(sys.argv) > 1 else []
+    octue_cli(args)

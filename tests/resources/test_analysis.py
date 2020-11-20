@@ -3,7 +3,7 @@ import os
 from octue import exceptions
 from octue.resources import Analysis
 from twined import Twine
-from .base import BaseTestCase
+from ..base import BaseTestCase
 
 
 class AnalysisTestCase(BaseTestCase):

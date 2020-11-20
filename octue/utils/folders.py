@@ -1,40 +1,25 @@
 import os
 
-from octue import exceptions
-from .isfolder import isfolder
+from octue.definitions import OUTPUT_STRANDS, STRAND_FILENAME_MAP
 
 
-FOLDERS = (
-    "configuration",
-    "input",
-    "log",
-    "tmp",
-    "output",
-)
+def get_file_name_from_strand(strand, path):
+    """ Where values or manifest are contained in a local file, assemble that filename.
 
+    For output directories, the directory will be made if it doesn't exist. This is not true for input directories
+    for which validation of their presence is handled elsewhere.
 
-def from_path(path_hints, folders=FOLDERS):
-    """ NOT IMPLEMENTED YET - Helper to find paths to individual configurations from hints
-    TODO Fix this
+    :param strand: The name of the strand
+    :type strand: basestring
+
+    :param path: The directory where the file is / will be saved
+    :type path: path-like
+
+    :return: A file name for the strand
+    :rtype: path-like
     """
-    # Set paths
-    paths = dict()
-    if isinstance(path_hints, str):
-        if not os.path.isdir(path_hints):
-            raise exceptions.FolderNotFoundException(f"Specified data folder '{path_hints}' not present")
 
-        paths = dict([(folder, os.path.join(path_hints, folder)) for folder in folders])
+    if strand in OUTPUT_STRANDS:
+        os.makedirs(path, exist_ok=True)
 
-    else:
-        if (
-            not isinstance(paths, dict)
-            or (len(paths.keys()) != len(folders))
-            or not all([k in folders for k in paths.keys()])
-        ):
-            raise exceptions.InvalidInputException(
-                f"Input 'paths' should be a dict containing directory paths with the following keys: {folders}"
-            )
-
-    # Ensure paths exist on disc??
-    for folder in FOLDERS:
-        isfolder(paths[folder], make_if_absent=True)
+    return os.path.join(path, STRAND_FILENAME_MAP[strand])

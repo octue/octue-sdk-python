@@ -1,0 +1,29 @@
+{
+	"configuration_values_schema": {
+		"title": "Configuration for the manifest example app",
+		"description": "The app cleans up raw CSV files, correcting column names and adding the right timestamps.",
+		"type": "object",
+		"properties": {
+			"time_window": {
+				"description": "The time window in seconds over which results will be averaged",
+				"type": "integer",
+				"minimum": 1,
+				"default": 600
+			}
+		}
+	},
+	"input_manifest": [
+		{
+			"key": "raw_met_mast_data",
+			"purpose": "A dataset containing .csv files of raw meteorological mast data which we need to clean up",
+			"filters": "tags:(met AND mast) files:(extension:csv)"
+		}
+	],
+	"output_manifest": [
+		{
+			"key": "cleaned_met_mast_data",
+			"purpose": "A dataset containing .csv files of cleaned meteorological mast data",
+			"filters": "tags:(met AND mast AND cleaned) files:(extension:csv)"
+		}
+	]
+}

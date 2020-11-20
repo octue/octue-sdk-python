@@ -13,10 +13,11 @@ class Serialisable:
     def __init__(self, *args, **kwargs):
         """ Constructor for serialisable mixin
         """
-        # Ensure it passes construction argumnets up the chain
+        # Ensure it passes construction arguments up the chain
         super().__init__(*args, **kwargs)
 
     _serialise_fields = None
+    _exclude_serialise_fields = ("logger",)
 
     def to_file(self, file_name, **kwargs):
         """ Write to a JSON file
@@ -53,12 +54,11 @@ class Serialisable:
         """
         self.logger.debug("Serialising %s %s", self.__class__.__name__, self.id)
 
-        # Get all non-private and non-protected attributes except for 'logger'
+        # Get all non-private and non-protected attributes except those excluded specifically
         attrs_to_serialise = self._serialise_fields or (
-            k
-            for k in self.__dir__()
-            if ((k[:1] != "_") and (k != "logger") and (type(getattr(self, k, "")).__name__ != "method"))
+            k for k in self.__dir__() if ((k[:1] != "_") and (type(getattr(self, k, "")).__name__ != "method"))
         )
+        attrs_to_serialise = (attr for attr in attrs_to_serialise if attr not in self._exclude_serialise_fields)
         self_as_primitive = {attr: getattr(self, attr, None) for attr in attrs_to_serialise}
 
         # TODO this conversion backward-and-forward is very inefficient but allows us to use the same encoder for

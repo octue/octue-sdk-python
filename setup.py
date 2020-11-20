@@ -17,9 +17,9 @@ with open("LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.1.3",
+    version="0.1.4",
     py_modules=["cli"],
-    install_requires=["click>=7.1.2", "twined==0.0.12"],  # Dev note: you also need to bump twined in tox.ini
+    install_requires=["click>=7.1.2", "twined==0.0.13"],  # Dev note: you also need to bump twined in tox.ini
     url="https://www.github.com/octue/octue-sdk-python",
     license="MIT",
     author="Thomas Clark (github: thclark)",
@@ -29,6 +29,10 @@ setup(
     zip_safe=False,  # Allows copying of templates as whole directory trees
     packages=find_packages(exclude=("tests", "docs")),
     include_package_data=True,
+    entry_points="""
+    [console_scripts]
+    octue-app=octue.cli:octue_cli
+    """,
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",

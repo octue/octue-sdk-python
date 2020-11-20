@@ -1,16 +1,14 @@
-import os
-import sys
-
 from fractal import fractal
-from octue import octue_cli, octue_run, octue_version
 
 
-@octue_run
 def run(analysis):
     """ Your main entrypoint to run the application
 
     This is the function that gets run each time somebody requests an analysis from the digital twin / data service.
     You should write your own code and call it from here.
+
+    It needs to be called 'run' and the file must be called 'app.py'; Octue will handle the rest, supplying
+    you with an "analysis" object with validated inputs for you to process.
 
     ## The Analysis:
 
@@ -39,7 +37,7 @@ def run(analysis):
     # analysis.logger.info(f"The output directory is {analysis.output_dir}")
     # analysis.logger.info(f"The tmp directory, where you can store temporary files or caches, is {analysis.tmp_dir}")
 
-    # Print statements will get logged (stdout and stderr are mirrored to the log files so you don't miss anything)...
+    # Print statements will get logged...
     print("Hello! The app is running!")  # noqa: T001
 
     # ... but we encourage you to use the attached logger, which handles sending logs to remote services and allows them
@@ -53,27 +51,3 @@ def run(analysis):
 
     # Run the code
     fractal(analysis)
-
-
-@octue_version
-def version():
-    """ Returns the version number of the application
-    """
-
-    # Top Tip:
-    # For all Octue internal apps, we simply return the git revision of the code.
-    # Every single commit creates a new version, we can always check out the exact version of the code that ran, and we
-    # can quickly look up the version state and history on github when we have to debug an app. Sweet!
-    version_no = os.system("git rev-parse HEAD")
-
-    # Return the version number as a string
-    return version_no
-
-
-# If running from an IDE or test console, it'll run this file rather than calling the application from the CLI...
-# In that case we pass arguments through the CLI just as if it were called from the command line.
-if __name__ == "__main__":
-
-    # Invoke the CLI to process the arguments, set up an analysis and run it
-    args = sys.argv[1:] if len(sys.argv) > 1 else []
-    octue_cli(args)
