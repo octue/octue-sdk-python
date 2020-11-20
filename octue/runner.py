@@ -58,6 +58,12 @@ class Runner:
             configuration_values=configuration_values, configuration_manifest=configuration_manifest, cls=CLASS_MAP,
         )
 
+        # Set path for configuration manifest.
+        # TODO this is hacky, we need to rearchitect the twined validation so we can do this kind of thing in there
+        self.configuration["configuration_manifest"] = self._update_manifest_path(
+            self.configuration.get("configuration_manifest", None), configuration_manifest,
+        )
+
         # Store the log level (same log level used for all analyses)
         self._log_level = log_level
 
@@ -89,7 +95,37 @@ class Runner:
 
         return analysis_logger
 
-    def run(self, app_src, handler=None, input_values=None, input_manifest=None, credentials=None, children=None):
+    @staticmethod
+    def _update_manifest_path(manifest, pathname):
+        """ A Quick hack to stitch the new Pathable functionality in the 0.1.4 release into the CLI and runner.
+
+        The way we define a manifest path can be more robustly implemented as we migrate functionality into the twined
+        library
+
+        :param manifest:
+        :type manifest:
+        :param pathname:
+        :type pathname:
+        :return:
+        :rtype:
+        """
+        if manifest is not None and hasattr(pathname, "endswith"):
+            if pathname.endswith(".json"):
+                manifest.path = os.path.split(pathname)[0]
+
+            # Otherwise do nothing and rely on manifest having its path variable set already
+            return manifest
+
+    def run(
+        self,
+        app_src,
+        handler=None,
+        input_values=None,
+        input_manifest=None,
+        credentials=None,
+        children=None,
+        output_manifest_path=None,
+    ):
         """ Run an analysis
 
         :parameter app_src: Either: an instance of the AppFrom manager class which has a run() method, or
@@ -117,6 +153,9 @@ class Runner:
         already-parsed dict.
         :type children: Union[str, dict]
 
+        :parameter output_manifest_path: Path where output data will be written
+        :type output_manifest_path: Union[str, path-like]
+
         :parameter handler: the logging.Handler instance which will be used to handle logs for this analysis run.
         handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but
         should use the format defined above in LOG_FORMAT.
@@ -137,7 +176,15 @@ class Runner:
             allow_extra=False,
         )
 
+        # TODO this is hacky, we need to rearchitect the twined validation so we can do this kind of thing in there
+        inputs["input_manifest"] = self._update_manifest_path(inputs.get("input_manifest", None), input_manifest,)
+
         outputs_and_monitors = self.twine.prepare("monitors", "output_values", "output_manifest", cls=CLASS_MAP)
+
+        # TODO this is hacky, we need to rearchitect the twined validation so we can do this kind of thing in there
+        outputs_and_monitors["output_manifest"] = self._update_manifest_path(
+            outputs_and_monitors.get("output_manifest", None), output_manifest_path,
+        )
 
         analysis_id = gen_uuid()
         analysis_logger = self._get_analysis_logger(analysis_id, handler)
