@@ -59,6 +59,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
     :type posix_timestamp: number
     """
 
+    _exclude_serialise_fields = ("logger", "open")
+
     def __init__(
         self,
         id=None,
@@ -144,3 +146,45 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
         """ Returns true if the datafile exists on the current system, false otherwise
         """
         return isfile(self.absolute_path)
+
+    @property
+    def open(self):
+        """ Context manager to handle the opening and closing of a Datafile.
+
+        If opened in write mode, the manager will attempt to determine if the folder path exists and, if not, will
+        create the folder structure required to write the file.
+
+        Use it like:
+        ```
+        my_datafile = Datafile(path='subfolder/subsubfolder/my_datafile.json)
+        with my_datafile.open('w') as fp:
+            fp.write("{}")
+        ```
+        This is equivalent to the standard python:
+        ```
+        my_datafile = Datafile(path='subfolder/subsubfolder/my_datafile.json)
+        os.makedirs(os.path.split(my_datafile.absolute_path)[0], exist_ok=True)
+        with open(my_datafile.absolute_path, 'w') as fp:
+            fp.write("{}")
+        ```
+        """
+
+        absolute_path = self.absolute_path
+
+        class DataFileContextManager:
+            def __init__(obj, mode="r", **kwargs):
+                obj.mode = mode
+                obj.kwargs = kwargs
+                obj.absolute_path = absolute_path
+                if "w" in obj.mode:
+                    os.makedirs(os.path.split(obj.absolute_path)[0], exist_ok=True)
+
+            def __enter__(obj):
+                obj.fp = open(obj.absolute_path, obj.mode, **obj.kwargs)
+                return obj.fp
+
+            def __exit__(obj, *args):
+                if obj.fp is not None:
+                    obj.fp.close()
+
+        return DataFileContextManager
