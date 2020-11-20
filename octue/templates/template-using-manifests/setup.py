@@ -9,5 +9,5 @@ def git_version():
 # This file makes your module installable as a library. It's not essential for running apps with twined.
 
 setup(
-    name="template-python-fractal", version=git_version(), py_modules=["app"],
+    name="template-using-manifests", version=git_version(), py_modules=["app"],
 )

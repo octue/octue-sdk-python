@@ -12,6 +12,16 @@ octue==0.1.4
 # A numerical manipulation library
 numpy==1.19.2
 
+# A library for operating on tabulated data
+pandas
+
+# An incredibly powerful date parsing utility
+dateparser==1.0.0
+
+# A utility library for converting text cases; useful for cleaning up column names and such
+stringcase==1.2.0
+
+
 # A powerful database api library. Supply it with your db's uri (through environment variables - don't commit URIs
 # to git!!!!) and read/add data to/from databases.
 # Note: Results from apps that use externally managed data sources cannot be guaranteed to be idempotent (reproducible),

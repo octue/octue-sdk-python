@@ -58,4 +58,22 @@ class TemplateAppsTestCase(BaseTestCase):
             twine=self.template_twine,
             configuration_values=os.path.join("data", "configuration", "configuration_values.json"),
         )
-        runner.run(app_src=self.template_path)
+        analysis = runner.run(
+            app_src=self.template_path, output_manifest_path=os.path.join("data", "output", "manifest.json")
+        )
+        analysis.finalise(output_dir=os.path.join("data", "output"))
+
+    def test_using_manifests(self):
+        """ Ensures using-manifests app works correctly
+        """
+        self.set_template("template-using-manifests")
+        runner = Runner(
+            twine=self.template_twine, configuration_values=os.path.join("data", "configuration", "values.json"),
+        )
+        analysis = runner.run(
+            app_src=self.template_path,
+            input_manifest=os.path.join("data", "input", "manifest.json"),
+            output_manifest_path=os.path.join("data", "output", "manifest.json"),
+        )
+        analysis.finalise(output_dir=os.path.join("data", "output"))
+        self.assertTrue(os.path.isfile(os.path.join("data", "output", "cleaned_met_mast_data", "cleaned.csv")))

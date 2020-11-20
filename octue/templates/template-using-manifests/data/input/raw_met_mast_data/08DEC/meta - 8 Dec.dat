@@ -1,0 +1,17 @@
+DATE:    8 December 2019
+SYS_TEMP:    17.06
+COMMENTS
+########
+Yes, this is a *really* bad way for anyone to decide to store metadata... And CSVs are a horribly inefficient way of
+storing numeric data (as well as being prone corruption e.g. if data has missing values, or strings have commas, etc).
+
+If you're creating datasets, don't do this. It's a completely custom file format, totally crazy and not easily machine
+readable.
+
+Do yourself, and everybody else, a favour and write your metadata as JSON, and if you have heavyweight numeric data
+consider HDF5 (or netCDF, or similar) formats which will be more compact and robust than CSVs.
+
+Why are we giving you this example, then?
+
+Because we've seen this, and much worse, many times in real life. We think it's better for examples to be based on
+actual real data, rather than the perfect ideal scenario.

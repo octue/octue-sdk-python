@@ -94,13 +94,6 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         :return: dictionary of serialised strings for values and manifest data.
         :rtype: dict
         """
-        kwargs = {}
-        for k in OUTPUT_STRANDS:
-            att = getattr(self, k)
-            if att is not None:
-                att = json.dumps(att, cls=OctueJSONEncoder)
-
-            kwargs[k] = att
 
         # Using twined's validate_strand method gives us sugar to check for both extra outputs
         # (e.g. output_values where there shouldn't be any) and missing outputs (e.g. output_values is None when it
