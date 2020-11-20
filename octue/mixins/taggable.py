@@ -19,6 +19,9 @@ class TagGroup:
     def __init__(self, tags):
         """ Construct a TagGroup
         """
+
+        # TODO Call the superclass with *args anad **kwargs, then update everything to using ResourceBase
+
         if tags is None:
             tags = []
 
