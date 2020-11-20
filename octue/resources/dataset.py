@@ -21,7 +21,6 @@ class Dataset(Taggable, Serialisable, Loggable, Identifiable):
         """ Construct a Dataset
         """
         super().__init__(id=id, logger=logger, tags=tags)
-        self.files = kwargs.pop("files", list())
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
