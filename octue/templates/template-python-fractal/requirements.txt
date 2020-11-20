@@ -1,16 +1,4 @@
-appdirs==1.4.3
-args==0.1.0
-clint==0.5.1
-packaging==20.4
-pyparsing==2.4.7
-six==1.15.0
-octue==0.1.2
-twined==0.0.10
-click==7.1.2
-
-# ----------- Install the current app (as editable, so you can develop on it) ------------------------------------------
-
--e .
+octue==0.1.4
 
 
 # ----------- Some common libraries  -----------------------------------------------------------------------------------
@@ -24,14 +12,9 @@ click==7.1.2
 # A numerical manipulation library
 numpy==1.19.2
 
-# A powerful database api library. Supply it with your db's uri (through environment variables - don't commit URIs to git!!!!) and read/add data to/from databases.
-# Note that results of analyses using externally managed databases as data sources cannot be guaranteed to be idempotent.
+# A powerful database api library. Supply it with your db's uri (through environment variables - don't commit URIs
+# to git!!!!) and read/add data to/from databases.
+# Note: Results from apps that use externally managed data sources cannot be guaranteed to be idempotent (reproducible),
+# because the data can change between runs.
 #SQLAlchemy==1.0.12
 #SQLAlchemy-Utils==0.31.6
-
-
-# ----------- Twined / SDK developer's reference only. Do not uncomment. ---------------------------------------------------------------
-
-# To develop twined or the SDK within the same environment as an app, install them as editable:
-# --editable ../twined
-# --editable ../octue-sdk-python
