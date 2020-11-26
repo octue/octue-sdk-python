@@ -40,7 +40,12 @@ class Runner:
     """
 
     def __init__(
-        self, twine="twine.json", configuration_values=None, configuration_manifest=None, log_level=logging.INFO
+        self,
+        twine="twine.json",
+        configuration_values=None,
+        configuration_manifest=None,
+        skip_checks=False,
+        log_level=logging.INFO,
     ):
         """ Constructor for the Runner class. """
 
@@ -63,6 +68,8 @@ class Runner:
         self.configuration["configuration_manifest"] = self._update_manifest_path(
             self.configuration.get("configuration_manifest", None), configuration_manifest,
         )
+
+        self._skip_checks = skip_checks
 
         # Store the log level (same log level used for all analyses)
         self._log_level = log_level
@@ -199,10 +206,10 @@ class Runner:
 
         try:
             if hasattr(app_src, "run"):
-                app_src.run(analysis)
+                app_src.run(analysis, self._skip_checks)
             elif isinstance(app_src, str):
                 with AppFrom(app_src) as app:
-                    app.run(analysis)
+                    app.run(analysis, self._skip_checks)
             else:
                 app_src(analysis)
 
