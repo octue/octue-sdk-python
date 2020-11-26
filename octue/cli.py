@@ -49,7 +49,7 @@ def octue_cli(id, skip_checks, log_level, force_reset):
     Once your application has run, you'll be able to find output values and manifest in your specified --output-dir.
     """
     context["analysis_id"] = id
-    context["skip_check"] = skip_checks
+    context["skip_checks"] = skip_checks
     context["log_level"] = log_level.upper()
     context["force_reset"] = force_reset
 
@@ -101,6 +101,7 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
         twine=twine,
         configuration_values=os.path.join(config_dir, VALUES_FILENAME),
         configuration_manifest=os.path.join(config_dir, MANIFEST_FILENAME),
+        skip_checks=context["skip_checks"],
         log_level=context["log_level"],
     )
     analysis = runner.run(
