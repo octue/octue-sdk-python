@@ -126,6 +126,7 @@ class Runner:
     def run(
         self,
         app_src,
+        analysis_id=None,
         handler=None,
         input_values=None,
         input_manifest=None,
@@ -193,7 +194,7 @@ class Runner:
             outputs_and_monitors.get("output_manifest", None), output_manifest_path,
         )
 
-        analysis_id = gen_uuid()
+        analysis_id = str(analysis_id) if analysis_id else gen_uuid()
         analysis_logger = self._get_analysis_logger(analysis_id, handler)
         analysis = Analysis(
             id=analysis_id,

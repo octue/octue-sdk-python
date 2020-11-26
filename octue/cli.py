@@ -14,8 +14,9 @@ context = {}
 @click.option(
     "--id",
     default=None,
+    type=click.UUID,
     show_default=True,
-    help="Id of the analysis being undertaken. None (for local use) will cause a unique ID to be generated.",
+    help="UUID of the analysis being undertaken. None (for local use) will cause a unique ID to be generated.",
 )
 @click.option(
     "--skip-checks/--no-skip-checks",
@@ -47,7 +48,7 @@ def octue_cli(id, skip_checks, log_level, force_reset):
     https://octue-python-sdk.readthedocs.io/en/latest/ for how to run your application directly without the CLI).
     Once your application has run, you'll be able to find output values and manifest in your specified --output-dir.
     """
-    context["id"] = id
+    context["analysis_id"] = id
     context["skip_check"] = skip_checks
     context["log_level"] = log_level.upper()
     context["force_reset"] = force_reset
@@ -104,6 +105,7 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     )
     analysis = runner.run(
         app_src=app_dir,
+        analysis_id=context["analysis_id"],
         input_values=os.path.join(input_dir, VALUES_FILENAME),
         input_manifest=os.path.join(input_dir, MANIFEST_FILENAME),
         output_manifest_path=os.path.join(output_dir, MANIFEST_FILENAME),
