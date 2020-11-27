@@ -40,7 +40,7 @@ class Runner:
     """
 
     def __init__(
-        self, twine="twine.json", configuration_values=None, configuration_manifest=None, log_level=logging.INFO
+        self, twine="twine.json", configuration_values=None, configuration_manifest=None, log_level=logging.INFO,
     ):
         """ Constructor for the Runner class. """
 
@@ -119,12 +119,14 @@ class Runner:
     def run(
         self,
         app_src,
+        analysis_id=None,
         handler=None,
         input_values=None,
         input_manifest=None,
         credentials=None,
         children=None,
         output_manifest_path=None,
+        skip_checks=False,
     ):
         """ Run an analysis
 
@@ -186,12 +188,13 @@ class Runner:
             outputs_and_monitors.get("output_manifest", None), output_manifest_path,
         )
 
-        analysis_id = gen_uuid()
+        analysis_id = str(analysis_id) if analysis_id else gen_uuid()
         analysis_logger = self._get_analysis_logger(analysis_id, handler)
         analysis = Analysis(
             id=analysis_id,
             logger=analysis_logger,
             twine=self.twine,
+            skip_checks=skip_checks,
             **self.configuration,
             **inputs,
             **outputs_and_monitors,

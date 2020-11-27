@@ -3,7 +3,7 @@ from cleaner import clean, read_csv_files, read_dat_file
 from octue.resources import Datafile
 
 
-def run(analysis):
+def run(analysis, *args, **kwargs):
     """ An app to read a time series of files from a dataset, clean them and write a new, cleaned, dataset.
 
     See the "fractal" template for an introduction to the analysis object and the purpose of this 'run' function.

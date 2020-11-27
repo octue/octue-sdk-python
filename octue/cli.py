@@ -7,12 +7,16 @@ from octue.definitions import FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAM
 from octue.runner import Runner
 
 
+global_cli_context = {}
+
+
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.option(
     "--id",
     default=None,
+    type=click.UUID,
     show_default=True,
-    help="Id of the analysis being undertaken. None (for local use) will cause a unique ID to be generated.",
+    help="UUID of the analysis being undertaken. None (for local use) will cause a unique ID to be generated.",
 )
 @click.option(
     "--skip-checks/--no-skip-checks",
@@ -37,16 +41,17 @@ from octue.runner import Runner
     help="Forces a reset of analysis cache and outputs [For future use, currently not implemented]",
 )
 @click.version_option(version=pkg_resources.get_distribution("octue").version)
-@click.pass_context
-def octue_cli(ctx, id, skip_checks, log_level, force_reset):
+def octue_cli(id, skip_checks, log_level, force_reset):
     """ Octue CLI, enabling a data service / digital twin to be run like a command line application.
 
     When acting in CLI mode, results are read from and written to disk (see
     https://octue-python-sdk.readthedocs.io/en/latest/ for how to run your application directly without the CLI).
     Once your application has run, you'll be able to find output values and manifest in your specified --output-dir.
     """
-    # TODO Forward command line options to runner via ctx
-    ctx.ensure_object(dict)
+    global_cli_context["analysis_id"] = id
+    global_cli_context["skip_checks"] = skip_checks
+    global_cli_context["log_level"] = log_level.upper()
+    global_cli_context["force_reset"] = force_reset
 
 
 @octue_cli.command()
@@ -86,9 +91,7 @@ def octue_cli(ctx, id, skip_checks, log_level, force_reset):
     show_default=True,
     help="Directory to write outputs as files (overrides --data-dir).",
 )
-@click.option(
-    "--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.",
-)
+@click.option("--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.")
 def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
     input_dir = input_dir or os.path.join(data_dir, FOLDER_DEFAULTS["input"])
@@ -98,12 +101,15 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
         twine=twine,
         configuration_values=os.path.join(config_dir, VALUES_FILENAME),
         configuration_manifest=os.path.join(config_dir, MANIFEST_FILENAME),
+        log_level=global_cli_context["log_level"],
     )
     analysis = runner.run(
         app_src=app_dir,
+        analysis_id=global_cli_context["analysis_id"],
         input_values=os.path.join(input_dir, VALUES_FILENAME),
         input_manifest=os.path.join(input_dir, MANIFEST_FILENAME),
         output_manifest_path=os.path.join(output_dir, MANIFEST_FILENAME),
+        skip_checks=global_cli_context["skip_checks"],
     )
     analysis.finalise(output_dir=output_dir)
     return 0
