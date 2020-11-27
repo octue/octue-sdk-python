@@ -79,6 +79,12 @@ class Runner:
         handler = handler or get_default_handler(log_level=self._log_level)
         analysis_logger = logging.getLogger(f"analysis-{analysis_id}")
         analysis_logger.addHandler(handler)
+
+        if type(analysis_logger.handlers[0]).__name__ == "HTTPHandler":
+            self._get_analysis_logger(analysis_id=analysis_id, handler=None).info(
+                f"Logs streaming to {analysis_logger.handlers[0].host + analysis_logger.handlers[0].url}"
+            )
+
         return analysis_logger
 
     @staticmethod
@@ -175,13 +181,7 @@ class Runner:
         )
 
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
-
         analysis_logger = self._get_analysis_logger(analysis_id, handler)
-
-        if type(analysis_logger.handlers[0]).__name__ == "HTTPHandler":
-            self._get_analysis_logger(analysis_id=analysis_id, handler=None).info(
-                f"Logs streaming to {analysis_logger.handlers[0].host + analysis_logger.handlers[0].url}"
-            )
 
         analysis = Analysis(
             id=analysis_id,
