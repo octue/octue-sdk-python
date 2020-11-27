@@ -16,8 +16,9 @@ class TestLoggingHandlers(BaseTestCase):
         """Test that the remote logger handler emits messages."""
         logger = logging.getLogger("test-logger")
         logger.addHandler(get_remote_logger_handler(logger_uri="https://0.0.0.0:80/log", log_level="DEBUG"))
+        logger.setLevel("DEBUG")
 
         with mock.patch("logging.handlers.HTTPHandler.emit") as mock_emit:
-            logger.warning("Hello")
+            logger.debug("Hello")
             mock_emit.assert_called()
             assert mock_emit.call_args.args[0].msg == "Hello"
