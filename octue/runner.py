@@ -79,6 +79,7 @@ class Runner:
         handler = handler or get_default_handler(log_level=self._log_level)
         analysis_logger = logging.getLogger(f"analysis-{analysis_id}")
         analysis_logger.addHandler(handler)
+        analysis_logger.setLevel(self._log_level)
 
         if type(analysis_logger.handlers[0]).__name__ == "HTTPHandler":
             self._get_analysis_logger(analysis_id=analysis_id, handler=None).info(
