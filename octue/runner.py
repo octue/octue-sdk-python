@@ -76,11 +76,9 @@ class Runner:
         :return: logger named in the pattern `analysis-{analysis_id}`
         :rtype logging.Logger
         """
-
-        handler = handler or get_default_handler(self._log_level)
+        handler = handler or get_default_handler(log_level=self._log_level)
         analysis_logger = logging.getLogger(f"analysis-{analysis_id}")
         analysis_logger.addHandler(handler)
-
         return analysis_logger
 
     @staticmethod
