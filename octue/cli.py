@@ -101,7 +101,6 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
         twine=twine,
         configuration_values=os.path.join(config_dir, VALUES_FILENAME),
         configuration_manifest=os.path.join(config_dir, MANIFEST_FILENAME),
-        skip_checks=context["skip_checks"],
         log_level=context["log_level"],
     )
     analysis = runner.run(
@@ -110,6 +109,7 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
         input_values=os.path.join(input_dir, VALUES_FILENAME),
         input_manifest=os.path.join(input_dir, MANIFEST_FILENAME),
         output_manifest_path=os.path.join(output_dir, MANIFEST_FILENAME),
+        skip_checks=context["skip_checks"],
     )
     analysis.finalise(output_dir=output_dir)
     return 0

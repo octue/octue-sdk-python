@@ -48,7 +48,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
     :parameter logger: Optional logging.Logger instance attached to the analysis
     """
 
-    def __init__(self, twine, **kwargs):
+    def __init__(self, twine, skip_checks=False, **kwargs):
         """ Constructor of Analysis instance
         """
 
@@ -57,6 +57,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
             twine = Twine(source=twine)
 
         self.twine = twine
+        self._skip_checks = skip_checks
 
         # Pop any possible strand data sources before init superclasses (and tie them to protected attributes)
         strand_kwargs = ((name, kwargs.pop(name, None)) for name in ALL_STRANDS)
