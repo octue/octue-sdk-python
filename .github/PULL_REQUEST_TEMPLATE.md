@@ -2,7 +2,7 @@
 <!-- PRs from release/x.y.z branches will be used to create Release Notes so make sure they contain everything -->
 <!-- Please don't add features not discussed in an issue first -->
 
-## PR Contents
+## Contents
 
 ### New Features
 
