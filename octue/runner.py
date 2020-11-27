@@ -175,7 +175,14 @@ class Runner:
         )
 
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
+
         analysis_logger = self._get_analysis_logger(analysis_id, handler)
+
+        if type(analysis_logger.handlers[0]).__name__ == "HTTPHandler":
+            self._get_analysis_logger(analysis_id=analysis_id, handler=None).info(
+                f"Logs streaming to {analysis_logger.handlers[0].host + analysis_logger.handlers[0].url}"
+            )
+
         analysis = Analysis(
             id=analysis_id,
             logger=analysis_logger,
