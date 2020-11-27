@@ -108,7 +108,7 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     )
 
     if global_cli_context["logger_uri"]:
-        handler = get_remote_logger_handler(global_cli_context["logger_uri"])
+        handler = get_remote_logger_handler(global_cli_context["logger_uri"], global_cli_context["log_level"])
     else:
         handler = None
 

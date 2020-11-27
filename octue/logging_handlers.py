@@ -17,7 +17,9 @@ def get_default_handler(_log_level):
     return console_handler
 
 
-def get_remote_logger_handler(logger_uri):
+def get_remote_logger_handler(logger_uri, _log_level):
     parsed_uri = urlparse(logger_uri)
-
-    return logging.handlers.HTTPHandler(host=parsed_uri.netloc, url=parsed_uri.path, method="POST")
+    handler = logging.handlers.HTTPHandler(host=parsed_uri.netloc, url=parsed_uri.path, method="POST")
+    handler.setLevel(_log_level)
+    handler.setFormatter(logging.Formatter(LOG_FORMAT))
+    return handler
