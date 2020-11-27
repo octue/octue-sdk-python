@@ -1,21 +1,14 @@
-import logging.handlers
 import os
 import sys
-from urllib.parse import urlparse
 import click
 import pkg_resources
 
 from octue.definitions import FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
+from octue.logging_handlers import get_remote_logger_handler
 from octue.runner import Runner
 
 
 global_cli_context = {}
-
-
-def _get_remote_logger_handler(logger_uri):
-    parsed_uri = urlparse(logger_uri)
-
-    return logging.handlers.HTTPHandler(host=parsed_uri.netloc, url=parsed_uri.path, method="POST")
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -115,7 +108,7 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     )
 
     if global_cli_context["logger_uri"]:
-        handler = _get_remote_logger_handler(global_cli_context["logger_uri"])
+        handler = get_remote_logger_handler(global_cli_context["logger_uri"])
     else:
         handler = None
 
