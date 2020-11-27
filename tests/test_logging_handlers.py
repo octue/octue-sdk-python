@@ -21,4 +21,3 @@ class TestLoggingHandlers(BaseTestCase):
         with mock.patch("logging.handlers.HTTPHandler.emit") as mock_emit:
             logger.debug("Hello")
             mock_emit.assert_called()
-            assert mock_emit.call_args.args[0].msg == "Hello"
