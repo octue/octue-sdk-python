@@ -7,7 +7,7 @@ from octue.definitions import FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAM
 from octue.runner import Runner
 
 
-context = {}
+global_cli_context = {}
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -48,10 +48,10 @@ def octue_cli(id, skip_checks, log_level, force_reset):
     https://octue-python-sdk.readthedocs.io/en/latest/ for how to run your application directly without the CLI).
     Once your application has run, you'll be able to find output values and manifest in your specified --output-dir.
     """
-    context["analysis_id"] = id
-    context["skip_checks"] = skip_checks
-    context["log_level"] = log_level.upper()
-    context["force_reset"] = force_reset
+    global_cli_context["analysis_id"] = id
+    global_cli_context["skip_checks"] = skip_checks
+    global_cli_context["log_level"] = log_level.upper()
+    global_cli_context["force_reset"] = force_reset
 
 
 @octue_cli.command()
@@ -101,15 +101,15 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
         twine=twine,
         configuration_values=os.path.join(config_dir, VALUES_FILENAME),
         configuration_manifest=os.path.join(config_dir, MANIFEST_FILENAME),
-        log_level=context["log_level"],
+        log_level=global_cli_context["log_level"],
     )
     analysis = runner.run(
         app_src=app_dir,
-        analysis_id=context["analysis_id"],
+        analysis_id=global_cli_context["analysis_id"],
         input_values=os.path.join(input_dir, VALUES_FILENAME),
         input_manifest=os.path.join(input_dir, MANIFEST_FILENAME),
         output_manifest_path=os.path.join(output_dir, MANIFEST_FILENAME),
-        skip_checks=context["skip_checks"],
+        skip_checks=global_cli_context["skip_checks"],
     )
     analysis.finalise(output_dir=output_dir)
     return 0
