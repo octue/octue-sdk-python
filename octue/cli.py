@@ -26,6 +26,7 @@ global_cli_context = {}
     help="Skips the input checking. This can be a timesaver if you already checked "
     "data directories (especially if manifests are large).",
 )
+@click.option("--logger-uri", default=None, show_default=True, help="Stream logs to a websocket at the given URI.")
 @click.option(
     "--log-level",
     default="info",
@@ -41,7 +42,7 @@ global_cli_context = {}
     help="Forces a reset of analysis cache and outputs [For future use, currently not implemented]",
 )
 @click.version_option(version=pkg_resources.get_distribution("octue").version)
-def octue_cli(id, skip_checks, log_level, force_reset):
+def octue_cli(id, skip_checks, logger_uri, log_level, force_reset):
     """ Octue CLI, enabling a data service / digital twin to be run like a command line application.
 
     When acting in CLI mode, results are read from and written to disk (see
@@ -50,6 +51,7 @@ def octue_cli(id, skip_checks, log_level, force_reset):
     """
     global_cli_context["analysis_id"] = id
     global_cli_context["skip_checks"] = skip_checks
+    global_cli_context["logger_uri"] = logger_uri
     global_cli_context["log_level"] = log_level.upper()
     global_cli_context["force_reset"] = force_reset
 
