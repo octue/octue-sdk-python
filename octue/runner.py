@@ -82,9 +82,10 @@ class Runner:
         analysis_logger.setLevel(self._log_level)
 
         if type(analysis_logger.handlers[0]).__name__ == "HTTPHandler":
-            self._get_analysis_logger(analysis_id=analysis_id, handler=None).info(
-                f"Logs streaming to {analysis_logger.handlers[0].host + analysis_logger.handlers[0].url}"
-            )
+            local_logger = logging.getLogger(__name__)
+            local_logger.addHandler(get_default_handler(log_level=self._log_level))
+            local_logger.setLevel(self._log_level)
+            local_logger.info(f"Logs streaming to {analysis_logger.handlers[0].host + analysis_logger.handlers[0].url}")
 
         return analysis_logger
 
