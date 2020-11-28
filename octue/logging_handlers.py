@@ -18,6 +18,7 @@ def get_default_handler(log_level):
 
 
 def get_remote_handler(logger_uri, log_level):
+    """Get a log handler for streaming logs to a remote URI accessed via HTTP or HTTPS."""
     parsed_uri = urlparse(logger_uri)
 
     if parsed_uri.scheme == "https":

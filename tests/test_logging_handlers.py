@@ -6,14 +6,22 @@ from octue.logging_handlers import get_remote_handler
 
 
 class TestLoggingHandlers(BaseTestCase):
-    def test_get_remote_logger_handler(self):
-        """Assert that the remote logger handler parses URIs properly."""
+    def test_get_remote_handler_parses_urls_properly(self):
+        """Assert that the remote log handler parses URIs properly."""
+        handler = get_remote_handler(logger_uri="http://0.0.0.1:3000/log", log_level="DEBUG")
+        assert handler.host == "0.0.0.1:3000"
+        assert handler.url == "/log"
+        assert handler.secure is False
+
+    def test_https_is_supported(self):
+        """Test that HTTPS is supported by the remote log handler."""
         handler = get_remote_handler(logger_uri="https://0.0.0.1:3000/log", log_level="DEBUG")
         assert handler.host == "0.0.0.1:3000"
         assert handler.url == "/log"
+        assert handler.secure is True
 
     def test_remote_logger_emits_messages(self):
-        """Test that the remote logger handler emits messages."""
+        """Test that the remote log handler emits messages."""
         logger = logging.getLogger("test-logger")
         logger.addHandler(get_remote_handler(logger_uri="https://0.0.0.0:80/log", log_level="DEBUG"))
         logger.setLevel("DEBUG")
