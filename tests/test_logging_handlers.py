@@ -5,7 +5,7 @@ from tests.base import BaseTestCase
 from octue.logging_handlers import get_remote_handler
 
 
-class TestLoggingHandlers(BaseTestCase):
+class TestGetRemoteHandler(BaseTestCase):
     def test_get_remote_handler_parses_urls_properly(self):
         """Assert that the remote log handler parses URIs properly."""
         handler = get_remote_handler(logger_uri="http://0.0.0.1:3000/log", log_level="DEBUG")
@@ -19,6 +19,11 @@ class TestLoggingHandlers(BaseTestCase):
         assert handler.host == "0.0.0.1:3000"
         assert handler.url == "/log"
         assert handler.secure is True
+
+    def test_non_http_or_https_protocol_raises_error(self):
+        """Ensure an error is raised if a protocol other than HTTP or HTTPS is used for the logger URI."""
+        with self.assertRaises(ValueError):
+            get_remote_handler(logger_uri="ftp://0.0.0.1:3000/log", log_level="DEBUG")
 
     def test_remote_logger_emits_messages(self):
         """Test that the remote log handler emits messages."""
