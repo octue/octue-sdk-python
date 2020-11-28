@@ -19,7 +19,15 @@ def get_default_handler(log_level):
 
 def get_remote_handler(logger_uri, log_level):
     parsed_uri = urlparse(logger_uri)
-    handler = logging.handlers.HTTPHandler(host=parsed_uri.netloc, url=parsed_uri.path, method="POST")
+
+    if parsed_uri.scheme == "https":
+        secure = True
+    elif parsed_uri.scheme == "http":
+        secure = False
+    else:
+        raise ValueError(f"Only HTTP or HTTPS currently supported for remote logger URI. Received {logger_uri!r}.")
+
+    handler = logging.handlers.HTTPHandler(host=parsed_uri.netloc, url=parsed_uri.path, method="POST", secure=secure)
     handler.setLevel(log_level)
     handler.setFormatter(logging.Formatter(LOG_FORMAT))
     return handler
