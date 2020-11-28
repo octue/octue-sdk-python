@@ -4,7 +4,7 @@ import click
 import pkg_resources
 
 from octue.definitions import FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
-from octue.logging_handlers import get_remote_logger_handler
+from octue.logging_handlers import get_remote_handler
 from octue.runner import Runner
 
 
@@ -108,7 +108,7 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     )
 
     if global_cli_context["logger_uri"]:
-        handler = get_remote_logger_handler(
+        handler = get_remote_handler(
             logger_uri=global_cli_context["logger_uri"], log_level=global_cli_context["log_level"]
         )
     else:
