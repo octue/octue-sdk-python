@@ -1,4 +1,5 @@
 import os
+from unittest import mock
 from click.testing import CliRunner
 from tests import TESTS_DIR
 from tests.app import CUSTOM_APP_RUN_MESSAGE
@@ -52,3 +53,19 @@ class RunnerTestCase(BaseTestCase):
         )
 
         assert CUSTOM_APP_RUN_MESSAGE in result.output
+
+    def test_remote_logger_uri_can_be_set(self):
+        """Test that remote logger URI can be set via the CLI and that this is logged locally."""
+        with mock.patch("logging.StreamHandler.emit") as mock_local_logger_emit:
+            CliRunner().invoke(
+                octue_cli,
+                [
+                    "--logger-uri=https://0.0.0.1:3000/log",
+                    "run",
+                    f"--app-dir={TESTS_DIR}",
+                    f"--twine={self.TWINE_FILE_PATH}",
+                    f'--data-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests")}',
+                ],
+            )
+
+            mock_local_logger_emit.assert_called()

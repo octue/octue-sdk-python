@@ -3,15 +3,13 @@ import logging
 import os
 import sys
 
+from octue.logging_handlers import get_default_handler
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.utils import gen_uuid
 from twined import Twine
 
 
 module_logger = logging.getLogger(__name__)
-
-# Logging format for analysis runs. All handlers should use this logging format, to make logs consistently parseable
-LOG_FORMAT = "%(name)s %(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s"
 
 
 class Runner:
@@ -67,16 +65,6 @@ class Runner:
         # Store the log level (same log level used for all analyses)
         self._log_level = log_level
 
-    def _get_default_handler(self):
-        """ Gets a basic console handler set up for logging analyses
-        """
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(self._log_level)
-        formatter = logging.Formatter(LOG_FORMAT)
-        console_handler.setFormatter(formatter)
-
-        return console_handler
-
     def _get_analysis_logger(self, analysis_id, handler=None):
         """ Create a logger specific to the analysis
 
@@ -88,10 +76,16 @@ class Runner:
         :return: logger named in the pattern `analysis-{analysis_id}`
         :rtype logging.Logger
         """
-
-        handler = handler or self._get_default_handler()
+        handler = handler or get_default_handler(log_level=self._log_level)
         analysis_logger = logging.getLogger(f"analysis-{analysis_id}")
         analysis_logger.addHandler(handler)
+        analysis_logger.setLevel(self._log_level)
+
+        if type(analysis_logger.handlers[0]).__name__ == "HTTPHandler":
+            local_logger = logging.getLogger(__name__)
+            local_logger.addHandler(get_default_handler(log_level=self._log_level))
+            local_logger.setLevel(self._log_level)
+            local_logger.info(f"Logs streaming to {analysis_logger.handlers[0].host + analysis_logger.handlers[0].url}")
 
         return analysis_logger
 
@@ -190,6 +184,7 @@ class Runner:
 
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
         analysis_logger = self._get_analysis_logger(analysis_id, handler)
+
         analysis = Analysis(
             id=analysis_id,
             logger=analysis_logger,
