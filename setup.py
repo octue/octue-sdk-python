@@ -17,7 +17,7 @@ with open("LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.1.4",
+    version="0.1.5",
     py_modules=["cli"],
     install_requires=["click>=7.1.2", "twined==0.0.13"],  # Dev note: you also need to bump twined in tox.ini
     url="https://www.github.com/octue/octue-sdk-python",

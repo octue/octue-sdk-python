@@ -1,7 +1,7 @@
 from fractal import fractal
 
 
-def run(analysis):
+def run(analysis, *args, **kwargs):
     """ Your main entrypoint to run the application
 
     This is the function that gets run each time somebody requests an analysis from the digital twin / data service.
