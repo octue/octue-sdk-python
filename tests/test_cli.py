@@ -60,7 +60,7 @@ class RunnerTestCase(BaseTestCase):
             CliRunner().invoke(
                 octue_cli,
                 [
-                    "--logger-uri=https://0.0.0.1:3000/log",
+                    "--logger-uri=wss://0.0.0.1:3000",
                     "run",
                     f"--app-dir={TESTS_DIR}",
                     f"--twine={self.TWINE_FILE_PATH}",
