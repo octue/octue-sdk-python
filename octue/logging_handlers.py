@@ -21,14 +21,12 @@ def get_remote_handler(logger_uri, log_level):
     """Get a log handler for streaming logs to a remote URI accessed via HTTP or HTTPS."""
     parsed_uri = urlparse(logger_uri)
 
-    if parsed_uri.scheme == "https":
-        secure = True
-    elif parsed_uri.scheme == "http":
-        secure = False
-    else:
-        raise ValueError(f"Only HTTP or HTTPS currently supported for remote logger URI. Received {logger_uri!r}.")
+    if parsed_uri.scheme not in {"ws", "wss"}:
+        raise ValueError(
+            f"Only WS and WSS protocols currently supported for remote logger URI. Received {logger_uri!r}."
+        )
 
-    handler = logging.handlers.HTTPHandler(host=parsed_uri.netloc, url=parsed_uri.path, method="POST", secure=secure)
+    handler = logging.handlers.SocketHandler(host=parsed_uri.hostname, port=parsed_uri.port)
     handler.setLevel(log_level)
     handler.setFormatter(logging.Formatter(LOG_FORMAT))
     return handler

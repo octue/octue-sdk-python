@@ -81,11 +81,13 @@ class Runner:
         analysis_logger.addHandler(handler)
         analysis_logger.setLevel(self._log_level)
 
-        if type(analysis_logger.handlers[0]).__name__ == "HTTPHandler":
+        if type(analysis_logger.handlers[0]).__name__ == "SocketHandler":
             local_logger = logging.getLogger(__name__)
             local_logger.addHandler(get_default_handler(log_level=self._log_level))
             local_logger.setLevel(self._log_level)
-            local_logger.info(f"Logs streaming to {analysis_logger.handlers[0].host + analysis_logger.handlers[0].url}")
+            local_logger.info(
+                f"Logs streaming to {analysis_logger.handlers[0].host + ':' + str(analysis_logger.handlers[0].port)}"
+            )
 
         return analysis_logger
 
