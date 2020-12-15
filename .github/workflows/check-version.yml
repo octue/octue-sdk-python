@@ -1,9 +1,10 @@
 name: check-version-consistency
-on: [pull_request]
+on: [push]
 jobs:
   check-version-consistency:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
+      - run: git branch
       - run: python .github/workflows/scripts/check-version-consistency.py
