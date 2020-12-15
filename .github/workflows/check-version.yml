@@ -1,5 +1,5 @@
 name: check-version-consistency
-on: [pull_request]
+on: [push]
 jobs:
   check-version-consistency:
     runs-on: ubuntu-latest
