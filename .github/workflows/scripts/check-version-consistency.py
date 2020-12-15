@@ -38,7 +38,7 @@ if __name__ == "__main__":
         if release_branch_version_matches_setup_version(PACKAGE_ROOT):
             sys.exit(0)
 
+        sys.exit(1)
+
     except TypeError:
         sys.exit(0)
-
-    sys.exit(1)
