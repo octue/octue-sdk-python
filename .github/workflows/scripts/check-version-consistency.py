@@ -11,7 +11,8 @@ def release_branch_version_matches_setup_version(package_root):
     process = subprocess.run(["python", os.path.join(package_root, "setup.py"), "--version"], capture_output=True)
     setup_version = process.stdout.strip().decode("utf8")
 
-    process = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True)
+    process = subprocess.run(["git", "branch", "--show-current"], capture_output=True)
+
     full_branch_name = process.stdout.strip().decode("utf8")
     branch_type, branch_name = full_branch_name.split("/")
 
