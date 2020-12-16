@@ -2,7 +2,6 @@ import json
 import logging
 
 from octue.definitions import OUTPUT_STRANDS
-from octue.exceptions import ProtectedAttributeException
 from octue.mixins import Identifiable, Loggable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
 from octue.utils.encoders import OctueJSONEncoder
@@ -62,26 +61,10 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         # Pop any possible strand data sources before init superclasses (and tie them to protected attributes)
         strand_kwargs = ((name, kwargs.pop(name, None)) for name in ALL_STRANDS)
         for strand_name, strand_data in strand_kwargs:
-            self.__setattr__(f"_{strand_name}", strand_data)
+            self.__setattr__(f"{strand_name}", strand_data)
 
         # Init superclasses
         super().__init__(**kwargs)
-
-    def __setattr__(self, name, value):
-        """ Override setters for protected attributes (the strand contents may change, but the strands themselves
-        shouldn't be changed after instantiation)
-        """
-        if name in ALL_STRANDS:
-            raise ProtectedAttributeException(f"You cannot set {name} on an instantiated Analysis")
-
-        super().__setattr__(name, value)
-
-    def __getattr__(self, name):
-        """ Override public getters to point to protected attributes (the strand contents may change, but the strands
-        themselves shouldn't be changed after instantiation)
-        """
-        if name in ALL_STRANDS:
-            return getattr(self, f"_{name}", None)
 
     def finalise(self, output_dir=None):
         """ Validates and serialises output_values and output_manifest, optionally writing them to files

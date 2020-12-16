@@ -1,6 +1,5 @@
 import os
 
-from octue import exceptions
 from octue.resources import Analysis
 from twined import Twine
 from ..base import BaseTestCase
@@ -19,15 +18,6 @@ class AnalysisTestCase(BaseTestCase):
         """
         analysis = Analysis(twine=Twine(source="{}"))
         self.assertEqual(analysis.__class__.__name__, "Analysis")
-
-    def test_protected_setter(self):
-        """ Ensures that protected attributes can't be set
-        """
-        analysis = Analysis(twine="{}")
-        with self.assertRaises(exceptions.ProtectedAttributeException) as error:
-            analysis.configuration_values = {}
-
-        self.assertIn("You cannot set configuration_values on an instantiated Analysis", error.exception.args[0])
 
     def test_protected_getter(self):
         """ Ensures that protected attributes can't be set
