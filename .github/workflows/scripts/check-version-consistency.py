@@ -10,6 +10,10 @@ class NotAVersionBranchException(Exception):
     pass
 
 
+class InvalidBranchNameFormat(Exception):
+    pass
+
+
 def get_setup_version():
     process = subprocess.run(["python", "setup.py", "--version"], capture_output=True)
     return process.stdout.strip().decode("utf8")
@@ -29,7 +33,12 @@ def release_branch_version_matches_setup_version(setup_version, full_branch_name
     :raise NotAVersionBranchException:
     :return bool:
     """
-    branch_type, branch_name = full_branch_name.split("/")
+    try:
+        branch_type, branch_name = full_branch_name.split("/")
+    except ValueError:
+        raise InvalidBranchNameFormat(
+            f"The branch name must be in the form 'branch_type/branch_name'; received {full_branch_name!r}"
+        )
 
     if branch_type != "release":
         raise NotAVersionBranchException(f"The branch is not a release branch: {full_branch_name!r}.")
