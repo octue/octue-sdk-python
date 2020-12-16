@@ -114,3 +114,13 @@ class TestTagGroup(BaseTestCase):
         """ Test that subtags can be yielded from tags, including the main tags themselves. """
         tag_group = TagGroup(tags="a b:c d:e:f")
         assert list(tag_group.yield_subtags()) == ["a", "b", "c", "d", "e", "f"]
+
+    def test_contains_magic_method_searches_for_tags_and_subtags(self):
+        """ Ensure tags and subtags can be searched for. """
+        tag_group = TagGroup(tags="a b:c d:e:f")
+
+        for tag in "a", "b", "d":
+            assert tag in tag_group
+
+        for subtag in "c", "e", "f":
+            assert subtag in tag_group

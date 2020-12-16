@@ -43,12 +43,9 @@ class TagGroup:
         """
         return self.serialise()
 
-    def __contains__(self, value, consider_separate_subtags=False):
+    def __contains__(self, value):
         """ Returns true if any of the tags exactly matches value, allowing test like `if 'a' in TagGroup('a b')`
         """
-        if not consider_separate_subtags:
-            return any(value == tag for tag in self._tags)
-
         return any(value == subtag for subtag in self.yield_subtags())
 
     @staticmethod
