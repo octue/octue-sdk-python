@@ -73,7 +73,6 @@ class TaggableTestCase(BaseTestCase):
     def test_invalid_tags(self):
         """ Ensures invalid tags raise an error
         """
-
         tgd = MyTaggable()
         with self.assertRaises(exceptions.InvalidTagException):
             tgd.add_tags("-bah")
@@ -108,3 +107,10 @@ class TaggableTestCase(BaseTestCase):
         """
         tgd = Taggable(tags="a b")
         self.assertEqual("a b", tgd.tags.serialise())
+
+
+class TestTagGroup(BaseTestCase):
+    def test_yield_subtags(self):
+        """ Test that subtags can be yielded from tags, including the main tags themselves. """
+        tag_group = TagGroup(tags="a b:c d:e:f")
+        assert list(tag_group.yield_subtags()) == ["a", "b", "c", "d", "e", "f"]

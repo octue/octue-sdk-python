@@ -43,10 +43,13 @@ class TagGroup:
         """
         return self.serialise()
 
-    def __contains__(self, value):
+    def __contains__(self, value, consider_separate_subtags=False):
         """ Returns true if any of the tags exactly matches value, allowing test like `if 'a' in TagGroup('a b')`
         """
-        return any(value == tag for tag in self._tags)
+        if not consider_separate_subtags:
+            return any(value == tag for tag in self._tags)
+
+        return any(value == subtag for subtag in self.yield_subtags())
 
     @staticmethod
     def _clean(tags):
@@ -70,20 +73,30 @@ class TagGroup:
 
         return cleaned_tags
 
+    def yield_subtags(self):
+        """ Yield the colon-separated subtags of a tag, including the main tag. """
+        for tag in self._tags:
+            yield from tag.split(":")
+
     def serialise(self):
         """ Serialises tags as a space delimited string, NOT as a list. Strips end whitespace.
         """
         return " ".join(self._tags).strip()
 
-    def startswith(self, value):
-        """ Implement a startswith method that returns true if any of the tags starts with value
-        """
-        return any(tag.startswith(value) for tag in self._tags)
+    def startswith(self, value, consider_separate_subtags=False):
+        """ Implement a startswith method that returns true if any of the tags starts with value """
+        if not consider_separate_subtags:
+            return any(tag.startswith(value) for tag in self._tags)
 
-    def endswith(self, value):
+        return any(subtag.startswith(value) for subtag in self.yield_subtags())
+
+    def endswith(self, value, consider_separate_subtags=False):
         """ Implement an endswith method that returns true if any of the tags endswith value
         """
-        return any(tag.endswith(value) for tag in self._tags)
+        if not consider_separate_subtags:
+            return any(tag.endswith(value) for tag in self._tags)
+
+        return any(subtag.endswith(value) for subtag in self.yield_subtags())
 
     def contains(self, value):
         """ Implement a contains method that returns true if any of the tags contains value
