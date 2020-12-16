@@ -30,3 +30,10 @@ class AnalysisTestCase(BaseTestCase):
         )
         cfg = analysis.configuration_values
         self.assertIn("n_iterations", cfg.keys())
+
+    def test_non_existent_attributes_cannot_be_retrieved(self):
+        """ Ensure attributes that don't exist on Analysis aren't retrieved as None and instead raise an error. """
+        analysis = Analysis(twine=Twine(source="{}"))
+
+        with self.assertRaises(AttributeError):
+            analysis.furry_purry_cat
