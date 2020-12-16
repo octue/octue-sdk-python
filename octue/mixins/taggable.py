@@ -19,9 +19,7 @@ class TagGroup:
     def __init__(self, tags):
         """ Construct a TagGroup
         """
-
         # TODO Call the superclass with *args anad **kwargs, then update everything to using ResourceBase
-
         if tags is None:
             tags = []
 
@@ -39,6 +37,16 @@ class TagGroup:
             )
 
         self._tags = self._clean(tags)
+
+    def __str__(self):
+        """ Represents tags as a space delimited string
+        """
+        return self.serialise()
+
+    def __contains__(self, value):
+        """ Returns true if any of the tags exactly matches value, allowing test like `if 'a' in TagGroup('a b')`
+        """
+        return any(value == tag for tag in self._tags)
 
     @staticmethod
     def _clean(tags):
@@ -62,11 +70,6 @@ class TagGroup:
 
         return cleaned_tags
 
-    def __str__(self):
-        """ Represents tags as a space delimited string
-        """
-        return self.serialise()
-
     def serialise(self):
         """ Serialises tags as a space delimited string, NOT as a list. Strips end whitespace.
         """
@@ -86,11 +89,6 @@ class TagGroup:
         """ Implement a contains method that returns true if any of the tags contains value
         """
         return any(value in tag for tag in self._tags)
-
-    def __contains__(self, value):
-        """ Returns true if any of the tags exactly matches value, allowing test like `if 'a' in TagGroup('a b')`
-        """
-        return any(value == tag for tag in self._tags)
 
     def add_tags(self, *args):
         """ Adds one or more new tag strings to the object tags. New tags will be cleaned and validated.
