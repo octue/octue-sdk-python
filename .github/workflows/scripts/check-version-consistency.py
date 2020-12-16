@@ -6,6 +6,10 @@ import sys
 PACKAGE_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 
+class NotAVersionBranchException(Exception):
+    pass
+
+
 def release_branch_version_matches_setup_version(package_root):
     os.chdir(package_root)
     process = subprocess.run(["python", os.path.join(package_root, "setup.py"), "--version"], capture_output=True)
@@ -19,7 +23,7 @@ def release_branch_version_matches_setup_version(package_root):
     if branch_type != "release":
         error_message = f"The branch is not a release branch: {full_branch_name!r}"
         print(error_message)
-        raise TypeError(error_message)
+        raise NotAVersionBranchException(error_message)
 
     if branch_name == setup_version:
         print(f"Release branch name matches setup.py version: {setup_version!r}")
@@ -41,5 +45,5 @@ if __name__ == "__main__":
 
         sys.exit(1)
 
-    except TypeError:
+    except NotAVersionBranchException:
         sys.exit(0)
