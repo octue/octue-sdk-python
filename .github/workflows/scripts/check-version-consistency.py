@@ -21,6 +21,14 @@ def get_branch_name():
 
 
 def release_branch_version_matches_setup_version(setup_version, full_branch_name):
+    """ Check if the package version stated in setup.py matches the semantic version 'x.y.z' included in the branch name
+    of the format 'release/x.y.z'.
+
+    :param str setup_version:
+    :param str full_branch_name:
+    :raise NotAVersionBranchException:
+    :return bool:
+    """
     branch_type, branch_name = full_branch_name.split("/")
 
     if branch_type != "release":
