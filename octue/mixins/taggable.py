@@ -46,7 +46,7 @@ class TagGroup:
     def __contains__(self, value):
         """ Returns true if any of the tags exactly matches value, allowing test like `if 'a' in TagGroup('a b')`
         """
-        return any(value == subtag for subtag in self.yield_subtags())
+        return any(value == tag for tag in self._tags)
 
     @staticmethod
     def _clean(tags):
