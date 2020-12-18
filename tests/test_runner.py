@@ -138,4 +138,4 @@ class RunnerTestCase(BaseTestCase):
         )
 
         analysis = runner.run(mock_app)
-        assert analysis.output_manifest is not None
+        self.assertIsNotNone(analysis.output_manifest)
