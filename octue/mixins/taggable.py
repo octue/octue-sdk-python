@@ -70,9 +70,9 @@ class TagGroup:
 
         return cleaned_tags
 
-    def yield_subtags(self):
+    def yield_subtags(self, tags=None):
         """ Yield the colon-separated subtags of a tag, including the main tag. """
-        for tag in self._tags:
+        for tag in tags or self._tags:
             yield from tag.split(":")
 
     def serialise(self):
@@ -80,25 +80,43 @@ class TagGroup:
         """
         return " ".join(self._tags).strip()
 
-    def startswith(self, value, consider_separate_subtags=False):
+    def startswith(self, value, consider_separate_subtags=False, tags=None):
         """ Implement a startswith method that returns true if any of the tags starts with value """
+        tags = tags or self._tags
+
         if not consider_separate_subtags:
-            return any(tag.startswith(value) for tag in self._tags)
+            return any(tag.startswith(value) for tag in tags)
 
-        return any(subtag.startswith(value) for subtag in self.yield_subtags())
+        return any(subtag.startswith(value) for subtag in self.yield_subtags(tags))
 
-    def endswith(self, value, consider_separate_subtags=False):
+    def endswith(self, value, consider_separate_subtags=False, tags=None):
         """ Implement an endswith method that returns true if any of the tags endswith value
         """
+        tags = tags or self._tags
+
         if not consider_separate_subtags:
-            return any(tag.endswith(value) for tag in self._tags)
+            return any(tag.endswith(value) for tag in tags)
 
-        return any(subtag.endswith(value) for subtag in self.yield_subtags())
+        return any(subtag.endswith(value) for subtag in self.yield_subtags(tags))
 
-    def contains(self, value):
+    def contains(self, value, tags=None):
         """ Implement a contains method that returns true if any of the tags contains value
         """
-        return any(value in tag for tag in self._tags)
+        tags = tags or self._tags
+        return any(value in tag for tag in tags)
+
+    def get_tags(self, field_lookup=None, filter_value=None, consider_separate_subtags=False):
+        if not field_lookup:
+            return self._tags
+
+        field_lookups = {
+            "exact": lambda tag, filter_value: filter_value in tag,
+            "startswith": lambda tag, filter_value: self.startswith(tag, filter_value, consider_separate_subtags),
+            "endswith": lambda tag, filter_value: self.endswith(tag, filter_value, consider_separate_subtags),
+            "contains": lambda tag, filter_value: self.contains(tag, filter_value),
+        }
+
+        return TagGroup([tag for tag in self._tags if field_lookups[field_lookup](tag, filter_value)])
 
     def add_tags(self, *args):
         """ Adds one or more new tag strings to the object tags. New tags will be cleaned and validated.
