@@ -3,6 +3,10 @@ from octue import Runner
 from .base import BaseTestCase
 
 
+def mock_app(analysis):
+    pass
+
+
 class RunnerTestCase(BaseTestCase):
     def test_instantiate_runner(self):
         """ Ensures that runner whose twine requires configuration can be instantiated
@@ -27,10 +31,7 @@ class RunnerTestCase(BaseTestCase):
             configuration_values="{}",
         )
 
-        def fcn(analysis):
-            pass
-
-        runner.run(fcn)
+        runner.run(mock_app)
 
     def test_instantiation_without_configuration_fails(self):
         """ Ensures that runner can be instantiated with a string that points to a path
@@ -72,11 +73,8 @@ class RunnerTestCase(BaseTestCase):
         )
 
         # Test for failure with an incorrect output
-        def fcn(analysis):
-            pass
-
         with self.assertRaises(twined.exceptions.InvalidValuesContents) as error:
-            runner.run(fcn).finalise()
+            runner.run(mock_app).finalise()
 
         self.assertIn("'n_iterations' is a required property", error.exception.args[0])
 
@@ -112,13 +110,32 @@ class RunnerTestCase(BaseTestCase):
             configuration_values={"n_iterations": 5},
         )
 
-        def fcn(analysis):
-            pass
-
         with self.assertRaises(twined.exceptions.TwineValueException) as error:
-            runner.run(fcn)
+            runner.run(mock_app)
 
         self.assertIn(
             "The 'input_values' strand is defined in the twine, but no data is provided in sources",
             error.exception.args[0],
         )
+
+    def test_output_manifest_is_not_none(self):
+        """ Ensure the output manifest of an analysis is not None if an output manifest is defined in the Twine. """
+        runner = Runner(
+            twine="""
+                {
+                    "output_manifest": [
+                        {
+                            "key": "open_foam_result",
+                            "purpose": "A dataset containing solution fields of an openfoam case."
+                        },
+                        {
+                            "key": "airfoil_cp_values",
+                            "purpose": "A file containing cp values"
+                        }
+                    ]
+                }
+            """
+        )
+
+        analysis = runner.run(mock_app)
+        self.assertIsNotNone(analysis.output_manifest)
