@@ -113,7 +113,7 @@ class TestTagGroup(BaseTestCase):
     def test_yield_subtags(self):
         """ Test that subtags can be yielded from tags, including the main tags themselves. """
         tag_group = TagGroup(tags="a b:c d:e:f")
-        assert list(tag_group.yield_subtags()) == ["a", "b", "c", "d", "e", "f"]
+        self.assertEqual(list(tag_group.yield_subtags()), ["a", "b", "c", "d", "e", "f"])
 
     def test_contains_magic_method_only_matches_full_tags(self):
         """ Test that the __contains__ method only matches full tags (i.e. that it doesn't match subtags or parts of
@@ -134,7 +134,7 @@ class TestTagGroup(BaseTestCase):
         tag_group = TagGroup(tags="a b:c d:e:f")
 
         for tag in "a", "b", "d":
-            assert tag_group.contains(tag)
+            self.assertTrue(tag_group.contains(tag))
 
         for subtag in "c", "e", "f":
-            assert tag_group.contains(subtag)
+            self.assertTrue(tag_group.contains(subtag))
