@@ -112,26 +112,13 @@ class TaggableTestCase(BaseTestCase):
 class TestTagGroup(BaseTestCase):
     TAG_GROUP = TagGroup(tags="a b:c d:e:f")
 
-    def test_contains_magic_method_only_matches_full_tags(self):
-        """ Test that the __contains__ method only matches full tags (i.e. that it doesn't match subtags or parts of
-        tags.
-        """
-        self.assertIn("a", self.TAG_GROUP)
-        self.assertIn("b:c", self.TAG_GROUP)
-        self.assertIn("d:e:f", self.TAG_GROUP)
-        self.assertNotIn("b", self.TAG_GROUP)
-        self.assertNotIn("c", self.TAG_GROUP)
-        self.assertNotIn("d", self.TAG_GROUP)
-        self.assertNotIn("e", self.TAG_GROUP)
-        self.assertNotIn("f", self.TAG_GROUP)
+    def test_yield_subtags(self):
+        """ Test that subtags can be yielded from tags, including the main tags themselves. """
+        self.assertEqual(list(self.TAG_GROUP._yield_subtags()), ["a", "b", "c", "d", "e", "f"])
 
-    def test_contains_searches_for_tags_and_subtags(self):
-        """ Ensure tags and subtags can be searched for. """
-        for tag in "a", "b", "d":
-            self.assertTrue(self.TAG_GROUP.contains(tag))
-
-        for subtag in "c", "e", "f":
-            self.assertTrue(self.TAG_GROUP.contains(subtag))
+    def test_get_subtags(self):
+        """ Test subtags can be accessed as a new TagGroup. """
+        self.assertEqual(TagGroup("meta:sys2:3456 blah").get_subtags(), TagGroup("meta sys2 3456 blah"))
 
     def test_startswith_with_no_subtags(self):
         """ Ensure startswith doesn't check starts of subtags by default. """
@@ -169,6 +156,27 @@ class TestTagGroup(BaseTestCase):
         self.assertTrue(self.TAG_GROUP.endswith("e", consider_separate_subtags=True))
         self.assertTrue(self.TAG_GROUP.endswith("f", consider_separate_subtags=True))
 
+    def test_contains_magic_method_only_matches_full_tags(self):
+        """ Test that the __contains__ method only matches full tags (i.e. that it doesn't match subtags or parts of
+        tags.
+        """
+        self.assertIn("a", self.TAG_GROUP)
+        self.assertIn("b:c", self.TAG_GROUP)
+        self.assertIn("d:e:f", self.TAG_GROUP)
+        self.assertNotIn("b", self.TAG_GROUP)
+        self.assertNotIn("c", self.TAG_GROUP)
+        self.assertNotIn("d", self.TAG_GROUP)
+        self.assertNotIn("e", self.TAG_GROUP)
+        self.assertNotIn("f", self.TAG_GROUP)
+
+    def test_contains_searches_for_tags_and_subtags(self):
+        """ Ensure tags and subtags can be searched for. """
+        for tag in "a", "b", "d":
+            self.assertTrue(self.TAG_GROUP.contains(tag))
+
+        for subtag in "c", "e", "f":
+            self.assertTrue(self.TAG_GROUP.contains(subtag))
+
     def test_filter(self):
         """ Test that tag groups can be filtered. """
         tag_group = TagGroup(tags="tag1 tag2 meta:sys1:1234 meta:sys2:3456 meta:sys2:55")
@@ -186,11 +194,3 @@ class TestTagGroup(BaseTestCase):
 
         filtered_tags_3 = filtered_tags_1.filter("exact", "meta:sys2:55", consider_separate_subtags=True)
         self.assertEqual(filtered_tags_3, TagGroup("meta:sys2:55"))
-
-    def test_yield_subtags(self):
-        """ Test that subtags can be yielded from tags, including the main tags themselves. """
-        self.assertEqual(list(self.TAG_GROUP._yield_subtags()), ["a", "b", "c", "d", "e", "f"])
-
-    def test_get_subtags(self):
-        """ Test subtags can be accessed as a new TagGroup. """
-        self.assertEqual(TagGroup("meta:sys2:3456 blah").get_subtags(), TagGroup("meta sys2 3456 blah"))

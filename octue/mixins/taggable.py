@@ -83,14 +83,14 @@ class TagGroup:
         for tag in tags or self._tags:
             yield from tag.split(":")
 
+    def add_tags(self, *args):
+        """ Adds one or more new tag strings to the object tags. New tags will be cleaned and validated.
+        """
+        self._tags += self._clean(args)
+
     def get_subtags(self, tags=None):
         """ Return a new TagGroup instance with all the subtags. """
         return TagGroup(list(self._yield_subtags(tags or self._tags)))
-
-    def serialise(self):
-        """ Serialises tags as a space delimited string, NOT as a list. Strips end whitespace.
-        """
-        return " ".join(self._tags).strip()
 
     def startswith(self, value, consider_separate_subtags=False, tags=None):
         """ Implement a startswith method that returns true if any of the tags starts with value """
@@ -130,10 +130,10 @@ class TagGroup:
 
         return TagGroup([tag for tag in self._tags if field_lookups[field_lookup](tag, filter_value)])
 
-    def add_tags(self, *args):
-        """ Adds one or more new tag strings to the object tags. New tags will be cleaned and validated.
+    def serialise(self):
+        """ Serialises tags as a space delimited string, NOT as a list. Strips end whitespace.
         """
-        self._tags += self._clean(args)
+        return " ".join(self._tags).strip()
 
 
 class Taggable:
