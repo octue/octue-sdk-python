@@ -51,6 +51,10 @@ class TagGroup:
     def __eq__(self, other):
         return self._tags == other._tags
 
+    def __iter__(self):
+        """ Iterate over the tags in the TagGroup. """
+        return iter(self._tags)
+
     @staticmethod
     def _clean(tags):
         """ Private method to clean up an iterable of tags into a list of cleaned tags
@@ -73,10 +77,14 @@ class TagGroup:
 
         return cleaned_tags
 
-    def yield_subtags(self, tags=None):
-        """ Yield the colon-separated subtags of a tag, including the main tag. """
+    def _yield_subtags(self, tags=None):
+        """ Yield the colon-separated subtags of a tag as strings, including the main tag. """
         for tag in tags or self._tags:
             yield from tag.split(":")
+
+    def get_subtags(self, tags=None):
+        """ Return a new TagGroup instance with all the subtags. """
+        return TagGroup(list(self._yield_subtags(tags or self._tags)))
 
     def serialise(self):
         """ Serialises tags as a space delimited string, NOT as a list. Strips end whitespace.
@@ -90,7 +98,7 @@ class TagGroup:
         if not consider_separate_subtags:
             return any(tag.startswith(value) for tag in tags)
 
-        return any(subtag.startswith(value) for subtag in self.yield_subtags(tags))
+        return any(subtag.startswith(value) for subtag in self._yield_subtags(tags))
 
     def endswith(self, value, consider_separate_subtags=False, tags=None):
         """ Implement an endswith method that returns true if any of the tags endswith value
@@ -100,7 +108,7 @@ class TagGroup:
         if not consider_separate_subtags:
             return any(tag.endswith(value) for tag in tags)
 
-        return any(subtag.endswith(value) for subtag in self.yield_subtags(tags))
+        return any(subtag.endswith(value) for subtag in self._yield_subtags(tags))
 
     def contains(self, value, tags=None):
         """ Implement a contains method that returns true if any of the tags contains value
@@ -108,14 +116,8 @@ class TagGroup:
         tags = tags or self._tags
         return any(value in tag for tag in tags)
 
-    def get_tags(self, field_lookup=None, filter_value=None, consider_separate_subtags=False):
-        if not field_lookup:
-
-            if not consider_separate_subtags:
-                return self._tags
-
-            return list(self.yield_subtags())
-
+    def filter(self, field_lookup=None, filter_value=None, consider_separate_subtags=False):
+        """ Filter the TagGroup, returning a new TagGroup with the tags that satsify the filter. """
         field_lookups = {
             "exact": lambda tag, filter_value: filter_value in tag,
             "startswith": lambda tag, filter_value: self.startswith(
