@@ -61,7 +61,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         # Pop any possible strand data sources before init superclasses (and tie them to protected attributes)
         strand_kwargs = ((name, kwargs.pop(name, None)) for name in ALL_STRANDS)
         for strand_name, strand_data in strand_kwargs:
-            self.__setattr__(f"{strand_name}", strand_data)
+            setattr(self, f"{strand_name}", strand_data)
 
         # Init superclasses
         super().__init__(**kwargs)
