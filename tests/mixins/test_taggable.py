@@ -138,3 +138,43 @@ class TestTagGroup(BaseTestCase):
 
         for subtag in "c", "e", "f":
             self.assertTrue(tag_group.contains(subtag))
+
+    def test_startswith_with_no_subtags(self):
+        """ Ensure startswith doesn't check starts of subtags by default. """
+        tag_group = TagGroup(tags="a b:c d:e:f")
+        self.assertTrue(tag_group.startswith("a"))
+        self.assertTrue(tag_group.startswith("b"))
+        self.assertTrue(tag_group.startswith("d"))
+        self.assertFalse(tag_group.startswith("c"))
+        self.assertFalse(tag_group.startswith("e"))
+        self.assertFalse(tag_group.startswith("f"))
+
+    def test_startswith_with_subtags(self):
+        """ Ensure startswith checks starts of subtags if asked. """
+        tag_group = TagGroup(tags="a b:c d:e:f")
+        self.assertTrue(tag_group.startswith("a", consider_separate_subtags=True))
+        self.assertTrue(tag_group.startswith("b", consider_separate_subtags=True))
+        self.assertTrue(tag_group.startswith("c", consider_separate_subtags=True))
+        self.assertTrue(tag_group.startswith("d", consider_separate_subtags=True))
+        self.assertTrue(tag_group.startswith("e", consider_separate_subtags=True))
+        self.assertTrue(tag_group.startswith("f", consider_separate_subtags=True))
+
+    def test_endsswith_with_no_subtags(self):
+        """ Ensure endswith doesn't check ends of subtags by default. """
+        tag_group = TagGroup(tags="a b:c d:e:f")
+        self.assertTrue(tag_group.endswith("a"))
+        self.assertTrue(tag_group.endswith("c"))
+        self.assertTrue(tag_group.endswith("f"))
+        self.assertFalse(tag_group.endswith("b"))
+        self.assertFalse(tag_group.endswith("d"))
+        self.assertFalse(tag_group.endswith("e"))
+
+    def test_endswith_with_subtags(self):
+        """ Ensure endswith checks ends of subtags if asked. """
+        tag_group = TagGroup(tags="a b:c d:e:f")
+        self.assertTrue(tag_group.endswith("a", consider_separate_subtags=True))
+        self.assertTrue(tag_group.endswith("b", consider_separate_subtags=True))
+        self.assertTrue(tag_group.endswith("c", consider_separate_subtags=True))
+        self.assertTrue(tag_group.endswith("d", consider_separate_subtags=True))
+        self.assertTrue(tag_group.endswith("e", consider_separate_subtags=True))
+        self.assertTrue(tag_group.endswith("f", consider_separate_subtags=True))
