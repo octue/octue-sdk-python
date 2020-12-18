@@ -1,6 +1,3 @@
-import os
-
-from octue import exceptions
 from octue.resources import Analysis
 from twined import Twine
 from ..base import BaseTestCase
@@ -20,23 +17,11 @@ class AnalysisTestCase(BaseTestCase):
         analysis = Analysis(twine=Twine(source="{}"))
         self.assertEqual(analysis.__class__.__name__, "Analysis")
 
-    def test_protected_setter(self):
-        """ Ensures that protected attributes can't be set
+    def test_non_existent_attributes_cannot_be_retrieved(self):
+        """ Ensure attributes that don't exist on Analysis aren't retrieved as None and instead raise an error. See
+        https://github.com/octue/octue-sdk-python/issues/45 for reasoning behind adding this.
         """
-        analysis = Analysis(twine="{}")
-        with self.assertRaises(exceptions.ProtectedAttributeException) as error:
-            analysis.configuration_values = {}
+        analysis = Analysis(twine=Twine(source="{}"))
 
-        self.assertIn("You cannot set configuration_values on an instantiated Analysis", error.exception.args[0])
-
-    def test_protected_getter(self):
-        """ Ensures that protected attributes can't be set
-        """
-        analysis = Analysis(
-            twine=str(os.path.join(self.data_path, "twines", "valid_schema_twine.json")),
-            configuration_values={"n_iterations": 5},
-            input_values={"height": 5},
-            output_values={},
-        )
-        cfg = analysis.configuration_values
-        self.assertIn("n_iterations", cfg.keys())
+        with self.assertRaises(AttributeError):
+            analysis.furry_purry_cat

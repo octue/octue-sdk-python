@@ -20,7 +20,7 @@ def run(analysis, *args, **kwargs):
     """
 
     # You can use the attached logger to record debug statements, general information, warnings or errors
-    analysis.logger.info(f"Starting clean up of files in {analysis.input_dir}")
+    analysis.logger.info(f"Starting clean up of files in {analysis.input_manifest.absolute_path}")
 
     # Get the configuration value for our time averaging window (or if not present, use the default specified in
     # the twine)

@@ -1,5 +1,5 @@
 [![PyPI version](https://badge.fury.io/py/octue.svg)](https://badge.fury.io/py/octue)
-[![codecov](https://codecov.io/gh/octue/octue-sdk-python/branch/master/graph/badge.svg?token=4KdR7fmwcT)](undefined)
+[![codecov](https://codecov.io/gh/octue/octue-sdk-python/branch/main/graph/badge.svg?token=4KdR7fmwcT)](https://codecov.io/gh/octue/octue-sdk-python)
 [![Documentation Status](https://readthedocs.org/projects/octue/badge/?version=latest)](https://octue.readthedocs.io/en/latest/?badge=latest)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)

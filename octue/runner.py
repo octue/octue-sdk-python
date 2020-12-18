@@ -109,8 +109,8 @@ class Runner:
             if pathname.endswith(".json"):
                 manifest.path = os.path.split(pathname)[0]
 
-            # Otherwise do nothing and rely on manifest having its path variable set already
-            return manifest
+        # Otherwise do nothing and rely on manifest having its path variable set already
+        return manifest
 
     def run(
         self,
