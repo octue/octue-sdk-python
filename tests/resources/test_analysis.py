@@ -1,5 +1,3 @@
-import os
-
 from octue.resources import Analysis
 from twined import Twine
 from ..base import BaseTestCase
@@ -18,18 +16,6 @@ class AnalysisTestCase(BaseTestCase):
         """
         analysis = Analysis(twine=Twine(source="{}"))
         self.assertEqual(analysis.__class__.__name__, "Analysis")
-
-    def test_protected_getter(self):
-        """ Ensures that protected attributes can't be set
-        """
-        analysis = Analysis(
-            twine=str(os.path.join(self.data_path, "twines", "valid_schema_twine.json")),
-            configuration_values={"n_iterations": 5},
-            input_values={"height": 5},
-            output_values={},
-        )
-        cfg = analysis.configuration_values
-        self.assertIn("n_iterations", cfg.keys())
 
     def test_non_existent_attributes_cannot_be_retrieved(self):
         """ Ensure attributes that don't exist on Analysis aren't retrieved as None and instead raise an error. """
