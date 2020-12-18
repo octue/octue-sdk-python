@@ -48,6 +48,9 @@ class TagGroup:
         """
         return any(value == tag for tag in self._tags)
 
+    def __eq__(self, other):
+        return self._tags == other._tags
+
     @staticmethod
     def _clean(tags):
         """ Private method to clean up an iterable of tags into a list of cleaned tags
@@ -107,13 +110,19 @@ class TagGroup:
 
     def get_tags(self, field_lookup=None, filter_value=None, consider_separate_subtags=False):
         if not field_lookup:
-            return self._tags
+
+            if not consider_separate_subtags:
+                return self._tags
+
+            return list(self.yield_subtags())
 
         field_lookups = {
             "exact": lambda tag, filter_value: filter_value in tag,
-            "startswith": lambda tag, filter_value: self.startswith(tag, filter_value, consider_separate_subtags),
-            "endswith": lambda tag, filter_value: self.endswith(tag, filter_value, consider_separate_subtags),
-            "contains": lambda tag, filter_value: self.contains(tag, filter_value),
+            "startswith": lambda tag, filter_value: self.startswith(
+                filter_value, consider_separate_subtags, tags=[tag]
+            ),
+            "endswith": lambda tag, filter_value: self.endswith(filter_value, consider_separate_subtags, tags=[tag]),
+            "contains": lambda tag, filter_value: self.contains(filter_value, tags=[tag]),
         }
 
         return TagGroup([tag for tag in self._tags if field_lookups[field_lookup](tag, filter_value)])

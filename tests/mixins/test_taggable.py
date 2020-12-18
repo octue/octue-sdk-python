@@ -172,3 +172,18 @@ class TestTagGroup(BaseTestCase):
         self.assertTrue(self.TAG_GROUP.endswith("d", consider_separate_subtags=True))
         self.assertTrue(self.TAG_GROUP.endswith("e", consider_separate_subtags=True))
         self.assertTrue(self.TAG_GROUP.endswith("f", consider_separate_subtags=True))
+
+    def test_get_tags_with_no_filter(self):
+        self.assertEqual(self.TAG_GROUP.get_tags(), ["a", "b:c", "d:e:f"])
+
+    def test_get_tags_with_no_filter_with_subtags(self):
+        self.assertEqual(self.TAG_GROUP.get_tags(consider_separate_subtags=True), ["a", "b", "c", "d", "e", "f"])
+
+    def test_get_tags_with_filter(self):
+        tag_group = TagGroup(tags="tag1 tag2 meta:sys1:1234 meta:sys2:3456")
+
+        filtered_tags_1 = tag_group.get_tags("startswith", "meta")
+        self.assertEqual(filtered_tags_1, TagGroup("meta:sys1:1234 meta:sys2:3456"))
+
+        filtered_tags_2 = filtered_tags_1.get_tags("contains", "sys2", consider_separate_subtags=True)
+        self.assertEqual(filtered_tags_2, TagGroup("meta:sys2:3456"))
