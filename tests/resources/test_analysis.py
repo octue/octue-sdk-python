@@ -18,7 +18,9 @@ class AnalysisTestCase(BaseTestCase):
         self.assertEqual(analysis.__class__.__name__, "Analysis")
 
     def test_non_existent_attributes_cannot_be_retrieved(self):
-        """ Ensure attributes that don't exist on Analysis aren't retrieved as None and instead raise an error. """
+        """ Ensure attributes that don't exist on Analysis aren't retrieved as None and instead raise an error. See
+        https://github.com/octue/octue-sdk-python/issues/45 for reasoning behind adding this.
+        """
         analysis = Analysis(twine=Twine(source="{}"))
 
         with self.assertRaises(AttributeError):
