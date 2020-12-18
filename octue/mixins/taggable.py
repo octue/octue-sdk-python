@@ -49,6 +49,7 @@ class TagGroup:
         return any(value == tag for tag in self._tags)
 
     def __eq__(self, other):
+        """ Does this TagGroup have the same tags as another TagGroup? """
         return self._tags == other._tags
 
     def __iter__(self):
@@ -119,7 +120,7 @@ class TagGroup:
     def filter(self, field_lookup=None, filter_value=None, consider_separate_subtags=False):
         """ Filter the TagGroup, returning a new TagGroup with the tags that satsify the filter. """
         field_lookups = {
-            "exact": lambda tag, filter_value: filter_value in tag,
+            "exact": lambda tag, filter_value: filter_value == tag,
             "startswith": lambda tag, filter_value: self.startswith(
                 filter_value, consider_separate_subtags, tags=[tag]
             ),
