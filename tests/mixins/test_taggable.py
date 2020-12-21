@@ -112,6 +112,18 @@ class TaggableTestCase(BaseTestCase):
 class TestTagGroup(BaseTestCase):
     TAG_GROUP = TagGroup(tags="a b:c d:e:f")
 
+    def test_equality(self):
+        """ Ensure two TagGroups with the same tags compare equal. """
+        self.assertTrue(self.TAG_GROUP == TagGroup(tags="a b:c d:e:f"))
+
+    def test_inequality(self):
+        """ Ensure two TagGroups with different tags compare unequal. """
+        self.assertTrue(self.TAG_GROUP != TagGroup(tags="a"))
+
+    def test_iterating_over(self):
+        """ Ensure a TagGroup can be iterated over. """
+        self.assertEqual(list(self.TAG_GROUP), ["a", "b:c", "d:e:f"])
+
     def test_yield_subtags(self):
         """ Test that subtags can be yielded from tags, including the main tags themselves. """
         self.assertEqual(list(self.TAG_GROUP._yield_subtags()), ["a", "b", "c", "d", "e", "f"])
