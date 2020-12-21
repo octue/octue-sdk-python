@@ -80,7 +80,7 @@ class TagGroup:
     def add_tags(self, *args):
         """ Adds one or more new tag strings to the object tags. New tags will be cleaned and validated.
         """
-        self._tags += self._clean(args)
+        self._tags |= self._clean(args)
 
     def has_tag(self, tag):
         """ Returns true if any of the tags exactly matches value, allowing test like `if 'a' in TagGroup('a b')`
@@ -127,12 +127,12 @@ class TagGroup:
             "contains": lambda tag, filter_value: self.contains(filter_value, tags=[tag]),
         }
 
-        return TagGroup([tag for tag in self._tags if field_lookups[field_lookup](tag, filter_value)])
+        return TagGroup({tag for tag in self._tags if field_lookups[field_lookup](tag, filter_value)})
 
     def serialise(self):
         """ Serialises tags as a space delimited string, NOT as a list. Strips end whitespace.
         """
-        return " ".join(self._tags).strip()
+        return " ".join(sorted(self._tags)).strip()
 
 
 class Taggable:

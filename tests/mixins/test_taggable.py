@@ -22,7 +22,7 @@ class TaggableTestCase(BaseTestCase):
         tgd = MyTaggable(tags=None)
         self.assertEqual("", str(tgd.tags))
         tgd = MyTaggable(tags="a b c")
-        self.assertEqual("a b c", str(tgd.tags))
+        self.assertEqual(set(tgd.tags), {"a", "b", "c"})
         with self.assertRaises(exceptions.InvalidTagException):
             MyTaggable(tags=":a b c")
 
@@ -67,7 +67,8 @@ class TaggableTestCase(BaseTestCase):
         tgd.add_tags("number:1829")
         tgd.add_tags("multiple:discriminators:used")
         self.assertEqual(
-            str(tgd.tags), "a-valid-tag a:tag a:-tag a1829tag 1829 number:1829 multiple:discriminators:used"
+            set(tgd.tags),
+            {"a-valid-tag", "a:tag", "a:-tag", "a1829tag", "1829", "number:1829", "multiple:discriminators:used"},
         )
 
     def test_invalid_tags(self):
