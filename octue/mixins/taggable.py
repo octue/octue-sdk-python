@@ -21,14 +21,13 @@ class TagGroup:
         """
         # TODO Call the superclass with *args anad **kwargs, then update everything to using ResourceBase
         if tags is None:
-            tags = []
+            tags = set()
 
         elif isinstance(tags, str):
-            tags = tags.strip().split()
+            tags = set(tags.strip().split())
 
         elif isinstance(tags, TagGroup):
-            # Use the serialise method as a deepcopy
-            tags = tags.serialise().split()
+            tags = set(tags._tags)
 
         # Tags can be some other iterable than a list, but each tag must be a string
         elif not hasattr(tags, "__iter__"):
@@ -42,11 +41,6 @@ class TagGroup:
         """ Represents tags as a space delimited string
         """
         return self.serialise()
-
-    def __contains__(self, value):
-        """ Returns true if any of the tags exactly matches value, allowing test like `if 'a' in TagGroup('a b')`
-        """
-        return any(value == tag for tag in self._tags)
 
     def __eq__(self, other):
         """ Does this TagGroup have the same tags as another TagGroup? """
@@ -67,14 +61,14 @@ class TagGroup:
             )
 
         # Strip leading and trailing whitespace, ensure they match the regex
-        cleaned_tags = []
+        cleaned_tags = set()
         for tag in tags:
             cleaned_tag = tag.strip()
             if not re.match(TAG_PATTERN, cleaned_tag):
                 raise InvalidTagException(
                     f"Invalid tag '{cleaned_tag}'. Tags must contain only characters 'a-z', '0-9', ':' and '-'. They must not start with '-' or ':'."
                 )
-            cleaned_tags.append(cleaned_tag)
+            cleaned_tags.add(cleaned_tag)
 
         return cleaned_tags
 
@@ -87,6 +81,11 @@ class TagGroup:
         """ Adds one or more new tag strings to the object tags. New tags will be cleaned and validated.
         """
         self._tags += self._clean(args)
+
+    def has_tag(self, tag):
+        """ Returns true if any of the tags exactly matches value, allowing test like `if 'a' in TagGroup('a b')`
+        """
+        return tag in self._tags
 
     def get_subtags(self, tags=None):
         """ Return a new TagGroup instance with all the subtags. """

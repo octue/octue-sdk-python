@@ -122,11 +122,19 @@ class TestTagGroup(BaseTestCase):
 
     def test_iterating_over(self):
         """ Ensure a TagGroup can be iterated over. """
-        self.assertEqual(list(self.TAG_GROUP), ["a", "b:c", "d:e:f"])
+        self.assertEqual(set(self.TAG_GROUP), {"a", "b:c", "d:e:f"})
+
+    def test_has_tag(self):
+        """ Ensure we can check that a TagGroup has a certain tag. """
+        self.assertTrue(self.TAG_GROUP.has_tag("d:e:f"))
+
+    def test_does_not_have_tag(self):
+        """ Ensure we can check that a TagGroup does not have a certain tag. """
+        self.assertFalse(self.TAG_GROUP.has_tag("hello"))
 
     def test_yield_subtags(self):
         """ Test that subtags can be yielded from tags, including the main tags themselves. """
-        self.assertEqual(list(self.TAG_GROUP._yield_subtags()), ["a", "b", "c", "d", "e", "f"])
+        self.assertEqual(set(self.TAG_GROUP._yield_subtags()), {"a", "b", "c", "d", "e", "f"})
 
     def test_get_subtags(self):
         """ Test subtags can be accessed as a new TagGroup. """
