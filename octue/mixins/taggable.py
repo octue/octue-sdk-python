@@ -89,7 +89,7 @@ class TagGroup:
 
     def get_subtags(self, tags=None):
         """ Return a new TagGroup instance with all the subtags. """
-        return TagGroup(list(self._yield_subtags(tags or self._tags)))
+        return TagGroup(set(self._yield_subtags(tags or self._tags)))
 
     def startswith(self, value, consider_separate_subtags=False, tags=None):
         """ Implement a startswith method that returns true if any of the tags starts with value """
