@@ -48,7 +48,7 @@ class TagGroup:
 
     def __iter__(self):
         """ Iterate over the tags in the TagGroup. """
-        return iter(self._tags)
+        yield from self._tags
 
     @staticmethod
     def _clean(tags):
