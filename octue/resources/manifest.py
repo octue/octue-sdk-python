@@ -1,3 +1,4 @@
+import hashlib
 import logging
 
 from octue.exceptions import InvalidInputException, InvalidManifestException
@@ -79,3 +80,8 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable):
             self.datasets.append(Dataset(logger=self.logger, path_from=self, path=dataset_spec["key"]))
 
         return self
+
+    @property
+    def sha_256(self):
+        """ Calculate the SHA256 hash string of the manifest. """
+        return hashlib.sha256("".join(dataset.sha_256 for dataset in self.datasets).encode()).hexdigest()

@@ -101,8 +101,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
         return os.path.splitext(path)[-1].strip(".")
 
     def _get_sha_256(self):
-        """ Calculate the SHA256 hash string of the file
-        """
+        """ Calculate the SHA256 hash string of the file. """
         sha256_hash = hashlib.sha256()
         with open(self.absolute_path, "rb") as f:
             # Read and update hash string value in blocks of 4K

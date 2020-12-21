@@ -1,3 +1,4 @@
+import hashlib
 import json
 import logging
 
@@ -11,6 +12,17 @@ from twined import ALL_STRANDS, Twine
 
 module_logger = logging.getLogger(__name__)
 
+
+def hash_json(json_object):
+    return hashlib.sha256(json.dumps(json_object).encode()).hexdigest()
+
+
+HASH_FUNCTIONS = {
+    "configuration_values": hash_json,
+    "configuration_manifest": lambda manifest: manifest.sha_256,
+    "input_values": lambda input_values: hash_json,
+    "input_manifest": lambda manifest: manifest.sha_256,
+}
 
 # Map strand names to class which we expect Twined to instantiate for us
 CLASS_MAP = {"configuration_manifest": Manifest, "input_manifest": Manifest, "output_manifest": Manifest}
@@ -59,9 +71,18 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         self._skip_checks = skip_checks
 
         # Pop any possible strand data sources before init superclasses (and tie them to protected attributes)
-        strand_kwargs = ((name, kwargs.pop(name, None)) for name in ALL_STRANDS)
+        strand_kwargs = [(name, kwargs.pop(name, None)) for name in ALL_STRANDS]
         for strand_name, strand_data in strand_kwargs:
             setattr(self, f"{strand_name}", strand_data)
+
+        for strand_name, strand_data in strand_kwargs:
+            if strand_name in HASH_FUNCTIONS:
+                strand_hash_name = f"{strand_name}_hash"
+
+                if strand_data is not None:
+                    setattr(self, strand_hash_name, HASH_FUNCTIONS[strand_name](strand_data))
+                else:
+                    setattr(self, strand_hash_name, None)
 
         # Init superclasses
         super().__init__(**kwargs)

@@ -1,3 +1,4 @@
+import hashlib
 import logging
 
 from octue.exceptions import BrokenSequenceException, InvalidInputException, UnexpectedNumberOfResultsException
@@ -164,3 +165,8 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable):
             raise UnexpectedNumberOfResultsException("No files found with this tag")
 
         return results[0]
+
+    @property
+    def sha_256(self):
+        """ Calculate the SHA256 hash string of the dataset. """
+        return hashlib.sha256("".join(file.sha_256 for file in self.files).encode()).hexdigest()
