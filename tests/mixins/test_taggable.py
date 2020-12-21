@@ -133,6 +133,17 @@ class TestTagGroup(BaseTestCase):
         """ Ensure we can check that a TagGroup does not have a certain tag. """
         self.assertFalse(self.TAG_GROUP.has_tag("hello"))
 
+    def test_has_tag_only_matches_full_tags(self):
+        """ Test that the has_tag method only matches full tags (i.e. that it doesn't match subtags or parts of tags."""
+        self.assertTrue(self.TAG_GROUP.has_tag("a"))
+        self.assertTrue(self.TAG_GROUP.has_tag("b:c"))
+        self.assertTrue(self.TAG_GROUP.has_tag("d:e:f"))
+        self.assertFalse(self.TAG_GROUP.has_tag("b"))
+        self.assertFalse(self.TAG_GROUP.has_tag("c"))
+        self.assertFalse(self.TAG_GROUP.has_tag("d"))
+        self.assertFalse(self.TAG_GROUP.has_tag("e"))
+        self.assertFalse(self.TAG_GROUP.has_tag("f"))
+
     def test_yield_subtags(self):
         """ Test that subtags can be yielded from tags, including the main tags themselves. """
         self.assertEqual(set(self.TAG_GROUP._yield_subtags()), {"a", "b", "c", "d", "e", "f"})
@@ -176,19 +187,6 @@ class TestTagGroup(BaseTestCase):
         self.assertTrue(self.TAG_GROUP.endswith("d", consider_separate_subtags=True))
         self.assertTrue(self.TAG_GROUP.endswith("e", consider_separate_subtags=True))
         self.assertTrue(self.TAG_GROUP.endswith("f", consider_separate_subtags=True))
-
-    def test_contains_magic_method_only_matches_full_tags(self):
-        """ Test that the __contains__ method only matches full tags (i.e. that it doesn't match subtags or parts of
-        tags.
-        """
-        self.assertIn("a", self.TAG_GROUP)
-        self.assertIn("b:c", self.TAG_GROUP)
-        self.assertIn("d:e:f", self.TAG_GROUP)
-        self.assertNotIn("b", self.TAG_GROUP)
-        self.assertNotIn("c", self.TAG_GROUP)
-        self.assertNotIn("d", self.TAG_GROUP)
-        self.assertNotIn("e", self.TAG_GROUP)
-        self.assertNotIn("f", self.TAG_GROUP)
 
     def test_contains_searches_for_tags_and_subtags(self):
         """ Ensure tags and subtags can be searched for. """
