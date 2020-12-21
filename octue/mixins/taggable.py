@@ -101,8 +101,7 @@ class TagGroup:
         return any(subtag.startswith(value) for subtag in self._yield_subtags(tags))
 
     def endswith(self, value, consider_separate_subtags=False, tags=None):
-        """ Implement an endswith method that returns true if any of the tags endswith value
-        """
+        """ Implement an endswith method that returns true if any of the tags endswith value. """
         tags = tags or self._tags
 
         if not consider_separate_subtags:
@@ -111,13 +110,11 @@ class TagGroup:
         return any(subtag.endswith(value) for subtag in self._yield_subtags(tags))
 
     def contains(self, value, tags=None):
-        """ Implement a contains method that returns true if any of the tags contains value
-        """
-        tags = tags or self._tags
-        return any(value in tag for tag in tags)
+        """ Implement a contains method that returns true if any of the tags contains value. """
+        return any(value in tag for tag in tags or self._tags)
 
     def filter(self, field_lookup=None, filter_value=None, consider_separate_subtags=False):
-        """ Filter the TagGroup, returning a new TagGroup with the tags that satsify the filter. """
+        """ Filter the TagGroup, returning a new TagGroup with the tags that satisfy the filter. """
         field_lookups = {
             "exact": lambda tag, filter_value: filter_value == tag,
             "startswith": lambda tag, filter_value: self.startswith(
