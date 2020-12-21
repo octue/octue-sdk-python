@@ -75,20 +75,10 @@ class TaggableTestCase(BaseTestCase):
         """ Ensures invalid tags raise an error
         """
         tgd = MyTaggable()
-        with self.assertRaises(exceptions.InvalidTagException):
-            tgd.add_tags("-bah")
 
-        with self.assertRaises(exceptions.InvalidTagException):
-            tgd.add_tags("humbug:")
-
-        with self.assertRaises(exceptions.InvalidTagException):
-            tgd.add_tags("SHOUTY")
-
-        with self.assertRaises(exceptions.InvalidTagException):
-            tgd.add_tags(r"back\slashy")
-
-        with self.assertRaises(exceptions.InvalidTagException):
-            tgd.add_tags({"not-a": "string"})
+        for tag in "-bah", "humbug:", "SHOUTY", r"back\slashy", {"not-a": "string"}:
+            with self.assertRaises(exceptions.InvalidTagException):
+                tgd.add_tags(tag)
 
     def test_mixture_valid_invalid(self):
         """ Ensures that adding a variety of tags, some of which are invalid, doesn't partially add them to the object
@@ -135,14 +125,11 @@ class TestTagGroup(BaseTestCase):
 
     def test_has_tag_only_matches_full_tags(self):
         """ Test that the has_tag method only matches full tags (i.e. that it doesn't match subtags or parts of tags."""
-        self.assertTrue(self.TAG_GROUP.has_tag("a"))
-        self.assertTrue(self.TAG_GROUP.has_tag("b:c"))
-        self.assertTrue(self.TAG_GROUP.has_tag("d:e:f"))
-        self.assertFalse(self.TAG_GROUP.has_tag("b"))
-        self.assertFalse(self.TAG_GROUP.has_tag("c"))
-        self.assertFalse(self.TAG_GROUP.has_tag("d"))
-        self.assertFalse(self.TAG_GROUP.has_tag("e"))
-        self.assertFalse(self.TAG_GROUP.has_tag("f"))
+        for tag in "a", "b:c", "d:e:f":
+            self.assertTrue(self.TAG_GROUP.has_tag(tag))
+
+        for tag in "b", "c", "d", "e", "f":
+            self.assertFalse(self.TAG_GROUP.has_tag(tag))
 
     def test_yield_subtags(self):
         """ Test that subtags can be yielded from tags, including the main tags themselves. """
@@ -154,39 +141,29 @@ class TestTagGroup(BaseTestCase):
 
     def test_startswith_with_no_subtags(self):
         """ Ensure startswith doesn't check starts of subtags by default. """
-        self.assertTrue(self.TAG_GROUP.startswith("a"))
-        self.assertTrue(self.TAG_GROUP.startswith("b"))
-        self.assertTrue(self.TAG_GROUP.startswith("d"))
-        self.assertFalse(self.TAG_GROUP.startswith("c"))
-        self.assertFalse(self.TAG_GROUP.startswith("e"))
-        self.assertFalse(self.TAG_GROUP.startswith("f"))
+        for tag in "a", "b", "d":
+            self.assertTrue(self.TAG_GROUP.startswith(tag))
+
+        for tag in "c", "e", "f":
+            self.assertFalse(self.TAG_GROUP.startswith(tag))
 
     def test_startswith_with_subtags(self):
         """ Ensure startswith checks starts of subtags if asked. """
-        self.assertTrue(self.TAG_GROUP.startswith("a", consider_separate_subtags=True))
-        self.assertTrue(self.TAG_GROUP.startswith("b", consider_separate_subtags=True))
-        self.assertTrue(self.TAG_GROUP.startswith("c", consider_separate_subtags=True))
-        self.assertTrue(self.TAG_GROUP.startswith("d", consider_separate_subtags=True))
-        self.assertTrue(self.TAG_GROUP.startswith("e", consider_separate_subtags=True))
-        self.assertTrue(self.TAG_GROUP.startswith("f", consider_separate_subtags=True))
+        for tag in "a", "b", "c", "d", "e", "f":
+            self.assertTrue(self.TAG_GROUP.startswith(tag, consider_separate_subtags=True))
 
     def test_endsswith_with_no_subtags(self):
         """ Ensure endswith doesn't check ends of subtags by default. """
-        self.assertTrue(self.TAG_GROUP.endswith("a"))
-        self.assertTrue(self.TAG_GROUP.endswith("c"))
-        self.assertTrue(self.TAG_GROUP.endswith("f"))
-        self.assertFalse(self.TAG_GROUP.endswith("b"))
-        self.assertFalse(self.TAG_GROUP.endswith("d"))
-        self.assertFalse(self.TAG_GROUP.endswith("e"))
+        for tag in "a", "c", "f":
+            self.assertTrue(self.TAG_GROUP.endswith(tag))
+
+        for tag in "b", "d", "e":
+            self.assertFalse(self.TAG_GROUP.endswith(tag))
 
     def test_endswith_with_subtags(self):
         """ Ensure endswith checks ends of subtags if asked. """
-        self.assertTrue(self.TAG_GROUP.endswith("a", consider_separate_subtags=True))
-        self.assertTrue(self.TAG_GROUP.endswith("b", consider_separate_subtags=True))
-        self.assertTrue(self.TAG_GROUP.endswith("c", consider_separate_subtags=True))
-        self.assertTrue(self.TAG_GROUP.endswith("d", consider_separate_subtags=True))
-        self.assertTrue(self.TAG_GROUP.endswith("e", consider_separate_subtags=True))
-        self.assertTrue(self.TAG_GROUP.endswith("f", consider_separate_subtags=True))
+        for tag in "a", "b", "c", "d", "e", "f":
+            self.assertTrue(self.TAG_GROUP.endswith(tag, consider_separate_subtags=True))
 
     def test_contains_searches_for_tags_and_subtags(self):
         """ Ensure tags and subtags can be searched for. """
