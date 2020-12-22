@@ -36,7 +36,7 @@ class Hashable:
     def _calculate_blake3_hash(self, blake3_hash=None):
         blake3_hash = blake3_hash or blake3()
 
-        for attribute_name in self.ATTRIBUTES_TO_HASH:
+        for attribute_name in sorted(self.ATTRIBUTES_TO_HASH):
 
             attribute = getattr(self, attribute_name)
 
