@@ -14,13 +14,14 @@ module_logger = logging.getLogger(__name__)
 
 
 def hash_json(json_object):
+    """ Hash a JSON-compatible object. """
     return hashlib.blake2b(json.dumps(json_object).encode()).hexdigest()
 
 
 HASH_FUNCTIONS = {
     "configuration_values": hash_json,
     "configuration_manifest": lambda manifest: manifest.blake2b_hash,
-    "input_values": lambda input_values: hash_json,
+    "input_values": hash_json,
     "input_manifest": lambda manifest: manifest.blake2b_hash,
 }
 
