@@ -1,25 +1,6 @@
-import os
-
 from octue import exceptions
-from octue.mixins import MixinBase, Pathable
 from octue.resources import Datafile, Dataset
 from ..base import BaseTestCase
-
-
-class MyPathable(Pathable, MixinBase):
-    pass
-
-
-def create_valid_dataset(data_path):
-    path_from = MyPathable(path=os.path.join(data_path, "basic_files", "configuration", "test-dataset"))
-    path = os.path.join("path-within-dataset", "a_test_file.csv")
-
-    files = [
-        Datafile(path_from=path_from, base_from=path_from, path=path, skip_checks=False),
-        Datafile(path_from=path_from, base_from=path_from, path=path, skip_checks=False),
-    ]
-
-    return Dataset(files=files)
 
 
 class DatasetTestCase(BaseTestCase):
@@ -252,6 +233,6 @@ class DatasetTestCase(BaseTestCase):
 
     def test_hash(self):
         """ Test hashing a dataset with multiple files gives a hash of length 128. """
-        hash = create_valid_dataset(self.data_path).blake2b_hash
+        hash = self.create_valid_dataset().blake2b_hash
         self.assertTrue(isinstance(hash, str))
         self.assertTrue(len(hash) == 128)

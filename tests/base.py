@@ -4,6 +4,13 @@ import unittest
 import uuid
 from tempfile import TemporaryDirectory, gettempdir
 
+from octue.mixins import MixinBase, Pathable
+from octue.resources import Datafile, Dataset
+
+
+class MyPathable(Pathable, MixinBase):
+    pass
+
 
 class BaseTestCase(unittest.TestCase):
     """ Base test case for twined:
@@ -28,3 +35,14 @@ class BaseTestCase(unittest.TestCase):
 
         with TemporaryDirectory(dir=tmp_dir_name):
             subprocess.call(args, cwd=tmp_dir_name)
+
+    def create_valid_dataset(self):
+        path_from = MyPathable(path=os.path.join(self.data_path, "basic_files", "configuration", "test-dataset"))
+        path = os.path.join("path-within-dataset", "a_test_file.csv")
+
+        files = [
+            Datafile(path_from=path_from, base_from=path_from, path=path, skip_checks=False),
+            Datafile(path_from=path_from, base_from=path_from, path=path, skip_checks=False),
+        ]
+
+        return Dataset(files=files)
