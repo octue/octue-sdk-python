@@ -17,7 +17,7 @@ class Hashable:
     ATTRIBUTES_TO_HASH = None
 
     @property
-    @functools.lru_cache(maxsize=None)
+    @functools.lru_cache(maxsize=1)
     def blake3_hash(self):
         if not self.ATTRIBUTES_TO_HASH:
             return None
