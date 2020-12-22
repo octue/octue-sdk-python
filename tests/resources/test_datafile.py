@@ -97,6 +97,7 @@ class DatafileTestCase(BaseTestCase):
             self.assertIn(k, df_dict.keys())
 
     def test_hash(self):
-        """ Ensure a Datafile can be hashed."""
+        """ Test hashing a datafile gives a hash of length 64. """
         df = self.create_valid_datafile()
         self.assertTrue(isinstance(df.sha_256, str))
+        self.assertTrue(len(df.sha_256) == 64)
