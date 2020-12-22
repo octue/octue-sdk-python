@@ -36,7 +36,7 @@ class BaseTestCase(unittest.TestCase):
             subprocess.call(args, cwd=tmp_dir_name)
 
     def create_valid_dataset(self):
-        """ Creat a valid dataset with two valid datafiles (they're the same file in this case). """
+        """ Create a valid dataset with two valid datafiles (they're the same file in this case). """
         path_from = MyPathable(path=os.path.join(self.data_path, "basic_files", "configuration", "test-dataset"))
         path = os.path.join("path-within-dataset", "a_test_file.csv")
 
@@ -48,7 +48,7 @@ class BaseTestCase(unittest.TestCase):
         return Dataset(files=files)
 
     def create_valid_manifest(self):
-        """ Creat a valid manifest with two valid datasets (they're the same dataset in this case). """
+        """ Create a valid manifest with two valid datasets (they're the same dataset in this case). """
         datasets = [self.create_valid_dataset(), self.create_valid_dataset()]
         manifest = Manifest(datasets=datasets, keys={"my_dataset": 0, "another_dataset": 1})
         return manifest
