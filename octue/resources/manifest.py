@@ -1,18 +1,18 @@
-import functools
 import logging
-from blake3 import blake3
 
 from octue.exceptions import InvalidInputException, InvalidManifestException
-from octue.mixins import Identifiable, Loggable, Pathable, Serialisable
+from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable
 from .dataset import Dataset
 
 
 module_logger = logging.getLogger(__name__)
 
 
-class Manifest(Pathable, Serialisable, Loggable, Identifiable):
+class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
     """ A representation of a manifest, which can contain multiple datasets This is used to manage all files coming into
     (or leaving), a data service for an analysis at the configuration, input or output stage. """
+
+    ATTRIBUTES_TO_HASH = "datasets", "keys"
 
     def __init__(self, id=None, logger=None, path=None, path_from=None, base_from=None, **kwargs):
         """ Construct a Manifest
@@ -79,11 +79,3 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable):
             self.datasets.append(Dataset(logger=self.logger, path_from=self, path=dataset_spec["key"]))
 
         return self
-
-    @property
-    @functools.lru_cache(maxsize=None)
-    def blake3_hash(self):
-        """ Calculate the BLAKE3 hash string of the manifest. """
-        blake3_hash = blake3("".join(sorted(dataset.blake3_hash for dataset in self.datasets)).encode())
-        blake3_hash.update(str(sorted(self.keys.items())).encode())
-        return blake3_hash.hexdigest()
