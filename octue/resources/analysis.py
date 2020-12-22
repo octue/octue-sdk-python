@@ -1,9 +1,8 @@
 import json
 import logging
-from blake3 import blake3
 
 from octue.definitions import OUTPUT_STRANDS
-from octue.mixins import Identifiable, Loggable, Serialisable, Taggable
+from octue.mixins import Hashable, Identifiable, Loggable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.folders import get_file_name_from_strand
@@ -13,15 +12,10 @@ from twined import ALL_STRANDS, Twine
 module_logger = logging.getLogger(__name__)
 
 
-def hash_json(json_object):
-    """ Hash a JSON-compatible object. """
-    return blake3(json.dumps(json_object).encode()).hexdigest()
-
-
 HASH_FUNCTIONS = {
-    "configuration_values": hash_json,
+    "configuration_values": Hashable.hash_non_class_object,
     "configuration_manifest": lambda manifest: manifest.blake3_hash,
-    "input_values": hash_json,
+    "input_values": Hashable.hash_non_class_object,
     "input_manifest": lambda manifest: manifest.blake3_hash,
 }
 

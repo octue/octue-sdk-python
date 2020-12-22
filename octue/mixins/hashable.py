@@ -16,6 +16,15 @@ class Hashable:
 
     ATTRIBUTES_TO_HASH = None
 
+    @classmethod
+    def hash_non_class_object(cls, object_):
+        class Holder(cls):
+            ATTRIBUTES_TO_HASH = ("object",)
+
+        holder = Holder()
+        holder.object = object_
+        return holder.blake3_hash
+
     @property
     @functools.lru_cache(maxsize=1)
     def blake3_hash(self):
