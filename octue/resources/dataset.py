@@ -1,21 +1,21 @@
-import functools
 import logging
-from blake3 import blake3
 
 from octue.exceptions import BrokenSequenceException, InvalidInputException, UnexpectedNumberOfResultsException
-from octue.mixins import Identifiable, Loggable, Pathable, Serialisable, Taggable
+from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 
 
 module_logger = logging.getLogger(__name__)
 
 
-class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable):
+class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable):
     """ A representation of a dataset, containing files, tags, etc
 
     This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
     list of output files (results) and their properties that will be sent back to the octue system.
     """
+
+    ATTRIBUTES_TO_HASH = "files", "tags"
 
     def __init__(self, id=None, logger=None, path=None, path_from=None, base_from=None, tags=None, **kwargs):
         """ Construct a Dataset
@@ -166,11 +166,3 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable):
             raise UnexpectedNumberOfResultsException("No files found with this tag")
 
         return results[0]
-
-    @property
-    @functools.lru_cache(maxsize=None)
-    def blake3_hash(self):
-        """ Calculate the BLAKE3 hash string of the dataset. """
-        blake3_hash = blake3("".join(sorted(file.blake3_hash for file in self.files)).encode())
-        blake3_hash.update(str(sorted(self.tags._tags)).encode())
-        return blake3_hash.hexdigest()

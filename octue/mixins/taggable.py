@@ -40,6 +40,9 @@ class TagGroup:
 
         self._tags = self._clean(tags)
 
+    def __iter__(self):
+        yield from self._tags
+
     @staticmethod
     def _clean(tags):
         """ Private method to clean up an iterable of tags into a list of cleaned tags
