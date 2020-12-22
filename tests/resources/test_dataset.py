@@ -1,3 +1,5 @@
+import copy
+
 from octue import exceptions
 from octue.resources import Datafile, Dataset
 from ..base import BaseTestCase
@@ -231,8 +233,14 @@ class DatasetTestCase(BaseTestCase):
         files = resource.get_files("name__icontains", filter_value="second")
         self.assertEqual(0, len(files))
 
-    def test_hash(self):
+    def test_blake3_hash(self):
         """ Test hashing a dataset with multiple files gives a hash of length 128. """
         hash_ = self.create_valid_dataset().blake3_hash
         self.assertTrue(isinstance(hash_, str))
         self.assertTrue(len(hash_) == 64)
+
+    def test_blake3_hashes_for_the_same_dataset_are_the_same(self):
+        """ Ensure the hashes for two datasets that are exactly the same are the same."""
+        first_dataset = self.create_valid_dataset()
+        second_dataset = copy.deepcopy(first_dataset)
+        self.assertEqual(first_dataset.blake3_hash, second_dataset.blake3_hash)
