@@ -171,4 +171,6 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable):
     @functools.lru_cache(maxsize=None)
     def blake2b_hash(self):
         """ Calculate the BLAKE2b hash string of the dataset. """
-        return hashlib.blake2b("".join(sorted(file.blake2b_hash for file in self.files)).encode()).hexdigest()
+        blake2b_hash = hashlib.blake2b("".join(sorted(file.blake2b_hash for file in self.files)).encode())
+        blake2b_hash.update(str(sorted(self.tags._tags)).encode())
+        return blake2b_hash.hexdigest()
