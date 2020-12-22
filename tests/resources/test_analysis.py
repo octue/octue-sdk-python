@@ -1,4 +1,4 @@
-from octue.resources import Analysis
+from octue.resources.analysis import HASH_FUNCTIONS, Analysis
 from twined import Twine
 from ..base import BaseTestCase
 
@@ -27,8 +27,23 @@ class AnalysisTestCase(BaseTestCase):
             analysis.furry_purry_cat
 
     def test_analysis_hash_attributes_are_none_when_no_relevant_strands(self):
-        """ Ensures that the hash attributes of Analysis instances are None if none of the relevant strands are in the
-        Twine. """
+        """ Ensures that the hash attributes of Analysis instances are None if none of the relevant strands are provided
+        """
         analysis = Analysis(twine="{}")
-        for strand_name in "configuration_values", "configuration_manifest", "input_values", "input_manifest":
+        for strand_name in HASH_FUNCTIONS:
             self.assertIsNone(getattr(analysis, f"{strand_name}_hash"))
+
+    def test_analysis_hash_attributes_are_populated_when_relevant_strands_are_present(self):
+        """ Ensures that the hash attributes of Analysis instances are valid if the relevant strands are provided. """
+        analysis = Analysis(
+            twine="{}",
+            configuration_values={"resistance_setting": 7},
+            configuration_manifest=self.create_valid_manifest(),
+            input_values={"quality_factor": 5},
+            input_manifest=self.create_valid_manifest(),
+        )
+
+        for strand_name in HASH_FUNCTIONS:
+            hash_ = getattr(analysis, f"{strand_name}_hash")
+            self.assertTrue(isinstance(hash_, str))
+            self.assertTrue(len(hash_) == 128)
