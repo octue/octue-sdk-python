@@ -1,6 +1,6 @@
-import hashlib
 import json
 import logging
+from blake3 import blake3
 
 from octue.definitions import OUTPUT_STRANDS
 from octue.mixins import Identifiable, Loggable, Serialisable, Taggable
@@ -15,14 +15,14 @@ module_logger = logging.getLogger(__name__)
 
 def hash_json(json_object):
     """ Hash a JSON-compatible object. """
-    return hashlib.blake2b(json.dumps(json_object).encode()).hexdigest()
+    return blake3(json.dumps(json_object).encode()).hexdigest()
 
 
 HASH_FUNCTIONS = {
     "configuration_values": hash_json,
-    "configuration_manifest": lambda manifest: manifest.blake2b_hash,
+    "configuration_manifest": lambda manifest: manifest.blake3_hash,
     "input_values": hash_json,
-    "input_manifest": lambda manifest: manifest.blake2b_hash,
+    "input_manifest": lambda manifest: manifest.blake3_hash,
 }
 
 # Map strand names to class which we expect Twined to instantiate for us

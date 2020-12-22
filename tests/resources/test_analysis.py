@@ -8,7 +8,7 @@ class TestHashJson(BaseTestCase):
         """ Ensure JSON-compliant python objects can be hashed. """
         hash_ = hash_json({"hello": 5})
         self.assertTrue(isinstance(hash_, str))
-        self.assertTrue(len(hash_) == 128)
+        self.assertTrue(len(hash_) == 64)
 
 
 class AnalysisTestCase(BaseTestCase):
@@ -54,4 +54,4 @@ class AnalysisTestCase(BaseTestCase):
         for strand_name in HASH_FUNCTIONS:
             hash_ = getattr(analysis, f"{strand_name}_hash")
             self.assertTrue(isinstance(hash_, str))
-            self.assertTrue(len(hash_) == 128)
+            self.assertTrue(len(hash_) == 64)

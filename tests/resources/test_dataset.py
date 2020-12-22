@@ -233,6 +233,6 @@ class DatasetTestCase(BaseTestCase):
 
     def test_hash(self):
         """ Test hashing a dataset with multiple files gives a hash of length 128. """
-        hash_ = self.create_valid_dataset().blake2b_hash
+        hash_ = self.create_valid_dataset().blake3_hash
         self.assertTrue(isinstance(hash_, str))
-        self.assertTrue(len(hash_) == 128)
+        self.assertTrue(len(hash_) == 64)

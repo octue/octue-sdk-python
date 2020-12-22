@@ -92,12 +92,12 @@ class DatafileTestCase(BaseTestCase):
             "sequence",
             "size_bytes",
             "tags",
-            "blake2b_hash",
+            "blake3_hash",
         ):
             self.assertIn(k, df_dict.keys())
 
     def test_hash(self):
         """ Test hashing a datafile gives a hash of length 128. """
-        hash_ = self.create_valid_datafile().blake2b_hash
+        hash_ = self.create_valid_datafile().blake3_hash
         self.assertTrue(isinstance(hash_, str))
-        self.assertTrue(len(hash_) == 128)
+        self.assertTrue(len(hash_) == 64)

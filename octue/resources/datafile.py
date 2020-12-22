@@ -1,8 +1,8 @@
 import functools
-import hashlib
 import logging
 import os
 import time
+from blake3 import blake3
 
 from octue.exceptions import FileNotFoundException, InvalidInputException
 from octue.mixins import Identifiable, Loggable, Pathable, Serialisable, Taggable
@@ -114,15 +114,15 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
 
     @property
     @functools.lru_cache(maxsize=None)
-    def blake2b_hash(self):
-        """ Calculate the BLAKE2b hash string of the file. """
-        blake2b_hash = hashlib.blake2b()
+    def blake3_hash(self):
+        """ Calculate the BLAKE3 hash string of the file. """
+        blake3_hash = blake3()
         with open(self.absolute_path, "rb") as f:
             # Read and update hash string value in blocks of 4K
             for byte_block in iter(lambda: f.read(4096), b""):
-                blake2b_hash.update(byte_block)
+                blake3_hash.update(byte_block)
 
-        blake2b_hash.update(
+        blake3_hash.update(
             "".join(
                 (
                     self.name,
@@ -133,7 +133,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
                 )
             ).encode()
         )
-        return blake2b_hash.hexdigest()
+        return blake3_hash.hexdigest()
 
     def check(self, size_bytes=None, sha=None, last_modified=None, extension=None):
         """ Check file presence and integrity

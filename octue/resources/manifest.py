@@ -1,6 +1,6 @@
 import functools
-import hashlib
 import logging
+from blake3 import blake3
 
 from octue.exceptions import InvalidInputException, InvalidManifestException
 from octue.mixins import Identifiable, Loggable, Pathable, Serialisable
@@ -82,8 +82,8 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable):
 
     @property
     @functools.lru_cache(maxsize=None)
-    def blake2b_hash(self):
-        """ Calculate the BLAKE2b hash string of the manifest. """
-        blake2b_hash = hashlib.blake2b("".join(sorted(dataset.blake2b_hash for dataset in self.datasets)).encode())
-        blake2b_hash.update(str(sorted(self.keys.items())).encode())
-        return blake2b_hash.hexdigest()
+    def blake3_hash(self):
+        """ Calculate the BLAKE3 hash string of the manifest. """
+        blake3_hash = blake3("".join(sorted(dataset.blake3_hash for dataset in self.datasets)).encode())
+        blake3_hash.update(str(sorted(self.keys.items())).encode())
+        return blake3_hash.hexdigest()
