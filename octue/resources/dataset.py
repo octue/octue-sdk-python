@@ -168,5 +168,5 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable):
 
     @property
     def blake2b_hash(self):
-        """ Calculate the SHA256 hash string of the dataset. """
+        """ Calculate the BLAKE2b hash string of the dataset. """
         return hashlib.blake2b("".join(file.blake2b_hash for file in self.files).encode()).hexdigest()

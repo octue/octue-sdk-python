@@ -14,7 +14,7 @@ module_logger = logging.getLogger(__name__)
 
 
 def hash_json(json_object):
-    return hashlib.sha256(json.dumps(json_object).encode()).hexdigest()
+    return hashlib.blake2b(json.dumps(json_object).encode()).hexdigest()
 
 
 HASH_FUNCTIONS = {
