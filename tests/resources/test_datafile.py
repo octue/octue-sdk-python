@@ -98,6 +98,6 @@ class DatafileTestCase(BaseTestCase):
 
     def test_hash(self):
         """ Test hashing a datafile gives a hash of length 128. """
-        hash = self.create_valid_datafile().blake2b_hash
-        self.assertTrue(isinstance(hash, str))
-        self.assertTrue(len(hash) == 128)
+        hash_ = self.create_valid_datafile().blake2b_hash
+        self.assertTrue(isinstance(hash_, str))
+        self.assertTrue(len(hash_) == 128)
