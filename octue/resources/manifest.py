@@ -1,3 +1,4 @@
+import functools
 import hashlib
 import logging
 
@@ -79,7 +80,7 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable):
 
         return self
 
-    @property
+    @functools.cached_property
     def blake2b_hash(self):
         """ Calculate the BLAKE2b hash string of the manifest. """
         return hashlib.blake2b("".join(dataset.blake2b_hash for dataset in self.datasets).encode()).hexdigest()

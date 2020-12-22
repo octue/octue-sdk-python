@@ -1,3 +1,4 @@
+import functools
 import hashlib
 import logging
 import os
@@ -112,7 +113,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
     def size_bytes(self):
         return os.path.getsize(self.absolute_path)
 
-    @property
+    @functools.cached_property
     def blake2b_hash(self):
         """ Calculate the BLAKE2b hash string of the file. """
         blake2b_hash = hashlib.blake2b()
