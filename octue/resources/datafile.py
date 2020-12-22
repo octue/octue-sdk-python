@@ -81,7 +81,6 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
         super().__init__(id=id, logger=logger, tags=tags, path=path, path_from=path_from, base_from=base_from)
 
         self.cluster = cluster
-
         self.sequence = sequence
         self.posix_timestamp = posix_timestamp or time.time()
 
@@ -123,6 +122,17 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
             for byte_block in iter(lambda: f.read(4096), b""):
                 blake2b_hash.update(byte_block)
 
+        blake2b_hash.update(
+            "".join(
+                (
+                    self.name,
+                    str(self.cluster),
+                    str(self.sequence),
+                    str(self.posix_timestamp),
+                    str(sorted(self.tags._tags)),
+                )
+            ).encode()
+        )
         return blake2b_hash.hexdigest()
 
     def check(self, size_bytes=None, sha=None, last_modified=None, extension=None):
