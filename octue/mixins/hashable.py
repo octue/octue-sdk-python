@@ -66,13 +66,13 @@ class Hashable:
             if not all(hasattr(item, "blake3_hash") for item in items):
                 raise ValueError(f"Mixed types in attribute <{attribute_name!r}: {attribute!r}>")
 
-            return str(sorted(subitem.blake3_hash for subitem in items))
+            return str(sorted(item.blake3_hash for item in items))
 
         try:
             return str(sorted(items))
 
         except TypeError:
             raise TypeError(
-                f"Attribute needs to be sorted for consistent hash output, but cannot be: "
-                f"<{attribute_name!r}: {attribute!r}>"
+                f"Attribute <{attribute_name!r}: {attribute!r}> needs to be sorted for consistent hash output, but this"
+                f"failed."
             )
