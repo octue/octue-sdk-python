@@ -92,7 +92,7 @@ class DatafileTestCase(BaseTestCase):
             "sequence",
             "size_bytes",
             "tags",
-            "sha_256",
+            "blake2b_hash",
         ):
             self.assertIn(k, df_dict.keys())
 
