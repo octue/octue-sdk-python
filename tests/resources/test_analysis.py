@@ -25,3 +25,10 @@ class AnalysisTestCase(BaseTestCase):
 
         with self.assertRaises(AttributeError):
             analysis.furry_purry_cat
+
+    def test_analysis_hash_attributes_are_none_when_no_relevant_strands(self):
+        """ Ensures that the hash attributes of Analysis instances are None if none of the relevant strands are in the
+        Twine. """
+        analysis = Analysis(twine="{}")
+        for strand_name in "configuration_values", "configuration_manifest", "input_values", "input_manifest":
+            self.assertIsNone(getattr(analysis, f"{strand_name}_hash"))
