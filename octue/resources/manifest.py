@@ -82,6 +82,6 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable):
         return self
 
     @property
-    def sha_256(self):
+    def blake2b_hash(self):
         """ Calculate the SHA256 hash string of the manifest. """
-        return hashlib.sha256("".join(dataset.sha_256 for dataset in self.datasets).encode()).hexdigest()
+        return hashlib.blake2b("".join(dataset.blake2b_hash for dataset in self.datasets).encode()).hexdigest()

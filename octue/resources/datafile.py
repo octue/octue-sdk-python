@@ -100,16 +100,6 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
         path = path or self.path
         return os.path.splitext(path)[-1].strip(".")
 
-    def _get_sha_256(self):
-        """ Calculate the SHA256 hash string of the file. """
-        sha256_hash = hashlib.sha256()
-        with open(self.absolute_path, "rb") as f:
-            # Read and update hash string value in blocks of 4K
-            for byte_block in iter(lambda: f.read(4096), b""):
-                sha256_hash.update(byte_block)
-
-        return sha256_hash.hexdigest()
-
     @property
     def name(self):
         return str(os.path.split(self.path)[-1])
@@ -123,8 +113,15 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
         return os.path.getsize(self.absolute_path)
 
     @property
-    def sha_256(self):
-        return self._get_sha_256()
+    def blake2b_hash(self):
+        """ Calculate the BLAKE2b hash string of the file. """
+        blake2b_hash = hashlib.blake2b()
+        with open(self.absolute_path, "rb") as f:
+            # Read and update hash string value in blocks of 4K
+            for byte_block in iter(lambda: f.read(4096), b""):
+                blake2b_hash.update(byte_block)
+
+        return blake2b_hash.hexdigest()
 
     def check(self, size_bytes=None, sha=None, last_modified=None, extension=None):
         """ Check file presence and integrity

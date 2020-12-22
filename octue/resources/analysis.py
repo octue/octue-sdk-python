@@ -19,9 +19,9 @@ def hash_json(json_object):
 
 HASH_FUNCTIONS = {
     "configuration_values": hash_json,
-    "configuration_manifest": lambda manifest: manifest.sha_256,
+    "configuration_manifest": lambda manifest: manifest.blake2b_hash,
     "input_values": lambda input_values: hash_json,
-    "input_manifest": lambda manifest: manifest.sha_256,
+    "input_manifest": lambda manifest: manifest.blake2b_hash,
 }
 
 # Map strand names to class which we expect Twined to instantiate for us

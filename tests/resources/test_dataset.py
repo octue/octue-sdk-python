@@ -251,7 +251,7 @@ class DatasetTestCase(BaseTestCase):
         self.assertEqual(0, len(files))
 
     def test_hash(self):
-        """ Test hashing a dataset with multiple files gives a hash of length 64. """
-        hash = create_valid_dataset(self.data_path).sha_256
+        """ Test hashing a dataset with multiple files gives a hash of length 128. """
+        hash = create_valid_dataset(self.data_path).blake2b_hash
         self.assertTrue(isinstance(hash, str))
-        self.assertTrue(len(hash) == 64)
+        self.assertTrue(len(hash) == 128)
