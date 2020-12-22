@@ -1,6 +1,14 @@
-from octue.resources.analysis import HASH_FUNCTIONS, Analysis
+from octue.resources.analysis import HASH_FUNCTIONS, Analysis, hash_json
 from twined import Twine
 from ..base import BaseTestCase
+
+
+class TestHashJson(BaseTestCase):
+    def test_hash_json(self):
+        """ Ensure JSON-compliant python objects can be hashed. """
+        hash_ = hash_json({"hello": 5})
+        self.assertTrue(isinstance(hash_, str))
+        self.assertTrue(len(hash_) == 128)
 
 
 class AnalysisTestCase(BaseTestCase):
