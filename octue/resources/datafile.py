@@ -1,18 +1,17 @@
-import functools
 import logging
 import os
 import time
 from blake3 import blake3
 
 from octue.exceptions import FileNotFoundException, InvalidInputException
-from octue.mixins import Identifiable, Loggable, Pathable, Serialisable, Taggable
+from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.utils import isfile
 
 
 module_logger = logging.getLogger(__name__)
 
 
-class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
+class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable):
     """ Class for representing data files on the Octue system
 
     Files in a manifest look like this:
@@ -59,6 +58,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
     was created but could relate to a relevant time point for the data
     :type posix_timestamp: number
     """
+
+    ATTRIBUTES_TO_HASH = "name", "cluster", "sequence", "posix_timestamp", "tags"
 
     _exclude_serialise_fields = ("logger", "open")
 
@@ -112,9 +113,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
     def size_bytes(self):
         return os.path.getsize(self.absolute_path)
 
-    @property
-    @functools.lru_cache(maxsize=None)
-    def blake3_hash(self):
+    def _calculate_blake3_hash(self):
         """ Calculate the BLAKE3 hash string of the file. """
         blake3_hash = blake3()
         with open(self.absolute_path, "rb") as f:
@@ -122,18 +121,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
             for byte_block in iter(lambda: f.read(4096), b""):
                 blake3_hash.update(byte_block)
 
-        blake3_hash.update(
-            "".join(
-                (
-                    self.name,
-                    str(self.cluster),
-                    str(self.sequence),
-                    str(self.posix_timestamp),
-                    str(sorted(self.tags._tags)),
-                )
-            ).encode()
-        )
-        return blake3_hash.hexdigest()
+        return super()._calculate_blake3_hash(blake3_hash)
 
     def check(self, size_bytes=None, sha=None, last_modified=None, extension=None):
         """ Check file presence and integrity
