@@ -17,7 +17,7 @@ class TypeWithIterable(Hashable):
 class HashableTestCase(BaseTestCase):
     def test_no_attributes_to_hash_results_in_no_hash(self):
         """ Assert classes with Hashable mixed in but no attributes to hash give None for their hash. """
-        self.assertIsNone(EmptyClass().blake3_hash)
+        self.assertIsNone(TypeWithBLAKE3Hash().blake3_hash)
 
     def test_non_hashable_type_results_in_type_error(self):
         class MyClass(Hashable):
@@ -39,7 +39,7 @@ class HashableTestCase(BaseTestCase):
 
     def test_unsortable_iterable_attribute_raises_type_error(self):
         my_class = TypeWithIterable()
-        my_class.my_iterable = [TypeWithBLAKE3Hash(), TypeWithBLAKE3Hash()]
+        my_class.my_iterable = [EmptyClass(), EmptyClass()]
 
         with self.assertRaises(TypeError):
             my_class.blake3_hash
