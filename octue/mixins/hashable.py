@@ -15,6 +15,7 @@ _HASH_PREPARATION_FUNCTIONS = {
 class Hashable:
 
     ATTRIBUTES_TO_HASH = None
+    HASH_TYPE = "BLAKE3"
 
     @classmethod
     def hash_non_class_object(cls, object_):
@@ -25,20 +26,20 @@ class Hashable:
 
         holder = Holder()
         holder.object = object_
-        return holder.blake3_hash
+        return holder.hash_value
 
     @property
     @functools.lru_cache(maxsize=1)
-    def blake3_hash(self):
-        """ Get the BLAKE3 hash of the instance. """
+    def hash_value(self):
+        """ Get the hash of the instance. """
         if not self.ATTRIBUTES_TO_HASH:
             return None
 
-        return self._calculate_blake3_hash()
+        return self._calculate_hash()
 
-    def _calculate_blake3_hash(self, blake3_hash=None):
+    def _calculate_hash(self, hash_=None):
         """ Calculate the BLAKE3 hash of the sorted attributes in self.ATTRIBUTES_TO_HASH. """
-        blake3_hash = blake3_hash or blake3()
+        hash_ = hash_ or blake3()
 
         for attribute_name in sorted(self.ATTRIBUTES_TO_HASH):
             attribute = getattr(self, attribute_name)
@@ -52,21 +53,21 @@ class Hashable:
                 else:
                     raise TypeError(f"Attribute <{attribute_name!r}: {attribute!r}> cannot be hashed.")
 
-            blake3_hash.update(items_to_hash.encode())
+            hash_.update(items_to_hash.encode())
 
-        return blake3_hash.hexdigest()
+        return hash_.hexdigest()
 
     @staticmethod
     def _prepare_iterable_for_hashing(attribute_name, attribute):
         """ Prepare an iterable attribute for hashing, using the items` own BLAKE3 hashes if available. """
         items = tuple(attribute)
 
-        if any(hasattr(item, "blake3_hash") for item in items):
+        if any(hasattr(item, "hash_value") for item in items):
 
-            if not all(hasattr(item, "blake3_hash") for item in items):
+            if not all(hasattr(item, "hash_value") for item in items):
                 raise ValueError(f"Mixed types in attribute <{attribute_name!r}: {attribute!r}>")
 
-            return str(sorted(item.blake3_hash for item in items))
+            return str(sorted(item.hash_value for item in items))
 
         try:
             return str(sorted(items))

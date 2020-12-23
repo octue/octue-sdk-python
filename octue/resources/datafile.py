@@ -113,15 +113,15 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     def size_bytes(self):
         return os.path.getsize(self.absolute_path)
 
-    def _calculate_blake3_hash(self):
-        """ Calculate the BLAKE3 hash string of the file. """
-        blake3_hash = blake3()
+    def _calculate_hash(self):
+        """ Calculate the hash of the file. """
+        hash = blake3()
         with open(self.absolute_path, "rb") as f:
-            # Read and update hash string value in blocks of 4K
+            # Read and update hash value in blocks of 4K
             for byte_block in iter(lambda: f.read(4096), b""):
-                blake3_hash.update(byte_block)
+                hash.update(byte_block)
 
-        return super()._calculate_blake3_hash(blake3_hash)
+        return super()._calculate_hash(hash)
 
     def check(self, size_bytes=None, sha=None, last_modified=None, extension=None):
         """ Check file presence and integrity

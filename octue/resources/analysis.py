@@ -14,9 +14,9 @@ module_logger = logging.getLogger(__name__)
 
 HASH_FUNCTIONS = {
     "configuration_values": Hashable.hash_non_class_object,
-    "configuration_manifest": lambda manifest: manifest.blake3_hash,
+    "configuration_manifest": lambda manifest: manifest.hash_value,
     "input_values": Hashable.hash_non_class_object,
-    "input_manifest": lambda manifest: manifest.blake3_hash,
+    "input_manifest": lambda manifest: manifest.hash_value,
 }
 
 # Map strand names to class which we expect Twined to instantiate for us
