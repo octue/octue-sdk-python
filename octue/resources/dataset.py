@@ -29,9 +29,9 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         #  get initialised properly, then remove this hackjob.
         files = kwargs.pop("files", list())
 
-        self.files = [
+        self.files = {
             file if isinstance(file, Datafile) else Datafile(**file, path_from=self, base_from=self) for file in files
-        ]
+        }
 
         self.__dict__.update(**kwargs)
 
@@ -59,11 +59,11 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
                 raise InvalidInputException(
                     'Object "{}" must be of class Datafile to append it to a Dataset'.format(args[0])
                 )
-            self.files.append(args[0])
+            self.files.add(args[0])
 
         else:
             # Append a single file, constructed by passing the arguments through to DataFile()
-            self.files.append(Datafile(**kwargs))
+            self.files.add(Datafile(**kwargs))
 
     def get_files(self, field_lookup, files=None, filter_value=None):
         """ Get a list of data files in a manifest whose name contains the input string
@@ -114,11 +114,11 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             "sequence__notnone": lambda filter_value, file: file.sequence is not None,
         }
 
-        results = []
+        results = set()
 
         for file in files:
             if field_lookups[field_lookup](filter_value, file):
-                results.append(file)
+                results.add(file)
 
         return results
 
@@ -141,13 +141,10 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         def get_sequence_number(file):
             return file.sequence
 
-        # Sort the results on ascending sequence number
-        results.sort(key=get_sequence_number)
-
         # Check sequence is unique and sequential
         if strict:
             index = -1
-            for result in results:
+            for result in sorted(results, key=get_sequence_number):
                 index += 1
                 if result.sequence != index:
                     raise BrokenSequenceException("Filtered file sequence numbers do not monotonically increase from 0")
@@ -168,4 +165,4 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         elif len(results) == 0:
             raise UnexpectedNumberOfResultsException("No files found with this tag")
 
-        return results[0]
+        return results.pop()

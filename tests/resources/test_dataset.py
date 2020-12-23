@@ -196,7 +196,7 @@ class DatasetTestCase(BaseTestCase):
         ]
 
         got_files = Dataset(files=files).get_file_sequence("name__endswith", filter_value=".csv", strict=True)
-        self.assertEqual(got_files, files[:2])
+        self.assertEqual(got_files, set(files[:2]))
 
     def test_get_broken_file_sequence(self):
         """ Ensures that get_files works with sequence lookups
@@ -219,7 +219,7 @@ class DatasetTestCase(BaseTestCase):
             Datafile(path="path-within-dataset/a_test_file.txt"),
         ]
 
-        self.assertEqual(Dataset(files=files).get_files("name__icontains", filter_value="txt"), [files[1]])
+        self.assertEqual(Dataset(files=files).get_files("name__icontains", filter_value="txt"), {files[1]})
 
     def test_get_files_name_filters_exclude_path(self):
         """ Ensures that filters applied to the name will not catch terms in the extension
