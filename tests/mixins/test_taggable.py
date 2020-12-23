@@ -174,7 +174,8 @@ class TestTagGroup(BaseTestCase):
         """ Test that tag groups can be filtered. """
         tag_group = TagGroup(tags="tag1 tag2 meta:sys1:1234 meta:sys2:3456 meta:sys2:55")
         self.assertEqual(
-            tag_group.filter("tag__starts_with", "meta"), TagGroup("meta:sys1:1234 meta:sys2:3456 meta:sys2:55")
+            tag_group.filter("tag__starts_with", "meta").as_object(),
+            TagGroup("meta:sys1:1234 meta:sys2:3456 meta:sys2:55"),
         )
 
     def test_filter_chaining(self):

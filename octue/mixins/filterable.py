@@ -12,14 +12,18 @@ BASE_FILTERS = (
 
 
 class FilteredSet:
-    def __init__(self, iterable):
+    def __init__(self, iterable, class_to_cast_to):
         self._iterable = iterable
+        self._class_to_cast_to = class_to_cast_to
 
     def __repr__(self):
         return f"<{type(self).__name__}(iterable={self._iterable!r}>"
 
     def __iter__(self):
         yield from self._iterable
+
+    def as_object(self):
+        return self._class_to_cast_to(self._iterable)
 
 
 class Filterable:
@@ -44,7 +48,10 @@ class Filterable:
 
         attribute_name, filter_ = self._filters[filter_name]
 
-        return FilteredSet({item for item in self._get_nested_attribute(attribute_name) if filter_(filter_value, item)})
+        return FilteredSet(
+            iterable={item for item in self._get_nested_attribute(attribute_name) if filter_(filter_value, item)},
+            class_to_cast_to=self.__class__,
+        )
 
     def _build_filters(self):
         filters = {}
