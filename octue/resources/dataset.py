@@ -28,12 +28,10 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         #  Add a proper `decoder` argument  to the load_json utility in twined so that datasets, datafiles and manifests
         #  get initialised properly, then remove this hackjob.
         files = kwargs.pop("files", list())
-        self.files = []
-        for fi in files:
-            if isinstance(fi, Datafile):
-                self.files.append(fi)
-            else:
-                self.files.append(Datafile(**fi, path_from=self, base_from=self))
+
+        self.files = [
+            file if isinstance(file, Datafile) else Datafile(**file, path_from=self, base_from=self) for file in files
+        ]
 
         self.__dict__.update(**kwargs)
 
