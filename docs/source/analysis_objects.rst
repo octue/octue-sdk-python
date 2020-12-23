@@ -23,7 +23,7 @@ Additionally, all input and configuration attributes are hashed using a
 your app can always be verified. These hashes exist on the following attributes:
 
 -   ``input_values_hash``
--   ``configuration_values_hash``
+-   ``input_manifest_hash``
 -   ``configuration_values_hash``
 -   ``configuration_manifest_hash``
 
