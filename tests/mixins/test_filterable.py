@@ -80,3 +80,16 @@ class TestFilterable(BaseTestCase):
                 "my_attribute__notnone",
             },
         )
+
+    def test_filter(self):
+        class ClassToFilter(Filterable):
+            _ATTRIBUTES_TO_FILTER_BY = ("a", "b")
+
+            def __init__(self, a, b, *args, **kwargs):
+                self.a = a
+                self.b = b
+                super().__init__(*args, **kwargs)
+
+        class_to_filter = ClassToFilter(a={1, 2, 3}, b=["filter", "this", "up"])
+        filtered_set = class_to_filter.filter("b__contains", "p")
+        self.assertEqual(set(filtered_set), {"up"})
