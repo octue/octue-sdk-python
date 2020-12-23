@@ -1,19 +1,22 @@
 import logging
+import os
 
 from octue.exceptions import BrokenSequenceException, InvalidInputException, UnexpectedNumberOfResultsException
-from octue.mixins import Identifiable, Loggable, Pathable, Serialisable, Taggable
+from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 
 
 module_logger = logging.getLogger(__name__)
 
 
-class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable):
+class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable):
     """ A representation of a dataset, containing files, tags, etc
 
     This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
     list of output files (results) and their properties that will be sent back to the octue system.
     """
+
+    _ATTRIBUTES_TO_HASH = "files", "name", "tags"
 
     def __init__(self, id=None, logger=None, path=None, path_from=None, base_from=None, tags=None, **kwargs):
         """ Construct a Dataset
@@ -33,6 +36,10 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable):
                 self.files.append(Datafile(**fi, path_from=self, base_from=self))
 
         self.__dict__.update(**kwargs)
+
+    @property
+    def name(self):
+        return str(os.path.split(self.path)[-1])
 
     def append(self, *args, **kwargs):
         """ Add a data/results file to the manifest

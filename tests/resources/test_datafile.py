@@ -1,3 +1,4 @@
+import copy
 import os
 import uuid
 
@@ -92,6 +93,18 @@ class DatafileTestCase(BaseTestCase):
             "sequence",
             "size_bytes",
             "tags",
-            "sha_256",
+            "hash_value",
         ):
             self.assertIn(k, df_dict.keys())
+
+    def test_hash_value(self):
+        """ Test hashing a datafile gives a hash of length 128. """
+        hash_ = self.create_valid_datafile().hash_value
+        self.assertTrue(isinstance(hash_, str))
+        self.assertTrue(len(hash_) == 64)
+
+    def test_hashes_for_the_same_datafile_are_the_same(self):
+        """ Ensure the hashes for two datafiles that are exactly the same are the same."""
+        first_file = self.create_valid_datafile()
+        second_file = copy.deepcopy(first_file)
+        self.assertEqual(first_file.hash_value, second_file.hash_value)
