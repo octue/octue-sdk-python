@@ -39,6 +39,20 @@ class TagGroup(Filterable):
             )
 
         self._tags = self._clean(tags)
+        kwargs["filters"] = {
+            "tag__exact": ("_tags", lambda tag, filter_value: filter_value == tag),
+            "tag__starts_with": ("_tags", lambda tag, filter_value: self.starts_with(filter_value, tags=[tag])),
+            "tag__ends_with": ("_tags", lambda tag, filter_value: self.ends_with(filter_value, tags=[tag])),
+            "tag__contains": ("_tags", lambda tag, filter_value: self.contains(filter_value, tags=[tag])),
+            "subtag__starts_with": (
+                "_tags",
+                lambda tag, filter_value: self.starts_with(filter_value, consider_separate_subtags=True, tags=[tag]),
+            ),
+            "subtag__ends_with": (
+                "_tags",
+                lambda tag, filter_value: self.ends_with(filter_value, consider_separate_subtags=True, tags=[tag]),
+            ),
+        }
         super().__init__(*args, **kwargs)
 
     def __str__(self):
