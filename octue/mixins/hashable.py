@@ -22,10 +22,10 @@ class Hashable:
         """ Use the Hashable class to hash an arbitrary object that isn't an attribute of a class instance. """
 
         class Holder(cls):
-            _ATTRIBUTES_TO_HASH = ("object",)
+            _ATTRIBUTES_TO_HASH = ("object_",)
 
         holder = Holder()
-        holder.object = object_
+        holder.object_ = object_
         return holder.hash_value
 
     @property
