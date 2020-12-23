@@ -63,12 +63,11 @@ class Serialisable:
             name for name in names_of_attributes_to_serialise if name not in self._EXCLUDE_SERIALISE_FIELDS
         )
 
-        self_as_primitive = {name: getattr(self, name, None) for name in names_of_attributes_to_serialise}
-
-        # Serialise sets as sorted list (JSON doesn't support sets).
-        for name, attribute in self_as_primitive.items():
-            if isinstance(attribute, set):
-                self_as_primitive[name] = sorted(attribute)
+        self_as_primitive = {}
+        for name in names_of_attributes_to_serialise:
+            attribute = getattr(self, name, None)
+            # Serialise sets as sorted list (JSON doesn't support sets).
+            self_as_primitive[name] = sorted(attribute) if isinstance(attribute, set) else attribute
 
         # TODO this conversion backward-and-forward is very inefficient but allows us to use the same encoder for
         #  converting the object to a dict as to strings, which ensures that nested attributes are also cast to
