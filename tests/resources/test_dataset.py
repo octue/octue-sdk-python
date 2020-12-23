@@ -1,9 +1,11 @@
+import copy
+
 from octue import exceptions
 from octue.resources import Datafile, Dataset
 from ..base import BaseTestCase
 
 
-class DatafileTestCase(BaseTestCase):
+class DatasetTestCase(BaseTestCase):
     def test_instantiates_with_no_args(self):
         """ Ensures a Datafile instantiates using only a path and generates a uuid ID
         """
@@ -230,3 +232,15 @@ class DatafileTestCase(BaseTestCase):
         )
         files = resource.get_files("name__icontains", filter_value="second")
         self.assertEqual(0, len(files))
+
+    def test_hash_value(self):
+        """ Test hashing a dataset with multiple files gives a hash of length 128. """
+        hash_ = self.create_valid_dataset().hash_value
+        self.assertTrue(isinstance(hash_, str))
+        self.assertTrue(len(hash_) == 64)
+
+    def test_hashes_for_the_same_dataset_are_the_same(self):
+        """ Ensure the hashes for two datasets that are exactly the same are the same."""
+        first_dataset = self.create_valid_dataset()
+        second_dataset = copy.deepcopy(first_dataset)
+        self.assertEqual(first_dataset.hash_value, second_dataset.hash_value)

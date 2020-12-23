@@ -17,7 +17,7 @@ class Inherit(Serialisable):
 
 
 class InheritWithFieldsToSerialise(Inherit):
-    _serialise_fields = ("field_to_serialise",)
+    _SERIALISE_FIELDS = ("field_to_serialise",)
 
 
 class SerialisableTestCase(BaseTestCase):
