@@ -107,11 +107,11 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         field_lookups = {
             "name__icontains": lambda filter_value, file: filter_value.lower() in file.name.lower(),
             "name__contains": lambda filter_value, file: filter_value in file.name,
-            "name__endswith": lambda filter_value, file: file.name.endswith(filter_value),
-            "name__startswith": lambda filter_value, file: file.name.startswith(filter_value),
+            "name__ends_with": lambda filter_value, file: file.name.endswith(filter_value),
+            "name__starts_with": lambda filter_value, file: file.name.startswith(filter_value),
             "tag__exact": lambda filter_value, file: filter_value in file.tags,
-            "tag__startswith": lambda filter_value, file: file.tags.startswith(filter_value),
-            "tag__endswith": lambda filter_value, file: file.tags.endswith(filter_value),
+            "tag__starts_with": lambda filter_value, file: file.tags.starts_with(filter_value),
+            "tag__ends_with": lambda filter_value, file: file.tags.ends_with(filter_value),
             "tag__contains": lambda filter_value, file: file.tags.contains(filter_value),
             "sequence__notnone": lambda filter_value, file: file.sequence is not None,
         }

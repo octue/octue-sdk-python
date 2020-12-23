@@ -93,7 +93,7 @@ class TagGroup:
         """ Return a new TagGroup instance with all the subtags. """
         return TagGroup(set(self._yield_subtags(tags or self._tags)))
 
-    def startswith(self, value, consider_separate_subtags=False, tags=None):
+    def starts_with(self, value, consider_separate_subtags=False, tags=None):
         """ Implement a startswith method that returns true if any of the tags starts with value """
         tags = tags or self._tags
 
@@ -102,7 +102,7 @@ class TagGroup:
 
         return any(subtag.startswith(value) for subtag in self._yield_subtags(tags))
 
-    def endswith(self, value, consider_separate_subtags=False, tags=None):
+    def ends_with(self, value, consider_separate_subtags=False, tags=None):
         """ Implement an endswith method that returns true if any of the tags endswith value. """
         tags = tags or self._tags
 
@@ -119,10 +119,10 @@ class TagGroup:
         """ Filter the TagGroup, returning a new TagGroup with the tags that satisfy the filter. """
         field_lookups = {
             "exact": lambda tag, filter_value: filter_value == tag,
-            "startswith": lambda tag, filter_value: self.startswith(
+            "starts_with": lambda tag, filter_value: self.starts_with(
                 filter_value, consider_separate_subtags, tags=[tag]
             ),
-            "endswith": lambda tag, filter_value: self.endswith(filter_value, consider_separate_subtags, tags=[tag]),
+            "ends_with": lambda tag, filter_value: self.ends_with(filter_value, consider_separate_subtags, tags=[tag]),
             "contains": lambda tag, filter_value: self.contains(filter_value, tags=[tag]),
         }
 

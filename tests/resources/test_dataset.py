@@ -107,21 +107,21 @@ class DatasetTestCase(BaseTestCase):
                 Datafile(path="path-within-dataset/a_your_file.csv"),
             ]
         )
-        files = resource.get_files("name__startswith", filter_value="a_my")
+        files = resource.get_files("name__starts_with", filter_value="a_my")
         self.assertEqual(1, len(files))
-        files = resource.get_files("name__startswith", filter_value="a_your")
+        files = resource.get_files("name__starts_with", filter_value="a_your")
         self.assertEqual(1, len(files))
-        files = resource.get_files("name__startswith", filter_value="a_")
+        files = resource.get_files("name__starts_with", filter_value="a_")
         self.assertEqual(2, len(files))
-        files = resource.get_files("name__startswith", filter_value="b")
+        files = resource.get_files("name__starts_with", filter_value="b")
         self.assertEqual(0, len(files))
-        files = resource.get_files("name__endswith", filter_value="_file.csv")
+        files = resource.get_files("name__ends_with", filter_value="_file.csv")
         self.assertEqual(2, len(files))
-        files = resource.get_files("name__endswith", filter_value="r_file.csv")
+        files = resource.get_files("name__ends_with", filter_value="r_file.csv")
         self.assertEqual(1, len(files))
-        files = resource.get_files("name__endswith", filter_value="y_file.csv")
+        files = resource.get_files("name__ends_with", filter_value="y_file.csv")
         self.assertEqual(1, len(files))
-        files = resource.get_files("name__endswith", filter_value="other.csv")
+        files = resource.get_files("name__ends_with", filter_value="other.csv")
         self.assertEqual(0, len(files))
 
     def test_get_files_by_tag(self):
@@ -140,9 +140,9 @@ class DatasetTestCase(BaseTestCase):
         self.assertEqual(1, len(files))
         files = resource.get_files("tag__exact", filter_value="all")
         self.assertEqual(3, len(files))
-        files = resource.get_files("tag__startswith", filter_value="b")
+        files = resource.get_files("tag__starts_with", filter_value="b")
         self.assertEqual(2, len(files))
-        files = resource.get_files("tag__endswith", filter_value="3")
+        files = resource.get_files("tag__ends_with", filter_value="3")
         self.assertEqual(2, len(files))
         files = resource.get_files("tag__contains", filter_value="hre")
         self.assertEqual(1, len(files))
@@ -195,7 +195,7 @@ class DatasetTestCase(BaseTestCase):
             Datafile(path="path-within-dataset/a_your_file.csv", sequence=None),
         ]
 
-        got_files = Dataset(files=files).get_file_sequence("name__endswith", filter_value=".csv", strict=True)
+        got_files = Dataset(files=files).get_file_sequence("name__ends_with", filter_value=".csv", strict=True)
         self.assertEqual(got_files, files[:2])
 
     def test_get_broken_file_sequence(self):
@@ -209,7 +209,7 @@ class DatasetTestCase(BaseTestCase):
             ]
         )
         with self.assertRaises(exceptions.BrokenSequenceException):
-            resource.get_file_sequence("name__endswith", filter_value=".csv", strict=True)
+            resource.get_file_sequence("name__ends_with", filter_value=".csv", strict=True)
 
     def test_get_files_name_filters_include_extension(self):
         """ Ensures that filters applied to the name will catch terms in the extension
