@@ -7,6 +7,11 @@ class Filterable:
 
     def __init__(self, *args, **kwargs):
 
+        if not isinstance(self._ATTRIBUTES_TO_FILTER_BY, tuple) or len(self._ATTRIBUTES_TO_FILTER_BY) == 0:
+            raise AttributeError(
+                "The '_ATTRIBUTES_TO_FILTER_BY' of Filterable subclasses must specify which attributes to filter by."
+            )
+
         super().__init__(*args, **kwargs)
 
     def filter(self, filter_name=None, filter_value=None):
