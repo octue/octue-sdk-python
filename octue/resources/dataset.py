@@ -54,6 +54,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             # Recurse to allow addition of many files at once
             for arg in args:
                 self.append(arg, **kwargs)
+
         elif len(args) > 0:
             if not isinstance(args[0], Datafile):
                 raise InvalidInputException(
@@ -114,13 +115,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             "sequence__notnone": lambda filter_value, file: file.sequence is not None,
         }
 
-        results = set()
-
-        for file in files:
-            if field_lookups[field_lookup](filter_value, file):
-                results.add(file)
-
-        return results
+        return {file for file in files if field_lookups[field_lookup](filter_value, file)}
 
     def get_file_sequence(self, field_lookup, files=None, filter_value=None, strict=True):
         """ Get an ordered sequence of files matching a criterion
