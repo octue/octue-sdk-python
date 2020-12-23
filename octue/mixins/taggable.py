@@ -1,6 +1,7 @@
 import re
 
 from octue.exceptions import InvalidTagException
+from octue.mixins import Filterable
 
 
 # A tag starts and ends with a character in [a-z] or [0-9]. It can contain the colon discriminator or hyphens.
@@ -12,11 +13,13 @@ from octue.exceptions import InvalidTagException
 TAG_PATTERN = re.compile(r"^$|^[a-z0-9][a-z0-9:\-]*(?<![:-])$")
 
 
-class TagGroup:
+class TagGroup(Filterable):
     """ Class to handle a group of tags as a string.
     """
 
-    def __init__(self, tags):
+    _ATTRIBUTES_TO_FILTER_BY = ("_tags",)
+
+    def __init__(self, tags, *args, **kwargs):
         """ Construct a TagGroup
         """
         # TODO Call the superclass with *args anad **kwargs, then update everything to using ResourceBase
@@ -36,6 +39,7 @@ class TagGroup:
             )
 
         self._tags = self._clean(tags)
+        super().__init__(*args, **kwargs)
 
     def __str__(self):
         """ Serialise tags to a sorted list string. """
@@ -114,19 +118,6 @@ class TagGroup:
     def contains(self, value, tags=None):
         """ Implement a contains method that returns true if any of the tags contains value. """
         return any(value in tag for tag in tags or self._tags)
-
-    def filter(self, field_lookup=None, filter_value=None, consider_separate_subtags=False):
-        """ Filter the TagGroup, returning a new TagGroup with the tags that satisfy the filter. """
-        field_lookups = {
-            "exact": lambda tag, filter_value: filter_value == tag,
-            "starts_with": lambda tag, filter_value: self.starts_with(
-                filter_value, consider_separate_subtags, tags=[tag]
-            ),
-            "ends_with": lambda tag, filter_value: self.ends_with(filter_value, consider_separate_subtags, tags=[tag]),
-            "contains": lambda tag, filter_value: self.contains(filter_value, tags=[tag]),
-        }
-
-        return TagGroup({tag for tag in self._tags if field_lookups[field_lookup](tag, filter_value)})
 
     def serialise(self):
         """ Serialise tags to a sorted list string. """
