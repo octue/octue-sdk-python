@@ -26,10 +26,10 @@ class TestFilterable(BaseTestCase):
         class InnerClass:
             surprise = "Hello, world!"
 
-        class Hello(Filterable):
+        class Hello:
             pass
 
         hello = Hello()
         hello.world = InnerClass()
-        nested_attribute = hello._get_nested_attribute("world.surprise")
+        nested_attribute = Filterable._get_nested_attribute(hello, "world.surprise")
         self.assertEqual(nested_attribute, hello.world.surprise)
