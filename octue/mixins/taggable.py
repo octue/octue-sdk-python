@@ -38,8 +38,7 @@ class TagGroup:
         self._tags = self._clean(tags)
 
     def __str__(self):
-        """ Represents tags as a space delimited string
-        """
+        """ Serialise tags to a sorted list string. """
         return self.serialise()
 
     def __eq__(self, other):
@@ -49,6 +48,9 @@ class TagGroup:
     def __iter__(self):
         """ Iterate over the tags in the TagGroup. """
         yield from self._tags
+
+    def __len__(self):
+        return len(self._tags)
 
     @staticmethod
     def _clean(tags):
@@ -127,9 +129,8 @@ class TagGroup:
         return TagGroup({tag for tag in self._tags if field_lookups[field_lookup](tag, filter_value)})
 
     def serialise(self):
-        """ Serialises tags as a space delimited string, NOT as a list. Strips end whitespace.
-        """
-        return " ".join(sorted(self._tags)).strip()
+        """ Serialise tags to a sorted list string. """
+        return str(sorted(self))
 
 
 class Taggable:
@@ -149,8 +150,6 @@ class Taggable:
 
     @property
     def tags(self):
-        """ Space delimited tag string
-        """
         return self._tags
 
     @tags.setter

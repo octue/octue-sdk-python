@@ -17,22 +17,25 @@ class TaggableTestCase(BaseTestCase):
     def test_instantiates_with_tags(self):
         """ Ensures datafile inherits correctly from the Taggable class and passes arguments through
         """
-        tgd = MyTaggable(tags="")
-        self.assertEqual("", str(tgd.tags))
-        tgd = MyTaggable(tags=None)
-        self.assertEqual("", str(tgd.tags))
-        tgd = MyTaggable(tags="a b c")
-        self.assertEqual(set(tgd.tags), {"a", "b", "c"})
+        taggable = MyTaggable(tags="")
+        self.assertEqual(len(taggable.tags), 0)
+
+        taggable = MyTaggable(tags=None)
+        self.assertEqual(len(taggable.tags), 0)
+
+        taggable = MyTaggable(tags="a b c")
+        self.assertEqual(set(taggable.tags), {"a", "b", "c"})
+
         with self.assertRaises(exceptions.InvalidTagException):
             MyTaggable(tags=":a b c")
 
     def test_instantiates_with_tag_group(self):
         """ Ensures datafile inherits correctly from the Taggable class and passes arguments through
         """
-        tgd = MyTaggable(tags="")
-        self.assertIsInstance(tgd.tags, TagGroup)
-        tgd2 = MyTaggable(tags=tgd.tags)
-        self.assertFalse(tgd is tgd2)
+        taggable_1 = MyTaggable(tags="")
+        self.assertIsInstance(taggable_1.tags, TagGroup)
+        taggable_2 = MyTaggable(tags=taggable_1.tags)
+        self.assertFalse(taggable_1 is taggable_2)
 
     def test_fails_to_instantiates_with_non_iterable(self):
         """ Ensures datafile inherits correctly from the Taggable class and passes arguments through
@@ -51,9 +54,9 @@ class TaggableTestCase(BaseTestCase):
     def test_reset_tags(self):
         """ Ensures datafile inherits correctly from the Taggable class and passes arguments through
         """
-        tgd = MyTaggable(tags="a b")
-        tgd.tags = "b c"
-        self.assertEqual(str(tgd.tags), "b c")
+        taggable = MyTaggable(tags="a b")
+        taggable.tags = "b c"
+        self.assertEqual(set(taggable.tags), {"b", "c"})
 
     def test_valid_tags(self):
         """ Ensures valid tags do not raise an error
@@ -83,21 +86,15 @@ class TaggableTestCase(BaseTestCase):
     def test_mixture_valid_invalid(self):
         """ Ensures that adding a variety of tags, some of which are invalid, doesn't partially add them to the object
         """
-        tgd = MyTaggable()
-        tgd.add_tags("first-valid-should-be-added")
+        taggable = MyTaggable()
+        taggable.add_tags("first-valid-should-be-added")
         try:
-            tgd.add_tags("second-valid-should-not-be-added-because", "-the-third-is-invalid:")
+            taggable.add_tags("second-valid-should-not-be-added-because", "-the-third-is-invalid:")
 
         except exceptions.InvalidTagException:
             pass
 
-        self.assertEqual("first-valid-should-be-added", str(tgd.tags))
-
-    def test_serialises_to_string(self):
-        """ Ensures that adding a variety of tags, some of which are invalid, doesn't partially add them to the object
-        """
-        tgd = Taggable(tags="a b")
-        self.assertEqual("a b", tgd.tags.serialise())
+        self.assertEqual({"first-valid-should-be-added"}, set(taggable.tags))
 
 
 class TestTagGroup(BaseTestCase):
@@ -190,3 +187,12 @@ class TestTagGroup(BaseTestCase):
 
         filtered_tags_3 = filtered_tags_1.filter("exact", "meta:sys2:55", consider_separate_subtags=True)
         self.assertEqual(filtered_tags_3, TagGroup("meta:sys2:55"))
+
+    def test_serialise(self):
+        """ Ensure that TagGroups are serialised to the string form of a list. """
+        self.assertEqual(self.TAG_GROUP.serialise(), "['a', 'b:c', 'd:e:f']")
+
+    def test_serialise_orders_tags(self):
+        """ Ensure that TagGroups are serialised to the string form of a list. """
+        tag_group = TagGroup("z hello a c:no")
+        self.assertEqual(tag_group.serialise(), "['a', 'c:no', 'hello', 'z']")
