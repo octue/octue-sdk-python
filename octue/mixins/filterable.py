@@ -23,20 +23,24 @@ class Filterable:
                 "filter by as a non-zero length tuple."
             )
 
-        self._filters = {}
-
-        for attribute_name in self._ATTRIBUTES_TO_FILTER_BY:
-            attribute = self._get_nested_attribute(attribute_name)
-
-            for filter_name, filter_ in FILTERS:
-                self._filters[f"{attribute_name}__{filter_name}"] = functools.partial(filter_, attribute=attribute)
-
+        self._filters = self._build_filters()
         super().__init__(*args, **kwargs)
 
     def filter(self, filter_name=None, filter_value=None):
 
         if filter_name not in self._filters:
             raise ValueError(f"Filtering by {filter_name} is not currently supported.")
+
+    def _build_filters(self):
+        filters = {}
+
+        for attribute_name in self._ATTRIBUTES_TO_FILTER_BY:
+            attribute = self._get_nested_attribute(attribute_name)
+
+            for filter_name, filter_ in FILTERS:
+                filters[f"{attribute_name}__{filter_name}"] = functools.partial(filter_, attribute=attribute)
+
+        return filters
 
     def _get_nested_attribute(self, attribute_name):
         return functools.reduce(getattr, attribute_name.split("."), self)
