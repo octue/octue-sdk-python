@@ -14,15 +14,15 @@ _HASH_PREPARATION_FUNCTIONS = {
 
 class Hashable:
 
-    ATTRIBUTES_TO_HASH = None
-    HASH_TYPE = "BLAKE3"
+    _ATTRIBUTES_TO_HASH = None
+    _HASH_TYPE = "BLAKE3"
 
     @classmethod
     def hash_non_class_object(cls, object_):
         """ Use the Hashable class to hash an arbitrary object that isn't an attribute of a class instance. """
 
         class Holder(cls):
-            ATTRIBUTES_TO_HASH = ("object",)
+            _ATTRIBUTES_TO_HASH = ("object",)
 
         holder = Holder()
         holder.object = object_
@@ -32,7 +32,7 @@ class Hashable:
     @functools.lru_cache(maxsize=1)
     def hash_value(self):
         """ Get the hash of the instance. """
-        if not self.ATTRIBUTES_TO_HASH:
+        if not self._ATTRIBUTES_TO_HASH:
             return None
 
         return self._calculate_hash()
@@ -41,7 +41,7 @@ class Hashable:
         """ Calculate the BLAKE3 hash of the sorted attributes in self.ATTRIBUTES_TO_HASH. """
         hash_ = hash_ or blake3()
 
-        for attribute_name in sorted(self.ATTRIBUTES_TO_HASH):
+        for attribute_name in sorted(self._ATTRIBUTES_TO_HASH):
             attribute = getattr(self, attribute_name)
 
             try:

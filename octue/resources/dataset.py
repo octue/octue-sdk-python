@@ -16,7 +16,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
     list of output files (results) and their properties that will be sent back to the octue system.
     """
 
-    ATTRIBUTES_TO_HASH = "files", "name", "tags"
+    _ATTRIBUTES_TO_HASH = "files", "name", "tags"
 
     def __init__(self, id=None, logger=None, path=None, path_from=None, base_from=None, tags=None, **kwargs):
         """ Construct a Dataset

@@ -59,9 +59,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     :type posix_timestamp: number
     """
 
-    ATTRIBUTES_TO_HASH = "name", "cluster", "sequence", "posix_timestamp", "tags"
-
-    _exclude_serialise_fields = ("logger", "open")
+    _ATTRIBUTES_TO_HASH = "name", "cluster", "sequence", "posix_timestamp", "tags"
+    _EXCLUDE_SERIALISE_FIELDS = ("logger", "open")
 
     def __init__(
         self,

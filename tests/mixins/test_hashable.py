@@ -11,7 +11,7 @@ class TypeWithHash:
 
 
 class TypeWithIterable(Hashable):
-    ATTRIBUTES_TO_HASH = ("my_iterable",)
+    _ATTRIBUTES_TO_HASH = ("my_iterable",)
 
 
 class HashableTestCase(BaseTestCase):
@@ -23,7 +23,7 @@ class HashableTestCase(BaseTestCase):
         """ Ensure trying to hash unhashable attributes results in a TypeError. """
 
         class MyClass(Hashable):
-            ATTRIBUTES_TO_HASH = ("a_class",)
+            _ATTRIBUTES_TO_HASH = ("a_class",)
 
         my_class = MyClass()
         my_class.a_class = EmptyClass()

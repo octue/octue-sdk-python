@@ -12,7 +12,7 @@ from twined import ALL_STRANDS, Twine
 module_logger = logging.getLogger(__name__)
 
 
-HASH_FUNCTIONS = {
+_HASH_FUNCTIONS = {
     "configuration_values": Hashable.hash_non_class_object,
     "configuration_manifest": lambda manifest: manifest.hash_value,
     "input_values": Hashable.hash_non_class_object,
@@ -71,11 +71,11 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
             setattr(self, f"{strand_name}", strand_data)
 
         for strand_name, strand_data in strand_kwargs:
-            if strand_name in HASH_FUNCTIONS:
+            if strand_name in _HASH_FUNCTIONS:
                 strand_hash_name = f"{strand_name}_hash"
 
                 if strand_data is not None:
-                    setattr(self, strand_hash_name, HASH_FUNCTIONS[strand_name](strand_data))
+                    setattr(self, strand_hash_name, _HASH_FUNCTIONS[strand_name](strand_data))
                 else:
                     setattr(self, strand_hash_name, None)
 

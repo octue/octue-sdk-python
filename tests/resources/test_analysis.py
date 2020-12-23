@@ -1,4 +1,4 @@
-from octue.resources.analysis import HASH_FUNCTIONS, Analysis
+from octue.resources.analysis import _HASH_FUNCTIONS, Analysis
 from twined import Twine
 from ..base import BaseTestCase
 
@@ -30,7 +30,7 @@ class AnalysisTestCase(BaseTestCase):
         """ Ensures that the hash attributes of Analysis instances are None if none of the relevant strands are provided
         """
         analysis = Analysis(twine="{}")
-        for strand_name in HASH_FUNCTIONS:
+        for strand_name in _HASH_FUNCTIONS:
             self.assertIsNone(getattr(analysis, f"{strand_name}_hash"))
 
     def test_analysis_hash_attributes_are_populated_when_relevant_strands_are_present(self):
@@ -43,7 +43,7 @@ class AnalysisTestCase(BaseTestCase):
             input_manifest=self.create_valid_manifest(),
         )
 
-        for strand_name in HASH_FUNCTIONS:
+        for strand_name in _HASH_FUNCTIONS:
             hash_ = getattr(analysis, f"{strand_name}_hash")
             self.assertTrue(isinstance(hash_, str))
             self.assertTrue(len(hash_) == 64)
