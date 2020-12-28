@@ -2,20 +2,21 @@ import logging
 import os
 
 from octue.exceptions import BrokenSequenceException, InvalidInputException, UnexpectedNumberOfResultsException
-from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
+from octue.mixins import Filterable, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 
 
 module_logger = logging.getLogger(__name__)
 
 
-class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable):
+class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable, Filterable):
     """ A representation of a dataset, containing files, tags, etc
 
     This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
     list of output files (results) and their properties that will be sent back to the octue system.
     """
 
+    _ATTRIBUTES_TO_FILTER_BY = ("files",)
     _ATTRIBUTES_TO_HASH = "files", "name", "tags"
 
     def __init__(self, id=None, logger=None, path=None, path_from=None, base_from=None, tags=None, **kwargs):
@@ -35,11 +36,28 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             else:
                 self.files.append(Datafile(**fi, path_from=self, base_from=self))
 
+        Filterable.__init__(self, filters=self._build_filters())
         self.__dict__.update(**kwargs)
 
     @property
     def name(self):
         return str(os.path.split(self.path)[-1])
+
+    def __iter__(self):
+        yield from self.files
+
+    def _build_filters(self):
+        return {
+            "name__icontains": ("files", lambda file, filter_value: filter_value.lower() in file.name.lower()),
+            "name__contains": ("files", lambda file, filter_value: filter_value in file.name),
+            "name__ends_with": ("files", lambda file, filter_value: file.name.endswith(filter_value)),
+            "name__starts_with": ("files", lambda file, filter_value: file.name.startswith(filter_value)),
+            "tag__exact": ("files", lambda file, filter_value: filter_value in file.tags),
+            "tag__starts_with": ("files", lambda file, filter_value: file.tags.starts_with(filter_value)),
+            "tag__ends_with": ("files", lambda file, filter_value: file.tags.ends_with(filter_value)),
+            "tag__contains": ("files", lambda file, filter_value: file.tags.contains(filter_value)),
+            "sequence__notnone": ("files", lambda file, filter_value: file.sequence is not None),
+        }
 
     def append(self, *args, **kwargs):
         """ Add a data/results file to the manifest
@@ -67,64 +85,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             # Append a single file, constructed by passing the arguments through to DataFile()
             self.files.append(Datafile(**kwargs))
 
-    def get_files(self, field_lookup, files=None, filter_value=None):
-        """ Get a list of data files in a manifest whose name contains the input string
-
-        Django field lookups: https://docs.djangoproject.com/en/3.1/ref/models/querysets/
-
-        :parameter field_lookup: filter specifier. Inspired by django queryset filters which in turn mimic SQL syntax.
-        Comprised of "<field_name>__<filter_kind>", so 'name__icontains' would perform case-insensitive matching on
-        Datafile.name. See https://github.com/octue/octue-sdk-python/issues/7 Currently supported combinations:
-
-            "name__icontains"
-            "name__contains"
-            "name__endswith"
-            "tag__exact"
-            "tag__startswith"
-            "tag__endswith"
-            "sequence__gt"
-
-        :parameter files: List of files to filter. This allows multiple separate filters to be applied. By default the
-        entire list of files in the dataset is used.
-        :type files: list
-
-        :parameter filter_value: Value, typically of the same type as the field, used to filter against.
-        : type filter_value: number, str
-
-        :return: results list of matching datafiles
-        :rtype: list(Datafile)
-        """
-
-        # Search through the input list of files or by default all files in the dataset
-        files = files or self.files
-
-        # Frequent error of typing only a single underscore causes no results to be returned... catch it
-        if "__" not in field_lookup:
-            raise InvalidInputException(
-                f"Invalid field lookup '{field_lookup}'. Field lookups should be in the form '<field_name>__'<filter_kind>"
-            )
-
-        field_lookups = {
-            "name__icontains": lambda filter_value, file: filter_value.lower() in file.name.lower(),
-            "name__contains": lambda filter_value, file: filter_value in file.name,
-            "name__ends_with": lambda filter_value, file: file.name.endswith(filter_value),
-            "name__starts_with": lambda filter_value, file: file.name.startswith(filter_value),
-            "tag__exact": lambda filter_value, file: filter_value in file.tags,
-            "tag__starts_with": lambda filter_value, file: file.tags.starts_with(filter_value),
-            "tag__ends_with": lambda filter_value, file: file.tags.ends_with(filter_value),
-            "tag__contains": lambda filter_value, file: file.tags.contains(filter_value),
-            "sequence__notnone": lambda filter_value, file: file.sequence is not None,
-        }
-
-        results = []
-
-        for file in files:
-            if field_lookups[field_lookup](filter_value, file):
-                results.append(file)
-
-        return results
-
-    def get_file_sequence(self, field_lookup, files=None, filter_value=None, strict=True):
+    def get_file_sequence(self, field_lookup, filter_value=None, strict=True):
         """ Get an ordered sequence of files matching a criterion
 
         Accepts the same search arguments as `get_files`.
@@ -137,14 +98,14 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         :rtype: list(Datafile)
         """
 
-        results = self.get_files(field_lookup, files=files, filter_value=filter_value)
-        results = self.get_files("sequence__notnone", files=results)
+        results = self.filter(field_lookup, filter_value=filter_value)
+        results = results.filter("sequence__notnone", filter_value=None)
 
         def get_sequence_number(file):
             return file.sequence
 
         # Sort the results on ascending sequence number
-        results.sort(key=get_sequence_number)
+        results = sorted(results, key=get_sequence_number)
 
         # Check sequence is unique and sequential
         if strict:
@@ -164,7 +125,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         :param tag_string: if this string appears as an exact match in the tags
         :return: DataFile object
         """
-        results = self.get_files("tag__exact", filter_value=tag_string)
+        results = self.filter("tag__exact", filter_value=tag_string)
         if len(results) > 1:
             raise UnexpectedNumberOfResultsException("More than one result found when searching for a file by tag")
         elif len(results) == 0:
