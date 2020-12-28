@@ -158,7 +158,7 @@ class DatasetTestCase(BaseTestCase):
         resource = Dataset(files=files)
 
         # Check working for single result
-        self.assertIs(resource.get_file_by_tag("three").files[0], files[2])
+        self.assertIs(resource.get_file_by_tag("three"), files[2])
 
         # Check raises for too many results
         with self.assertRaises(exceptions.UnexpectedNumberOfResultsException) as e:
