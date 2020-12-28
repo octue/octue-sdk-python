@@ -9,8 +9,8 @@ class MyClass(Filterable):
 
 
 class TestFilterable(BaseTestCase):
-    def test_no_attributes_to_filter_by_results_in_error(self):
-        """ Test that an AttributeError is raised if _ATTRIBUTES_TO_FILTER_BY is not specified. """
+    def test_no_filterable_attributes_results_in_error(self):
+        """ Test that an AttributeError is raised if _FILTERABLE_ATTRIBUTES is not specified. """
 
         class ClassWithNoFilterableAttributes(Filterable):
             pass
@@ -18,11 +18,11 @@ class TestFilterable(BaseTestCase):
         with self.assertRaises(AttributeError):
             ClassWithNoFilterableAttributes()
 
-    def test_empty_tuple_of_attributes_to_filter_by_results_in_error(self):
-        """ Test that an AttributeError is raised if _ATTRIBUTES_TO_FILTER_BY is empty. """
+    def test_empty_tuple_of_filterable_attributes_results_in_error(self):
+        """ Test that an AttributeError is raised if _FILTERABLE_ATTRIBUTES is empty. """
 
         class ClassWithEmptyFilterableAttributes(Filterable):
-            _ATTRIBUTES_TO_FILTER_BY = tuple()
+            _FILTERABLE_ATTRIBUTES = tuple()
 
         with self.assertRaises(AttributeError):
             ClassWithEmptyFilterableAttributes()
@@ -43,7 +43,7 @@ class TestFilterable(BaseTestCase):
 
     def test_filter_names_are_built_correctly(self):
         """ Ensure the filter names are built correctly for each attribute to be filtered_by. """
-        MyClass._ATTRIBUTES_TO_FILTER_BY = ("my_attribute", "another_attribute")
+        MyClass._FILTERABLE_ATTRIBUTES = ("my_attribute", "another_attribute")
         my_class = MyClass()
 
         self.assertEqual(
@@ -66,7 +66,7 @@ class TestFilterable(BaseTestCase):
 
     def test_only_attributes_specified_used_to_create_filters(self):
         """ Ensure only the attributes specified are used to create filters. """
-        MyClass._ATTRIBUTES_TO_FILTER_BY = ("my_attribute",)
+        MyClass._FILTERABLE_ATTRIBUTES = ("my_attribute",)
         my_class = MyClass()
 
         self.assertEqual(
@@ -83,7 +83,7 @@ class TestFilterable(BaseTestCase):
 
     def test_filter(self):
         class ClassToFilter(Filterable):
-            _ATTRIBUTES_TO_FILTER_BY = ("a", "b")
+            _FILTERABLE_ATTRIBUTES = ("a", "b")
 
             def __init__(self, a, b, *args, **kwargs):
                 self.a = a

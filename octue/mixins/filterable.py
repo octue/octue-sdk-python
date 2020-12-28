@@ -15,13 +15,13 @@ BASE_FILTERS = (
 
 class Filterable:
 
-    _ATTRIBUTES_TO_FILTER_BY = None
+    _FILTERABLE_ATTRIBUTES = None
 
     def __init__(self, filters=None, *args, **kwargs):
 
-        if not isinstance(self._ATTRIBUTES_TO_FILTER_BY, tuple) or len(self._ATTRIBUTES_TO_FILTER_BY) == 0:
+        if not isinstance(self._FILTERABLE_ATTRIBUTES, tuple) or len(self._FILTERABLE_ATTRIBUTES) == 0:
             raise AttributeError(
-                "The '_ATTRIBUTES_TO_FILTER_BY' attribute of Filterable subclasses must specify which attributes to "
+                "The '_FILTERABLE_ATTRIBUTES' attribute of Filterable subclasses must specify which attributes to "
                 "filter by as a non-zero length tuple."
             )
 
@@ -54,7 +54,7 @@ class Filterable:
 
         filters = {}
 
-        for attribute_name in self._ATTRIBUTES_TO_FILTER_BY:
+        for attribute_name in self._FILTERABLE_ATTRIBUTES:
 
             for base_filter_name, filter_ in BASE_FILTERS:
                 filter_name = f"{attribute_name.strip('s_')}__{base_filter_name}"

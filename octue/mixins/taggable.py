@@ -17,7 +17,7 @@ class TagGroup(Filterable):
     """ Class to handle a group of tags as a string.
     """
 
-    _ATTRIBUTES_TO_FILTER_BY = ("tags",)
+    _FILTERABLE_ATTRIBUTES = ("tags",)
 
     def __init__(self, tags, *args, **kwargs):
         """ Construct a TagGroup
