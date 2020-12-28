@@ -8,7 +8,7 @@ BASE_FILTERS = (
     ("contains", lambda item, filter_value: filter_value in item),
     ("ends_with", lambda item, filter_value: item.endswith(filter_value)),
     ("starts_with", lambda item, filter_value: item.startswith(filter_value)),
-    ("exact", lambda item, filter_value: filter_value in item),
+    ("exact", lambda item, filter_value: filter_value == item),
     ("notnone", lambda item, filter_value: item is not None),
 )
 
