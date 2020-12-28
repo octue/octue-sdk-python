@@ -31,14 +31,15 @@ class Filterable:
         if filter_name not in self._filters:
             raise ValueError(f"Filtering by {filter_name} is not currently supported.")
 
-        attribute_name, filter_ = self._filters[filter_name]
+        filtered_attribute_name, filter_ = self._filters[filter_name]
 
-        return FilteredSet(
-            iterable={item for item in self._get_nested_attribute(attribute_name) if filter_(item, filter_value)},
-            class_to_cast_to=self.__class__,
-            filters=self._filters,
-            attributes_to_filter_by=self._ATTRIBUTES_TO_FILTER_BY,
-        )
+        filtered_items = [
+            item for item in self._get_nested_attribute(filtered_attribute_name) if filter_(item, filter_value)
+        ]
+
+        # instance_attributes = vars(self).copy()
+        # del instance_attributes[filtered_attribute_name]
+        return self.__class__(**{filtered_attribute_name: filtered_items})
 
     def _build_filters(self):
 
@@ -54,20 +55,3 @@ class Filterable:
 
     def _get_nested_attribute(self, attribute_name):
         return functools.reduce(getattr, attribute_name.split("."), self)
-
-
-class FilteredSet(Filterable):
-    def __init__(self, iterable, class_to_cast_to, attributes_to_filter_by, *args, **kwargs):
-        self._iterable = iterable
-        self._class_to_cast_to = class_to_cast_to
-        self._ATTRIBUTES_TO_FILTER_BY = attributes_to_filter_by
-        super().__init__(*args, **kwargs)
-
-    def __repr__(self):
-        return f"<{type(self).__name__}(iterable={self._iterable!r}>"
-
-    def __iter__(self):
-        yield from self._iterable
-
-    def as_object(self):
-        return self._class_to_cast_to(self._iterable, filters=self._filters)

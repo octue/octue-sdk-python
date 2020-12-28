@@ -17,7 +17,7 @@ class TagGroup(Filterable):
     """ Class to handle a group of tags as a string.
     """
 
-    _ATTRIBUTES_TO_FILTER_BY = ("_tags",)
+    _ATTRIBUTES_TO_FILTER_BY = ("tags",)
 
     def __init__(self, tags, *args, **kwargs):
         """ Construct a TagGroup
@@ -30,7 +30,7 @@ class TagGroup(Filterable):
             tags = set(tags.strip().split())
 
         elif isinstance(tags, TagGroup):
-            tags = set(tags._tags)
+            tags = set(tags.tags)
 
         # Tags can be some other iterable than a list, but each tag must be a string
         elif not hasattr(tags, "__iter__"):
@@ -38,18 +38,18 @@ class TagGroup(Filterable):
                 "Tags must be expressed as a whitespace-delimited string or an iterable of strings"
             )
 
-        self._tags = self._clean(tags)
+        self.tags = self._clean(tags)
         kwargs["filters"] = {
-            "tag__exact": ("_tags", lambda tag, filter_value: filter_value == tag),
-            "tag__starts_with": ("_tags", lambda tag, filter_value: self.starts_with(filter_value, tags=[tag])),
-            "tag__ends_with": ("_tags", lambda tag, filter_value: self.ends_with(filter_value, tags=[tag])),
-            "tag__contains": ("_tags", lambda tag, filter_value: self.contains(filter_value, tags=[tag])),
+            "tag__exact": ("tags", lambda tag, filter_value: filter_value == tag),
+            "tag__starts_with": ("tags", lambda tag, filter_value: self.starts_with(filter_value, tags=[tag])),
+            "tag__ends_with": ("tags", lambda tag, filter_value: self.ends_with(filter_value, tags=[tag])),
+            "tag__contains": ("tags", lambda tag, filter_value: self.contains(filter_value, tags=[tag])),
             "subtag__starts_with": (
-                "_tags",
+                "tags",
                 lambda tag, filter_value: self.starts_with(filter_value, consider_separate_subtags=True, tags=[tag]),
             ),
             "subtag__ends_with": (
-                "_tags",
+                "tags",
                 lambda tag, filter_value: self.ends_with(filter_value, consider_separate_subtags=True, tags=[tag]),
             ),
         }
@@ -61,14 +61,14 @@ class TagGroup(Filterable):
 
     def __eq__(self, other):
         """ Does this TagGroup have the same tags as another TagGroup? """
-        return self._tags == other._tags
+        return self.tags == other.tags
 
     def __iter__(self):
         """ Iterate over the tags in the TagGroup. """
-        yield from self._tags
+        yield from self.tags
 
     def __len__(self):
-        return len(self._tags)
+        return len(self.tags)
 
     @staticmethod
     def _clean(tags):
@@ -94,26 +94,26 @@ class TagGroup(Filterable):
 
     def _yield_subtags(self, tags=None):
         """ Yield the colon-separated subtags of a tag as strings, including the main tag. """
-        for tag in tags or self._tags:
+        for tag in tags or self.tags:
             yield from tag.split(":")
 
     def add_tags(self, *args):
         """ Adds one or more new tag strings to the object tags. New tags will be cleaned and validated.
         """
-        self._tags |= self._clean(args)
+        self.tags |= self._clean(args)
 
     def has_tag(self, tag):
         """ Returns true if any of the tags exactly matches value, allowing test like `if 'a' in TagGroup('a b')`
         """
-        return tag in self._tags
+        return tag in self.tags
 
     def get_subtags(self, tags=None):
         """ Return a new TagGroup instance with all the subtags. """
-        return TagGroup(set(self._yield_subtags(tags or self._tags)))
+        return TagGroup(set(self._yield_subtags(tags or self.tags)))
 
     def starts_with(self, value, consider_separate_subtags=False, tags=None):
         """ Implement a startswith method that returns true if any of the tags starts with value """
-        tags = tags or self._tags
+        tags = tags or self.tags
 
         if not consider_separate_subtags:
             return any(tag.startswith(value) for tag in tags)
@@ -122,7 +122,7 @@ class TagGroup(Filterable):
 
     def ends_with(self, value, consider_separate_subtags=False, tags=None):
         """ Implement an endswith method that returns true if any of the tags endswith value. """
-        tags = tags or self._tags
+        tags = tags or self.tags
 
         if not consider_separate_subtags:
             return any(tag.endswith(value) for tag in tags)
@@ -131,7 +131,7 @@ class TagGroup(Filterable):
 
     def contains(self, value, tags=None):
         """ Implement a contains method that returns true if any of the tags contains value. """
-        return any(value in tag for tag in tags or self._tags)
+        return any(value in tag for tag in tags or self.tags)
 
     def serialise(self):
         """ Serialise tags to a sorted list string. """
