@@ -38,9 +38,15 @@ class Filterable:
             item for item in self._get_nested_attribute(filtered_attribute_name) if filter_(item, filter_value)
         ]
 
-        # instance_attributes = vars(self).copy()
-        # del instance_attributes[filtered_attribute_name]
-        return self.__class__(**{filtered_attribute_name: filtered_items})
+        other_instance_attributes = {
+            name: attribute
+            for name, attribute in vars(self).items()
+            if name != filtered_attribute_name and not name.startswith("_")
+        }
+
+        # Instantiate new inheriting class instance with the relevant attribute filtered and the other attributes
+        # unchanged.
+        return self.__class__(**{filtered_attribute_name: filtered_items, **other_instance_attributes})
 
     def _build_base_filters(self):
 

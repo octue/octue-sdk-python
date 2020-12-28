@@ -90,6 +90,7 @@ class TestFilterable(BaseTestCase):
                 self.b = b
                 super().__init__(*args, **kwargs)
 
-        class_to_filter = ClassToFilter(a={1, 2, 3}, b=["filter", "this", "up"])
-        filtered_set = class_to_filter.filter("b__contains", "p")
-        self.assertEqual(set(filtered_set), {"up"})
+        instance_to_filter = ClassToFilter(a={1, 2, 3}, b=["filter", "this", "up"])
+        filtered_instance = instance_to_filter.filter("b__contains", "p")
+        self.assertEqual(filtered_instance.a, {1, 2, 3})
+        self.assertEqual(filtered_instance.b, ["up"])
