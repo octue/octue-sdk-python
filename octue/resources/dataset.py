@@ -134,4 +134,4 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         elif len(results) == 0:
             raise UnexpectedNumberOfResultsException("No files found with this tag")
 
-        return results[0]
+        return Dataset(files=[results.files[0]])

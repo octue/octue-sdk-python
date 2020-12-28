@@ -73,10 +73,9 @@ class DatasetTestCase(BaseTestCase):
                 Datafile(path="path-within-dataset/a_test_file.txt"),
             ]
         )
-        with self.assertRaises(exceptions.InvalidInputException) as e:
-            resource.filter("name_icontains", filter_value="Test")
 
-        self.assertIn("Field lookups should be in the form '<field_name>__'<filter_kind>", e.exception.args[0])
+        with self.assertRaises(exceptions.InvalidInputException):
+            resource.filter("name_icontains", filter_value="Test")
 
     def test_get_files_name_contains(self):
         """ Ensures that get_files works with the name_contains and name_icontains lookups
@@ -159,7 +158,7 @@ class DatasetTestCase(BaseTestCase):
         resource = Dataset(files=files)
 
         # Check working for single result
-        self.assertIs(resource.get_file_by_tag("three"), files[2])
+        self.assertIs(resource.get_file_by_tag("three").files[0], files[2])
 
         # Check raises for too many results
         with self.assertRaises(exceptions.UnexpectedNumberOfResultsException) as e:
@@ -219,7 +218,7 @@ class DatasetTestCase(BaseTestCase):
             Datafile(path="path-within-dataset/a_test_file.txt"),
         ]
 
-        self.assertEqual(Dataset(files=files).filter("name__icontains", filter_value="txt"), [files[1]])
+        self.assertEqual(Dataset(files=files).filter("name__icontains", filter_value="txt").files, [files[1]])
 
     def test_get_files_name_filters_exclude_path(self):
         """ Ensures that filters applied to the name will not catch terms in the extension

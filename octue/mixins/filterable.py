@@ -1,5 +1,7 @@
 import functools
 
+from octue import exceptions
+
 
 BASE_FILTERS = (
     ("icontains", lambda item, filter_value: filter_value.lower() in item.lower()),
@@ -30,7 +32,7 @@ class Filterable:
     def filter(self, filter_name=None, filter_value=None):
 
         if filter_name not in self._filters:
-            raise ValueError(f"Filtering by {filter_name} is not currently supported.")
+            raise exceptions.InvalidInputException(f"Filtering by {filter_name} is not currently supported.")
 
         filtered_attribute_name, filter_ = self._filters[filter_name]
 
