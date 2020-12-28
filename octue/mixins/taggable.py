@@ -39,20 +39,7 @@ class TagGroup(Filterable):
             )
 
         self.tags = self._clean(tags)
-        kwargs["filters"] = {
-            "tag__exact": ("tags", lambda tag, filter_value: filter_value == tag),
-            "tag__starts_with": ("tags", lambda tag, filter_value: self.starts_with(filter_value, tags=[tag])),
-            "tag__ends_with": ("tags", lambda tag, filter_value: self.ends_with(filter_value, tags=[tag])),
-            "tag__contains": ("tags", lambda tag, filter_value: self.contains(filter_value, tags=[tag])),
-            "subtag__starts_with": (
-                "tags",
-                lambda tag, filter_value: self.starts_with(filter_value, consider_separate_subtags=True, tags=[tag]),
-            ),
-            "subtag__ends_with": (
-                "tags",
-                lambda tag, filter_value: self.ends_with(filter_value, consider_separate_subtags=True, tags=[tag]),
-            ),
-        }
+        kwargs["filters"] = self._build_filters()
         super().__init__(*args, **kwargs)
 
     def __str__(self):
@@ -69,6 +56,22 @@ class TagGroup(Filterable):
 
     def __len__(self):
         return len(self.tags)
+
+    def _build_filters(self):
+        return {
+            "tag__exact": ("tags", lambda tag, filter_value: filter_value == tag),
+            "tag__starts_with": ("tags", lambda tag, filter_value: self.starts_with(filter_value, tags=[tag])),
+            "tag__ends_with": ("tags", lambda tag, filter_value: self.ends_with(filter_value, tags=[tag])),
+            "tag__contains": ("tags", lambda tag, filter_value: self.contains(filter_value, tags=[tag])),
+            "subtag__starts_with": (
+                "tags",
+                lambda tag, filter_value: self.starts_with(filter_value, consider_separate_subtags=True, tags=[tag]),
+            ),
+            "subtag__ends_with": (
+                "tags",
+                lambda tag, filter_value: self.ends_with(filter_value, consider_separate_subtags=True, tags=[tag]),
+            ),
+        }
 
     @staticmethod
     def _clean(tags):
