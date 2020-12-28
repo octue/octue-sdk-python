@@ -18,7 +18,12 @@ class Filterable:
     _FILTERABLE_ATTRIBUTES = None
 
     def __init__(self, filters=None, *args, **kwargs):
+        """ Instantiate a Filterable instance. The `filters` parameter should be a dictionary in this form:
+        {<name_of_filter>: (name_of_attribute_to_filter, <boolean function with `item` and `filter_value` arguments>)}
 
+        Any number of filters can be provided. These filters can then be called using their names in the `filter`
+        method.
+        """
         if not isinstance(self._FILTERABLE_ATTRIBUTES, tuple) or len(self._FILTERABLE_ATTRIBUTES) == 0:
             raise AttributeError(
                 "The '_FILTERABLE_ATTRIBUTES' attribute of Filterable subclasses must specify which attributes to "
@@ -30,7 +35,9 @@ class Filterable:
         super().__init__(*args, **kwargs)
 
     def filter(self, filter_name=None, filter_value=None):
-
+        """ Filter the instance using the filter function identified by `filter_name` parametrised by the desired
+        `filter_value`.
+        """
         if filter_name not in self._filters:
             raise exceptions.InvalidInputException(f"Filtering by {filter_name} is not currently supported.")
 
@@ -51,7 +58,7 @@ class Filterable:
         return self.__class__(**{filtered_attribute_name: filtered_items, **other_instance_attributes})
 
     def _build_base_filters(self):
-
+        """ Build the standard set of base filters based on the given filterable attributes. """
         filters = {}
 
         for attribute_name in self._FILTERABLE_ATTRIBUTES:
@@ -63,4 +70,7 @@ class Filterable:
         return filters
 
     def _get_nested_attribute(self, attribute_name):
+        """ Get a nested attribute from the instance (e.g. self.my_attribute.its_attribute - `getattr` only supports
+        first-level attribute getting).
+        """
         return functools.reduce(getattr, attribute_name.split("."), self)
