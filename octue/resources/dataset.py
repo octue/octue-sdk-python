@@ -46,6 +46,9 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
     def __iter__(self):
         yield from self.files
 
+    def __len__(self):
+        return len(self.files)
+
     def _build_filters(self):
         return {
             "name__icontains": ("files", lambda file, filter_value: filter_value.lower() in file.name.lower()),
