@@ -8,6 +8,15 @@ class MyClass(Filterable):
     another_attribute = "Cat"
 
 
+class ClassToFilter(Filterable):
+    _FILTERABLE_ATTRIBUTES = ("a", "b")
+
+    def __init__(self, a, b, *args, **kwargs):
+        self.a = a
+        self.b = b
+        super().__init__(*args, **kwargs)
+
+
 class TestFilterable(BaseTestCase):
     def test_no_filterable_attributes_results_in_error(self):
         """ Test that an AttributeError is raised if _FILTERABLE_ATTRIBUTES is not specified. """
@@ -82,15 +91,14 @@ class TestFilterable(BaseTestCase):
         )
 
     def test_filter(self):
-        class ClassToFilter(Filterable):
-            _FILTERABLE_ATTRIBUTES = ("a", "b")
-
-            def __init__(self, a, b, *args, **kwargs):
-                self.a = a
-                self.b = b
-                super().__init__(*args, **kwargs)
-
         instance_to_filter = ClassToFilter(a={1, 2, 3}, b=["filter", "this", "up"])
         filtered_instance = instance_to_filter.filter("b__contains", "p")
         self.assertEqual(filtered_instance.a, {1, 2, 3})
         self.assertEqual(filtered_instance.b, ["up"])
+
+    def test_filtering_by_multiple_attributes(self):
+        instance_to_filter = ClassToFilter(a={1, 2, 3}, b=["filter", "this", "up"])
+        filtered_instance = instance_to_filter.filter("b__contains", "p")
+        twice_filtered_instances = filtered_instance.filter("a__exact", 1)
+        self.assertEqual(twice_filtered_instances.a, [1])
+        self.assertEqual(twice_filtered_instances.b, ["up"])
