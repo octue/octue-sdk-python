@@ -106,19 +106,21 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     @property
     def last_modified(self):
-        return os.path.getmtime(self.absolute_path)
+        return os.path.getmtime(self.absolute_path) if self.exists() else None
 
     @property
     def size_bytes(self):
-        return os.path.getsize(self.absolute_path)
+        return os.path.getsize(self.absolute_path) if self.exists() else None
 
     def _calculate_hash(self):
         """ Calculate the hash of the file. """
         hash = blake3()
-        with open(self.absolute_path, "rb") as f:
-            # Read and update hash value in blocks of 4K
-            for byte_block in iter(lambda: f.read(4096), b""):
-                hash.update(byte_block)
+
+        if self.exists():
+            with open(self.absolute_path, "rb") as f:
+                # Read and update hash value in blocks of 4K
+                for byte_block in iter(lambda: f.read(4096), b""):
+                    hash.update(byte_block)
 
         return super()._calculate_hash(hash)
 
