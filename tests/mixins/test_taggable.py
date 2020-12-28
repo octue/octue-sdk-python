@@ -61,27 +61,27 @@ class TaggableTestCase(BaseTestCase):
     def test_valid_tags(self):
         """ Ensures valid tags do not raise an error
         """
-        tgd = MyTaggable()
-        tgd.add_tags("a-valid-tag")
-        tgd.add_tags("a:tag")
-        tgd.add_tags("a:-tag")  # <--- yes, this is valid deliberately as it allows people to do negation
-        tgd.add_tags("a1829tag")
-        tgd.add_tags("1829")
-        tgd.add_tags("number:1829")
-        tgd.add_tags("multiple:discriminators:used")
+        taggable = MyTaggable()
+        taggable.add_tags("a-valid-tag")
+        taggable.add_tags("a:tag")
+        taggable.add_tags("a:-tag")  # <--- yes, this is valid deliberately as it allows people to do negation
+        taggable.add_tags("a1829tag")
+        taggable.add_tags("1829")
+        taggable.add_tags("number:1829")
+        taggable.add_tags("multiple:discriminators:used")
         self.assertEqual(
-            set(tgd.tags),
+            set(taggable.tags),
             {"a-valid-tag", "a:tag", "a:-tag", "a1829tag", "1829", "number:1829", "multiple:discriminators:used"},
         )
 
     def test_invalid_tags(self):
         """ Ensures invalid tags raise an error
         """
-        tgd = MyTaggable()
+        taggable = MyTaggable()
 
         for tag in "-bah", "humbug:", "SHOUTY", r"back\slashy", {"not-a": "string"}:
             with self.assertRaises(exceptions.InvalidTagException):
-                tgd.add_tags(tag)
+                taggable.add_tags(tag)
 
     def test_mixture_valid_invalid(self):
         """ Ensures that adding a variety of tags, some of which are invalid, doesn't partially add them to the object
