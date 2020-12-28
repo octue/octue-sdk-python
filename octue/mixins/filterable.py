@@ -23,7 +23,8 @@ class Filterable:
                 "filter by as a non-zero length tuple."
             )
 
-        self._filters = filters or self._build_filters()
+        filters = filters or {}
+        self._filters = {**self._build_base_filters(), **filters}
         super().__init__(*args, **kwargs)
 
     def filter(self, filter_name=None, filter_value=None):
@@ -41,7 +42,7 @@ class Filterable:
         # del instance_attributes[filtered_attribute_name]
         return self.__class__(**{filtered_attribute_name: filtered_items})
 
-    def _build_filters(self):
+    def _build_base_filters(self):
 
         filters = {}
 
