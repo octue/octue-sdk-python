@@ -29,7 +29,7 @@ class Tag(Filteree):
     @property
     @lru_cache(maxsize=1)
     def subtags(self):
-        return self.name.split(":")
+        return FilterSet({Tag(subtag_name) for subtag_name in (self.name.split(":"))})
 
     def __eq__(self, other):
         if not isinstance(other, Tag):
@@ -38,6 +38,9 @@ class Tag(Filteree):
 
     def __hash__(self):
         return hash(f"{type(self).__name__}{self.name}")
+
+    def __contains__(self, item):
+        return item in self.name
 
     def __repr__(self):
         return repr(self.name)
@@ -54,7 +57,7 @@ class Tag(Filteree):
         if not consider_separate_subtags:
             return self.name.endswith(value)
 
-        return any(subtag.endswith(value) for subtag in self.subtags)
+        return any(subtag.ends_with(value) for subtag in self.subtags)
 
     def contains(self, value):
         """ Implement a contains method that returns true if any of the tags contains value. """
@@ -100,7 +103,10 @@ class TagGroup:
             self.tags = FilterSet(tags.tags)
 
         # Tags can be some other iterable than a list, but each tag must be a string
-        elif not hasattr(tags, "__iter__"):
+        elif hasattr(tags, "__iter__"):
+            self.tags = FilterSet(tags)
+
+        else:
             raise InvalidTagException(
                 "Tags must be expressed as a whitespace-delimited string or an iterable of strings"
             )
@@ -111,6 +117,8 @@ class TagGroup:
 
     def __eq__(self, other):
         """ Does this TagGroup have the same tags as another TagGroup? """
+        if not isinstance(other, TagGroup):
+            return False
         return self.tags == other.tags
 
     def __iter__(self):
@@ -136,7 +144,7 @@ class TagGroup:
     def has_tag(self, tag):
         """ Returns true if any of the tags exactly matches value, allowing test like `if 'a' in TagGroup('a b')`
         """
-        return tag in self.tags
+        return tag in self.tags or Tag(tag) in self.tags
 
     def get_subtags(self, tags=None):
         """ Return a new TagGroup instance with all the subtags. """
@@ -147,22 +155,22 @@ class TagGroup:
         tags = tags or self.tags
 
         if not consider_separate_subtags:
-            return any(tag.startswith(value) for tag in tags)
+            return any(tag.starts_with(value) for tag in tags)
 
-        return any(subtag.startswith(value) for subtag in self._yield_subtags(tags))
+        return any(subtag.starts_with(value) for subtag in self._yield_subtags(tags))
 
     def ends_with(self, value, consider_separate_subtags=False, tags=None):
         """ Implement an endswith method that returns true if any of the tags endswith value. """
         tags = tags or self.tags
 
         if not consider_separate_subtags:
-            return any(tag.endswith(value) for tag in tags)
+            return any(tag.ends_with(value) for tag in tags)
 
-        return any(subtag.endswith(value) for subtag in self._yield_subtags(tags))
+        return any(subtag.ends_with(value) for subtag in self._yield_subtags(tags))
 
-    def contains(self, value, tags=None):
+    def contains(self, value):
         """ Implement a contains method that returns true if any of the tags contains value. """
-        return any(value in tag for tag in tags or self.tags)
+        return any(value in tag for tag in self.tags)
 
     def serialise(self):
         """ Serialise tags to a sorted list string. """
