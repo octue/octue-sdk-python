@@ -101,8 +101,8 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         :rtype: list(Datafile)
         """
 
-        results = self.filter(field_lookup, filter_value=filter_value)
-        results = results.filter("sequence__not_none", filter_value=None)
+        results = self.files.filter(field_lookup, filter_value=filter_value)
+        results = results.filter("sequence__not_none")
 
         def get_sequence_number(file):
             return file.sequence
