@@ -2,21 +2,22 @@ import logging
 import os
 
 from octue.exceptions import BrokenSequenceException, InvalidInputException, UnexpectedNumberOfResultsException
-from octue.mixins import Filterable, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
+from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
+from octue.resources.filterset import FilterSet
 
 
 module_logger = logging.getLogger(__name__)
 
 
-class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable, Filterable):
+class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable):
     """ A representation of a dataset, containing files, tags, etc
 
     This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
     list of output files (results) and their properties that will be sent back to the octue system.
     """
 
-    _FILTERABLE_ATTRIBUTES = ("files",)
+    _FILTERSET_ATTRIBUTE = "files"
     _ATTRIBUTES_TO_HASH = "files", "name", "tags"
 
     def __init__(self, id=None, logger=None, path=None, path_from=None, base_from=None, tags=None, **kwargs):
@@ -29,14 +30,13 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         #  Add a proper `decoder` argument  to the load_json utility in twined so that datasets, datafiles and manifests
         #  get initialised properly, then remove this hackjob.
         files = kwargs.pop("files", list())
-        self.files = []
+        self.files = FilterSet()
         for fi in files:
             if isinstance(fi, Datafile):
-                self.files.append(fi)
+                self.files.add(fi)
             else:
-                self.files.append(Datafile(**fi, path_from=self, base_from=self))
+                self.files.add(Datafile(**fi, path_from=self, base_from=self))
 
-        Filterable.__init__(self, filters=self._build_filters())
         self.__dict__.update(**kwargs)
 
     @property
@@ -82,11 +82,11 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
                 raise InvalidInputException(
                     'Object "{}" must be of class Datafile to append it to a Dataset'.format(args[0])
                 )
-            self.files.append(args[0])
+            self.files.add(args[0])
 
         else:
-            # Append a single file, constructed by passing the arguments through to DataFile()
-            self.files.append(Datafile(**kwargs))
+            # Add a single file, constructed by passing the arguments through to DataFile()
+            self.files.add(Datafile(**kwargs))
 
     def get_file_sequence(self, field_lookup, filter_value=None, strict=True):
         """ Get an ordered sequence of files matching a criterion
@@ -134,4 +134,4 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         elif len(results) == 0:
             raise UnexpectedNumberOfResultsException("No files found with this tag")
 
-        return results.files[0]
+        return list(results.files)[0]

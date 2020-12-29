@@ -2,7 +2,7 @@ import copy
 from tests.base import BaseTestCase
 
 from octue import exceptions
-from octue.resources import Datafile, Dataset
+from octue.resources import Datafile, Dataset, FilterSet
 
 
 class DatasetTestCase(BaseTestCase):
@@ -218,7 +218,7 @@ class DatasetTestCase(BaseTestCase):
             Datafile(path="path-within-dataset/a_test_file.txt"),
         ]
 
-        self.assertEqual(Dataset(files=files).filter("name__icontains", filter_value="txt").files, [files[1]])
+        self.assertEqual(Dataset(files=files).filter("name__icontains", filter_value="txt").files, FilterSet(files[1]))
 
     def test_get_files_name_filters_exclude_path(self):
         """ Ensures that filters applied to the name will not catch terms in the extension
