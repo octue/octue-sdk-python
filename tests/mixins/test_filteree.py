@@ -8,9 +8,9 @@ class TestFilteree(BaseTestCase):
         filteree = Filteree()
 
         with self.assertRaises(ValueError):
-            filteree.filter(None, None)
+            filteree.check_attribute(None, None)
 
-    def test_filter(self):
+    def test_check_attribute(self):
         class MyClass(Filteree):
             _FILTERABLE_ATTRIBUTES = ("name", "is_alive", "iterable")
 
@@ -20,6 +20,6 @@ class TestFilteree(BaseTestCase):
                 self.iterable = iterable
 
         filterable_thing = MyClass(name="Fred", is_alive=True, iterable={1, 2, 3})
-        self.assertTrue(filterable_thing.check("name__icontains", "f"))
-        self.assertFalse(filterable_thing.check("is_alive__is", False))
-        self.assertTrue(filterable_thing.check("iterable__contains", 3))
+        self.assertTrue(filterable_thing.check_attribute("name__icontains", "f"))
+        self.assertFalse(filterable_thing.check_attribute("is_alive__is", False))
+        self.assertTrue(filterable_thing.check_attribute("iterable__contains", 3))
