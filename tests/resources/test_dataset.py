@@ -219,7 +219,7 @@ class DatasetTestCase(BaseTestCase):
         ]
 
         self.assertEqual(
-            Dataset(files=files).files.filter("name__icontains", filter_value="txt").files, FilterSet(files[1])
+            Dataset(files=files).files.filter("name__icontains", filter_value="txt"), FilterSet({files[1]})
         )
 
     def test_get_files_name_filters_exclude_path(self):

@@ -11,6 +11,9 @@ class FilterSet:
     def __contains__(self, item):
         return item in self._set
 
+    def __eq__(self, other):
+        return self._set == other._set
+
     def __repr__(self):
         return f"<{type(self).__name__}({self._set})>"
 
