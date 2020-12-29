@@ -1,5 +1,7 @@
 import collections
 
+from octue import exceptions
+
 
 FILTERS = {
     bool: {"is": lambda item, filter_value: item is filter_value},
@@ -33,7 +35,14 @@ class Filteree:
                 "A Filteree should have at least one attribute name in its class-level _FILTERABLE_ATTRIBUTES"
             )
 
-        attribute_name, filter_action = filter_name.split("__", 1)
+        try:
+            attribute_name, filter_action = filter_name.split("__", 1)
+        except ValueError:
+            raise exceptions.InvalidInputException(
+                f"Invalid field lookup '{filter_name}'. Filter names should be in the form "
+                f"'<attribute_name>__<filter_kind>"
+            )
+
         attribute = getattr(self, attribute_name)
         filter_ = self._get_filter(attribute)[filter_action]
         return filter_(attribute, filter_value)
