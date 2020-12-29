@@ -128,10 +128,10 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         :param tag_string: if this string appears as an exact match in the tags
         :return: DataFile object
         """
-        results = self.filter("tag__exact", filter_value=tag_string)
+        results = self.files.filter("tags__contains", filter_value=tag_string)
         if len(results) > 1:
             raise UnexpectedNumberOfResultsException("More than one result found when searching for a file by tag")
         elif len(results) == 0:
             raise UnexpectedNumberOfResultsException("No files found with this tag")
 
-        return list(results.files)[0]
+        return results._set.pop()

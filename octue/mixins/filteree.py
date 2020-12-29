@@ -1,3 +1,6 @@
+import collections
+
+
 FILTERS = {
     bool: {"is": lambda item, filter_value: item is filter_value},
     str: {
@@ -11,7 +14,10 @@ FILTERS = {
         "none": lambda item, filter_value: item is None,
         "not_none": lambda item, filter_value: item is not None,
     },
-    set: {"contains": lambda item, filter_value: item, "not_contains": lambda item, filter_value: item is not None},
+    collections.Iterable: {
+        "contains": lambda item, filter_value: filter_value in item,
+        "not_contains": lambda item, filter_value: filter_value not in item,
+    },
 }
 
 
@@ -27,5 +33,17 @@ class Filteree:
 
         attribute_name, filter_action = filter_name.split("__", 1)
         attribute = getattr(self, attribute_name)
-        filter_ = FILTERS[type(attribute)][filter_action]
+        filter_ = self._get_filter(attribute)[filter_action]
         return filter_(attribute, filter_value)
+
+    def _get_filter(self, attribute):
+        try:
+            return FILTERS[type(attribute)]
+
+        except KeyError as error:
+            for type_ in FILTERS:
+                if not isinstance(attribute, type_):
+                    continue
+                return FILTERS[type_]
+
+            raise error
