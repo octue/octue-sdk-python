@@ -1,24 +1,6 @@
-class FilterSet:
-    def __init__(self, iterable=None):
-        self._set = set(iterable or [])
-
-    def __iter__(self):
-        yield from self._set
-
-    def __len__(self):
-        return len(self._set)
-
-    def __contains__(self, item):
-        return item in self._set
-
-    def __eq__(self, other):
-        return self._set == other._set
-
+class FilterSet(set):
     def __repr__(self):
         return f"<{type(self).__name__}({self._set})>"
-
-    def add(self, item):
-        self._set.add(item)
 
     def filter(self, filter_name=None, filter_value=None):
         """ Returns a new FilterSet containing only the Filterees to which the given filter criteria apply.
@@ -38,4 +20,4 @@ class FilterSet:
         is equvalent to
         ds.files.filter(extension__equals', 'csv')
         """
-        return FilterSet((item for item in self._set if item.check_attribute(filter_name, filter_value)))
+        return FilterSet((item for item in self if item.check_attribute(filter_name, filter_value)))
