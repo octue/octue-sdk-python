@@ -17,6 +17,8 @@ FILTERS = {
     collections.Iterable: {
         "contains": lambda item, filter_value: filter_value in item,
         "not_contains": lambda item, filter_value: filter_value not in item,
+        "starts_with": lambda item, filter_value: item.starts_with(filter_value),
+        "ends_with": lambda item, filter_value: item.ends_with(filter_value),
     },
 }
 
