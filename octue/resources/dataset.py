@@ -49,19 +49,6 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
     def __len__(self):
         return len(self.files)
 
-    def _build_filters(self):
-        return {
-            "name__icontains": ("files", lambda file, filter_value: filter_value.lower() in file.name.lower()),
-            "name__contains": ("files", lambda file, filter_value: filter_value in file.name),
-            "name__ends_with": ("files", lambda file, filter_value: file.name.endswith(filter_value)),
-            "name__starts_with": ("files", lambda file, filter_value: file.name.startswith(filter_value)),
-            "tag__exact": ("files", lambda file, filter_value: filter_value in file.tags),
-            "tag__starts_with": ("files", lambda file, filter_value: file.tags.starts_with(filter_value)),
-            "tag__ends_with": ("files", lambda file, filter_value: file.tags.ends_with(filter_value)),
-            "tag__contains": ("files", lambda file, filter_value: file.tags.contains(filter_value)),
-            "sequence__not_none": ("files", lambda file, filter_value: file.sequence is not None),
-        }
-
     def append(self, *args, **kwargs):
         """ Add a data/results file to the manifest
 
@@ -88,7 +75,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             # Add a single file, constructed by passing the arguments through to DataFile()
             self.files.add(Datafile(**kwargs))
 
-    def get_file_sequence(self, field_lookup, filter_value=None, strict=True):
+    def get_file_sequence(self, filter_name, filter_value=None, strict=True):
         """ Get an ordered sequence of files matching a criterion
 
         Accepts the same search arguments as `get_files`.
@@ -101,7 +88,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         :rtype: list(Datafile)
         """
 
-        results = self.files.filter(field_lookup, filter_value=filter_value)
+        results = self.files.filter(filter_name=filter_name, filter_value=filter_value)
         results = results.filter("sequence__not_none")
 
         def get_sequence_number(file):
@@ -128,7 +115,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         :param tag_string: if this string appears as an exact match in the tags
         :return: DataFile object
         """
-        results = self.files.filter("tags__contains", filter_value=tag_string)
+        results = self.files.filter(filter_name="tags__contains", filter_value=tag_string)
         if len(results) > 1:
             raise UnexpectedNumberOfResultsException("More than one result found when searching for a file by tag")
         elif len(results) == 0:
