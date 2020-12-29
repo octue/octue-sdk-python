@@ -19,7 +19,7 @@ class Filteree:
 
     _FILTERABLE_ATTRIBUTES = None
 
-    def check(self, filter_name, filter_value):
+    def check_attribute(self, filter_name, filter_value):
         if self._FILTERABLE_ATTRIBUTES is None:
             raise ValueError(
                 "A Filteree should have at least one attribute name in its class-level _FILTERABLE_ATTRIBUTES"
