@@ -1,6 +1,7 @@
 from octue import exceptions
 from octue.mixins import MixinBase, Taggable
-from octue.mixins.taggable import TagGroup
+from octue.mixins.taggable import Tag, TagGroup
+from octue.resources.filterset import FilterSet
 from ..base import BaseTestCase
 
 
@@ -174,21 +175,22 @@ class TestTagGroup(BaseTestCase):
         """ Test that tag groups can be filtered. """
         tag_group = TagGroup(tags="tag1 tag2 meta:sys1:1234 meta:sys2:3456 meta:sys2:55")
         self.assertEqual(
-            tag_group.filter("tag__starts_with", "meta"), TagGroup("meta:sys1:1234 meta:sys2:3456 meta:sys2:55"),
+            tag_group.tags.filter("name__starts_with", "meta"),
+            FilterSet({Tag("meta:sys1:1234"), Tag("meta:sys2:3456"), Tag("meta:sys2:55")}),
         )
 
     def test_filter_chaining(self):
         """ Test that filters can be chained. """
         tag_group = TagGroup(tags="tag1 tag2 meta:sys1:1234 meta:sys2:3456 meta:sys2:55")
 
-        filtered_tags_1 = tag_group.filter("tag__starts_with", "meta")
-        self.assertEqual(filtered_tags_1, TagGroup("meta:sys1:1234 meta:sys2:3456 meta:sys2:55"))
+        filtered_tags_1 = tag_group.tags.filter("name__starts_with", "meta")
+        self.assertEqual(filtered_tags_1, TagGroup("meta:sys1:1234 meta:sys2:3456 meta:sys2:55").tags)
 
-        filtered_tags_2 = filtered_tags_1.filter("tag__contains", "sys2")
-        self.assertEqual(filtered_tags_2, TagGroup("meta:sys2:3456 meta:sys2:55"))
+        filtered_tags_2 = filtered_tags_1.filter("name__contains", "sys2")
+        self.assertEqual(filtered_tags_2, TagGroup("meta:sys2:3456 meta:sys2:55").tags)
 
-        filtered_tags_3 = filtered_tags_1.filter("tag__exact", "meta:sys2:55")
-        self.assertEqual(filtered_tags_3, TagGroup("meta:sys2:55"))
+        filtered_tags_3 = filtered_tags_1.filter("name__equals", "meta:sys2:55")
+        self.assertEqual(filtered_tags_3, TagGroup("meta:sys2:55").tags)
 
     def test_serialise(self):
         """ Ensure that TagGroups are serialised to the string form of a list. """
