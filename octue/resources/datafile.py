@@ -4,14 +4,14 @@ import time
 from blake3 import blake3
 
 from octue.exceptions import FileNotFoundException, InvalidInputException
-from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
+from octue.mixins import Filteree, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.utils import isfile
 
 
 module_logger = logging.getLogger(__name__)
 
 
-class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable):
+class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable, Filteree):
     """ Class for representing data files on the Octue system
 
     Files in a manifest look like this:
@@ -61,6 +61,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     _ATTRIBUTES_TO_HASH = "name", "cluster", "sequence", "posix_timestamp", "tags"
     _EXCLUDE_SERIALISE_FIELDS = ("logger", "open")
+    _FILTERABLE_ATTRIBUTES = ("name", "cluster", "sequence", "extension", "tags")
 
     def __init__(
         self,
