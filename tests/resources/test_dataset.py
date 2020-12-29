@@ -172,7 +172,7 @@ class DatasetTestCase(BaseTestCase):
 
         self.assertIn("No files found with this tag", e.exception.args[0])
 
-    def test_get_files_by_sequence_notnone(self):
+    def test_get_files_by_sequence_not_none(self):
         """ Ensures that get_files works with sequence lookups
         """
         resource = Dataset(
@@ -182,7 +182,7 @@ class DatasetTestCase(BaseTestCase):
                 Datafile(path="path-within-dataset/a_your_file.csv", sequence=None),
             ]
         )
-        files = resource.files.filter("sequence__notnone")
+        files = resource.files.filter("sequence__not_none")
         self.assertEqual(2, len(files))
 
     def test_get_file_sequence(self):

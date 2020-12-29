@@ -59,7 +59,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             "tag__starts_with": ("files", lambda file, filter_value: file.tags.starts_with(filter_value)),
             "tag__ends_with": ("files", lambda file, filter_value: file.tags.ends_with(filter_value)),
             "tag__contains": ("files", lambda file, filter_value: file.tags.contains(filter_value)),
-            "sequence__notnone": ("files", lambda file, filter_value: file.sequence is not None),
+            "sequence__not_none": ("files", lambda file, filter_value: file.sequence is not None),
         }
 
     def append(self, *args, **kwargs):
@@ -102,7 +102,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         """
 
         results = self.filter(field_lookup, filter_value=filter_value)
-        results = results.filter("sequence__notnone", filter_value=None)
+        results = results.filter("sequence__not_none", filter_value=None)
 
         def get_sequence_number(file):
             return file.sequence
