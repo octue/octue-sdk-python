@@ -1,0 +1,31 @@
+FILTERS = {
+    bool: {"is": lambda item, filter_value: item is filter_value},
+    str: {
+        "icontains": lambda item, filter_value: filter_value.lower() in item.lower(),
+        "contains": lambda item, filter_value: filter_value in item,
+        "ends_with": lambda item, filter_value: item.endswith(filter_value),
+        "starts_with": lambda item, filter_value: item.startswith(filter_value),
+        "equals": lambda item, filter_value: filter_value == item,
+    },
+    type(None): {
+        "none": lambda item, filter_value: item is None,
+        "not_none": lambda item, filter_value: item is not None,
+    },
+    set: {"contains": lambda item, filter_value: item, "not_contains": lambda item, filter_value: item is not None},
+}
+
+
+class Filteree:
+
+    _FILTERABLE_ATTRIBUTES = None
+
+    def check(self, filter_name, filter_value):
+        if self._FILTERABLE_ATTRIBUTES is None:
+            raise ValueError(
+                "A Filteree should have at least one attribute name in its class-level _FILTERABLE_ATTRIBUTES"
+            )
+
+        attribute_name, filter_action = filter_name.split("__", 1)
+        attribute = getattr(self, attribute_name)
+        filter_ = FILTERS[type(attribute)][filter_action]
+        return filter_(attribute, filter_value)
