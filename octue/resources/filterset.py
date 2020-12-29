@@ -1,7 +1,4 @@
 class FilterSet(set):
-    def __repr__(self):
-        return f"<{type(self).__name__}({self._set})>"
-
     def filter(self, filter_name=None, filter_value=None):
         """ Returns a new FilterSet containing only the Filterees to which the given filter criteria apply.
 
