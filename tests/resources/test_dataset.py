@@ -184,7 +184,7 @@ class DatasetTestCase(BaseTestCase):
                 Datafile(path="path-within-dataset/a_your_file.csv", sequence=None),
             ]
         )
-        files = resource.files.filter("sequence__not_none")
+        files = resource.files.filter("sequence__is_not", None)
         self.assertEqual(2, len(files))
 
     def test_get_file_sequence(self):

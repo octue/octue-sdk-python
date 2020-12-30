@@ -4,33 +4,36 @@ import numbers
 from octue import exceptions
 
 
-NONE_FILTERS_FOR_NON_NONES = {"is_none": lambda item, filter_value: False, "not_none": lambda item, filter_value: True}
+IS_FILTERS = {
+    "is": lambda item, filter_value: item is filter_value,
+    "is_not": lambda item, filter_value: item is not filter_value,
+}
 
 FILTERS = {
-    bool: {"is": lambda item, filter_value: item is filter_value, **NONE_FILTERS_FOR_NON_NONES},
+    bool: IS_FILTERS,
     str: {
         "icontains": lambda item, filter_value: filter_value.lower() in item.lower(),
         "contains": lambda item, filter_value: filter_value in item,
         "ends_with": lambda item, filter_value: item.endswith(filter_value),
         "starts_with": lambda item, filter_value: item.startswith(filter_value),
         "equals": lambda item, filter_value: filter_value == item,
-        **NONE_FILTERS_FOR_NON_NONES,
+        **IS_FILTERS,
     },
-    type(None): {"is_none": lambda item, filter_value: True, "not_none": lambda item, filter_value: False},
+    type(None): IS_FILTERS,
     numbers.Number: {
         "equals": lambda item, filter_value: item == filter_value,
         "lt": lambda item, filter_value: item < filter_value,
         "lte": lambda item, filter_value: item <= filter_value,
         "mt": lambda item, filter_value: item > filter_value,
         "mte": lambda item, filter_value: item >= filter_value,
-        **NONE_FILTERS_FOR_NON_NONES,
+        **IS_FILTERS,
     },
     collections.abc.Iterable: {
         "contains": lambda item, filter_value: filter_value in item,
         "not_contains": lambda item, filter_value: filter_value not in item,
         "starts_with": lambda item, filter_value: item.starts_with(filter_value),
         "ends_with": lambda item, filter_value: item.ends_with(filter_value),
-        **NONE_FILTERS_FOR_NON_NONES,
+        **IS_FILTERS,
     },
 }
 

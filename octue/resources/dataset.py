@@ -89,7 +89,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         """
 
         results = self.files.filter(filter_name=filter_name, filter_value=filter_value)
-        results = results.filter("sequence__not_none")
+        results = results.filter("sequence__is_not", None)
 
         def get_sequence_number(file):
             return file.sequence
