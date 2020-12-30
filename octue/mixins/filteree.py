@@ -4,12 +4,12 @@ import numbers
 from octue import exceptions
 
 
-IS_FILTERS = {
+IS_FILTER_ACTIONS = {
     "is": lambda item, filter_value: item is filter_value,
     "is_not": lambda item, filter_value: item is not filter_value,
 }
 
-ITERABLE_FILTERS = {
+ITERABLE_FILTER_ACTIONS = {
     "contains": lambda item, filter_value: filter_value in item,
     "not_contains": lambda item, filter_value: filter_value not in item,
 }
@@ -17,21 +17,21 @@ ITERABLE_FILTERS = {
 
 # Filters for specific types e.g. list or int.
 TYPE_FILTERS = {
-    "bool": IS_FILTERS,
+    "bool": IS_FILTER_ACTIONS,
     "str": {
         "icontains": lambda item, filter_value: filter_value.lower() in item.lower(),
-        "contains": lambda item, filter_value: filter_value in item,
         "ends_with": lambda item, filter_value: item.endswith(filter_value),
         "starts_with": lambda item, filter_value: item.startswith(filter_value),
         "equals": lambda item, filter_value: filter_value == item,
-        **IS_FILTERS,
+        **IS_FILTER_ACTIONS,
+        **ITERABLE_FILTER_ACTIONS,
     },
-    "NoneType": IS_FILTERS,
+    "NoneType": IS_FILTER_ACTIONS,
     "TagGroup": {
         "starts_with": lambda item, filter_value: item.starts_with(filter_value),
         "ends_with": lambda item, filter_value: item.ends_with(filter_value),
-        **ITERABLE_FILTERS,
-        **IS_FILTERS,
+        **ITERABLE_FILTER_ACTIONS,
+        **IS_FILTER_ACTIONS,
     },
 }
 
@@ -43,9 +43,9 @@ INTERFACE_FILTERS = {
         "lte": lambda item, filter_value: item <= filter_value,
         "gt": lambda item, filter_value: item > filter_value,
         "gte": lambda item, filter_value: item >= filter_value,
-        **IS_FILTERS,
+        **IS_FILTER_ACTIONS,
     },
-    collections.abc.Iterable: {**ITERABLE_FILTERS, **IS_FILTERS},
+    collections.abc.Iterable: {**ITERABLE_FILTER_ACTIONS, **IS_FILTER_ACTIONS},
 }
 
 
@@ -84,16 +84,16 @@ class Filteree:
         name.
         """
         try:
-            return self._get_filters_for_attribute(attribute)[filter_action]
+            return self._get_filter_actions_for_attribute(attribute)[filter_action]
 
         except KeyError as error:
             attribute_type = type(attribute)
             raise exceptions.InvalidInputException(
                 f"There is no filter called {error.args[0]!r} for attributes of type {attribute_type}. The options "
-                f"are {self._get_filters_for_attribute(attribute).keys()!r}"
+                f"are {self._get_filter_actions_for_attribute(attribute).keys()!r}"
             )
 
-    def _get_filters_for_attribute(self, attribute):
+    def _get_filter_actions_for_attribute(self, attribute):
         """ Get the possible filters for the given attribute based on its type or interface, raising an error if the
         attribute's type isn't supported (i.e. if there aren't any filters defined for it)."""
         try:
