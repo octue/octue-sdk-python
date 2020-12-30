@@ -24,8 +24,8 @@ FILTERS = {
         "equals": lambda item, filter_value: item == filter_value,
         "lt": lambda item, filter_value: item < filter_value,
         "lte": lambda item, filter_value: item <= filter_value,
-        "mt": lambda item, filter_value: item > filter_value,
-        "mte": lambda item, filter_value: item >= filter_value,
+        "gt": lambda item, filter_value: item > filter_value,
+        "gte": lambda item, filter_value: item >= filter_value,
         **IS_FILTERS,
     },
     collections.abc.Iterable: {
