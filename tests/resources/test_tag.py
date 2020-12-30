@@ -7,6 +7,31 @@ from octue.resources.tag import Tag, TagGroup
 class TestTagGroup(BaseTestCase):
     TAG_GROUP = TagGroup(tags="a b:c d:e:f")
 
+    def test_instantiation_from_space_delimited_string(self):
+        """ Test that a TagGroup can be instantiated from a space-delimited string of tag names."""
+        tag_group = TagGroup(tags="a b:c d:e:f")
+        self.assertEqual(tag_group.tags, FilterSet({Tag("a"), Tag("b:c"), Tag("d:e:f")}))
+
+    def test_instantiation_from_iterable_of_strings(self):
+        """ Test that a TagGroup can be instantiated from an iterable of strings."""
+        tag_group = TagGroup(tags=["a", "b:c", "d:e:f"])
+        self.assertEqual(tag_group.tags, FilterSet({Tag("a"), Tag("b:c"), Tag("d:e:f")}))
+
+    def test_instantiation_from_iterable_of_tags(self):
+        """ Test that a TagGroup can be instantiated from an iterable of Tags."""
+        tag_group = TagGroup(tags=[Tag("a"), Tag("b:c"), Tag("d:e:f")])
+        self.assertEqual(tag_group.tags, FilterSet({Tag("a"), Tag("b:c"), Tag("d:e:f")}))
+
+    def test_instantiation_from_filter_set_of_strings(self):
+        """ Test that a TagGroup can be instantiated from a FilterSet of strings."""
+        tag_group = TagGroup(tags=FilterSet({"a", "b:c", "d:e:f"}))
+        self.assertEqual(tag_group.tags, FilterSet({Tag("a"), Tag("b:c"), Tag("d:e:f")}))
+
+    def test_instantiation_from_filter_set_of_tags(self):
+        """ Test that a TagGroup can be instantiated from a FilterSet of Tags."""
+        tag_group = TagGroup(tags=FilterSet({Tag("a"), Tag("b:c"), Tag("d:e:f")}))
+        self.assertEqual(tag_group.tags, FilterSet({Tag("a"), Tag("b:c"), Tag("d:e:f")}))
+
     def test_equality(self):
         """ Ensure two TagGroups with the same tags compare equal. """
         self.assertTrue(self.TAG_GROUP == TagGroup(tags="a b:c d:e:f"))
