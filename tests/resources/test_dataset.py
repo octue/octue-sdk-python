@@ -2,7 +2,8 @@ import copy
 from tests.base import BaseTestCase
 
 from octue import exceptions
-from octue.resources import Datafile, Dataset, FilterSet
+from octue.resources import Datafile, Dataset
+from octue.resources.filterset import FilterSet
 
 
 class DatasetTestCase(BaseTestCase):
@@ -133,6 +134,7 @@ class DatasetTestCase(BaseTestCase):
                 Datafile(path="path-within-dataset/a_your_file.csv", tags="three all"),
             ]
         )
+
         files = resource.files.filter("tags__contains", filter_value="a")
         self.assertEqual(0, len(files))
         files = resource.files.filter("tags__contains", filter_value="one")
