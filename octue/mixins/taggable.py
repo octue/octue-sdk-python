@@ -68,7 +68,7 @@ class Tag(Filteree):
 
         return any(subtag.startswith(value) for subtag in self.subtags)
 
-    def ends_with(self, value, consider_separate_subtags=False, tags=None):
+    def ends_with(self, value, consider_separate_subtags=False):
         """ Implement an endswith method that returns true if any of the tags endswith value. """
         if not consider_separate_subtags:
             return self.name.endswith(value)
@@ -124,7 +124,7 @@ class TagGroup:
 
         else:
             raise InvalidTagException(
-                "Tags must be expressed as a whitespace-delimited string or an iterable of strings"
+                "Tags must be expressed as a whitespace-delimited string or an iterable of strings or Tag instances."
             )
 
     def __str__(self):
@@ -147,9 +147,9 @@ class TagGroup:
     def __repr__(self):
         return f"<TagGroup({self.tags})>"
 
-    def _yield_subtags(self, tags=None):
+    def _yield_subtags(self):
         """ Yield the colon-separated subtags of a tag as strings, including the main tag. """
-        for tag in tags or self.tags:
+        for tag in self.tags:
             yield from tag.subtags
 
     def add_tags(self, *args):
@@ -162,27 +162,23 @@ class TagGroup:
         """
         return tag in self.tags or Tag(tag) in self.tags
 
-    def get_subtags(self, tags=None):
+    def get_subtags(self):
         """ Return a new TagGroup instance with all the subtags. """
-        return TagGroup(FilterSet(self._yield_subtags(tags or self.tags)))
+        return TagGroup(FilterSet(self._yield_subtags()))
 
-    def starts_with(self, value, consider_separate_subtags=False, tags=None):
+    def starts_with(self, value, consider_separate_subtags=False):
         """ Implement a startswith method that returns true if any of the tags starts with value """
-        tags = tags or self.tags
-
         if not consider_separate_subtags:
-            return any(tag.starts_with(value) for tag in tags)
+            return any(tag.starts_with(value) for tag in self.tags)
 
-        return any(subtag.starts_with(value) for subtag in self._yield_subtags(tags))
+        return any(subtag.starts_with(value) for subtag in self._yield_subtags())
 
-    def ends_with(self, value, consider_separate_subtags=False, tags=None):
+    def ends_with(self, value, consider_separate_subtags=False):
         """ Implement an endswith method that returns true if any of the tags endswith value. """
-        tags = tags or self.tags
-
         if not consider_separate_subtags:
-            return any(tag.ends_with(value) for tag in tags)
+            return any(tag.ends_with(value) for tag in self.tags)
 
-        return any(subtag.ends_with(value) for subtag in self._yield_subtags(tags))
+        return any(subtag.ends_with(value) for subtag in self._yield_subtags())
 
     def contains(self, value):
         """ Implement a contains method that returns true if any of the tags contains value. """
