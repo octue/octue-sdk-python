@@ -1,6 +1,3 @@
-BASE_TYPES = (set, list)
-
-
 def _filter(instance, filter_name=None, filter_value=None):
     """ Returns a new FilterSet containing only the Filterees to which the given filter criteria apply.
 
@@ -22,8 +19,9 @@ def _filter(instance, filter_name=None, filter_value=None):
     return instance.__class__((item for item in instance if item.check_attribute(filter_name, filter_value)))
 
 
-# This defines FilterSet and FilterList classes that inherit from `set` and `list` respectively while implementing a
-# `filter` method (i.e. `_filter` above).
-for type_ in BASE_TYPES:
-    class_name = f"Filter{type_.__name__.title()}"
-    globals()[class_name] = type(class_name, (type_,), {"filter": _filter})
+class FilterSet(set):
+    filter = _filter
+
+
+class FilterList(list):
+    filter = _filter
