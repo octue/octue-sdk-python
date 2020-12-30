@@ -3,7 +3,7 @@ from functools import lru_cache
 
 from octue.exceptions import InvalidTagException
 from octue.mixins import Filteree
-from octue.resources.filterset import FilterSet
+from octue.resources.filter_containers import FilterSet
 
 
 # A tag starts and ends with a character in [a-z] or [0-9]. It can contain the colon discriminator or hyphens.

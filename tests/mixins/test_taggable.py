@@ -1,7 +1,7 @@
 from octue import exceptions
 from octue.mixins import MixinBase, Taggable
 from octue.mixins.taggable import Tag, TagGroup
-from octue.resources.filterset import FilterSet
+from octue.resources.filter_containers import FilterSet
 from ..base import BaseTestCase
 
 

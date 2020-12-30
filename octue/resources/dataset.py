@@ -4,7 +4,7 @@ import os
 from octue.exceptions import BrokenSequenceException, InvalidInputException, UnexpectedNumberOfResultsException
 from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
-from octue.resources.filterset import FilterSet
+from octue.resources.filter_containers import FilterSet
 
 
 module_logger = logging.getLogger(__name__)

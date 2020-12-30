@@ -3,7 +3,7 @@ from tests.base import BaseTestCase
 
 from octue import exceptions
 from octue.resources import Datafile, Dataset
-from octue.resources.filterset import FilterSet
+from octue.resources.filter_containers import FilterSet
 
 
 class DatasetTestCase(BaseTestCase):
