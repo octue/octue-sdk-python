@@ -1,5 +1,4 @@
 from .base import MixinBase
-from .filterable import Filterable
 from .filteree import Filteree
 from .hashable import Hashable
 from .identifiable import Identifiable
@@ -9,14 +8,4 @@ from .serialisable import Serialisable
 from .taggable import Taggable
 
 
-__all__ = (
-    "Filterable",
-    "Filteree",
-    "Hashable",
-    "Identifiable",
-    "Loggable",
-    "MixinBase",
-    "Pathable",
-    "Serialisable",
-    "Taggable",
-)
+__all__ = ("Filteree", "Hashable", "Identifiable", "Loggable", "MixinBase", "Pathable", "Serialisable", "Taggable")
