@@ -180,7 +180,7 @@ class TagGroup:
 
         return any(subtag.ends_with(value) for subtag in self._yield_subtags())
 
-    def contains(self, value):
+    def any_tag_contains(self, value):
         """ Implement a contains method that returns true if any of the tags contains value. """
         return any(value in tag for tag in self.tags)
 

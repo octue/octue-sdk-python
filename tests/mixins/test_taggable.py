@@ -176,10 +176,10 @@ class TestTagGroup(BaseTestCase):
     def test_contains_searches_for_tags_and_subtags(self):
         """ Ensure tags and subtags can be searched for. """
         for tag in "a", "b", "d":
-            self.assertTrue(self.TAG_GROUP.contains(tag))
+            self.assertTrue(self.TAG_GROUP.any_tag_contains(tag))
 
         for subtag in "c", "e", "f":
-            self.assertTrue(self.TAG_GROUP.contains(subtag))
+            self.assertTrue(self.TAG_GROUP.any_tag_contains(subtag))
 
     def test_filter(self):
         """ Test that tag groups can be filtered. """
