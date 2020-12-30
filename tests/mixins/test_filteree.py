@@ -43,12 +43,71 @@ class TestFilteree(BaseTestCase):
         with self.assertRaises(exceptions.InvalidInputException):
             FiltereeSubclass(age=lambda: None).satisfies(filter_name="age__equals", filter_value=True)
 
-    def test_all_types_have_is_filters(self):
-        """ Ensure all types supported for filtering have `is` and `is not` filter actions defined. """
-        filterable_thing = FiltereeSubclass()
-        for _, attribute in vars(filterable_thing).items():
-            self.assertTrue(filterable_thing._get_filter(attribute, "is"))
-            self.assertTrue(filterable_thing._get_filter(attribute, "is_not"))
+    def test_bool_filters(self):
+        """ Test that the boolean filters work as expected. """
+        filterable_thing = FiltereeSubclass(is_alive=True)
+        self.assertTrue(filterable_thing.satisfies("is_alive__is", True))
+        self.assertFalse(filterable_thing.satisfies("is_alive__is", False))
+        self.assertTrue(filterable_thing.satisfies("is_alive__is_not", False))
+        self.assertFalse(filterable_thing.satisfies("is_alive__is_not", True))
+
+    def test_str_filters(self):
+        """ Test that the string filters work as expected. """
+        filterable_thing = FiltereeSubclass(name="Michael")
+        self.assertTrue(filterable_thing.satisfies("name__icontains", "m"))
+        self.assertFalse(filterable_thing.satisfies("name__icontains", "d"))
+        self.assertTrue(filterable_thing.satisfies("name__contains", "M"))
+        self.assertFalse(filterable_thing.satisfies("name__contains", "d"))
+        self.assertTrue(filterable_thing.satisfies("name__ends_with", "l"))
+        self.assertFalse(filterable_thing.satisfies("name__ends_with", "M"))
+        self.assertTrue(filterable_thing.satisfies("name__starts_with", "M"))
+        self.assertFalse(filterable_thing.satisfies("name__starts_with", "l"))
+        self.assertTrue(filterable_thing.satisfies("name__equals", "Michael"))
+        self.assertFalse(filterable_thing.satisfies("name__equals", "Clive"))
+        self.assertTrue(filterable_thing.satisfies("name__is", "Michael"))
+        self.assertFalse(filterable_thing.satisfies("name__is", "Clive"))
+        self.assertTrue(filterable_thing.satisfies("name__is_not", "Clive"))
+        self.assertFalse(filterable_thing.satisfies("name__is_not", "Michael"))
+
+    def test_none_filters(self):
+        """ Test that the None filters work as expected. """
+        filterable_thing = FiltereeSubclass(owner=None)
+        self.assertTrue(filterable_thing.satisfies("owner__is", None))
+        self.assertFalse(filterable_thing.satisfies("owner__is", True))
+        self.assertTrue(filterable_thing.satisfies("owner__is_not", True))
+        self.assertFalse(filterable_thing.satisfies("owner__is_not", None))
+
+    def test_number_filters_with_integers_and_floats(self):
+        """ Test that the number filters work as expected for integers and floats. """
+        for age in (5, 5.2):
+            filterable_thing = FiltereeSubclass(age=age)
+            self.assertTrue(filterable_thing.satisfies("age__equals", age))
+            self.assertFalse(filterable_thing.satisfies("age__equals", 63))
+            self.assertTrue(filterable_thing.satisfies("age__lt", 6))
+            self.assertFalse(filterable_thing.satisfies("age__lt", 0))
+            self.assertTrue(filterable_thing.satisfies("age__lte", age))
+            self.assertFalse(filterable_thing.satisfies("age__lte", 0))
+            self.assertTrue(filterable_thing.satisfies("age__gt", 4))
+            self.assertFalse(filterable_thing.satisfies("age__gt", 63))
+            self.assertTrue(filterable_thing.satisfies("age__gte", age))
+            self.assertFalse(filterable_thing.satisfies("age__gte", 63))
+            self.assertTrue(filterable_thing.satisfies("age__is", age))
+            self.assertFalse(filterable_thing.satisfies("age__is", 63))
+            self.assertTrue(filterable_thing.satisfies("age__is_not", 63))
+            self.assertFalse(filterable_thing.satisfies("age__is_not", age))
+
+    def test_iterable_filters(self):
+        """ Test that the iterable filters work as expected with lists, sets, and tuples. """
+        for iterable in ([1, 2, 3], {1, 2, 3}, (1, 2, 3)):
+            filterable_thing = FiltereeSubclass(iterable=iterable)
+            self.assertTrue(filterable_thing.satisfies("iterable__contains", 1))
+            self.assertFalse(filterable_thing.satisfies("iterable__contains", 5))
+            self.assertTrue(filterable_thing.satisfies("iterable__not_contains", 5))
+            self.assertFalse(filterable_thing.satisfies("iterable__not_contains", 1))
+            self.assertTrue(filterable_thing.satisfies("iterable__is", iterable))
+            self.assertFalse(filterable_thing.satisfies("iterable__is", None))
+            self.assertTrue(filterable_thing.satisfies("iterable__is_not", None))
+            self.assertFalse(filterable_thing.satisfies("iterable__is_not", iterable))
 
     def test_check_attribute(self):
         """ Ensure filterable attributes can be checked for filter satisfaction. """
