@@ -34,21 +34,21 @@ class Tag(Filteree):
 
     def __eq__(self, other):
         if isinstance(other, str):
-            return self.name == Tag(other).name
+            return self.name == other
         elif isinstance(other, Tag):
             return self.name == other.name
         return False
 
     def __lt__(self, other):
         if isinstance(other, str):
-            return self.name < Tag(other).name
+            return self.name < other
         elif isinstance(other, Tag):
             return self.name < other.name
         return False
 
     def __gt__(self, other):
         if isinstance(other, str):
-            return self.name > Tag(other).name
+            return self.name > other
         elif isinstance(other, Tag):
             return self.name > other.name
         return False
