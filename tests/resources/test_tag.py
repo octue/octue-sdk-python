@@ -4,6 +4,43 @@ from octue.resources.filter_containers import FilterSet
 from octue.resources.tag import Tag, TagGroup
 
 
+class TestTag(BaseTestCase):
+    def test_subtags(self):
+        """ Test that subtags are correctly parsed from tags. """
+        self.assertEqual(Tag("a:b:c").subtags, TagGroup({Tag("a"), Tag("b"), Tag("c")}))
+
+    def test_tag_comparison(self):
+        """ Test that tags can be alphabetically compared. """
+        self.assertTrue(Tag("a") < Tag("b"))
+        self.assertTrue(Tag("b") > Tag("a"))
+        self.assertTrue(Tag("a") != Tag("b"))
+        self.assertTrue(Tag("a") == Tag("a"))
+
+    def test_contains(self):
+        """ Test that tags can be checked for containment. """
+        self.assertIn("e", Tag("hello"))
+
+    def test_starts_with(self):
+        """ Test that the start of a tag can be checked. """
+        self.assertTrue(Tag("hello").starts_with("h"))
+        self.assertFalse(Tag("hello").starts_with("e"))
+
+    def test_subtags_starts_with(self):
+        """ Test that the start of subtags can be checked. """
+        self.assertTrue(Tag("hello:world").subtags.starts_with("w"))
+        self.assertFalse(Tag("hello:world").subtags.starts_with("e"))
+
+    def test_ends_with(self):
+        """ Test that the end of a tag can be checked. """
+        self.assertTrue(Tag("hello").ends_with("o"))
+        self.assertFalse(Tag("hello").ends_with("e"))
+
+    def test_subtags_ends_with(self):
+        """ Test that the end of subtags can be checked. """
+        self.assertTrue(Tag("hello:world").subtags.ends_with("d"))
+        self.assertFalse(Tag("hello:world").subtags.ends_with("e"))
+
+
 class TestTagGroup(BaseTestCase):
     TAG_GROUP = TagGroup(tags="a b:c d:e:f")
 
