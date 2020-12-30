@@ -101,31 +101,21 @@ class TestTagGroup(BaseTestCase):
         """ Test subtags can be accessed as a new TagGroup. """
         self.assertEqual(TagGroup("meta:sys2:3456 blah").get_subtags(), TagGroup("meta sys2 3456 blah"))
 
-    def test_starts_with_with_no_subtags(self):
-        """ Ensure starts_with doesn't check starts of subtags by default. """
+    def test_starts_with(self):
+        """ Ensure starts_with only checks the starts of tags, and doesn't check the starts of subtags. """
         for tag in "a", "b", "d":
             self.assertTrue(self.TAG_GROUP.starts_with(tag))
 
         for tag in "c", "e", "f":
             self.assertFalse(self.TAG_GROUP.starts_with(tag))
 
-    def test_starts_with_with_subtags(self):
-        """ Ensure starts_with checks starts of subtags if asked. """
-        for tag in "a", "b", "c", "d", "e", "f":
-            self.assertTrue(self.TAG_GROUP.starts_with(tag, consider_separate_subtags=True))
-
-    def test_endsswith_with_no_subtags(self):
+    def test_ends_swith(self):
         """ Ensure ends_with doesn't check ends of subtags by default. """
         for tag in "a", "c", "f":
             self.assertTrue(self.TAG_GROUP.ends_with(tag))
 
         for tag in "b", "d", "e":
             self.assertFalse(self.TAG_GROUP.ends_with(tag))
-
-    def test_ends_with_with_subtags(self):
-        """ Ensure ends_with checks ends of subtags if asked. """
-        for tag in "a", "b", "c", "d", "e", "f":
-            self.assertTrue(self.TAG_GROUP.ends_with(tag, consider_separate_subtags=True))
 
     def test_contains_searches_for_tags_and_subtags(self):
         """ Ensure tags and subtags can be searched for. """

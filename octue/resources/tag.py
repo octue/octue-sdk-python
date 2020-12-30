@@ -149,19 +149,13 @@ class TagGroup:
         """ Return a new TagGroup instance with all the subtags. """
         return TagGroup(subtag for tag in self for subtag in tag.subtags)
 
-    def starts_with(self, value, consider_separate_subtags=False):
+    def starts_with(self, value):
         """ Implement a startswith method that returns true if any of the tags starts with value """
-        if not consider_separate_subtags:
-            return any(tag.starts_with(value) for tag in self.tags)
+        return any(tag.starts_with(value) for tag in self.tags)
 
-        return any(subtag.starts_with(value) for subtag in self.get_subtags())
-
-    def ends_with(self, value, consider_separate_subtags=False):
+    def ends_with(self, value):
         """ Implement an endswith method that returns true if any of the tags endswith value. """
-        if not consider_separate_subtags:
-            return any(tag.ends_with(value) for tag in self.tags)
-
-        return any(subtag.ends_with(value) for subtag in self.get_subtags())
+        return any(tag.ends_with(value) for tag in self.tags)
 
     def any_tag_contains(self, value):
         """ Implement a contains method that returns true if any of the tags contains value. """
