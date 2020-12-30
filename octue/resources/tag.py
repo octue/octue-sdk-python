@@ -135,11 +135,6 @@ class TagGroup:
     def __repr__(self):
         return f"<TagGroup({self.tags})>"
 
-    def _yield_subtags(self):
-        """ Yield the colon-separated subtags of a tag as strings, including the main tag. """
-        for tag in self.tags:
-            yield from tag.subtags
-
     def add_tags(self, *args):
         """ Adds one or more new tag strings to the object tags. New tags will be cleaned and validated.
         """
@@ -152,21 +147,21 @@ class TagGroup:
 
     def get_subtags(self):
         """ Return a new TagGroup instance with all the subtags. """
-        return TagGroup(FilterSet(self._yield_subtags()))
+        return TagGroup(subtag for tag in self for subtag in tag.subtags)
 
     def starts_with(self, value, consider_separate_subtags=False):
         """ Implement a startswith method that returns true if any of the tags starts with value """
         if not consider_separate_subtags:
             return any(tag.starts_with(value) for tag in self.tags)
 
-        return any(subtag.starts_with(value) for subtag in self._yield_subtags())
+        return any(subtag.starts_with(value) for subtag in self.get_subtags())
 
     def ends_with(self, value, consider_separate_subtags=False):
         """ Implement an endswith method that returns true if any of the tags endswith value. """
         if not consider_separate_subtags:
             return any(tag.ends_with(value) for tag in self.tags)
 
-        return any(subtag.ends_with(value) for subtag in self._yield_subtags())
+        return any(subtag.ends_with(value) for subtag in self.get_subtags())
 
     def any_tag_contains(self, value):
         """ Implement a contains method that returns true if any of the tags contains value. """

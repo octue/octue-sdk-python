@@ -97,12 +97,6 @@ class TestTagGroup(BaseTestCase):
         for tag in "b", "c", "d", "e", "f":
             self.assertFalse(self.TAG_GROUP.has_tag(tag))
 
-    def test_yield_subtags(self):
-        """ Test that subtags can be yielded from tags, including the main tags themselves. """
-        self.assertEqual(
-            set(self.TAG_GROUP._yield_subtags()), {Tag("a"), Tag("b"), Tag("c"), Tag("d"), Tag("e"), Tag("f")}
-        )
-
     def test_get_subtags(self):
         """ Test subtags can be accessed as a new TagGroup. """
         self.assertEqual(TagGroup("meta:sys2:3456 blah").get_subtags(), TagGroup("meta sys2 3456 blah"))
