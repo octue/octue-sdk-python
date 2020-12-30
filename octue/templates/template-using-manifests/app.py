@@ -90,7 +90,7 @@ def run(analysis, *args, **kwargs):
         data.to_csv(path_or_buf=fp)
 
     # And finally we add it to the output
-    output_dataset.append(timeseries_datafile)
+    output_dataset.add(timeseries_datafile)
 
     # We're done! There's only one datafile in the output dataset, but you could create thousands more and append them
     # all :)

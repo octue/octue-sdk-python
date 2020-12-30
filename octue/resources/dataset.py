@@ -49,25 +49,25 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
     def __len__(self):
         return len(self.files)
 
-    def append(self, *args, **kwargs):
+    def add(self, *args, **kwargs):
         """ Add a data/results file to the manifest
 
         Usage:
             my_file = octue.DataFile(...)
-            my_manifest.append(my_file)
+            my_manifest.add(my_file)
 
             # or more simply
-            my_manifest.append(**{...}) which implicitly creates the datafile from the starred list of input arguments
+            my_manifest.add(**{...}) which implicitly creates the datafile from the starred list of input arguments
 
         """
         if len(args) > 1:
             # Recurse to allow addition of many files at once
             for arg in args:
-                self.append(arg, **kwargs)
+                self.add(arg, **kwargs)
         elif len(args) > 0:
             if not isinstance(args[0], Datafile):
                 raise InvalidInputException(
-                    'Object "{}" must be of class Datafile to append it to a Dataset'.format(args[0])
+                    'Object "{}" must be of class Datafile to add it to a Dataset'.format(args[0])
                 )
             self.files.add(args[0])
 

@@ -19,41 +19,41 @@ class DatasetTestCase(BaseTestCase):
         resource = Dataset(files=files, tags="one two")
         self.assertEqual(len(resource.files), 1)
 
-    def test_append_single_file_to_empty_dataset(self):
-        """ Ensures that when a dataset is empty, it can be appended to
+    def test_add_single_file_to_empty_dataset(self):
+        """ Ensures that when a dataset is empty, it can be added to
         """
         resource = Dataset()
-        resource.append(Datafile(path="path-within-dataset/a_test_file.csv"))
+        resource.add(Datafile(path="path-within-dataset/a_test_file.csv"))
         self.assertEqual(len(resource.files), 1)
 
-    def test_append_single_file_to_existing_dataset(self):
-        """ Ensures that when a dataset is not empty, it can be appended to
+    def test_add_single_file_to_existing_dataset(self):
+        """ Ensures that when a dataset is not empty, it can be added to
         """
         files = [Datafile(path="path-within-dataset/a_test_file.csv")]
         resource = Dataset(files=files, tags="one two")
-        resource.append(Datafile(path="path-within-dataset/a_test_file.csv"))
+        resource.add(Datafile(path="path-within-dataset/a_test_file.csv"))
         self.assertEqual(len(resource.files), 2)
 
-    def test_append_with_datafile_creation_shortcut(self):
-        """ Ensures that when a dataset is not empty, it can be appended to
+    def test_add_with_datafile_creation_shortcut(self):
+        """ Ensures that when a dataset is not empty, it can be added to
         """
         resource = Dataset()
-        resource.append(path="path-within-dataset/a_test_file.csv")
+        resource.add(path="path-within-dataset/a_test_file.csv")
         self.assertEqual(len(resource.files), 1)
 
-    def test_append_multiple_files(self):
-        """ Ensures that when a dataset is not empty, it can be appended to
+    def test_add_multiple_files(self):
+        """ Ensures that when a dataset is not empty, it can be added to
         """
         files = [
             Datafile(path="path-within-dataset/a_test_file.csv"),
             Datafile(path="path-within-dataset/a_test_file.csv"),
         ]
         resource = Dataset()
-        resource.append(*files)
+        resource.add(*files)
         self.assertEqual(len(resource.files), 2)
 
-    def test_cannot_append_non_datafiles(self):
-        """ Ensures that exception will be raised if appending a non-datafile object
+    def test_cannot_add_non_datafiles(self):
+        """ Ensures that exception will be raised if adding a non-datafile object
         """
 
         class NotADatafile:
@@ -61,9 +61,9 @@ class DatasetTestCase(BaseTestCase):
 
         resource = Dataset()
         with self.assertRaises(exceptions.InvalidInputException) as e:
-            resource.append(NotADatafile())
+            resource.add(NotADatafile())
 
-        self.assertIn("must be of class Datafile to append it to a Dataset", e.exception.args[0])
+        self.assertIn("must be of class Datafile to add it to a Dataset", e.exception.args[0])
 
     def test_get_files_catches_single_underscore_mistake(self):
         """ Ensures that if the field name is a single underscore, that gets caught as an error
