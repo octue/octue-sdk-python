@@ -16,7 +16,7 @@ def _filter(instance, filter_name=None, filter_value=None):
     is equvalent to
     ds.files.filter(extension__equals', 'csv')
     """
-    return instance.__class__((item for item in instance if item.check_attribute(filter_name, filter_value)))
+    return instance.__class__((item for item in instance if item.satisfies(filter_name, filter_value)))
 
 
 class FilterSet(set):

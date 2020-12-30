@@ -48,7 +48,8 @@ class Filteree:
 
     _FILTERABLE_ATTRIBUTES = None
 
-    def check_attribute(self, filter_name, filter_value):
+    def satisfies(self, filter_name, filter_value):
+        """ Check that the instance satisfies the given filter for the given filter value. """
         if self._FILTERABLE_ATTRIBUTES is None:
             raise ValueError(
                 "A Filteree should have at least one attribute name in its class-level _FILTERABLE_ATTRIBUTES"
@@ -66,6 +67,7 @@ class Filteree:
 
         try:
             filter_ = self._get_filters_for_attribute(attribute)[filter_action]
+
         except KeyError as error:
             attribute_type = type(attribute)
             raise exceptions.InvalidInputException(
@@ -76,12 +78,13 @@ class Filteree:
         return filter_(attribute, filter_value)
 
     def _get_filters_for_attribute(self, attribute):
+        """ Get the possible filters for the given attribute based on its type or interface. """
         try:
             return FILTERS[type(attribute)]
 
         except KeyError as error:
-            # This allows e.g. iterables to be handled generally without specifying a specific type of iterable in the
-            # filters.
+            # This allows handling of objects that conform to a certain interface (e.g. iterables) without needing the
+            # specific type.
             for type_ in FILTERS:
                 if not isinstance(attribute, type_):
                     continue
