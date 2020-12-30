@@ -29,7 +29,7 @@ class Tag(Filteree):
     @property
     @lru_cache(maxsize=1)
     def subtags(self):
-        return FilterSet({Tag(subtag_name) for subtag_name in (self.name.split(":"))})
+        return TagGroup({Tag(subtag_name) for subtag_name in (self.name.split(":"))})
 
     def __eq__(self, other):
         if isinstance(other, str):
@@ -61,19 +61,13 @@ class Tag(Filteree):
     def __repr__(self):
         return repr(self.name)
 
-    def starts_with(self, value, consider_separate_subtags=False):
+    def starts_with(self, value):
         """ Implement a startswith method that returns true if any of the tags starts with value """
-        if not consider_separate_subtags:
-            return self.name.startswith(value)
+        return self.name.startswith(value)
 
-        return any(subtag.startswith(value) for subtag in self.subtags)
-
-    def ends_with(self, value, consider_separate_subtags=False):
+    def ends_with(self, value):
         """ Implement an endswith method that returns true if any of the tags endswith value. """
-        if not consider_separate_subtags:
-            return self.name.endswith(value)
-
-        return any(subtag.ends_with(value) for subtag in self.subtags)
+        return self.name.endswith(value)
 
     @staticmethod
     def _clean(name):
