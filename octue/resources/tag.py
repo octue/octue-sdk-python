@@ -29,6 +29,7 @@ class Tag(Filteree):
     @property
     @lru_cache(maxsize=1)
     def subtags(self):
+        """ Return the subtags of the tag as a new TagGroup (e.g. TagGroup({'a', 'b', 'c'}) for the Tag('a:b:c'). """
         return TagGroup({Tag(subtag_name) for subtag_name in (self.name.split(":"))})
 
     def __eq__(self, other):
@@ -62,22 +63,19 @@ class Tag(Filteree):
         return repr(self.name)
 
     def starts_with(self, value):
-        """ Implement a startswith method that returns true if any of the tags starts with value """
+        """ Does the tag start with the given value? """
         return self.name.startswith(value)
 
     def ends_with(self, value):
-        """ Implement an endswith method that returns true if any of the tags endswith value. """
+        """ Does the tag end with the given value? """
         return self.name.endswith(value)
 
     @staticmethod
     def _clean(name):
-        """ Private method to clean up an iterable of tags into a list of cleaned tags
-        """
-        # Check they're strings
+        """ Ensure the tag name is a string and conforms to the tag regex pattern. """
         if not isinstance(name, str):
             raise InvalidTagException("Tags must be expressed as a string")
 
-        # Strip leading and trailing whitespace, ensure they match the regex
         cleaned_name = name.strip()
 
         if not re.match(TAG_PATTERN, cleaned_name):
