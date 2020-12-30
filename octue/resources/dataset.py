@@ -1,5 +1,6 @@
 import logging
 import os
+import warnings
 
 from octue.exceptions import BrokenSequenceException, InvalidInputException, UnexpectedNumberOfResultsException
 from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
@@ -74,6 +75,15 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         else:
             # Add a single file, constructed by passing the arguments through to DataFile()
             self.files.add(Datafile(**kwargs))
+
+    def get_files(self, field_lookup, filter_value=None):
+        warnings.warn(
+            "The `Dataset.get_file` method has been deprecated and replaced with `Dataset.files.filter`, which has the "
+            "same interface but with the `field_lookup` argument renamed to `filter_name`. Calls to `Dataset.get_file` "
+            "will be redirected to the new method for now, but please use `Datafile.files.filter` in future.",
+            DeprecationWarning,
+        )
+        return self.files.filter(filter_name=field_lookup, filter_value=filter_value)
 
     def get_file_sequence(self, filter_name, filter_value=None, strict=True):
         """ Get an ordered sequence of files matching a criterion

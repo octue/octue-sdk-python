@@ -1,4 +1,5 @@
 import copy
+import warnings
 from tests.base import BaseTestCase
 
 from octue import exceptions
@@ -241,6 +242,23 @@ class DatasetTestCase(BaseTestCase):
         )
         files = resource.files.filter("name__icontains", filter_value="second")
         self.assertEqual(0, len(files))
+
+    def test_using_get_files_raises_deprecation_warning(self):
+        """ Test that Dataset.get_files is deprecated but gets redirected to Dataset.files.filter. """
+        resource = Dataset(
+            files=[
+                Datafile(path="first-path-within-dataset/a_test_file.csv"),
+                Datafile(path="second-path-within-dataset/a_test_file.txt"),
+            ]
+        )
+
+        with warnings.catch_warnings(record=True) as warning:
+            warnings.simplefilter("always")
+            filtered_files = resource.get_files("name__icontains", filter_value="second")
+            self.assertEqual(len(warning), 1)
+            self.assertTrue(issubclass(warning[-1].category, DeprecationWarning))
+            self.assertIn("deprecated", str(warning[-1].message))
+            self.assertEqual(len(filtered_files), 0)
 
     def test_hash_value(self):
         """ Test hashing a dataset with multiple files gives a hash of length 128. """
