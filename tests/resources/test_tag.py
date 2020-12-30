@@ -37,7 +37,7 @@ class TestTag(BaseTestCase):
 
     def test_subtags_ends_with(self):
         """ Test that the end of subtags can be checked. """
-        self.assertTrue(Tag("hello:world").subtags.ends_with("d"))
+        self.assertTrue(Tag("hello:world").subtags.ends_with("o"))
         self.assertFalse(Tag("hello:world").subtags.ends_with("e"))
 
 
@@ -110,7 +110,7 @@ class TestTagGroup(BaseTestCase):
             self.assertFalse(self.TAG_GROUP.starts_with(tag))
 
     def test_ends_swith(self):
-        """ Ensure ends_with doesn't check ends of subtags by default. """
+        """ Ensure ends_with doesn't check ends of subtags. """
         for tag in "a", "c", "f":
             self.assertTrue(self.TAG_GROUP.ends_with(tag))
 

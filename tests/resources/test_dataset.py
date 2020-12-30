@@ -65,7 +65,7 @@ class DatasetTestCase(BaseTestCase):
 
         self.assertIn("must be of class Datafile to add it to a Dataset", e.exception.args[0])
 
-    def test_get_files_catches_single_underscore_mistake(self):
+    def test_filter_catches_single_underscore_mistake(self):
         """ Ensures that if the field name is a single underscore, that gets caught as an error
         """
         resource = Dataset(
@@ -75,11 +75,17 @@ class DatasetTestCase(BaseTestCase):
             ]
         )
 
-        with self.assertRaises(exceptions.InvalidInputException):
+        with self.assertRaises(exceptions.InvalidInputException) as e:
             resource.files.filter("name_icontains", filter_value="Test")
 
-    def test_get_files_name_contains(self):
-        """ Ensures that get_files works with the name_contains and name_icontains lookups
+        self.assertIn(
+            "Invalid filter name 'name_icontains'. Filter names should be in the form "
+            "'<attribute_name>__<filter_kind>'.",
+            e.exception.args[0],
+        )
+
+    def test_filter_name_contains(self):
+        """ Ensures that filter works with the name_contains and name_icontains lookups
         """
         resource = Dataset(
             files=[
@@ -98,8 +104,8 @@ class DatasetTestCase(BaseTestCase):
         files = resource.files.filter("name__icontains", filter_value="file")
         self.assertEqual(2, len(files))
 
-    def test_get_files_name_with(self):
-        """ Ensures that get_files works with the name_endswith and name_startswith lookups
+    def test_filter_name_with(self):
+        """ Ensures that filter works with the name_endswith and name_startswith lookups
         """
         resource = Dataset(
             files=[
@@ -124,8 +130,8 @@ class DatasetTestCase(BaseTestCase):
         files = resource.files.filter("name__ends_with", filter_value="other.csv")
         self.assertEqual(0, len(files))
 
-    def test_get_files_by_tag(self):
-        """ Ensures that get_files works with tag lookups
+    def test_filter_by_tag(self):
+        """ Ensures that filter works with tag lookups
         """
         resource = Dataset(
             files=[
@@ -174,8 +180,8 @@ class DatasetTestCase(BaseTestCase):
 
         self.assertIn("No files found with this tag", e.exception.args[0])
 
-    def test_get_files_by_sequence_not_none(self):
-        """ Ensures that get_files works with sequence lookups
+    def test_filter_by_sequence_not_none(self):
+        """ Ensures that filter works with sequence lookups
         """
         resource = Dataset(
             files=[
@@ -212,7 +218,7 @@ class DatasetTestCase(BaseTestCase):
         with self.assertRaises(exceptions.BrokenSequenceException):
             resource.get_file_sequence("name__ends_with", filter_value=".csv", strict=True)
 
-    def test_get_files_name_filters_include_extension(self):
+    def test_filter_name_filters_include_extension(self):
         """ Ensures that filters applied to the name will catch terms in the extension
         """
         files = [
@@ -224,7 +230,7 @@ class DatasetTestCase(BaseTestCase):
             Dataset(files=files).files.filter("name__icontains", filter_value="txt"), FilterSet({files[1]})
         )
 
-    def test_get_files_name_filters_exclude_path(self):
+    def test_filter_name_filters_exclude_path(self):
         """ Ensures that filters applied to the name will not catch terms in the extension
         """
         resource = Dataset(
