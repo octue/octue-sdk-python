@@ -4,24 +4,17 @@ import numbers
 from octue import exceptions
 
 
-NOT_NONE_FILTER_FOR_NON_NONES = {"not_none": lambda item, filter_value: True}
-IS_NONE_FILTER_FOR_NON_NONES = {"is_none": lambda item, filter_value: False}
-
+NONE_FILTERS_FOR_NON_NONES = {"is_none": lambda item, filter_value: False, "not_none": lambda item, filter_value: True}
 
 FILTERS = {
-    bool: {
-        "is": lambda item, filter_value: item is filter_value,
-        **NOT_NONE_FILTER_FOR_NON_NONES,
-        **IS_NONE_FILTER_FOR_NON_NONES,
-    },
+    bool: {"is": lambda item, filter_value: item is filter_value, **NONE_FILTERS_FOR_NON_NONES},
     str: {
         "icontains": lambda item, filter_value: filter_value.lower() in item.lower(),
         "contains": lambda item, filter_value: filter_value in item,
         "ends_with": lambda item, filter_value: item.endswith(filter_value),
         "starts_with": lambda item, filter_value: item.startswith(filter_value),
         "equals": lambda item, filter_value: filter_value == item,
-        **NOT_NONE_FILTER_FOR_NON_NONES,
-        **IS_NONE_FILTER_FOR_NON_NONES,
+        **NONE_FILTERS_FOR_NON_NONES,
     },
     type(None): {"is_none": lambda item, filter_value: True, "not_none": lambda item, filter_value: False},
     numbers.Number: {
@@ -30,16 +23,14 @@ FILTERS = {
         "lte": lambda item, filter_value: item <= filter_value,
         "mt": lambda item, filter_value: item > filter_value,
         "mte": lambda item, filter_value: item >= filter_value,
-        **NOT_NONE_FILTER_FOR_NON_NONES,
-        **IS_NONE_FILTER_FOR_NON_NONES,
+        **NONE_FILTERS_FOR_NON_NONES,
     },
     collections.abc.Iterable: {
         "contains": lambda item, filter_value: filter_value in item,
         "not_contains": lambda item, filter_value: filter_value not in item,
         "starts_with": lambda item, filter_value: item.starts_with(filter_value),
         "ends_with": lambda item, filter_value: item.ends_with(filter_value),
-        **NOT_NONE_FILTER_FOR_NON_NONES,
-        **IS_NONE_FILTER_FOR_NON_NONES,
+        **NONE_FILTERS_FOR_NON_NONES,
     },
 }
 
