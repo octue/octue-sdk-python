@@ -58,22 +58,35 @@ class Filteree:
             attribute_name, filter_action = filter_name.split("__", 1)
         except ValueError:
             raise exceptions.InvalidInputException(
-                f"Invalid field lookup '{filter_name}'. Filter names should be in the form "
-                f"'<attribute_name>__<filter_kind>"
+                f"Invalid filter name {filter_name!r}. Filter names should be in the form "
+                f"'<attribute_name>__<filter_kind>'."
             )
 
         attribute = getattr(self, attribute_name)
-        filter_ = self._get_filters_for_type(attribute)[filter_action]
+
+        try:
+            filter_ = self._get_filters_for_attribute(attribute)[filter_action]
+        except KeyError as error:
+            attribute_type = type(attribute)
+            raise exceptions.InvalidInputException(
+                f"There is no filter called {error.args[0]!r} for attributes of type {attribute_type}. The options "
+                f"are {set(FILTERS[attribute_type].keys())!r}"
+            )
+
         return filter_(attribute, filter_value)
 
-    def _get_filters_for_type(self, attribute):
+    def _get_filters_for_attribute(self, attribute):
         try:
             return FILTERS[type(attribute)]
 
         except KeyError as error:
+            # This allows e.g. iterables to be handled generally without specifying a specific type of iterable in the
+            # filters.
             for type_ in FILTERS:
                 if not isinstance(attribute, type_):
                     continue
                 return FILTERS[type_]
 
-            raise error
+            raise exceptions.InvalidInputException(
+                f"Attributes of type {error.args[0]} are not currently supported for filtering."
+            )
