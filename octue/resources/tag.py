@@ -54,6 +54,7 @@ class Tag(Filteree):
         return False
 
     def __hash__(self):
+        """ Allow Tags to be contained in a set. """
         return hash(f"{type(self).__name__}{self.name}")
 
     def __contains__(self, item):
@@ -74,7 +75,7 @@ class Tag(Filteree):
     def _clean(name):
         """ Ensure the tag name is a string and conforms to the tag regex pattern. """
         if not isinstance(name, str):
-            raise InvalidTagException("Tags must be expressed as a string")
+            raise InvalidTagException("Tags must be expressed as a string.")
 
         cleaned_name = name.strip()
 
@@ -141,7 +142,7 @@ class TagGroup:
     def has_tag(self, tag):
         """ Returns true if any of the tags exactly matches value, allowing test like `if 'a' in TagGroup('a b')`
         """
-        return tag in self.tags or Tag(tag) in self.tags
+        return tag in self or Tag(tag) in self
 
     def get_subtags(self):
         """ Return a new TagGroup instance with all the subtags. """
@@ -149,15 +150,15 @@ class TagGroup:
 
     def starts_with(self, value):
         """ Implement a startswith method that returns true if any of the tags starts with value """
-        return any(tag.starts_with(value) for tag in self.tags)
+        return any(tag.starts_with(value) for tag in self)
 
     def ends_with(self, value):
         """ Implement an endswith method that returns true if any of the tags endswith value. """
-        return any(tag.ends_with(value) for tag in self.tags)
+        return any(tag.ends_with(value) for tag in self)
 
     def any_tag_contains(self, value):
         """ Implement a contains method that returns true if any of the tags contains value. """
-        return any(value in tag for tag in self.tags)
+        return any(value in tag for tag in self)
 
     def serialise(self):
         """ Serialise tags to a sorted list string. """
