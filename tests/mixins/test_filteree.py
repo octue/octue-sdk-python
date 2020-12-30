@@ -43,6 +43,13 @@ class TestFilteree(BaseTestCase):
         with self.assertRaises(exceptions.InvalidInputException):
             FiltereeSubclass(age=lambda: None).satisfies(filter_name="age__equals", filter_value=True)
 
+    def test_all_types_have_none_filters(self):
+        """ Ensure all types supported for filtering have an `is_none` and `not_none` filter action defined. """
+        filterable_thing = FiltereeSubclass()
+        for _, attribute in vars(filterable_thing).items():
+            self.assertTrue(filterable_thing._get_filter(attribute, "is_none"))
+            self.assertTrue(filterable_thing._get_filter(attribute, "not_none"))
+
     def test_check_attribute(self):
         """ Ensure filterable attributes can be checked for filter satisfaction. """
         filterable_thing = FiltereeSubclass(name="Fred", is_alive=True, iterable={1, 2, 3}, age=5.2, owner=None)
