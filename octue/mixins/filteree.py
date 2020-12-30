@@ -55,6 +55,15 @@ class Filteree:
                 "A Filteree should have at least one attribute name in its class-level _FILTERABLE_ATTRIBUTES"
             )
 
+        attribute_name, filter_action = self._split_filter_name(filter_name)
+        attribute = getattr(self, attribute_name)
+        filter_ = self._get_filter(attribute, filter_action)
+        return filter_(attribute, filter_value)
+
+    def _split_filter_name(self, filter_name):
+        """ Split the filter name into the attribute name and filter action, raising an error if it the attribute name
+        and filter action aren't delimited by a double underscore i.e. "__".
+        """
         try:
             attribute_name, filter_action = filter_name.split("__", 1)
         except ValueError:
@@ -63,10 +72,14 @@ class Filteree:
                 f"'<attribute_name>__<filter_kind>'."
             )
 
-        attribute = getattr(self, attribute_name)
+        return attribute_name, filter_action
 
+    def _get_filter(self, attribute, filter_action):
+        """ Get the filter for the attribute and filter action, raising an error if there is no filter action of that
+        name.
+        """
         try:
-            filter_ = self._get_filters_for_attribute(attribute)[filter_action]
+            return self._get_filters_for_attribute(attribute)[filter_action]
 
         except KeyError as error:
             attribute_type = type(attribute)
@@ -75,10 +88,9 @@ class Filteree:
                 f"are {set(FILTERS[attribute_type].keys())!r}"
             )
 
-        return filter_(attribute, filter_value)
-
     def _get_filters_for_attribute(self, attribute):
-        """ Get the possible filters for the given attribute based on its type or interface. """
+        """ Get the possible filters for the given attribute based on its type or interface, raising an error if the
+        attribute's type isn't supported (i.e. if there aren't any filters defined for it)."""
         try:
             return FILTERS[type(attribute)]
 
