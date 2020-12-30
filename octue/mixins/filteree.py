@@ -9,9 +9,16 @@ IS_FILTERS = {
     "is_not": lambda item, filter_value: item is not filter_value,
 }
 
-FILTERS = {
-    bool: IS_FILTERS,
-    str: {
+ITERABLE_FILTERS = {
+    "contains": lambda item, filter_value: filter_value in item,
+    "not_contains": lambda item, filter_value: filter_value not in item,
+}
+
+
+# Filters for specific types e.g. list or int.
+TYPE_FILTERS = {
+    "bool": IS_FILTERS,
+    "str": {
         "icontains": lambda item, filter_value: filter_value.lower() in item.lower(),
         "contains": lambda item, filter_value: filter_value in item,
         "ends_with": lambda item, filter_value: item.endswith(filter_value),
@@ -19,7 +26,17 @@ FILTERS = {
         "equals": lambda item, filter_value: filter_value == item,
         **IS_FILTERS,
     },
-    type(None): IS_FILTERS,
+    "NoneType": IS_FILTERS,
+    "TagGroup": {
+        "starts_with": lambda item, filter_value: item.starts_with(filter_value),
+        "ends_with": lambda item, filter_value: item.ends_with(filter_value),
+        **ITERABLE_FILTERS,
+        **IS_FILTERS,
+    },
+}
+
+# Filters for interfaces e.g. iterables or numbers.
+INTERFACE_FILTERS = {
     numbers.Number: {
         "equals": lambda item, filter_value: item == filter_value,
         "lt": lambda item, filter_value: item < filter_value,
@@ -28,13 +45,7 @@ FILTERS = {
         "gte": lambda item, filter_value: item >= filter_value,
         **IS_FILTERS,
     },
-    collections.abc.Iterable: {
-        "contains": lambda item, filter_value: filter_value in item,
-        "not_contains": lambda item, filter_value: filter_value not in item,
-        "starts_with": lambda item, filter_value: item.starts_with(filter_value),
-        "ends_with": lambda item, filter_value: item.ends_with(filter_value),
-        **IS_FILTERS,
-    },
+    collections.abc.Iterable: {**ITERABLE_FILTERS, **IS_FILTERS},
 }
 
 
@@ -79,22 +90,22 @@ class Filteree:
             attribute_type = type(attribute)
             raise exceptions.InvalidInputException(
                 f"There is no filter called {error.args[0]!r} for attributes of type {attribute_type}. The options "
-                f"are {set(FILTERS[attribute_type].keys())!r}"
+                f"are {self._get_filters_for_attribute(attribute).keys()!r}"
             )
 
     def _get_filters_for_attribute(self, attribute):
         """ Get the possible filters for the given attribute based on its type or interface, raising an error if the
         attribute's type isn't supported (i.e. if there aren't any filters defined for it)."""
         try:
-            return FILTERS[type(attribute)]
+            return TYPE_FILTERS[type(attribute).__name__]
 
         except KeyError as error:
             # This allows handling of objects that conform to a certain interface (e.g. iterables) without needing the
             # specific type.
-            for type_ in FILTERS:
+            for type_ in INTERFACE_FILTERS:
                 if not isinstance(attribute, type_):
                     continue
-                return FILTERS[type_]
+                return INTERFACE_FILTERS[type_]
 
             raise exceptions.InvalidInputException(
                 f"Attributes of type {error.args[0]} are not currently supported for filtering."

@@ -2,6 +2,7 @@ from tests.base import BaseTestCase
 
 from octue import exceptions
 from octue.mixins.filteree import Filteree
+from octue.resources.tag import TagGroup
 
 
 class FiltereeSubclass(Filteree):
@@ -108,6 +109,14 @@ class TestFilteree(BaseTestCase):
             self.assertFalse(filterable_thing.satisfies("iterable__is", None))
             self.assertTrue(filterable_thing.satisfies("iterable__is_not", None))
             self.assertFalse(filterable_thing.satisfies("iterable__is_not", iterable))
+
+    def test_tag_group_filters(self):
+        """ Test the filters for TagGroup. """
+        filterable_thing = FiltereeSubclass(iterable=TagGroup({"fred", "charlie"}))
+        self.assertTrue(filterable_thing.satisfies("iterable__starts_with", "f"))
+        self.assertFalse(filterable_thing.satisfies("iterable__starts_with", "e"))
+        self.assertTrue(filterable_thing.satisfies("iterable__ends_with", "e"))
+        self.assertFalse(filterable_thing.satisfies("iterable__ends_with", "i"))
 
     def test_check_attribute(self):
         """ Ensure filterable attributes can be checked for filter satisfaction. """
