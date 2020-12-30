@@ -32,19 +32,25 @@ class Tag(Filteree):
         return FilterSet({Tag(subtag_name) for subtag_name in (self.name.split(":"))})
 
     def __eq__(self, other):
-        if not isinstance(other, Tag):
-            return False
-        return self.name == other.name
+        if isinstance(other, str):
+            return self.name == Tag(other).name
+        elif isinstance(other, Tag):
+            return self.name == other.name
+        return False
 
     def __lt__(self, other):
-        if not isinstance(other, Tag):
-            return False
-        return self.name < other.name
+        if isinstance(other, str):
+            return self.name < Tag(other).name
+        elif isinstance(other, Tag):
+            return self.name < other.name
+        return False
 
     def __gt__(self, other):
-        if not isinstance(other, Tag):
-            return False
-        return self.name > other.name
+        if isinstance(other, str):
+            return self.name > Tag(other).name
+        elif isinstance(other, Tag):
+            return self.name > other.name
+        return False
 
     def __hash__(self):
         return hash(f"{type(self).__name__}{self.name}")

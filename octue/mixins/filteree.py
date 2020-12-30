@@ -63,10 +63,10 @@ class Filteree:
             )
 
         attribute = getattr(self, attribute_name)
-        filter_ = self._get_filter(attribute)[filter_action]
+        filter_ = self._get_filters_for_type(attribute)[filter_action]
         return filter_(attribute, filter_value)
 
-    def _get_filter(self, attribute):
+    def _get_filters_for_type(self, attribute):
         try:
             return FILTERS[type(attribute)]
 
