@@ -75,10 +75,6 @@ class Tag(Filteree):
 
         return any(subtag.ends_with(value) for subtag in self.subtags)
 
-    def contains(self, value):
-        """ Implement a contains method that returns true if any of the tags contains value. """
-        return value in self.name
-
     @staticmethod
     def _clean(name):
         """ Private method to clean up an iterable of tags into a list of cleaned tags
