@@ -6,8 +6,6 @@ from octue.resources.tag import TagGroup
 
 
 class FiltereeSubclass(Filteree):
-    _FILTERABLE_ATTRIBUTES = ("name", "is_alive", "iterable", "age", "owner")
-
     def __init__(self, name=None, is_alive=None, iterable=None, age=None, owner=None):
         self.name = name
         self.is_alive = is_alive
@@ -17,16 +15,6 @@ class FiltereeSubclass(Filteree):
 
 
 class TestFilteree(BaseTestCase):
-    def test_error_raised_when_no_filterable_attributes(self):
-        """ Ensure an error is raised if attempting to check attributes when no filterable attributes have been defined
-        in the Filteree class.
-        """
-        filteree = Filteree()
-        filteree.name = "Fred"
-
-        with self.assertRaises(ValueError):
-            filteree.satisfies("name__contains", "F")
-
     def test_error_raised_when_invalid_filter_name_received(self):
         """ Ensure an error is raised when an invalid filter name is provided. """
         with self.assertRaises(exceptions.InvalidInputException):
@@ -118,8 +106,8 @@ class TestFilteree(BaseTestCase):
         self.assertTrue(filterable_thing.satisfies("iterable__ends_with", "e"))
         self.assertFalse(filterable_thing.satisfies("iterable__ends_with", "i"))
 
-    def test_check_attribute(self):
-        """ Ensure filterable attributes can be checked for filter satisfaction. """
+    def test_filtering_different_attributes_on_same_instance(self):
+        """ Ensure all filterable attributes on an instance can be checked for filter satisfaction. """
         filterable_thing = FiltereeSubclass(name="Fred", is_alive=True, iterable={1, 2, 3}, age=5.2, owner=None)
         self.assertTrue(filterable_thing.satisfies("name__icontains", "f"))
         self.assertFalse(filterable_thing.satisfies("is_alive__is", False))

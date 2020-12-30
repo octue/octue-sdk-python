@@ -53,16 +53,8 @@ INTERFACE_FILTERS = {
 
 
 class Filteree:
-
-    _FILTERABLE_ATTRIBUTES = None
-
     def satisfies(self, filter_name, filter_value):
         """ Check that the instance satisfies the given filter for the given filter value. """
-        if self._FILTERABLE_ATTRIBUTES is None:
-            raise ValueError(
-                "A Filteree should have at least one attribute name in its class-level _FILTERABLE_ATTRIBUTES"
-            )
-
         attribute_name, filter_action = self._split_filter_name(filter_name)
         attribute = getattr(self, attribute_name)
         filter_ = self._get_filter(attribute, filter_action)

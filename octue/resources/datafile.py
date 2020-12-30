@@ -61,7 +61,6 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     _ATTRIBUTES_TO_HASH = "name", "cluster", "sequence", "posix_timestamp", "tags"
     _EXCLUDE_SERIALISE_FIELDS = ("logger", "open")
-    _FILTERABLE_ATTRIBUTES = ("name", "cluster", "sequence", "extension", "tags")
 
     def __init__(
         self,

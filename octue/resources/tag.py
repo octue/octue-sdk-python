@@ -17,8 +17,6 @@ class Tag(Filteree):
        mega-man:torso:component:12
     """
 
-    _FILTERABLE_ATTRIBUTES = ("name",)
-
     def __init__(self, name):
         self._name = self._clean(name)
 
