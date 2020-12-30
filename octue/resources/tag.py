@@ -100,27 +100,25 @@ class Tag(Filteree):
 
 
 class TagGroup:
-    """ Class to handle a group of tags as a string.
-    """
+    """ Class to handle a group of tags as a string. """
 
     _FILTERSET_ATTRIBUTE = "tags"
 
-    def __init__(self, tags, *args, **kwargs):
-        """ Construct a TagGroup
-        """
+    def __init__(self, tags=None, *args, **kwargs):
+        """ Construct a TagGroup. """
         # TODO Call the superclass with *args anad **kwargs, then update everything to using ResourceBase
-        if tags is None:
-            self.tags = FilterSet()
+        tags = tags or FilterSet()
 
-        elif isinstance(tags, str):
+        # Space delimited string of tag names.
+        if isinstance(tags, str):
             self.tags = FilterSet(Tag(tag) for tag in tags.strip().split())
 
         elif isinstance(tags, TagGroup):
             self.tags = FilterSet(tags.tags)
 
-        # Tags can be some other iterable than a list, but each tag must be a string
+        # Tags can be some other iterable than a list, but each tag must be a Tag or string.
         elif hasattr(tags, "__iter__"):
-            self.tags = FilterSet(tags)
+            self.tags = FilterSet(tag if isinstance(tag, Tag) else Tag(tag) for tag in tags)
 
         else:
             raise InvalidTagException(
