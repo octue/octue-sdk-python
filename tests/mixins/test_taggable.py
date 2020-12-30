@@ -25,7 +25,7 @@ class TaggableTestCase(BaseTestCase):
         self.assertEqual(len(taggable.tags), 0)
 
         taggable = MyTaggable(tags="a b c")
-        self.assertEqual(set(taggable.tags), {"a", "b", "c"})
+        self.assertEqual(set(taggable.tags), {Tag("a"), Tag("b"), Tag("c")})
 
         with self.assertRaises(exceptions.InvalidTagException):
             MyTaggable(tags=":a b c")
@@ -57,7 +57,7 @@ class TaggableTestCase(BaseTestCase):
         """
         taggable = MyTaggable(tags="a b")
         taggable.tags = "b c"
-        self.assertEqual(set(taggable.tags), {"b", "c"})
+        self.assertEqual(set(taggable.tags), {Tag("b"), Tag("c")})
 
     def test_valid_tags(self):
         """ Ensures valid tags do not raise an error
@@ -72,7 +72,15 @@ class TaggableTestCase(BaseTestCase):
         taggable.add_tags("multiple:discriminators:used")
         self.assertEqual(
             set(taggable.tags),
-            {"a-valid-tag", "a:tag", "a:-tag", "a1829tag", "1829", "number:1829", "multiple:discriminators:used"},
+            {
+                Tag("a-valid-tag"),
+                Tag("a:tag"),
+                Tag("a:-tag"),
+                Tag("a1829tag"),
+                Tag("1829"),
+                Tag("number:1829"),
+                Tag("multiple:discriminators:used"),
+            },
         )
 
     def test_invalid_tags(self):
@@ -95,7 +103,7 @@ class TaggableTestCase(BaseTestCase):
         except exceptions.InvalidTagException:
             pass
 
-        self.assertEqual({"first-valid-should-be-added"}, set(taggable.tags))
+        self.assertEqual({Tag("first-valid-should-be-added")}, set(taggable.tags))
 
 
 class TestTagGroup(BaseTestCase):
