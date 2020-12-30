@@ -36,6 +36,16 @@ class Tag(Filteree):
             return False
         return self.name == other.name
 
+    def __lt__(self, other):
+        if not isinstance(other, Tag):
+            return False
+        return self.name < other.name
+
+    def __gt__(self, other):
+        if not isinstance(other, Tag):
+            return False
+        return self.name > other.name
+
     def __hash__(self):
         return hash(f"{type(self).__name__}{self.name}")
 
