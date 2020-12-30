@@ -76,6 +76,15 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             # Add a single file, constructed by passing the arguments through to DataFile()
             self.files.add(Datafile(**kwargs))
 
+    def append(self, *args, **kwargs):
+        warnings.warn(
+            "The `Dataset.append` method has been deprecated and replaced with `Dataset.add` to reflect that Datafiles "
+            "are stored in a set and not a list. Calls to `Dataset.append` will be redirected to the new method for "
+            "now, but please use `Datafile.add` in future.",
+            DeprecationWarning,
+        )
+        self.files.add(*args, **kwargs)
+
     def get_files(self, field_lookup, filter_value=None):
         warnings.warn(
             "The `Dataset.get_file` method has been deprecated and replaced with `Dataset.files.filter`, which has the "

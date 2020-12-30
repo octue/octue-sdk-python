@@ -20,6 +20,17 @@ class DatasetTestCase(BaseTestCase):
         resource = Dataset(files=files, tags="one two")
         self.assertEqual(len(resource.files), 1)
 
+    def test_using_append_raises_deprecation_warning(self):
+        """ Test that Dataset.append is deprecated but gets redirected to Dataset.add. """
+        resource = Dataset()
+
+        with warnings.catch_warnings(record=True) as warning:
+            resource.append(Datafile(path="path-within-dataset/a_test_file.csv"))
+            self.assertEqual(len(warning), 1)
+            self.assertTrue(issubclass(warning[-1].category, DeprecationWarning))
+            self.assertIn("deprecated", str(warning[-1].message))
+            self.assertEqual(len(resource.files), 1)
+
     def test_add_single_file_to_empty_dataset(self):
         """ Ensures that when a dataset is empty, it can be added to
         """
@@ -253,7 +264,6 @@ class DatasetTestCase(BaseTestCase):
         )
 
         with warnings.catch_warnings(record=True) as warning:
-            warnings.simplefilter("always")
             filtered_files = resource.get_files("name__icontains", filter_value="second")
             self.assertEqual(len(warning), 1)
             self.assertTrue(issubclass(warning[-1].category, DeprecationWarning))
