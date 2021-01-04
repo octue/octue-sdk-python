@@ -33,6 +33,12 @@ class TestFilterSet(BaseTestCase):
         sorted_filter_set = FilterSet(cats).order_by("age")
         self.assertEqual(sorted_filter_set, FilterList(reversed(cats)))
 
+    def test_order_by_in_reverse(self):
+        """ Test ordering in reverse works correctly. """
+        cats = [Cat(age=5), Cat(age=3), Cat(age=4)]
+        sorted_filter_set = FilterSet(cats).order_by("age", reverse=True)
+        self.assertEqual(sorted_filter_set, FilterList([cats[0], cats[2], cats[1]]))
+
     def test_order_by_iterable(self):
         """ Test that ordering by list attributes orders by the size of the list. """
         cats = [Cat(previous_names=["Scatta", "Catta"]), Cat(previous_names=["Kitty"]), Cat(previous_names=[])]

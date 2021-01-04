@@ -22,12 +22,12 @@ def _filter(instance, filter_name=None, filter_value=None):
     return instance.__class__((item for item in instance if item.satisfies(filter_name, filter_value)))
 
 
-def _order_by(instance, attribute_name):
+def _order_by(instance, attribute_name, reverse=False):
     """ Order the instance by the given attribute_name, returning the instance's elements as a new FilterList (not a
     FilterSet.
     """
     try:
-        return FilterList(sorted(instance, key=lambda item: getattr(item, attribute_name)))
+        return FilterList(sorted(instance, key=lambda item: getattr(item, attribute_name), reverse=reverse))
     except AttributeError:
         raise exceptions.InvalidInputException(
             f"An attribute named {attribute_name!r} does not exist on one or more members of {instance!r}."
