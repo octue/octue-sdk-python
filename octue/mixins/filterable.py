@@ -9,7 +9,10 @@ IS_FILTER_ACTIONS = {
     "is_not": lambda item, filter_value: item is not filter_value,
 }
 
-EQUALS_FILTER_ACTION = {"equals": lambda item, filter_value: filter_value == item}
+EQUALS_FILTER_ACTIONS = {
+    "equals": lambda item, filter_value: filter_value == item,
+    "not_equals": lambda item, filter_value: filter_value != item,
+}
 
 COMPARISON_FILTER_ACTIONS = {
     "lt": lambda item, filter_value: item < filter_value,
@@ -23,25 +26,35 @@ CONTAINS_FILTER_ACTIONS = {
     "not_contains": lambda item, filter_value: filter_value not in item,
 }
 
+ICONTAINS_FILTER_ACTIONS = {
+    "icontains": lambda item, filter_value: filter_value.lower() in item.lower(),
+    "not_icontains": lambda item, filter_value: filter_value.lower() not in item.lower(),
+}
+
 
 # Filters for specific types e.g. list or int.
 TYPE_FILTERS = {
     "bool": IS_FILTER_ACTIONS,
     "str": {
         "iequals": lambda item, filter_value: filter_value.lower() == item.lower(),
-        "icontains": lambda item, filter_value: filter_value.lower() in item.lower(),
-        "ends_with": lambda item, filter_value: item.endswith(filter_value),
+        "not_iequals": lambda item, filter_value: filter_value.lower() != item.lower(),
         "starts_with": lambda item, filter_value: item.startswith(filter_value),
-        **EQUALS_FILTER_ACTION,
+        "not_starts_with": lambda item, filter_value: not item.startswith(filter_value),
+        "ends_with": lambda item, filter_value: item.endswith(filter_value),
+        "not_ends_with": lambda item, filter_value: not item.endswith(filter_value),
+        **EQUALS_FILTER_ACTIONS,
         **COMPARISON_FILTER_ACTIONS,
         **IS_FILTER_ACTIONS,
         **CONTAINS_FILTER_ACTIONS,
+        **ICONTAINS_FILTER_ACTIONS,
     },
     "NoneType": IS_FILTER_ACTIONS,
     "TagSet": {
         "starts_with": lambda item, filter_value: item.starts_with(filter_value),
+        "not_starts_with": lambda item, filter_value: not item.starts_with(filter_value),
         "ends_with": lambda item, filter_value: item.ends_with(filter_value),
-        **EQUALS_FILTER_ACTION,
+        "not_ends_with": lambda item, filter_value: not item.ends_with(filter_value),
+        **EQUALS_FILTER_ACTIONS,
         **CONTAINS_FILTER_ACTIONS,
         **IS_FILTER_ACTIONS,
     },
@@ -49,8 +62,13 @@ TYPE_FILTERS = {
 
 # Filters for interfaces e.g. iterables or numbers.
 INTERFACE_FILTERS = {
-    numbers.Number: {**EQUALS_FILTER_ACTION, **COMPARISON_FILTER_ACTIONS, **IS_FILTER_ACTIONS},
-    collections.abc.Iterable: {**EQUALS_FILTER_ACTION, **CONTAINS_FILTER_ACTIONS, **IS_FILTER_ACTIONS},
+    numbers.Number: {**EQUALS_FILTER_ACTIONS, **COMPARISON_FILTER_ACTIONS, **IS_FILTER_ACTIONS},
+    collections.abc.Iterable: {
+        **EQUALS_FILTER_ACTIONS,
+        **CONTAINS_FILTER_ACTIONS,
+        **ICONTAINS_FILTER_ACTIONS,
+        **IS_FILTER_ACTIONS,
+    },
 }
 
 
