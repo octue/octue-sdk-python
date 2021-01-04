@@ -1,6 +1,6 @@
 from octue import exceptions
 from octue.mixins import MixinBase, Taggable
-from octue.resources.tag import Tag, TagGroup
+from octue.resources.tag import Tag, TagSet
 from ..base import BaseTestCase
 
 
@@ -29,11 +29,11 @@ class TaggableTestCase(BaseTestCase):
         with self.assertRaises(exceptions.InvalidTagException):
             MyTaggable(tags=":a b c")
 
-    def test_instantiates_with_tag_group(self):
+    def test_instantiates_with_tag_set(self):
         """ Ensures datafile inherits correctly from the Taggable class and passes arguments through
         """
         taggable_1 = MyTaggable(tags="")
-        self.assertIsInstance(taggable_1.tags, TagGroup)
+        self.assertIsInstance(taggable_1.tags, TagSet)
         taggable_2 = MyTaggable(tags=taggable_1.tags)
         self.assertFalse(taggable_1 is taggable_2)
 
