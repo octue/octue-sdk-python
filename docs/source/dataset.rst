@@ -4,7 +4,7 @@
 Dataset
 =======
 
-A ``Dataset`` contains any number of ``Datafile``s along with the following metadata:
+A ``Dataset`` contains any number of ``Datafile`` instances along with the following metadata:
 
 - ``name``
 - ``tags``
@@ -37,5 +37,5 @@ You can also chain filters indefinitely:
     dataset.files.filter(filter_name="name__ends_with", filter_value=".csv").filter("tags__contains", filter_value="a:2")
     >>> <FilterSet({<Datafile('my_file.csv')>})>
 
-Find out more about ``FilterSet``s `here <filterset.rst>`_, including all the possible filters available for each type of object stored on
+Find out more about ``FilterSet`` `here <filterset.rst>`_, including all the possible filters available for each type of object stored on
 an attribute of a ``FilterSet`` member, and how to convert them to primitive types such as ``set`` or ``list``.
