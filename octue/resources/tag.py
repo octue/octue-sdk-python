@@ -2,14 +2,14 @@ import re
 from functools import lru_cache
 
 from octue.exceptions import InvalidTagException
-from octue.mixins import Filteree
+from octue.mixins import Filterable
 from octue.resources.filter_containers import FilterSet
 
 
 TAG_PATTERN = re.compile(r"^$|^[a-z0-9][a-z0-9:\-]*(?<![:-])$")
 
 
-class Tag(Filteree):
+class Tag(Filterable):
     """ A tag starts and ends with a character in [a-z] or [0-9]. It can contain the colon discriminator or hyphens.
     Empty strings are also valid. More valid examples:
        system:32

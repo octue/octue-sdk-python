@@ -52,7 +52,7 @@ INTERFACE_FILTERS = {
 }
 
 
-class Filteree:
+class Filterable:
     def satisfies(self, filter_name, filter_value):
         """ Check that the instance satisfies the given filter for the given filter value. """
         attribute_name, filter_action = self._split_filter_name(filter_name)

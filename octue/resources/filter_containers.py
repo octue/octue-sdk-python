@@ -1,5 +1,5 @@
 def _filter(instance, filter_name=None, filter_value=None):
-    """ Returns a new FilterSet containing only the Filterees to which the given filter criteria apply.
+    """ Returns a new FilterSet containing only the Filterables to which the given filter criteria apply.
 
     Say we want to filter by files whose extension equals "csv". We want to be able to do...
 
