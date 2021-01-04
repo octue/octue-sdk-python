@@ -42,14 +42,12 @@ class Tag(Filterable):
             return self.name < other
         elif isinstance(other, Tag):
             return self.name < other.name
-        return False
 
     def __gt__(self, other):
         if isinstance(other, str):
             return self.name > other
         elif isinstance(other, Tag):
             return self.name > other.name
-        return False
 
     def __hash__(self):
         """ Allow Tags to be contained in a set. """
