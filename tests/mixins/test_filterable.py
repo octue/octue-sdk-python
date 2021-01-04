@@ -20,6 +20,11 @@ class TestFilterable(BaseTestCase):
         with self.assertRaises(exceptions.InvalidInputException):
             FilterableSubclass().satisfies(filter_name="invalid_filter_name", filter_value=None)
 
+    def test_error_raised_when_non_existent_attribute_name_received(self):
+        """ Ensure an error is raised when a non-existent attribute name is used in the filter name. """
+        with self.assertRaises(exceptions.InvalidInputException):
+            FilterableSubclass().satisfies(filter_name="boogaloo__is_a_dance", filter_value=True)
+
     def test_error_raised_when_valid_but_non_existent_filter_name_received(self):
         """ Ensure an error is raised when a valid but non-existent filter name is received. """
         with self.assertRaises(exceptions.InvalidInputException):
