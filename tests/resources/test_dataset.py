@@ -20,6 +20,17 @@ class DatasetTestCase(BaseTestCase):
         resource = Dataset(files=files, tags="one two")
         self.assertEqual(len(resource.files), 1)
 
+    def test_len(self):
+        """ Test that the length of a Dataset is the number of files it contains. """
+        dataset = self.create_valid_dataset()
+        self.assertEqual(len(dataset), len(dataset.files))
+
+    def test_iter(self):
+        """ Test that iterating over a Dataset is equivalent to iterating over its files. """
+        dataset = self.create_valid_dataset()
+        iterated_files = {file for file in dataset}
+        self.assertEqual(iterated_files, dataset.files)
+
     def test_using_append_raises_deprecation_warning(self):
         """ Test that Dataset.append is deprecated but gets redirected to Dataset.add. """
         resource = Dataset()

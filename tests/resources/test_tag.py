@@ -27,6 +27,11 @@ class TestTag(BaseTestCase):
         self.assertTrue("b" != Tag("a"))
         self.assertTrue("a" == Tag("a"))
 
+    def test_tags_compare_unequal_to_non_str_or_tag_types(self):
+        """ Test that comparing for equality a Tag with a non-string-or-Tag type returns False. """
+        self.assertFalse(Tag("a") == 1)
+        self.assertTrue(Tag("a") != 1)
+
     def test_contains(self):
         """ Test that tags can be checked for containment. """
         self.assertIn("e", Tag("hello"))
@@ -80,6 +85,10 @@ class TestTagGroup(BaseTestCase):
         tag_group = TagGroup(tags=FilterSet({Tag("a"), Tag("b:c"), Tag("d:e:f")}))
         self.assertEqual(tag_group.tags, FilterSet({Tag("a"), Tag("b:c"), Tag("d:e:f")}))
 
+    def test_instantiation_from_tag_group(self):
+        """ Test that a TagGroup can be instantiated from another TagGroup. """
+        self.assertEqual(self.TAG_GROUP, TagGroup(self.TAG_GROUP))
+
     def test_equality(self):
         """ Ensure two TagGroups with the same tags compare equal. """
         self.assertTrue(self.TAG_GROUP == TagGroup(tags="a b:c d:e:f"))
@@ -87,6 +96,11 @@ class TestTagGroup(BaseTestCase):
     def test_inequality(self):
         """ Ensure two TagGroups with different tags compare unequal. """
         self.assertTrue(self.TAG_GROUP != TagGroup(tags="a"))
+
+    def test_non_tag_groups_compare_unequal_to_tag_groups(self):
+        """ Ensure a TagGroup and a non-TagGroup compare unequal. """
+        self.assertFalse(self.TAG_GROUP == "a")
+        self.assertTrue(self.TAG_GROUP != "a")
 
     def test_iterating_over(self):
         """ Ensure a TagGroup can be iterated over. """
@@ -165,3 +179,12 @@ class TestTagGroup(BaseTestCase):
         """ Ensure that TagGroups are serialised to the string form of a list. """
         tag_group = TagGroup("z hello a c:no")
         self.assertEqual(tag_group.serialise(), "['a', 'c:no', 'hello', 'z']")
+
+    def test_str_is_equivalent_to_serialise(self):
+        """ Test that calling `str` on a TagGroup is equivalent to using the `serialise` method. """
+        tag_group = TagGroup("z hello a c:no")
+        self.assertEqual(str(tag_group), tag_group.serialise())
+
+    def test_repr(self):
+        """ Test the representation of a TagGroup appears as expected. """
+        self.assertEqual(repr(self.TAG_GROUP), f"<TagGroup({repr(self.TAG_GROUP.tags)})>")
