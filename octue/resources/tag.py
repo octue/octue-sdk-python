@@ -27,8 +27,8 @@ class Tag(Filterable):
     @property
     @lru_cache(maxsize=1)
     def subtags(self):
-        """ Return the subtags of the tag as a new TagGroup (e.g. TagGroup({'a', 'b', 'c'}) for the Tag('a:b:c'). """
-        return TagGroup({Tag(subtag_name) for subtag_name in (self.name.split(":"))})
+        """ Return the subtags of the tag as a new TagSet (e.g. TagSet({'a', 'b', 'c'}) for the Tag('a:b:c'). """
+        return TagSet({Tag(subtag_name) for subtag_name in (self.name.split(":"))})
 
     def __eq__(self, other):
         if isinstance(other, str):
@@ -84,13 +84,13 @@ class Tag(Filterable):
         return cleaned_name
 
 
-class TagGroup:
-    """ Class to handle a group of tags as a string. """
+class TagSet:
+    """ Class to handle a set of tags as a string. """
 
     _FILTERSET_ATTRIBUTE = "tags"
 
     def __init__(self, tags=None, *args, **kwargs):
-        """ Construct a TagGroup. """
+        """ Construct a TagSet. """
         # TODO Call the superclass with *args anad **kwargs, then update everything to using ResourceBase
         tags = tags or FilterSet()
 
@@ -98,7 +98,7 @@ class TagGroup:
         if isinstance(tags, str):
             self.tags = FilterSet(Tag(tag) for tag in tags.strip().split())
 
-        elif isinstance(tags, TagGroup):
+        elif isinstance(tags, TagSet):
             self.tags = FilterSet(tags.tags)
 
         # Tags can be some other iterable than a list, but each tag must be a Tag or string.
@@ -115,20 +115,20 @@ class TagGroup:
         return self.serialise()
 
     def __eq__(self, other):
-        """ Does this TagGroup have the same tags as another TagGroup? """
-        if not isinstance(other, TagGroup):
+        """ Does this TagSet have the same tags as another TagSet? """
+        if not isinstance(other, TagSet):
             return False
         return self.tags == other.tags
 
     def __iter__(self):
-        """ Iterate over the tags in the TagGroup. """
+        """ Iterate over the tags in the TagSet. """
         yield from self.tags
 
     def __len__(self):
         return len(self.tags)
 
     def __repr__(self):
-        return f"<TagGroup({self.tags})>"
+        return f"<TagSet({self.tags})>"
 
     def add_tags(self, *args):
         """ Adds one or more new tag strings to the object tags. New tags will be cleaned and validated.
@@ -136,13 +136,13 @@ class TagGroup:
         self.tags |= {Tag(arg) for arg in args}
 
     def has_tag(self, tag):
-        """ Returns true if any of the tags exactly matches value, allowing test like `if 'a' in TagGroup('a b')`
+        """ Returns true if any of the tags exactly matches value, allowing test like `if 'a' in TagSet('a b')`
         """
         return tag in self or Tag(tag) in self
 
     def get_subtags(self):
-        """ Return a new TagGroup instance with all the subtags. """
-        return TagGroup(subtag for tag in self for subtag in tag.subtags)
+        """ Return a new TagSet instance with all the subtags. """
+        return TagSet(subtag for tag in self for subtag in tag.subtags)
 
     def starts_with(self, value):
         """ Implement a startswith method that returns true if any of the tags starts with value """

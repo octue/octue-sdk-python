@@ -29,7 +29,7 @@ TYPE_FILTERS = {
         **CONTAINS_FILTER_ACTIONS,
     },
     "NoneType": IS_FILTER_ACTIONS,
-    "TagGroup": {
+    "TagSet": {
         "starts_with": lambda item, filter_value: item.starts_with(filter_value),
         "ends_with": lambda item, filter_value: item.ends_with(filter_value),
         **EQUALS_FILTER_ACTION,

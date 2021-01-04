@@ -1,4 +1,4 @@
-from octue.resources.tag import TagGroup
+from octue.resources.tag import TagSet
 
 
 class Taggable:
@@ -8,7 +8,7 @@ class Taggable:
         """ Constructor for Taggable mixins
         """
         super().__init__(*args, **kwargs)
-        self._tags = TagGroup(tags)
+        self._tags = TagSet(tags)
 
     def add_tags(self, *args):
         """ Adds one or more new tag strings to the object tags. New tags will be cleaned and validated. """
@@ -20,5 +20,5 @@ class Taggable:
 
     @tags.setter
     def tags(self, tags):
-        """ Overwrite any existing tag group and assign new tags. """
-        self._tags = TagGroup(tags)
+        """ Overwrite any existing tag set and assign new tags. """
+        self._tags = TagSet(tags)
