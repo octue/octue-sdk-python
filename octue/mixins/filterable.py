@@ -11,6 +11,13 @@ IS_FILTER_ACTIONS = {
 
 EQUALS_FILTER_ACTION = {"equals": lambda item, filter_value: filter_value == item}
 
+COMPARISON_FILTER_ACTIONS = {
+    "lt": lambda item, filter_value: item < filter_value,
+    "lte": lambda item, filter_value: item <= filter_value,
+    "gt": lambda item, filter_value: item > filter_value,
+    "gte": lambda item, filter_value: item >= filter_value,
+}
+
 CONTAINS_FILTER_ACTIONS = {
     "contains": lambda item, filter_value: filter_value in item,
     "not_contains": lambda item, filter_value: filter_value not in item,
@@ -21,10 +28,12 @@ CONTAINS_FILTER_ACTIONS = {
 TYPE_FILTERS = {
     "bool": IS_FILTER_ACTIONS,
     "str": {
+        "iequals": lambda item, filter_value: filter_value.lower() == item.lower(),
         "icontains": lambda item, filter_value: filter_value.lower() in item.lower(),
         "ends_with": lambda item, filter_value: item.endswith(filter_value),
         "starts_with": lambda item, filter_value: item.startswith(filter_value),
         **EQUALS_FILTER_ACTION,
+        **COMPARISON_FILTER_ACTIONS,
         **IS_FILTER_ACTIONS,
         **CONTAINS_FILTER_ACTIONS,
     },
@@ -40,14 +49,7 @@ TYPE_FILTERS = {
 
 # Filters for interfaces e.g. iterables or numbers.
 INTERFACE_FILTERS = {
-    numbers.Number: {
-        "lt": lambda item, filter_value: item < filter_value,
-        "lte": lambda item, filter_value: item <= filter_value,
-        "gt": lambda item, filter_value: item > filter_value,
-        "gte": lambda item, filter_value: item >= filter_value,
-        **EQUALS_FILTER_ACTION,
-        **IS_FILTER_ACTIONS,
-    },
+    numbers.Number: {**EQUALS_FILTER_ACTION, **COMPARISON_FILTER_ACTIONS, **IS_FILTER_ACTIONS},
     collections.abc.Iterable: {**EQUALS_FILTER_ACTION, **CONTAINS_FILTER_ACTIONS, **IS_FILTER_ACTIONS},
 }
 
