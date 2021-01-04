@@ -16,6 +16,17 @@ class TestTag(BaseTestCase):
         self.assertTrue(Tag("a") != Tag("b"))
         self.assertTrue(Tag("a") == Tag("a"))
 
+    def test_tag_comparison_with_strings(self):
+        """ Test that tags can be alphabetically compared with strings in both directions. """
+        self.assertTrue(Tag("a") < "b")
+        self.assertTrue(Tag("b") > "a")
+        self.assertTrue(Tag("a") != "b")
+        self.assertTrue(Tag("a") == "a")
+        self.assertTrue("b" > Tag("a"))
+        self.assertTrue("a" < Tag("b"))
+        self.assertTrue("b" != Tag("a"))
+        self.assertTrue("a" == Tag("a"))
+
     def test_contains(self):
         """ Test that tags can be checked for containment. """
         self.assertIn("e", Tag("hello"))
