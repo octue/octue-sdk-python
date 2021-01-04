@@ -6,12 +6,10 @@ from octue.resources.filter_containers import FilterList, FilterSet
 
 
 class Cat(Filterable):
-    def __init__(self, name=None, is_alive=None, previous_names=None, age=None, owner=None):
+    def __init__(self, name=None, previous_names=None, age=None):
         self.name = name
-        self.is_alive = is_alive
         self.previous_names = previous_names
         self.age = age
-        self.owner = owner
 
 
 class TestFilterSet(BaseTestCase):
@@ -33,7 +31,7 @@ class TestFilterSet(BaseTestCase):
         sorted_filter_set = FilterSet(cats).order_by("age")
         self.assertEqual(sorted_filter_set, FilterList(reversed(cats)))
 
-    def test_order_by_iterable(self):
+    def test_order_by_list_attribute(self):
         """ Test that ordering by list attributes orders by the size of the list. """
         cats = [Cat(previous_names=["Scatta", "Catta"]), Cat(previous_names=["Kitty"]), Cat(previous_names=[])]
         sorted_filter_set = FilterSet(cats).order_by("previous_names")
