@@ -111,6 +111,8 @@ class TestFilterable(BaseTestCase):
     def test_tag_set_filters(self):
         """ Test the filters for TagSet. """
         filterable_thing = FilterableSubclass(iterable=TagSet({"fred", "charlie"}))
+        self.assertTrue(filterable_thing.satisfies("iterable__any_tag_contains", "a"))
+        self.assertFalse(filterable_thing.satisfies("iterable__any_tag_contains", "z"))
         self.assertTrue(filterable_thing.satisfies("iterable__any_tag_starts_with", "f"))
         self.assertFalse(filterable_thing.satisfies("iterable__any_tag_starts_with", "e"))
         self.assertTrue(filterable_thing.satisfies("iterable__any_tag_ends_with", "e"))
