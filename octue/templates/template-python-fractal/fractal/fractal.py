@@ -74,4 +74,4 @@ def fractal(analysis):
         )  # The special encoder just makes it easy to handle numpy arrays
 
     # And finally we add it to the output
-    output_dataset.append(df)
+    output_dataset.add(df)

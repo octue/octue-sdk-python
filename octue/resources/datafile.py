@@ -4,14 +4,14 @@ import time
 from blake3 import blake3
 
 from octue.exceptions import FileNotFoundException, InvalidInputException
-from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
+from octue.mixins import Filterable, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.utils import isfile
 
 
 module_logger = logging.getLogger(__name__)
 
 
-class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable):
+class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable, Filterable):
     """ Class for representing data files on the Octue system
 
     Files in a manifest look like this:
@@ -115,6 +115,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     def _calculate_hash(self):
         """ Calculate the hash of the file. """
         hash = blake3()
+
         with open(self.absolute_path, "rb") as f:
             # Read and update hash value in blocks of 4K
             for byte_block in iter(lambda: f.read(4096), b""):

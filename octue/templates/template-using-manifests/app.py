@@ -36,7 +36,7 @@ def run(analysis, *args, **kwargs):
     #
     # See the Dataset class help for more.
     metadata_file = input_dataset.get_file_by_tag("meta")
-    timeseries_files = input_dataset.get_file_sequence("tag__exact", filter_value="timeseries")
+    timeseries_files = input_dataset.get_file_sequence("tags__contains", filter_value="timeseries")
     #
     # We used these because they're special helpers - in this case ensuring that there's only one metadata file and
     # ensuring that the timeseries files come in a strictly ordered sequence.
@@ -90,7 +90,7 @@ def run(analysis, *args, **kwargs):
         data.to_csv(path_or_buf=fp)
 
     # And finally we add it to the output
-    output_dataset.append(timeseries_datafile)
+    output_dataset.add(timeseries_datafile)
 
     # We're done! There's only one datafile in the output dataset, but you could create thousands more and append them
     # all :)
