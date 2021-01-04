@@ -23,7 +23,7 @@ def _filter(instance, filter_name=None, filter_value=None):
 
 
 def _order_by(instance, attribute_name):
-    """ Order the instance by the given attribute_name, returning the instance's elements as a FilterList (not a
+    """ Order the instance by the given attribute_name, returning the instance's elements as a new FilterList (not a
     FilterSet.
     """
     try:
