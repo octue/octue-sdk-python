@@ -73,6 +73,10 @@ class DatafileTestCase(BaseTestCase):
         with self.assertRaises(AttributeError):
             df.last_modified = 1000000000.5771205
 
+    def test_repr(self):
+        """ Test that Datafiles are represented as expected. """
+        self.assertEqual(repr(self.create_valid_datafile()), "<Datafile('a_test_file.csv')>")
+
     def test_serialisable(self):
         """ Ensures a datafile can serialise to json format
         """
