@@ -53,10 +53,20 @@ class TestFilterable(BaseTestCase):
         self.assertFalse(filterable_thing.satisfies("name__starts_with", "l"))
         self.assertTrue(filterable_thing.satisfies("name__equals", "Michael"))
         self.assertFalse(filterable_thing.satisfies("name__equals", "Clive"))
+        self.assertTrue(filterable_thing.satisfies("name__iequals", "michael"))
+        self.assertFalse(filterable_thing.satisfies("name__iequals", "James"))
         self.assertTrue(filterable_thing.satisfies("name__is", "Michael"))
         self.assertFalse(filterable_thing.satisfies("name__is", "Clive"))
         self.assertTrue(filterable_thing.satisfies("name__is_not", "Clive"))
         self.assertFalse(filterable_thing.satisfies("name__is_not", "Michael"))
+        self.assertTrue(filterable_thing.satisfies("name__lt", "Noel"))
+        self.assertFalse(filterable_thing.satisfies("name__lt", "Harry"))
+        self.assertTrue(filterable_thing.satisfies("name__lte", "Michael"))
+        self.assertFalse(filterable_thing.satisfies("name__lte", "Harry"))
+        self.assertTrue(filterable_thing.satisfies("name__gt", "Clive"))
+        self.assertFalse(filterable_thing.satisfies("name__gt", "Noel"))
+        self.assertTrue(filterable_thing.satisfies("name__gte", "Michael"))
+        self.assertFalse(filterable_thing.satisfies("name__gte", "Noel"))
 
     def test_none_filters(self):
         """ Test that the None filters work as expected. """
