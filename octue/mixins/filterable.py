@@ -39,8 +39,9 @@ TYPE_FILTERS = {
     },
     "NoneType": IS_FILTER_ACTIONS,
     "TagSet": {
-        "starts_with": lambda item, filter_value: item.starts_with(filter_value),
-        "ends_with": lambda item, filter_value: item.ends_with(filter_value),
+        "any_tag_contains": lambda item, filter_value: item.any_tag_contains(filter_value),
+        "any_tag_starts_with": lambda item, filter_value: item.any_tag_starts_with(filter_value),
+        "any_tag_ends_with": lambda item, filter_value: item.any_tag_ends_with(filter_value),
         **EQUALS_FILTER_ACTION,
         **CONTAINS_FILTER_ACTIONS,
         **IS_FILTER_ACTIONS,

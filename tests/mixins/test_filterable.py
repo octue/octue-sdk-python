@@ -111,10 +111,10 @@ class TestFilterable(BaseTestCase):
     def test_tag_set_filters(self):
         """ Test the filters for TagSet. """
         filterable_thing = FilterableSubclass(iterable=TagSet({"fred", "charlie"}))
-        self.assertTrue(filterable_thing.satisfies("iterable__starts_with", "f"))
-        self.assertFalse(filterable_thing.satisfies("iterable__starts_with", "e"))
-        self.assertTrue(filterable_thing.satisfies("iterable__ends_with", "e"))
-        self.assertFalse(filterable_thing.satisfies("iterable__ends_with", "i"))
+        self.assertTrue(filterable_thing.satisfies("iterable__any_tag_starts_with", "f"))
+        self.assertFalse(filterable_thing.satisfies("iterable__any_tag_starts_with", "e"))
+        self.assertTrue(filterable_thing.satisfies("iterable__any_tag_ends_with", "e"))
+        self.assertFalse(filterable_thing.satisfies("iterable__any_tag_ends_with", "i"))
 
     def test_filtering_different_attributes_on_same_instance(self):
         """ Ensure all filterable attributes on an instance can be checked for filter satisfaction. """
