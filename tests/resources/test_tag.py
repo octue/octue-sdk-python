@@ -106,15 +106,17 @@ class TestTagSet(BaseTestCase):
         """ Ensure a TagSet can be iterated over. """
         self.assertEqual(set(self.TAG_SET), {Tag("a"), Tag("b:c"), Tag("d:e:f")})
 
-    def test_has_tag(self):
-        """ Ensure we can check that a TagSet has a certain tag. """
+    def test_contains_with_string(self):
+        """ Ensure we can check that a TagSet has a certain tag using a string form. """
         self.assertTrue("d:e:f" in self.TAG_SET)
-
-    def test_does_not_have_tag(self):
-        """ Ensure we can check that a TagSet does not have a certain tag. """
         self.assertFalse("hello" in self.TAG_SET)
 
-    def test_has_tag_only_matches_full_tags(self):
+    def test_contains_with_tag(self):
+        """ Ensure we can check that a TagSet has a certain tag. """
+        self.assertTrue(Tag("d:e:f") in self.TAG_SET)
+        self.assertFalse(Tag("hello") in self.TAG_SET)
+
+    def test_contains_only_matches_full_tags(self):
         """ Test that the has_tag method only matches full tags (i.e. that it doesn't match subtags or parts of tags."""
         for tag in "a", "b:c", "d:e:f":
             self.assertTrue(tag in self.TAG_SET)
@@ -142,7 +144,7 @@ class TestTagSet(BaseTestCase):
         for tag in "b", "d", "e":
             self.assertFalse(self.TAG_SET.any_tag_ends_with(tag))
 
-    def test_contains_searches_for_tags_and_subtags(self):
+    def test_any_tag_contains_searches_for_tags_and_subtags(self):
         """ Ensure tags and subtags can be searched for. """
         for tag in "a", "b", "d":
             self.assertTrue(self.TAG_SET.any_tag_contains(tag))
