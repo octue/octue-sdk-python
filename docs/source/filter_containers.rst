@@ -44,7 +44,9 @@ The following filters are implemented for the following types:
     * ``is``
     * ``is_not``
     * ``equals``
+    * ``not_equals``
     * ``iequals``
+    * ``not_iequals``
     * ``lt`` (less than)
     * ``lte`` (less than or equal)
     * ``gt`` (greater than)
@@ -52,8 +54,11 @@ The following filters are implemented for the following types:
     * ``contains``
     * ``not_contains``
     * ``icontains`` (case-insensitive contains)
-    * ``ends_with``
+    * ``not_icontains``
     * ``starts_with``
+    * ``not_starts_with``
+    * ``ends_with``
+    * ``not_ends_with``
 
 - ``NoneType``:
 
@@ -65,10 +70,14 @@ The following filters are implemented for the following types:
     * ``is``
     * ``is_not``
     * ``equals``
-    * ``starts_with``
-    * ``ends_with``
+    * ``not_equals``
     * ``contains``
     * ``not_contains``
+    * ``starts_with``
+    * ``not_starts_with``
+    * ``ends_with``
+    * ``not_ends_with``
+
 
 
 Additionally, these filters are defined for the following *interfaces* (duck-types). :
@@ -78,18 +87,22 @@ Additionally, these filters are defined for the following *interfaces* (duck-typ
     * ``is``
     * ``is_not``
     * ``equals``
-    * ``lt`` (less than)
-    * ``lte`` (less than or equal)
-    * ``gt`` (greater than)
-    * ``gte`` (greater than or equal)
+    * ``not_equals``
+    * ``lt``
+    * ``lte``
+    * ``gt``
+    * ``gte``
 
 - Iterables:
 
     * ``is``
     * ``is_not``
     * ``equals``
+    * ``not_equals``
     * ``contains``
     * ``not_contains``
+    * ``icontains``
+    * ``not_icontains``
 
 The interface filters are only used if the type of the attribute of the element being filtered is not found in the first
 list of filters.
