@@ -112,6 +112,9 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     def size_bytes(self):
         return os.path.getsize(self.absolute_path)
 
+    def __repr__(self):
+        return f"<{type(self).__name__}({self.name!r})>"
+
     def _calculate_hash(self):
         """ Calculate the hash of the file. """
         hash = blake3()

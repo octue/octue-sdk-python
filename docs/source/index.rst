@@ -13,6 +13,9 @@ Not all of Octue's API functionality is implemented in the SDK yet, we're active
    :hidden:
 
    installation
+   datafile
+   dataset
+   filter_containers
    analysis_objects
    license
    version_history
