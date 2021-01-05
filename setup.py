@@ -17,7 +17,7 @@ with open("LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.1.6",
+    version="0.1.7",
     py_modules=["cli"],
     install_requires=[
         "blake3>=0.1.8",
