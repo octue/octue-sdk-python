@@ -60,7 +60,7 @@ class Filterable:
         try:
             attribute = getattr(self, attribute_name)
         except AttributeError:
-            raise exceptions.InvalidInputException(f"An attribute named {attribute_name!r} does not exist on {self!r}.")
+            raise AttributeError(f"An attribute named {attribute_name!r} does not exist on {self!r}.")
 
         filter_ = self._get_filter(attribute, filter_action)
         return filter_(attribute, filter_value)
