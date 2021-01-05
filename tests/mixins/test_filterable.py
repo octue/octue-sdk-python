@@ -123,14 +123,18 @@ class TestFilterable(BaseTestCase):
     def test_tag_set_filters(self):
         """ Test the filters for TagSet. """
         filterable_thing = FilterableSubclass(iterable=TagSet({"fred", "charlie"}))
-        self.assertTrue(filterable_thing.satisfies("iterable__starts_with", "f"))
-        self.assertFalse(filterable_thing.satisfies("iterable__starts_with", "e"))
-        self.assertTrue(filterable_thing.satisfies("iterable__not_starts_with", "e"))
-        self.assertFalse(filterable_thing.satisfies("iterable__not_starts_with", "f"))
-        self.assertTrue(filterable_thing.satisfies("iterable__ends_with", "e"))
-        self.assertFalse(filterable_thing.satisfies("iterable__ends_with", "i"))
-        self.assertTrue(filterable_thing.satisfies("iterable__not_ends_with", "i"))
-        self.assertFalse(filterable_thing.satisfies("iterable__not_ends_with", "e"))
+        self.assertTrue(filterable_thing.satisfies("iterable__any_tag_contains", "a"))
+        self.assertFalse(filterable_thing.satisfies("iterable__any_tag_contains", "z"))
+        self.assertTrue(filterable_thing.satisfies("iterable__not_any_tag_contains", "z"))
+        self.assertFalse(filterable_thing.satisfies("iterable__not_any_tag_contains", "a"))
+        self.assertTrue(filterable_thing.satisfies("iterable__any_tag_starts_with", "f"))
+        self.assertFalse(filterable_thing.satisfies("iterable__any_tag_starts_with", "e"))
+        self.assertTrue(filterable_thing.satisfies("iterable__any_tag_ends_with", "e"))
+        self.assertFalse(filterable_thing.satisfies("iterable__any_tag_ends_with", "i"))
+        self.assertTrue(filterable_thing.satisfies("iterable__not_any_tag_starts_with", "e"))
+        self.assertFalse(filterable_thing.satisfies("iterable__not_any_tag_starts_with", "f"))
+        self.assertTrue(filterable_thing.satisfies("iterable__not_any_tag_ends_with", "i"))
+        self.assertFalse(filterable_thing.satisfies("iterable__not_any_tag_ends_with", "e"))
 
     def test_filtering_different_attributes_on_same_instance(self):
         """ Ensure all filterable attributes on an instance can be checked for filter satisfaction. """
