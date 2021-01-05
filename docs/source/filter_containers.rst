@@ -16,6 +16,13 @@ There are two types of filter containers currently implemented:
 - ``FilterSet``
 - ``FilterList``
 
+``FilterSet``s are currently used in:
+
+- ``Dataset.files`` to store ``Datafile``s
+- ``TagSet.tags`` to store ``Tag``s
+
+You can see filtering in action on a ``Dataset``'s ``Datafile``s `here <dataset.rst>`_.
+
 
 ---------
 Filtering
