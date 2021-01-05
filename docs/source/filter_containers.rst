@@ -71,12 +71,12 @@ The following filters are implemented for the following types:
     * ``is_not``
     * ``equals``
     * ``not_equals``
-    * ``contains``
-    * ``not_contains``
-    * ``starts_with``
-    * ``not_starts_with``
-    * ``ends_with``
-    * ``not_ends_with``
+    * ``any_tag_contains``
+    * ``not_any_tag_contains``
+    * ``any_tag_starts_with``
+    * ``not_any_tag_starts_with``
+    * ``any_tag_ends_with``
+    * ``not_any_tag_ends_with``
 
 
 
