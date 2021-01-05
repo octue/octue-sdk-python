@@ -4,7 +4,8 @@
 Datafile
 ========
 
-A ``Datafile`` is an Octue type that corresponds to any file on your computer. It has the following main attributes:
+A ``Datafile`` is an Octue type that corresponds to a file, which may exist on your computer or in a cloud store. It has
+the following main attributes:
 
 - ``path`` - the path of this file, which may include folders or subfolders, within the dataset.
 - ``cluster`` - the integer cluster of files, within a dataset, to which this belongs (default 0)

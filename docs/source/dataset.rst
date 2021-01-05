@@ -17,7 +17,7 @@ The files are stored in a ``FilterSet``, meaning they can be easily filtered acc
 Filtering files in a ``Dataset``
 --------------------------------
 You can filter a ``Dataset``'s files as follows:
-::
+.. code-block:: python
     dataset = Dataset(
         files=[
             Datafile(path="path-within-dataset/my_file.csv", tags="one a:2 b:3 all"),
@@ -33,7 +33,7 @@ You can filter a ``Dataset``'s files as follows:
     >>> <FilterSet({<Datafile('my_file.csv')>, <Datafile('your_file.txt')>})>
 
 You can also chain filters indefinitely:
-::
+.. code-block:: python
     dataset.files.filter(filter_name="name__ends_with", filter_value=".csv").filter("tags__contains", filter_value="a:2")
     >>> <FilterSet({<Datafile('my_file.csv')>})>
 
