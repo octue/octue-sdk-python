@@ -9,19 +9,10 @@
 
 Utilities for running python based data services, digital twins and applications with the Octue toolkit and [twined](https://twined.readthedocs.io/en/latest/?badge=latest) SDK for python based apps running within octue.
 
-[See documentation.](https://octue-python-sdk.readthedocs.io/en/latest/)
-
 
 ## Developer notes
 
-**Documentation for use of the library is [here](https://{{library_name}}.readthedocs.io). You don't need to pay attention to the following unless you plan to develop {{library_name}} itself.**
-
-### Getting started
-
-1. Click 'use this template' to the top right, and away you go.
-2. Search for `{{` in your new repository. Do search and replace for the various terms - it's obvious what they are, like replace `{{github_username}}` with your github username!
-3. Set up the license you need in `LICENSE`.
-4. If you need to deploy to pypi, you have to do the first deploy manually - travis can't do that for you. [See the packaging instructions](https://packaging.python.org/tutorials/distributing-packages/#uploading-your-project-to-pypi).
+**Documentation for use of the library is [here](https://octue-python-sdk.readthedocs.io). You don't need to pay attention to the following unless you plan to develop `octue-sdk-python` itself.**
 
 ### Pre-Commit
 
