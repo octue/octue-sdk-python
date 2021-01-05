@@ -43,8 +43,8 @@ class TestTag(BaseTestCase):
 
     def test_subtags_starts_with(self):
         """ Test that the start of subtags can be checked. """
-        self.assertTrue(Tag("hello:world").subtags.starts_with("w"))
-        self.assertFalse(Tag("hello:world").subtags.starts_with("e"))
+        self.assertTrue(Tag("hello:world").subtags.any_tag_starts_with("w"))
+        self.assertFalse(Tag("hello:world").subtags.any_tag_starts_with("e"))
 
     def test_ends_with(self):
         """ Test that the end of a tag can be checked. """
@@ -53,8 +53,8 @@ class TestTag(BaseTestCase):
 
     def test_subtags_ends_with(self):
         """ Test that the end of subtags can be checked. """
-        self.assertTrue(Tag("hello:world").subtags.ends_with("o"))
-        self.assertFalse(Tag("hello:world").subtags.ends_with("e"))
+        self.assertTrue(Tag("hello:world").subtags.any_tag_ends_with("o"))
+        self.assertFalse(Tag("hello:world").subtags.any_tag_ends_with("e"))
 
 
 class TestTagSet(BaseTestCase):
@@ -106,43 +106,45 @@ class TestTagSet(BaseTestCase):
         """ Ensure a TagSet can be iterated over. """
         self.assertEqual(set(self.TAG_SET), {Tag("a"), Tag("b:c"), Tag("d:e:f")})
 
-    def test_has_tag(self):
+    def test_contains_with_string(self):
+        """ Ensure we can check that a TagSet has a certain tag using a string form. """
+        self.assertTrue("d:e:f" in self.TAG_SET)
+        self.assertFalse("hello" in self.TAG_SET)
+
+    def test_contains_with_tag(self):
         """ Ensure we can check that a TagSet has a certain tag. """
-        self.assertTrue(self.TAG_SET.has_tag("d:e:f"))
+        self.assertTrue(Tag("d:e:f") in self.TAG_SET)
+        self.assertFalse(Tag("hello") in self.TAG_SET)
 
-    def test_does_not_have_tag(self):
-        """ Ensure we can check that a TagSet does not have a certain tag. """
-        self.assertFalse(self.TAG_SET.has_tag("hello"))
-
-    def test_has_tag_only_matches_full_tags(self):
+    def test_contains_only_matches_full_tags(self):
         """ Test that the has_tag method only matches full tags (i.e. that it doesn't match subtags or parts of tags."""
         for tag in "a", "b:c", "d:e:f":
-            self.assertTrue(self.TAG_SET.has_tag(tag))
+            self.assertTrue(tag in self.TAG_SET)
 
         for tag in "b", "c", "d", "e", "f":
-            self.assertFalse(self.TAG_SET.has_tag(tag))
+            self.assertFalse(tag in self.TAG_SET)
 
     def test_get_subtags(self):
         """ Test subtags can be accessed as a new TagSet. """
         self.assertEqual(TagSet("meta:sys2:3456 blah").get_subtags(), TagSet("meta sys2 3456 blah"))
 
-    def test_starts_with(self):
+    def test_any_tag_starts_with(self):
         """ Ensure starts_with only checks the starts of tags, and doesn't check the starts of subtags. """
         for tag in "a", "b", "d":
-            self.assertTrue(self.TAG_SET.starts_with(tag))
+            self.assertTrue(self.TAG_SET.any_tag_starts_with(tag))
 
         for tag in "c", "e", "f":
-            self.assertFalse(self.TAG_SET.starts_with(tag))
+            self.assertFalse(self.TAG_SET.any_tag_starts_with(tag))
 
-    def test_ends_swith(self):
+    def test_any_tag_ends_swith(self):
         """ Ensure ends_with doesn't check ends of subtags. """
         for tag in "a", "c", "f":
-            self.assertTrue(self.TAG_SET.ends_with(tag))
+            self.assertTrue(self.TAG_SET.any_tag_ends_with(tag))
 
         for tag in "b", "d", "e":
-            self.assertFalse(self.TAG_SET.ends_with(tag))
+            self.assertFalse(self.TAG_SET.any_tag_ends_with(tag))
 
-    def test_contains_searches_for_tags_and_subtags(self):
+    def test_any_tag_contains_searches_for_tags_and_subtags(self):
         """ Ensure tags and subtags can be searched for. """
         for tag in "a", "b", "d":
             self.assertTrue(self.TAG_SET.any_tag_contains(tag))
