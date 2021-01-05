@@ -1,17 +1,17 @@
-import hashlib
 import logging
 import os
 import time
+from blake3 import blake3
 
 from octue.exceptions import FileNotFoundException, InvalidInputException
-from octue.mixins import Identifiable, Loggable, Pathable, Serialisable, Taggable
+from octue.mixins import Filterable, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.utils import isfile
 
 
 module_logger = logging.getLogger(__name__)
 
 
-class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
+class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable, Filterable):
     """ Class for representing data files on the Octue system
 
     Files in a manifest look like this:
@@ -59,7 +59,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
     :type posix_timestamp: number
     """
 
-    _exclude_serialise_fields = ("logger", "open")
+    _ATTRIBUTES_TO_HASH = "name", "cluster", "sequence", "posix_timestamp", "tags"
+    _EXCLUDE_SERIALISE_FIELDS = ("logger", "open")
 
     def __init__(
         self,
@@ -80,7 +81,6 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
         super().__init__(id=id, logger=logger, tags=tags, path=path, path_from=path_from, base_from=base_from)
 
         self.cluster = cluster
-
         self.sequence = sequence
         self.posix_timestamp = posix_timestamp or time.time()
 
@@ -100,17 +100,6 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
         path = path or self.path
         return os.path.splitext(path)[-1].strip(".")
 
-    def _get_sha_256(self):
-        """ Calculate the SHA256 hash string of the file
-        """
-        sha256_hash = hashlib.sha256()
-        with open(self.absolute_path, "rb") as f:
-            # Read and update hash string value in blocks of 4K
-            for byte_block in iter(lambda: f.read(4096), b""):
-                sha256_hash.update(byte_block)
-
-        return sha256_hash.hexdigest()
-
     @property
     def name(self):
         return str(os.path.split(self.path)[-1])
@@ -123,9 +112,19 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable):
     def size_bytes(self):
         return os.path.getsize(self.absolute_path)
 
-    @property
-    def sha_256(self):
-        return self._get_sha_256()
+    def __repr__(self):
+        return f"<{type(self).__name__}({self.name!r})>"
+
+    def _calculate_hash(self):
+        """ Calculate the hash of the file. """
+        hash = blake3()
+
+        with open(self.absolute_path, "rb") as f:
+            # Read and update hash value in blocks of 4K
+            for byte_block in iter(lambda: f.read(4096), b""):
+                hash.update(byte_block)
+
+        return super()._calculate_hash(hash)
 
     def check(self, size_bytes=None, sha=None, last_modified=None, extension=None):
         """ Check file presence and integrity

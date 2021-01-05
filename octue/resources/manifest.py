@@ -1,18 +1,18 @@
 import logging
 
 from octue.exceptions import InvalidInputException, InvalidManifestException
-from octue.mixins import Identifiable, Loggable, Pathable, Serialisable
+from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable
 from .dataset import Dataset
 
 
 module_logger = logging.getLogger(__name__)
 
 
-class Manifest(Pathable, Serialisable, Loggable, Identifiable):
-    """ A representation of a manifest, which can contain multiple datasets
-    This is used to manage all files coming into (or leaving), a data service for an analysis at the
-    configuration, input or output stage.
-    """
+class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
+    """ A representation of a manifest, which can contain multiple datasets This is used to manage all files coming into
+    (or leaving), a data service for an analysis at the configuration, input or output stage. """
+
+    _ATTRIBUTES_TO_HASH = "datasets", "keys"
 
     def __init__(self, id=None, logger=None, path=None, path_from=None, base_from=None, **kwargs):
         """ Construct a Manifest
@@ -43,11 +43,11 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable):
 
         # Instantiate the datasets if not already done
         self.datasets = []
-        for key, ds in zip(key_list, datasets):
-            if isinstance(ds, Dataset):
-                self.datasets.append(ds)
+        for key, dataset in zip(key_list, datasets):
+            if isinstance(dataset, Dataset):
+                self.datasets.append(dataset)
             else:
-                self.datasets.append(Dataset(**ds, path=key, path_from=self))
+                self.datasets.append(Dataset(**dataset, path=key, path_from=self))
 
         # Instantiate the rest of everything!
         self.__dict__.update(**kwargs)

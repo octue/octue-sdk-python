@@ -46,7 +46,7 @@ class Pathable:
         """ Gets the path prefix (this is the absolute_path of the owner path_from object).
         Defaults to the current working directory
         """
-        if self._path_from:
+        if self._path_from is not None:
             return self._path_from.absolute_path
 
         if self._path_is_absolute:

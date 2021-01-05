@@ -2,7 +2,7 @@ import json
 import logging
 
 from octue.definitions import OUTPUT_STRANDS
-from octue.mixins import Identifiable, Loggable, Serialisable, Taggable
+from octue.mixins import Hashable, Identifiable, Loggable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.folders import get_file_name_from_strand
@@ -11,6 +11,13 @@ from twined import ALL_STRANDS, Twine
 
 module_logger = logging.getLogger(__name__)
 
+
+_HASH_FUNCTIONS = {
+    "configuration_values": Hashable.hash_non_class_object,
+    "configuration_manifest": lambda manifest: manifest.hash_value,
+    "input_values": Hashable.hash_non_class_object,
+    "input_manifest": lambda manifest: manifest.hash_value,
+}
 
 # Map strand names to class which we expect Twined to instantiate for us
 CLASS_MAP = {"configuration_manifest": Manifest, "input_manifest": Manifest, "output_manifest": Manifest}
@@ -59,9 +66,18 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         self._skip_checks = skip_checks
 
         # Pop any possible strand data sources before init superclasses (and tie them to protected attributes)
-        strand_kwargs = ((name, kwargs.pop(name, None)) for name in ALL_STRANDS)
+        strand_kwargs = [(name, kwargs.pop(name, None)) for name in ALL_STRANDS]
         for strand_name, strand_data in strand_kwargs:
             setattr(self, f"{strand_name}", strand_data)
+
+        for strand_name, strand_data in strand_kwargs:
+            if strand_name in _HASH_FUNCTIONS:
+                strand_hash_name = f"{strand_name}_hash"
+
+                if strand_data is not None:
+                    setattr(self, strand_hash_name, _HASH_FUNCTIONS[strand_name](strand_data))
+                else:
+                    setattr(self, strand_hash_name, None)
 
         # Init superclasses
         super().__init__(**kwargs)

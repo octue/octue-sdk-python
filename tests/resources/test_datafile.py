@@ -1,3 +1,4 @@
+import copy
 import os
 import uuid
 
@@ -72,6 +73,10 @@ class DatafileTestCase(BaseTestCase):
         with self.assertRaises(AttributeError):
             df.last_modified = 1000000000.5771205
 
+    def test_repr(self):
+        """ Test that Datafiles are represented as expected. """
+        self.assertEqual(repr(self.create_valid_datafile()), "<Datafile('a_test_file.csv')>")
+
     def test_serialisable(self):
         """ Ensures a datafile can serialise to json format
         """
@@ -92,6 +97,18 @@ class DatafileTestCase(BaseTestCase):
             "sequence",
             "size_bytes",
             "tags",
-            "sha_256",
+            "hash_value",
         ):
             self.assertIn(k, df_dict.keys())
+
+    def test_hash_value(self):
+        """ Test hashing a datafile gives a hash of length 128. """
+        hash_ = self.create_valid_datafile().hash_value
+        self.assertTrue(isinstance(hash_, str))
+        self.assertTrue(len(hash_) == 64)
+
+    def test_hashes_for_the_same_datafile_are_the_same(self):
+        """ Ensure the hashes for two datafiles that are exactly the same are the same."""
+        first_file = self.create_valid_datafile()
+        second_file = copy.deepcopy(first_file)
+        self.assertEqual(first_file.hash_value, second_file.hash_value)

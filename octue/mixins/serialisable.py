@@ -10,14 +10,14 @@ class Serialisable:
 
     """
 
+    _SERIALISE_FIELDS = None
+    _EXCLUDE_SERIALISE_FIELDS = ("logger",)
+
     def __init__(self, *args, **kwargs):
         """ Constructor for serialisable mixin
         """
         # Ensure it passes construction arguments up the chain
         super().__init__(*args, **kwargs)
-
-    _serialise_fields = None
-    _exclude_serialise_fields = ("logger",)
 
     def to_file(self, file_name, **kwargs):
         """ Write to a JSON file
@@ -55,11 +55,21 @@ class Serialisable:
         self.logger.debug("Serialising %s %s", self.__class__.__name__, self.id)
 
         # Get all non-private and non-protected attributes except those excluded specifically
-        attrs_to_serialise = self._serialise_fields or (
-            k for k in self.__dir__() if ((k[:1] != "_") and (type(getattr(self, k, "")).__name__ != "method"))
+        names_of_attributes_to_serialise = self._SERIALISE_FIELDS or (
+            field_name
+            for field_name in dir(self)
+            if (
+                field_name not in self._EXCLUDE_SERIALISE_FIELDS
+                and (field_name[:1] != "_")
+                and (type(getattr(self, field_name, "")).__name__ != "method")
+            )
         )
-        attrs_to_serialise = (attr for attr in attrs_to_serialise if attr not in self._exclude_serialise_fields)
-        self_as_primitive = {attr: getattr(self, attr, None) for attr in attrs_to_serialise}
+
+        self_as_primitive = {}
+        for name in names_of_attributes_to_serialise:
+            attribute = getattr(self, name, None)
+            # Serialise sets as sorted list (JSON doesn't support sets).
+            self_as_primitive[name] = sorted(attribute) if isinstance(attribute, set) else attribute
 
         # TODO this conversion backward-and-forward is very inefficient but allows us to use the same encoder for
         #  converting the object to a dict as to strings, which ensures that nested attributes are also cast to
@@ -67,6 +77,7 @@ class Serialisable:
         #  returns python primitives, not strings. The reason we do this is to validate outbound information the same
         #  way as we validate incoming.
         string = json.dumps(self_as_primitive, cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
+
         if to_string:
             return string
 
