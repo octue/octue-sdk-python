@@ -4,7 +4,7 @@
 Dataset
 =======
 
-A ``Dataset`` contains any number of ``Datafile`` instances along with the following metadata:
+A ``Dataset`` contains any number of ``Datafiles`` along with the following metadata:
 
 - ``name``
 - ``tags``
@@ -16,7 +16,9 @@ The files are stored in a ``FilterSet``, meaning they can be easily filtered acc
 --------------------------------
 Filtering files in a ``Dataset``
 --------------------------------
+
 You can filter a ``Dataset``'s files as follows:
+
 .. code-block:: python
     dataset = Dataset(
         files=[
@@ -33,9 +35,10 @@ You can filter a ``Dataset``'s files as follows:
     >>> <FilterSet({<Datafile('my_file.csv')>, <Datafile('your_file.txt')>})>
 
 You can also chain filters indefinitely:
+
 .. code-block:: python
     dataset.files.filter(filter_name="name__ends_with", filter_value=".csv").filter("tags__contains", filter_value="a:2")
     >>> <FilterSet({<Datafile('my_file.csv')>})>
 
-Find out more about ``FilterSet`` `here <filter_containers.rst>`_, including all the possible filters available for each type of object stored on
+Find out more about ``FilterSets`` `here <filterset.rst>`_, including all the possible filters available for each type of object stored on
 an attribute of a ``FilterSet`` member, and how to convert them to primitive types such as ``set`` or ``list``.

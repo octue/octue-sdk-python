@@ -16,12 +16,12 @@ There are two types of filter containers currently implemented:
 - ``FilterSet``
 - ``FilterList``
 
-``FilterSet``s are currently used in:
+``FilterSets`` are currently used in:
 
-- ``Dataset.files`` to store ``Datafile``s
-- ``TagSet.tags`` to store ``Tag``s
+- ``Dataset.files`` to store ``Datafiles``
+- ``TagSet.tags`` to store ``Tags``
 
-You can see filtering in action on a ``Dataset``'s ``Datafile``s `here <dataset.rst>`_.
+You can see filtering in action on the files of a ``Dataset`` `here <dataset.rst>`_.
 
 
 ---------
@@ -29,7 +29,7 @@ Filtering
 ---------
 
 Filters are named as ``"<name_of_attribute_to_check>__<filter_action>"``, and any attribute of a member of the
-``FilterSet` whose type or interface is supported can be filtered.
+``FilterSet`` whose type or interface is supported can be filtered.
 .. code-block:: python
     filter_set = FilterSet(
         {Datafile(path="my_file.csv"), Datafile(path="your_file.txt"), Datafile(path="another_file.csv")}

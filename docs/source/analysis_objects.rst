@@ -27,9 +27,9 @@ your app can always be verified. These hashes exist on the following attributes:
 -   ``configuration_values_hash``
 -   ``configuration_manifest_hash``
 
-If an input or configuration attribute is ``None``, so will its hash attribute be. For ``Manifest``, some metadata
-about the ``Datafile`` and ``Dataset`` instances within them, and about the ``Manifest`` itself, is included when
-calculating the hash:
+If an input or configuration attribute is ``None``, so will its hash attribute be. For ``Manifests``, some metadata
+about the ``Datafiles`` and ``Datasets`` within them, and about the ``Manifest`` itself, is included when calculating
+the hash:
 
 - For a ``Datafile``, the content of its on-disk file is hashed, along with the following metadata:
 
@@ -39,6 +39,6 @@ calculating the hash:
     - ``posix_timestamp``
     - ``tags``
 
-- For a ``Dataset``, the hashes of its ``Datafile`` instances are included, along with its ``tags``.
+- For a ``Dataset``, the hashes of its ``Datafiles`` are included, along with its ``tags``.
 
-- For a ``Manifest``, the hashes of its ``Dataset`` instances are included, along with its ``keys``.
+- For a ``Manifest``, the hashes of its ``Datasets`` are included, along with its ``keys``.
