@@ -7,9 +7,9 @@
 
 # octue-sdk-python <span><img src="http://slurmed.com/fanart/javier/213_purple-fruit-snake.gif" alt="Purple Fruit Snake" width="100"/></span>
 
-Utilities for running python based data services, digital twins and applications with the Octue toolkit and [twined](https://www.twined.readthedocs.io) SDK for python based apps running within octue.
+Utilities for running python based data services, digital twins and applications with the Octue toolkit and [twined](https://twined.readthedocs.io/en/latest/?badge=latest) SDK for python based apps running within octue.
 
-[See documentation.](https://octue.readthedocs.io/en/latest)
+[See documentation.](https://octue-python-sdk.readthedocs.io/en/latest/)
 
 
 ## Developer notes
