@@ -2,6 +2,7 @@ import os
 import shutil
 import sys
 import uuid
+from unittest.mock import patch
 
 from octue import Runner
 from ..base import BaseTestCase
@@ -80,10 +81,18 @@ class TemplateAppsTestCase(BaseTestCase):
         """ Ensure child services template works correctly. """
         self.set_template("template-child-services")
         runner = Runner(twine=self.template_twine)
-        analysis = runner.run(
-            app_src=self.template_path,
-            children=os.path.join("data", "configuration", "children.json"),
-            input_values=os.path.join("data", "input", "values.json"),
-        )
+
+        with patch("octue.resources.Service.ask") as mock_service_ask:
+            mock_service_ask.return_value = [0, 7]
+            analysis = runner.run(
+                app_src=self.template_path,
+                children=os.path.join("data", "configuration", "children.json"),
+                input_values=os.path.join("data", "input", "values.json"),
+            )
+
         analysis.finalise(output_dir=os.path.join("data", "output"))
-        self.assertEqual(analysis.output_values, {"wind_speeds": [0, 7], "elevations": [0, 7]})
+
+        self.assertEqual(
+            analysis.output_values,
+            {"wind_speeds": mock_service_ask.return_value, "elevations": mock_service_ask.return_value},
+        )
