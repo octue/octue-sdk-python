@@ -31,7 +31,16 @@ def run(analysis, *args, **kwargs):
         - ``credentials``, a dict of Credential objects
 
     """
+    wind_speeds, elevations = asyncio.run(asynchronous_app(analysis))
 
+    analysis.logger.info(
+        f"The wind speeds and elevations at {analysis.input_values['locations']} are {wind_speeds} and {elevations}."
+    )
+
+    analysis.output_values = {"wind_speeds": wind_speeds, "elevations": elevations}
+
+
+async def asynchronous_app(analysis, *args, **kwargs):
     # You can use the attached logger to record debug statements, general information, warnings or errors
     # analysis.logger.info(f"The input directory is {analysis.input_dir}")
     # analysis.logger.info(f"The output directory is {analysis.output_dir}")
@@ -49,11 +58,7 @@ def run(analysis, *args, **kwargs):
     # Child services of the main service are accessible on the `analysis` instance via a dictionary.
     analysis.logger.info(f"Children to connect to: {list(analysis.children.keys())}")
 
-    wind_speeds = asyncio.run(analysis.children["atmosphere"].ask(analysis.input_values["locations"]))
-    elevations = asyncio.run(analysis.children["elevation"].ask(analysis.input_values["locations"]))
-
-    analysis.logger.info(
-        f"The wind speeds and elevations at {analysis.input_values['locations']} are {wind_speeds} and {elevations}."
+    return await asyncio.gather(
+        analysis.children["atmosphere"].ask(analysis.input_values["locations"]),
+        analysis.children["elevation"].ask(analysis.input_values["locations"]),
     )
-
-    analysis.output_values = {"wind_speeds": wind_speeds, "elevations": elevations}
