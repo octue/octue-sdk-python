@@ -175,10 +175,11 @@ class Runner:
             allow_extra=False,
         )
 
-        inputs["children"] = {
-            child["key"]: Service(name=child["key"], id=child["id"], uri=os.environ.get(child["uri_env_name"]))
-            for child in inputs["children"]
-        }
+        if inputs["children"] is not None:
+            inputs["children"] = {
+                child["key"]: Service(name=child["key"], id=child["id"], uri=os.environ.get(child["uri_env_name"]))
+                for child in inputs["children"]
+            }
 
         # TODO this is hacky, we need to rearchitect the twined validation so we can do this kind of thing in there
         inputs["input_manifest"] = self._update_manifest_path(inputs.get("input_manifest", None), input_manifest,)
