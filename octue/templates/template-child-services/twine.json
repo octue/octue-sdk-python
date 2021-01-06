@@ -13,6 +13,30 @@
 			"filters": "tags:elevation"
 		}
 	],
+	"input_values_schema": {
+		"$schema": "http://json-schema.org/2019-09/schema#",
+		"title": "Input values",
+		"description": "Locations as longitude-latitude pairs",
+		"type": "object",
+		"properties": {
+			"locations": {
+				"type": "array",
+				"items": [
+					{
+						"type": "object",
+						"properties": {
+							"longitude": {
+								"type": "number"
+							},
+							"latitude": {
+								"type": "number"
+							}
+						}
+					}
+				]
+			}
+		}
+	},
 	"output_values_schema": {
 		"title": "Output values",
 		"description": "The wind speed and elevation for the input longitude and latitude.",

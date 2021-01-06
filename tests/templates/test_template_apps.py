@@ -81,6 +81,8 @@ class TemplateAppsTestCase(BaseTestCase):
         self.set_template("template-child-services")
         runner = Runner(twine=self.template_twine)
         analysis = runner.run(
-            app_src=self.template_path, children=os.path.join("data", "configuration", "children.json")
+            app_src=self.template_path,
+            children=os.path.join("data", "configuration", "children.json"),
+            input_values=os.path.join("data", "input", "values.json"),
         )
         analysis.finalise(output_dir=os.path.join("data", "output"))
