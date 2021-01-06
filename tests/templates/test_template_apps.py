@@ -51,8 +51,7 @@ class TemplateAppsTestCase(BaseTestCase):
             shutil.rmtree(path)
 
     def test_fractal_configuration(self):
-        """ Ensures fractal app can be configured with its default configuration
-        """
+        """ Ensures fractal app can be configured with its default configuration. """
         self.set_template("template-python-fractal")
         runner = Runner(
             twine=self.template_twine,
@@ -64,8 +63,7 @@ class TemplateAppsTestCase(BaseTestCase):
         analysis.finalise(output_dir=os.path.join("data", "output"))
 
     def test_using_manifests(self):
-        """ Ensures using-manifests app works correctly
-        """
+        """ Ensures using-manifests app works correctly. """
         self.set_template("template-using-manifests")
         runner = Runner(
             twine=self.template_twine, configuration_values=os.path.join("data", "configuration", "values.json"),
@@ -77,3 +75,12 @@ class TemplateAppsTestCase(BaseTestCase):
         )
         analysis.finalise(output_dir=os.path.join("data", "output"))
         self.assertTrue(os.path.isfile(os.path.join("data", "output", "cleaned_met_mast_data", "cleaned.csv")))
+
+    def test_child_services_template(self):
+        """ Ensure child services template works correctly. """
+        self.set_template("template-child-services")
+        runner = Runner(twine=self.template_twine)
+        analysis = runner.run(
+            app_src=self.template_path, children=os.path.join("data", "configuration", "children.json")
+        )
+        analysis.finalise(output_dir=os.path.join("data", "output"))
