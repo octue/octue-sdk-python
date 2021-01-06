@@ -176,7 +176,7 @@ class Runner:
         )
 
         inputs["children"] = {
-            child["id"]: Service(name=child["key"], id=child["id"], uri=os.environ.get(child["uri_env_name"]))
+            child["key"]: Service(name=child["key"], id=child["id"], uri=os.environ.get(child["uri_env_name"]))
             for child in inputs["children"]
         }
 
