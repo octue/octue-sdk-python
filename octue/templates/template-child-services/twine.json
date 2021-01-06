@@ -42,14 +42,20 @@
 		"description": "The wind speed and elevation for the input longitude and latitude.",
 		"type": "object",
 		"properties": {
-			"wind_speed": {
+			"wind_speeds": {
 				"description": "The wind speed at the location.",
-				"type": "number",
-				"minimum": 0
+				"type": "array",
+				"items": {
+					"type": "number",
+					"minimum": 0
+				}
 			},
-			"elevation": {
+			"elevations": {
 				"description": "The elevation at the location.",
-				"type": "number"
+				"type": "array",
+				"items": {
+					"type": "number"
+				}
 			}
 		}
 	}
