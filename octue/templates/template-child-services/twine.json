@@ -1,3 +1,16 @@
 {
-	"children": [{"key": "gis", "purpose": "The purpose", "notes": "Some notes.", "filters": "tags:gis"}]
+	"children": [
+		{
+			"key": "atmosphere",
+			"purpose": "A service that returns the average wind speed for a given latitude and longitude.",
+			"notes": "Some notes.",
+			"filters": "tags:atmosphere"
+		},
+		{
+			"key": "elevation",
+			"purpose": "A service that returns the elevation for a given latitude and longitude.",
+			"notes": "Some notes.",
+			"filters": "tags:elevation"
+		}
+	]
 }
