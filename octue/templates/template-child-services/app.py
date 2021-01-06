@@ -1,3 +1,6 @@
+import asyncio
+
+
 def run(analysis, *args, **kwargs):
     """ Your main entrypoint to run the application
 
@@ -46,8 +49,8 @@ def run(analysis, *args, **kwargs):
     # Child services of the main service are accessible on the `analysis` instance via a dictionary.
     analysis.logger.info(f"Children to connect to: {list(analysis.children.keys())}")
 
-    wind_speeds = analysis.children["atmosphere"].ask(analysis.input_values["locations"])
-    elevations = analysis.children["elevation"].ask(analysis.input_values["locations"])
+    wind_speeds = asyncio.run(analysis.children["atmosphere"].ask(analysis.input_values["locations"]))
+    elevations = asyncio.run(analysis.children["elevation"].ask(analysis.input_values["locations"]))
 
     analysis.logger.info(
         f"The wind speeds and elevations at {analysis.input_values['locations']} are {wind_speeds} and {elevations}."
