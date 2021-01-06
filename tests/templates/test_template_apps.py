@@ -86,3 +86,4 @@ class TemplateAppsTestCase(BaseTestCase):
             input_values=os.path.join("data", "input", "values.json"),
         )
         analysis.finalise(output_dir=os.path.join("data", "output"))
+        self.assertEqual(analysis.output_values, {"wind_speeds": [0, 7], "elevations": [0, 7]})
