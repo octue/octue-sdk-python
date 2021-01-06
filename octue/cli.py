@@ -3,7 +3,7 @@ import sys
 import click
 import pkg_resources
 
-from octue.definitions import FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
+from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.logging_handlers import get_remote_handler
 from octue.runner import Runner
 
@@ -114,12 +114,16 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     else:
         handler = None
 
+    children_path = os.path.join(config_dir, CHILDREN_FILENAME)
+    children = children_path if os.path.exists(children_path) else None
+
     analysis = runner.run(
         app_src=app_dir,
         analysis_id=global_cli_context["analysis_id"],
         handler=handler,
         input_values=os.path.join(input_dir, VALUES_FILENAME),
         input_manifest=os.path.join(input_dir, MANIFEST_FILENAME),
+        children=children,
         output_manifest_path=os.path.join(output_dir, MANIFEST_FILENAME),
         skip_checks=global_cli_context["skip_checks"],
     )

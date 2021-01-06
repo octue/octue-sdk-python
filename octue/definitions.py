@@ -9,6 +9,8 @@ VALUES_FILENAME = "values.json"
 
 MANIFEST_FILENAME = "manifest.json"
 
+CHILDREN_FILENAME = "children.json"
+
 STRAND_FILENAME_MAP = {
     "configuration_values": VALUES_FILENAME,
     "configuration_manifest": MANIFEST_FILENAME,
