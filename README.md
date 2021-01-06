@@ -1,27 +1,18 @@
 [![PyPI version](https://badge.fury.io/py/octue.svg)](https://badge.fury.io/py/octue)
 [![codecov](https://codecov.io/gh/octue/octue-sdk-python/branch/main/graph/badge.svg?token=4KdR7fmwcT)](https://codecov.io/gh/octue/octue-sdk-python)
-[![Documentation Status](https://readthedocs.org/projects/octue/badge/?version=latest)](https://octue.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/octue-python-sdk/badge/?version=latest)](https://octue-python-sdk.readthedocs.io/en/latest/?badge=latest)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 [![black-girls-code](https://img.shields.io/badge/black%20girls-code-f64279.svg)](https://www.blackgirlscode.com/)
 
 # octue-sdk-python <span><img src="http://slurmed.com/fanart/javier/213_purple-fruit-snake.gif" alt="Purple Fruit Snake" width="100"/></span>
 
-Utilities for running python based data services, digital twins and applications with the Octue toolkit and [twined](https://www.twined.readthedocs.io) SDK for python based apps running within octue.
-
-[See documentation.](https://octue.readthedocs.io/en/latest)
+Utilities for running python based data services, digital twins and applications with the Octue toolkit and [twined](https://twined.readthedocs.io/en/latest/?badge=latest) SDK for python based apps running within octue.
 
 
 ## Developer notes
 
-**Documentation for use of the library is [here](https://{{library_name}}.readthedocs.io). You don't need to pay attention to the following unless you plan to develop {{library_name}} itself.**
-
-### Getting started
-
-1. Click 'use this template' to the top right, and away you go.
-2. Search for `{{` in your new repository. Do search and replace for the various terms - it's obvious what they are, like replace `{{github_username}}` with your github username!
-3. Set up the license you need in `LICENSE`.
-4. If you need to deploy to pypi, you have to do the first deploy manually - travis can't do that for you. [See the packaging instructions](https://packaging.python.org/tutorials/distributing-packages/#uploading-your-project-to-pypi).
+**Documentation for use of the library is [here](https://octue-python-sdk.readthedocs.io). You don't need to pay attention to the following unless you plan to develop `octue-sdk-python` itself.**
 
 ### Pre-Commit
 
