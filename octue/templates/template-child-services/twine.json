@@ -12,5 +12,21 @@
 			"notes": "Some notes.",
 			"filters": "tags:elevation"
 		}
-	]
+	],
+	"output_values_schema": {
+		"title": "Output values",
+		"description": "The wind speed and elevation for the input longitude and latitude.",
+		"type": "object",
+		"properties": {
+			"wind_speed": {
+				"description": "The wind speed at the location.",
+				"type": "number",
+				"minimum": 0
+			},
+			"elevation": {
+				"description": "The elevation at the location.",
+				"type": "number"
+			}
+		}
+	}
 }

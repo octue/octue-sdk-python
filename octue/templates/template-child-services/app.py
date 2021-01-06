@@ -49,6 +49,6 @@ def run(analysis, *args, **kwargs):
     # Child services of the main service are accessible on the `analysis` instance via a dictionary.
     analysis.logger.info(f"Children to connect to: {list(analysis.children.keys())}")
 
-    atmospheric_conditions = analysis.children["atmosphere"].ask(analysis.input_values)
+    wind_speed = analysis.children["atmosphere"].ask(analysis.input_values)
     elevation = analysis.children["elevation"].ask(analysis.input_values)
-    analysis.output_values = atmospheric_conditions, elevation
+    analysis.output_values = {"wind_speed": wind_speed, "elevation": elevation}
