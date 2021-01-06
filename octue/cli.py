@@ -6,6 +6,7 @@ import pkg_resources
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.logging_handlers import get_remote_handler
 from octue.runner import Runner
+from twined import Twine
 
 
 global_cli_context = {}
@@ -100,6 +101,8 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     input_dir = input_dir or os.path.join(data_dir, FOLDER_DEFAULTS["input"])
     output_dir = output_dir or os.path.join(data_dir, FOLDER_DEFAULTS["output"])
 
+    twine = Twine(source=twine)
+
     runner = Runner(
         twine=twine,
         configuration_values=os.path.join(config_dir, VALUES_FILENAME),
@@ -114,21 +117,40 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     else:
         handler = None
 
-    children_path = os.path.join(config_dir, CHILDREN_FILENAME)
-    children = children_path if os.path.exists(children_path) else None
+    input_values, input_manifest, children = set_unavailable_strand_paths_to_none(
+        twine,
+        (
+            ("input_values", os.path.join(input_dir, VALUES_FILENAME)),
+            ("input_manifest", os.path.join(input_dir, MANIFEST_FILENAME)),
+            ("children", os.path.join(config_dir, CHILDREN_FILENAME)),
+        ),
+    )
 
     analysis = runner.run(
         app_src=app_dir,
         analysis_id=global_cli_context["analysis_id"],
         handler=handler,
-        input_values=os.path.join(input_dir, VALUES_FILENAME),
-        input_manifest=os.path.join(input_dir, MANIFEST_FILENAME),
+        input_values=input_values,
+        input_manifest=input_manifest,
         children=children,
         output_manifest_path=os.path.join(output_dir, MANIFEST_FILENAME),
         skip_checks=global_cli_context["skip_checks"],
     )
     analysis.finalise(output_dir=output_dir)
     return 0
+
+
+def set_unavailable_strand_paths_to_none(twine, strands):
+    """ Set paths to unavailable strands to None, leaving the paths of available strands as they are. """
+    updated_strand_paths = []
+
+    for strand_name, strand in strands:
+        if strand_name not in twine.available_strands:
+            updated_strand_paths.append(None)
+        else:
+            updated_strand_paths.append(strand)
+
+    return updated_strand_paths
 
 
 if __name__ == "__main__":

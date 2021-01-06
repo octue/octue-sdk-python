@@ -44,7 +44,7 @@ class Runner:
         """ Constructor for the Runner class. """
 
         # Ensure the twine is present and instantiate it
-        self.twine = Twine(source=twine)
+        self.twine = twine if isinstance(twine, Twine) else Twine(source=twine)
 
         if "configuration_values" not in self.twine.available_strands:
             configuration_values = None
@@ -162,9 +162,6 @@ class Runner:
 
         :return: None
         """
-        if "input_manifest" not in self.twine.available_strands:
-            input_manifest = None
-
         inputs = self.twine.validate(
             input_values=input_values,
             input_manifest=input_manifest,
