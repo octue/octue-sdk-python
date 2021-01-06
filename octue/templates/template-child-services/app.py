@@ -43,12 +43,10 @@ def run(analysis, *args, **kwargs):
         "The logger can be used for capturing different 'levels' of statement - for debug, info, warnings or errors."
     )
 
-    # You can access any of the configuration or input values, anywhere in your code, from the analysis object
-    analysis.logger.info(f"The maximum number of iterations will be {analysis.configuration_values}")
-
     # Child services of the main service are accessible on the `analysis` instance via a dictionary.
     analysis.logger.info(f"Children to connect to: {list(analysis.children.keys())}")
 
     wind_speed = analysis.children["atmosphere"].ask(analysis.input_values)
     elevation = analysis.children["elevation"].ask(analysis.input_values)
+    analysis.logger.info(f"The wind speed and elevation at f{analysis.input_values} are {wind_speed} and {elevation}.")
     analysis.output_values = {"wind_speed": wind_speed, "elevation": elevation}
