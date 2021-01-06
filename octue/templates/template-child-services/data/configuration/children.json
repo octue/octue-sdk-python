@@ -1,3 +1,4 @@
 [
-    {"key": "gis", "id": "some-id", "uri_env_name": "NAME_OF_SOME_ENV_VAR_THAT_CONTAINS_A_URI"}
+    {"key": "atmosphere", "id": 1, "uri_env_name": "ATMOSTPHERE_SERVICE_URI"},
+    {"key": "elevation", "id": 2, "uri_env_name":  "ELEVATION_SERVICE_URI"}
 ]
