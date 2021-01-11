@@ -13,7 +13,9 @@ class Service:
 
     def ask(self, input_values, input_manifest=None):
         self.client.emit(event="question", data=input_values, callback=self._question_callback, namespace="/octue")
-        return self.response
+        response = self.response
+        self.response = None
+        return response
 
     def _create_socketio_client(self, uri):
         client = socketio.Client()
