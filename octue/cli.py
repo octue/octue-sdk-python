@@ -1,3 +1,4 @@
+import functools
 import os
 import sys
 import click
@@ -5,6 +6,7 @@ import pkg_resources
 
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.logging_handlers import get_remote_handler
+from octue.resources.server import Server
 from octue.runner import Runner
 from twined import Twine
 
@@ -110,13 +112,6 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
         log_level=global_cli_context["log_level"],
     )
 
-    if global_cli_context["logger_uri"]:
-        handler = get_remote_handler(
-            logger_uri=global_cli_context["logger_uri"], log_level=global_cli_context["log_level"]
-        )
-    else:
-        handler = None
-
     input_values, input_manifest, children = set_unavailable_strand_paths_to_none(
         twine,
         (
@@ -129,7 +124,7 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     analysis = runner.run(
         app_src=app_dir,
         analysis_id=global_cli_context["analysis_id"],
-        handler=handler,
+        handler=get_log_handler(),
         input_values=input_values,
         input_manifest=input_manifest,
         children=children,
@@ -138,6 +133,65 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     )
     analysis.finalise(output_dir=output_dir)
     return 0
+
+
+@octue_cli.command()
+@click.option(
+    "--app-dir",
+    type=click.Path(),
+    default=".",
+    show_default=True,
+    help="Directory containing your source code (app.py)",
+)
+@click.option(
+    "--data-dir",
+    type=click.Path(),
+    default=".",
+    show_default=True,
+    help="Location of directories containing configuration values and manifest.",
+)
+@click.option(
+    "--config-dir",
+    type=click.Path(),
+    default=None,
+    show_default=True,
+    help="Directory containing configuration (overrides --data-dir).",
+)
+@click.option("--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.")
+def start(app_dir, data_dir, config_dir, twine):
+    """ Start the service as a server to be asked questions by other services. """
+    config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
+    twine = Twine(source=twine)
+
+    runner = Runner(
+        twine=twine,
+        configuration_values=os.path.join(config_dir, VALUES_FILENAME),
+        configuration_manifest=os.path.join(config_dir, MANIFEST_FILENAME),
+        log_level=global_cli_context["log_level"],
+    )
+
+    children = set_unavailable_strand_paths_to_none(twine, (("children", os.path.join(config_dir, CHILDREN_FILENAME)),))
+
+    run_function = functools.partial(
+        runner.run,
+        app_src=app_dir,
+        analysis_id=global_cli_context["analysis_id"],  # This needs to be changed
+        handler=get_log_handler(),
+        children=children,
+        skip_checks=global_cli_context["skip_checks"],
+    )
+
+    server = Server(run_function=run_function)
+    server.start()
+
+
+def get_log_handler():
+    if global_cli_context["logger_uri"]:
+        return get_remote_handler(
+            logger_uri=global_cli_context["logger_uri"], log_level=global_cli_context["log_level"]
+        )
+
+    return None
 
 
 def set_unavailable_strand_paths_to_none(twine, strands):

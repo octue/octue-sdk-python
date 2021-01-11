@@ -3,21 +3,27 @@ import socketio
 
 
 class OctueNamespace(socketio.AsyncNamespace):
+
+    run_function = None
+
     async def on_question(self, sid, data):
-        return data
+        analysis = self.run_function(input_values=data)
+        return analysis.output_values
 
 
 class Server:
-    def __init__(self):
+    def __init__(self, run_function):
         self.socket_io_server = socketio.AsyncServer()
         self.app = aiohttp.web.Application()
         self.socket_io_server.attach(self.app)
-        self.socket_io_server.register_namespace(OctueNamespace("/octue"))
+        namespace = OctueNamespace("/octue")
+        namespace.run_function = run_function
+        self.socket_io_server.register_namespace(namespace)
 
-    async def run(self):
+    async def start(self):
         aiohttp.web.run_app(self.app)
 
 
 if __name__ == "__main__":
-    server = Server()
-    server.run()
+    server = Server(run_function=lambda x: None)
+    server.start()
