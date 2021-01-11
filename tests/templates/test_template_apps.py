@@ -5,6 +5,7 @@ import uuid
 from unittest.mock import patch
 
 from octue import Runner
+from octue.resources.service import MockClient
 from ..base import BaseTestCase
 
 
@@ -82,13 +83,14 @@ class TemplateAppsTestCase(BaseTestCase):
         self.set_template("template-child-services")
         runner = Runner(twine=self.template_twine)
 
-        with patch("octue.resources.Service.ask") as mock_service_ask:
-            mock_service_ask.return_value = [0, 7]
-            analysis = runner.run(
-                app_src=self.template_path,
-                children=os.path.join("data", "configuration", "children.json"),
-                input_values=os.path.join("data", "input", "values.json"),
-            )
+        with patch("socketio.Client", new=MockClient):
+            with patch("octue.resources.Service.ask") as mock_service_ask:
+                mock_service_ask.return_value = [0, 7]
+                analysis = runner.run(
+                    app_src=self.template_path,
+                    children=os.path.join("data", "configuration", "children.json"),
+                    input_values=os.path.join("data", "input", "values.json"),
+                )
 
         analysis.finalise(output_dir=os.path.join("data", "output"))
 

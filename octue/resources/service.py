@@ -11,7 +11,7 @@ class Service:
     def __repr__(self):
         return f"<{type(self).__name__}({self.name!r})>"
 
-    def ask(self, input_values, input_manifest=None):
+    async def ask(self, input_values, input_manifest=None):
         self.client.emit(event="question", data=input_values, callback=self._question_callback, namespace="/octue")
         response = self.response
         self.response = None
@@ -24,3 +24,12 @@ class Service:
 
     def _question_callback(self, item):
         self.response = item
+
+
+class MockClient:
+    def connect(self, uri, namespaces):
+        pass
+
+    def emit(self, event, data, callback, namespace):
+        """ Return the data as it was provided. """
+        callback(data)
