@@ -10,7 +10,7 @@ class MockClient:
 
     def emit(self, event, data, callback, namespace):
         """ Return the data as it was provided. """
-        return callback(data)
+        callback(data)
 
 
 class TestService(BaseTestCase):
