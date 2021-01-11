@@ -56,8 +56,14 @@ def octue_cli(id, skip_checks, logger_uri, log_level, force_reset):
     global_cli_context["analysis_id"] = id
     global_cli_context["skip_checks"] = skip_checks
     global_cli_context["logger_uri"] = logger_uri
+    global_cli_context["logger_uri"] = None
     global_cli_context["log_level"] = log_level.upper()
     global_cli_context["force_reset"] = force_reset
+
+    if global_cli_context["logger_uri"]:
+        global_cli_context["log_handler"] = get_remote_handler(
+            logger_uri=global_cli_context["logger_uri"], log_level=global_cli_context["log_level"]
+        )
 
 
 @octue_cli.command()
@@ -124,7 +130,7 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     analysis = runner.run(
         app_src=app_dir,
         analysis_id=global_cli_context["analysis_id"],
-        handler=get_log_handler(),
+        handler=global_cli_context["log_handler"],
         input_values=input_values,
         input_manifest=input_manifest,
         children=children,
@@ -176,22 +182,13 @@ def start(app_dir, data_dir, config_dir, twine):
         runner.run,
         app_src=app_dir,
         analysis_id=global_cli_context["analysis_id"],  # This needs to be changed
-        handler=get_log_handler(),
+        handler=global_cli_context["log_handler"],
         children=children,
         skip_checks=global_cli_context["skip_checks"],
     )
 
     server = Server(run_function=run_function)
     server.start()
-
-
-def get_log_handler():
-    if global_cli_context["logger_uri"]:
-        return get_remote_handler(
-            logger_uri=global_cli_context["logger_uri"], log_level=global_cli_context["log_level"]
-        )
-
-    return None
 
 
 def set_unavailable_strand_paths_to_none(twine, strands):
