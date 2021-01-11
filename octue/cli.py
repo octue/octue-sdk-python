@@ -181,7 +181,7 @@ def start(app_dir, data_dir, config_dir, twine):
     run_function = functools.partial(
         runner.run,
         app_src=app_dir,
-        analysis_id=global_cli_context["analysis_id"],  # This needs to be changed
+        analysis_id=global_cli_context["analysis_id"],
         handler=global_cli_context["log_handler"],
         children=children,
         skip_checks=global_cli_context["skip_checks"],
