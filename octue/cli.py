@@ -56,7 +56,7 @@ def octue_cli(id, skip_checks, logger_uri, log_level, force_reset):
     global_cli_context["analysis_id"] = id
     global_cli_context["skip_checks"] = skip_checks
     global_cli_context["logger_uri"] = logger_uri
-    global_cli_context["logger_uri"] = None
+    global_cli_context["log_handler"] = None
     global_cli_context["log_level"] = log_level.upper()
     global_cli_context["force_reset"] = force_reset
 
