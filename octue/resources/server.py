@@ -6,29 +6,27 @@ import socketio
 logger = logging.getLogger(__name__)
 
 
-class OctueNamespace(socketio.AsyncNamespace):
-
-    run_function = None
-
-    def on_connect(self, session_id, environ):
-        print(f"Connected to session {session_id!r}.")
-
-    def on_disconnect(self, session_id):
-        print(f"Disconnected from session {session_id!r}.")
-
-    async def on_question(self, sid, data):
-        analysis = self.run_function(input_values=data)
-        return analysis.output_values
-
-
 class Server:
     def __init__(self, run_function):
-        self.socket_io_server = socketio.AsyncServer()
+        socket_io_server = socketio.AsyncServer()
+
+        @socket_io_server.event
+        def connect(session_id, environ):
+            print(f"Connected to session {session_id!r}.")
+
+        @socket_io_server.event
+        def disconnect(session_id):
+            print(f"Disconnected from session {session_id!r}.")
+
+        @socket_io_server.event
+        async def question(session_id, data):
+            analysis = socket_io_server.run_function(input_values=data)
+            return analysis.output_values
+
+        self.socket_io_server = socket_io_server
         self.app = aiohttp.web.Application()
         self.socket_io_server.attach(self.app)
-        namespace = OctueNamespace("/octue")
-        namespace.run_function = run_function
-        self.socket_io_server.register_namespace(namespace)
+        self.socket_io_server.run_function = run_function
 
     def start(self, host="localhost", port=8080):
         logger.info("Starting service as socket.io server on http://%s:%s.", host, port)

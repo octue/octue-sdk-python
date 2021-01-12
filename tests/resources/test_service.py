@@ -13,7 +13,7 @@ class TestService(BaseTestCase):
         service = Service(name="test_service", id=0, uri=uri)
         with self.assertRaises(socketio.exceptions.ConnectionError) as error:
             service.connect()
-            self.assertTrue(f"Failed to connect to server at {uri} using namespaces ['/octue']" in error)
+            self.assertTrue(f"Failed to connect to server at {uri}." in error)
 
     def test_ask(self):
         """ Test that a service can be asked a question. """

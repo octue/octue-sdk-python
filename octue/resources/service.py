@@ -23,14 +23,12 @@ class Service:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.disconnect()
 
-    def connect(self, namespaces=None):
-        namespaces = namespaces or ["/octue"]
-
+    def connect(self):
         try:
-            self.client.connect(self.uri, namespaces=namespaces)
-            logger.info("%r connected to server at %s using namespaces %s", self, self.uri, namespaces)
+            self.client.connect(self.uri)
+            logger.info("%r connected to server at %s.", self, self.uri)
         except socketio.exceptions.ConnectionError as error:
-            logger.error("%r failed to connect to server at %s using namespaces %s", self, self.uri, namespaces)
+            logger.error("%r failed to connect to server at %s.", self, self.uri)
             raise error
 
     def disconnect(self):
@@ -38,7 +36,7 @@ class Service:
         logger.info("%r disconnected.", self)
 
     async def ask(self, input_values, input_manifest=None):
-        self.client.emit(event="question", data=input_values, callback=self._question_callback, namespace="/octue")
+        self.client.emit(event="question", data=input_values, callback=self._question_callback)
         response = self.response
         self.response = None
         return response
@@ -48,12 +46,12 @@ class Service:
 
 
 class MockClient:
-    def connect(self, uri, namespaces):
+    def connect(self, uri, environ):
         pass
 
-    def disconnect(self):
+    def disconnect(self, session_id):
         pass
 
-    def emit(self, event, data, callback, namespace):
+    def emit(self, event, data, callback):
         """ Return the data as it was provided. """
         callback(data)
