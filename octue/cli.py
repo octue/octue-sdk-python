@@ -39,6 +39,12 @@ global_cli_context = {}
     help="Log level used for the analysis.",
 )
 @click.option(
+    "--show-twined-logs",
+    default=False,
+    show_default=True,
+    help="Show logs from the whole package in addition to logs just from your app.",
+)
+@click.option(
     "--force-reset/--no-force-reset",
     default=True,
     is_flag=True,
@@ -46,7 +52,7 @@ global_cli_context = {}
     help="Forces a reset of analysis cache and outputs [For future use, currently not implemented]",
 )
 @click.version_option(version=pkg_resources.get_distribution("octue").version)
-def octue_cli(id, skip_checks, logger_uri, log_level, force_reset):
+def octue_cli(id, skip_checks, logger_uri, log_level, show_twined_logs, force_reset):
     """ Octue CLI, enabling a data service / digital twin to be run like a command line application.
 
     When acting in CLI mode, results are read from and written to disk (see
@@ -58,6 +64,7 @@ def octue_cli(id, skip_checks, logger_uri, log_level, force_reset):
     global_cli_context["logger_uri"] = logger_uri
     global_cli_context["log_handler"] = None
     global_cli_context["log_level"] = log_level.upper()
+    global_cli_context["show_twined_logs"] = show_twined_logs
     global_cli_context["force_reset"] = force_reset
 
     if global_cli_context["logger_uri"]:
@@ -116,6 +123,7 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
         configuration_values=os.path.join(config_dir, VALUES_FILENAME),
         configuration_manifest=os.path.join(config_dir, MANIFEST_FILENAME),
         log_level=global_cli_context["log_level"],
+        show_twined_logs=global_cli_context["show_twined_logs"],
     )
 
     input_values, input_manifest, children = set_unavailable_strand_paths_to_none(
@@ -176,6 +184,7 @@ def start(app_dir, data_dir, config_dir, twine, host, port):
         configuration_values=os.path.join(config_dir, VALUES_FILENAME),
         configuration_manifest=os.path.join(config_dir, MANIFEST_FILENAME),
         log_level=global_cli_context["log_level"],
+        show_twined_logs=global_cli_context["show_twined_logs"],
     )
 
     children = set_unavailable_strand_paths_to_none(twine, (("children", os.path.join(config_dir, CHILDREN_FILENAME)),))
