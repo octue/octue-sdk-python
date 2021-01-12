@@ -10,8 +10,9 @@ class TestService(BaseTestCase):
     def test_error_raised_when_client_cannot_connect(self):
         """ Test that a ConnectionError is raised if the service cannot connect to the given URI. """
         uri = "http://0.0.0.0:9999"
+        service = Service(name="test_service", id=0, uri=uri)
         with self.assertRaises(socketio.exceptions.ConnectionError) as error:
-            Service(name="test_service", id=0, uri=uri)
+            service.connect()
             self.assertTrue(f"Failed to connect to server at {uri} using namespaces ['/octue']" in error)
 
     def test_ask(self):
