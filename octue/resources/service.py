@@ -6,9 +6,9 @@ logger = logging.getLogger(__name__)
 
 
 class Service:
-    def __init__(self, name, id_, uri):
+    def __init__(self, name, id, uri):
         self.name = name
-        self.id = id_
+        self.id = id
         self.uri = uri
         self.client = socketio.Client()
         self.response = None
@@ -28,16 +28,14 @@ class Service:
 
         try:
             self.client.connect(self.uri, namespaces=namespaces)
-            logger.info("%r service connected to server at %s using namespaces %s", self.name, self.uri, namespaces)
+            logger.info("%r connected to server at %s using namespaces %s", self, self.uri, namespaces)
         except socketio.exceptions.ConnectionError as error:
-            logger.error(
-                "%r service failed to connect to server at %s using namespaces %s", self.name, self.uri, namespaces
-            )
+            logger.error("%r failed to connect to server at %s using namespaces %s", self, self.uri, namespaces)
             raise error
 
     def disconnect(self):
         self.client.disconnect()
-        logger.info("%r service disconnected.", self.name)
+        logger.info("%r disconnected.", self)
 
     async def ask(self, input_values, input_manifest=None):
         self.client.emit(event="question", data=input_values, callback=self._question_callback, namespace="/octue")
