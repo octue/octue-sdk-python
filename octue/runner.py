@@ -58,6 +58,7 @@ class Runner:
 
         # Ensure the twine is present and instantiate it
         self.twine = twine if isinstance(twine, Twine) else Twine(source=twine)
+        package_logger.debug("Parsed twine with strands %r", self.twine.available_strands)
 
         if "configuration_values" not in self.twine.available_strands:
             configuration_values = None
@@ -69,6 +70,7 @@ class Runner:
         self.configuration = self.twine.validate(
             configuration_values=configuration_values, configuration_manifest=configuration_manifest, cls=CLASS_MAP,
         )
+        package_logger.debug("Configuration validated.")
 
         # Set path for configuration manifest.
         # TODO this is hacky, we need to rearchitect the twined validation so we can do this kind of thing in there
@@ -179,6 +181,8 @@ class Runner:
             allow_missing=False,
             allow_extra=False,
         )
+
+        package_logger.debug("Inputs validated.")
 
         if inputs["children"] is not None:
             inputs["children"] = {
