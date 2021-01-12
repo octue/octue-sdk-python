@@ -51,6 +51,9 @@ class MockClient:
     def connect(self, uri, namespaces):
         pass
 
+    def disconnect(self):
+        pass
+
     def emit(self, event, data, callback, namespace):
         """ Return the data as it was provided. """
         callback(data)

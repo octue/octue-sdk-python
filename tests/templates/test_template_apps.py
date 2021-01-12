@@ -81,15 +81,15 @@ class TemplateAppsTestCase(BaseTestCase):
     def test_child_services_template(self):
         """ Ensure child services template works correctly. """
         self.set_template("template-child-services")
-        runner = Runner(twine=self.template_twine)
+        runner = Runner(twine=os.path.join(self.template_path, "parent_app", "twine.json"))
 
         with patch("socketio.Client", new=MockClient):
             with patch("octue.resources.Service.ask") as mock_service_ask:
                 mock_service_ask.return_value = [0, 7]
                 analysis = runner.run(
-                    app_src=self.template_path,
-                    children=os.path.join("data", "configuration", "children.json"),
-                    input_values=os.path.join("data", "input", "values.json"),
+                    app_src=os.path.join(self.template_path, "parent_app"),
+                    children=os.path.join("parent_app", "data", "configuration", "children.json"),
+                    input_values=os.path.join("parent_app", "data", "input", "values.json"),
                 )
 
         analysis.finalise(output_dir=os.path.join("data", "output"))
