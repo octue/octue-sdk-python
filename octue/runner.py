@@ -10,6 +10,7 @@ from octue.utils import gen_uuid
 from twined import Twine
 
 
+package_logger = logging.getLogger("octue")
 module_logger = logging.getLogger(__name__)
 
 
@@ -168,7 +169,7 @@ class Runner:
         :return: None
         """
         if self._show_twined_logs:
-            self._apply_log_handler(logger=module_logger, handler=handler)
+            self._apply_log_handler(logger=package_logger, handler=handler)
 
         inputs = self.twine.validate(
             input_values=input_values,
