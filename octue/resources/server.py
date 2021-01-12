@@ -1,5 +1,9 @@
+import logging
 import aiohttp.web
 import socketio
+
+
+logger = logging.getLogger(__name__)
 
 
 class OctueNamespace(socketio.AsyncNamespace):
@@ -20,8 +24,9 @@ class Server:
         namespace.run_function = run_function
         self.socket_io_server.register_namespace(namespace)
 
-    async def start(self):
-        aiohttp.web.run_app(self.app)
+    def start(self, host=None, port=None):
+        logger.info("Starting service as socket.io server on %s:%s.", host, port)
+        aiohttp.web.run_app(self.app, host=host, port=port)
 
 
 if __name__ == "__main__":

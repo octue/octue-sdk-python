@@ -163,8 +163,10 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     show_default=True,
     help="Directory containing configuration (overrides --data-dir).",
 )
+@click.option("--host", type=click.STRING, default=None, show_default=True, help="The hostname to start the server on.")
+@click.option("--port", type=click.INT, default=None, show_default=True, help="The hostname to start the server on.")
 @click.option("--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.")
-def start(app_dir, data_dir, config_dir, twine):
+def start(app_dir, data_dir, config_dir, twine, host, port):
     """ Start the service as a server to be asked questions by other services. """
     config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
     twine = Twine(source=twine)
@@ -188,7 +190,7 @@ def start(app_dir, data_dir, config_dir, twine):
     )
 
     server = Server(run_function=run_function)
-    server.start()
+    server.start(host=host, port=port)
 
 
 def set_unavailable_strand_paths_to_none(twine, strands):
