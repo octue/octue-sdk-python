@@ -19,8 +19,10 @@ class Server:
             logger.info(f"Disconnected from session {session_id!r}.")
 
         @socket_io_server.event
-        async def question(session_id, data):
+        def question(session_id, data):
+            logger.info("Received data %r", data)
             analysis = socket_io_server.run_function(input_values=data)
+            logger.info("Analysis output values are %r", analysis.output_values)
             return analysis.output_values
 
         self.socket_io_server = socket_io_server
