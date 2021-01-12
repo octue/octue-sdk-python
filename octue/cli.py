@@ -190,7 +190,9 @@ def start(app_dir, data_dir, config_dir, twine, host, port):
         show_twined_logs=global_cli_context["show_twined_logs"],
     )
 
-    children = set_unavailable_strand_paths_to_none(twine, (("children", os.path.join(config_dir, CHILDREN_FILENAME)),))
+    children = set_unavailable_strand_paths_to_none(
+        twine, (("children", os.path.join(config_dir, CHILDREN_FILENAME)),)
+    )[0]
 
     run_function = functools.partial(
         runner.run,
