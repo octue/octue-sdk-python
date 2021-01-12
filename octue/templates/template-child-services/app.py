@@ -45,15 +45,7 @@ async def asynchronous_app(analysis, *args, **kwargs):
     # analysis.logger.info(f"The input directory is {analysis.input_dir}")
     # analysis.logger.info(f"The output directory is {analysis.output_dir}")
     # analysis.logger.info(f"The tmp directory, where you can store temporary files or caches, is {analysis.tmp_dir}")
-
-    # Print statements will get logged...
-    print("Hello! The child services template app is running!")  # noqa: T001
-
-    # ... but we encourage you to use the attached logger, which handles sending logs to remote services and allows them
-    # to be viewed with twined server
-    analysis.logger.info(
-        "The logger can be used for capturing different 'levels' of statement - for debug, info, warnings or errors."
-    )
+    analysis.logger.info("Hello! The child services template app is running!")
 
     # Child services of the main service are accessible on the `analysis` instance via a dictionary.
     analysis.logger.info(f"Children to connect to: {list(analysis.children.keys())}")
