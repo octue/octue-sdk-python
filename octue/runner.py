@@ -45,9 +45,16 @@ class Runner:
         configuration_values=None,
         configuration_manifest=None,
         log_level=logging.INFO,
+        handler=None,
         show_twined_logs=False,
     ):
         """ Constructor for the Runner class. """
+        # Store the log level (same log level used for all analyses)
+        self._log_level = log_level
+        self.handler = handler
+
+        if show_twined_logs:
+            self._apply_log_handler(logger=package_logger, handler=self.handler)
 
         # Ensure the twine is present and instantiate it
         self.twine = twine if isinstance(twine, Twine) else Twine(source=twine)
@@ -68,10 +75,6 @@ class Runner:
         self.configuration["configuration_manifest"] = self._update_manifest_path(
             self.configuration.get("configuration_manifest", None), configuration_manifest,
         )
-
-        # Store the log level (same log level used for all analyses)
-        self._log_level = log_level
-        self._show_twined_logs = show_twined_logs
 
     def _apply_log_handler(self, logger, handler=None):
         """ Create a logger specific to the analysis
@@ -123,7 +126,6 @@ class Runner:
         self,
         app_src,
         analysis_id=None,
-        handler=None,
         input_values=None,
         input_manifest=None,
         credentials=None,
@@ -168,9 +170,6 @@ class Runner:
 
         :return: None
         """
-        if self._show_twined_logs:
-            self._apply_log_handler(logger=package_logger, handler=handler)
-
         inputs = self.twine.validate(
             input_values=input_values,
             input_manifest=input_manifest,
@@ -199,7 +198,7 @@ class Runner:
 
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
         analysis_logger = logging.getLogger(f"analysis-{analysis_id}")
-        self._apply_log_handler(logger=analysis_logger, handler=handler)
+        self._apply_log_handler(logger=analysis_logger, handler=self.handler)
 
         analysis = Analysis(
             id=analysis_id,

@@ -123,6 +123,7 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
         configuration_values=os.path.join(config_dir, VALUES_FILENAME),
         configuration_manifest=os.path.join(config_dir, MANIFEST_FILENAME),
         log_level=global_cli_context["log_level"],
+        handler=global_cli_context["log_handler"],
         show_twined_logs=global_cli_context["show_twined_logs"],
     )
 
@@ -138,7 +139,6 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     analysis = runner.run(
         app_src=app_dir,
         analysis_id=global_cli_context["analysis_id"],
-        handler=global_cli_context["log_handler"],
         input_values=input_values,
         input_manifest=input_manifest,
         children=children,
@@ -184,6 +184,7 @@ def start(app_dir, data_dir, config_dir, twine, host, port):
         configuration_values=os.path.join(config_dir, VALUES_FILENAME),
         configuration_manifest=os.path.join(config_dir, MANIFEST_FILENAME),
         log_level=global_cli_context["log_level"],
+        handler=global_cli_context["log_handler"],
         show_twined_logs=global_cli_context["show_twined_logs"],
     )
 
@@ -193,7 +194,6 @@ def start(app_dir, data_dir, config_dir, twine, host, port):
         runner.run,
         app_src=app_dir,
         analysis_id=global_cli_context["analysis_id"],
-        handler=global_cli_context["log_handler"],
         children=children,
         skip_checks=global_cli_context["skip_checks"],
     )
