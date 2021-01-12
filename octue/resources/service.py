@@ -1,4 +1,8 @@
+import logging
 import socketio
+
+
+logger = logging.getLogger(__name__)
 
 
 class Service:
@@ -19,7 +23,15 @@ class Service:
 
     def _create_socketio_client(self, uri):
         client = socketio.Client()
-        client.connect(uri, namespaces=["/octue"])
+        namespaces = ["/octue"]
+
+        try:
+            client.connect(uri, namespaces=namespaces)
+            logger.info("Connected to server at %s using namespaces %s", uri, namespaces)
+        except socketio.exceptions.ConnectionError as error:
+            logger.error("Failed to connect to server at %s using namespaces %s", uri, namespaces)
+            raise error
+
         return client
 
     def _question_callback(self, item):
