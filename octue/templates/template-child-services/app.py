@@ -57,8 +57,17 @@ async def asynchronous_app(analysis, *args, **kwargs):
 
     # Child services of the main service are accessible on the `analysis` instance via a dictionary.
     analysis.logger.info(f"Children to connect to: {list(analysis.children.keys())}")
+    child_services = analysis.children.values()
 
-    return await asyncio.gather(
+    for child in child_services:
+        child.connect()
+
+    results = await asyncio.gather(
         analysis.children["atmosphere"].ask(analysis.input_values["locations"]),
         analysis.children["elevation"].ask(analysis.input_values["locations"]),
     )
+
+    for child in child_services:
+        child.disconnect()
+
+    return results
