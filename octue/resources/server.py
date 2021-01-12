@@ -8,15 +8,15 @@ logger = logging.getLogger(__name__)
 
 class Server:
     def __init__(self, run_function):
-        socket_io_server = socketio.AsyncServer()
+        socket_io_server = socketio.AsyncServer(logger=logger)
 
         @socket_io_server.event
         def connect(session_id, environ):
-            print(f"Connected to session {session_id!r}.")
+            logger.info(f"Connected to session {session_id!r}.")
 
         @socket_io_server.event
         def disconnect(session_id):
-            print(f"Disconnected from session {session_id!r}.")
+            logger.info(f"Disconnected from session {session_id!r}.")
 
         @socket_io_server.event
         async def question(session_id, data):
