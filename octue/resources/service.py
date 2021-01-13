@@ -15,24 +15,26 @@ class PublisherSubscriber:
     def __init__(self):
         self._publisher = pubsub_v1.PublisherClient()
         self._subscriber = pubsub_v1.SubscriberClient()
-        self._topic_path = self._publisher.topic_path(GCP_PROJECT, "test-topic")  # TODO: Replace topic name with a UUID
-        self._subscription_path = self._subscriber.subscription_path(
-            GCP_PROJECT, "test-subscription"
-        )  # TODO: Replace subscription name with a UUID
-        self._initialise_topic()
-        self._initialise_subscription()
 
-    def _initialise_topic(self):
+    def _initialise_topic(self, topic_name):
+        topic_path = self._publisher.topic_path(GCP_PROJECT, topic_name)
+
         try:
-            self._publisher.create_topic(name=self._topic_path)
+            self._publisher.create_topic(name=topic_path)
         except google.api_core.exceptions.AlreadyExists:
             pass
 
-    def _initialise_subscription(self):
+        return topic_path
+
+    def _initialise_subscription(self, topic, subscription_name):
+        subscription_path = self._subscriber.subscription_path(GCP_PROJECT, subscription_name)
+
         try:
-            self._subscriber.create_subscription(name=self._subscription_path, topic=self._topic_path)
+            self._subscriber.create_subscription(name=subscription_path, topic=topic)
         except google.api_core.exceptions.AlreadyExists:
             pass
+
+        return subscription_path
 
     def _callback(self, response):
         pass
@@ -47,8 +49,14 @@ class Service(PublisherSubscriber):
         return f"<{type(self).__name__}({self.name!r})>"
 
     def ask(self, input_values, input_manifest=None):
-        self._publisher.publish(self._topic_path, json.dumps(input_values).encode())
-        streaming_pull_future = self._subscriber.subscribe(self._subscription_path, callback=self._callback)
+        question_topic = self._initialise_topic("test-topic")
+        self._publisher.publish(question_topic, json.dumps(input_values).encode())
+
+        response_subscription = self._initialise_subscription(
+            topic=self._initialise_topic("test-topic-response"), subscription_name="test-topic-response-subscription",
+        )
+
+        streaming_pull_future = self._subscriber.subscribe(response_subscription, callback=self._callback)
 
         with self._subscriber:
             try:
@@ -61,7 +69,8 @@ class Service(PublisherSubscriber):
         return response
 
     def respond(self, output_values):
-        self._publisher.publish(self._topic_path, json.dumps(output_values).encode())
+        response_topic = self._initialise_topic("test-topic-response")
+        self._publisher.publish(response_topic, json.dumps(output_values).encode())
 
     def _callback(self, response):
         self._response = response
