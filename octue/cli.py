@@ -36,6 +36,12 @@ global_cli_context = {}
     help="Log level used for the analysis.",
 )
 @click.option(
+    "--show-twined-logs",
+    default=False,
+    show_default=True,
+    help="Show logs from the whole package in addition to logs just from your app.",
+)
+@click.option(
     "--force-reset/--no-force-reset",
     default=True,
     is_flag=True,
@@ -43,7 +49,7 @@ global_cli_context = {}
     help="Forces a reset of analysis cache and outputs [For future use, currently not implemented]",
 )
 @click.version_option(version=pkg_resources.get_distribution("octue").version)
-def octue_cli(id, skip_checks, logger_uri, log_level, force_reset):
+def octue_cli(id, skip_checks, logger_uri, log_level, show_twined_logs, force_reset):
     """ Octue CLI, enabling a data service / digital twin to be run like a command line application.
 
     When acting in CLI mode, results are read from and written to disk (see
@@ -53,8 +59,15 @@ def octue_cli(id, skip_checks, logger_uri, log_level, force_reset):
     global_cli_context["analysis_id"] = id
     global_cli_context["skip_checks"] = skip_checks
     global_cli_context["logger_uri"] = logger_uri
+    global_cli_context["log_handler"] = None
     global_cli_context["log_level"] = log_level.upper()
+    global_cli_context["show_twined_logs"] = show_twined_logs
     global_cli_context["force_reset"] = force_reset
+
+    if global_cli_context["logger_uri"]:
+        global_cli_context["log_handler"] = get_remote_handler(
+            logger_uri=global_cli_context["logger_uri"], log_level=global_cli_context["log_level"]
+        )
 
 
 @octue_cli.command()
@@ -105,19 +118,13 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
         configuration_values=os.path.join(config_dir, VALUES_FILENAME),
         configuration_manifest=os.path.join(config_dir, MANIFEST_FILENAME),
         log_level=global_cli_context["log_level"],
+        handler=global_cli_context["log_handler"],
+        show_twined_logs=global_cli_context["show_twined_logs"],
     )
-
-    if global_cli_context["logger_uri"]:
-        handler = get_remote_handler(
-            logger_uri=global_cli_context["logger_uri"], log_level=global_cli_context["log_level"]
-        )
-    else:
-        handler = None
 
     analysis = runner.run(
         app_src=app_dir,
         analysis_id=global_cli_context["analysis_id"],
-        handler=handler,
         input_values=os.path.join(input_dir, VALUES_FILENAME),
         input_manifest=os.path.join(input_dir, MANIFEST_FILENAME),
         output_manifest_path=os.path.join(output_dir, MANIFEST_FILENAME),
