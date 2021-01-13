@@ -30,7 +30,7 @@ class Server:
         self.socket_io_server.attach(self.app)
         self.socket_io_server.run_function = run_function
 
-    def start(self, host="localhost", port=8080):
+    def start(self, host="http://localhost", port=9999):
         logger.info("Starting service as socket.io server on http://%s:%s.", host, port)
         aiohttp.web.run_app(self.app, host=host, port=port)
 

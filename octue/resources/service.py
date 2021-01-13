@@ -24,22 +24,24 @@ class Service:
         self.disconnect()
 
     def connect(self):
-        try:
-            self.client.connect(self.uri)
-            logger.info("%r connected to server at %s.", self, self.uri)
-        except socketio.exceptions.ConnectionError as error:
-            logger.error("%r failed to connect to server at %s.", self, self.uri)
-            raise error
+        self.client.connect(self.uri)
+        logger.info("%r connected to server at %s.", self, self.uri)
+
+        # This is an awful hack.
+        if "/" not in self.client.namespaces:
+            self.client.namespaces["/"] = None
 
     def disconnect(self):
         self.client.disconnect()
         logger.info("%r disconnected.", self)
 
-    async def ask(self, input_values, input_manifest=None):
-        self.client.emit(event="question", data=input_values, callback=self._question_callback)
-        response = self.response
-        self.response = None
-        return response
+    # def ask(self, input_values, input_manifest=None):
+    #     logger.debug("Asking question")
+    #     self.client.emit("question", input_values, callback=self._question_callback)
+    #     response = self.response
+    #     print(response)
+    #     self.response = None
+    #     return response
 
     def _question_callback(self, item):
         self.response = item

@@ -1,0 +1,40 @@
+{
+	"input_values_schema": {
+		"$schema": "http://json-schema.org/2019-09/schema#",
+		"title": "Input values",
+		"description": "Locations as longitude-latitude pairs",
+		"type": "object",
+		"properties": {
+			"locations": {
+				"type": "array",
+				"items": [
+					{
+						"type": "object",
+						"properties": {
+							"longitude": {
+								"type": "number"
+							},
+							"latitude": {
+								"type": "number"
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"output_values_schema": {
+		"title": "Output values",
+		"description": "The elevation for the input longitude and latitude.",
+		"type": "object",
+		"properties": {
+			"elevations": {
+				"description": "The elevations at the locations.",
+				"type": "array",
+				"items": {
+					"type": "number"
+				}
+			}
+		}
+	}
+}

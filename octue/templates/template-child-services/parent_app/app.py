@@ -1,4 +1,4 @@
-import asyncio
+import time
 
 
 def run(analysis, *args, **kwargs):
@@ -31,20 +31,6 @@ def run(analysis, *args, **kwargs):
         - ``credentials``, a dict of Credential objects
 
     """
-    wind_speeds, elevations = asyncio.run(asynchronous_app(analysis))
-
-    analysis.logger.info(
-        f"The wind speeds and elevations at {analysis.input_values['locations']} are {wind_speeds} and {elevations}."
-    )
-
-    analysis.output_values = {"wind_speeds": wind_speeds, "elevations": elevations}
-
-
-async def asynchronous_app(analysis, *args, **kwargs):
-    # You can use the attached logger to record debug statements, general information, warnings or errors
-    # analysis.logger.info(f"The input directory is {analysis.input_dir}")
-    # analysis.logger.info(f"The output directory is {analysis.output_dir}")
-    # analysis.logger.info(f"The tmp directory, where you can store temporary files or caches, is {analysis.tmp_dir}")
     analysis.logger.info("Hello! The child services template app is running!")
 
     # Child services of the main service are accessible on the `analysis` instance via a dictionary.
@@ -52,14 +38,20 @@ async def asynchronous_app(analysis, *args, **kwargs):
     child_services = analysis.children.values()
 
     for child in child_services:
-        child.connect()
+        if child.name == "elevation":
+            child.connect()
 
-    results = await asyncio.gather(
-        analysis.children["atmosphere"].ask(analysis.input_values["locations"]),
-        analysis.children["elevation"].ask(analysis.input_values["locations"]),
-    )
+    result = []
+    time.sleep(10)
+    analysis.children["elevation"].client.emit("question", analysis.input_values, callback=result.append)
+    elevations = result[0]
 
     for child in child_services:
-        child.disconnect()
+        if child.name == "elevation":
+            child.disconnect()
 
-    return results
+    analysis.logger.info(
+        f"The wind speeds and elevations at {analysis.input_values['locations']} are and {elevations}."
+    )
+
+    analysis.output_values = {"wind_speeds": None, "elevations": elevations}
