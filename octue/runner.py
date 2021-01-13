@@ -54,7 +54,7 @@ class Runner:
         self.handler = handler
 
         if show_twined_logs:
-            self._apply_log_handler(logger=package_logger, handler=self.handler)
+            apply_log_handler(logger=package_logger, handler=self.handler)
 
         # Ensure the twine is present and instantiate it
         self.twine = twine if isinstance(twine, Twine) else Twine(source=twine)
