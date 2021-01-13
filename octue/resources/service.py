@@ -1,59 +1,65 @@
 import logging
-import socketio
+from concurrent.futures import TimeoutError
+import google.api_core.exceptions
+from google.cloud import pubsub_v1
 
 
 logger = logging.getLogger(__name__)
 
 
-class Service:
+GCP_PROJECT = "octue-amy"
+
+
+class PublisherSubscriber:
+    def __init__(self):
+        self._publisher = pubsub_v1.PublisherClient()
+        self._subscriber = pubsub_v1.SubscriberClient()
+        self._topic_path = self._publisher.topic_path(GCP_PROJECT, "test_topic")  # TODO: Replace topic name with a UUID
+        self._subscription_path = self._subscriber.subscription_path(
+            GCP_PROJECT, "test-subscription"
+        )  # TODO: Replace subscription name with a UUID
+        self._initialise_topic()
+        self._initialise_subscription()
+
+    def _initialise_topic(self):
+        try:
+            self._publisher.create_topic(name=self._topic_path)
+        except google.api_core.exceptions.AlreadyExists:
+            pass
+
+    def _initialise_subscription(self):
+        try:
+            self._subscriber.create_subscription(name=self._subscription_path, topic=self._topic_path)
+        except google.api_core.exceptions.AlreadyExists:
+            pass
+
+    def _callback(self, response):
+        pass
+
+
+class Service(PublisherSubscriber):
     def __init__(self, name, id, uri):
         self.name = name
         self.id = id
         self.uri = uri
-        self.client = socketio.Client()
-        self.response = None
+        self._response = None
+        super().__init__()
 
     def __repr__(self):
         return f"<{type(self).__name__}({self.name!r})>"
 
-    def __enter__(self):
-        self.connect()
-        return self
+    def ask(self, input_values, input_manifest=None):
+        self._publisher.publish(self._topic_path, b"question", input_values=input_values, input_manifest=input_manifest)
+        streaming_pull_future = self._subscriber.subscribe(self._subscription_path, callback=self._callback)
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.disconnect()
+        with self._subscriber:
+            try:
+                streaming_pull_future.result(timeout=5)
+            except TimeoutError:
+                streaming_pull_future.cancel()
 
-    def connect(self):
-        self.client.connect(self.uri)
-        logger.info("%r connected to server at %s.", self, self.uri)
+        return vars(self).pop("_response")
 
-        # This is an awful hack.
-        if "/" not in self.client.namespaces:
-            self.client.namespaces["/"] = None
-
-    def disconnect(self):
-        self.client.disconnect()
-        logger.info("%r disconnected.", self)
-
-    # def ask(self, input_values, input_manifest=None):
-    #     logger.debug("Asking question")
-    #     self.client.emit("question", input_values, callback=self._question_callback)
-    #     response = self.response
-    #     print(response)
-    #     self.response = None
-    #     return response
-
-    def _question_callback(self, item):
-        self.response = item
-
-
-class MockClient:
-    def connect(self, uri, environ):
-        pass
-
-    def disconnect(self, session_id):
-        pass
-
-    def emit(self, event, data, callback):
-        """ Return the data as it was provided. """
-        callback(data)
+    def _callback(self, response):
+        self._response = response
+        response.ack()
