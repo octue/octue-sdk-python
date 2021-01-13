@@ -1,5 +1,6 @@
 import json
 import logging
+import uuid
 from concurrent.futures import TimeoutError
 import google.api_core.exceptions
 from google.cloud import pubsub_v1
@@ -48,21 +49,57 @@ class Service(PublisherSubscriber):
     def __repr__(self):
         return f"<{type(self).__name__}({self.name!r})>"
 
-    def ask(self, input_values, input_manifest=None):
-        # TODO: Make this a UUID.
-        question_topic = self._initialise_topic("test-topic")
-        self._publisher.publish(question_topic, json.dumps(input_values).encode())
+    def serve(self, timeout=None):
+        serving_topic = self._initialise_topic(self.name)
 
-        # TODO: Make this a UUID.
+        serving_subscription = self._initialise_subscription(
+            topic=serving_topic, subscription_name=f"{self.name}-subscription",
+        )
+
+        def question_callback(question):
+            self._question = question
+
+        streaming_pull_future = self._subscriber.subscribe(serving_subscription, callback=question_callback)
+
+        while True:
+            with self._subscriber:
+                try:
+                    streaming_pull_future.result(timeout=5)
+                except TimeoutError:
+                    streaming_pull_future.cancel()
+
+            try:
+                raw_question = vars(self).pop("_question")
+            except KeyError:
+                continue
+
+            question = json.loads(raw_question.data.decode())  # noqa
+            question_uuid = raw_question.args["uuid"]
+
+            # Insert processing of question here.
+            #
+            #
+            #
+
+            output_values = {}
+            self.respond(question_uuid, output_values)
+
+    def ask(self, service_name, input_values, input_manifest=None, timeout=60):
+        question_topic = self._initialise_topic(service_name)
+        question_uuid = json.dumps(str(uuid.uuid4()))
+
+        self._publisher.publish(question_topic, json.dumps(input_values).encode(), uuid=question_uuid)
+
         response_subscription = self._initialise_subscription(
-            topic=self._initialise_topic("test-topic-response"), subscription_name="test-topic-response-subscription",
+            topic=self._initialise_topic(f"{service_name}-response-{question_uuid}"),
+            subscription_name=f"{service_name}-response-subscription",
         )
 
         streaming_pull_future = self._subscriber.subscribe(response_subscription, callback=self._callback)
 
         with self._subscriber:
             try:
-                streaming_pull_future.result(timeout=10)
+                streaming_pull_future.result(timeout=timeout)
             except TimeoutError:
                 streaming_pull_future.cancel()
 
@@ -70,9 +107,8 @@ class Service(PublisherSubscriber):
         response = json.loads(response.decode())
         return response
 
-    def respond(self, output_values):
-        # TODO: Make this a UUID.
-        response_topic = self._initialise_topic("test-topic-response")
+    def respond(self, question_uuid, output_values):
+        response_topic = self._initialise_topic(f"{self.name}-response-{question_uuid}")
         self._publisher.publish(response_topic, json.dumps(output_values).encode())
 
     def _callback(self, response):
