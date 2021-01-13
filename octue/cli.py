@@ -40,6 +40,7 @@ global_cli_context = {}
 )
 @click.option(
     "--show-twined-logs",
+    is_flag=True,
     default=False,
     show_default=True,
     help="Show logs from the whole package in addition to logs just from your app.",
