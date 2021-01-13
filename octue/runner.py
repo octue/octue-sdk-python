@@ -3,12 +3,13 @@ import logging
 import os
 import sys
 
-from octue.logging_handlers import get_default_handler
+from octue.logging_handlers import apply_log_handler
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.utils import gen_uuid
 from twined import Twine
 
 
+package_logger = logging.getLogger("octue")
 module_logger = logging.getLogger(__name__)
 
 
@@ -38,7 +39,13 @@ class Runner:
     """
 
     def __init__(
-        self, twine="twine.json", configuration_values=None, configuration_manifest=None, log_level=logging.INFO,
+        self,
+        twine="twine.json",
+        configuration_values=None,
+        configuration_manifest=None,
+        log_level=logging.INFO,
+        handler=None,
+        show_twined_logs=False,
     ):
         """ Constructor for the Runner class. """
 
@@ -64,32 +71,14 @@ class Runner:
 
         # Store the log level (same log level used for all analyses)
         self._log_level = log_level
+        self.handler = handler
 
-    def _get_analysis_logger(self, analysis_id, handler=None):
-        """ Create a logger specific to the analysis
-
-        :parameter analysis_id: The id of the analysis to get the log for. Should be unique to the analysis
-        :type analysis_id: str
-
-        :parameter handler: The handler to use. If None, default console handler will be attached.
-
-        :return: logger named in the pattern `analysis-{analysis_id}`
-        :rtype logging.Logger
-        """
-        handler = handler or get_default_handler(log_level=self._log_level)
-        analysis_logger = logging.getLogger(f"analysis-{analysis_id}")
-        analysis_logger.addHandler(handler)
-        analysis_logger.setLevel(self._log_level)
-
-        if type(analysis_logger.handlers[0]).__name__ == "SocketHandler":
-            local_logger = logging.getLogger(__name__)
-            local_logger.addHandler(get_default_handler(log_level=self._log_level))
-            local_logger.setLevel(self._log_level)
-            local_logger.info(
-                f"Logs streaming to {analysis_logger.handlers[0].host + ':' + str(analysis_logger.handlers[0].port)}"
+        if show_twined_logs:
+            apply_log_handler(logger=package_logger, handler=self.handler, log_level=self._log_level)
+            package_logger.info(
+                "Showing package logs as well as analysis logs (the package logs are recommended for software "
+                "engineers but may still be useful to app development by scientists."
             )
-
-        return analysis_logger
 
     @staticmethod
     def _update_manifest_path(manifest, pathname):
@@ -116,7 +105,6 @@ class Runner:
         self,
         app_src,
         analysis_id=None,
-        handler=None,
         input_values=None,
         input_manifest=None,
         credentials=None,
@@ -185,7 +173,8 @@ class Runner:
         )
 
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
-        analysis_logger = self._get_analysis_logger(analysis_id, handler)
+        analysis_logger = logging.getLogger(f"analysis-{analysis_id}")
+        apply_log_handler(logger=analysis_logger, handler=self.handler, log_level=self._log_level)
 
         analysis = Analysis(
             id=analysis_id,
