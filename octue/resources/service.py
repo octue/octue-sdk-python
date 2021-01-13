@@ -60,6 +60,9 @@ class Service(PublisherSubscriber):
 
         return vars(self).pop("_response")
 
+    def respond(self, output_values):
+        self._publisher.publish(self._topic_path, b"answer", output_values=output_values)
+
     def _callback(self, response):
         self._response = response
         response.ack()
