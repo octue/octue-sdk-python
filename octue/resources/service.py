@@ -49,9 +49,11 @@ class Service(PublisherSubscriber):
         return f"<{type(self).__name__}({self.name!r})>"
 
     def ask(self, input_values, input_manifest=None):
+        # TODO: Make this a UUID.
         question_topic = self._initialise_topic("test-topic")
         self._publisher.publish(question_topic, json.dumps(input_values).encode())
 
+        # TODO: Make this a UUID.
         response_subscription = self._initialise_subscription(
             topic=self._initialise_topic("test-topic-response"), subscription_name="test-topic-response-subscription",
         )
@@ -69,6 +71,7 @@ class Service(PublisherSubscriber):
         return response
 
     def respond(self, output_values):
+        # TODO: Make this a UUID.
         response_topic = self._initialise_topic("test-topic-response")
         self._publisher.publish(response_topic, json.dumps(output_values).encode())
 
