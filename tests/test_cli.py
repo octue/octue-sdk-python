@@ -59,8 +59,59 @@ class RunnerTestCase(BaseTestCase):
 
         assert CUSTOM_APP_RUN_MESSAGE in result.output
 
+    def test_package_logs_are_streamed_if_asked_For(self):
+        """ Test that logs from the main part of the package are sent to stderr if the CLI option is enabled. """
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with mock.patch("logging.StreamHandler.emit") as mock_log_handler_emit:
+                CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "--show-twined-logs",
+                        "run",
+                        f"--app-dir={TESTS_DIR}",
+                        f"--twine={self.TWINE_FILE_PATH}",
+                        f'--data-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests")}',
+                        f"--output-dir={temporary_directory}",
+                    ],
+                )
+
+            mock_log_handler_emit.assert_called()
+
+            self.assertTrue(
+                any(
+                    "Showing package logs as well as analysis logs (the package logs are recommended for software "
+                    "engineers but may still be useful to app development by scientists." in arg[0][0].msg
+                    for arg in mock_log_handler_emit.call_args_list
+                )
+            )
+
+    def test_package_logs_are_not_streamed_if_not_asked_for(self):
+        """ Test that logs from the main part of the package aren't sent to stderr if the CLI option is not enabled. """
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with mock.patch("logging.StreamHandler.emit") as mock_log_handler_emit:
+                CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "run",
+                        f"--app-dir={TESTS_DIR}",
+                        f"--twine={self.TWINE_FILE_PATH}",
+                        f'--data-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests")}',
+                        f"--output-dir={temporary_directory}",
+                    ],
+                )
+
+            mock_log_handler_emit.assert_called()
+
+            self.assertFalse(
+                any(
+                    "Showing package logs as well as analysis logs (the package logs are recommended for software "
+                    "engineers but may still be useful to app development by scientists." in arg[0][0].msg
+                    for arg in mock_log_handler_emit.call_args_list
+                )
+            )
+
     def test_remote_logger_uri_can_be_set(self):
-        """Test that remote logger URI can be set via the CLI and that this is logged locally."""
+        """ Test that remote logger URI can be set via the CLI and that this is logged locally. """
         with tempfile.TemporaryDirectory() as temporary_directory:
             with mock.patch("logging.StreamHandler.emit") as mock_local_logger_emit:
                 CliRunner().invoke(

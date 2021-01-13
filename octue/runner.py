@@ -75,6 +75,10 @@ class Runner:
 
         if show_twined_logs:
             apply_log_handler(logger=package_logger, handler=self.handler, log_level=self._log_level)
+            package_logger.info(
+                "Showing package logs as well as analysis logs (the package logs are recommended for software "
+                "engineers but may still be useful to app development by scientists."
+            )
 
     @staticmethod
     def _update_manifest_path(manifest, pathname):
