@@ -1,11 +1,13 @@
 import json
 import logging
 import time
-import uuid
 from concurrent.futures import TimeoutError
 import google.api_core.exceptions
 from google.cloud import pubsub_v1
+from icecream import ic
 
+
+ic.configureOutput(includeContext=True)
 
 logger = logging.getLogger(__name__)
 
@@ -13,33 +15,7 @@ logger = logging.getLogger(__name__)
 GCP_PROJECT = "octue-amy"
 
 
-class PublisherSubscriber:
-    def __init__(self):
-        self._publisher = pubsub_v1.PublisherClient()
-        self._subscriber = pubsub_v1.SubscriberClient()
-
-    def _initialise_topic(self, topic_name):
-        topic_path = self._publisher.topic_path(GCP_PROJECT, topic_name)
-
-        try:
-            self._publisher.create_topic(name=topic_path)
-        except google.api_core.exceptions.AlreadyExists:
-            pass
-
-        return topic_path
-
-    def _initialise_subscription(self, topic, subscription_name):
-        subscription_path = self._subscriber.subscription_path(GCP_PROJECT, subscription_name)
-
-        try:
-            self._subscriber.create_subscription(name=subscription_path, topic=topic)
-        except google.api_core.exceptions.AlreadyExists:
-            pass
-
-        return subscription_path
-
-
-class Service(PublisherSubscriber):
+class Service:
     def __init__(self, name):
         self.name = name
         super().__init__()
@@ -48,75 +24,100 @@ class Service(PublisherSubscriber):
         return f"<{type(self).__name__}({self.name!r})>"
 
     def serve(self, timeout=None, exit_after_first_response=False):
-        serving_topic = self._initialise_topic(self.name)
+        publisher = pubsub_v1.PublisherClient()
+        topic_name = publisher.topic_path(GCP_PROJECT, self.name)
+        publisher.create_topic(name=topic_name)
+        ic(topic_name)
 
-        serving_subscription = self._initialise_subscription(
-            topic=serving_topic, subscription_name=f"{self.name}-subscription",
-        )
+        subscriber = pubsub_v1.SubscriberClient()
+        subscription_name = subscriber.subscription_path(project=GCP_PROJECT, subscription=self.name)
+        subscriber.create_subscription(topic=topic_name, name=subscription_name)
+        ic(subscription_name)
 
         def question_callback(question):
             self._question = question
+            question.ack()
 
-        streaming_pull_future = self._subscriber.subscribe(serving_subscription, callback=question_callback)
-        start_time = time.perf_counter()
+        streaming_pull_future = subscriber.subscribe(subscription_name, callback=question_callback)
 
-        while not self._time_is_up(start_time=start_time, timeout=timeout):
-            with self._subscriber:
-                try:
-                    streaming_pull_future.result(timeout=5)
-                except TimeoutError:
-                    streaming_pull_future.cancel()
-
+        with subscriber:
             try:
-                raw_question = vars(self).pop("_question")
-            except KeyError:
-                continue
+                ic("Server waiting for questions...")
+                streaming_pull_future.result(timeout=20)
+            except Exception:
+                # streaming_pull_future.cancel()
+                pass
 
-            question = json.loads(raw_question.data.decode())  # noqa
-            question_uuid = json.loads(raw_question.attributes["uuid"])
+        raw_question = vars(self).pop("_question")
 
-            # Insert processing of question here.
-            #
-            #
-            #
+        ic(f"Server got question {raw_question.data}.")
+        question = json.loads(raw_question.data.decode())  # noqa
 
-            output_values = {}
-            self.respond(question_uuid, output_values)
+        # Insert processing of question here.
+        #
+        #
+        #
 
-            if exit_after_first_response:
-                return
+        output_values = {}
+        self.respond(output_values)
 
-    def ask(self, service_name, input_values, input_manifest=None, timeout=60):
-        question_topic = self._initialise_topic(service_name)
-        question_uuid = int(uuid.uuid4())
+        if exit_after_first_response:
+            return
 
-        self._publisher.publish(question_topic, json.dumps(input_values).encode(), uuid=str(question_uuid))
+    def respond(self, output_values):
+        publisher = pubsub_v1.PublisherClient()
+        topic_name = publisher.topic_path(GCP_PROJECT, f"{self.name}-response")
 
-        response_topic = self._initialise_topic(f"{service_name}-response-{question_uuid}")
+        try:
+            publisher.create_topic(name=topic_name)
+        except google.api_core.exceptions.AlreadyExists:
+            pass
 
-        response_subscription = self._initialise_subscription(
-            topic=response_topic, subscription_name=f"{service_name}-response-subscription-{question_uuid}",
-        )
+        ic(f"Server responding on topic {topic_name}")
+        publisher.publish(topic_name, json.dumps(output_values).encode())
+        ic(f"Server responded on topic {topic_name}")
 
-        def answer_callback(response):
+    def ask(self, service_name, input_values, input_manifest=None):
+        publisher = pubsub_v1.PublisherClient()
+        topic_name = publisher.topic_path(GCP_PROJECT, service_name)
+        publisher.publish(topic_name, json.dumps(input_values).encode())
+        ic(topic_name)
+
+    def wait_for_response(self, service_name):
+        publisher = pubsub_v1.PublisherClient()
+        topic_name = publisher.topic_path(GCP_PROJECT, f"{service_name}-response")
+
+        try:
+            publisher.create_topic(name=topic_name)
+        except google.api_core.exceptions.AlreadyExists:
+            pass
+
+        subscriber = pubsub_v1.SubscriberClient()
+        subscription_name = subscriber.subscription_path(project=GCP_PROJECT, subscription=f"{service_name}-response")
+        subscriber.create_subscription(topic=topic_name, name=subscription_name)
+
+        def callback(response):
             self._response = response
             response.ack()
 
-        streaming_pull_future = self._subscriber.subscribe(response_subscription, callback=answer_callback)
+        ic(f"Asker waiting for response on {topic_name}")
+        future = subscriber.subscribe(subscription_name, callback)
 
-        with self._subscriber:
+        with subscriber:
             try:
-                streaming_pull_future.result(timeout=timeout)
+                future.result(timeout=20)
             except TimeoutError:
-                streaming_pull_future.cancel()
+                future.cancel()
 
-        response = vars(self).pop("_response").data
-        response = json.loads(response.decode())
+        try:
+            print(self._response)
+            response = vars(self).pop("_response")
+        except KeyError:
+            pass
+
+        response = json.loads(response.data.decode())
+        ic(f"Asker received response: {response}")
         return response
-
-    def respond(self, question_uuid, output_values):
-        response_topic = self._initialise_topic(f"{self.name}-response-{question_uuid}")
-        self._publisher.publish(response_topic, json.dumps(output_values).encode())
 
     @staticmethod
     def _time_is_up(start_time, timeout):
