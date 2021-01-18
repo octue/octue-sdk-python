@@ -92,7 +92,11 @@ class Service(PublisherSubscriber):
             subscription_name=f"{service_name}-response-subscription",
         )
 
-        streaming_pull_future = self._subscriber.subscribe(response_subscription, callback=self._callback)
+        def answer_callback(response):
+            self._response = response
+            response.ack()
+
+        streaming_pull_future = self._subscriber.subscribe(response_subscription, callback=answer_callback)
 
         with self._subscriber:
             try:
@@ -107,7 +111,3 @@ class Service(PublisherSubscriber):
     def respond(self, question_uuid, output_values):
         response_topic = self._initialise_topic(f"{self.name}-response-{question_uuid}")
         self._publisher.publish(response_topic, json.dumps(output_values).encode())
-
-    def _callback(self, response):
-        self._response = response
-        response.ack()
