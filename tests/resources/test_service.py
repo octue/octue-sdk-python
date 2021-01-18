@@ -1,24 +1,14 @@
-import asyncio
-from unittest.mock import patch
-import socketio
+import time
 from tests.base import BaseTestCase
 
-from octue.resources.service import MockClient, Service
+from octue.resources.service import Service
 
 
 class TestService(BaseTestCase):
-    def test_error_raised_when_client_cannot_connect(self):
-        """ Test that a ConnectionError is raised if the service cannot connect to the given URI. """
-        uri = "http://0.0.0.0:9999"
-        service = Service(name="test_service", id=0, uri=uri)
-        with self.assertRaises(socketio.exceptions.ConnectionError) as error:
-            service.connect()
-            self.assertTrue(f"Failed to connect to server at {uri}." in error)
-
-    def test_ask(self):
-        """ Test that a service can be asked a question. """
-        with patch("socketio.Client", new=MockClient):
-            service = Service(name="test_service", id=0, uri="http://0.0.0.0:8080")
-            response = asyncio.run(service.ask({"what": "now"}))
-
-        self.assertEqual(response, {"what": "now"})
+    def test_serve_with_timeout(self):
+        """ Test that a Service can serve for a given time interval and stop at the end of it. """
+        service = Service(name="hello")
+        start_time = time.perf_counter()
+        service.serve(timeout=0)
+        duration = time.perf_counter() - start_time
+        self.assertTrue(duration < 5)  # Allow for time spent connecting to Google.
