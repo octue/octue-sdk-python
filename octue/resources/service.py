@@ -47,7 +47,7 @@ class Service(PublisherSubscriber):
     def __repr__(self):
         return f"<{type(self).__name__}({self.name!r})>"
 
-    def serve(self, timeout=None):
+    def serve(self, timeout=None, exit_after_first_response=False):
         serving_topic = self._initialise_topic(self.name)
 
         serving_subscription = self._initialise_subscription(
@@ -73,7 +73,7 @@ class Service(PublisherSubscriber):
                 continue
 
             question = json.loads(raw_question.data.decode())  # noqa
-            question_uuid = raw_question.args["uuid"]
+            question_uuid = json.loads(raw_question.attributes["uuid"])
 
             # Insert processing of question here.
             #
@@ -83,15 +83,19 @@ class Service(PublisherSubscriber):
             output_values = {}
             self.respond(question_uuid, output_values)
 
+            if exit_after_first_response:
+                return
+
     def ask(self, service_name, input_values, input_manifest=None, timeout=60):
         question_topic = self._initialise_topic(service_name)
-        question_uuid = json.dumps(str(uuid.uuid4()))
+        question_uuid = int(uuid.uuid4())
 
-        self._publisher.publish(question_topic, json.dumps(input_values).encode(), uuid=question_uuid)
+        self._publisher.publish(question_topic, json.dumps(input_values).encode(), uuid=str(question_uuid))
+
+        response_topic = self._initialise_topic(f"{service_name}-response-{question_uuid}")
 
         response_subscription = self._initialise_subscription(
-            topic=self._initialise_topic(f"{service_name}-response-{question_uuid}"),
-            subscription_name=f"{service_name}-response-subscription",
+            topic=response_topic, subscription_name=f"{service_name}-response-subscription-{question_uuid}",
         )
 
         def answer_callback(response):
