@@ -37,9 +37,6 @@ class PublisherSubscriber:
 
         return subscription_path
 
-    def _callback(self, response):
-        pass
-
 
 class Service(PublisherSubscriber):
     def __init__(self, name):
