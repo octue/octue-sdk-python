@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 import uuid
 from concurrent.futures import TimeoutError
 import google.api_core.exceptions
@@ -57,8 +58,9 @@ class Service(PublisherSubscriber):
             self._question = question
 
         streaming_pull_future = self._subscriber.subscribe(serving_subscription, callback=question_callback)
+        start_time = time.perf_counter()
 
-        while True:
+        while not self._time_is_up(start_time=start_time, timeout=timeout):
             with self._subscriber:
                 try:
                     streaming_pull_future.result(timeout=5)
@@ -111,3 +113,13 @@ class Service(PublisherSubscriber):
     def respond(self, question_uuid, output_values):
         response_topic = self._initialise_topic(f"{self.name}-response-{question_uuid}")
         self._publisher.publish(response_topic, json.dumps(output_values).encode())
+
+    @staticmethod
+    def _time_is_up(start_time, timeout):
+        if timeout is None:
+            return False
+
+        if time.perf_counter() - start_time < timeout:
+            return False
+
+        return True
