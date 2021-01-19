@@ -6,7 +6,7 @@ import pkg_resources
 
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.logging_handlers import get_remote_handler
-from octue.resources.server import Server
+from octue.resources import Service
 from octue.runner import Runner
 from twined import Twine
 
@@ -172,12 +172,9 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     show_default=True,
     help="Directory containing configuration (overrides --data-dir).",
 )
-@click.option(
-    "--host", type=click.STRING, default="localhost", show_default=True, help="The hostname to start the server on."
-)
-@click.option("--port", type=click.INT, default=9999, show_default=True, help="The hostname to start the server on.")
+@click.option("--server-name", type=click.STR, help="The name to give to the server.")
 @click.option("--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.")
-def start(app_dir, data_dir, config_dir, twine, host, port):
+def start(app_dir, data_dir, config_dir, service_name, twine):
     """ Start the service as a server to be asked questions by other services. """
     config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
     twine = Twine(source=twine)
@@ -196,15 +193,11 @@ def start(app_dir, data_dir, config_dir, twine, host, port):
     )[0]
 
     run_function = functools.partial(
-        runner.run,
-        app_src=app_dir,
-        analysis_id=global_cli_context["analysis_id"],
-        children=children,
-        skip_checks=global_cli_context["skip_checks"],
+        runner.run, app_src=app_dir, children=children, skip_checks=global_cli_context["skip_checks"],
     )
 
-    server = Server(run_function=run_function)
-    server.start(host=host, port=port)
+    service = Service(name=service_name)
+    service.serve(run_function=run_function)
 
 
 def set_unavailable_strand_paths_to_none(twine, strands):

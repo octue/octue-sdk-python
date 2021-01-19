@@ -80,12 +80,11 @@ class Subscription:
 class Service:
     def __init__(self, name):
         self.name = name
-        super().__init__()
 
     def __repr__(self):
         return f"<{type(self).__name__}({self.name!r})>"
 
-    def serve(self, timeout=None, exit_after_first_response=False):
+    def serve(self, run_function, timeout=None, exit_after_first_response=False):
 
         with Topic(name=self.name, delete_on_exit=True) as topic:
             topic.create()
@@ -117,15 +116,10 @@ class Service:
                         continue
 
                     logger.info("%r received a question.", self)
-                    question = json.loads(raw_question.data.decode())  # noqa
 
-                    # Insert processing of question here.
-                    #
-                    #
-                    #
-
-                    output_values = {}
-                    self.respond(question_uuid=raw_question.attributes["uuid"], output_values=output_values)
+                    question = json.loads(raw_question.data.decode())
+                    analysis = run_function(question)
+                    self.respond(question_uuid=raw_question.attributes["uuid"], output_values=analysis.output_values)
 
                     if exit_after_first_response:
                         return
