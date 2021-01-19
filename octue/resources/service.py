@@ -1,7 +1,9 @@
 import json
 import logging
+import sys
 import time
 from concurrent.futures import TimeoutError
+from signal import SIGINT, signal
 import google.api_core.exceptions
 from google.cloud import pubsub_v1
 from icecream import ic
@@ -45,6 +47,31 @@ class Topic:
         self._publisher.create_topic(name=self.path)
 
 
+class Subscription:
+    def __init__(self, name, topic):
+        self.name = name
+        self.topic = topic
+        self.subscriber = pubsub_v1.SubscriberClient()
+        self.path = self.subscriber.subscription_path(GCP_PROJECT, self.name)
+
+    def __enter__(self):
+        signal(SIGINT, self._sigint_handler)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.subscriber.delete_subscription(subscription=self.path)
+
+    def create(self):
+        self.subscriber.create_subscription(topic=self.topic.path, name=self.path)
+
+    def subscribe(self, callback=None):
+        return self.subscriber.subscribe(self.path, callback=callback)
+
+    def _sigint_handler(self, signal_received, frame):
+        self.__exit__(None, None, None)
+        sys.exit(0)
+
+
 class Service:
     def __init__(self, name):
         self.name = name
@@ -59,49 +86,48 @@ class Service:
             topic.create()
             ic(topic.path)
 
-            subscriber = pubsub_v1.SubscriberClient()
-            subscription_name = subscriber.subscription_path(project=GCP_PROJECT, subscription=self.name)
-            subscriber.create_subscription(topic=topic.path, name=subscription_name)
-            ic(subscription_name)
+            with Subscription(name=self.name, topic=topic) as subscription:
+                subscription.create()
+                ic(subscription.path)
 
-            def question_callback(question):
-                self._question = question
-                question.ack()
+                def question_callback(question):
+                    self._question = question
+                    question.ack()
 
-            streaming_pull_future = subscriber.subscribe(subscription_name, callback=question_callback)
+                streaming_pull_future = subscription.subscribe(callback=question_callback)
 
-            with subscriber:
-                start_time = time.perf_counter()
+                with subscription.subscriber:
+                    start_time = time.perf_counter()
 
-                while True:
-                    if self._time_is_up(start_time, timeout):
-                        return
+                    while True:
+                        if self._time_is_up(start_time, timeout):
+                            return
 
-                    try:
-                        ic("Server waiting for questions...")
-                        streaming_pull_future.result(timeout=20)
-                    except Exception:
-                        # streaming_pull_future.cancel()
-                        pass
+                        try:
+                            ic("Server waiting for questions...")
+                            streaming_pull_future.result(timeout=20)
+                        except Exception:
+                            # streaming_pull_future.cancel()
+                            pass
 
-                    try:
-                        raw_question = vars(self).pop("_question")
-                    except KeyError:
-                        continue
+                        try:
+                            raw_question = vars(self).pop("_question")
+                        except KeyError:
+                            continue
 
-                    ic(f"Server got question {raw_question.data}.")
-                    question = json.loads(raw_question.data.decode())  # noqa
+                        ic(f"Server got question {raw_question.data}.")
+                        question = json.loads(raw_question.data.decode())  # noqa
 
-                    # Insert processing of question here.
-                    #
-                    #
-                    #
+                        # Insert processing of question here.
+                        #
+                        #
+                        #
 
-                    output_values = {}
-                    self.respond(output_values)
+                        output_values = {}
+                        self.respond(output_values)
 
-                    if exit_after_first_response:
-                        return
+                        if exit_after_first_response:
+                            return
 
     def respond(self, output_values):
         publisher = pubsub_v1.PublisherClient()
