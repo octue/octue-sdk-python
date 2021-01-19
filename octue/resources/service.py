@@ -105,7 +105,7 @@ class Service:
         publisher.publish(topic_name, json.dumps(input_values).encode())
         ic(topic_name)
 
-    def wait_for_response(self, service_name):
+    def wait_for_response(self, service_name, timeout=20):
         publisher = pubsub_v1.PublisherClient()
         topic_name = publisher.topic_path(GCP_PROJECT, f"{service_name}-response")
 
@@ -127,7 +127,7 @@ class Service:
 
         with subscriber:
             try:
-                future.result(timeout=20)
+                future.result(timeout=timeout)
             except TimeoutError:
                 future.cancel()
 
