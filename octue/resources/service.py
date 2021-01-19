@@ -131,11 +131,13 @@ class Service:
             except TimeoutError:
                 future.cancel()
 
-        try:
-            print(self._response)
-            response = vars(self).pop("_response")
-        except KeyError:
-            pass
+            try:
+                print(self._response)
+                response = vars(self).pop("_response")
+            except KeyError:
+                pass
+
+            subscriber.delete_subscription(subscription=subscription_name)
 
         response = json.loads(response.data.decode())
         ic(f"Asker received response: {response}")
