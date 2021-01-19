@@ -1,6 +1,3 @@
-import time
-
-
 def run(analysis, *args, **kwargs):
     """ Your main entrypoint to run the application
 
@@ -32,26 +29,11 @@ def run(analysis, *args, **kwargs):
 
     """
     analysis.logger.info("Hello! The child services template app is running!")
-
-    # Child services of the main service are accessible on the `analysis` instance via a dictionary.
-    analysis.logger.info(f"Children to connect to: {list(analysis.children.keys())}")
-    child_services = analysis.children.values()
-
-    for child in child_services:
-        if child.name == "elevation":
-            child.connect()
-
-    result = []
-    time.sleep(10)
-    analysis.children["elevation"].client.emit("question", analysis.input_values, callback=result.append)
-    elevations = result[0]
-
-    for child in child_services:
-        if child.name == "elevation":
-            child.disconnect()
+    elevations = analysis.main_service.ask(service_name="elevation", input_values=analysis.input_values)
+    wind_speeds = analysis.main_service.ask(service_name="wind_speed", input_values=analysis.input_values)
 
     analysis.logger.info(
-        f"The wind speeds and elevations at {analysis.input_values['locations']} are and {elevations}."
+        f"The wind speeds and elevations at {analysis.input_values['locations']} are {wind_speeds} and {elevations}."
     )
 
-    analysis.output_values = {"wind_speeds": None, "elevations": elevations}
+    analysis.output_values = {"wind_speeds": wind_speeds, "elevations": elevations}

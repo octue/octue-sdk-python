@@ -5,13 +5,11 @@ import uuid
 from unittest.mock import patch
 
 from octue import Runner
-from octue.resources.service import MockClient
 from ..base import BaseTestCase
 
 
 class TemplateAppsTestCase(BaseTestCase):
-    """ Test case that runs analyses using apps in the templates, to ensure all the examples work.
-    """
+    """ Test case that runs analyses using apps in the templates, to ensure all the examples work. """
 
     def setUp(self):
         super().setUp()
@@ -83,14 +81,13 @@ class TemplateAppsTestCase(BaseTestCase):
         self.set_template("template-child-services")
         runner = Runner(twine=os.path.join(self.template_path, "parent_app", "twine.json"))
 
-        with patch("socketio.Client", new=MockClient):
-            with patch("octue.resources.Service.ask") as mock_service_ask:
-                mock_service_ask.return_value = [0, 7]
-                analysis = runner.run(
-                    app_src=os.path.join(self.template_path, "parent_app"),
-                    children=os.path.join("parent_app", "data", "configuration", "children.json"),
-                    input_values=os.path.join("parent_app", "data", "input", "values.json"),
-                )
+        with patch("octue.resources.Service.ask") as mock_service_ask:
+            mock_service_ask.return_value = [0, 7]
+            analysis = runner.run(
+                app_src=os.path.join(self.template_path, "parent_app"),
+                children=os.path.join("parent_app", "data", "configuration", "children.json"),
+                input_values=os.path.join("parent_app", "data", "input", "values.json"),
+            )
 
         analysis.finalise(output_dir=os.path.join("data", "output"))
 
