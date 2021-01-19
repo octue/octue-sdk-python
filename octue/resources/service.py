@@ -173,13 +173,13 @@ class Service:
                     try:
                         future.result(timeout=2)
                     except TimeoutError:
-                        continue
+                        pass
 
                     try:
                         response = vars(self).pop("_response")
                         break
                     except KeyError:
-                        continue
+                        pass
 
         response = json.loads(response.data.decode())
         logger.debug("%r received a response to question %r from service %r.", self, question_uuid, service_name)
