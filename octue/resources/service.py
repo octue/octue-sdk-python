@@ -45,9 +45,10 @@ class Topic:
 
 
 class Subscription:
-    def __init__(self, name, topic):
+    def __init__(self, name, topic, delete_on_exit=False):
         self.name = name
         self.topic = topic
+        self.delete_on_exit = delete_on_exit
         self.subscriber = pubsub_v1.SubscriberClient()
         self.path = self.subscriber.subscription_path(GCP_PROJECT, self.name)
 
@@ -55,7 +56,8 @@ class Subscription:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.subscriber.delete_subscription(subscription=self.path)
+        if self.delete_on_exit:
+            self.subscriber.delete_subscription(subscription=self.path)
         self.subscriber.close()
 
     def create(self, allow_existing=False):
@@ -86,7 +88,7 @@ class Service:
             topic.create()
             ic(topic.path)
 
-            with Subscription(name=self.name, topic=topic) as subscription:
+            with Subscription(name=self.name, topic=topic, delete_on_exit=True) as subscription:
 
                 subscription.create()
                 ic(subscription.path)
@@ -146,7 +148,9 @@ class Service:
         with Topic(name=f"{service_name}-response-{question_uuid}") as topic:
             topic.create(allow_existing=True)
 
-            with Subscription(name=f"{service_name}-response-{question_uuid}", topic=topic) as subscription:
+            with Subscription(
+                name=f"{service_name}-response-{question_uuid}", topic=topic, delete_on_exit=True
+            ) as subscription:
                 subscription.create()
 
                 def callback(response):
@@ -162,11 +166,11 @@ class Service:
                     future.cancel()
 
                 try:
-                    print(self._response)
                     response = vars(self).pop("_response")
                 except KeyError:
                     pass
 
+        print(response)
         response = json.loads(response.data.decode())
         ic(f"Asker received response: {response}")
         return response
