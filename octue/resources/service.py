@@ -106,7 +106,7 @@ class Service:
 
                     try:
                         ic("Server waiting for questions...")
-                        streaming_pull_future.result(timeout=20)
+                        streaming_pull_future.result(timeout=10)
                     except Exception:
                         # streaming_pull_future.cancel()
                         pass
