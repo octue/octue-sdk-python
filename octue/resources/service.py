@@ -100,11 +100,13 @@ class Service:
                 start_time = time.perf_counter()
 
                 while True:
+                    logger.debug("%r server is waiting for questions.", self)
+
                     if self._time_is_up(start_time, timeout):
                         return
 
                     try:
-                        logger.debug("%r server is waiting for questions.", self)
+
                         streaming_pull_future.result(timeout=10)
                     except TimeoutError:
                         # streaming_pull_future.cancel()
@@ -152,19 +154,32 @@ class Service:
 
                 future = subscription.subscribe(callback=callback)
 
-                logger.debug(
-                    "%r is waiting for a response to question %r from service %r.", self, question_uuid, service_name
-                )
+                start_time = time.perf_counter()
+                while True:
+                    if self._time_is_up(start_time, timeout=timeout):
+                        future.cancel()
+                        raise TimeoutError(
+                            "Ran out of time to wait for response from service %r for question %r."
+                            % (service_name, question_uuid)
+                        )
 
-                try:
-                    future.result(timeout=timeout)
-                except TimeoutError:
-                    future.cancel()
+                    logger.debug(
+                        "%r is waiting for a response to question %r from service %r.",
+                        self,
+                        question_uuid,
+                        service_name,
+                    )
 
-                try:
-                    response = vars(self).pop("_response")
-                except KeyError:
-                    pass
+                    try:
+                        future.result(timeout=2)
+                    except TimeoutError:
+                        continue
+
+                    try:
+                        response = vars(self).pop("_response")
+                        break
+                    except KeyError:
+                        continue
 
         response = json.loads(response.data.decode())
         logger.debug("%r received a response to question %r from service %r.", self, question_uuid, service_name)
