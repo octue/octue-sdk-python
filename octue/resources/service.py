@@ -23,9 +23,10 @@ def delete_all_topics_and_subscriptions():
         publisher.delete_topic(topic=topic.name)
         print(f"Deleted {topic.name}")
 
-    for subscription in subscriber.list_subscriptions(project=f"projects/{GCP_PROJECT}"):
-        subscriber.delete_subscription(subscription=subscription.name)
-        print(f"Deleted {subscription.name}")
+    with subscriber:
+        for subscription in subscriber.list_subscriptions(project=f"projects/{GCP_PROJECT}"):
+            subscriber.delete_subscription(subscription=subscription.name)
+            print(f"Deleted {subscription.name}")
 
 
 class Service:
