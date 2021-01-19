@@ -55,7 +55,11 @@ class Service:
 
         with subscriber:
             start_time = time.perf_counter()
-            while not self._time_is_up(start_time, timeout):
+
+            while True:
+                if self._time_is_up(start_time, timeout):
+                    return
+
                 try:
                     ic("Server waiting for questions...")
                     streaming_pull_future.result(timeout=20)
@@ -65,26 +69,22 @@ class Service:
 
                 try:
                     raw_question = vars(self).pop("_question")
-                    break
                 except KeyError:
-                    pass
+                    continue
 
-            else:
-                return
+                ic(f"Server got question {raw_question.data}.")
+                question = json.loads(raw_question.data.decode())  # noqa
 
-        ic(f"Server got question {raw_question.data}.")
-        question = json.loads(raw_question.data.decode())  # noqa
+                # Insert processing of question here.
+                #
+                #
+                #
 
-        # Insert processing of question here.
-        #
-        #
-        #
+                output_values = {}
+                self.respond(output_values)
 
-        output_values = {}
-        self.respond(output_values)
-
-        if exit_after_first_response:
-            return
+                if exit_after_first_response:
+                    return
 
     def respond(self, output_values):
         publisher = pubsub_v1.PublisherClient()
