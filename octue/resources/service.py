@@ -103,13 +103,12 @@ class Service:
                     logger.debug("%r server is waiting for questions.", self)
 
                     if self._time_is_up(start_time, timeout):
-                        return
+                        streaming_pull_future.cancel()
+                        raise TimeoutError(f"{self!r} ran out of time waiting for questions.")
 
                     try:
-
                         streaming_pull_future.result(timeout=10)
                     except TimeoutError:
-                        # streaming_pull_future.cancel()
                         pass
 
                     try:
@@ -159,8 +158,8 @@ class Service:
                     if self._time_is_up(start_time, timeout=timeout):
                         future.cancel()
                         raise TimeoutError(
-                            "Ran out of time to wait for response from service %r for question %r."
-                            % (service_name, question_uuid)
+                            f"Ran out of time to wait for response from service {service_name!r} for question "
+                            f"{question_uuid}."
                         )
 
                     logger.debug(
