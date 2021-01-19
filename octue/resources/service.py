@@ -29,6 +29,22 @@ def delete_all_topics_and_subscriptions():
             print(f"Deleted {subscription.name}")
 
 
+class Topic:
+    def __init__(self, name):
+        self.name = name
+        self._publisher = pubsub_v1.PublisherClient()
+        self.path = self._publisher.topic_path(GCP_PROJECT, self.name)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._publisher.delete_topic(topic=self.path)
+
+    def create(self):
+        self._publisher.create_topic(name=self.path)
+
+
 class Service:
     def __init__(self, name):
         self.name = name
@@ -38,57 +54,54 @@ class Service:
         return f"<{type(self).__name__}({self.name!r})>"
 
     def serve(self, timeout=None, exit_after_first_response=False):
-        publisher = pubsub_v1.PublisherClient()
-        topic_name = publisher.topic_path(GCP_PROJECT, self.name)
-        publisher.create_topic(name=topic_name)
-        ic(topic_name)
 
-        subscriber = pubsub_v1.SubscriberClient()
-        subscription_name = subscriber.subscription_path(project=GCP_PROJECT, subscription=self.name)
-        subscriber.create_subscription(topic=topic_name, name=subscription_name)
-        ic(subscription_name)
+        with Topic(name=self.name) as topic:
+            topic.create()
+            ic(topic.path)
 
-        def question_callback(question):
-            self._question = question
-            question.ack()
+            subscriber = pubsub_v1.SubscriberClient()
+            subscription_name = subscriber.subscription_path(project=GCP_PROJECT, subscription=self.name)
+            subscriber.create_subscription(topic=topic.path, name=subscription_name)
+            ic(subscription_name)
 
-        streaming_pull_future = subscriber.subscribe(subscription_name, callback=question_callback)
+            def question_callback(question):
+                self._question = question
+                question.ack()
 
-        with subscriber:
-            start_time = time.perf_counter()
+            streaming_pull_future = subscriber.subscribe(subscription_name, callback=question_callback)
 
-            while True:
-                if self._time_is_up(start_time, timeout):
-                    return
+            with subscriber:
+                start_time = time.perf_counter()
 
-                try:
-                    ic("Server waiting for questions...")
-                    streaming_pull_future.result(timeout=20)
-                except Exception:
-                    # streaming_pull_future.cancel()
-                    pass
+                while True:
+                    if self._time_is_up(start_time, timeout):
+                        return
 
-                try:
-                    raw_question = vars(self).pop("_question")
-                except KeyError:
-                    continue
+                    try:
+                        ic("Server waiting for questions...")
+                        streaming_pull_future.result(timeout=20)
+                    except Exception:
+                        # streaming_pull_future.cancel()
+                        pass
 
-                ic(f"Server got question {raw_question.data}.")
-                question = json.loads(raw_question.data.decode())  # noqa
+                    try:
+                        raw_question = vars(self).pop("_question")
+                    except KeyError:
+                        continue
 
-                # Insert processing of question here.
-                #
-                #
-                #
+                    ic(f"Server got question {raw_question.data}.")
+                    question = json.loads(raw_question.data.decode())  # noqa
 
-                output_values = {}
-                self.respond(output_values)
+                    # Insert processing of question here.
+                    #
+                    #
+                    #
 
-                if exit_after_first_response:
-                    break
+                    output_values = {}
+                    self.respond(output_values)
 
-        subscriber.delete_subscription(subscription=subscription_name)
-        publisher.delete_topic(topic=topic_name)
+                    if exit_after_first_response:
+                        return
 
     def respond(self, output_values):
         publisher = pubsub_v1.PublisherClient()
