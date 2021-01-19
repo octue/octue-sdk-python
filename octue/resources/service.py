@@ -85,7 +85,10 @@ class Service:
                 self.respond(output_values)
 
                 if exit_after_first_response:
-                    return
+                    break
+
+        subscriber.delete_subscription(subscription=subscription_name)
+        publisher.delete_topic(topic=topic_name)
 
     def respond(self, output_values):
         publisher = pubsub_v1.PublisherClient()
