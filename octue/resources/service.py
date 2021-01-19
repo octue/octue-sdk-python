@@ -15,6 +15,19 @@ logger = logging.getLogger(__name__)
 GCP_PROJECT = "octue-amy"
 
 
+def delete_all_topics_and_subscriptions():
+    publisher = pubsub_v1.PublisherClient()
+    subscriber = pubsub_v1.SubscriberClient()
+
+    for topic in publisher.list_topics(project=f"projects/{GCP_PROJECT}"):
+        publisher.delete_topic(topic=topic.name)
+        print(f"Deleted {topic.name}")
+
+    for subscription in subscriber.list_subscriptions(project=f"projects/{GCP_PROJECT}"):
+        subscriber.delete_subscription(subscription=subscription.name)
+        print(f"Deleted {subscription.name}")
+
+
 class Service:
     def __init__(self, name):
         self.name = name
