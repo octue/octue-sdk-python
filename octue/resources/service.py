@@ -17,7 +17,7 @@ GCP_PROJECT = "octue-amy"
 
 
 class Topic:
-    def __init__(self, name, delete_on_exit=True):
+    def __init__(self, name, delete_on_exit=False):
         self.name = name
         self._delete_on_exit = delete_on_exit
         self._publisher = pubsub_v1.PublisherClient()
@@ -84,7 +84,7 @@ class Service:
 
     def serve(self, timeout=None, exit_after_first_response=False):
 
-        with Topic(name=self.name) as topic:
+        with Topic(name=self.name, delete_on_exit=True) as topic:
             topic.create()
             ic(topic.path)
 
@@ -131,13 +131,13 @@ class Service:
                         return
 
     def respond(self, question_uuid, output_values):
-        with Topic(name=f"{self.name}-response-{question_uuid}", delete_on_exit=False) as topic:
+        with Topic(name=f"{self.name}-response-{question_uuid}") as topic:
             topic.create(allow_existing=True)
             topic.publish(json.dumps(output_values).encode())
             ic(f"Server responded on topic {topic.path} to UUID {question_uuid}")
 
     def ask(self, service_name, input_values, input_manifest=None):
-        with Topic(name=service_name, delete_on_exit=False) as topic:
+        with Topic(name=service_name) as topic:
             question_uuid = str(int(uuid.uuid4()))
             topic.publish(json.dumps(input_values).encode(), uuid=question_uuid)
             ic(topic.path)
@@ -145,7 +145,7 @@ class Service:
             return question_uuid
 
     def wait_for_response(self, question_uuid, service_name, timeout=20):
-        with Topic(name=f"{service_name}-response-{question_uuid}") as topic:
+        with Topic(name=f"{service_name}-response-{question_uuid}", delete_on_exit=True) as topic:
             topic.create(allow_existing=True)
 
             with Subscription(
