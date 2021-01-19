@@ -1,6 +1,7 @@
 import json
 import logging
 import time
+import uuid
 from concurrent.futures import TimeoutError
 import google.api_core.exceptions
 from google.cloud import pubsub_v1
@@ -39,8 +40,7 @@ class Topic:
             except google.api_core.exceptions.AlreadyExists:
                 pass
 
-    def publish(self, data, attributes=None):
-        attributes = attributes or {}
+    def publish(self, data, **attributes):
         self._publisher.publish(self.path, data, **attributes)
 
 
@@ -123,27 +123,30 @@ class Service:
                     #
 
                     output_values = {}
-                    self.respond(output_values)
+                    self.respond(question_uuid=raw_question.attributes["uuid"], output_values=output_values)
 
                     if exit_after_first_response:
                         return
 
-    def respond(self, output_values):
-        with Topic(name=f"{self.name}-response", delete_on_exit=False) as topic:
+    def respond(self, question_uuid, output_values):
+        with Topic(name=f"{self.name}-response-{question_uuid}", delete_on_exit=False) as topic:
             topic.create(allow_existing=True)
             topic.publish(json.dumps(output_values).encode())
-            ic(f"Server responded on topic {topic.path}")
+            ic(f"Server responded on topic {topic.path} to UUID {question_uuid}")
 
     def ask(self, service_name, input_values, input_manifest=None):
         with Topic(name=service_name, delete_on_exit=False) as topic:
-            topic.publish(json.dumps(input_values).encode())
+            question_uuid = str(int(uuid.uuid4()))
+            topic.publish(json.dumps(input_values).encode(), uuid=question_uuid)
             ic(topic.path)
+            ic(question_uuid)
+            return question_uuid
 
-    def wait_for_response(self, service_name, timeout=20):
-        with Topic(name=f"{service_name}-response") as topic:
+    def wait_for_response(self, question_uuid, service_name, timeout=20):
+        with Topic(name=f"{service_name}-response-{question_uuid}") as topic:
             topic.create(allow_existing=True)
 
-            with Subscription(name=f"{service_name}-response", topic=topic) as subscription:
+            with Subscription(name=f"{service_name}-response-{question_uuid}", topic=topic) as subscription:
                 subscription.create()
 
                 def callback(response):
