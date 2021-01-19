@@ -69,6 +69,9 @@ class Service:
                 except KeyError:
                     pass
 
+            else:
+                return
+
         ic(f"Server got question {raw_question.data}.")
         question = json.loads(raw_question.data.decode())  # noqa
 
