@@ -82,16 +82,23 @@ class TemplateAppsTestCase(BaseTestCase):
         runner = Runner(twine=os.path.join(self.template_path, "parent_app", "twine.json"))
 
         with patch("octue.resources.Service.ask") as mock_service_ask:
-            mock_service_ask.return_value = [0, 7]
-            analysis = runner.run(
-                app_src=os.path.join(self.template_path, "parent_app"),
-                children=os.path.join("parent_app", "data", "configuration", "children.json"),
-                input_values=os.path.join("parent_app", "data", "input", "values.json"),
-            )
+            mock_service_ask.return_value = str(int(uuid.uuid4()))
+
+            with patch("octue.resources.Service.wait_for_response") as mock_service_wait_for_response:
+                mock_service_wait_for_response.return_value = [0, 7]
+
+                analysis = runner.run(
+                    app_src=os.path.join(self.template_path, "parent_app"),
+                    children=os.path.join("parent_app", "data", "configuration", "children.json"),
+                    input_values=os.path.join("parent_app", "data", "input", "values.json"),
+                )
 
         analysis.finalise(output_dir=os.path.join("data", "output"))
 
         self.assertEqual(
             analysis.output_values,
-            {"wind_speeds": mock_service_ask.return_value, "elevations": mock_service_ask.return_value},
+            {
+                "wind_speeds": mock_service_wait_for_response.return_value,
+                "elevations": mock_service_wait_for_response.return_value,
+            },
         )
