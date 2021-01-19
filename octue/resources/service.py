@@ -5,10 +5,7 @@ import uuid
 from concurrent.futures import TimeoutError
 import google.api_core.exceptions
 from google.cloud import pubsub_v1
-from icecream import ic
 
-
-ic.configureOutput(includeContext=True)
 
 logger = logging.getLogger(__name__)
 
@@ -29,14 +26,17 @@ class Topic:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._delete_on_exit:
             self._publisher.delete_topic(topic=self.path)
+            logger.debug("Deleted topic %r.", self.path)
 
     def create(self, allow_existing=False):
         if not allow_existing:
             self._publisher.create_topic(name=self.path)
+            logger.debug("Created topic %r.", self.path)
 
         else:
             try:
                 self._publisher.create_topic(name=self.path)
+                logger.debug("Created topic %r.", self.path)
             except google.api_core.exceptions.AlreadyExists:
                 pass
 
@@ -58,15 +58,18 @@ class Subscription:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.delete_on_exit:
             self.subscriber.delete_subscription(subscription=self.path)
+            logger.debug("Deleted subscription %r.", self.path)
         self.subscriber.close()
 
     def create(self, allow_existing=False):
         if not allow_existing:
             self.subscriber.create_subscription(topic=self.topic.path, name=self.path)
+            logger.debug("Created subscription %r.", self.path)
 
         else:
             try:
                 self.subscriber.create_subscription(topic=self.topic.path, name=self.path)
+                logger.debug("Created subscription %r.", self.path)
             except google.api_core.exceptions.AlreadyExists:
                 pass
 
@@ -86,12 +89,9 @@ class Service:
 
         with Topic(name=self.name, delete_on_exit=True) as topic:
             topic.create()
-            ic(topic.path)
 
             with Subscription(name=self.name, topic=topic, delete_on_exit=True) as subscription:
-
                 subscription.create()
-                ic(subscription.path)
 
                 def question_callback(question):
                     self._question = question
@@ -105,7 +105,7 @@ class Service:
                         return
 
                     try:
-                        ic("Server waiting for questions...")
+                        logger.debug("%r server is waiting for questions.", self)
                         streaming_pull_future.result(timeout=10)
                     except TimeoutError:
                         # streaming_pull_future.cancel()
@@ -116,7 +116,7 @@ class Service:
                     except KeyError:
                         continue
 
-                    ic(f"Server got question {raw_question.data}.")
+                    logger.info("%r received a question.", self)
                     question = json.loads(raw_question.data.decode())  # noqa
 
                     # Insert processing of question here.
@@ -134,14 +134,13 @@ class Service:
         with Topic(name=f"{self.name}-response-{question_uuid}") as topic:
             topic.create(allow_existing=True)
             topic.publish(json.dumps(output_values).encode())
-            ic(f"Server responded on topic {topic.path} to UUID {question_uuid}")
+            logger.info("%r responded on topic %r to question UUID %d.}", self, topic.path, question_uuid)
 
     def ask(self, service_name, input_values, input_manifest=None):
         with Topic(name=service_name) as topic:
             question_uuid = str(int(uuid.uuid4()))
             topic.publish(json.dumps(input_values).encode(), uuid=question_uuid)
-            ic(topic.path)
-            ic(question_uuid)
+            logger.debug("%r asked question to %r service. Question UUID is %r.", self, service_name, question_uuid)
             return question_uuid
 
     def wait_for_response(self, question_uuid, service_name, timeout=20):
@@ -157,8 +156,11 @@ class Service:
                     self._response = response
                     response.ack()
 
-                ic(f"Asker waiting for response on {topic.path}")
                 future = subscription.subscribe(callback=callback)
+
+                logger.debug(
+                    "%r is waiting for a response to question %r from service %r.", self, question_uuid, service_name
+                )
 
                 try:
                     future.result(timeout=timeout)
@@ -170,9 +172,8 @@ class Service:
                 except KeyError:
                     pass
 
-        print(response)
         response = json.loads(response.data.decode())
-        ic(f"Asker received response: {response}")
+        logger.debug("%r received a response to question %r from service %r.", self, question_uuid, service_name)
         return response
 
     @staticmethod
