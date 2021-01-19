@@ -41,7 +41,8 @@ class Service:
         streaming_pull_future = subscriber.subscribe(subscription_name, callback=question_callback)
 
         with subscriber:
-            while True:
+            start_time = time.perf_counter()
+            while not self._time_is_up(start_time, timeout):
                 try:
                     ic("Server waiting for questions...")
                     streaming_pull_future.result(timeout=20)
