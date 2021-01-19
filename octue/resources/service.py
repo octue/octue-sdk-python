@@ -143,6 +143,8 @@ class Service:
 
             subscriber.delete_subscription(subscription=subscription_name)
 
+        publisher.delete_topic(topic=topic_name)
+
         response = json.loads(response.data.decode())
         ic(f"Asker received response: {response}")
         return response
