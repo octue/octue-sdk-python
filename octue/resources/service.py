@@ -41,14 +41,19 @@ class Service:
         streaming_pull_future = subscriber.subscribe(subscription_name, callback=question_callback)
 
         with subscriber:
-            try:
-                ic("Server waiting for questions...")
-                streaming_pull_future.result(timeout=20)
-            except Exception:
-                # streaming_pull_future.cancel()
-                pass
+            while True:
+                try:
+                    ic("Server waiting for questions...")
+                    streaming_pull_future.result(timeout=20)
+                except Exception:
+                    # streaming_pull_future.cancel()
+                    pass
 
-        raw_question = vars(self).pop("_question")
+                try:
+                    raw_question = vars(self).pop("_question")
+                    break
+                except KeyError:
+                    pass
 
         ic(f"Server got question {raw_question.data}.")
         question = json.loads(raw_question.data.decode())  # noqa
