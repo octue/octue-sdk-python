@@ -27,13 +27,13 @@ class Topic:
         if not allow_existing:
             self._publisher.create_topic(name=self.path)
             logger.debug("Created topic %r.", self.path)
+            return
 
-        else:
-            try:
-                self._publisher.create_topic(name=self.path)
-                logger.debug("Created topic %r.", self.path)
-            except google.api_core.exceptions.AlreadyExists:
-                pass
+        try:
+            self._publisher.create_topic(name=self.path)
+            logger.debug("Created topic %r.", self.path)
+        except google.api_core.exceptions.AlreadyExists:
+            pass
 
 
 class Subscription:
@@ -47,13 +47,13 @@ class Subscription:
         if not allow_existing:
             self.subscriber.create_subscription(topic=self.topic.path, name=self.path)
             logger.debug("Created subscription %r.", self.path)
+            return
 
-        else:
-            try:
-                self.subscriber.create_subscription(topic=self.topic.path, name=self.path)
-                logger.debug("Created subscription %r.", self.path)
-            except google.api_core.exceptions.AlreadyExists:
-                pass
+        try:
+            self.subscriber.create_subscription(topic=self.topic.path, name=self.path)
+            logger.debug("Created subscription %r.", self.path)
+        except google.api_core.exceptions.AlreadyExists:
+            pass
 
 
 class Service:
