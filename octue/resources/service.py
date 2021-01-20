@@ -154,11 +154,11 @@ class Service:
         )
         response_subscription.create(allow_existing=False)
 
-        def callback(response):
-            self._response = response
-            response.ack()
+        def answer_callback(answer):
+            self._answer = answer
+            answer.ack()
 
-        future = response_subscription.subscribe(callback=callback)
+        future = response_subscription.subscribe(callback=answer_callback)
 
         question_topic = Topic(name=service_name, gcp_project_name=self.gcp_project_name)
         question_topic.publish(data=json.dumps(input_values).encode(), uuid=question_uuid, blocking=True)
@@ -173,14 +173,14 @@ class Service:
             future.cancel()
 
         try:
-            response = vars(self).pop("_response")
+            answer = vars(self).pop("_answer")
         except KeyError:
             pass  # Need an appropriate error here.
 
-        response = json.loads(response.data.decode())
+        answer = json.loads(answer.data.decode())
         logger.debug("%r received a response to question on topic %r", self, subscription.topic)
         subscription.delete()
-        return response
+        return answer
 
     @staticmethod
     def _time_is_up(start_time, timeout):
