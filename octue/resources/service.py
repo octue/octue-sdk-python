@@ -14,9 +14,8 @@ OCTUE_NAMESPACE = "octue.services"
 
 
 class Topic:
-    def __init__(self, name, gcp_project_name, delete_on_exit=False):
+    def __init__(self, name, gcp_project_name):
         self.name = name
-        self._delete_on_exit = delete_on_exit
         self._publisher = pubsub_v1.PublisherClient()
         self.path = self._publisher.topic_path(gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}")
 
@@ -24,9 +23,7 @@ class Topic:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self._delete_on_exit:
-            self._publisher.delete_topic(topic=self.path)
-            logger.debug("Deleted topic %r.", self.path)
+        self.delete()
 
     def create(self, allow_existing=False):
         if not allow_existing:
@@ -49,10 +46,9 @@ class Topic:
 
 
 class Subscription:
-    def __init__(self, name, topic, gcp_project_name, delete_on_exit=False):
+    def __init__(self, name, topic, gcp_project_name):
         self.name = name
         self.topic = topic
-        self.delete_on_exit = delete_on_exit
         self.subscriber = pubsub_v1.SubscriberClient()
         self.path = self.subscriber.subscription_path(gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}")
 
@@ -60,10 +56,7 @@ class Subscription:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.delete_on_exit:
-            self.subscriber.delete_subscription(subscription=self.path)
-            logger.debug("Deleted subscription %r.", self.path)
-        self.subscriber.close()
+        self.delete()
 
     def create(self, allow_existing=False):
         if not allow_existing:
@@ -98,12 +91,10 @@ class Service:
 
         questions = []
 
-        with Topic(name=self.name, gcp_project_name=self.gcp_project_name, delete_on_exit=True) as topic:
+        with Topic(name=self.name, gcp_project_name=self.gcp_project_name) as topic:
             topic.create()
 
-            with Subscription(
-                name=self.name, topic=topic, gcp_project_name=self.gcp_project_name, delete_on_exit=True
-            ) as subscription:
+            with Subscription(name=self.name, topic=topic, gcp_project_name=self.gcp_project_name) as subscription:
                 subscription.create()
 
                 def question_callback(question):
@@ -138,10 +129,9 @@ class Service:
                     questions = []
 
     def respond(self, question_uuid, output_values):
-        with Topic(name=f"{self.name}.response.{question_uuid}", gcp_project_name=self.gcp_project_name) as topic:
-            topic.create(allow_existing=True)
-            topic.publish(json.dumps(output_values).encode())
-            logger.info("%r responded on topic %r.}", self, topic.path)
+        topic = Topic(name=f"{self.name}.response.{question_uuid}", gcp_project_name=self.gcp_project_name)
+        topic.publish(json.dumps(output_values).encode())
+        logger.info("%r responded on topic %r.}", self, topic.path)
 
     def ask(self, service_name, input_values, input_manifest=None):
         question_uuid = str(int(uuid.uuid4()))
@@ -161,9 +151,9 @@ class Service:
 
         future = response_subscription.subscribe(callback=callback)
 
-        with Topic(name=service_name, gcp_project_name=self.gcp_project_name) as question_topic:
-            question_topic.publish(json.dumps(input_values).encode(), uuid=question_uuid)
-            logger.debug("%r asked question to %r service. Question UUID is %r.", self, service_name, question_uuid)
+        question_topic = Topic(name=service_name, gcp_project_name=self.gcp_project_name)
+        question_topic.publish(json.dumps(input_values).encode(), uuid=question_uuid)
+        logger.debug("%r asked question to %r service. Question UUID is %r.", self, service_name, question_uuid)
 
         return future, response_subscription
 
