@@ -113,8 +113,8 @@ class Service:
                 streaming_pull_future = subscription.subscribe(callback=question_callback)
                 start_time = time.perf_counter()
 
+                logger.debug("%r server is waiting for questions.", self)
                 while True:
-                    logger.debug("%r server is waiting for questions.", self)
 
                     if self._time_is_up(start_time, timeout):
                         streaming_pull_future.cancel()
@@ -175,7 +175,7 @@ class Service:
         try:
             answer = vars(self).pop("_answer")
         except KeyError:
-            pass  # Need an appropriate error here.
+            raise TimeoutError(f"{self} timed out waiting for an answer.")
 
         answer = json.loads(answer.data.decode())
         logger.debug("%r received a response to question on topic %r", self, subscription.topic)
