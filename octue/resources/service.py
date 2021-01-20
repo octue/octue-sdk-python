@@ -37,8 +37,11 @@ class Topic:
             except google.api_core.exceptions.AlreadyExists:
                 pass
 
-    def publish(self, data, **attributes):
-        self._publisher.publish(self.path, data, **attributes)
+    def publish(self, data, blocking, **attributes):
+        future = self._publisher.publish(self.path, data, **attributes)
+
+        if blocking:
+            future.result()
 
     def delete(self):
         self._publisher.delete_topic(topic=self.path)
@@ -130,7 +133,7 @@ class Service:
 
     def respond(self, question_uuid, output_values):
         topic = Topic(name=f"{self.name}.response.{question_uuid}", gcp_project_name=self.gcp_project_name)
-        topic.publish(json.dumps(output_values).encode())
+        topic.publish(data=json.dumps(output_values).encode(), blocking=False)
         logger.info("%r responded on topic %r.}", self, topic.path)
 
     def ask(self, service_name, input_values, input_manifest=None):
@@ -152,7 +155,7 @@ class Service:
         future = response_subscription.subscribe(callback=callback)
 
         question_topic = Topic(name=service_name, gcp_project_name=self.gcp_project_name)
-        question_topic.publish(json.dumps(input_values).encode(), uuid=question_uuid)
+        question_topic.publish(data=json.dumps(input_values).encode(), uuid=question_uuid, blocking=True)
         logger.debug("%r asked question to %r service. Question UUID is %r.", self, service_name, question_uuid)
 
         return future, response_subscription
