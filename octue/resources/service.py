@@ -43,6 +43,10 @@ class Topic:
     def publish(self, data, **attributes):
         self._publisher.publish(self.path, data, **attributes)
 
+    def delete(self):
+        self._publisher.delete_topic(topic=self.path)
+        logger.debug("Deleted topic %r.", self.path)
+
 
 class Subscription:
     def __init__(self, name, topic, gcp_project_name, delete_on_exit=False):
@@ -75,6 +79,11 @@ class Subscription:
 
     def subscribe(self, callback=None):
         return self.subscriber.subscribe(self.path, callback=callback)
+
+    def delete(self):
+        self.subscriber.delete_subscription(subscription=self.path)
+        self.subscriber.close()
+        logger.debug("Deleted subscription %r and closed subscriber.", self.path)
 
 
 class Service:
@@ -132,64 +141,46 @@ class Service:
         with Topic(name=f"{self.name}.response.{question_uuid}", gcp_project_name=self.gcp_project_name) as topic:
             topic.create(allow_existing=True)
             topic.publish(json.dumps(output_values).encode())
-            logger.info("%r responded on topic %r to question UUID %s.}", self, topic.path, question_uuid)
+            logger.info("%r responded on topic %r.}", self, topic.path)
 
     def ask(self, service_name, input_values, input_manifest=None):
-        with Topic(name=service_name, gcp_project_name=self.gcp_project_name) as topic:
-            question_uuid = str(int(uuid.uuid4()))
-            topic.publish(json.dumps(input_values).encode(), uuid=question_uuid)
+        question_uuid = str(int(uuid.uuid4()))
+        response_topic_and_subscription_name = f"{service_name}.response.{question_uuid}"
+
+        response_topic = Topic(name=response_topic_and_subscription_name, gcp_project_name=self.gcp_project_name)
+        response_topic.create(allow_existing=False)
+
+        response_subscription = Subscription(
+            name=response_topic_and_subscription_name, topic=response_topic, gcp_project_name=self.gcp_project_name
+        )
+        response_subscription.create(allow_existing=False)
+
+        def callback(response):
+            self._response = response
+            response.ack()
+
+        future = response_subscription.subscribe(callback=callback)
+
+        with Topic(name=service_name, gcp_project_name=self.gcp_project_name) as question_topic:
+            question_topic.publish(json.dumps(input_values).encode(), uuid=question_uuid)
             logger.debug("%r asked question to %r service. Question UUID is %r.", self, service_name, question_uuid)
-            return question_uuid
 
-    def wait_for_answer(self, question_uuid, service_name, timeout=20):
-        with Topic(
-            name=f"{service_name}.response.{question_uuid}", gcp_project_name=self.gcp_project_name, delete_on_exit=True
-        ) as topic:
-            topic.create(allow_existing=True)
+        return future, response_subscription
 
-            with Subscription(
-                name=f"{service_name}.response.{question_uuid}",
-                topic=topic,
-                gcp_project_name=self.gcp_project_name,
-                delete_on_exit=True,
-            ) as subscription:
-                subscription.create()
+    def wait_for_answer(self, future, subscription, timeout=20):
+        try:
+            future.result(timeout=timeout)
+        except TimeoutError:
+            future.cancel()
 
-                def callback(response):
-                    self._response = response
-                    response.ack()
-
-                future = subscription.subscribe(callback=callback)
-
-                start_time = time.perf_counter()
-                while True:
-                    if self._time_is_up(start_time, timeout=timeout):
-                        future.cancel()
-                        raise TimeoutError(
-                            f"Ran out of time to wait for response from service {service_name!r} for question "
-                            f"{question_uuid}."
-                        )
-
-                    logger.debug(
-                        "%r is waiting for a response to question %r from service %r.",
-                        self,
-                        question_uuid,
-                        service_name,
-                    )
-
-                    try:
-                        future.result(timeout=5)
-                    except TimeoutError:
-                        pass
-
-                    try:
-                        response = vars(self).pop("_response")
-                        break
-                    except KeyError:
-                        pass
+        try:
+            response = vars(self).pop("_response")
+        except KeyError:
+            pass  # Need an appropriate error here.
 
         response = json.loads(response.data.decode())
-        logger.debug("%r received a response to question %r from service %r.", self, question_uuid, service_name)
+        logger.debug("%r received a response to question on topic %r", self, subscription.topic)
+        subscription.delete()
         return response
 
     @staticmethod
