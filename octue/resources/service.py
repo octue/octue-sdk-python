@@ -44,8 +44,9 @@ class Topic:
             future.result()
 
     def delete(self):
+        self._publisher.stop()
         self._publisher.delete_topic(topic=self.path)
-        logger.debug("Deleted topic %r.", self.path)
+        logger.debug("Deleted topic %r and stopped publisher.", self.path)
 
 
 class Subscription:
