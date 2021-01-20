@@ -30,10 +30,10 @@ def run(analysis, *args, **kwargs):
     """
     analysis.logger.info("Hello! The child services template app is running!")
     question_uuid = analysis.main_service.ask(service_name="elevation", input_values=analysis.input_values)
-    elevations = analysis.main_service.wait_for_response(question_uuid=question_uuid, service_name="elevation")
+    elevations = analysis.main_service.wait_for_answer(question_uuid=question_uuid, service_name="elevation")
 
     question_uuid = analysis.main_service.ask(service_name="wind_speed", input_values=analysis.input_values)
-    wind_speeds = analysis.main_service.wait_for_response(question_uuid=question_uuid, service_name="wind_speed")
+    wind_speeds = analysis.main_service.wait_for_answer(question_uuid=question_uuid, service_name="wind_speed")
 
     analysis.logger.info(
         f"The wind speeds and elevations at {analysis.input_values['locations']} are {wind_speeds} and {elevations}."

@@ -138,7 +138,7 @@ class Service:
             logger.debug("%r asked question to %r service. Question UUID is %r.", self, service_name, question_uuid)
             return question_uuid
 
-    def wait_for_response(self, question_uuid, service_name, timeout=20):
+    def wait_for_answer(self, question_uuid, service_name, timeout=20):
         with Topic(
             name=f"{service_name}-response-{question_uuid}", gcp_project=self.gcp_project, delete_on_exit=True
         ) as topic:
