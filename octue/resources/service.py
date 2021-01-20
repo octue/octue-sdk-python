@@ -10,12 +10,15 @@ from google.cloud import pubsub_v1
 logger = logging.getLogger(__name__)
 
 
+OCTUE_NAMESPACE = "octue.services"
+
+
 class Topic:
     def __init__(self, name, gcp_project_name, delete_on_exit=False):
         self.name = name
         self._delete_on_exit = delete_on_exit
         self._publisher = pubsub_v1.PublisherClient()
-        self.path = self._publisher.topic_path(gcp_project_name, self.name)
+        self.path = self._publisher.topic_path(gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}")
 
     def __enter__(self):
         return self
@@ -47,7 +50,7 @@ class Subscription:
         self.topic = topic
         self.delete_on_exit = delete_on_exit
         self.subscriber = pubsub_v1.SubscriberClient()
-        self.path = self.subscriber.subscription_path(gcp_project_name, self.name)
+        self.path = self.subscriber.subscription_path(gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}")
 
     def __enter__(self):
         return self
@@ -126,7 +129,7 @@ class Service:
                     questions = []
 
     def respond(self, question_uuid, output_values):
-        with Topic(name=f"{self.name}-response-{question_uuid}", gcp_project_name=self.gcp_project_name) as topic:
+        with Topic(name=f"{self.name}.response.{question_uuid}", gcp_project_name=self.gcp_project_name) as topic:
             topic.create(allow_existing=True)
             topic.publish(json.dumps(output_values).encode())
             logger.info("%r responded on topic %r to question UUID %s.}", self, topic.path, question_uuid)
@@ -140,12 +143,12 @@ class Service:
 
     def wait_for_answer(self, question_uuid, service_name, timeout=20):
         with Topic(
-            name=f"{service_name}-response-{question_uuid}", gcp_project_name=self.gcp_project_name, delete_on_exit=True
+            name=f"{service_name}.response.{question_uuid}", gcp_project_name=self.gcp_project_name, delete_on_exit=True
         ) as topic:
             topic.create(allow_existing=True)
 
             with Subscription(
-                name=f"{service_name}-response-{question_uuid}",
+                name=f"{service_name}.response.{question_uuid}",
                 topic=topic,
                 gcp_project_name=self.gcp_project_name,
                 delete_on_exit=True,
