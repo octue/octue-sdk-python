@@ -175,7 +175,7 @@ class Service:
                     )
 
                     try:
-                        future.result(timeout=2)
+                        future.result(timeout=5)
                     except TimeoutError:
                         pass
 
