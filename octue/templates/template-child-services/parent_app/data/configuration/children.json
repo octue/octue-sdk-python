@@ -1,4 +1,4 @@
 [
-    {"key": "wind_speed", "id": "1", "gcp_project_name": "octue-amy"},
-    {"key": "elevation", "id": "2", "gcp_project_name":  "octue_amy"}
+    {"key": "wind_speed", "id": "7b9d07fa-6bcd-4ec3-a331-69f737a15751", "gcp_project_name": "octue-amy"},
+    {"key": "elevation", "id": "8dgd07fa-6bcd-4ec3-a331-69f737a15332", "gcp_project_name":  "octue_amy"}
 ]
