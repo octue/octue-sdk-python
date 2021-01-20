@@ -82,7 +82,7 @@ class TemplateAppsTestCase(BaseTestCase):
         runner = Runner(twine=os.path.join(self.template_path, "parent_app", "twine.json"))
 
         with patch("octue.resources.Service.ask") as mock_service_ask:
-            mock_service_ask.return_value = None, None
+            mock_service_ask.return_value = None
 
             with patch("octue.resources.Service.wait_for_answer") as mock_service_wait_for_answer:
                 mock_service_wait_for_answer.return_value = [0, 7]

@@ -61,7 +61,7 @@ class Subscription:
 
 
 class Service(CoolNameable):
-    def __init__(self, name, id, gcp_project_name, run_function=None):
+    def __init__(self, name, gcp_project_name, id=None, run_function=None):
         self.name = name
         self.id = id
         self.gcp_project_name = gcp_project_name
