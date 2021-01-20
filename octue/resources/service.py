@@ -189,6 +189,10 @@ class Service:
         logger.debug("%r received a response to question %r from service %r.", self, question_uuid, service_name)
         return response
 
+    def ask_and_wait_for_answer(self, service_name, input_values, input_manifest=None, timeout=20):
+        question_uuid = self.ask(service_name, input_values, input_manifest)
+        return self.wait_for_answer(question_uuid, service_name, timeout)
+
     @staticmethod
     def _time_is_up(start_time, timeout):
         if timeout is None:
