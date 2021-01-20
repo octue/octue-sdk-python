@@ -129,7 +129,7 @@ class Service:
         with Topic(name=f"{self.name}-response-{question_uuid}") as topic:
             topic.create(allow_existing=True)
             topic.publish(json.dumps(output_values).encode())
-            logger.info("%r responded on topic %r to question UUID %d.}", self, topic.path, question_uuid)
+            logger.info("%r responded on topic %r to question UUID %s.}", self, topic.path, question_uuid)
 
     def ask(self, service_name, input_values, input_manifest=None):
         with Topic(name=service_name) as topic:
