@@ -4,7 +4,6 @@ import logging
 from octue.definitions import OUTPUT_STRANDS
 from octue.mixins import Hashable, Identifiable, Loggable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
-from octue.resources.service import Service
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.folders import get_file_name_from_strand
 from twined import ALL_STRANDS, Twine
@@ -64,7 +63,6 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
             twine = Twine(source=twine)
 
         self.twine = twine
-        self.main_service = Service(name="main")
         self._skip_checks = skip_checks
 
         # Pop any possible strand data sources before init superclasses (and tie them to protected attributes)

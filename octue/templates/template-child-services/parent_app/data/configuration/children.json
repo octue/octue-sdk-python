@@ -1,4 +1,4 @@
 [
-    {"key": "atmosphere", "id": "1", "uri_env_name": "ATMOSPHERE_SERVICE_URI"},
-    {"key": "elevation", "id": "2", "uri_env_name":  "ELEVATION_SERVICE_URI"}
+    {"key": "wind_speed", "id": "1", "gcp_project_name": "octue-amy"},
+    {"key": "elevation", "id": "2", "gcp_project_name":  "octue_amy"}
 ]

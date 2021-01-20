@@ -11,11 +11,11 @@ logger = logging.getLogger(__name__)
 
 
 class Topic:
-    def __init__(self, name, gcp_project, delete_on_exit=False):
+    def __init__(self, name, gcp_project_name, delete_on_exit=False):
         self.name = name
         self._delete_on_exit = delete_on_exit
         self._publisher = pubsub_v1.PublisherClient()
-        self.path = self._publisher.topic_path(gcp_project, self.name)
+        self.path = self._publisher.topic_path(gcp_project_name, self.name)
 
     def __enter__(self):
         return self
@@ -42,12 +42,12 @@ class Topic:
 
 
 class Subscription:
-    def __init__(self, name, topic, gcp_project, delete_on_exit=False):
+    def __init__(self, name, topic, gcp_project_name, delete_on_exit=False):
         self.name = name
         self.topic = topic
         self.delete_on_exit = delete_on_exit
         self.subscriber = pubsub_v1.SubscriberClient()
-        self.path = self.subscriber.subscription_path(gcp_project, self.name)
+        self.path = self.subscriber.subscription_path(gcp_project_name, self.name)
 
     def __enter__(self):
         return self
@@ -75,9 +75,9 @@ class Subscription:
 
 
 class Service:
-    def __init__(self, name, gcp_project):
+    def __init__(self, name, gcp_project_name):
         self.name = name
-        self.gcp_project = gcp_project
+        self.gcp_project_name = gcp_project_name
 
     def __repr__(self):
         return f"<{type(self).__name__}({self.name!r})>"
@@ -86,11 +86,11 @@ class Service:
 
         questions = []
 
-        with Topic(name=self.name, gcp_project=self.gcp_project, delete_on_exit=True) as topic:
+        with Topic(name=self.name, gcp_project_name=self.gcp_project_name, delete_on_exit=True) as topic:
             topic.create()
 
             with Subscription(
-                name=self.name, topic=topic, gcp_project=self.gcp_project, delete_on_exit=True
+                name=self.name, topic=topic, gcp_project_name=self.gcp_project_name, delete_on_exit=True
             ) as subscription:
                 subscription.create()
 
@@ -126,13 +126,13 @@ class Service:
                     questions = []
 
     def respond(self, question_uuid, output_values):
-        with Topic(name=f"{self.name}-response-{question_uuid}", gcp_project=self.gcp_project) as topic:
+        with Topic(name=f"{self.name}-response-{question_uuid}", gcp_project_name=self.gcp_project_name) as topic:
             topic.create(allow_existing=True)
             topic.publish(json.dumps(output_values).encode())
             logger.info("%r responded on topic %r to question UUID %s.}", self, topic.path, question_uuid)
 
     def ask(self, service_name, input_values, input_manifest=None):
-        with Topic(name=service_name, gcp_project=self.gcp_project) as topic:
+        with Topic(name=service_name, gcp_project_name=self.gcp_project_name) as topic:
             question_uuid = str(int(uuid.uuid4()))
             topic.publish(json.dumps(input_values).encode(), uuid=question_uuid)
             logger.debug("%r asked question to %r service. Question UUID is %r.", self, service_name, question_uuid)
@@ -140,14 +140,14 @@ class Service:
 
     def wait_for_answer(self, question_uuid, service_name, timeout=20):
         with Topic(
-            name=f"{service_name}-response-{question_uuid}", gcp_project=self.gcp_project, delete_on_exit=True
+            name=f"{service_name}-response-{question_uuid}", gcp_project_name=self.gcp_project_name, delete_on_exit=True
         ) as topic:
             topic.create(allow_existing=True)
 
             with Subscription(
                 name=f"{service_name}-response-{question_uuid}",
                 topic=topic,
-                gcp_project=self.gcp_project,
+                gcp_project_name=self.gcp_project_name,
                 delete_on_exit=True,
             ) as subscription:
                 subscription.create()
@@ -188,10 +188,6 @@ class Service:
         response = json.loads(response.data.decode())
         logger.debug("%r received a response to question %r from service %r.", self, question_uuid, service_name)
         return response
-
-    def ask_and_wait_for_answer(self, service_name, input_values, input_manifest=None, timeout=20):
-        question_uuid = self.ask(service_name, input_values, input_manifest)
-        return self.wait_for_answer(question_uuid, service_name, timeout)
 
     @staticmethod
     def _time_is_up(start_time, timeout):

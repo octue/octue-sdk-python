@@ -1,10 +1,10 @@
 {
 	"children": [
 		{
-			"key": "atmosphere",
+			"key": "wind_speed",
 			"purpose": "A service that returns the average wind speed for a given latitude and longitude.",
 			"notes": "Some notes.",
-			"filters": "tags:atmosphere"
+			"filters": "tags:wind_speed"
 		},
 		{
 			"key": "elevation",

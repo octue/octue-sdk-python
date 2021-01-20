@@ -4,7 +4,7 @@ import os
 import sys
 
 from octue.logging_handlers import apply_log_handler
-from octue.resources import Service
+from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.utils import gen_uuid
 from twined import Twine
@@ -167,11 +167,13 @@ class Runner:
             allow_missing=False,
             allow_extra=False,
         )
-
         package_logger.debug("Inputs validated.")
 
         if inputs["children"] is not None:
-            inputs["children"] = {child["key"]: Service(name=child["key"]) for child in inputs["children"]}
+            inputs["children"] = {
+                child["key"]: Child(name=child["key"], gcp_project_name=child["gcp_project_name"])
+                for child in inputs["children"]
+            }
 
         # TODO this is hacky, we need to rearchitect the twined validation so we can do this kind of thing in there
         inputs["input_manifest"] = self._update_manifest_path(inputs.get("input_manifest", None), input_manifest,)
