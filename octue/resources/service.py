@@ -42,12 +42,6 @@ class Topic:
             except google.api_core.exceptions.AlreadyExists:
                 pass
 
-    def publish(self, data, blocking, **attributes):
-        future = self._publisher.publish(self.path, data, **attributes)
-
-        if blocking:
-            future.result()
-
     def delete(self):
         self._publisher.stop()
         self._publisher.delete_topic(topic=self.path)
@@ -79,9 +73,6 @@ class Subscription:
             except google.api_core.exceptions.AlreadyExists:
                 pass
 
-    def subscribe(self, callback=None):
-        return self.subscriber.subscribe(self.path, callback=callback)
-
     def delete(self):
         self.subscriber.delete_subscription(subscription=self.path)
         self.subscriber.close()
@@ -89,58 +80,44 @@ class Subscription:
 
 
 class Service:
-    def __init__(self, name, gcp_project_name):
+    def __init__(self, name, gcp_project_name, run_function=None):
         self.name = name
         self.gcp_project_name = gcp_project_name
+        self.run_function = run_function
+        self._publisher = pubsub_v1.PublisherClient()
+        self._subscriber = pubsub_v1.SubscriberClient()
 
     def __repr__(self):
         return f"<{type(self).__name__}({self.name!r})>"
 
-    def serve(self, run_function, timeout=None):
-
-        questions = []
+    def serve(self, timeout=None):
 
         with Topic(name=self.name, gcp_project_name=self.gcp_project_name) as topic:
             topic.create()
 
             with Subscription(name=self.name, topic=topic, gcp_project_name=self.gcp_project_name) as subscription:
                 subscription.create()
-
-                def question_callback(question):
-                    questions.append(question)
-                    question.ack()
-
-                streaming_pull_future = subscription.subscribe(callback=question_callback)
-                start_time = time.perf_counter()
-
+                streaming_pull_future = self._subscriber.subscribe(
+                    subscription=subscription.path, callback=self.respond
+                )
                 logger.debug("%r server is waiting for questions.", self)
-                while True:
 
-                    if self._time_is_up(start_time, timeout):
-                        streaming_pull_future.cancel()
-                        raise TimeoutError(f"{self!r} ran out of time waiting for questions.")
+                try:
+                    streaming_pull_future.result(timeout=timeout)
+                except TimeoutError:
+                    streaming_pull_future.cancel()
 
-                    try:
-                        streaming_pull_future.result(timeout=10)
-                    except TimeoutError:
-                        pass
+    def respond(self, question):
+        logger.info("%r received a question.", self)
+        data = json.loads(question.data.decode())
+        question_uuid = question.attributes["uuid"]
+        question.ack()
 
-                    if not questions:
-                        continue
+        output_values = self.run_function(data).output_values
 
-                    logger.info("%r received %d questions.", self, len(questions))
-
-                    for question in questions:
-                        data = json.loads(question.data.decode())
-                        analysis = run_function(data)
-                        self.respond(question_uuid=question.attributes["uuid"], output_values=analysis.output_values)
-
-                    questions = []
-
-    def respond(self, question_uuid, output_values):
         topic = Topic(name=f"{self.name}.response.{question_uuid}", gcp_project_name=self.gcp_project_name)
-        topic.publish(data=json.dumps(output_values).encode(), blocking=False)
-        logger.info("%r responded on topic %r.}", self, topic.path)
+        self._publisher.publish(topic=topic.path, data=json.dumps(output_values).encode())
+        logger.info("%r responded on topic %r.", self, topic.path)
 
     def ask(self, service_name, input_values, input_manifest=None):
         question_uuid = str(int(uuid.uuid4()))
@@ -158,13 +135,20 @@ class Service:
             self._answer = answer
             answer.ack()
 
-        future = response_subscription.subscribe(callback=answer_callback)
+        streaming_pull_future = self._subscriber.subscribe(
+            subscription=response_subscription.path, callback=answer_callback
+        )
 
         question_topic = Topic(name=service_name, gcp_project_name=self.gcp_project_name)
-        question_topic.publish(data=json.dumps(input_values).encode(), uuid=question_uuid, blocking=True)
+
+        future = self._publisher.publish(
+            topic=question_topic.path, data=json.dumps(input_values).encode(), uuid=question_uuid
+        )
+        future.result()
+
         logger.debug("%r asked question to %r service. Question UUID is %r.", self, service_name, question_uuid)
 
-        return future, response_subscription
+        return streaming_pull_future, response_subscription
 
     def wait_for_answer(self, future, subscription, timeout=20):
         try:
