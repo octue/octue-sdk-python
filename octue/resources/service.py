@@ -57,22 +57,23 @@ class Subscription:
 
 
 class Service:
-    def __init__(self, name, gcp_project_name, run_function=None):
+    def __init__(self, name, id, gcp_project_name, run_function=None):
         self.name = name
+        self.id = id
         self.gcp_project_name = gcp_project_name
         self.run_function = run_function
         self._publisher = pubsub_v1.PublisherClient(BATCH_SETTINGS)
         self._subscriber = pubsub_v1.SubscriberClient()
 
     def __repr__(self):
-        return f"<{type(self).__name__}({self.name!r})>"
+        return f"<{type(self).__name__}({self.id!r})>"
 
     def serve(self, timeout=None):
-        topic = Topic(name=self.name, gcp_project_name=self.gcp_project_name, publisher=self._publisher)
+        topic = Topic(name=self.id, gcp_project_name=self.gcp_project_name, publisher=self._publisher)
         topic.create(allow_existing=True)
 
         subscription = Subscription(
-            name=self.name, topic=topic, gcp_project_name=self.gcp_project_name, subscriber=self._subscriber
+            name=self.id, topic=topic, gcp_project_name=self.gcp_project_name, subscriber=self._subscriber
         )
         subscription.create(allow_existing=True)
 
@@ -97,17 +98,17 @@ class Service:
         output_values = self.run_function(data).output_values
 
         topic = Topic(
-            name=f"{self.name}.response.{question_uuid}",
+            name=f"{self.id}.response.{question_uuid}",
             gcp_project_name=self.gcp_project_name,
             publisher=self._publisher,
         )
         self._publisher.publish(topic=topic.path, data=json.dumps(output_values).encode())
         logger.info("%r responded on topic %r.", self, topic.path)
 
-    def ask(self, service_name, input_values, input_manifest=None):
+    def ask(self, service_id, input_values, input_manifest=None):
         question_uuid = str(int(uuid.uuid4()))
 
-        response_topic_and_subscription_name = f"{service_name}.response.{question_uuid}"
+        response_topic_and_subscription_name = f"{service_id}.response.{question_uuid}"
         response_topic = Topic(
             name=response_topic_and_subscription_name, gcp_project_name=self.gcp_project_name, publisher=self._publisher
         )
@@ -121,13 +122,13 @@ class Service:
         )
         response_subscription.create(allow_existing=False)
 
-        question_topic = Topic(name=service_name, gcp_project_name=self.gcp_project_name, publisher=self._publisher)
+        question_topic = Topic(name=service_id, gcp_project_name=self.gcp_project_name, publisher=self._publisher)
         future = self._publisher.publish(
             topic=question_topic.path, data=json.dumps(input_values).encode(), uuid=question_uuid
         )
         future.result()
 
-        logger.debug("%r asked question to %r service. Question UUID is %r.", self, service_name, question_uuid)
+        logger.debug("%r asked question to %r service. Question UUID is %r.", self, service_id, question_uuid)
         return response_subscription
 
     def wait_for_answer(self, subscription, timeout=20):
@@ -136,7 +137,7 @@ class Service:
         ).received_messages[0]
 
         self._subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
-        logger.debug("%r received a response to question on topic %r", self, subscription.topic)
+        logger.debug("%r received a response to question on topic %r", self, subscription.topic.path)
 
         self._subscriber.delete_subscription(subscription=subscription.path)
         self._publisher.delete_topic(topic=subscription.topic.path)
