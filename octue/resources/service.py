@@ -77,7 +77,7 @@ class Service:
         )
         subscription.create(allow_existing=True)
 
-        future = self._subscriber.subscribe(subscription=subscription.path, callback=self.respond)
+        future = self._subscriber.subscribe(subscription=subscription.path, callback=self.answer)
         logger.debug("%r server is waiting for questions.", self)
 
         with self._subscriber:
@@ -89,7 +89,7 @@ class Service:
         self._subscriber.delete_subscription(subscription=subscription.path)
         self._publisher.delete_topic(topic=topic.path)
 
-    def respond(self, question):
+    def answer(self, question):
         logger.info("%r received a question.", self)
         data = json.loads(question.data.decode())
         question_uuid = question.attributes["uuid"]
@@ -98,9 +98,7 @@ class Service:
         output_values = self.run_function(data).output_values
 
         topic = Topic(
-            name=f"{self.id}.response.{question_uuid}",
-            gcp_project_name=self.gcp_project_name,
-            publisher=self._publisher,
+            name=f"{self.id}.answer.{question_uuid}", gcp_project_name=self.gcp_project_name, publisher=self._publisher,
         )
         self._publisher.publish(topic=topic.path, data=json.dumps(output_values).encode())
         logger.info("%r responded on topic %r.", self, topic.path)
@@ -108,7 +106,7 @@ class Service:
     def ask(self, service_id, input_values, input_manifest=None):
         question_uuid = str(int(uuid.uuid4()))
 
-        response_topic_and_subscription_name = f"{service_id}.response.{question_uuid}"
+        response_topic_and_subscription_name = f"{service_id}.answer.{question_uuid}"
         response_topic = Topic(
             name=response_topic_and_subscription_name, gcp_project_name=self.gcp_project_name, publisher=self._publisher
         )
