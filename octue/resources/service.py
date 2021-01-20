@@ -82,7 +82,9 @@ class Service:
     def __repr__(self):
         return f"<{type(self).__name__}({self.name!r})>"
 
-    def serve(self, run_function, timeout=None, exit_after_first_response=False):
+    def serve(self, run_function, timeout=None):
+
+        questions = []
 
         with Topic(name=self.name, gcp_project=self.gcp_project, delete_on_exit=True) as topic:
             topic.create()
@@ -93,7 +95,7 @@ class Service:
                 subscription.create()
 
                 def question_callback(question):
-                    self._question = question
+                    questions.append(question)
                     question.ack()
 
                 streaming_pull_future = subscription.subscribe(callback=question_callback)
@@ -111,19 +113,17 @@ class Service:
                     except TimeoutError:
                         pass
 
-                    try:
-                        raw_question = vars(self).pop("_question")
-                    except KeyError:
+                    if not questions:
                         continue
 
-                    logger.info("%r received a question.", self)
+                    logger.info("%r received %d questions.", self, len(questions))
 
-                    question = json.loads(raw_question.data.decode())
-                    analysis = run_function(question)
-                    self.respond(question_uuid=raw_question.attributes["uuid"], output_values=analysis.output_values)
+                    for question in questions:
+                        data = json.loads(question.data.decode())
+                        analysis = run_function(data)
+                        self.respond(question_uuid=question.attributes["uuid"], output_values=analysis.output_values)
 
-                    if exit_after_first_response:
-                        return
+                    questions = []
 
     def respond(self, question_uuid, output_values):
         with Topic(name=f"{self.name}-response-{question_uuid}", gcp_project=self.gcp_project) as topic:
