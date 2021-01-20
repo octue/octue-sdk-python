@@ -74,7 +74,8 @@ class Service:
         subscription = Subscription(
             name=self.name, topic=topic, gcp_project_name=self.gcp_project_name, subscriber=self._subscriber
         )
-        subscription.create()
+        subscription.create(allow_existing=True)
+
         future = self._subscriber.subscribe(subscription=subscription.path, callback=self.respond)
         logger.debug("%r server is waiting for questions.", self)
 
