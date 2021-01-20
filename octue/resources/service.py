@@ -14,9 +14,14 @@ OCTUE_NAMESPACE = "octue.services"
 
 
 class Topic:
+
+    # Switch message batching off by setting max_messages to 1. This minimises latency and is recommended for
+    # microservices publishing single messages in a request-response sequence.
+    BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_latency=0.01, max_messages=1)
+
     def __init__(self, name, gcp_project_name):
         self.name = name
-        self._publisher = pubsub_v1.PublisherClient()
+        self._publisher = pubsub_v1.PublisherClient(self.BATCH_SETTINGS)
         self.path = self._publisher.topic_path(gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}")
 
     def __enter__(self):
