@@ -1,6 +1,5 @@
 import json
 import logging
-import time
 import uuid
 from concurrent.futures import TimeoutError
 import google.api_core.exceptions
@@ -92,21 +91,18 @@ class Service:
         return f"<{type(self).__name__}({self.name!r})>"
 
     def serve(self, timeout=None):
-
         with Topic(name=self.name, gcp_project_name=self.gcp_project_name) as topic:
             topic.create()
 
             with Subscription(name=self.name, topic=topic, gcp_project_name=self.gcp_project_name) as subscription:
                 subscription.create()
-                streaming_pull_future = self._subscriber.subscribe(
-                    subscription=subscription.path, callback=self.respond
-                )
+                future = self._subscriber.subscribe(subscription=subscription.path, callback=self.respond)
                 logger.debug("%r server is waiting for questions.", self)
 
                 try:
-                    streaming_pull_future.result(timeout=timeout)
+                    future.result(timeout=timeout)
                 except TimeoutError:
-                    streaming_pull_future.cancel()
+                    future.cancel()
 
     def respond(self, question):
         logger.info("%r received a question.", self)
@@ -151,13 +147,3 @@ class Service:
 
         subscription.delete()
         return json.loads(answer.message.data.decode())
-
-    @staticmethod
-    def _time_is_up(start_time, timeout):
-        if timeout is None:
-            return False
-
-        if time.perf_counter() - start_time < timeout:
-            return False
-
-        return True
