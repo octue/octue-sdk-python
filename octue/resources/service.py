@@ -4,6 +4,7 @@ import time
 import uuid
 from concurrent.futures import TimeoutError
 import google.api_core.exceptions
+from google.api_core import retry
 from google.cloud import pubsub_v1
 
 
@@ -121,8 +122,8 @@ class Service:
 
     def ask(self, service_name, input_values, input_manifest=None):
         question_uuid = str(int(uuid.uuid4()))
-        response_topic_and_subscription_name = f"{service_name}.response.{question_uuid}"
 
+        response_topic_and_subscription_name = f"{service_name}.response.{question_uuid}"
         response_topic = Topic(name=response_topic_and_subscription_name, gcp_project_name=self.gcp_project_name)
         response_topic.create(allow_existing=False)
 
@@ -131,40 +132,25 @@ class Service:
         )
         response_subscription.create(allow_existing=False)
 
-        def answer_callback(answer):
-            self._answer = answer
-            answer.ack()
-
-        streaming_pull_future = self._subscriber.subscribe(
-            subscription=response_subscription.path, callback=answer_callback
-        )
-
         question_topic = Topic(name=service_name, gcp_project_name=self.gcp_project_name)
-
         future = self._publisher.publish(
             topic=question_topic.path, data=json.dumps(input_values).encode(), uuid=question_uuid
         )
         future.result()
 
         logger.debug("%r asked question to %r service. Question UUID is %r.", self, service_name, question_uuid)
+        return response_subscription
 
-        return streaming_pull_future, response_subscription
+    def wait_for_answer(self, subscription, timeout=20):
+        answer = self._subscriber.pull(
+            request={"subscription": subscription.path, "max_messages": 1}, retry=retry.Retry(deadline=timeout),
+        ).received_messages[0]
 
-    def wait_for_answer(self, future, subscription, timeout=20):
-        try:
-            future.result(timeout=timeout)
-        except TimeoutError:
-            future.cancel()
-
-        try:
-            answer = vars(self).pop("_answer")
-        except KeyError:
-            raise TimeoutError(f"{self} timed out waiting for an answer.")
-
-        answer = json.loads(answer.data.decode())
+        self._subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
         logger.debug("%r received a response to question on topic %r", self, subscription.topic)
+
         subscription.delete()
-        return answer
+        return json.loads(answer.message.data.decode())
 
     @staticmethod
     def _time_is_up(start_time, timeout):
