@@ -150,7 +150,7 @@ class Service(CoolNameable):
         question_uuid = question.attributes["question_uuid"]
         question.ack()
 
-        output_values = self.run_function(data).output_values
+        output_values = self.run_function(**data).output_values
 
         topic = Topic(name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)), service=self)
         self._publisher.publish(topic=topic.path, data=json.dumps(output_values).encode())
@@ -177,8 +177,13 @@ class Service(CoolNameable):
         )
         response_subscription.create(allow_existing=False)
 
+        if input_manifest is not None:
+            input_manifest = input_manifest.serialise(to_string=True)
+
         future = self._publisher.publish(
-            topic=question_topic.path, data=json.dumps(input_values).encode(), question_uuid=question_uuid
+            topic=question_topic.path,
+            data=json.dumps({"input_values": input_values, "input_manifest": input_manifest}).encode(),
+            question_uuid=question_uuid,
         )
         future.result()
 

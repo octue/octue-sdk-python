@@ -40,7 +40,7 @@ class TestService(BaseTestCase):
             name="server",
             gcp_project_name=self.GCP_PROJECT,
             id="352f8185-1d58-4ddf-8faa-2af96147f96f",
-            run_function=lambda x: FakeAnalysis(),
+            run_function=lambda input_values, input_manifest: FakeAnalysis(),
         )
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
