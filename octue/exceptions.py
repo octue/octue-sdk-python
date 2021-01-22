@@ -68,3 +68,7 @@ class BrokenSequenceException(OctueSDKException):
 class InvalidTagException(OctueSDKException, ValueError):
     """ Raise when a tag applied to a data file or dataset
     """
+
+
+class ServiceNotFound(OctueSDKException):
+    pass

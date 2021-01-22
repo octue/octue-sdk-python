@@ -6,6 +6,7 @@ import google.api_core.exceptions
 from google.api_core import retry
 from google.cloud import pubsub_v1
 
+from octue import exceptions
 from octue.mixins import CoolNameable
 
 
@@ -24,6 +25,7 @@ BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_l
 class Topic:
     def __init__(self, name, gcp_project_name, service):
         self.name = name
+        self.gcp_project_name = gcp_project_name
         self.service = service
         self.path = self.service._publisher.topic_path(gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}")
 
@@ -42,6 +44,13 @@ class Topic:
     def delete(self):
         self.service._publisher.delete_topic(topic=self.path)
         logger.debug("%r deleted topic %r.", self.service, self.path)
+
+    def exists(self):
+        try:
+            self.service._publisher.get_topic(topic=self.path)
+        except google.api_core.exceptions.NotFound:
+            return False
+        return True
 
     def _log_creation(self):
         logger.debug("%r created topic %r.", self.service, self.path)
@@ -120,6 +129,10 @@ class Service(CoolNameable):
         logger.info("%r responded on topic %r.", self, topic.path)
 
     def ask(self, service_id, input_values, input_manifest=None):
+        question_topic = Topic(name=service_id, gcp_project_name=self.gcp_project_name, service=self)
+        if not question_topic.exists():
+            raise exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
+
         question_uuid = str(int(uuid.uuid4()))
 
         response_topic_and_subscription_name = ".".join((service_id, ANSWERS_NAMESPACE, question_uuid))
@@ -136,7 +149,6 @@ class Service(CoolNameable):
         )
         response_subscription.create(allow_existing=False)
 
-        question_topic = Topic(name=service_id, gcp_project_name=self.gcp_project_name, service=self)
         future = self._publisher.publish(
             topic=question_topic.path, data=json.dumps(input_values).encode(), question_uuid=question_uuid
         )
