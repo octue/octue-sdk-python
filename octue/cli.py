@@ -196,8 +196,8 @@ def start(app_dir, data_dir, config_dir, service_name, twine):
         runner.run, app_src=app_dir, children=children, skip_checks=global_cli_context["skip_checks"],
     )
 
-    service = Service(name=service_name)
-    service.serve(run_function=run_function)
+    service = Service(name=service_name, run_function=run_function)
+    service.serve()
 
 
 def set_unavailable_strand_paths_to_none(twine, strands):
