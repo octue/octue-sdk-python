@@ -22,56 +22,56 @@ BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_l
 
 
 class Topic:
-    def __init__(self, name, gcp_project_name, publisher):
+    def __init__(self, name, gcp_project_name, service):
         self.name = name
-        self._publisher = publisher
-        self.path = self._publisher.topic_path(gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}")
+        self.service = service
+        self.path = self.service._publisher.topic_path(gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}")
 
-    def create(self, service, allow_existing=False):
+    def create(self, allow_existing=False):
         if not allow_existing:
-            self._publisher.create_topic(name=self.path)
-            self._log_creation(service)
+            self.service._publisher.create_topic(name=self.path)
+            self._log_creation()
             return
 
         try:
-            self._publisher.create_topic(name=self.path)
+            self.service._publisher.create_topic(name=self.path)
         except google.api_core.exceptions.AlreadyExists:
             pass
-        self._log_creation(service)
+        self._log_creation()
 
-    def delete(self, service):
-        self._publisher.delete_topic(topic=self.path)
-        logger.debug("%r deleted topic %r.", service, self.path)
+    def delete(self):
+        self.service._publisher.delete_topic(topic=self.path)
+        logger.debug("%r deleted topic %r.", self.service, self.path)
 
-    def _log_creation(self, service):
-        logger.debug("%r created topic %r.", service, self.path)
+    def _log_creation(self):
+        logger.debug("%r created topic %r.", self.service, self.path)
 
 
 class Subscription:
-    def __init__(self, name, topic, gcp_project_name, subscriber):
+    def __init__(self, name, topic, gcp_project_name, service):
         self.name = name
         self.topic = topic
-        self._subscriber = subscriber
-        self.path = self._subscriber.subscription_path(gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}")
+        self.service = service
+        self.path = self.service._subscriber.subscription_path(gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}")
 
-    def create(self, service, allow_existing=False):
+    def create(self, allow_existing=False):
         if not allow_existing:
-            self._subscriber.create_subscription(topic=self.topic.path, name=self.path)
-            self._log_creation(service)
+            self.service._subscriber.create_subscription(topic=self.topic.path, name=self.path)
+            self._log_creation()
             return
 
         try:
-            self._subscriber.create_subscription(topic=self.topic.path, name=self.path)
+            self.service._subscriber.create_subscription(topic=self.topic.path, name=self.path)
         except google.api_core.exceptions.AlreadyExists:
             pass
-        self._log_creation(service)
+        self._log_creation()
 
-    def delete(self, service):
-        self._subscriber.delete_subscription(subscription=self.path)
-        logger.debug("%r deleted subscription %r.", service, self.path)
+    def delete(self):
+        self.service._subscriber.delete_subscription(subscription=self.path)
+        logger.debug("%r deleted subscription %r.", self.service, self.path)
 
-    def _log_creation(self, service):
-        logger.debug("%r created subscription %r.", service, self.path)
+    def _log_creation(self):
+        logger.debug("%r created subscription %r.", self.service, self.path)
 
 
 class Service(CoolNameable):
@@ -88,13 +88,11 @@ class Service(CoolNameable):
         return f"<{type(self).__name__}({self.cool_name!r})>"
 
     def serve(self, timeout=None):
-        topic = Topic(name=self.id, gcp_project_name=self.gcp_project_name, publisher=self._publisher)
-        topic.create(service=self, allow_existing=True)
+        topic = Topic(name=self.id, gcp_project_name=self.gcp_project_name, service=self)
+        topic.create(allow_existing=True)
 
-        subscription = Subscription(
-            name=self.id, topic=topic, gcp_project_name=self.gcp_project_name, subscriber=self._subscriber
-        )
-        subscription.create(service=self, allow_existing=True)
+        subscription = Subscription(name=self.id, topic=topic, gcp_project_name=self.gcp_project_name, service=self)
+        subscription.create(allow_existing=True)
 
         future = self._subscriber.subscribe(subscription=subscription.path, callback=self.answer)
         logger.debug("%r is waiting for questions.", self)
@@ -105,8 +103,8 @@ class Service(CoolNameable):
             except TimeoutError:
                 future.cancel()
 
-            subscription.delete(service=self)
-            topic.delete(service=self)
+            subscription.delete()
+            topic.delete()
 
     def answer(self, question):
         logger.info("%r received a question.", self)
@@ -119,7 +117,7 @@ class Service(CoolNameable):
         topic = Topic(
             name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)),
             gcp_project_name=self.gcp_project_name,
-            publisher=self._publisher,
+            service=self,
         )
         self._publisher.publish(topic=topic.path, data=json.dumps(output_values).encode())
         logger.info("%r responded on topic %r.", self, topic.path)
@@ -129,19 +127,19 @@ class Service(CoolNameable):
 
         response_topic_and_subscription_name = ".".join((service_id, ANSWERS_NAMESPACE, question_uuid))
         response_topic = Topic(
-            name=response_topic_and_subscription_name, gcp_project_name=self.gcp_project_name, publisher=self._publisher
+            name=response_topic_and_subscription_name, gcp_project_name=self.gcp_project_name, service=self
         )
-        response_topic.create(service=self, allow_existing=False)
+        response_topic.create(allow_existing=False)
 
         response_subscription = Subscription(
             name=response_topic_and_subscription_name,
             topic=response_topic,
             gcp_project_name=self.gcp_project_name,
-            subscriber=self._subscriber,
+            service=self,
         )
-        response_subscription.create(service=self, allow_existing=False)
+        response_subscription.create(allow_existing=False)
 
-        question_topic = Topic(name=service_id, gcp_project_name=self.gcp_project_name, publisher=self._publisher)
+        question_topic = Topic(name=service_id, gcp_project_name=self.gcp_project_name, service=self)
         future = self._publisher.publish(
             topic=question_topic.path, data=json.dumps(input_values).encode(), question_uuid=question_uuid
         )
@@ -158,6 +156,6 @@ class Service(CoolNameable):
         self._subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
         logger.debug("%r received a response to question on topic %r", self, subscription.topic.path)
 
-        subscription.delete(service=self)
-        subscription.topic.delete(service=self)
+        subscription.delete()
+        subscription.topic.delete()
         return json.loads(answer.message.data.decode())
