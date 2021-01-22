@@ -27,17 +27,20 @@ class Topic:
         self._publisher = publisher
         self.path = self._publisher.topic_path(gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}")
 
-    def create(self, allow_existing=False):
+    def create(self, service, allow_existing=False):
         if not allow_existing:
             self._publisher.create_topic(name=self.path)
-            logger.debug("Created topic %r.", self.path)
+            self._log_creation(service)
             return
 
         try:
             self._publisher.create_topic(name=self.path)
-            logger.debug("Created topic %r.", self.path)
         except google.api_core.exceptions.AlreadyExists:
             pass
+        self._log_creation(service)
+
+    def _log_creation(self, service):
+        logger.debug("%r created topic %r.", service, self.path)
 
 
 class Subscription:
@@ -47,17 +50,20 @@ class Subscription:
         self.subscriber = subscriber
         self.path = self.subscriber.subscription_path(gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}")
 
-    def create(self, allow_existing=False):
+    def create(self, service, allow_existing=False):
         if not allow_existing:
             self.subscriber.create_subscription(topic=self.topic.path, name=self.path)
-            logger.debug("Created subscription %r.", self.path)
+            self._log_creation(service)
             return
 
         try:
             self.subscriber.create_subscription(topic=self.topic.path, name=self.path)
-            logger.debug("Created subscription %r.", self.path)
         except google.api_core.exceptions.AlreadyExists:
             pass
+        self._log_creation(service)
+
+    def _log_creation(self, service):
+        logger.debug("%r created subscription %r.", service, self.path)
 
 
 class Service(CoolNameable):
@@ -75,12 +81,12 @@ class Service(CoolNameable):
 
     def serve(self, timeout=None):
         topic = Topic(name=self.id, gcp_project_name=self.gcp_project_name, publisher=self._publisher)
-        topic.create(allow_existing=True)
+        topic.create(service=self, allow_existing=True)
 
         subscription = Subscription(
             name=self.id, topic=topic, gcp_project_name=self.gcp_project_name, subscriber=self._subscriber
         )
-        subscription.create(allow_existing=True)
+        subscription.create(service=self, allow_existing=True)
 
         future = self._subscriber.subscribe(subscription=subscription.path, callback=self.answer)
         logger.debug("%r is waiting for questions.", self)
@@ -117,7 +123,7 @@ class Service(CoolNameable):
         response_topic = Topic(
             name=response_topic_and_subscription_name, gcp_project_name=self.gcp_project_name, publisher=self._publisher
         )
-        response_topic.create(allow_existing=False)
+        response_topic.create(service=self, allow_existing=False)
 
         response_subscription = Subscription(
             name=response_topic_and_subscription_name,
@@ -125,7 +131,7 @@ class Service(CoolNameable):
             gcp_project_name=self.gcp_project_name,
             subscriber=self._subscriber,
         )
-        response_subscription.create(allow_existing=False)
+        response_subscription.create(service=self, allow_existing=False)
 
         question_topic = Topic(name=service_id, gcp_project_name=self.gcp_project_name, publisher=self._publisher)
         future = self._publisher.publish(
