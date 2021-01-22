@@ -11,8 +11,8 @@ class FakeAnalysis:
 
 
 class TestService(BaseTestCase):
-    """ These tests require a connection to either a real Google Pub/Sub instance on Google Cloud Platform (GCP), or a
-    local emulator. """
+    """ Some of these tests require a connection to either a real Google Pub/Sub instance on Google Cloud Platform
+    (GCP), or a local emulator. """
 
     GCP_PROJECT = "octue-amy"
 
