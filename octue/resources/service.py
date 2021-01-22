@@ -103,9 +103,6 @@ class Service(CoolNameable):
             except TimeoutError:
                 future.cancel()
 
-            subscription.delete()
-            topic.delete()
-
     def answer(self, question):
         logger.info("%r received a question.", self)
         data = json.loads(question.data.decode())
