@@ -1,42 +1,46 @@
+import concurrent.futures
 import time
 from tests.base import BaseTestCase
 
-from octue.resources.service import GCP_PROJECT, PublisherSubscriber, Service
+from octue.resources.service import Service
 
 
-class TestPublisherSubscriber(BaseTestCase):
-    pub_sub = PublisherSubscriber()
-
-    def test_initialise_topic(self):
-        """ Test a topic can be initialised. """
-        topic = self.pub_sub._initialise_topic("blah")
-        self.assertEqual(topic, "/".join(("projects", GCP_PROJECT, "topics", "blah")))
-
-    def test_initialise_existing_topic(self):
-        """ Test that initialising an existing topic returns the existing topic. """
-        topic_1 = self.pub_sub._initialise_topic("blah")
-        topic_2 = self.pub_sub._initialise_topic("blah")
-        self.assertEqual(topic_1, topic_2)
-
-    def test_initialise_subscription(self):
-        """ Test a subscription can be initialised. """
-        topic = self.pub_sub._initialise_topic("blah")
-        subscription = self.pub_sub._initialise_subscription(topic, "blah-sub")
-        self.assertEqual(subscription, "/".join(("projects", GCP_PROJECT, "subscriptions", "blah-sub")))
-
-    def test_initialise_existing_subscription(self):
-        """ Test that initialising an existing subscription returns the existing subscription. """
-        topic = self.pub_sub._initialise_topic("blah")
-        subscription_1 = self.pub_sub._initialise_subscription(topic, "blah-sub")
-        subscription_2 = self.pub_sub._initialise_subscription(topic, "blah-sub")
-        self.assertEqual(subscription_1, subscription_2)
+class FakeAnalysis:
+    output_values = "Hello! It worked!"
 
 
 class TestService(BaseTestCase):
-    def test_serve_with_timeout(self):
-        """ Test that a Service can serve for a given time interval and stop at the end of it. """
-        service = Service(name="hello")
-        start_time = time.perf_counter()
-        service.serve(timeout=0)
-        duration = time.perf_counter() - start_time
-        self.assertTrue(duration < 5)  # Allow for time spent connecting to Google.
+
+    GCP_PROJECT = "octue-amy"
+
+    def ask_question_and_wait_for_answer(self, asking_service, responding_service, input_values):
+        """ Get an asking service to ask a question to a responding service and wait for the answer."""
+        time.sleep(5)  # Wait for the responding service to be ready to answer.
+        subscription = asking_service.ask(service_id=responding_service.id, input_values=input_values)
+        return asking_service.wait_for_answer(subscription)
+
+    def test_ask(self):
+        """ Test that a service can ask a question to another service that is serving and receive an answer. """
+        asking_service = Service(
+            name="asker", gcp_project_name=self.GCP_PROJECT, id="249fc09d-9d6f-45d6-b1a4-0aacba5fca79"
+        )
+
+        responding_service = Service(
+            name="server",
+            gcp_project_name=self.GCP_PROJECT,
+            id="352f8185-1d58-4ddf-8faa-2af96147f96f",
+            run_function=lambda x: FakeAnalysis(),
+        )
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            executor.submit(responding_service.serve, timeout=10)
+
+            asker_future = executor.submit(
+                self.ask_question_and_wait_for_answer,
+                asking_service=asking_service,
+                responding_service=responding_service,
+                input_values={},
+            )
+
+            answer = list(concurrent.futures.as_completed([asker_future]))[0].result()
+            self.assertEqual(answer, FakeAnalysis.output_values)
