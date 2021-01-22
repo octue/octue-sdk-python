@@ -23,10 +23,11 @@ BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_l
 
 
 class Topic:
+    """ A candidate topic to use with Google Pub/Sub. The topic represented by an instance of this class does not
+    necessarily already exist on the Google Pub/Sub servers.
+    """
+
     def __init__(self, name, service):
-        """ A candidate topic to use with Google Pub/Sub. The topic represented by an instance of this class does not
-        necessarily already exist on the Google Pub/Sub servers.
-        """
         self.name = name
         self.service = service
         self.path = self.service._publisher.topic_path(service.gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}")
