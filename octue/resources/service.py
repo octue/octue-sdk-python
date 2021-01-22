@@ -39,6 +39,10 @@ class Topic:
             pass
         self._log_creation(service)
 
+    def delete(self, service):
+        self._publisher.delete_topic(topic=self.path)
+        logger.debug("%r deleted topic %r.", service, self.path)
+
     def _log_creation(self, service):
         logger.debug("%r created topic %r.", service, self.path)
 
@@ -47,20 +51,24 @@ class Subscription:
     def __init__(self, name, topic, gcp_project_name, subscriber):
         self.name = name
         self.topic = topic
-        self.subscriber = subscriber
-        self.path = self.subscriber.subscription_path(gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}")
+        self._subscriber = subscriber
+        self.path = self._subscriber.subscription_path(gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}")
 
     def create(self, service, allow_existing=False):
         if not allow_existing:
-            self.subscriber.create_subscription(topic=self.topic.path, name=self.path)
+            self._subscriber.create_subscription(topic=self.topic.path, name=self.path)
             self._log_creation(service)
             return
 
         try:
-            self.subscriber.create_subscription(topic=self.topic.path, name=self.path)
+            self._subscriber.create_subscription(topic=self.topic.path, name=self.path)
         except google.api_core.exceptions.AlreadyExists:
             pass
         self._log_creation(service)
+
+    def delete(self, service):
+        self._subscriber.delete_subscription(subscription=self.path)
+        logger.debug("%r deleted subscription %r.", service, self.path)
 
     def _log_creation(self, service):
         logger.debug("%r created subscription %r.", service, self.path)
@@ -97,8 +105,8 @@ class Service(CoolNameable):
             except TimeoutError:
                 future.cancel()
 
-            self._subscriber.delete_subscription(subscription=subscription.path)
-            self._publisher.delete_topic(topic=topic.path)
+            subscription.delete(service=self)
+            topic.delete(service=self)
 
     def answer(self, question):
         logger.info("%r received a question.", self)
@@ -150,6 +158,6 @@ class Service(CoolNameable):
         self._subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
         logger.debug("%r received a response to question on topic %r", self, subscription.topic.path)
 
-        self._subscriber.delete_subscription(subscription=subscription.path)
-        self._publisher.delete_topic(topic=subscription.topic.path)
+        subscription.delete(service=self)
+        subscription.topic.delete(service=self)
         return json.loads(answer.message.data.decode())
