@@ -91,8 +91,8 @@ class Service(CoolNameable):
             except TimeoutError:
                 future.cancel()
 
-        self._subscriber.delete_subscription(subscription=subscription.path)
-        self._publisher.delete_topic(topic=topic.path)
+            self._subscriber.delete_subscription(subscription=subscription.path)
+            self._publisher.delete_topic(topic=topic.path)
 
     def answer(self, question):
         logger.info("%r received a question.", self)
