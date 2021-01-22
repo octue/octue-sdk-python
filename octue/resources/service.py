@@ -23,11 +23,10 @@ BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_l
 
 
 class Topic:
-    def __init__(self, name, gcp_project_name, service):
+    def __init__(self, name, service):
         self.name = name
-        self.gcp_project_name = gcp_project_name
         self.service = service
-        self.path = self.service._publisher.topic_path(gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}")
+        self.path = self.service._publisher.topic_path(service.gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}")
 
     def create(self, allow_existing=False):
         if not allow_existing:
@@ -57,11 +56,13 @@ class Topic:
 
 
 class Subscription:
-    def __init__(self, name, topic, gcp_project_name, service):
+    def __init__(self, name, topic, service):
         self.name = name
         self.topic = topic
         self.service = service
-        self.path = self.service._subscriber.subscription_path(gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}")
+        self.path = self.service._subscriber.subscription_path(
+            self.service.gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}"
+        )
 
     def create(self, allow_existing=False):
         if not allow_existing:
@@ -97,10 +98,10 @@ class Service(CoolNameable):
         return f"<{type(self).__name__}({self.cool_name!r})>"
 
     def serve(self, timeout=None):
-        topic = Topic(name=self.id, gcp_project_name=self.gcp_project_name, service=self)
+        topic = Topic(name=self.id, service=self)
         topic.create(allow_existing=True)
 
-        subscription = Subscription(name=self.id, topic=topic, gcp_project_name=self.gcp_project_name, service=self)
+        subscription = Subscription(name=self.id, topic=topic, service=self)
         subscription.create(allow_existing=True)
 
         future = self._subscriber.subscribe(subscription=subscription.path, callback=self.answer)
@@ -120,32 +121,23 @@ class Service(CoolNameable):
 
         output_values = self.run_function(data).output_values
 
-        topic = Topic(
-            name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)),
-            gcp_project_name=self.gcp_project_name,
-            service=self,
-        )
+        topic = Topic(name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)), service=self)
         self._publisher.publish(topic=topic.path, data=json.dumps(output_values).encode())
         logger.info("%r responded on topic %r.", self, topic.path)
 
     def ask(self, service_id, input_values, input_manifest=None):
-        question_topic = Topic(name=service_id, gcp_project_name=self.gcp_project_name, service=self)
+        question_topic = Topic(name=service_id, service=self)
         if not question_topic.exists():
             raise exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
 
         question_uuid = str(int(uuid.uuid4()))
 
         response_topic_and_subscription_name = ".".join((service_id, ANSWERS_NAMESPACE, question_uuid))
-        response_topic = Topic(
-            name=response_topic_and_subscription_name, gcp_project_name=self.gcp_project_name, service=self
-        )
+        response_topic = Topic(name=response_topic_and_subscription_name, service=self)
         response_topic.create(allow_existing=False)
 
         response_subscription = Subscription(
-            name=response_topic_and_subscription_name,
-            topic=response_topic,
-            gcp_project_name=self.gcp_project_name,
-            service=self,
+            name=response_topic_and_subscription_name, topic=response_topic, service=self,
         )
         response_subscription.create(allow_existing=False)
 
