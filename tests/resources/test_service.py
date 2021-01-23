@@ -7,8 +7,12 @@ from octue.resources.manifest import Manifest
 from octue.resources.service import Service
 
 
-class FakeAnalysis:
+class MockAnalysis:
     output_values = "Hello! It worked!"
+
+
+class DifferentMockAnalysis:
+    output_values = "This is another successful analysis."
 
 
 class TestService(BaseTestCase):
@@ -18,17 +22,14 @@ class TestService(BaseTestCase):
     GCP_PROJECT = "octue-amy"
     asking_service = Service(name="asker", gcp_project_name=GCP_PROJECT, id="249fc09d-9d6f-45d6-b1a4-0aacba5fca79")
 
-    def make_new_server(self):
-        return Service(
-            name="server",
-            gcp_project_name=self.GCP_PROJECT,
-            id="352f8185-1d58-4ddf-8faa-2af96147f96f",
-            run_function=lambda input_values, input_manifest: FakeAnalysis(),
-        )
+    def make_new_server(self, id="352f8185-1d58-4ddf-8faa-2af96147f96f", run_function=None):
+        if not run_function:
+            run_function = lambda input_values, input_manifest: MockAnalysis()  # noqa
+
+        return Service(name=f"server-{id}", gcp_project_name=self.GCP_PROJECT, id=id, run_function=run_function)
 
     def ask_question_and_wait_for_answer(self, asking_service, responding_service, input_values, input_manifest):
         """ Get an asking service to ask a question to a responding service and wait for the answer. """
-        time.sleep(5)  # Wait for the responding service to be ready to answer.
         subscription = asking_service.ask(responding_service.id, input_values, input_manifest)
         return asking_service.wait_for_answer(subscription)
 
@@ -38,7 +39,7 @@ class TestService(BaseTestCase):
             start_time = time.perf_counter()
             responding_future = executor.submit(self.make_new_server().serve, timeout=10)
             list(concurrent.futures.as_completed([responding_future]))[0].result()
-            self.assertTrue(time.perf_counter() - start_time < 15)
+            self.assertTrue(time.perf_counter() - start_time < 20)
 
     def test_ask_on_non_existent_service_results_in_error(self):
         """ Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
@@ -55,6 +56,8 @@ class TestService(BaseTestCase):
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             executor.submit(responding_service.serve, timeout=10)
 
+            time.sleep(5)  # Wait for the responding service to be ready to answer.
+
             asker_future = executor.submit(
                 self.ask_question_and_wait_for_answer,
                 asking_service=self.asking_service,
@@ -64,7 +67,7 @@ class TestService(BaseTestCase):
             )
 
             answer = list(concurrent.futures.as_completed([asker_future]))[0].result()
-            self.assertEqual(answer, FakeAnalysis.output_values)
+            self.assertEqual(answer, MockAnalysis.output_values)
 
     def test_ask_with_input_manifest(self):
         """ Test that a service can ask a question including an input_manifest to another service that is serving and
@@ -75,6 +78,8 @@ class TestService(BaseTestCase):
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             executor.submit(responding_service.serve, timeout=10)
 
+            time.sleep(5)  # Wait for the responding service to be ready to answer.
+
             asker_future = executor.submit(
                 self.ask_question_and_wait_for_answer,
                 asking_service=self.asking_service,
@@ -84,4 +89,66 @@ class TestService(BaseTestCase):
             )
 
             answer = list(concurrent.futures.as_completed([asker_future]))[0].result()
-            self.assertEqual(answer, FakeAnalysis.output_values)
+            self.assertEqual(answer, MockAnalysis.output_values)
+
+    def test_service_can_ask_multiple_questions(self):
+        """ Test that a service can ask multiple questions to the same server and expect replies to them all. """
+        responding_service = self.make_new_server()
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=7) as executor:
+            executor.submit(responding_service.serve, timeout=10)
+            futures = []
+
+            time.sleep(5)  # Wait for the responding service to be ready to answer.
+
+            for i in range(5):
+                futures.append(
+                    executor.submit(
+                        self.ask_question_and_wait_for_answer,
+                        asking_service=self.asking_service,
+                        responding_service=responding_service,
+                        input_values={},
+                        input_manifest=None,
+                    )
+                )
+
+        answers = list(concurrent.futures.as_completed(futures))
+
+        for answer in answers:
+            self.assertEqual(answer.result(), MockAnalysis.output_values)
+
+    def test_service_can_ask_questions_to_multiple_servers(self):
+        """ Test that a service can ask questions to different servers and expect replies to them all. """
+        responding_service_1 = self.make_new_server(
+            id="352f8185-1d58-4ddf-8faa-2af96147f96f", run_function=lambda input_values, input_manifest: MockAnalysis()
+        )
+
+        responding_service_2 = self.make_new_server(
+            id="6a05b695-4aa1-468c-bdf5-73303665165d",
+            run_function=lambda input_values, input_manifest: DifferentMockAnalysis(),
+        )
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=7) as executor:
+            executor.submit(responding_service_1.serve, timeout=10)
+            executor.submit(responding_service_2.serve, timeout=10)
+
+            time.sleep(5)  # Wait for the responding services to be ready to answer.
+
+            first_question_future = executor.submit(
+                self.ask_question_and_wait_for_answer,
+                asking_service=self.asking_service,
+                responding_service=responding_service_1,
+                input_values={},
+                input_manifest=None,
+            )
+
+            second_question_future = executor.submit(
+                self.ask_question_and_wait_for_answer,
+                asking_service=self.asking_service,
+                responding_service=responding_service_2,
+                input_values={},
+                input_manifest=None,
+            )
+
+        self.assertEqual(first_question_future.result(), MockAnalysis.output_values)
+        self.assertEqual(second_question_future.result(), DifferentMockAnalysis.output_values)
