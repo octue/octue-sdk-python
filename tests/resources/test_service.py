@@ -3,6 +3,7 @@ import time
 from tests.base import BaseTestCase
 
 from octue import exceptions
+from octue.resources.manifest import Manifest
 from octue.resources.service import Service
 
 
@@ -15,11 +16,12 @@ class TestService(BaseTestCase):
     (GCP), or a local emulator. """
 
     GCP_PROJECT = "octue-amy"
+    asking_service = Service(name="asker", gcp_project_name=GCP_PROJECT, id="249fc09d-9d6f-45d6-b1a4-0aacba5fca79")
 
-    def ask_question_and_wait_for_answer(self, asking_service, responding_service, input_values):
+    def ask_question_and_wait_for_answer(self, asking_service, responding_service, input_values, input_manifest):
         """ Get an asking service to ask a question to a responding service and wait for the answer. """
         time.sleep(5)  # Wait for the responding service to be ready to answer.
-        subscription = asking_service.ask(service_id=responding_service.id, input_values=input_values)
+        subscription = asking_service.ask(responding_service.id, input_values, input_manifest)
         return asking_service.wait_for_answer(subscription)
 
     def test_ask_on_non_existent_service_results_in_error(self):
@@ -32,10 +34,6 @@ class TestService(BaseTestCase):
 
     def test_ask(self):
         """ Test that a service can ask a question to another service that is serving and receive an answer. """
-        asking_service = Service(
-            name="asker", gcp_project_name=self.GCP_PROJECT, id="249fc09d-9d6f-45d6-b1a4-0aacba5fca79"
-        )
-
         responding_service = Service(
             name="server",
             gcp_project_name=self.GCP_PROJECT,
@@ -48,9 +46,32 @@ class TestService(BaseTestCase):
 
             asker_future = executor.submit(
                 self.ask_question_and_wait_for_answer,
-                asking_service=asking_service,
+                asking_service=self.asking_service,
                 responding_service=responding_service,
                 input_values={},
+                input_manifest=None,
+            )
+
+            answer = list(concurrent.futures.as_completed([asker_future]))[0].result()
+            self.assertEqual(answer, FakeAnalysis.output_values)
+
+    def test_ask_with_input_manifest(self):
+        responding_service = Service(
+            name="server",
+            gcp_project_name=self.GCP_PROJECT,
+            id="352f8185-1d58-4ddf-8faa-2af96147f96f",
+            run_function=lambda input_values, input_manifest: FakeAnalysis(),
+        )
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            executor.submit(responding_service.serve, timeout=10)
+
+            asker_future = executor.submit(
+                self.ask_question_and_wait_for_answer,
+                asking_service=self.asking_service,
+                responding_service=responding_service,
+                input_values={},
+                input_manifest=Manifest(),
             )
 
             answer = list(concurrent.futures.as_completed([asker_future]))[0].result()
