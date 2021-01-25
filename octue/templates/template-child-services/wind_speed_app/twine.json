@@ -1,18 +1,4 @@
 {
-	"children": [
-		{
-			"key": "atmosphere",
-			"purpose": "A service that returns the average wind speed for a given latitude and longitude.",
-			"notes": "Some notes.",
-			"filters": "tags:atmosphere"
-		},
-		{
-			"key": "elevation",
-			"purpose": "A service that returns the elevation for a given latitude and longitude.",
-			"notes": "Some notes.",
-			"filters": "tags:elevation"
-		}
-	],
 	"input_values_schema": {
 		"$schema": "http://json-schema.org/2019-09/schema#",
 		"title": "Input values",
