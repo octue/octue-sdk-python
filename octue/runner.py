@@ -64,12 +64,6 @@ class Runner:
 
         package_logger.debug("Parsed twine with strands %r", self.twine.available_strands)
 
-        if "configuration_values" not in self.twine.available_strands:
-            configuration_values = None
-
-        if "configuration_manifest" not in self.twine.available_strands:
-            configuration_manifest = None
-
         # Validate and initialise configuration data
         self.configuration = self.twine.validate(
             configuration_values=configuration_values, configuration_manifest=configuration_manifest, cls=CLASS_MAP,

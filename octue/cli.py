@@ -119,22 +119,30 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
 
     twine = Twine(source=twine)
 
-    runner = Runner(
-        twine=twine,
-        configuration_values=os.path.join(config_dir, VALUES_FILENAME),
-        configuration_manifest=os.path.join(config_dir, MANIFEST_FILENAME),
-        log_level=global_cli_context["log_level"],
-        handler=global_cli_context["log_handler"],
-        show_twined_logs=global_cli_context["show_twined_logs"],
-    )
-
-    input_values, input_manifest, children = set_unavailable_strand_paths_to_none(
+    (
+        configruation_values,
+        configuration_manifest,
+        input_values,
+        input_manifest,
+        children,
+    ) = set_unavailable_strand_paths_to_none(
         twine,
         (
+            ("configuration_values", os.path.join(config_dir, VALUES_FILENAME)),
+            ("configuration_manifest", os.path.join(config_dir, MANIFEST_FILENAME)),
             ("input_values", os.path.join(input_dir, VALUES_FILENAME)),
             ("input_manifest", os.path.join(input_dir, MANIFEST_FILENAME)),
             ("children", os.path.join(config_dir, CHILDREN_FILENAME)),
         ),
+    )
+
+    runner = Runner(
+        twine=twine,
+        configuration_values=configruation_values,
+        configuration_manifest=configuration_manifest,
+        log_level=global_cli_context["log_level"],
+        handler=global_cli_context["log_handler"],
+        show_twined_logs=global_cli_context["show_twined_logs"],
     )
 
     analysis = runner.run(
