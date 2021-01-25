@@ -154,13 +154,15 @@ class Service(CoolNameable):
         topic = Topic(name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)), service=self)
         analysis = self.run_function(data["input_values"], data["input_manifest"])
 
+        if analysis.output_manifest is None:
+            serialised_output_manifest = None
+        else:
+            serialised_output_manifest = analysis.output_manifest.serialise(to_string=True)
+
         self._publisher.publish(
             topic=topic.path,
             data=json.dumps(
-                {
-                    "output_values": analysis.output_values,
-                    "output_manifest": analysis.output_manifest.serialise(to_string=True),
-                }
+                {"output_values": analysis.output_values, "output_manifest": serialised_output_manifest}
             ).encode(),
         )
         logger.info("%r responded on topic %r.", self, topic.path)
@@ -214,7 +216,10 @@ class Service(CoolNameable):
         subscription.topic.delete()
 
         data = json.loads(answer.message.data.decode())
-        return {
-            "output_values": data["output_values"],
-            "output_manifest": Manifest.deserialise(data["output_manifest"], from_string=True),
-        }
+
+        if data["output_manifest"] is None:
+            output_manifest = None
+        else:
+            output_manifest = Manifest.deserialise(data["output_manifest"], from_string=True)
+
+        return {"output_values": data["output_values"], "output_manifest": output_manifest}
