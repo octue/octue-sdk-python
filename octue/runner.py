@@ -169,7 +169,7 @@ class Runner:
 
         if inputs["children"] is not None:
             inputs["children"] = {
-                child["key"]: Child(name=child["key"], id=child["id"], gcp_project_name=child["gcp_project_name"])
+                child["key"]: Child(name=child["key"], id=child["id"], backend=child["backend"])
                 for child in inputs["children"]
             }
 

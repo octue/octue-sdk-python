@@ -1,4 +1,20 @@
 [
-    {"key": "wind_speed", "id": "7b9d07fa-6bcd-4ec3-a331-69f737a15751", "gcp_project_name": "octue-amy"},
-    {"key": "elevation", "id": "8dgd07fa-6bcd-4ec3-a331-69f737a15332", "gcp_project_name":  "octue_amy"}
+    {
+        "key": "wind_speed",
+        "id": "7b9d07fa-6bcd-4ec3-a331-69f737a15751",
+        "backend": {
+            "name": "GCPPubSub",
+            "project_name": "octue-amy",
+            "credentials_filename": "/Users/Marcus1/repos/octue-sdk-python/octue-amy-670f6026b822.json"
+        }
+    },
+    {
+        "key": "elevation",
+        "id": "8dgd07fa-6bcd-4ec3-a331-69f737a15332",
+        "backend": {
+            "name": "GCPPubSub",
+            "project_name": "octue-amy",
+            "credentials_filename": "/Users/Marcus1/repos/octue-sdk-python/octue-amy-670f6026b822.json"
+        }
+    }
 ]

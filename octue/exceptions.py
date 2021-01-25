@@ -72,3 +72,7 @@ class InvalidTagException(OctueSDKException, ValueError):
 
 class ServiceNotFound(OctueSDKException):
     pass
+
+
+class BackendNotFound(OctueSDKException):
+    pass

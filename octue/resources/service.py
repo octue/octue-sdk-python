@@ -31,7 +31,7 @@ class Topic:
     def __init__(self, name, service):
         self.name = name
         self.service = service
-        self.path = self.service._publisher.topic_path(service.gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}")
+        self.path = self.service._publisher.topic_path(service.backend.project_name, f"{OCTUE_NAMESPACE}.{self.name}")
 
     def create(self, allow_existing=False):
         """ Create a Google Pub/Sub topic that can be published to. """
@@ -74,7 +74,7 @@ class Subscription:
         self.topic = topic
         self.service = service
         self.path = self.service._subscriber.subscription_path(
-            self.service.gcp_project_name, f"{OCTUE_NAMESPACE}.{self.name}"
+            self.service.backend.project_name, f"{OCTUE_NAMESPACE}.{self.name}"
         )
 
     def create(self, allow_existing=False):
@@ -110,13 +110,15 @@ class Service(CoolNameable):
     has a corresponding topic on Google Pub/Sub.
     """
 
-    def __init__(self, name, gcp_project_name, id=None, run_function=None):
+    def __init__(self, name, backend, id=None, run_function=None):
         self.name = name
         self.id = id
-        self.gcp_project_name = gcp_project_name
+        self.backend = backend
         self.run_function = run_function
-        self._publisher = pubsub_v1.PublisherClient(BATCH_SETTINGS)
-        self._subscriber = pubsub_v1.SubscriberClient()
+        self._publisher = pubsub_v1.PublisherClient.from_service_account_file(
+            filename=backend.credentials_filename, batch_settings=BATCH_SETTINGS
+        )
+        self._subscriber = pubsub_v1.SubscriberClient.from_service_account_file(filename=backend.credentials_filename)
         super().__init__()
 
     def __repr__(self):

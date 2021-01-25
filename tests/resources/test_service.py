@@ -5,6 +5,7 @@ from tests.base import BaseTestCase
 from octue import exceptions
 from octue.resources.manifest import Manifest
 from octue.resources.service import Service
+from octue.resources.service_backend import GCPPubSubBackend
 
 
 SERVER_WAIT_TIME = 5
@@ -29,15 +30,18 @@ class TestService(BaseTestCase):
     """ Some of these tests require a connection to either a real Google Pub/Sub instance on Google Cloud Platform
     (GCP), or a local emulator. """
 
-    GCP_PROJECT = "octue-amy"
-    asking_service = Service(name="asker", gcp_project_name=GCP_PROJECT, id="249fc09d-9d6f-45d6-b1a4-0aacba5fca79")
+    BACKEND = GCPPubSubBackend(
+        project_name="octue-amy",
+        credentials_filename="/Users/Marcus1/repos/octue-sdk-python/octue-amy-670f6026b822.json",
+    )
+    asking_service = Service(name="asker", backend=BACKEND, id="249fc09d-9d6f-45d6-b1a4-0aacba5fca79")
 
     def make_new_server(self, id="352f8185-1d58-4ddf-8faa-2af96147f96f", run_function=None):
         """ Make and return a new service ready to serve analyses from its run function. """
         if not run_function:
             run_function = lambda input_values, input_manifest: MockAnalysis()  # noqa
 
-        return Service(name=f"server-{id}", gcp_project_name=self.GCP_PROJECT, id=id, run_function=run_function)
+        return Service(name=f"server-{id}", backend=self.BACKEND, id=id, run_function=run_function)
 
     def ask_question_and_wait_for_answer(self, asking_service, responding_service, input_values, input_manifest):
         """ Get an asking service to ask a question to a responding service and wait for the answer. """
@@ -56,7 +60,7 @@ class TestService(BaseTestCase):
         """ Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
         results in an error. """
         with self.assertRaises(exceptions.ServiceNotFound):
-            Service(name="asker", gcp_project_name=self.GCP_PROJECT, id="249fc09d-9d6f-45d6-b1a4-0aacba5fca79").ask(
+            Service(name="asker", backend=self.BACKEND, id="249fc09d-9d6f-45d6-b1a4-0aacba5fca79").ask(
                 service_id=1234, input_values=[1, 2, 3, 4]
             )
 
