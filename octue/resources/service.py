@@ -154,7 +154,7 @@ class Service(CoolNameable):
         question.ack()
 
         topic = Topic(name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)), service=self)
-        analysis = self.run_function(data["input_values"], data["input_manifest"])
+        analysis = self.run_function(input_values=data["input_values"], input_manifest=data["input_manifest"])
 
         if analysis.output_manifest is None:
             serialised_output_manifest = None
