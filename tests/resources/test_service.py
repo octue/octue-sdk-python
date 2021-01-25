@@ -7,6 +7,9 @@ from octue.resources.manifest import Manifest
 from octue.resources.service import Service
 
 
+SERVER_WAIT_TIME = 5
+
+
 class MockAnalysis:
     output_values = "Hello! It worked!"
     output_manifest = None
@@ -64,7 +67,7 @@ class TestService(BaseTestCase):
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             executor.submit(responding_service.serve, timeout=10)
 
-            time.sleep(5)  # Wait for the responding service to be ready to answer.
+            time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
 
             asker_future = executor.submit(
                 self.ask_question_and_wait_for_answer,
@@ -88,7 +91,7 @@ class TestService(BaseTestCase):
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             executor.submit(responding_service.serve, timeout=10)
 
-            time.sleep(5)  # Wait for the responding service to be ready to answer.
+            time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
 
             asker_future = executor.submit(
                 self.ask_question_and_wait_for_answer,
@@ -112,7 +115,7 @@ class TestService(BaseTestCase):
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             executor.submit(responding_service.serve, timeout=10)
 
-            time.sleep(5)  # Wait for the responding service to be ready to answer.
+            time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
 
             asker_future = executor.submit(
                 self.ask_question_and_wait_for_answer,
@@ -134,7 +137,7 @@ class TestService(BaseTestCase):
             executor.submit(responding_service.serve, timeout=10)
             futures = []
 
-            time.sleep(5)  # Wait for the responding service to be ready to answer.
+            time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
 
             for i in range(5):
                 futures.append(
@@ -170,7 +173,7 @@ class TestService(BaseTestCase):
             executor.submit(responding_service_1.serve, timeout=10)
             executor.submit(responding_service_2.serve, timeout=10)
 
-            time.sleep(5)  # Wait for the responding services to be ready to answer.
+            time.sleep(SERVER_WAIT_TIME)  # Wait for the responding services to be ready to answer.
 
             first_question_future = executor.submit(
                 self.ask_question_and_wait_for_answer,
