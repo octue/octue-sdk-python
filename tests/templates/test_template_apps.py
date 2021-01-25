@@ -1,8 +1,9 @@
 import os
 import shutil
+import subprocess
 import sys
+import time
 import uuid
-from unittest.mock import patch
 
 from octue import Runner
 from ..base import BaseTestCase
@@ -77,28 +78,50 @@ class TemplateAppsTestCase(BaseTestCase):
         self.assertTrue(os.path.isfile(os.path.join("data", "output", "cleaned_met_mast_data", "cleaned.csv")))
 
     def test_child_services_template(self):
-        """ Ensure child services template works correctly. """
+        """ Ensure the child services template works correctly (i.e. that children can be accessed by a parent and data
+        collected from them.
+        """
         self.set_template("template-child-services")
+
+        elevation_process = subprocess.Popen(
+            [
+                "python",
+                "/Users/Marcus1/repos/octue-sdk-python/octue/cli.py",
+                "--show-twined-logs",
+                "start",
+                f"--app-dir={self.template_path}/elevation_app",
+                '--service-name="hello"',
+                f"--twine={self.template_path}/elevation_app/twine.json",
+                "--service-id=8dgd07fa-6bcd-4ec3-a331-69f737a15332",
+            ]
+        )
+
+        wind_speed_process = subprocess.Popen(
+            [
+                "python",
+                "/Users/Marcus1/repos/octue-sdk-python/octue/cli.py",
+                "--show-twined-logs",
+                "start",
+                f"--app-dir={self.template_path}/wind_speed_app",
+                '--service-name="wind_speed_app"',
+                f"--twine={self.template_path}/wind_speed_app/twine.json",
+                "--service-id=7b9d07fa-6bcd-4ec3-a331-69f737a15751",
+            ]
+        )
+
         runner = Runner(twine=os.path.join(self.template_path, "parent_app", "twine.json"))
+        time.sleep(5)
 
-        with patch("octue.resources.Service.ask") as mock_service_ask:
-            mock_service_ask.return_value = None
-
-            with patch("octue.resources.Service.wait_for_answer") as mock_service_wait_for_answer:
-                mock_service_wait_for_answer.return_value = [0, 7]
-
-                analysis = runner.run(
-                    app_src=os.path.join(self.template_path, "parent_app"),
-                    children=os.path.join("parent_app", "data", "configuration", "children.json"),
-                    input_values=os.path.join("parent_app", "data", "input", "values.json"),
-                )
+        analysis = runner.run(
+            app_src=os.path.join(self.template_path, "parent_app"),
+            children=os.path.join(self.template_path, "parent_app", "data", "configuration", "children.json"),
+            input_values=os.path.join(self.template_path, "parent_app", "data", "input", "values.json"),
+        )
 
         analysis.finalise(output_dir=os.path.join("data", "output"))
 
-        self.assertEqual(
-            analysis.output_values,
-            {
-                "wind_speeds": mock_service_wait_for_answer.return_value,
-                "elevations": mock_service_wait_for_answer.return_value,
-            },
-        )
+        self.assertTrue("elevations" in analysis.output_values)
+        self.assertTrue("wind_speeds" in analysis.output_values)
+
+        elevation_process.kill()
+        wind_speed_process.kill()
