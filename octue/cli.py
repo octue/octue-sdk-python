@@ -180,25 +180,30 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     show_default=True,
     help="Directory containing configuration (overrides --data-dir).",
 )
-@click.option("--server-name", type=click.STRING, help="The name to give to the server.")
+@click.option("--service-name", type=click.STRING, help="The name to give to the server.")
 @click.option("--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.")
 def start(app_dir, data_dir, config_dir, service_name, twine):
     """ Start the service as a server to be asked questions by other services. """
     config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
     twine = Twine(source=twine)
 
+    configuration_values, configuration_manifest, children = set_unavailable_strand_paths_to_none(
+        twine,
+        (
+            ("configuration_values", os.path.join(config_dir, VALUES_FILENAME)),
+            ("configuration_manifest", os.path.join(config_dir, MANIFEST_FILENAME)),
+            ("children", os.path.join(config_dir, CHILDREN_FILENAME)),
+        ),
+    )
+
     runner = Runner(
         twine=twine,
-        configuration_values=os.path.join(config_dir, VALUES_FILENAME),
-        configuration_manifest=os.path.join(config_dir, MANIFEST_FILENAME),
+        configuration_values=configuration_values,
+        configuration_manifest=configuration_manifest,
         log_level=global_cli_context["log_level"],
         handler=global_cli_context["log_handler"],
         show_twined_logs=global_cli_context["show_twined_logs"],
     )
-
-    children = set_unavailable_strand_paths_to_none(
-        twine, (("children", os.path.join(config_dir, CHILDREN_FILENAME)),)
-    )[0]
 
     run_function = functools.partial(
         runner.run, app_src=app_dir, children=children, skip_checks=global_cli_context["skip_checks"],
