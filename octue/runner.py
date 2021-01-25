@@ -57,7 +57,11 @@ class Runner:
             apply_log_handler(logger=package_logger, handler=self.handler)
 
         # Ensure the twine is present and instantiate it
-        self.twine = twine if isinstance(twine, Twine) else Twine(source=twine)
+        if isinstance(twine, Twine):
+            self.twine = twine
+        else:
+            self.twine = Twine(source=twine)
+
         package_logger.debug("Parsed twine with strands %r", self.twine.available_strands)
 
         if "configuration_values" not in self.twine.available_strands:
