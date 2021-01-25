@@ -5,11 +5,16 @@ import uuid
 from tempfile import TemporaryDirectory, gettempdir
 
 from octue.mixins import MixinBase, Pathable
-from octue.resources import Datafile, Dataset, Manifest
+from octue.resources import Datafile, Dataset, Manifest, Service
 
 
 class MyPathable(Pathable, MixinBase):
     pass
+
+
+class MockAnalysis:
+    output_values = "Hello! It worked!"
+    output_manifest = None
 
 
 class BaseTestCase(unittest.TestCase):
@@ -52,3 +57,10 @@ class BaseTestCase(unittest.TestCase):
         datasets = [self.create_valid_dataset(), self.create_valid_dataset()]
         manifest = Manifest(datasets=datasets, keys={"my_dataset": 0, "another_dataset": 1})
         return manifest
+
+    def make_new_server(self, backend, id="352f8185-1d58-4ddf-8faa-2af96147f96f", run_function=None):
+        """ Make and return a new service ready to serve analyses from its run function. """
+        if not run_function:
+            run_function = lambda input_values, input_manifest: MockAnalysis()  # noqa
+
+        return Service(name=f"server-{id}", backend=backend, id=id, run_function=run_function)
