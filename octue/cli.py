@@ -7,6 +7,7 @@ import pkg_resources
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.logging_handlers import get_remote_handler
 from octue.resources import Service
+from octue.resources.service_backend import GCPPubSubBackend
 from octue.runner import Runner
 from twined import Twine
 
@@ -214,7 +215,12 @@ def start(app_dir, data_dir, config_dir, service_name, service_id, twine):
         runner.run, app_src=app_dir, children=children, skip_checks=global_cli_context["skip_checks"],
     )
 
-    service = Service(name=service_name, id=service_id, run_function=run_function)
+    backend = GCPPubSubBackend(
+        project_name="octue-amy",
+        credentials_filename="/Users/Marcus1/repos/octue-sdk-python/octue-amy-670f6026b822.json",
+    )
+
+    service = Service(name=service_name, id=service_id, backend=backend, run_function=run_function)
     service.serve()
 
 
