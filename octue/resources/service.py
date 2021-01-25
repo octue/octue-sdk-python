@@ -216,5 +216,5 @@ class Service(CoolNameable):
         data = json.loads(answer.message.data.decode())
         return {
             "output_values": data["output_values"],
-            "output_manifest": Manifest.deserialise(json.loads(data["output_manifest"])),
+            "output_manifest": Manifest.deserialise(data["output_manifest"], from_string=True),
         }
