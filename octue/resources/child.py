@@ -24,7 +24,7 @@ class Child:
         return self._service.wait_for_answer(subscription, timeout)
 
     def _get_backend(self, backend_name):
-        available_backends = {key: value for key, value in vars(service_backend) if key.endswith("Backend")}
+        available_backends = {key: value for key, value in vars(service_backend).items() if key.endswith("Backend")}
 
         if backend_name not in available_backends:
             raise exceptions.BackendNotFound(
