@@ -9,10 +9,17 @@ from octue.resources.service import Service
 
 class MockAnalysis:
     output_values = "Hello! It worked!"
+    output_manifest = None
 
 
 class DifferentMockAnalysis:
     output_values = "This is another successful analysis."
+    output_manifest = None
+
+
+class MockAnalysisWithOutputManifest:
+    output_values = "This is an analysis with an empty output manifest."
+    output_manifest = Manifest()
 
 
 class TestService(BaseTestCase):
@@ -68,7 +75,9 @@ class TestService(BaseTestCase):
             )
 
             answer = list(concurrent.futures.as_completed([asker_future]))[0].result()
-            self.assertEqual(answer, MockAnalysis.output_values)
+            self.assertEqual(
+                answer, {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest}
+            )
 
     def test_ask_with_input_manifest(self):
         """ Test that a service can ask a question including an input_manifest to another service that is serving and
@@ -90,7 +99,32 @@ class TestService(BaseTestCase):
             )
 
             answer = list(concurrent.futures.as_completed([asker_future]))[0].result()
-            self.assertEqual(answer, MockAnalysis.output_values)
+            self.assertEqual(
+                answer, {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest}
+            )
+
+    def test_ask_with_output_manifest(self):
+        """ Test that a service can receive an output manifest as part of the answer to a question. """
+        responding_service = self.make_new_server(
+            run_function=lambda input_values, input_manifest: MockAnalysisWithOutputManifest()
+        )
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            executor.submit(responding_service.serve, timeout=10)
+
+            time.sleep(5)  # Wait for the responding service to be ready to answer.
+
+            asker_future = executor.submit(
+                self.ask_question_and_wait_for_answer,
+                asking_service=self.asking_service,
+                responding_service=responding_service,
+                input_values={},
+                input_manifest=None,
+            )
+
+            answer = asker_future.result()
+            self.assertEqual(answer["output_values"], MockAnalysisWithOutputManifest.output_values)
+            self.assertEqual(answer["output_manifest"].id, MockAnalysisWithOutputManifest.output_manifest.id)
 
     def test_service_can_ask_multiple_questions(self):
         """ Test that a service can ask multiple questions to the same server and expect replies to them all. """
@@ -116,7 +150,10 @@ class TestService(BaseTestCase):
         answers = list(concurrent.futures.as_completed(futures))
 
         for answer in answers:
-            self.assertEqual(answer.result(), MockAnalysis.output_values)
+            self.assertEqual(
+                answer.result(),
+                {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
+            )
 
     def test_service_can_ask_questions_to_multiple_servers(self):
         """ Test that a service can ask questions to different servers and expect replies to them all. """
@@ -151,5 +188,15 @@ class TestService(BaseTestCase):
                 input_manifest=None,
             )
 
-        self.assertEqual(first_question_future.result(), MockAnalysis.output_values)
-        self.assertEqual(second_question_future.result(), DifferentMockAnalysis.output_values)
+        self.assertEqual(
+            first_question_future.result(),
+            {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
+        )
+
+        self.assertEqual(
+            second_question_future.result(),
+            {
+                "output_values": DifferentMockAnalysis.output_values,
+                "output_manifest": DifferentMockAnalysis.output_manifest,
+            },
+        )

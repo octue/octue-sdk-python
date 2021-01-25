@@ -79,3 +79,13 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
             self.datasets.append(Dataset(logger=self.logger, path_from=self, path=dataset_spec["key"]))
 
         return self
+
+    @classmethod
+    def deserialise(cls, serialised_manifest):
+        """ Deserialise a Manifest from a dictionary. """
+        return cls(
+            id=serialised_manifest["id"],
+            datasets=serialised_manifest["datasets"],
+            keys=serialised_manifest["keys"],
+            path=serialised_manifest["path"],
+        )

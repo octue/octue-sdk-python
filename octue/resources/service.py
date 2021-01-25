@@ -8,6 +8,7 @@ from google.cloud import pubsub_v1
 
 from octue import exceptions
 from octue.mixins import CoolNameable
+from octue.resources.manifest import Manifest
 
 
 logger = logging.getLogger(__name__)
@@ -150,10 +151,18 @@ class Service(CoolNameable):
         question_uuid = question.attributes["question_uuid"]
         question.ack()
 
-        output_values = self.run_function(**data).output_values
-
         topic = Topic(name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)), service=self)
-        self._publisher.publish(topic=topic.path, data=json.dumps(output_values).encode())
+        analysis = self.run_function(data["input_values"], data["input_manifest"])
+
+        self._publisher.publish(
+            topic=topic.path,
+            data=json.dumps(
+                {
+                    "output_values": analysis.output_values,
+                    "output_manifest": analysis.output_manifest.serialise(to_string=True),
+                }
+            ).encode(),
+        )
         logger.info("%r responded on topic %r.", self, topic.path)
 
     def ask(self, service_id, input_values, input_manifest=None):
@@ -203,4 +212,9 @@ class Service(CoolNameable):
 
         subscription.delete()
         subscription.topic.delete()
-        return json.loads(answer.message.data.decode())
+
+        data = json.loads(answer.message.data.decode())
+        return {
+            "output_values": data["output_values"],
+            "output_manifest": Manifest.deserialise(json.loads(data["output_manifest"])),
+        }
