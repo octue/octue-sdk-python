@@ -23,6 +23,7 @@ class TestService(BaseTestCase):
     asking_service = Service(name="asker", gcp_project_name=GCP_PROJECT, id="249fc09d-9d6f-45d6-b1a4-0aacba5fca79")
 
     def make_new_server(self, id="352f8185-1d58-4ddf-8faa-2af96147f96f", run_function=None):
+        """ Make and return a new service ready to serve analyses from its run function. """
         if not run_function:
             run_function = lambda input_values, input_manifest: MockAnalysis()  # noqa
 
