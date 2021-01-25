@@ -1,7 +1,5 @@
+import random
+
+
 def run(analysis):
-
-    analysis.output_values = {"elevations": []}
-
-    for location in analysis.input_values:
-        print(location)
-        analysis.output_values["elevations"].append(location)
+    analysis.output_values = [random.randint(0, 5000) for location in analysis.input_values["locations"]]

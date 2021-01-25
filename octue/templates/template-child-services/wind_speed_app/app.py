@@ -1,7 +1,5 @@
+import random
+
+
 def run(analysis):
-
-    analysis.output_values = {"wind_speeds": []}
-
-    for location in analysis.input_values:
-        print(location)
-        analysis.output_values["wind_speeds"].append(location)
+    analysis.output_values = [random.randint(0, 200) for location in analysis.input_values["locations"]]
