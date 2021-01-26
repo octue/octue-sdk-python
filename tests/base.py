@@ -63,4 +63,4 @@ class BaseTestCase(unittest.TestCase):
         if not run_function:
             run_function = lambda input_values, input_manifest: MockAnalysis()  # noqa
 
-        return Service(name=f"server-{id}", backend=backend, id=id, run_function=run_function)
+        return Service(backend=backend, id=id, run_function=run_function)

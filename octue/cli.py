@@ -181,14 +181,13 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     show_default=True,
     help="Directory containing configuration (overrides --data-dir).",
 )
-@click.option("--service-name", type=click.STRING, help="The name to give to the server.")
 @click.option(
     "--service-id",
     type=click.STRING,
     help="The unique ID of the server (this should be unique over all time and space).",
 )
 @click.option("--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.")
-def start(app_dir, data_dir, config_dir, service_name, service_id, twine):
+def start(app_dir, data_dir, config_dir, service_id, twine):
     """ Start the service as a server to be asked questions by other services. """
     config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
     twine = Twine(source=twine)
@@ -220,7 +219,7 @@ def start(app_dir, data_dir, config_dir, service_name, service_id, twine):
         credentials_filename="/Users/Marcus1/repos/octue-sdk-python/octue-amy-670f6026b822.json",
     )
 
-    service = Service(name=service_name, id=service_id, backend=backend, run_function=run_function)
+    service = Service(id=service_id, backend=backend, run_function=run_function)
     service.serve()
 
 

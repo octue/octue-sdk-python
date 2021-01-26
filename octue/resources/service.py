@@ -110,8 +110,7 @@ class Service(CoolNameable):
     has a corresponding topic on Google Pub/Sub.
     """
 
-    def __init__(self, name, backend, id=None, run_function=None):
-        self.name = name
+    def __init__(self, backend, id=None, run_function=None):
         self.id = id
         self.backend = backend
         self.run_function = run_function
@@ -122,7 +121,7 @@ class Service(CoolNameable):
         super().__init__()
 
     def __repr__(self):
-        return f"<{type(self).__name__}({self.cool_name!r})>"
+        return f"<{type(self).__name__}({self.name!r})>"
 
     def serve(self, timeout=None):
         """ Start the Service as a server, waiting to accept questions from any other Service using Google Pub/Sub on

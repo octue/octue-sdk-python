@@ -14,7 +14,7 @@ class Child:
         self.id = id
 
         backend = self._get_backend(backend.pop("name"))(**backend)
-        self._service = BACKEND_TO_SERVICE_MAPPING[type(backend)](name=f"{self.name}-local", backend=backend)
+        self._service = BACKEND_TO_SERVICE_MAPPING[type(backend)](backend=backend)
 
     def ask(self, input_values, input_manifest=None, timeout=20):
         """ Ask the child a question (i.e. send it some input value and/or a manifest and wait for it to run an analysis

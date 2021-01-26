@@ -29,7 +29,7 @@ class TestService(BaseTestCase):
         project_name="octue-amy",
         credentials_filename="/Users/Marcus1/repos/octue-sdk-python/octue-amy-670f6026b822.json",
     )
-    asking_service = Service(name="asker", backend=BACKEND, id="249fc09d-9d6f-45d6-b1a4-0aacba5fca79")
+    asking_service = Service(backend=BACKEND, id="249fc09d-9d6f-45d6-b1a4-0aacba5fca79")
 
     @staticmethod
     def ask_question_and_wait_for_answer(asking_service, responding_service, input_values, input_manifest):
@@ -49,7 +49,7 @@ class TestService(BaseTestCase):
         """ Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
         results in an error. """
         with self.assertRaises(exceptions.ServiceNotFound):
-            Service(name="asker", backend=self.BACKEND, id="249fc09d-9d6f-45d6-b1a4-0aacba5fca79").ask(
+            Service(backend=self.BACKEND, id="249fc09d-9d6f-45d6-b1a4-0aacba5fca79").ask(
                 service_id=1234, input_values=[1, 2, 3, 4]
             )
 

@@ -92,7 +92,6 @@ class TemplateAppsTestCase(BaseTestCase):
                 cli_path,
                 "start",
                 f"--app-dir={elevation_app_path}",
-                '--service-name="elevation_app"',
                 f"--twine={os.path.join(elevation_app_path, 'twine.json')}",
                 "--service-id=8dgd07fa-6bcd-4ec3-a331-69f737a15332",
             ]
@@ -105,7 +104,6 @@ class TemplateAppsTestCase(BaseTestCase):
                 cli_path,
                 "start",
                 f"--app-dir={wind_speed_app_path}",
-                '--service-name="wind_speed_app"',
                 f"--twine={os.path.join(wind_speed_app_path, 'twine.json')}",
                 "--service-id=7b9d07fa-6bcd-4ec3-a331-69f737a15751",
             ]
