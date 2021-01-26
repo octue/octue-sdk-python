@@ -1,9 +1,9 @@
 from octue import exceptions
-from octue.resources import service_backend
+from octue.resources import service_backends
 from octue.resources.service import Service
 
 
-BACKEND_TO_SERVICE_MAPPING = {service_backend.GCPPubSubBackend: Service}
+BACKEND_TO_SERVICE_MAPPING = {service_backends.GCPPubSubBackend: Service}
 
 
 class Child:
@@ -24,7 +24,7 @@ class Child:
         return self._service.wait_for_answer(subscription, timeout)
 
     def _get_backend(self, backend_name):
-        available_backends = {key: value for key, value in vars(service_backend).items() if key.endswith("Backend")}
+        available_backends = {key: value for key, value in vars(service_backends).items() if key.endswith("Backend")}
 
         if backend_name not in available_backends:
             raise exceptions.BackendNotFound(

@@ -7,7 +7,7 @@ import pkg_resources
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.logging_handlers import get_remote_handler
 from octue.resources import Service
-from octue.resources.service_backend import GCPPubSubBackend
+from octue.resources.service_backends import GCPPubSubBackend
 from octue.runner import Runner
 from twined import Twine
 

@@ -5,7 +5,7 @@ from tests.base import BaseTestCase, MockAnalysis
 from octue import exceptions
 from octue.resources.manifest import Manifest
 from octue.resources.service import Service
-from octue.resources.service_backend import GCPPubSubBackend
+from octue.resources.service_backends import GCPPubSubBackend
 
 
 SERVER_WAIT_TIME = 5
