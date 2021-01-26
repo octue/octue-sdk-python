@@ -10,8 +10,9 @@
 				"title": "GCP Pub/Sub backend configuration",
 				"properties": {
 					"name": {
-						"description": "Type of backend (in this case, it should be GCPPubSub)",
-						"type": "string"
+						"description": "Type of backend (in this case, it can only be GCPPubSubBackend)",
+						"type": "string",
+						"pattern": "^(GCPPubSubBackend)$"
 					},
 					"project_name": {
 						"description": "Name of the Google Cloud Platform (GCP) project the child exists in.",
