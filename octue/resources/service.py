@@ -37,10 +37,10 @@ class Service(CoolNameable):
         self.id = id
         self.backend = backend
         self.run_function = run_function
-        self._publisher = pubsub_v1.PublisherClient.from_service_account_file(
+        self.publisher = pubsub_v1.PublisherClient.from_service_account_file(
             filename=backend.credentials_filename, batch_settings=BATCH_SETTINGS
         )
-        self._subscriber = pubsub_v1.SubscriberClient.from_service_account_file(filename=backend.credentials_filename)
+        self.subscriber = pubsub_v1.SubscriberClient.from_service_account_file(filename=backend.credentials_filename)
         super().__init__()
 
     def __repr__(self):
@@ -55,10 +55,10 @@ class Service(CoolNameable):
         subscription = Subscription(name=self.id, topic=topic, namespace=OCTUE_NAMESPACE, service=self)
         subscription.create(allow_existing=True)
 
-        future = self._subscriber.subscribe(subscription=subscription.path, callback=self.answer)
+        future = self.subscriber.subscribe(subscription=subscription.path, callback=self.answer)
         logger.debug("%r is waiting for questions.", self)
 
-        with self._subscriber:
+        with self.subscriber:
             try:
                 future.result(timeout=timeout)
             except TimeoutError:
@@ -85,7 +85,7 @@ class Service(CoolNameable):
         else:
             serialised_output_manifest = analysis.output_manifest.serialise(to_string=True)
 
-        self._publisher.publish(
+        self.publisher.publish(
             topic=topic.path,
             data=json.dumps(
                 {"output_values": analysis.output_values, "output_manifest": serialised_output_manifest}
@@ -117,7 +117,7 @@ class Service(CoolNameable):
         if input_manifest is not None:
             input_manifest = input_manifest.serialise(to_string=True)
 
-        future = self._publisher.publish(
+        future = self.publisher.publish(
             topic=question_topic.path,
             data=json.dumps({"input_values": input_values, "input_manifest": input_manifest}).encode(),
             question_uuid=question_uuid,
@@ -131,11 +131,11 @@ class Service(CoolNameable):
         """ Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
         """
-        answer = self._subscriber.pull(
+        answer = self.subscriber.pull(
             request={"subscription": subscription.path, "max_messages": 1}, retry=retry.Retry(deadline=timeout),
         ).received_messages[0]
 
-        self._subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
+        self.subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
         logger.debug("%r received a response to question on topic %r", self, subscription.topic.path)
 
         subscription.delete()
