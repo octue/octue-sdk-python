@@ -13,3 +13,5 @@ class CoolNameable:
         else:
             self.name = generate_slug(2)
             self._cool_named = True
+
+        super().__init__(*args, **kwargs)
