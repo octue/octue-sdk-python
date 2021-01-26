@@ -6,6 +6,7 @@ import time
 import uuid
 
 from octue import Runner
+from octue.utils.processes import ProcessesContextManager
 from ..base import BaseTestCase
 
 
@@ -111,20 +112,17 @@ class TemplateAppsTestCase(BaseTestCase):
             ]
         )
 
-        runner = Runner(twine=os.path.join(self.template_path, "parent_service", "twine.json"))
-        time.sleep(5)
-
         parent_service_path = os.path.join(self.template_path, "parent_service")
-        analysis = runner.run(
-            app_src=parent_service_path,
-            children=os.path.join(parent_service_path, "data", "configuration", "children.json"),
-            input_values=os.path.join(parent_service_path, "data", "input", "values.json"),
-        )
+
+        with ProcessesContextManager(processes=(elevation_process, wind_speed_process)):
+            runner = Runner(twine=os.path.join(parent_service_path, "twine.json"))
+            time.sleep(5)
+            analysis = runner.run(
+                app_src=parent_service_path,
+                children=os.path.join(parent_service_path, "data", "configuration", "children.json"),
+                input_values=os.path.join(parent_service_path, "data", "input", "values.json"),
+            )
 
         analysis.finalise(output_dir=os.path.join("data", "output"))
-
         self.assertTrue("elevations" in analysis.output_values)
         self.assertTrue("wind_speeds" in analysis.output_values)
-
-        elevation_process.kill()
-        wind_speed_process.kill()
