@@ -71,8 +71,12 @@ class InvalidTagException(OctueSDKException, ValueError):
 
 
 class ServiceNotFound(OctueSDKException):
-    pass
+    """ Raise when a Service of the given ID has not been found on the Google Pub/Sub server (i.e. if there is no topic
+    associated with the Service ID).
+    """
 
 
 class BackendNotFound(OctueSDKException):
-    pass
+    """ Raise when details of a backend that doesn't exist in `octue.resources.service_backends` are given for use as a
+    Service backend.
+    """
