@@ -2,13 +2,13 @@ import json
 import logging
 import uuid
 from concurrent.futures import TimeoutError
-import google.api_core.exceptions
 from google.api_core import retry
 from google.cloud import pubsub_v1
 
 from octue import exceptions
 from octue.mixins import CoolNameable
 from octue.resources.manifest import Manifest
+from octue.resources.pubsub import Subscription, Topic
 
 
 logger = logging.getLogger(__name__)
@@ -21,83 +21,6 @@ ANSWERS_NAMESPACE = "answers"
 # Switch message batching off by setting max_messages to 1. This minimises latency and is recommended for
 # microservices publishing single messages in a request-response sequence.
 BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_latency=0.01, max_messages=1)
-
-
-class Topic:
-    """ A candidate topic to use with Google Pub/Sub. The topic represented by an instance of this class does not
-    necessarily already exist on the Google Pub/Sub servers.
-    """
-
-    def __init__(self, name, service):
-        self.name = name
-        self.service = service
-        self.path = self.service._publisher.topic_path(service.backend.project_name, f"{OCTUE_NAMESPACE}.{self.name}")
-
-    def create(self, allow_existing=False):
-        """ Create a Google Pub/Sub topic that can be published to. """
-        if not allow_existing:
-            self.service._publisher.create_topic(name=self.path)
-            self._log_creation()
-            return
-
-        try:
-            self.service._publisher.create_topic(name=self.path)
-        except google.api_core.exceptions.AlreadyExists:
-            pass
-        self._log_creation()
-
-    def delete(self):
-        """ Delete the topic from Google Pub/Sub. """
-        self.service._publisher.delete_topic(topic=self.path)
-        logger.debug("%r deleted topic %r.", self.service, self.path)
-
-    def exists(self):
-        """ Check if the topic exists on the Google Pub/Sub servers. """
-        try:
-            self.service._publisher.get_topic(topic=self.path)
-        except google.api_core.exceptions.NotFound:
-            return False
-        return True
-
-    def _log_creation(self):
-        """ Log the creation of the topic. """
-        logger.debug("%r created topic %r.", self.service, self.path)
-
-
-class Subscription:
-    """ A candidate subscription to use with Google Pub/Sub. The subscription represented by an instance of this class
-    does not necessarily already exist on the Google Pub/Sub servers.
-    """
-
-    def __init__(self, name, topic, service):
-        self.name = name
-        self.topic = topic
-        self.service = service
-        self.path = self.service._subscriber.subscription_path(
-            self.service.backend.project_name, f"{OCTUE_NAMESPACE}.{self.name}"
-        )
-
-    def create(self, allow_existing=False):
-        """ Create a Google Pub/Sub subscription that can be subscribed to. """
-        if not allow_existing:
-            self.service._subscriber.create_subscription(topic=self.topic.path, name=self.path)
-            self._log_creation()
-            return
-
-        try:
-            self.service._subscriber.create_subscription(topic=self.topic.path, name=self.path)
-        except google.api_core.exceptions.AlreadyExists:
-            pass
-        self._log_creation()
-
-    def delete(self):
-        """ Delete the subscription from Google Pub/Sub. """
-        self.service._subscriber.delete_subscription(subscription=self.path)
-        logger.debug("%r deleted subscription %r.", self.service, self.path)
-
-    def _log_creation(self):
-        """ Log the creation of the subscription. """
-        logger.debug("%r created subscription %r.", self.service, self.path)
 
 
 class Service(CoolNameable):
@@ -126,10 +49,10 @@ class Service(CoolNameable):
     def serve(self, timeout=None):
         """ Start the Service as a server, waiting to accept questions from any other Service using Google Pub/Sub on
         the same Google Cloud Platform project. Questions are responded to asynchronously."""
-        topic = Topic(name=self.id, service=self)
+        topic = Topic(name=self.id, namespace=OCTUE_NAMESPACE, service=self)
         topic.create(allow_existing=True)
 
-        subscription = Subscription(name=self.id, topic=topic, service=self)
+        subscription = Subscription(name=self.id, topic=topic, namespace=OCTUE_NAMESPACE, service=self)
         subscription.create(allow_existing=True)
 
         future = self._subscriber.subscribe(subscription=subscription.path, callback=self.answer)
@@ -152,7 +75,9 @@ class Service(CoolNameable):
         question_uuid = question.attributes["question_uuid"]
         question.ack()
 
-        topic = Topic(name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)), service=self)
+        topic = Topic(
+            name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)), namespace=OCTUE_NAMESPACE, service=self
+        )
         analysis = self.run_function(input_values=data["input_values"], input_manifest=data["input_manifest"])
 
         if analysis.output_manifest is None:
@@ -174,18 +99,18 @@ class Service(CoolNameable):
         before sending the question to the serving Service - the topic is the expected publishing place for the answer
         from the serving Service when it comes, and the subscription is set up to subscribe to this.
         """
-        question_topic = Topic(name=service_id, service=self)
+        question_topic = Topic(name=service_id, namespace=OCTUE_NAMESPACE, service=self)
         if not question_topic.exists():
             raise exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
 
         question_uuid = str(int(uuid.uuid4()))
 
         response_topic_and_subscription_name = ".".join((service_id, ANSWERS_NAMESPACE, question_uuid))
-        response_topic = Topic(name=response_topic_and_subscription_name, service=self)
+        response_topic = Topic(name=response_topic_and_subscription_name, namespace=OCTUE_NAMESPACE, service=self)
         response_topic.create(allow_existing=False)
 
         response_subscription = Subscription(
-            name=response_topic_and_subscription_name, topic=response_topic, service=self,
+            name=response_topic_and_subscription_name, topic=response_topic, namespace=OCTUE_NAMESPACE, service=self,
         )
         response_subscription.create(allow_existing=False)
 
