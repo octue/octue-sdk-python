@@ -79,32 +79,34 @@ class TemplateAppsTestCase(BaseTestCase):
 
     def test_child_services_template(self):
         """ Ensure the child services template works correctly (i.e. that children can be accessed by a parent and data
-        collected from them.
+        collected from them). This template has a parent app and two children - an elevation app and wind speed app. The
+        parent sends coordinates to both children, receiving the elevation and wind speed from them at these locations.
         """
+        cli_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "octue", "cli.py")
         self.set_template("template-child-services")
 
+        elevation_app_path = os.path.join(self.template_path, "elevation_app")
         elevation_process = subprocess.Popen(
             [
                 "python",
-                "/Users/Marcus1/repos/octue-sdk-python/octue/cli.py",
-                "--show-twined-logs",
+                cli_path,
                 "start",
-                f"--app-dir={self.template_path}/elevation_app",
-                '--service-name="hello"',
-                f"--twine={self.template_path}/elevation_app/twine.json",
+                f"--app-dir={elevation_app_path}",
+                '--service-name="elevation_app"',
+                f"--twine={os.path.join(elevation_app_path, 'twine.json')}",
                 "--service-id=8dgd07fa-6bcd-4ec3-a331-69f737a15332",
             ]
         )
 
+        wind_speed_app_path = os.path.join(self.template_path, "wind_speed_app")
         wind_speed_process = subprocess.Popen(
             [
                 "python",
-                "/Users/Marcus1/repos/octue-sdk-python/octue/cli.py",
-                "--show-twined-logs",
+                cli_path,
                 "start",
-                f"--app-dir={self.template_path}/wind_speed_app",
+                f"--app-dir={wind_speed_app_path}",
                 '--service-name="wind_speed_app"',
-                f"--twine={self.template_path}/wind_speed_app/twine.json",
+                f"--twine={os.path.join(wind_speed_app_path, 'twine.json')}",
                 "--service-id=7b9d07fa-6bcd-4ec3-a331-69f737a15751",
             ]
         )
