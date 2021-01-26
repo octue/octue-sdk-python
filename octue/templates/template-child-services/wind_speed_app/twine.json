@@ -1,4 +1,30 @@
 {
+	"configuration_values_schema": {
+		"$schema": "http://json-schema.org/2019-09/schema#",
+		"title": "Wind speed app configuration",
+		"description": "Back-end configuration for the wind speed service to enable it to connect to Google Pub/Sub and communicate with other services.",
+		"type": "object",
+		"properties": {
+			"backend": {
+				"type": "object",
+				"title": "GCP Pub/Sub backend configuration",
+				"properties": {
+					"name": {
+						"description": "Type of backend (in this case, it should be GCPPubSub)",
+						"type": "string"
+					},
+					"project_name": {
+						"description": "Name of the Google Cloud Platform (GCP) project the child exists in.",
+						"type": "string"
+					},
+					"credentials_filename": {
+						"description": "Absolute path to Google Cloud Platform credentials JSON file.",
+						"type": "string"
+					}
+				}
+			}
+		}
+	},
 	"input_values_schema": {
 		"$schema": "http://json-schema.org/2019-09/schema#",
 		"title": "Input values",
@@ -25,7 +51,7 @@
 	},
 	"output_values_schema": {
 		"title": "Output values",
-		"description": "The wind speed and elevation for the input longitude and latitude.",
+		"description": "The wind speed at the input longitude and latitude.",
 		"type": "object",
 		"properties": {
 			"wind_speeds": {
@@ -34,13 +60,6 @@
 				"items": {
 					"type": "number",
 					"minimum": 0
-				}
-			},
-			"elevations": {
-				"description": "The elevation at the location.",
-				"type": "array",
-				"items": {
-					"type": "number"
 				}
 			}
 		}

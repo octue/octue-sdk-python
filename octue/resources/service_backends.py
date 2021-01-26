@@ -5,6 +5,18 @@ environment variables that store credentials is fine. For a backend to be valid,
 the "oneOf" field of the "backend" key of the children schema in `Twined`, which is located at
 `twined/schema/children_schema.json`.
 """
+from octue import exceptions
+
+
+def get_backend(backend_name):
+    available_backends = {key: value for key, value in globals().items() if key.endswith("Backend")}
+
+    if backend_name not in available_backends:
+        raise exceptions.BackendNotFound(
+            f"Backend with name {backend_name} not found. Available backends are {list(available_backends.keys())}"
+        )
+
+    return available_backends[backend_name]
 
 
 class GCPPubSubBackend:

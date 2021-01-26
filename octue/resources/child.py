@@ -1,4 +1,3 @@
-from octue import exceptions
 from octue.resources import service_backends
 from octue.resources.service import Service
 
@@ -15,7 +14,7 @@ class Child:
         self.name = name
         self.id = id
 
-        backend = self._get_backend(backend.pop("name"))(**backend)
+        backend = service_backends.get_backend(backend.pop("name"))(**backend)
         self._service = BACKEND_TO_SERVICE_MAPPING[type(backend)](backend=backend)
 
     def ask(self, input_values, input_manifest=None, timeout=20):
@@ -24,13 +23,3 @@ class Child:
         """
         subscription = self._service.ask(self.id, input_values, input_manifest)
         return self._service.wait_for_answer(subscription, timeout)
-
-    def _get_backend(self, backend_name):
-        available_backends = {key: value for key, value in vars(service_backends).items() if key.endswith("Backend")}
-
-        if backend_name not in available_backends:
-            raise exceptions.BackendNotFound(
-                f"Backend with name {backend_name} not found. Available backends are {list(available_backends.keys())}"
-            )
-
-        return available_backends[backend_name]
