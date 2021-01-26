@@ -22,6 +22,8 @@ setup(
     install_requires=[
         "blake3>=0.1.8",
         "click>=7.1.2",
+        "coolname>=1.1.0",
+        "google-cloud-pubsub>=2.2.0",
         "twined==0.0.15",
     ],  # Dev note: you also need to bump twined in tox.ini
     url="https://www.github.com/octue/octue-sdk-python",
