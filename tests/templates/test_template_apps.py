@@ -85,39 +85,40 @@ class TemplateAppsTestCase(BaseTestCase):
         cli_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "octue", "cli.py")
         self.set_template("template-child-services")
 
-        elevation_app_path = os.path.join(self.template_path, "elevation_app")
+        elevation_service_path = os.path.join(self.template_path, "elevation_service")
         elevation_process = subprocess.Popen(
             [
                 "python",
                 cli_path,
                 "start",
-                f"--app-dir={elevation_app_path}",
-                f"--twine={os.path.join(elevation_app_path, 'twine.json')}",
-                f"--config-dir={os.path.join(elevation_app_path, 'data', 'configuration')}",
+                f"--app-dir={elevation_service_path}",
+                f"--twine={os.path.join(elevation_service_path, 'twine.json')}",
+                f"--config-dir={os.path.join(elevation_service_path, 'data', 'configuration')}",
                 "--service-id=8dgd07fa-6bcd-4ec3-a331-69f737a15332",
             ]
         )
 
-        wind_speed_app_path = os.path.join(self.template_path, "wind_speed_app")
+        wind_speed_service_path = os.path.join(self.template_path, "wind_speed_service")
         wind_speed_process = subprocess.Popen(
             [
                 "python",
                 cli_path,
                 "start",
-                f"--app-dir={wind_speed_app_path}",
-                f"--twine={os.path.join(wind_speed_app_path, 'twine.json')}",
-                f"--config-dir={os.path.join(wind_speed_app_path, 'data', 'configuration')}",
+                f"--app-dir={wind_speed_service_path}",
+                f"--twine={os.path.join(wind_speed_service_path, 'twine.json')}",
+                f"--config-dir={os.path.join(wind_speed_service_path, 'data', 'configuration')}",
                 "--service-id=7b9d07fa-6bcd-4ec3-a331-69f737a15751",
             ]
         )
 
-        runner = Runner(twine=os.path.join(self.template_path, "parent_app", "twine.json"))
+        runner = Runner(twine=os.path.join(self.template_path, "parent_service", "twine.json"))
         time.sleep(5)
 
+        parent_service_path = os.path.join(self.template_path, "parent_service")
         analysis = runner.run(
-            app_src=os.path.join(self.template_path, "parent_app"),
-            children=os.path.join(self.template_path, "parent_app", "data", "configuration", "children.json"),
-            input_values=os.path.join(self.template_path, "parent_app", "data", "input", "values.json"),
+            app_src=parent_service_path,
+            children=os.path.join(parent_service_path, "data", "configuration", "children.json"),
+            input_values=os.path.join(parent_service_path, "data", "input", "values.json"),
         )
 
         analysis.finalise(output_dir=os.path.join("data", "output"))
