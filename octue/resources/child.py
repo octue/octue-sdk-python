@@ -7,7 +7,9 @@ BACKEND_TO_SERVICE_MAPPING = {service_backends.GCPPubSubBackend: Service}
 
 
 class Child:
-    """ A class representing a child service that can be asked questions. """
+    """ A class representing a child service that can be asked questions. It is a convenience wrapper for `Service` that
+    makes the asking of questions more intuitive for Scientists and allows easier selection of backends.
+    """
 
     def __init__(self, name, id, backend):
         self.name = name
