@@ -186,7 +186,8 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     help="The unique ID of the server (this should be unique over all time and space).",
 )
 @click.option("--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.")
-def start(app_dir, data_dir, config_dir, service_id, twine):
+@click.option("--timeout", type=click.INT, default=None, show_default=True, help="Timeout in seconds for serving.")
+def start(app_dir, data_dir, config_dir, service_id, twine, timeout):
     """ Start the service as a server to be asked questions by other services. """
     config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
     twine = Twine(source=twine)
@@ -217,7 +218,7 @@ def start(app_dir, data_dir, config_dir, service_id, twine):
     backend = service_backends.get_backend(backend_configuration_values.pop("name"))(**backend_configuration_values)
 
     service = Service(id=service_id, backend=backend, run_function=run_function)
-    service.serve()
+    service.serve(timeout=timeout)
 
 
 def set_unavailable_strand_paths_to_none(twine, strands):
