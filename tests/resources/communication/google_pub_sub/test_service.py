@@ -33,6 +33,7 @@ class TestService(BaseTestCase):
 
     def setUp(self):
         self.credentials = GCPCredentialsManager()
+        self.credentials.save_credentials_string_to_temporary_file()
         self.backend = GCPPubSubBackend(project_name="octue-amy", credentials_filename=self.credentials.path)
         self.asking_service = Service(backend=self.backend, id="249fc09d-9d6f-45d6-b1a4-0aacba5fca79")
         super().setUp()
