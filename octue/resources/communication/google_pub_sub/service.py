@@ -7,6 +7,7 @@ from google.cloud import pubsub_v1
 
 from octue import exceptions
 from octue.mixins import CoolNameable
+from octue.resources.communication.credentials import GCPCredentialsManager
 from octue.resources.communication.google_pub_sub import Subscription, Topic
 from octue.resources.manifest import Manifest
 
@@ -37,10 +38,13 @@ class Service(CoolNameable):
         self.id = id
         self.backend = backend
         self.run_function = run_function
-        self.publisher = pubsub_v1.PublisherClient.from_service_account_file(
-            filename=backend.credentials_filename, batch_settings=BATCH_SETTINGS
+        self.publisher = pubsub_v1.PublisherClient(
+            credentials=GCPCredentialsManager(backend.credentials_environment_variable).get_credentials(),
+            batch_settings=BATCH_SETTINGS,
         )
-        self.subscriber = pubsub_v1.SubscriberClient.from_service_account_file(filename=backend.credentials_filename)
+        self.subscriber = pubsub_v1.SubscriberClient(
+            credentials=GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
+        )
         super().__init__()
 
     def __repr__(self):
