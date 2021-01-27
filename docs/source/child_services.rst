@@ -48,13 +48,13 @@ the child for an estimate.
 Backends
 --------
 
-To make use of a certain child in ``app.py``, its backend configuration must be specified in ``children.json``. The
-backend specifies which method of communication the child uses (e.g. Google Cloud Pub/Sub), as well as pointers to the
-credentials necessary to access it and any other required parameters. The only backend currently supported is
-``GCPPubSubBackend``, which uses Google Cloud Platform's publisher/subscriber service.
+The backend specifies which method of communication the child uses (e.g. Google Cloud Pub/Sub), as well as providing
+pointers to the credentials and any other parameters necessary to access it. Each child must have its backend
+specified explicitly, even if all children use the same one. This is to support the use case where each child uses a
+different backend.
 
-Each child must have its backend specified explicitly, even if all children use the same one. This is to support the use
-case where each child uses a different backend.
+To make use of a certain child in ``app.py``, its backend configuration must be specified in ``children.json``. The only
+backend currently supported is ``GCPPubSubBackend``, which uses Google Cloud Platform's publisher/subscriber service.
 
 
 --------------------------
