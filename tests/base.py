@@ -12,11 +12,6 @@ class MyPathable(Pathable, MixinBase):
     pass
 
 
-class MockAnalysis:
-    output_values = "Hello! It worked!"
-    output_manifest = None
-
-
 class BaseTestCase(unittest.TestCase):
     """ Base test case for twined:
         - sets a path to the test data directory
@@ -58,9 +53,7 @@ class BaseTestCase(unittest.TestCase):
         manifest = Manifest(datasets=datasets, keys={"my_dataset": 0, "another_dataset": 1})
         return manifest
 
-    def make_new_server(self, backend, id="352f8185-1d58-4ddf-8faa-2af96147f96f", run_function=None):
+    def make_new_server(self, backend, run_function_returnee, id="352f8185-1d58-4ddf-8faa-2af96147f96f"):
         """ Make and return a new service ready to serve analyses from its run function. """
-        if not run_function:
-            run_function = lambda input_values, input_manifest: MockAnalysis()  # noqa
-
+        run_function = lambda input_values, input_manifest: run_function_returnee  # noqa
         return Service(backend=backend, id=id, run_function=run_function)

@@ -1,6 +1,6 @@
 import concurrent.futures
 import time
-from tests.base import BaseTestCase, MockAnalysis
+from tests.base import BaseTestCase
 
 from octue import exceptions
 from octue.resources.manifest import Manifest
@@ -9,6 +9,11 @@ from octue.resources.service_backends import GCPPubSubBackend
 
 
 SERVER_WAIT_TIME = 5
+
+
+class MockAnalysis:
+    output_values = "Hello! It worked!"
+    output_manifest = None
 
 
 class DifferentMockAnalysis:
@@ -45,7 +50,10 @@ class TestService(BaseTestCase):
         """ Test that a serving service only serves for as long as its timeout. """
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             start_time = time.perf_counter()
-            responding_future = executor.submit(self.make_new_server(self.BACKEND).serve, timeout=10)
+            responding_future = executor.submit(
+                self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis()).serve, timeout=10
+            )
+
             list(concurrent.futures.as_completed([responding_future]))[0].result()
             self.assertTrue(time.perf_counter() - start_time < 20)
 
@@ -59,7 +67,7 @@ class TestService(BaseTestCase):
 
     def test_ask(self):
         """ Test that a service can ask a question to another service that is serving and receive an answer. """
-        responding_service = self.make_new_server(self.BACKEND)
+        responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             executor.submit(responding_service.serve, timeout=10)
@@ -83,7 +91,7 @@ class TestService(BaseTestCase):
         """ Test that a service can ask a question including an input_manifest to another service that is serving and
         receive an answer.
         """
-        responding_service = self.make_new_server(self.BACKEND)
+        responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             executor.submit(responding_service.serve, timeout=10)
@@ -105,9 +113,7 @@ class TestService(BaseTestCase):
 
     def test_ask_with_output_manifest(self):
         """ Test that a service can receive an output manifest as part of the answer to a question. """
-        responding_service = self.make_new_server(
-            self.BACKEND, run_function=lambda input_values, input_manifest: MockAnalysisWithOutputManifest()
-        )
+        responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysisWithOutputManifest())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             executor.submit(responding_service.serve, timeout=10)
@@ -128,7 +134,7 @@ class TestService(BaseTestCase):
 
     def test_service_can_ask_multiple_questions(self):
         """ Test that a service can ask multiple questions to the same server and expect replies to them all. """
-        responding_service = self.make_new_server(self.BACKEND)
+        responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=7) as executor:
             executor.submit(responding_service.serve, timeout=10)
@@ -158,15 +164,11 @@ class TestService(BaseTestCase):
     def test_service_can_ask_questions_to_multiple_servers(self):
         """ Test that a service can ask questions to different servers and expect replies to them all. """
         responding_service_1 = self.make_new_server(
-            self.BACKEND,
-            id="352f8185-1d58-4ddf-8faa-2af96147f96f",
-            run_function=lambda input_values, input_manifest: MockAnalysis(),
+            self.BACKEND, run_function_returnee=MockAnalysis(), id="352f8185-1d58-4ddf-8faa-2af96147f96f",
         )
 
         responding_service_2 = self.make_new_server(
-            self.BACKEND,
-            id="6a05b695-4aa1-468c-bdf5-73303665165d",
-            run_function=lambda input_values, input_manifest: DifferentMockAnalysis(),
+            self.BACKEND, run_function_returnee=DifferentMockAnalysis(), id="6a05b695-4aa1-468c-bdf5-73303665165d",
         )
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=7) as executor:
