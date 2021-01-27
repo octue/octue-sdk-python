@@ -56,9 +56,12 @@ Each child must have its backend specified explicitly, even if all children use 
 each child uses a different backend.
 
 
--------------------------------------------
+--------------------------
 Example children.json file
--------------------------------------------
+--------------------------
+
+To access children in `app.py`, they must be specified in `children.json`, which is by default looked for in
+`<data_dir>/configuration/children.json`:
 
 .. code-block:: javascript
 
@@ -82,3 +85,31 @@ Example children.json file
             }
         }
     ]
+
+
+-------------------------------------------
+Example children field in a twine.json file
+-------------------------------------------
+
+The children field must also be present in the `twine.json` file:
+
+.. code-block:: javascript
+
+    {
+        ...
+        "children": [
+            {
+                "key": "wind_speed",
+                "purpose": "A service that returns the average wind speed for a given latitude and longitude.",
+                "notes": "Some notes.",
+                "filters": "tags:wind_speed"
+            },
+            {
+                "key": "elevation",
+                "purpose": "A service that returns the elevation for a given latitude and longitude.",
+                "notes": "Some notes.",
+                "filters": "tags:elevation"
+            }
+        ],
+        ...
+    }
