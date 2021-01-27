@@ -20,9 +20,9 @@ def get_backend(backend_name):
 class GCPPubSubBackend:
     """ A dataclass containing the details needed to use Google Cloud Platform Pub/Sub as a Service backend. """
 
-    def __init__(self, project_name, credentials_filename):
+    def __init__(self, project_name, credentials_environment_variable):
         self.project_name = project_name
-        self.credentials_filename = credentials_filename
+        self.credentials_environment_variable = credentials_environment_variable
 
 
 AVAILABLE_BACKENDS = {key: value for key, value in locals().items() if key.endswith("Backend")}

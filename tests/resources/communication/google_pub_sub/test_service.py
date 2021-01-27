@@ -3,7 +3,6 @@ import time
 from tests.base import BaseTestCase
 
 from octue import exceptions
-from octue.resources.communication.credentials import GCPCredentialsManager
 from octue.resources.communication.google_pub_sub.service import Service
 from octue.resources.communication.service_backends import GCPPubSubBackend
 from octue.resources.manifest import Manifest
@@ -32,15 +31,11 @@ class TestService(BaseTestCase):
     (GCP), or a local emulator. """
 
     def setUp(self):
-        self.credentials_manager = GCPCredentialsManager()
-        credentials_path = self.credentials_manager.get_credentials_path()
-        self.backend = GCPPubSubBackend(project_name="octue-amy", credentials_filename=credentials_path)
+        self.backend = GCPPubSubBackend(
+            project_name="octue-amy", credentials_environment_variable="GCP_SERVICE_ACCOUNT"
+        )
         self.asking_service = Service(backend=self.backend, id="249fc09d-9d6f-45d6-b1a4-0aacba5fca79")
         super().setUp()
-
-    def tearDown(self):
-        self.credentials_manager.cleanup()
-        super().tearDown()
 
     @staticmethod
     def ask_question_and_wait_for_answer(asking_service, responding_service, input_values, input_manifest):

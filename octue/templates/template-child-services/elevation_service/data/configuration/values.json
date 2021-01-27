@@ -2,6 +2,6 @@
     "backend": {
         "name": "GCPPubSubBackend",
         "project_name": "octue-amy",
-        "credentials_filename": "/Users/Marcus1/repos/octue-sdk-python/octue-amy-670f6026b822.json"
+        "credentials_environment_variable": "GCP_SERVICE_ACCOUNT"
     }
 }
