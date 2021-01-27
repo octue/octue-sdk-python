@@ -9,14 +9,12 @@ from octue import exceptions
 
 
 def get_backend(backend_name):
-    available_backends = {key: value for key, value in globals().items() if key.endswith("Backend")}
-
-    if backend_name not in available_backends:
+    if backend_name not in AVAILABLE_BACKENDS:
         raise exceptions.BackendNotFound(
-            f"Backend with name {backend_name} not found. Available backends are {list(available_backends.keys())}"
+            f"Backend with name {backend_name} not found. Available backends are {list(AVAILABLE_BACKENDS.keys())}"
         )
 
-    return available_backends[backend_name]
+    return AVAILABLE_BACKENDS[backend_name]
 
 
 class GCPPubSubBackend:
@@ -25,3 +23,6 @@ class GCPPubSubBackend:
     def __init__(self, project_name, credentials_filename):
         self.project_name = project_name
         self.credentials_filename = credentials_filename
+
+
+AVAILABLE_BACKENDS = {key: value for key, value in locals().items() if key.endswith("Backend")}
