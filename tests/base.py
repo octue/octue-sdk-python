@@ -5,7 +5,8 @@ import uuid
 from tempfile import TemporaryDirectory, gettempdir
 
 from octue.mixins import MixinBase, Pathable
-from octue.resources import Datafile, Dataset, Manifest, Service
+from octue.resources import Datafile, Dataset, Manifest
+from octue.resources.communication import Service
 
 
 class MyPathable(Pathable, MixinBase):

@@ -4,9 +4,9 @@ from tests.base import BaseTestCase
 
 from octue import exceptions
 from octue.resources.communication.credentials import GCPCredentialsManager
+from octue.resources.communication.google_pub_sub.service import Service
+from octue.resources.communication.service_backends import GCPPubSubBackend
 from octue.resources.manifest import Manifest
-from octue.resources.service import Service
-from octue.resources.service_backends import GCPPubSubBackend
 
 
 SERVER_WAIT_TIME = 5

@@ -1,5 +1,5 @@
-from octue.resources import service_backends
-from octue.resources.service import Service
+from octue.resources.communication import service_backends
+from octue.resources.communication.google_pub_sub.service import Service
 
 
 BACKEND_TO_SERVICE_MAPPING = {service_backends.GCPPubSubBackend: Service}
