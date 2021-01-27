@@ -34,6 +34,8 @@ jobs:
       - name: Install Tox and any other packages
         run: pip install tox
       - name: Run Tox
+        env:
+          GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
         run: tox -e py
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
