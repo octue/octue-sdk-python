@@ -37,6 +37,10 @@ class TestService(BaseTestCase):
         subscription = asking_service.ask(responding_service.id, input_values, input_manifest)
         return asking_service.wait_for_answer(subscription)
 
+    def test_repr(self):
+        """ Test that services are represented as a string correctly. """
+        self.assertEqual(repr(self.asking_service), f"<Service({self.asking_service.name!r})>")
+
     def test_serve_with_timeout(self):
         """ Test that a serving service only serves for as long as its timeout. """
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
