@@ -9,8 +9,9 @@ values and/or an input manifest in the form the child's Twine specifies. When a 
 an answer, which is a set of output values and/or an output manifest, again in the form specified by the child's Twine.
 
 There can be:
-* Any number of children
-* Any number of questions asked to each child
+
+- Any number of children
+- Any number of questions asked to each child
 
 Further, a child can have its own children that it asks questions to. There is no limit to this as long as the tree of
 services forms a directed acyclical graph (DAG) - i.e. there are no loops and no children ask their parents any
