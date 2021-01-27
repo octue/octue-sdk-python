@@ -1,0 +1,84 @@
+.. _child_services:
+
+==============
+Child services
+==============
+When a Twine file is written, there is the option to include children (i.e. child services or child digital twins) so
+the main or parent service can communicate with them to ask them "questions". A question is a set of input
+values and/or an input manifest in the form the child's Twine specifies. When a question is asked, the parent can expect
+an answer, which is a set of output values and/or an output manifest, again in the form specified by the child's Twine.
+
+There can be:
+* Any number of children
+* Any number of questions asked to each child
+
+Further, a child can have its own children that it asks questions to. There is no limit to this as long as the tree of
+services forms a directed acyclical graph (DAG) - i.e. there are no loops and no children ask their parents any
+questions.
+
+
+-------------------------
+Example usage in your app
+-------------------------
+
+Assuming you have specified which children you would like to use in your `twine.json` file (see below for an example),
+you can ask children questions in your `app.py` file as follows:
+
+.. code-block:: python
+
+    answer_1 = analysis.children["child_1"].ask(input_values=analysis.input_values, timeout=None)
+    answer_2 = analysis.children["child_2"].ask(input_values=analysis.input_values, timeout=None)
+
+    >>> answer_1
+    {
+        'output_values': <output values in form specified by child twine.json>,
+        'output_manifest': <output manifest in form specified by child twine.json>
+    }
+
+
+A timeout (measured in seconds) can be set for how long you are willing to wait for an answer, but bear in mind that the
+question has to reach the child, the child has to run its own analysis on the inputs sent to it (this most likely
+corresponds to the dominant part of the wait time), and the answer has to be send back to the parent. If you are not
+sure how long a particular analysis might take, it's best to set the timeout to `None` or ask the owner/maintainer of
+the child for an estimate.
+
+
+--------
+Backends
+--------
+
+To make use of a certain child in `app.py`, its backend configuration must be specified in `children.json`. The backend
+specifies which method of communication the child uses (e.g. Google Cloud Pub/Sub), as well as pointers to the
+credentials necessary to access it and any other required parameters. The only backend currently supported is
+`GCPPubSubBackend`, which uses Google Cloud Platform's publisher/subscriber service.
+
+Each child must have its backend specified explicitly, even if all children use the same one. This is to support the use case where
+each child uses a different backend.
+
+
+-------------------------------------------
+Example children.json file
+-------------------------------------------
+
+.. code-block:: javascript
+
+    [
+        {
+            "key": "wind_speed",
+            "id": "7b9d07fa-6bcd-4ec3-a331-69f737a15751",
+            "backend": {
+                "name": "GCPPubSubBackend",
+                "project_name": "<google_cloud_project_name>",
+                "credentials_filename": "<absolute_path_to_credentials_json_file>"
+            }
+        },
+        {
+            "key": "elevation",
+            "id": "8dgd07fa-6bcd-4ec3-a331-69f737a15332",
+            "backend": {
+                "name": "GCPPubSubBackend",
+                "project_name": "<google_cloud_project_name>",
+                "credentials_filename": "<absolute_path_to_credentials_json_file>"
+            }
+        }
+    ]
