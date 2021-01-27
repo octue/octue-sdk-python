@@ -21,8 +21,8 @@ questions.
 Example usage in your app
 -------------------------
 
-Assuming you have specified which children you would like to use in your `twine.json` file (see below for an example),
-you can ask children questions in your `app.py` file as follows:
+Assuming you have specified which children you would like to use in your ``twine.json`` file (see below for an example),
+you can ask children questions in your ``app.py`` file as follows:
 
 .. code-block:: python
 
@@ -39,7 +39,7 @@ you can ask children questions in your `app.py` file as follows:
 A timeout (measured in seconds) can be set for how long you are willing to wait for an answer, but bear in mind that the
 question has to reach the child, the child has to run its own analysis on the inputs sent to it (this most likely
 corresponds to the dominant part of the wait time), and the answer has to be send back to the parent. If you are not
-sure how long a particular analysis might take, it's best to set the timeout to `None` or ask the owner/maintainer of
+sure how long a particular analysis might take, it's best to set the timeout to ``None`` or ask the owner/maintainer of
 the child for an estimate.
 
 
@@ -47,21 +47,21 @@ the child for an estimate.
 Backends
 --------
 
-To make use of a certain child in `app.py`, its backend configuration must be specified in `children.json`. The backend
-specifies which method of communication the child uses (e.g. Google Cloud Pub/Sub), as well as pointers to the
+To make use of a certain child in ``app.py``, its backend configuration must be specified in ``children.json``. The
+backend specifies which method of communication the child uses (e.g. Google Cloud Pub/Sub), as well as pointers to the
 credentials necessary to access it and any other required parameters. The only backend currently supported is
-`GCPPubSubBackend`, which uses Google Cloud Platform's publisher/subscriber service.
+``GCPPubSubBackend``, which uses Google Cloud Platform's publisher/subscriber service.
 
-Each child must have its backend specified explicitly, even if all children use the same one. This is to support the use case where
-each child uses a different backend.
+Each child must have its backend specified explicitly, even if all children use the same one. This is to support the use
+case where each child uses a different backend.
 
 
 --------------------------
 Example children.json file
 --------------------------
 
-To access children in `app.py`, they must be specified in `children.json`, which is by default looked for in
-`<data_dir>/configuration/children.json`:
+To access children in ``app.py``, they must be specified in ``children.json``, which is by default looked for in
+``<data_dir>/configuration/children.json``:
 
 .. code-block:: javascript
 
@@ -72,7 +72,7 @@ To access children in `app.py`, they must be specified in `children.json`, which
             "backend": {
                 "name": "GCPPubSubBackend",
                 "project_name": "<google_cloud_project_name>",
-                "credentials_filename": "<absolute_path_to_credentials_json_file>"
+                "credentials_filename": "<absolute/path/to/credentials_file.json>"
             }
         },
         {
@@ -81,7 +81,7 @@ To access children in `app.py`, they must be specified in `children.json`, which
             "backend": {
                 "name": "GCPPubSubBackend",
                 "project_name": "<google_cloud_project_name>",
-                "credentials_filename": "<absolute_path_to_credentials_json_file>"
+                "credentials_filename": "<absolute/path/to/credentials_file.json>"
             }
         }
     ]
@@ -91,7 +91,7 @@ To access children in `app.py`, they must be specified in `children.json`, which
 Example children field in a twine.json file
 -------------------------------------------
 
-The children field must also be present in the `twine.json` file:
+The children field must also be present in the ``twine.json`` file:
 
 .. code-block:: javascript
 
@@ -113,3 +113,23 @@ The children field must also be present in the `twine.json` file:
         ],
         ...
     }
+
+
+----------------------------
+Starting a child as a server
+----------------------------
+
+For a service to ask another service questions, the askee must already be running as a server. The person/organisation
+responsible for the askee must start the askee as a server if it is to be accessible to questions.
+
+To start a service as a server, the command line interface (CLI) can be used:
+
+.. code-block:: bash
+
+    octue-app start \
+    --app-dir=<path/to/app_directory> \
+    --twine=<path/to/twine.json> \
+    --config-dir=<path/to/configuration> \
+    --service-id=<UUID of service>
+
+The service ID must be the UUID of the service as registered with Octue.
