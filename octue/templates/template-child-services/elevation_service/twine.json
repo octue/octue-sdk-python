@@ -53,16 +53,10 @@
 	},
 	"output_values_schema": {
 		"title": "Output values",
-		"description": "The elevation at the input longitude and latitude.",
-		"type": "object",
-		"properties": {
-			"elevations": {
-				"description": "The elevations at the locations.",
-				"type": "array",
-				"items": {
-					"type": "number"
-				}
-			}
+		"description": "The elevations at the input longitudes and latitudes.",
+		"type": "array",
+		"items": {
+			"type": "number"
 		}
 	}
 }

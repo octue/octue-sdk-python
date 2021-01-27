@@ -123,6 +123,6 @@ class TemplateAppsTestCase(BaseTestCase):
                 input_values=os.path.join(parent_service_path, "data", "input", "values.json"),
             )
 
-        analysis.finalise(output_dir=os.path.join("data", "output"))
+        analysis.finalise()
         self.assertTrue("elevations" in analysis.output_values)
         self.assertTrue("wind_speeds" in analysis.output_values)

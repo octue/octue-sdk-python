@@ -53,17 +53,11 @@
 	},
 	"output_values_schema": {
 		"title": "Output values",
-		"description": "The wind speed at the input longitude and latitude.",
-		"type": "object",
-		"properties": {
-			"wind_speeds": {
-				"description": "The wind speed at the location.",
-				"type": "array",
-				"items": {
-					"type": "number",
-					"minimum": 0
-				}
-			}
+		"description": "The wind speed at the input longitudes and latitudes.",
+		"type": "array",
+		"items": {
+			"type": "number",
+			"minimum": 0
 		}
 	}
 }
