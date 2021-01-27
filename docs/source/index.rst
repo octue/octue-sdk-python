@@ -1,6 +1,6 @@
-=================
+==================
 Octue SDK (Python)
-=================
+==================
 
 
 We use the `GitHub Issue Tracker <https://github.com/octue/octue-sdk-python>`_
