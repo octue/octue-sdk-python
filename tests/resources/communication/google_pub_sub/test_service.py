@@ -32,14 +32,14 @@ class TestService(BaseTestCase):
     (GCP), or a local emulator. """
 
     def setUp(self):
-        self.credentials = GCPCredentialsManager()
-        self.credentials.save_credentials_string_to_temporary_file()
-        self.backend = GCPPubSubBackend(project_name="octue-amy", credentials_filename=self.credentials.path)
+        self.credentials_manager = GCPCredentialsManager()
+        credentials_path = self.credentials_manager.get_credentials_path()
+        self.backend = GCPPubSubBackend(project_name="octue-amy", credentials_filename=credentials_path)
         self.asking_service = Service(backend=self.backend, id="249fc09d-9d6f-45d6-b1a4-0aacba5fca79")
         super().setUp()
 
     def tearDown(self):
-        self.credentials.cleanup()
+        self.credentials_manager.cleanup()
         super().tearDown()
 
     @staticmethod
