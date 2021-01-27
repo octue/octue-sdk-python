@@ -54,7 +54,7 @@ class TestService(BaseTestCase):
                 self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis()).serve, timeout=10
             )
 
-            list(concurrent.futures.as_completed([responding_future]))[0].result()
+            responding_future.result()
             self.assertTrue(time.perf_counter() - start_time < 20)
 
     def test_ask_on_non_existent_service_results_in_error(self):
@@ -82,9 +82,9 @@ class TestService(BaseTestCase):
                 input_manifest=None,
             )
 
-            answer = list(concurrent.futures.as_completed([asker_future]))[0].result()
             self.assertEqual(
-                answer, {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest}
+                asker_future.result(),
+                {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
             )
 
     def test_ask_with_input_manifest(self):
@@ -106,9 +106,9 @@ class TestService(BaseTestCase):
                 input_manifest=Manifest(),
             )
 
-            answer = list(concurrent.futures.as_completed([asker_future]))[0].result()
             self.assertEqual(
-                answer, {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest}
+                asker_future.result(),
+                {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
             )
 
     def test_ask_with_output_manifest(self):
