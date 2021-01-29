@@ -134,7 +134,12 @@ To start a service as a server, the command line interface (CLI) can be used:
         --config-dir=<path/to/configuration> \
         --service-id=<UUID of service>
 
-The service ID must be the UUID of the service as registered with Octue.
+You can choose a random UUID for the service ID, but it must be unique across all services. It must also stay the same
+once it has been created so that Scientists and other services can know which service is which and communicate with the
+correct ones. We recommend registering your service with Octue if you want others to be able to use it easily (and, if
+allowed, look it up), and also so that its ID is reserved permanently.
+
+**Note:** We will be automating this process soon. In the meantime, please contact us to register service IDs.
 
 
 --------------------------------------------------------------------------
