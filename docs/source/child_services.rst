@@ -3,6 +3,7 @@
 ==============
 Child services
 ==============
+
 When a Twine file is written, there is the option to include children (i.e. child services or child digital twins) so
 the main or parent service can communicate with them to ask them "questions". A question is a set of input
 values and/or an input manifest in the form the child's Twine specifies. When a question is asked, the parent can expect
@@ -116,21 +117,64 @@ The children field must also be present in the ``twine.json`` file:
     }
 
 
-----------------------------
-Starting a child as a server
-----------------------------
+------------------------------------
+Starting a child/service as a server
+------------------------------------
 
-For a service to ask another service questions, the askee must already be running as a server. The person/organisation
-responsible for the askee must start the askee as a server if it is to be accessible to questions.
+For a parent to ask a child questions, the child must already be running as a server. The person/organisation
+responsible for the child must start it as a server if it is to be able to answer questions.
 
 To start a service as a server, the command line interface (CLI) can be used:
 
 .. code-block:: bash
 
     octue-app start \
-    --app-dir=<path/to/app_directory> \
-    --twine=<path/to/twine.json> \
-    --config-dir=<path/to/configuration> \
-    --service-id=<UUID of service>
+        --app-dir=<path/to/app_directory> \
+        --twine=<path/to/twine.json> \
+        --config-dir=<path/to/configuration> \
+        --service-id=<UUID of service>
 
 The service ID must be the UUID of the service as registered with Octue.
+
+
+--------------------------------------------------------------------------
+See services communicate in real time: running the child services template
+--------------------------------------------------------------------------
+
+1. Contact Octue to request a Google Cloud Platform service account credentials file.
+
+2. Save this file locally and create a ``GCP_SERVICE_ACCOUNT`` environment variable whose value is the file's absolute path. This variable must be available to all three terminal windows used to run the template - see below for one method of doing this. **IMPORTANT**: Do not commit this or any other credentials or credentials file to git, GitHub, or any other version control software or website - doing so opens you, your systems and equipment, and our systems and equipment up to hackers and cyber attack.
+
+3. From the repository root, start the elevation service as a server in a terminal window:
+
+.. code-block:: bash
+
+    GCP_SERVICE_ACCOUNT=</absolute/path/to/gcp_credentials.json> octue-app --log-level=debug --show-twined-logs
+        start \
+        --app-dir=octue/templates/template-child-services/elevation_service \
+        --twine=octue/templates/template-child-services/elevation_service/twine.json \
+        --config-dir=octue/templates/template-child-services/elevation_service/data/configuration \
+        --service-id=8dgd07fa-6bcd-4ec3-a331-69f737a15332
+
+4. In another terminal window, start the wind speeds service as a server:
+
+.. code-block:: bash
+
+    GCP_SERVICE_ACCOUNT=</absolute/path/to/gcp_credentials.json> octue-app --log-level=debug --show-twined-logs \
+        start \
+        --app-dir=octue/templates/template-child-services/wind_speed_service \
+        --twine=octue/templates/template-child-services/wind_speed_service/twine.json \
+        --config-dir=octue/templates/template-child-services/wind_speed_service/data/configuration \
+        --service-id=7b9d07fa-6bcd-4ec3-a331-69f737a15751
+
+5. In a third terminal window, run the parent app (don't start it as a server):
+
+.. code-block:: bash
+
+    GCP_SERVICE_ACCOUNT=</absolute/path/to/gcp_credentials.json> octue-app --log-level=debug --show-twined-logs \
+        run \
+        --app-dir=octue/templates/template-child-services/parent_service \
+        --twine=octue/templates/template-child-services/parent_service/twine.json \
+        --data-dir=octue/templates/template-child-services/parent_service/data
+
+6. Watch the logs to observe the three services communicate with each other via the cloud in real time. When finished, you will find the output values of the parent in ``octue/templates/template-child-services/parent_service/data/output/values.json``
