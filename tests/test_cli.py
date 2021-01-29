@@ -1,5 +1,6 @@
 import os
 import tempfile
+import uuid
 from unittest import mock
 from click.testing import CliRunner
 from tests import TESTS_DIR
@@ -145,7 +146,7 @@ class RunnerTestCase(BaseTestCase):
                 f"--app-dir={elevation_service_path}",
                 f"--twine={os.path.join(elevation_service_path, 'twine.json')}",
                 f"--config-dir={os.path.join(elevation_service_path, 'data', 'configuration')}",
-                "--service-id=8dgd07fa-6bcd-4ec3-a331-69f737a15332",
+                f"--service-id={uuid.uuid4()}",
                 "--timeout=5",
             ],
         )
