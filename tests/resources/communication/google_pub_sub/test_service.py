@@ -1,5 +1,6 @@
 import concurrent.futures
 import time
+import uuid
 from tests.base import BaseTestCase
 
 from octue import exceptions
@@ -30,12 +31,7 @@ class TestService(BaseTestCase):
     """ Some of these tests require a connection to either a real Google Pub/Sub instance on Google Cloud Platform
     (GCP), or a local emulator. """
 
-    def setUp(self):
-        self.backend = GCPPubSubBackend(
-            project_name="octue-amy", credentials_environment_variable="GCP_SERVICE_ACCOUNT"
-        )
-        self.asking_service = Service(backend=self.backend, id="249fc09d-9d6f-45d6-b1a4-0aacba5fca79")
-        super().setUp()
+    BACKEND = GCPPubSubBackend(project_name="octue-amy", credentials_environment_variable="GCP_SERVICE_ACCOUNT")
 
     @staticmethod
     def ask_question_and_wait_for_answer(asking_service, responding_service, input_values, input_manifest):
@@ -45,14 +41,15 @@ class TestService(BaseTestCase):
 
     def test_repr(self):
         """ Test that services are represented as a string correctly. """
-        self.assertEqual(repr(self.asking_service), f"<Service({self.asking_service.name!r})>")
+        asking_service = Service(backend=self.BACKEND, id=str(uuid.uuid4()))
+        self.assertEqual(repr(asking_service), f"<Service({asking_service.name!r})>")
 
     def test_serve_with_timeout(self):
         """ Test that a serving service only serves for as long as its timeout. """
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             start_time = time.perf_counter()
             responding_future = executor.submit(
-                self.make_new_server(self.backend, run_function_returnee=MockAnalysis()).serve, timeout=10
+                self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis()).serve, timeout=10
             )
 
             responding_future.result()
@@ -62,13 +59,12 @@ class TestService(BaseTestCase):
         """ Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
         results in an error. """
         with self.assertRaises(exceptions.ServiceNotFound):
-            Service(backend=self.backend, id="249fc09d-9d6f-45d6-b1a4-0aacba5fca79").ask(
-                service_id=1234, input_values=[1, 2, 3, 4]
-            )
+            Service(backend=self.BACKEND, id=str(uuid.uuid4())).ask(service_id=1234, input_values=[1, 2, 3, 4])
 
     def test_ask(self):
         """ Test that a service can ask a question to another service that is serving and receive an answer. """
-        responding_service = self.make_new_server(self.backend, run_function_returnee=MockAnalysis())
+        asking_service = Service(backend=self.BACKEND, id=str(uuid.uuid4()))
+        responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             executor.submit(responding_service.serve, timeout=10)
@@ -77,7 +73,7 @@ class TestService(BaseTestCase):
 
             asker_future = executor.submit(
                 self.ask_question_and_wait_for_answer,
-                asking_service=self.asking_service,
+                asking_service=asking_service,
                 responding_service=responding_service,
                 input_values={},
                 input_manifest=None,
@@ -92,7 +88,8 @@ class TestService(BaseTestCase):
         """ Test that a service can ask a question including an input_manifest to another service that is serving and
         receive an answer.
         """
-        responding_service = self.make_new_server(self.backend, run_function_returnee=MockAnalysis())
+        asking_service = Service(backend=self.BACKEND, id=str(uuid.uuid4()))
+        responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             executor.submit(responding_service.serve, timeout=10)
@@ -101,7 +98,7 @@ class TestService(BaseTestCase):
 
             asker_future = executor.submit(
                 self.ask_question_and_wait_for_answer,
-                asking_service=self.asking_service,
+                asking_service=asking_service,
                 responding_service=responding_service,
                 input_values={},
                 input_manifest=Manifest(),
@@ -114,7 +111,8 @@ class TestService(BaseTestCase):
 
     def test_ask_with_output_manifest(self):
         """ Test that a service can receive an output manifest as part of the answer to a question. """
-        responding_service = self.make_new_server(self.backend, run_function_returnee=MockAnalysisWithOutputManifest())
+        asking_service = Service(backend=self.BACKEND, id=str(uuid.uuid4()))
+        responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysisWithOutputManifest())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             executor.submit(responding_service.serve, timeout=10)
@@ -123,7 +121,7 @@ class TestService(BaseTestCase):
 
             asker_future = executor.submit(
                 self.ask_question_and_wait_for_answer,
-                asking_service=self.asking_service,
+                asking_service=asking_service,
                 responding_service=responding_service,
                 input_values={},
                 input_manifest=None,
@@ -135,7 +133,8 @@ class TestService(BaseTestCase):
 
     def test_service_can_ask_multiple_questions(self):
         """ Test that a service can ask multiple questions to the same server and expect replies to them all. """
-        responding_service = self.make_new_server(self.backend, run_function_returnee=MockAnalysis())
+        asking_service = Service(backend=self.BACKEND, id=str(uuid.uuid4()))
+        responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=7) as executor:
             executor.submit(responding_service.serve, timeout=10)
@@ -147,7 +146,7 @@ class TestService(BaseTestCase):
                 futures.append(
                     executor.submit(
                         self.ask_question_and_wait_for_answer,
-                        asking_service=self.asking_service,
+                        asking_service=asking_service,
                         responding_service=responding_service,
                         input_values={},
                         input_manifest=None,
@@ -164,13 +163,10 @@ class TestService(BaseTestCase):
 
     def test_service_can_ask_questions_to_multiple_servers(self):
         """ Test that a service can ask questions to different servers and expect replies to them all. """
-        responding_service_1 = self.make_new_server(
-            self.backend, run_function_returnee=MockAnalysis(), id="352f8185-1d58-4ddf-8faa-2af96147f96f",
-        )
+        asking_service = Service(backend=self.BACKEND, id=str(uuid.uuid4()))
 
-        responding_service_2 = self.make_new_server(
-            self.backend, run_function_returnee=DifferentMockAnalysis(), id="6a05b695-4aa1-468c-bdf5-73303665165d",
-        )
+        responding_service_1 = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
+        responding_service_2 = self.make_new_server(self.BACKEND, run_function_returnee=DifferentMockAnalysis())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=7) as executor:
             executor.submit(responding_service_1.serve, timeout=10)
@@ -180,7 +176,7 @@ class TestService(BaseTestCase):
 
             first_question_future = executor.submit(
                 self.ask_question_and_wait_for_answer,
-                asking_service=self.asking_service,
+                asking_service=asking_service,
                 responding_service=responding_service_1,
                 input_values={},
                 input_manifest=None,
@@ -188,7 +184,7 @@ class TestService(BaseTestCase):
 
             second_question_future = executor.submit(
                 self.ask_question_and_wait_for_answer,
-                asking_service=self.asking_service,
+                asking_service=asking_service,
                 responding_service=responding_service_2,
                 input_values={},
                 input_manifest=None,
