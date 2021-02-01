@@ -22,13 +22,11 @@ class InheritWithFieldsToSerialise(Inherit):
 
 class SerialisableTestCase(BaseTestCase):
     def test_instantiates_with_no_args(self):
-        """ Ensures the class instantiates without arguments
-        """
+        """Ensures the class instantiates without arguments"""
         Serialisable()
 
     def test_raises_attribute_error_with_missing_logger(self):
-        """ Ensures class instantiates with a string uuid
-        """
+        """Ensures class instantiates with a string uuid"""
         resource = Serialisable()
         with self.assertRaises(AttributeError) as error:
             resource.serialise()
@@ -36,8 +34,7 @@ class SerialisableTestCase(BaseTestCase):
         self.assertIn("'Serialisable' object has no attribute 'logger'", error.exception.args[0])
 
     def test_returns_primitive_without_logger_or_protected_fields(self):
-        """ Ensures class instantiates with a UUID()
-        """
+        """Ensures class instantiates with a UUID()"""
         resource = Inherit()
         serialised = resource.serialise()
         self.assertTrue("id" in serialised.keys())
@@ -46,8 +43,7 @@ class SerialisableTestCase(BaseTestCase):
         self.assertFalse("_field_not_to_serialise" in serialised.keys())
 
     def test_serialise_only_attrs(self):
-        """ Restricts the id field, which would normally be serialised
-        """
+        """Restricts the id field, which would normally be serialised"""
         resource = InheritWithFieldsToSerialise()
         serialised = resource.serialise()
         self.assertFalse("id" in serialised.keys())
@@ -56,15 +52,13 @@ class SerialisableTestCase(BaseTestCase):
         self.assertFalse("_field_not_to_serialise" in serialised.keys())
 
     def test_serialise_to_string(self):
-        """ Restricts the id field, which would normally be serialised
-        """
+        """Restricts the id field, which would normally be serialised"""
         resource = InheritWithFieldsToSerialise()
         serialised = resource.serialise(to_string=True)
         self.assertIsInstance(serialised, str)
 
     def test_serialise_to_file(self):
-        """ Restricts the id field, which would normally be serialised
-        """
+        """Restricts the id field, which would normally be serialised"""
 
         with TemporaryDirectory() as dir_name:
             file_name = os.path.join(dir_name, "test_serialise_to_file.json")

@@ -1,7 +1,6 @@
-from tests.base import BaseTestCase
-
 from octue.exceptions import BackendNotFound
 from octue.resources.communication.service_backends import get_backend
+from tests.base import BaseTestCase
 
 
 class TestServiceBackends(BaseTestCase):

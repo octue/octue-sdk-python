@@ -88,7 +88,7 @@ class Filterable:
         return filter_(attribute, filter_value)
 
     def _split_filter_name(self, filter_name):
-        """ Split the filter name into the attribute name and filter action, raising an error if it the attribute name
+        """Split the filter name into the attribute name and filter action, raising an error if it the attribute name
         and filter action aren't delimited by a double underscore i.e. "__".
         """
         try:
@@ -102,7 +102,7 @@ class Filterable:
         return attribute_name, filter_action
 
     def _get_filter(self, attribute, filter_action):
-        """ Get the filter for the attribute and filter action, raising an error if there is no filter action of that
+        """Get the filter for the attribute and filter action, raising an error if there is no filter action of that
         name.
         """
         try:
@@ -116,7 +116,7 @@ class Filterable:
             )
 
     def _get_filter_actions_for_attribute(self, attribute):
-        """ Get the possible filters for the given attribute based on its type or interface, raising an error if the
+        """Get the possible filters for the given attribute based on its type or interface, raising an error if the
         attribute's type isn't supported (i.e. if there aren't any filters defined for it)."""
         try:
             return TYPE_FILTERS[type(attribute).__name__]

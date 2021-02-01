@@ -4,7 +4,7 @@ from octue.definitions import OUTPUT_STRANDS, STRAND_FILENAME_MAP
 
 
 def get_file_name_from_strand(strand, path):
-    """ Where values or manifest are contained in a local file, assemble that filename.
+    """Where values or manifest are contained in a local file, assemble that filename.
 
     For output directories, the directory will be made if it doesn't exist. This is not true for input directories
     for which validation of their presence is handled elsewhere.

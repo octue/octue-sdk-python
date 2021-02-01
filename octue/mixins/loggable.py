@@ -2,7 +2,7 @@ import logging
 
 
 class Loggable:
-    """ Mixin to allow instantiation of a class with a logger, or by default use the module logger from that class
+    """Mixin to allow instantiation of a class with a logger, or by default use the module logger from that class
 
     The attached logger is a class variable, so all Resources of the same type inheriting from Loggable will share the
     same logger instance; this can be confusing if you overload __init_logger__ in multiple different ways.
@@ -22,8 +22,7 @@ class Loggable:
         self.__init_logger__(logger)
 
     def __init_logger__(self, logger=None):
-        """ Overload this in a subclass to initialise your own logger using class attributes
-        """
+        """Overload this in a subclass to initialise your own logger using class attributes"""
         self._logger = logger or logging.getLogger(self.__class__.__module__)
 
     @property

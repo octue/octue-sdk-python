@@ -14,8 +14,8 @@ class MyPathable(Pathable, MixinBase):
 
 
 class BaseTestCase(unittest.TestCase):
-    """ Base test case for twined:
-        - sets a path to the test data directory
+    """Base test case for twined:
+    - sets a path to the test data directory
     """
 
     def setUp(self):
@@ -26,7 +26,7 @@ class BaseTestCase(unittest.TestCase):
         super().setUp()
 
     def callCli(self, args):
-        """ Utility to call the octue CLI (eg for a templated example) in a separate subprocess
+        """Utility to call the octue CLI (eg for a templated example) in a separate subprocess
         Enables testing that multiple processes aren't using the same memory space, or for running multiple apps in
         parallel to ensure they don't conflict
         """

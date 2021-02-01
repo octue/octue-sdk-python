@@ -5,7 +5,7 @@ from octue.utils import gen_uuid
 
 
 class Identifiable:
-    """ Mixin to allow instantiation of a class with a given uuid, or generate one on instantiation
+    """Mixin to allow instantiation of a class with a given uuid, or generate one on instantiation
 
     Prevents setting an id after an object is instantiated.
 
@@ -22,8 +22,7 @@ class Identifiable:
     """
 
     def __init__(self, *args, id=None, **kwargs):
-        """ Constructor for Identifiable class
-        """
+        """Constructor for Identifiable class"""
         super().__init__(*args, **kwargs)
 
         # Store a boolean record of whether this object was created with a previously-existing uuid or was created new.

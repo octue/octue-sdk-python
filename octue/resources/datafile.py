@@ -12,7 +12,7 @@ module_logger = logging.getLogger(__name__)
 
 
 class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable, Filterable):
-    """ Class for representing data files on the Octue system
+    """Class for representing data files on the Octue system
 
     Files in a manifest look like this:
 
@@ -76,8 +76,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         skip_checks=True,
         **kwargs,
     ):
-        """ Construct a datafile
-        """
+        """Construct a datafile"""
         super().__init__(id=id, logger=logger, tags=tags, path=path, path_from=path_from, base_from=base_from)
 
         self.cluster = cluster
@@ -95,8 +94,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             self.check(**kwargs)
 
     def _get_extension_from_path(self, path=None):
-        """ Gets extension of a file, either from a provided file path or from self.path field
-        """
+        """Gets extension of a file, either from a provided file path or from self.path field"""
         path = path or self.path
         return os.path.splitext(path)[-1].strip(".")
 
@@ -127,8 +125,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         return super()._calculate_hash(hash)
 
     def check(self, size_bytes=None, sha=None, last_modified=None, extension=None):
-        """ Check file presence and integrity
-        """
+        """Check file presence and integrity"""
         # TODO Check consistency of size_bytes input against self.size_bytes property for a file if we have one
         # TODO Check consistency of sha against file contents if we have a file
         # TODO Check consistency of last_modified date
@@ -142,13 +139,12 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             raise FileNotFoundException(f"No file found at {self.absolute_path}")
 
     def exists(self):
-        """ Returns true if the datafile exists on the current system, false otherwise
-        """
+        """Returns true if the datafile exists on the current system, false otherwise"""
         return isfile(self.absolute_path)
 
     @property
     def open(self):
-        """ Context manager to handle the opening and closing of a Datafile.
+        """Context manager to handle the opening and closing of a Datafile.
 
         If opened in write mode, the manager will attempt to determine if the folder path exists and, if not, will
         create the folder structure required to write the file.

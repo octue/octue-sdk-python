@@ -2,7 +2,7 @@ from octue import exceptions
 
 
 def _filter(instance, filter_name=None, filter_value=None):
-    """ Returns a new instance containing only the Filterables to which the given filter criteria apply.
+    """Returns a new instance containing only the Filterables to which the given filter criteria apply.
 
     Say we want to filter by files whose extension equals "csv". We want to be able to do...
 
@@ -23,7 +23,7 @@ def _filter(instance, filter_name=None, filter_value=None):
 
 
 def _order_by(instance, attribute_name, reverse=False):
-    """ Order the instance by the given attribute_name, returning the instance's elements as a new FilterList (not a
+    """Order the instance by the given attribute_name, returning the instance's elements as a new FilterList (not a
     FilterSet.
     """
     try:

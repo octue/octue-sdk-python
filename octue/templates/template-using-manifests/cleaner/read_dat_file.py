@@ -2,7 +2,7 @@ from dateparser import parse
 
 
 def read_dat_file(file):
-    """ Read a dat file containing meteorological mast metadata
+    """Read a dat file containing meteorological mast metadata
 
     You don't really need to care about this, because your files are unlikely to be in the same form as our
     example dat files. You'll need to build your own file readers and test them (or use open-source libraries to do

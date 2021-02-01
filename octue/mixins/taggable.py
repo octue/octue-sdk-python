@@ -5,8 +5,7 @@ class Taggable:
     """ A mixin class allowing objects to be tagged. """
 
     def __init__(self, *args, tags=None, **kwargs):
-        """ Constructor for Taggable mixins
-        """
+        """Constructor for Taggable mixins"""
         super().__init__(*args, **kwargs)
         self._tags = TagSet(tags)
 

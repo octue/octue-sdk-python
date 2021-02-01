@@ -24,7 +24,7 @@ CLASS_MAP = {"configuration_manifest": Manifest, "input_manifest": Manifest, "ou
 
 
 class Analysis(Identifiable, Loggable, Serialisable, Taggable):
-    """ Analysis class, holding references to all input and output data
+    """Analysis class, holding references to all input and output data
 
     ## The Analysis Instance
 
@@ -55,8 +55,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
     """
 
     def __init__(self, twine, skip_checks=False, **kwargs):
-        """ Constructor of Analysis instance
-        """
+        """Constructor of Analysis instance"""
 
         # Instantiate the twine (if not already) and attach it to self
         if not isinstance(twine, Twine):
@@ -83,7 +82,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         super().__init__(**kwargs)
 
     def finalise(self, output_dir=None):
-        """ Validates and serialises output_values and output_manifest, optionally writing them to files
+        """Validates and serialises output_values and output_manifest, optionally writing them to files
 
         If output_dir is given, then the serialised outputs are also written to files in the output directory
 

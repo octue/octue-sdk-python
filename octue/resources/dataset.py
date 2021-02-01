@@ -12,7 +12,7 @@ module_logger = logging.getLogger(__name__)
 
 
 class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable):
-    """ A representation of a dataset, containing files, tags, etc
+    """A representation of a dataset, containing files, tags, etc
 
     This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
     list of output files (results) and their properties that will be sent back to the octue system.
@@ -22,8 +22,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
     _ATTRIBUTES_TO_HASH = "files", "name", "tags"
 
     def __init__(self, id=None, logger=None, path=None, path_from=None, base_from=None, tags=None, **kwargs):
-        """ Construct a Dataset
-        """
+        """Construct a Dataset"""
         super().__init__(id=id, logger=logger, tags=tags, path=path, path_from=path_from, base_from=base_from)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
@@ -51,7 +50,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         return len(self.files)
 
     def add(self, *args, **kwargs):
-        """ Add a data/results file to the manifest
+        """Add a data/results file to the manifest
 
         Usage:
             my_file = octue.DataFile(...)
@@ -96,7 +95,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         return self.files.filter(filter_name=field_lookup, filter_value=filter_value)
 
     def get_file_sequence(self, filter_name, filter_value=None, strict=True):
-        """ Get an ordered sequence of files matching a criterion
+        """Get an ordered sequence of files matching a criterion
 
         Accepts the same search arguments as `get_files`.
 
@@ -128,7 +127,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         return results
 
     def get_file_by_tag(self, tag_string):
-        """ Gets a data file from a manifest by searching for files with the provided tag(s)
+        """Gets a data file from a manifest by searching for files with the provided tag(s)
 
         Gets exclusively one file; if no file or more than one file is found this results in an error.
 
