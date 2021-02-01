@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class GCPCredentialsManager:
-    """ A credentials manager for Google Cloud Platform (GCP) that takes a JSON string from an environment variable and
+    """A credentials manager for Google Cloud Platform (GCP) that takes a JSON string from an environment variable and
     writes it to a file in a temporary directory.
     """
 
@@ -21,8 +21,8 @@ class GCPCredentialsManager:
             raise EnvironmentError(f"There is no environment variable called {self.environment_variable_name}.")
 
     def get_credentials(self):
-        """ Get the Google OAUTH2 service account credentials for which the environment variable value is either the
-        filename containing them or a JSON string version of them. """
+        """Get the Google OAUTH2 service account credentials for which the environment variable value is either the
+        filename containing them or a JSON string version of them."""
 
         # Check that the environment variable refers to a valid *and* real path.
         if os.path.exists(self.environment_variable_value):

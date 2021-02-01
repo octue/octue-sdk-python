@@ -38,8 +38,8 @@ class Hashable:
         return self._calculate_hash()
 
     def _calculate_hash(self, hash_=None):
-        """ Calculate the BLAKE3 hash of the sorted attributes in self._ATTRIBUTES_TO_HASH. If hash_ is not None and is
-        a BLAKE3 hasher object, its in-progress hash will be updated, rather than starting from scratch. """
+        """Calculate the BLAKE3 hash of the sorted attributes in self._ATTRIBUTES_TO_HASH. If hash_ is not None and is
+        a BLAKE3 hasher object, its in-progress hash will be updated, rather than starting from scratch."""
         hash_ = hash_ or blake3()
 
         for attribute_name in sorted(self._ATTRIBUTES_TO_HASH):

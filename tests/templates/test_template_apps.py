@@ -27,8 +27,7 @@ class TemplateAppsTestCase(BaseTestCase):
         self.teardown_templates = []
 
         def set_template(template):
-            """ Sets up the working directory and data paths to run one of the provided templates
-            """
+            """Sets up the working directory and data paths to run one of the provided templates"""
             self.template_path = os.path.join(self.templates_path, template)
             self.template_twine = os.path.join(self.templates_path, template, "twine.json")
 
@@ -46,8 +45,7 @@ class TemplateAppsTestCase(BaseTestCase):
         self.set_template = set_template
 
     def tearDown(self):
-        """ Remove data directories manufactured
-        """
+        """Remove data directories manufactured"""
         super().tearDown()
         os.chdir(self.start_path)
         for path in self.teardown_templates:
@@ -70,7 +68,8 @@ class TemplateAppsTestCase(BaseTestCase):
         """ Ensures using-manifests app works correctly. """
         self.set_template("template-using-manifests")
         runner = Runner(
-            twine=self.template_twine, configuration_values=os.path.join("data", "configuration", "values.json"),
+            twine=self.template_twine,
+            configuration_values=os.path.join("data", "configuration", "values.json"),
         )
         analysis = runner.run(
             app_src=self.template_path,
@@ -81,7 +80,7 @@ class TemplateAppsTestCase(BaseTestCase):
         self.assertTrue(os.path.isfile(os.path.join("data", "output", "cleaned_met_mast_data", "cleaned.csv")))
 
     def test_child_services_template(self):
-        """ Ensure the child services template works correctly (i.e. that children can be accessed by a parent and data
+        """Ensure the child services template works correctly (i.e. that children can be accessed by a parent and data
         collected from them). This template has a parent app and two children - an elevation app and wind speed app. The
         parent sends coordinates to both children, receiving the elevation and wind speed from them at these locations.
         """

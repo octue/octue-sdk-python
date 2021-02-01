@@ -1,8 +1,7 @@
-from tests.base import BaseTestCase
-
 from octue import exceptions
 from octue.mixins.filterable import Filterable
 from octue.resources.tag import TagSet
+from tests.base import BaseTestCase
 
 
 class FilterableSubclass(Filterable):
@@ -31,7 +30,7 @@ class TestFilterable(BaseTestCase):
             FilterableSubclass().satisfies(filter_name="age__is_secret", filter_value=True)
 
     def test_error_raised_when_attribute_type_has_no_filters_defined(self):
-        """ Ensure an error is raised when a filter for an attribute whose type doesn't have any filters defined is
+        """Ensure an error is raised when a filter for an attribute whose type doesn't have any filters defined is
         received.
         """
         with self.assertRaises(exceptions.InvalidInputException):

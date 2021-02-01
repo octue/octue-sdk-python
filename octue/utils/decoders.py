@@ -4,8 +4,7 @@ from octue.resources import Datafile, Dataset, Manifest
 
 
 def default_object_hook(obj):
-    """ A hook to convert default json objects into their Datafile, Dataset or Manifest class as appropriate
-    """
+    """A hook to convert default json objects into their Datafile, Dataset or Manifest class as appropriate"""
 
     # object hooks are called whenever a json object is created. When nested, this is done from innermost (deepest
     # nesting) out so it's safe to work at multiple levels here
@@ -22,8 +21,7 @@ def default_object_hook(obj):
 
 
 class OctueJSONDecoder(JSONDecoder):
-    """ A JSON Decoder to convert default json objects into their Datafile, Dataset or Manifest classes as appropriate
-    """
+    """A JSON Decoder to convert default json objects into their Datafile, Dataset or Manifest classes as appropriate"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
