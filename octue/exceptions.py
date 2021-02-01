@@ -68,3 +68,15 @@ class BrokenSequenceException(OctueSDKException):
 class InvalidTagException(OctueSDKException, ValueError):
     """ Raise when a tag applied to a data file or dataset
     """
+
+
+class ServiceNotFound(OctueSDKException):
+    """ Raise when a Service of the given ID has not been found on the Google Pub/Sub server (i.e. if there is no topic
+    associated with the Service ID).
+    """
+
+
+class BackendNotFound(OctueSDKException):
+    """ Raise when details of a backend that doesn't exist in `octue.resources.service_backends` are given for use as a
+    Service backend.
+    """

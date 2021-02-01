@@ -1,0 +1,62 @@
+{
+	"children": [
+		{
+			"key": "wind_speed",
+			"purpose": "A service that returns the average wind speed for a given latitude and longitude.",
+			"notes": "Some notes.",
+			"filters": "tags:wind_speed"
+		},
+		{
+			"key": "elevation",
+			"purpose": "A service that returns the elevation for a given latitude and longitude.",
+			"notes": "Some notes.",
+			"filters": "tags:elevation"
+		}
+	],
+	"input_values_schema": {
+		"$schema": "http://json-schema.org/2019-09/schema#",
+		"title": "Input values",
+		"description": "Locations as longitude-latitude pairs",
+		"type": "object",
+		"properties": {
+			"locations": {
+				"type": "array",
+				"items": [
+					{
+						"type": "object",
+						"properties": {
+							"longitude": {
+								"type": "number"
+							},
+							"latitude": {
+								"type": "number"
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"output_values_schema": {
+		"title": "Output values",
+		"description": "The wind speed and elevation for the input longitude and latitude.",
+		"type": "object",
+		"properties": {
+			"wind_speeds": {
+				"description": "The wind speed at the location.",
+				"type": "array",
+				"items": {
+					"type": "number",
+					"minimum": 0
+				}
+			},
+			"elevations": {
+				"description": "The elevation at the location.",
+				"type": "array",
+				"items": {
+					"type": "number"
+				}
+			}
+		}
+	}
+}

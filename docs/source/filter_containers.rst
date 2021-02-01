@@ -30,7 +30,9 @@ Filtering
 
 Filters are named as ``"<name_of_attribute_to_check>__<filter_action>"``, and any attribute of a member of the
 ``FilterSet`` whose type or interface is supported can be filtered.
+
 .. code-block:: python
+
     filter_set = FilterSet(
         {Datafile(path="my_file.csv"), Datafile(path="your_file.txt"), Datafile(path="another_file.csv")}
     )
@@ -119,7 +121,9 @@ Ordering
 As sets are inherently orderless, ordering a ``FilterSet`` results in a new ``FilterList``, which has the same extra
 methods and behaviour as a ``FilterSet``, but is based on the ``list`` type instead - meaning it can be ordered and
 indexed etc. A ``FilterSet`` or ``FilterList`` can be ordered by any of the attributes of its members:
+
 .. code-block:: python
+
     filter_set.order_by("name")
     >>> <FilterList([<Datafile('another_file.csv')>, <Datafile('my_file.csv')>, <Datafile(path="your_file.txt")>])>
 

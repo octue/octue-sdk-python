@@ -1,0 +1,63 @@
+{
+	"configuration_values_schema": {
+		"$schema": "http://json-schema.org/2019-09/schema#",
+		"title": "Wind speed app configuration",
+		"description": "Back-end configuration for the wind speed service to enable it to connect to Google Pub/Sub and communicate with other services.",
+		"type": "object",
+		"properties": {
+			"backend": {
+				"type": "object",
+				"title": "GCP Pub/Sub backend configuration",
+				"properties": {
+					"name": {
+						"description": "Type of backend (in this case, it can only be GCPPubSubBackend)",
+						"type": "string",
+						"pattern": "^(GCPPubSubBackend)$"
+					},
+					"project_name": {
+						"description": "Name of the Google Cloud Platform (GCP) project the child exists in.",
+						"type": "string"
+					},
+					"credentials_environment_variable": {
+						"description": "Name of environment variable containing either the absolute path to a Google Cloud Platform credentials JSON file or the JSON itself as a string.",
+						"type": "string"
+					}
+				},
+				"required": ["name", "project_name", "credentials_environment_variable"]
+			}
+		}
+	},
+	"input_values_schema": {
+		"$schema": "http://json-schema.org/2019-09/schema#",
+		"title": "Input values",
+		"description": "Locations as longitude-latitude pairs",
+		"type": "object",
+		"properties": {
+			"locations": {
+				"type": "array",
+				"items": [
+					{
+						"type": "object",
+						"properties": {
+							"longitude": {
+								"type": "number"
+							},
+							"latitude": {
+								"type": "number"
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"output_values_schema": {
+		"title": "Output values",
+		"description": "The wind speed at the input longitudes and latitudes.",
+		"type": "array",
+		"items": {
+			"type": "number",
+			"minimum": 0
+		}
+	}
+}
