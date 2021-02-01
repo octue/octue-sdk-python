@@ -18,8 +18,8 @@ jobs:
       - run: python .github/workflows/scripts/check-version-consistency.py
 
   tests:
+    if: "!contains(github.event.head_commit.message, 'skip_ci_tests')"
     runs-on: ubuntu-latest
-    if: !contains(github.event.head_commit.message, '#skip_ci_tests')
     env:
       USING_COVERAGE: '3.8'
     strategy:
