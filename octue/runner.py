@@ -4,6 +4,7 @@ import os
 import sys
 
 from octue.logging_handlers import apply_log_handler
+from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.utils import gen_uuid
 from twined import Twine
@@ -48,20 +49,26 @@ class Runner:
         show_twined_logs=False,
     ):
         """ Constructor for the Runner class. """
+        # Store the log level (same log level used for all analyses)
+        self._log_level = log_level
+        self.handler = handler
+
+        if show_twined_logs:
+            apply_log_handler(logger=package_logger, handler=self.handler)
 
         # Ensure the twine is present and instantiate it
-        self.twine = Twine(source=twine)
+        if isinstance(twine, Twine):
+            self.twine = twine
+        else:
+            self.twine = Twine(source=twine)
 
-        if "configuration_values" not in self.twine.available_strands:
-            configuration_values = None
-
-        if "configuration_manifest" not in self.twine.available_strands:
-            configuration_manifest = None
+        package_logger.debug("Parsed twine with strands %r", self.twine.available_strands)
 
         # Validate and initialise configuration data
         self.configuration = self.twine.validate(
             configuration_values=configuration_values, configuration_manifest=configuration_manifest, cls=CLASS_MAP,
         )
+        package_logger.debug("Configuration validated.")
 
         # Set path for configuration manifest.
         # TODO this is hacky, we need to rearchitect the twined validation so we can do this kind of thing in there
@@ -149,9 +156,6 @@ class Runner:
 
         :return: None
         """
-        if "input_manifest" not in self.twine.available_strands:
-            input_manifest = None
-
         inputs = self.twine.validate(
             input_values=input_values,
             input_manifest=input_manifest,
@@ -161,6 +165,13 @@ class Runner:
             allow_missing=False,
             allow_extra=False,
         )
+        package_logger.debug("Inputs validated.")
+
+        if inputs["children"] is not None:
+            inputs["children"] = {
+                child["key"]: Child(name=child["key"], id=child["id"], backend=child["backend"])
+                for child in inputs["children"]
+            }
 
         # TODO this is hacky, we need to rearchitect the twined validation so we can do this kind of thing in there
         inputs["input_manifest"] = self._update_manifest_path(inputs.get("input_manifest", None), input_manifest,)

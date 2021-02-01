@@ -7,6 +7,7 @@ Installation
 To use the Octue SDK from within your Octue Python application, simply add:
 
 .. code-block::
+
     octue==x.y.z
 
 to your ``requirements.txt`` file, where x.y.z. is your preferred (we recommend the latest stable) version of the SDK.
