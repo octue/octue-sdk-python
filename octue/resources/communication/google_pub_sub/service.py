@@ -68,9 +68,9 @@ class Service(CoolNameable):
             except TimeoutError:
                 future.cancel()
 
-        if delete_topic_and_subscription_on_exit:
-            topic.delete()
-            subscription.delete()
+            if delete_topic_and_subscription_on_exit:
+                topic.delete()
+                subscription.delete()
 
     def answer(self, question):
         """Acknowledge and answer a question (i.e. receive the question (input values and/or manifest), run the
