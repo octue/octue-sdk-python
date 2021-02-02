@@ -98,6 +98,7 @@ class TemplateAppsTestCase(BaseTestCase):
                 f"--twine={os.path.join(elevation_service_path, 'twine.json')}",
                 f"--config-dir={os.path.join(elevation_service_path, 'data', 'configuration')}",
                 f"--service-id={elevation_service_uuid}",
+                "--delete-topics-and-subscriptions-on-exit",
             ]
         )
 
@@ -112,6 +113,7 @@ class TemplateAppsTestCase(BaseTestCase):
                 f"--twine={os.path.join(wind_speed_service_path, 'twine.json')}",
                 f"--config-dir={os.path.join(wind_speed_service_path, 'data', 'configuration')}",
                 f"--service-id={wind_speed_service_uuid}",
+                "--delete-topics-and-subscriptions-on-exit",
             ]
         )
 
