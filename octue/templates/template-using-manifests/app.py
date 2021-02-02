@@ -20,12 +20,12 @@ def run(analysis, *args, **kwargs):
     """
 
     # You can use the attached logger to record debug statements, general information, warnings or errors
-    analysis.logger.info(f"Starting clean up of files in {analysis.input_manifest.absolute_path}")
+    analysis.logger.info("Starting clean up of files in %s", analysis.input_manifest.absolute_path)
 
     # Get the configuration value for our time averaging window (or if not present, use the default specified in
     # the twine)
     time_window = (analysis.configuration_values.get("time_window", 600),)
-    analysis.logger.info(f"Averaging window set to {time_window}s")
+    analysis.logger.info("Averaging window set to %ss", time_window)
 
     # Get the input dataset which will be read in
     input_dataset = analysis.input_manifest.get_dataset("raw_met_mast_data")

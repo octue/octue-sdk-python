@@ -34,7 +34,10 @@ def run(analysis, *args, **kwargs):
     wind_speeds = analysis.children["wind_speed"].ask(input_values=analysis.input_values, timeout=20)["output_values"]
 
     analysis.logger.info(
-        f"The wind speeds and elevations at {analysis.input_values['locations']} are {elevations} and {wind_speeds}."
+        "The wind speeds and elevations at %s are %s and %s.",
+        analysis.input_values["locations"],
+        elevations,
+        wind_speeds,
     )
 
     analysis.output_values = {"wind_speeds": wind_speeds, "elevations": elevations}

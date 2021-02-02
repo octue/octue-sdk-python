@@ -99,7 +99,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         # should be a dict of data)
         serialised = dict()
         for k in OUTPUT_STRANDS:
-            self.logger.debug(f"Serialising {k}")
+            self.logger.debug("Serialising %s", k)
             att = getattr(self, k)
             if att is not None:
                 att = json.dumps(att, cls=OctueJSONEncoder)
@@ -113,7 +113,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         for k in OUTPUT_STRANDS:
             if output_dir and serialised[k] is not None:
                 file_name = get_file_name_from_strand(k, output_dir)
-                self.logger.debug(f"Writing {k} to file {file_name}")
+                self.logger.debug("Writing %s to file %s", k, file_name)
                 with open(file_name, "w") as fp:
                     fp.write(serialised[k])
 

@@ -243,7 +243,7 @@ class AppFrom:
 
     def __init__(self, app_path="."):
         self.app_path = os.path.abspath(os.path.normpath(app_path))
-        module_logger.debug(f"Initialising AppFrom context at app_path {self.app_path}")
+        module_logger.debug("Initialising AppFrom context at app_path %s", self.app_path)
         self.app_module = None
 
     def __enter__(self):
@@ -263,7 +263,7 @@ class AppFrom:
         # path, this'll be an unexpected side effect, and don't do it in cleanup in case the called code inserts a path)
         sys.path.pop(0)
         module_logger.debug(
-            f"Imported app at app_path and cleaned up temporary modification to sys.path {self.app_path}"
+            "Imported app at app_path and cleaned up temporary modification to sys.path %s", self.app_path
         )
 
         return self
@@ -271,7 +271,7 @@ class AppFrom:
     def __exit__(self, exc_type, exc_value, traceback):
         # Unload the imported module
         del sys.modules["app"]
-        module_logger.debug(f"Deleted app from sys.modules and cleaned up (app_path {self.app_path})")
+        module_logger.debug("Deleted app from sys.modules and cleaned up (app_path %s)", self.app_path)
 
     @property
     def run(self):
