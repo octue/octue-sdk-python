@@ -1,5 +1,5 @@
 def run(analysis, *args, **kwargs):
-    """ Your main entrypoint to run the application
+    """Your main entrypoint to run the application
 
     This is the function that gets run each time somebody requests an analysis from the digital twin / data service.
     You should write your own code and call it from here.

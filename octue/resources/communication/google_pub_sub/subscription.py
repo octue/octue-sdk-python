@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 class Subscription:
-    """ A candidate subscription to use with Google Pub/Sub. The subscription represented by an instance of this class
+    """A candidate subscription to use with Google Pub/Sub. The subscription represented by an instance of this class
     does not necessarily already exist on the Google Pub/Sub servers.
     """
 

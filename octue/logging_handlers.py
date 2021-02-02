@@ -9,7 +9,7 @@ LOG_FORMAT = "[" + LOGGING_METADATA + "]" + " %(message)s"
 
 
 def apply_log_handler(logger, handler=None, log_level=logging.INFO):
-    """ Create a logger specific to the analysis
+    """Create a logger specific to the analysis
 
     :parameter analysis_id: The id of the analysis to get the log for. Should be unique to the analysis
     :type analysis_id: str

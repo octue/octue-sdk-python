@@ -22,8 +22,7 @@ class DatafileTestCase(BaseTestCase):
         return Datafile(path_from=self.path_from, base_from=self.path_from, path=self.path, skip_checks=False)
 
     def test_instantiates(self):
-        """ Ensures a Datafile instantiates using only a path and generates a uuid ID
-        """
+        """Ensures a Datafile instantiates using only a path and generates a uuid ID"""
         df = Datafile(path="a_path")
         self.assertTrue(isinstance(df.id, str))
         self.assertEqual(type(uuid.UUID(df.id)), uuid.UUID)
@@ -31,8 +30,7 @@ class DatafileTestCase(BaseTestCase):
         self.assertEqual(0, df.cluster)
 
     def test_path_argument_required(self):
-        """ Ensures instantiation without a path will fail
-        """
+        """Ensures instantiation without a path will fail"""
         with self.assertRaises(exceptions.InvalidInputException) as error:
             Datafile()
 
@@ -51,8 +49,7 @@ class DatafileTestCase(BaseTestCase):
         self.assertIn("Extension provided (notcsv) does not match file extension", error.exception.args[0])
 
     def test_file_attributes_accessible(self):
-        """ Ensures that its possible to set the sequence, cluster and timestamp
-        """
+        """Ensures that its possible to set the sequence, cluster and timestamp"""
         df = self.create_valid_datafile()
         self.assertIsInstance(df.size_bytes, int)
         self.assertGreaterEqual(df.last_modified, 1598200190.5771205)
@@ -63,8 +60,7 @@ class DatafileTestCase(BaseTestCase):
         df.posix_timestamp = 0
 
     def test_cannot_set_calculated_file_attributes(self):
-        """ Ensures that calculated attributes cannot be set
-        """
+        """Ensures that calculated attributes cannot be set"""
         df = self.create_valid_datafile()
 
         with self.assertRaises(AttributeError):
@@ -78,8 +74,7 @@ class DatafileTestCase(BaseTestCase):
         self.assertEqual(repr(self.create_valid_datafile()), "<Datafile('a_test_file.csv')>")
 
     def test_serialisable(self):
-        """ Ensures a datafile can serialise to json format
-        """
+        """Ensures a datafile can serialise to json format"""
         df = self.create_valid_datafile()
         df_dict = df.serialise()
 

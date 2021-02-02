@@ -4,15 +4,14 @@ from octue.exceptions import InvalidInputException
 
 
 class Pathable:
-    """ Mixin class to enable resources to get their path location from an owner.
+    """Mixin class to enable resources to get their path location from an owner.
 
     For example, datasets can get their path from the Manifest they belong to.
 
     """
 
     def __init__(self, *args, path=None, path_from=None, base_from=None, **kwargs):
-        """ Constructor for pathable mixin
-        """
+        """Constructor for pathable mixin"""
         super().__init__(*args, **kwargs)
 
         if (path_from is not None) and not isinstance(path_from, Pathable):
@@ -32,7 +31,7 @@ class Pathable:
 
     @property
     def _base_path(self):
-        """ Gets the absolute path of the base_from object, from which any relative paths are constructed
+        """Gets the absolute path of the base_from object, from which any relative paths are constructed
         :return:
         :rtype:
         """
@@ -43,7 +42,7 @@ class Pathable:
 
     @property
     def _path_prefix(self):
-        """ Gets the path prefix (this is the absolute_path of the owner path_from object).
+        """Gets the path prefix (this is the absolute_path of the owner path_from object).
         Defaults to the current working directory
         """
         if self._path_from is not None:
@@ -56,25 +55,22 @@ class Pathable:
 
     @property
     def absolute_path(self):
-        """ The absolute path of this resource
-        """
+        """The absolute path of this resource"""
         return os.path.normpath(os.path.join(self._path_prefix, self._path))
 
     @property
     def relative_path(self):
-        """ The path of this resource relative to its base path
-        """
+        """The path of this resource relative to its base path"""
         return os.path.relpath(self.absolute_path, self._base_path)
 
     @property
     def path(self):
-        """ The path of this resource
-        """
+        """The path of this resource"""
         return self._path
 
     @path.setter
     def path(self, value):
-        """ Set the path of this resource.
+        """Set the path of this resource.
 
         :param value: Path of the resource. If the resource was instantiated with a `path_from` object, this path must
         be relative. Otherwise, absolute paths are acceptable.

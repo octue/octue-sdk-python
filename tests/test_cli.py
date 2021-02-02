@@ -3,11 +3,11 @@ import tempfile
 import uuid
 from unittest import mock
 from click.testing import CliRunner
+
+from octue.cli import octue_cli
 from tests import TESTS_DIR
 from tests.app import CUSTOM_APP_RUN_MESSAGE
 from tests.base import BaseTestCase
-
-from octue.cli import octue_cli
 
 
 class RunnerTestCase(BaseTestCase):

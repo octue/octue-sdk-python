@@ -1,6 +1,5 @@
-from tests.base import BaseTestCase
-
 from octue.mixins import CoolNameable
+from tests.base import BaseTestCase
 
 
 class NamedThing(CoolNameable):

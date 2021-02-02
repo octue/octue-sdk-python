@@ -1,12 +1,12 @@
 import concurrent.futures
 import time
 import uuid
-from tests.base import BaseTestCase
 
 from octue import exceptions
 from octue.resources.communication.google_pub_sub.service import Service
 from octue.resources.communication.service_backends import GCPPubSubBackend
 from octue.resources.manifest import Manifest
+from tests.base import BaseTestCase
 
 
 SERVER_WAIT_TIME = 5
@@ -28,8 +28,8 @@ class MockAnalysisWithOutputManifest:
 
 
 class TestService(BaseTestCase):
-    """ Some of these tests require a connection to either a real Google Pub/Sub instance on Google Cloud Platform
-    (GCP), or a local emulator. """
+    """Some of these tests require a connection to either a real Google Pub/Sub instance on Google Cloud Platform
+    (GCP), or a local emulator."""
 
     BACKEND = GCPPubSubBackend(project_name="octue-amy", credentials_environment_variable="GCP_SERVICE_ACCOUNT")
 
@@ -56,8 +56,8 @@ class TestService(BaseTestCase):
             self.assertTrue(time.perf_counter() - start_time < 20)
 
     def test_ask_on_non_existent_service_results_in_error(self):
-        """ Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
-        results in an error. """
+        """Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
+        results in an error."""
         with self.assertRaises(exceptions.ServiceNotFound):
             Service(backend=self.BACKEND, id=str(uuid.uuid4())).ask(service_id=1234, input_values=[1, 2, 3, 4])
 
@@ -85,7 +85,7 @@ class TestService(BaseTestCase):
             )
 
     def test_ask_with_input_manifest(self):
-        """ Test that a service can ask a question including an input_manifest to another service that is serving and
+        """Test that a service can ask a question including an input_manifest to another service that is serving and
         receive an answer.
         """
         asking_service = Service(backend=self.BACKEND, id=str(uuid.uuid4()))

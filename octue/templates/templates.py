@@ -12,7 +12,7 @@ PACKAGED_TEMPLATES = tuple(name for name in resource_listdir("octue", "templates
 
 
 def copy_template(template_name, destination_dir="."):
-    """ Copies one of the application templates from the octue/templates to a destination directory (current dir by default)
+    """Copies one of the application templates from the octue/templates to a destination directory (current dir by default)
 
     :parameter template_name: The name of the template to copy, must be one of AVAILABLE_TEMPLATES.
     :type template_name: str

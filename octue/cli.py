@@ -54,7 +54,7 @@ global_cli_context = {}
 )
 @click.version_option(version=pkg_resources.get_distribution("octue").version)
 def octue_cli(id, skip_checks, logger_uri, log_level, show_twined_logs, force_reset):
-    """ Octue CLI, enabling a data service / digital twin to be run like a command line application.
+    """Octue CLI, enabling a data service / digital twin to be run like a command line application.
 
     When acting in CLI mode, results are read from and written to disk (see
     https://octue-python-sdk.readthedocs.io/en/latest/ for how to run your application directly without the CLI).
@@ -211,7 +211,10 @@ def start(app_dir, data_dir, config_dir, service_id, twine, timeout):
     )
 
     run_function = functools.partial(
-        runner.run, app_src=app_dir, children=children, skip_checks=global_cli_context["skip_checks"],
+        runner.run,
+        app_src=app_dir,
+        children=children,
+        skip_checks=global_cli_context["skip_checks"],
     )
 
     backend_configuration_values = runner.configuration["configuration_values"]["backend"]

@@ -32,8 +32,8 @@ class HashableTestCase(BaseTestCase):
             my_class.hash_value
 
     def test_iterable_attribute_with_mixed_types_raises_value_error(self):
-        """ Ensure trying to hash iterable attributes containing a mix between types with a 'hash_value' attribute and
-        types that don't results in a TypeError. """
+        """Ensure trying to hash iterable attributes containing a mix between types with a 'hash_value' attribute and
+        types that don't results in a TypeError."""
         my_class = TypeWithIterable()
         my_class.my_iterable = [1, 2, TypeWithHash()]
 

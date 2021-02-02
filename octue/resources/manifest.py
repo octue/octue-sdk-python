@@ -10,14 +10,13 @@ module_logger = logging.getLogger(__name__)
 
 
 class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
-    """ A representation of a manifest, which can contain multiple datasets This is used to manage all files coming into
-    (or leaving), a data service for an analysis at the configuration, input or output stage. """
+    """A representation of a manifest, which can contain multiple datasets This is used to manage all files coming into
+    (or leaving), a data service for an analysis at the configuration, input or output stage."""
 
     _ATTRIBUTES_TO_HASH = "datasets", "keys"
 
     def __init__(self, id=None, logger=None, path=None, path_from=None, base_from=None, **kwargs):
-        """ Construct a Manifest
-        """
+        """Construct a Manifest"""
         super().__init__(id=id, logger=logger, path=path, path_from=path_from, base_from=base_from)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
@@ -54,7 +53,7 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         self.__dict__.update(**kwargs)
 
     def get_dataset(self, key):
-        """ Gets a dataset by its key name (as defined in the twine)
+        """Gets a dataset by its key name (as defined in the twine)
         :return: Dataset selected by its key
         :rtype: Dataset
         """
@@ -67,8 +66,7 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         return self.datasets[idx]
 
     def prepare(self, data):
-        """ Prepare new manifest from a manifest_spec
-        """
+        """Prepare new manifest from a manifest_spec"""
         if len(self.datasets) > 0:
             raise InvalidInputException("You cannot `prepare()` a manifest already instantiated with datasets")
 

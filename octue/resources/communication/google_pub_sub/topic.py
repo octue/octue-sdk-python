@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 class Topic:
-    """ A candidate topic to use with Google Pub/Sub. The topic represented by an instance of this class does not
+    """A candidate topic to use with Google Pub/Sub. The topic represented by an instance of this class does not
     necessarily already exist on the Google Pub/Sub servers.
     """
 
