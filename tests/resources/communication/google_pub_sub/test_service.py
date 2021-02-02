@@ -203,7 +203,7 @@ class TestService(BaseTestCase):
             },
         )
 
-    def test_server_can_ask_its_own_questions(self):
+    def test_server_can_ask_its_own_child_questions(self):
         """Test that a child can contact its own child while answering a question from a parent."""
         child_of_child = self.make_new_server(
             self.BACKEND, run_function_returnee=DifferentMockAnalysis(), id=str(uuid.uuid4())
@@ -242,6 +242,64 @@ class TestService(BaseTestCase):
                             "output_values": DifferentMockAnalysis.output_values,
                             "output_manifest": DifferentMockAnalysis.output_manifest,
                         }
+                    },
+                    "output_manifest": None,
+                },
+            )
+
+    def test_server_can_ask_its_own_children_questions(self):
+        """Test that a child can contact more than one of its own children while answering a question from a parent."""
+        first_child_of_child = self.make_new_server(
+            self.BACKEND, run_function_returnee=DifferentMockAnalysis(), id=str(uuid.uuid4())
+        )
+
+        second_child_of_child = self.make_new_server(
+            self.BACKEND, run_function_returnee=MockAnalysis(), id=str(uuid.uuid4())
+        )
+
+        def child_run_function(input_values, input_manifest):
+            child_service = Service(backend=self.BACKEND)
+            subscription_1 = child_service.ask(service_id=first_child_of_child.id, input_values=input_values)
+            subscription_2 = child_service.ask(service_id=second_child_of_child.id, input_values=input_values)
+
+            mock_analysis = MockAnalysis()
+            mock_analysis.output_values = {
+                "first_child_of_child": child_service.wait_for_answer(subscription_1),
+                "second_child_of_child": child_service.wait_for_answer(subscription_2),
+            }
+
+            return mock_analysis
+
+        parent = Service(backend=self.BACKEND, id=str(uuid.uuid4()))
+        child = Service(backend=self.BACKEND, id=str(uuid.uuid4()), run_function=child_run_function)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            executor.submit(child.serve, timeout=10)
+            executor.submit(first_child_of_child.serve, timeout=10)
+            executor.submit(second_child_of_child.serve, timeout=10)
+
+            time.sleep(SERVER_WAIT_TIME)  # Wait for the responding services to be ready to answer.
+
+            asker_future = executor.submit(
+                self.ask_question_and_wait_for_answer,
+                asking_service=parent,
+                responding_service=child,
+                input_values={"question": "What does the child of the child say?"},
+                input_manifest=None,
+            )
+
+            self.assertEqual(
+                asker_future.result(),
+                {
+                    "output_values": {
+                        "first_child_of_child": {
+                            "output_values": DifferentMockAnalysis.output_values,
+                            "output_manifest": DifferentMockAnalysis.output_manifest,
+                        },
+                        "second_child_of_child": {
+                            "output_values": MockAnalysis.output_values,
+                            "output_manifest": MockAnalysis.output_manifest,
+                        },
                     },
                     "output_manifest": None,
                 },
