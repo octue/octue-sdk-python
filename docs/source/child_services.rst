@@ -160,6 +160,7 @@ See services communicate in real time: running the child services template
         --twine=octue/templates/template-child-services/elevation_service/twine.json \
         --config-dir=octue/templates/template-child-services/elevation_service/data/configuration \
         --service-id=8dgd07fa-6bcd-4ec3-a331-69f737a15332
+        --delete-topic-and-subscription-on-exit
 
 4. In another terminal window, start the wind speeds service as a server:
 
@@ -171,6 +172,7 @@ See services communicate in real time: running the child services template
         --twine=octue/templates/template-child-services/wind_speed_service/twine.json \
         --config-dir=octue/templates/template-child-services/wind_speed_service/data/configuration \
         --service-id=7b9d07fa-6bcd-4ec3-a331-69f737a15751
+        --delete-topic-and-subscription-on-exit
 
 5. In a third terminal window, run the parent app (don't start it as a server):
 
