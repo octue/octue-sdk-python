@@ -39,6 +39,14 @@ class TestService(BaseTestCase):
         subscription = asking_service.ask(responding_service.id, input_values, input_manifest)
         return asking_service.wait_for_answer(subscription)
 
+    def _shutdown_executor_and_clear_threads(self, executor):
+        """Shut down a concurrent.futures executor by clearing its threads. This cuts loose infinitely-waiting threads,
+        allowing the test to finish.
+        """
+        executor._threads.clear()
+        executor.shutdown()
+        concurrent.futures.thread._threads_queues.clear()
+
     def test_repr(self):
         """ Test that services are represented as a string correctly. """
         asking_service = Service(backend=self.BACKEND, id=str(uuid.uuid4()))
@@ -69,7 +77,7 @@ class TestService(BaseTestCase):
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            executor.submit(responding_service.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
+            executor.submit(responding_service.serve, delete_topic_and_subscription_on_exit=True)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
 
@@ -86,6 +94,8 @@ class TestService(BaseTestCase):
                 {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
             )
 
+            self._shutdown_executor_and_clear_threads(executor)
+
     def test_ask_with_input_manifest(self):
         """Test that a service can ask a question including an input_manifest to another service that is serving and
         receive an answer.
@@ -94,7 +104,7 @@ class TestService(BaseTestCase):
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            executor.submit(responding_service.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
+            executor.submit(responding_service.serve, delete_topic_and_subscription_on_exit=True)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
 
@@ -111,13 +121,15 @@ class TestService(BaseTestCase):
                 {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
             )
 
+            self._shutdown_executor_and_clear_threads(executor)
+
     def test_ask_with_output_manifest(self):
         """ Test that a service can receive an output manifest as part of the answer to a question. """
         asking_service = Service(backend=self.BACKEND, id=str(uuid.uuid4()))
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysisWithOutputManifest())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            executor.submit(responding_service.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
+            executor.submit(responding_service.serve, delete_topic_and_subscription_on_exit=True)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
 
@@ -132,6 +144,7 @@ class TestService(BaseTestCase):
             answer = asker_future.result()
             self.assertEqual(answer["output_values"], MockAnalysisWithOutputManifest.output_values)
             self.assertEqual(answer["output_manifest"].id, MockAnalysisWithOutputManifest.output_manifest.id)
+            self._shutdown_executor_and_clear_threads(executor)
 
     def test_service_can_ask_multiple_questions(self):
         """ Test that a service can ask multiple questions to the same server and expect replies to them all. """
@@ -139,7 +152,7 @@ class TestService(BaseTestCase):
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=7) as executor:
-            executor.submit(responding_service.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
+            executor.submit(responding_service.serve, delete_topic_and_subscription_on_exit=True)
             futures = []
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
@@ -154,6 +167,8 @@ class TestService(BaseTestCase):
                         input_manifest=None,
                     )
                 )
+
+            self._shutdown_executor_and_clear_threads(executor)
 
         answers = list(concurrent.futures.as_completed(futures))
 
@@ -171,8 +186,8 @@ class TestService(BaseTestCase):
         responding_service_2 = self.make_new_server(self.BACKEND, run_function_returnee=DifferentMockAnalysis())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=7) as executor:
-            executor.submit(responding_service_1.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
-            executor.submit(responding_service_2.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
+            executor.submit(responding_service_1.serve, delete_topic_and_subscription_on_exit=True)
+            executor.submit(responding_service_2.serve, delete_topic_and_subscription_on_exit=True)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding services to be ready to answer.
 
@@ -192,18 +207,20 @@ class TestService(BaseTestCase):
                 input_manifest=None,
             )
 
-        self.assertEqual(
-            first_question_future.result(),
-            {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
-        )
+            self.assertEqual(
+                first_question_future.result(),
+                {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
+            )
 
-        self.assertEqual(
-            second_question_future.result(),
-            {
-                "output_values": DifferentMockAnalysis.output_values,
-                "output_manifest": DifferentMockAnalysis.output_manifest,
-            },
-        )
+            self.assertEqual(
+                second_question_future.result(),
+                {
+                    "output_values": DifferentMockAnalysis.output_values,
+                    "output_manifest": DifferentMockAnalysis.output_manifest,
+                },
+            )
+
+            self._shutdown_executor_and_clear_threads(executor)
 
     def test_server_can_ask_its_own_child_questions(self):
         """Test that a child can contact its own child while answering a question from a parent."""
@@ -223,8 +240,8 @@ class TestService(BaseTestCase):
         child = Service(backend=self.BACKEND, id=str(uuid.uuid4()), run_function=child_run_function)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            executor.submit(child.serve, timeout=20, delete_topic_and_subscription_on_exit=True)
-            executor.submit(child_of_child.serve, timeout=20, delete_topic_and_subscription_on_exit=True)
+            executor.submit(child.serve, delete_topic_and_subscription_on_exit=True)
+            executor.submit(child_of_child.serve, delete_topic_and_subscription_on_exit=True)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding services to be ready to answer.
 
@@ -248,6 +265,8 @@ class TestService(BaseTestCase):
                     "output_manifest": None,
                 },
             )
+
+            self._shutdown_executor_and_clear_threads(executor)
 
     def test_server_can_ask_its_own_children_questions(self):
         """Test that a child can contact more than one of its own children while answering a question from a parent."""
@@ -275,10 +294,10 @@ class TestService(BaseTestCase):
         parent = Service(backend=self.BACKEND, id=str(uuid.uuid4()))
         child = Service(backend=self.BACKEND, id=str(uuid.uuid4()), run_function=child_run_function)
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            executor.submit(child.serve, timeout=20, delete_topic_and_subscription_on_exit=True)
-            executor.submit(first_child_of_child.serve, timeout=20, delete_topic_and_subscription_on_exit=True)
-            executor.submit(second_child_of_child.serve, timeout=20, delete_topic_and_subscription_on_exit=True)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            executor.submit(child.serve, delete_topic_and_subscription_on_exit=True)
+            executor.submit(first_child_of_child.serve, delete_topic_and_subscription_on_exit=True)
+            executor.submit(second_child_of_child.serve, delete_topic_and_subscription_on_exit=True)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding services to be ready to answer.
 
@@ -306,3 +325,5 @@ class TestService(BaseTestCase):
                     "output_manifest": None,
                 },
             )
+
+            self._shutdown_executor_and_clear_threads(executor)
