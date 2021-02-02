@@ -49,7 +49,9 @@ class TestService(BaseTestCase):
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             start_time = time.perf_counter()
             responding_future = executor.submit(
-                self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis()).serve, timeout=10
+                self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis()).serve,
+                timeout=10,
+                delete_topic_and_subscription_on_exit=True,
             )
 
             responding_future.result()
@@ -67,7 +69,7 @@ class TestService(BaseTestCase):
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            executor.submit(responding_service.serve, timeout=10)
+            executor.submit(responding_service.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
 
@@ -92,7 +94,7 @@ class TestService(BaseTestCase):
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            executor.submit(responding_service.serve, timeout=10)
+            executor.submit(responding_service.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
 
@@ -115,7 +117,7 @@ class TestService(BaseTestCase):
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysisWithOutputManifest())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            executor.submit(responding_service.serve, timeout=10)
+            executor.submit(responding_service.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
 
@@ -137,7 +139,7 @@ class TestService(BaseTestCase):
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=7) as executor:
-            executor.submit(responding_service.serve, timeout=10)
+            executor.submit(responding_service.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
             futures = []
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
@@ -169,8 +171,8 @@ class TestService(BaseTestCase):
         responding_service_2 = self.make_new_server(self.BACKEND, run_function_returnee=DifferentMockAnalysis())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=7) as executor:
-            executor.submit(responding_service_1.serve, timeout=10)
-            executor.submit(responding_service_2.serve, timeout=10)
+            executor.submit(responding_service_1.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
+            executor.submit(responding_service_2.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding services to be ready to answer.
 
@@ -221,8 +223,8 @@ class TestService(BaseTestCase):
         child = Service(backend=self.BACKEND, id=str(uuid.uuid4()), run_function=child_run_function)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            executor.submit(child.serve, timeout=10)
-            executor.submit(child_of_child.serve, timeout=10)
+            executor.submit(child.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
+            executor.submit(child_of_child.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding services to be ready to answer.
 
@@ -274,9 +276,9 @@ class TestService(BaseTestCase):
         child = Service(backend=self.BACKEND, id=str(uuid.uuid4()), run_function=child_run_function)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            executor.submit(child.serve, timeout=10)
-            executor.submit(first_child_of_child.serve, timeout=10)
-            executor.submit(second_child_of_child.serve, timeout=10)
+            executor.submit(child.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
+            executor.submit(first_child_of_child.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
+            executor.submit(second_child_of_child.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding services to be ready to answer.
 
