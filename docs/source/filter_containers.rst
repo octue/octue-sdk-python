@@ -21,7 +21,7 @@ There are two types of filter containers currently implemented:
 - ``Dataset.files`` to store ``Datafiles``
 - ``TagSet.tags`` to store ``Tags``
 
-You can see filtering in action on the files of a ``Dataset`` :ref:`dataset`.
+You can see filtering in action on the files of a ``Dataset`` `here <dataset>`_.
 
 
 ---------
