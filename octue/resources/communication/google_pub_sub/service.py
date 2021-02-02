@@ -65,7 +65,7 @@ class Service(CoolNameable):
         with self.subscriber:
             try:
                 future.result(timeout=timeout)
-            except TimeoutError:
+            except (TimeoutError, KeyboardInterrupt):
                 future.cancel()
 
             if delete_topic_and_subscription_on_exit:
