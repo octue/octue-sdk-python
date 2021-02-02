@@ -10,7 +10,7 @@ A ``Dataset`` contains any number of ``Datafiles`` along with the following meta
 - ``tags``
 
 The files are stored in a ``FilterSet``, meaning they can be easily filtered according to any attribute of the
-`Datafile <datafile.rst>`_ instances it contains.
+:ref:`datafile` instances it contains.
 
 
 --------------------------------
@@ -42,5 +42,5 @@ You can also chain filters indefinitely:
     dataset.files.filter(filter_name="name__ends_with", filter_value=".csv").filter("tags__contains", filter_value="a:2")
     >>> <FilterSet({<Datafile('my_file.csv')>})>
 
-Find out more about ``FilterSets`` `here <filterset.rst>`_, including all the possible filters available for each type of object stored on
+Find out more about ``FilterSets`` here `:ref: filter_containers`, including all the possible filters available for each type of object stored on
 an attribute of a ``FilterSet`` member, and how to convert them to primitive types such as ``set`` or ``list``.
