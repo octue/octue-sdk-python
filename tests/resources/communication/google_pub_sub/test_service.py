@@ -223,8 +223,8 @@ class TestService(BaseTestCase):
         child = Service(backend=self.BACKEND, id=str(uuid.uuid4()), run_function=child_run_function)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            executor.submit(child.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
-            executor.submit(child_of_child.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
+            executor.submit(child.serve, timeout=20, delete_topic_and_subscription_on_exit=True)
+            executor.submit(child_of_child.serve, timeout=20, delete_topic_and_subscription_on_exit=True)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding services to be ready to answer.
 
@@ -276,9 +276,9 @@ class TestService(BaseTestCase):
         child = Service(backend=self.BACKEND, id=str(uuid.uuid4()), run_function=child_run_function)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            executor.submit(child.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
-            executor.submit(first_child_of_child.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
-            executor.submit(second_child_of_child.serve, timeout=10, delete_topic_and_subscription_on_exit=True)
+            executor.submit(child.serve, timeout=20, delete_topic_and_subscription_on_exit=True)
+            executor.submit(first_child_of_child.serve, timeout=20, delete_topic_and_subscription_on_exit=True)
+            executor.submit(second_child_of_child.serve, timeout=20, delete_topic_and_subscription_on_exit=True)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding services to be ready to answer.
 
