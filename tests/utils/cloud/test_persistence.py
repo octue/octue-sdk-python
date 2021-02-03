@@ -17,15 +17,16 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
     @classmethod
     def setUpClass(cls):
         cls.storage_emulator.start()
-        client = storage.Client(project=cls.PROJECT_NAME, credentials=GCPCredentialsManager().get_credentials())
-        client.create_bucket(bucket_or_name=cls.TEST_BUCKET_NAME)
+        storage.Client(project=cls.PROJECT_NAME, credentials=GCPCredentialsManager().get_credentials()).create_bucket(
+            bucket_or_name=cls.TEST_BUCKET_NAME
+        )
 
     @classmethod
     def tearDownClass(cls):
         cls.storage_emulator.stop()
 
     def test_upload_and_download_file(self):
-        """Test that a file can be uploaded to Google Cloud storage as a file and downloaded again."""
+        """Test that a file can be uploaded to Google Cloud storage and downloaded again."""
         storage_client = GoogleCloudStorageClient(project_name=self.PROJECT_NAME)
         filename = "file_to_upload.txt"
 
@@ -54,7 +55,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
                 self.assertTrue("This is a test upload." in f.read())
 
     def test_upload_and_download_from_string(self):
-        """Test that a string can be uploaded to Google Cloud storage and downloaded again."""
+        """Test that a string can be uploaded to Google Cloud storage as a file and downloaded again."""
         storage_client = GoogleCloudStorageClient(project_name=self.PROJECT_NAME)
         filename = "file_to_upload.txt"
 

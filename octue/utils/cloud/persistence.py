@@ -29,7 +29,7 @@ class GoogleCloudStorageClient:
         """
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         bucket.blob(blob_name=path_in_bucket).upload_from_string(data=serialised_data)
-        upload_url = f"{GOOGLE_CLOUD_STORAGE_URL}/{bucket_name}/{path_in_bucket}"
+        upload_url = self._generate_resource_url(bucket_name, path_in_bucket)
         logger.info("Uploaded %r to Google Cloud at %r.", serialised_data, upload_url)
         return upload_url
 
@@ -37,5 +37,9 @@ class GoogleCloudStorageClient:
         """Download a file from a Google Cloud bucket at https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>"""
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         bucket.blob(blob_name=path_in_bucket).download_to_filename(local_path)
-        download_url = f"{GOOGLE_CLOUD_STORAGE_URL}/{bucket_name}/{path_in_bucket}"
+        download_url = self._generate_resource_url(bucket_name, path_in_bucket)
         logger.info("Downloaded %r from Google Cloud to %r.", download_url, local_path)
+
+    def _generate_resource_url(self, bucket_name, path_in_bucket):
+        """Generate the URL for a resource in Google Cloud storage."""
+        return f"{GOOGLE_CLOUD_STORAGE_URL}/{bucket_name}/{path_in_bucket}"
