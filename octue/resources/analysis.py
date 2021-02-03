@@ -82,7 +82,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         # Init superclasses
         super().__init__(**kwargs)
 
-    def finalise(self, output_dir=None, upload_to_cloud=False, project_name=None, bucket_name=None):
+    def finalise(self, output_dir=None, save_locally=True, upload_to_cloud=False, project_name=None, bucket_name=None):
         """Validates and serialises output_values and output_manifest, optionally writing them to files
 
         If output_dir is given, then the serialised outputs are also written to files in the output directory
@@ -110,21 +110,23 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         self.logger.debug("Validating serialised output json against twine")
         self.twine.validate(**serialised)
 
-        # Optionally write the serialised strand to disk
+        if output_dir is None:
+            return serialised
+
+        # Optionally write the serialised strand to disk and/or Google Cloud storage.
         for k in OUTPUT_STRANDS:
 
             if serialised[k] is not None:
+                file_name = get_file_name_from_strand(k, output_dir)
 
-                if output_dir:
-                    file_name = get_file_name_from_strand(k, output_dir)
-                    self.logger.debug("Writing %s to file %s", k, file_name)
-
+                if save_locally:
                     with open(file_name, "w") as fp:
                         fp.write(serialised[k])
+                    self.logger.debug("Wrote %r to file %r", k, file_name)
 
-                    if upload_to_cloud:
-                        GoogleCloudStorageClient(project_name=project_name).upload_from_string(
-                            serialised_data=serialised[k], bucket_name=bucket_name, path_in_bucket=file_name
-                        )
+                if upload_to_cloud:
+                    GoogleCloudStorageClient(project_name=project_name).upload_from_string(
+                        serialised_data=serialised[k], bucket_name=bucket_name, path_in_bucket=file_name
+                    )
 
         return serialised
