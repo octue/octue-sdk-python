@@ -4,6 +4,7 @@ import logging
 from octue.definitions import OUTPUT_STRANDS
 from octue.mixins import Hashable, Identifiable, Loggable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
+from octue.utils.cloud.persistence import GoogleCloudStorageClient
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.folders import get_file_name_from_strand
 from twined import ALL_STRANDS, Twine
@@ -81,7 +82,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         # Init superclasses
         super().__init__(**kwargs)
 
-    def finalise(self, output_dir=None):
+    def finalise(self, output_dir=None, upload_to_cloud=False, project_name=None, bucket_name=None):
         """Validates and serialises output_values and output_manifest, optionally writing them to files
 
         If output_dir is given, then the serialised outputs are also written to files in the output directory
@@ -111,10 +112,18 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
 
         # Optionally write the serialised strand to disk
         for k in OUTPUT_STRANDS:
-            if output_dir and serialised[k] is not None:
+
+            if serialised[k] is not None:
                 file_name = get_file_name_from_strand(k, output_dir)
-                self.logger.debug("Writing %s to file %s", k, file_name)
-                with open(file_name, "w") as fp:
-                    fp.write(serialised[k])
+
+                if output_dir:
+                    self.logger.debug("Writing %s to file %s", k, file_name)
+                    with open(file_name, "w") as fp:
+                        fp.write(serialised[k])
+
+                if upload_to_cloud:
+                    GoogleCloudStorageClient(project_name=project_name).upload_from_string(
+                        serialised_data=serialised[k], bucket_name=bucket_name, path_in_bucket=file_name
+                    )
 
         return serialised
