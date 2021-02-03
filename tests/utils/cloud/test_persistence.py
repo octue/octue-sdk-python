@@ -28,18 +28,24 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         storage_client = GoogleCloudStorageClient(project_name=self.PROJECT_NAME)
         filename = "file_to_upload.txt"
 
-        upload_url = storage_client.upload_file(
-            local_path=filename,
-            project_name=self.PROJECT_NAME,
-            bucket_name=self.TEST_BUCKET_NAME,
-            path_in_bucket=filename,
-        )
-
-        self.assertEqual(upload_url, f"https://storage.cloud.google.com/{self.TEST_BUCKET_NAME}/{filename}")
-
         with tempfile.TemporaryDirectory() as temporary_directory:
-            local_path = f"{temporary_directory}/{filename}"
-            storage_client.download_file(self.TEST_BUCKET_NAME, path_in_bucket=filename, local_path=local_path)
 
-            with open(local_path) as f:
+            upload_local_path = f"{temporary_directory}/{filename}"
+
+            with open(upload_local_path, "w") as f:
+                f.write("This is a test upload.")
+
+            upload_url = storage_client.upload_file(
+                local_path=upload_local_path,
+                project_name=self.PROJECT_NAME,
+                bucket_name=self.TEST_BUCKET_NAME,
+                path_in_bucket=filename,
+            )
+
+            self.assertEqual(upload_url, f"https://storage.cloud.google.com/{self.TEST_BUCKET_NAME}/{filename}")
+
+            download_local_path = f"{temporary_directory}/{filename}-download"
+            storage_client.download_file(self.TEST_BUCKET_NAME, path_in_bucket=filename, local_path=download_local_path)
+
+            with open(download_local_path) as f:
                 self.assertTrue("This is a test upload." in f.read())
