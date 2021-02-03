@@ -13,7 +13,7 @@ class GoogleCloudStorageClient:
     def __init__(self, project_name):
         self.client = storage.Client(project=project_name, credentials=GCPCredentialsManager().get_credentials())
 
-    def upload_file(self, local_path, project_name, bucket_name, path_in_bucket):
+    def upload_file(self, local_path, bucket_name, path_in_bucket):
         """Upload a local file to a Google Cloud bucket at
         https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>
         """

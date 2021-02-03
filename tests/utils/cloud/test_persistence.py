@@ -37,7 +37,6 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
             upload_url = storage_client.upload_file(
                 local_path=upload_local_path,
-                project_name=self.PROJECT_NAME,
                 bucket_name=self.TEST_BUCKET_NAME,
                 path_in_bucket=filename,
             )
