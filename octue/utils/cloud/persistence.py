@@ -9,11 +9,23 @@ logger = logging.getLogger(__name__)
 GOOGLE_CLOUD_STORAGE_URL = "https://storage.cloud.google.com"
 
 
-def upload_file_to_google_cloud(local_path, project_name, bucket_name, path_in_bucket):
-    """Upload a local file to a Google Cloud bucket at <project_name>/<bucket_name>/<remote_path>."""
-    client = storage.Client(project=project_name, credentials=GCPCredentialsManager().get_credentials())
-    bucket = client.get_bucket(bucket_or_name=bucket_name)
-    bucket.blob(blob_name=path_in_bucket).upload_from_filename(filename=local_path)
-    upload_url = f"{GOOGLE_CLOUD_STORAGE_URL}/{bucket_name}/{path_in_bucket}"
-    logger.info("Uploaded %s to Google Cloud at %r.", local_path, upload_url)
-    return upload_url
+class GoogleCloudStorageClient:
+    def __init__(self, project_name):
+        self.client = storage.Client(project=project_name, credentials=GCPCredentialsManager().get_credentials())
+
+    def upload_file(self, local_path, project_name, bucket_name, path_in_bucket):
+        """Upload a local file to a Google Cloud bucket at
+        https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>
+        """
+        bucket = self.client.get_bucket(bucket_or_name=bucket_name)
+        bucket.blob(blob_name=path_in_bucket).upload_from_filename(filename=local_path)
+        upload_url = f"{GOOGLE_CLOUD_STORAGE_URL}/{bucket_name}/{path_in_bucket}"
+        logger.info("Uploaded %r to Google Cloud at %r.", local_path, upload_url)
+        return upload_url
+
+    def download_file(self, bucket_name, path_in_bucket, local_path):
+        """Download a file from a Google Cloud bucket at https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>"""
+        bucket = self.client.get_bucket(bucket_or_name=bucket_name)
+        bucket.blob(blob_name=path_in_bucket).download_to_filename(local_path)
+        download_url = f"{GOOGLE_CLOUD_STORAGE_URL}/{bucket_name}/{path_in_bucket}"
+        logger.info("Downloaded %r from Google Cloud to %r.", download_url, local_path)
