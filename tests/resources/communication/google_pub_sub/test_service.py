@@ -103,7 +103,7 @@ class TestService(BaseTestCase):
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            executor.submit(responding_service.serve, delete_topic_and_subscription_on_exit=True)
+            executor.submit(responding_service.serve)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
 
@@ -132,7 +132,7 @@ class TestService(BaseTestCase):
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            executor.submit(responding_service.serve, delete_topic_and_subscription_on_exit=True)
+            executor.submit(responding_service.serve)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
 
@@ -159,7 +159,7 @@ class TestService(BaseTestCase):
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysisWithOutputManifest())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            executor.submit(responding_service.serve, delete_topic_and_subscription_on_exit=True)
+            executor.submit(responding_service.serve)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
 
@@ -184,7 +184,7 @@ class TestService(BaseTestCase):
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=7) as executor:
-            executor.submit(responding_service.serve, delete_topic_and_subscription_on_exit=True)
+            executor.submit(responding_service.serve)
             futures = []
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
@@ -218,8 +218,8 @@ class TestService(BaseTestCase):
         responding_service_2 = self.make_new_server(self.BACKEND, run_function_returnee=DifferentMockAnalysis())
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=7) as executor:
-            executor.submit(responding_service_1.serve, delete_topic_and_subscription_on_exit=True)
-            executor.submit(responding_service_2.serve, delete_topic_and_subscription_on_exit=True)
+            executor.submit(responding_service_1.serve)
+            executor.submit(responding_service_2.serve)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding services to be ready to answer.
 
@@ -274,8 +274,8 @@ class TestService(BaseTestCase):
         child = Service(backend=self.BACKEND, id=str(uuid.uuid4()), run_function=child_run_function)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            executor.submit(child.serve, delete_topic_and_subscription_on_exit=True)
-            executor.submit(child_of_child.serve, delete_topic_and_subscription_on_exit=True)
+            executor.submit(child.serve)
+            executor.submit(child_of_child.serve)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding services to be ready to answer.
 
@@ -331,9 +331,9 @@ class TestService(BaseTestCase):
         child = Service(backend=self.BACKEND, id=str(uuid.uuid4()), run_function=child_run_function)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-            executor.submit(child.serve, delete_topic_and_subscription_on_exit=True)
-            executor.submit(first_child_of_child.serve, delete_topic_and_subscription_on_exit=True)
-            executor.submit(second_child_of_child.serve, delete_topic_and_subscription_on_exit=True)
+            executor.submit(child.serve)
+            executor.submit(first_child_of_child.serve)
+            executor.submit(second_child_of_child.serve)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding services to be ready to answer.
 
