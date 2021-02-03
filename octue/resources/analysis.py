@@ -114,16 +114,17 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         for k in OUTPUT_STRANDS:
 
             if serialised[k] is not None:
-                file_name = get_file_name_from_strand(k, output_dir)
 
                 if output_dir:
+                    file_name = get_file_name_from_strand(k, output_dir)
                     self.logger.debug("Writing %s to file %s", k, file_name)
+
                     with open(file_name, "w") as fp:
                         fp.write(serialised[k])
 
-                if upload_to_cloud:
-                    GoogleCloudStorageClient(project_name=project_name).upload_from_string(
-                        serialised_data=serialised[k], bucket_name=bucket_name, path_in_bucket=file_name
-                    )
+                    if upload_to_cloud:
+                        GoogleCloudStorageClient(project_name=project_name).upload_from_string(
+                            serialised_data=serialised[k], bucket_name=bucket_name, path_in_bucket=file_name
+                        )
 
         return serialised
