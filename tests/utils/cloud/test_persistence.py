@@ -1,3 +1,4 @@
+import json
 import tempfile
 from gcloud_storage_emulator.server import create_server
 from google.cloud import storage
@@ -24,7 +25,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         cls.storage_emulator.stop()
 
     def test_upload_and_download_file(self):
-        """Test that a file can be uploaded to Google Cloud storage and downloaded again."""
+        """Test that a file can be uploaded to Google Cloud storage as a file and downloaded again."""
         storage_client = GoogleCloudStorageClient(project_name=self.PROJECT_NAME)
         filename = "file_to_upload.txt"
 
@@ -44,7 +45,34 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
             self.assertEqual(upload_url, f"https://storage.cloud.google.com/{self.TEST_BUCKET_NAME}/{filename}")
 
             download_local_path = f"{temporary_directory}/{filename}-download"
-            storage_client.download_file(self.TEST_BUCKET_NAME, path_in_bucket=filename, local_path=download_local_path)
+
+            storage_client.download_file(
+                bucket_name=self.TEST_BUCKET_NAME, path_in_bucket=filename, local_path=download_local_path
+            )
 
             with open(download_local_path) as f:
                 self.assertTrue("This is a test upload." in f.read())
+
+    def test_upload_and_download_from_string(self):
+        """Test that a string can be uploaded to Google Cloud storage and downloaded again."""
+        storage_client = GoogleCloudStorageClient(project_name=self.PROJECT_NAME)
+        filename = "file_to_upload.txt"
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+
+            upload_url = storage_client.upload_from_string(
+                serialised_data=json.dumps({"height": 32}),
+                bucket_name=self.TEST_BUCKET_NAME,
+                path_in_bucket=filename,
+            )
+
+            self.assertEqual(upload_url, f"https://storage.cloud.google.com/{self.TEST_BUCKET_NAME}/{filename}")
+
+            download_local_path = f"{temporary_directory}/{filename}-download"
+
+            storage_client.download_file(
+                bucket_name=self.TEST_BUCKET_NAME, path_in_bucket=filename, local_path=download_local_path
+            )
+
+            with open(download_local_path) as f:
+                self.assertTrue('{"height": 32}' in f.read())

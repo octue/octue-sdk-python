@@ -23,6 +23,16 @@ class GoogleCloudStorageClient:
         logger.info("Uploaded %r to Google Cloud at %r.", local_path, upload_url)
         return upload_url
 
+    def upload_from_string(self, serialised_data, bucket_name, path_in_bucket):
+        """Upload serialised data in string form to a file in a Google Cloud bucket at
+        https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>
+        """
+        bucket = self.client.get_bucket(bucket_or_name=bucket_name)
+        bucket.blob(blob_name=path_in_bucket).upload_from_string(data=serialised_data)
+        upload_url = f"{GOOGLE_CLOUD_STORAGE_URL}/{bucket_name}/{path_in_bucket}"
+        logger.info("Uploaded %r to Google Cloud at %r.", serialised_data, upload_url)
+        return upload_url
+
     def download_file(self, bucket_name, path_in_bucket, local_path):
         """Download a file from a Google Cloud bucket at https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>"""
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
