@@ -1,7 +1,7 @@
 import logging
 from google.cloud import storage
 
-from octue.resources.communication.credentials import GCPCredentialsManager
+from octue.utils.cloud.credentials import GCPCredentialsManager
 
 
 logger = logging.getLogger(__name__)
