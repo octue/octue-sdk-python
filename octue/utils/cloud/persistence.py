@@ -14,6 +14,6 @@ def upload_file_to_google_cloud(local_path, project_name, bucket_name, path_in_b
     client = storage.Client(project=project_name, credentials=GCPCredentialsManager().get_credentials())
     bucket = client.get_bucket(bucket_or_name=bucket_name)
     bucket.blob(blob_name=path_in_bucket).upload_from_filename(filename=local_path)
-    logger.info(
-        "Uploaded %s to Google Cloud at %s/%s/%s.", local_path, GOOGLE_CLOUD_STORAGE_URL, bucket_name, path_in_bucket
-    )
+    upload_url = f"{GOOGLE_CLOUD_STORAGE_URL}/{bucket_name}/{path_in_bucket}"
+    logger.info("Uploaded %s to Google Cloud at %r.", local_path, upload_url)
+    return upload_url
