@@ -1,9 +1,10 @@
 import concurrent.futures
 import time
 import uuid
+import google.api_core.exceptions
 
 from octue import exceptions
-from octue.resources.communication.google_pub_sub.service import Service
+from octue.resources.communication.google_pub_sub.service import OCTUE_NAMESPACE, Service
 from octue.resources.communication.service_backends import GCPPubSubBackend
 from octue.resources.manifest import Manifest
 from tests.base import BaseTestCase
@@ -39,6 +40,27 @@ class TestService(BaseTestCase):
         subscription = asking_service.ask(responding_service.id, input_values, input_manifest)
         return asking_service.wait_for_answer(subscription)
 
+    @staticmethod
+    def _delete_topics_and_subscriptions(*services):
+        """Delete the topics and subscriptions created for each service. This method is necessary as it is difficult to
+        end the threads running serving services gracefully, which would delete the topics and subscriptions if asked.
+        """
+        for service in services:
+            topic_path = service.publisher.topic_path(service.backend.project_name, f"{OCTUE_NAMESPACE}.{service.id}")
+            try:
+                service.publisher.delete_topic(topic=topic_path)
+            except google.api_core.exceptions.NotFound:
+                pass
+
+            subscription_path = service.subscriber.subscription_path(
+                service.backend.project_name, f"{OCTUE_NAMESPACE}.{service.id}"
+            )
+
+            try:
+                service.subscriber.delete_subscription(subscription=subscription_path)
+            except (google.api_core.exceptions.NotFound, ValueError):
+                pass
+
     def _shutdown_executor_and_clear_threads(self, executor):
         """Shut down a concurrent.futures executor by clearing its threads. This cuts loose infinitely-waiting threads,
         allowing the test to finish.
@@ -54,16 +76,20 @@ class TestService(BaseTestCase):
 
     def test_serve_with_timeout(self):
         """ Test that a serving service only serves for as long as its timeout. """
+        responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             start_time = time.perf_counter()
             responding_future = executor.submit(
-                self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis()).serve,
+                responding_service.serve,
                 timeout=10,
                 delete_topic_and_subscription_on_exit=True,
             )
 
             responding_future.result()
             self.assertTrue(time.perf_counter() - start_time < 20)
+
+        self._delete_topics_and_subscriptions(responding_service)
 
     def test_ask_on_non_existent_service_results_in_error(self):
         """Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
@@ -96,6 +122,8 @@ class TestService(BaseTestCase):
 
             self._shutdown_executor_and_clear_threads(executor)
 
+        self._delete_topics_and_subscriptions(responding_service)
+
     def test_ask_with_input_manifest(self):
         """Test that a service can ask a question including an input_manifest to another service that is serving and
         receive an answer.
@@ -123,6 +151,8 @@ class TestService(BaseTestCase):
 
             self._shutdown_executor_and_clear_threads(executor)
 
+        self._delete_topics_and_subscriptions(responding_service)
+
     def test_ask_with_output_manifest(self):
         """ Test that a service can receive an output manifest as part of the answer to a question. """
         asking_service = Service(backend=self.BACKEND, id=str(uuid.uuid4()))
@@ -145,6 +175,8 @@ class TestService(BaseTestCase):
             self.assertEqual(answer["output_values"], MockAnalysisWithOutputManifest.output_values)
             self.assertEqual(answer["output_manifest"].id, MockAnalysisWithOutputManifest.output_manifest.id)
             self._shutdown_executor_and_clear_threads(executor)
+
+        self._delete_topics_and_subscriptions(responding_service)
 
     def test_service_can_ask_multiple_questions(self):
         """ Test that a service can ask multiple questions to the same server and expect replies to them all. """
@@ -170,13 +202,13 @@ class TestService(BaseTestCase):
 
             self._shutdown_executor_and_clear_threads(executor)
 
-        answers = list(concurrent.futures.as_completed(futures))
-
-        for answer in answers:
+        for answer in concurrent.futures.as_completed(futures):
             self.assertEqual(
                 answer.result(),
                 {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
             )
+
+        self._delete_topics_and_subscriptions(responding_service)
 
     def test_service_can_ask_questions_to_multiple_servers(self):
         """ Test that a service can ask questions to different servers and expect replies to them all. """
@@ -221,6 +253,8 @@ class TestService(BaseTestCase):
             )
 
             self._shutdown_executor_and_clear_threads(executor)
+
+        self._delete_topics_and_subscriptions(responding_service_1, responding_service_2)
 
     def test_server_can_ask_its_own_child_questions(self):
         """Test that a child can contact its own child while answering a question from a parent."""
@@ -267,6 +301,8 @@ class TestService(BaseTestCase):
             )
 
             self._shutdown_executor_and_clear_threads(executor)
+
+        self._delete_topics_and_subscriptions(child, child_of_child)
 
     def test_server_can_ask_its_own_children_questions(self):
         """Test that a child can contact more than one of its own children while answering a question from a parent."""
@@ -327,3 +363,5 @@ class TestService(BaseTestCase):
             )
 
             self._shutdown_executor_and_clear_threads(executor)
+
+        self._delete_topics_and_subscriptions(child, first_child_of_child, second_child_of_child)
