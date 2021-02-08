@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 from gcloud_storage_emulator.server import create_server
 from google.cloud import storage
@@ -10,8 +11,8 @@ from tests.base import BaseTestCase
 
 class TestUploadFileToGoogleCloud(BaseTestCase):
 
-    PROJECT_NAME = "octue-amy"
-    TEST_BUCKET_NAME = "octue-test-bucket"
+    PROJECT_NAME = os.environ["TEST_PROJECT_NAME"]
+    TEST_BUCKET_NAME = os.environ["TEST_BUCKET_NAME"]
     storage_emulator = create_server("localhost", 9090, in_memory=True)
 
     @classmethod
