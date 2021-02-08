@@ -187,7 +187,14 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
 )
 @click.option("--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.")
 @click.option("--timeout", type=click.INT, default=None, show_default=True, help="Timeout in seconds for serving.")
-def start(app_dir, data_dir, config_dir, service_id, twine, timeout):
+@click.option(
+    "--delete-topic-and-subscription-on-exit",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Delete Google Pub/Sub topics and subscriptions on exit.",
+)
+def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topic_and_subscription_on_exit):
     """ Start the service as a server to be asked questions by other services. """
     config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
     twine = Twine(source=twine)
@@ -221,7 +228,7 @@ def start(app_dir, data_dir, config_dir, service_id, twine, timeout):
     backend = service_backends.get_backend(backend_configuration_values.pop("name"))(**backend_configuration_values)
 
     service = Service(id=service_id, backend=backend, run_function=run_function)
-    service.serve(timeout=timeout)
+    service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=delete_topic_and_subscription_on_exit)
 
 
 def set_unavailable_strand_paths_to_none(twine, strands):

@@ -7,9 +7,9 @@ from google.cloud import pubsub_v1
 
 from octue import exceptions
 from octue.mixins import CoolNameable
-from octue.resources.communication.credentials import GCPCredentialsManager
 from octue.resources.communication.google_pub_sub import Subscription, Topic
 from octue.resources.manifest import Manifest
+from octue.utils.cloud.credentials import GCPCredentialsManager
 
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ class Service(CoolNameable):
     def __repr__(self):
         return f"<{type(self).__name__}({self.name!r})>"
 
-    def serve(self, timeout=None):
+    def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False):
         """Start the Service as a server, waiting to accept questions from any other Service using Google Pub/Sub on
         the same Google Cloud Platform project. Questions are responded to asynchronously."""
         topic = Topic(name=self.id, namespace=OCTUE_NAMESPACE, service=self)
@@ -65,8 +65,12 @@ class Service(CoolNameable):
         with self.subscriber:
             try:
                 future.result(timeout=timeout)
-            except TimeoutError:
+            except (TimeoutError, KeyboardInterrupt):
                 future.cancel()
+
+            if delete_topic_and_subscription_on_exit:
+                topic.delete()
+                subscription.delete()
 
     def answer(self, question):
         """Acknowledge and answer a question (i.e. receive the question (input values and/or manifest), run the

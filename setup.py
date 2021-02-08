@@ -17,13 +17,14 @@ with open("LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.1.8",
+    version="0.1.9",
     py_modules=["cli"],
     install_requires=[
         "blake3>=0.1.8",
         "click>=7.1.2",
         "coolname>=1.1.0",
         "google-cloud-pubsub>=2.2.0",
+        "google-cloud-storage>=1.35.1",
         "twined==0.0.16",
     ],  # Dev note: you also need to bump twined in tox.ini
     url="https://www.github.com/octue/octue-sdk-python",
