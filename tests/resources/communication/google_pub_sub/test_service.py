@@ -1,4 +1,5 @@
 import concurrent.futures
+import os
 import time
 import uuid
 import google.api_core.exceptions
@@ -32,7 +33,9 @@ class TestService(BaseTestCase):
     """Some of these tests require a connection to either a real Google Pub/Sub instance on Google Cloud Platform
     (GCP), or a local emulator."""
 
-    BACKEND = GCPPubSubBackend(project_name="octue-amy", credentials_environment_variable="GCP_SERVICE_ACCOUNT")
+    BACKEND = GCPPubSubBackend(
+        project_name=os.environ["TEST_PROJECT_NAME"], credentials_environment_variable="GCP_SERVICE_ACCOUNT"
+    )
 
     @staticmethod
     def ask_question_and_wait_for_answer(asking_service, responding_service, input_values, input_manifest):
