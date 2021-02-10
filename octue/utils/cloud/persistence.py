@@ -33,12 +33,24 @@ class GoogleCloudStorageClient:
         logger.info("Uploaded %r to Google Cloud at %r.", serialised_data, upload_url)
         return upload_url
 
-    def download_file(self, bucket_name, path_in_bucket, local_path):
-        """Download a file from a Google Cloud bucket at https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>"""
+    def download_to_file(self, bucket_name, path_in_bucket, local_path):
+        """Download a file to a file from a Google Cloud bucket at
+        https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>
+        """
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         bucket.blob(blob_name=path_in_bucket).download_to_filename(local_path)
         download_url = self._generate_resource_url(bucket_name, path_in_bucket)
         logger.info("Downloaded %r from Google Cloud to %r.", download_url, local_path)
+
+    def download_as_string(self, bucket_name, path_in_bucket):
+        """Download a file to a string from a Google Cloud bucket at
+        https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>
+        """
+        bucket = self.client.get_bucket(bucket_or_name=bucket_name)
+        data = bucket.blob(blob_name=path_in_bucket).download_as_string()
+        download_url = self._generate_resource_url(bucket_name, path_in_bucket)
+        logger.info("Downloaded %r from Google Cloud to as string.", download_url)
+        return data.decode()
 
     def _generate_resource_url(self, bucket_name, path_in_bucket):
         """Generate the URL for a resource in Google Cloud storage."""
