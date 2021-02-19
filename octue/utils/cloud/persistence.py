@@ -7,12 +7,18 @@ from octue.utils.cloud.credentials import GCPCredentialsManager
 
 logger = logging.getLogger(__name__)
 
+OCTUE_MANAGED_CREDENTIALS = "octue-managed"
 GOOGLE_CLOUD_STORAGE_URL = "https://storage.cloud.google.com"
 
 
 class GoogleCloudStorageClient:
-    def __init__(self, project_name):
-        self.client = storage.Client(project=project_name, credentials=GCPCredentialsManager().get_credentials())
+    def __init__(self, project_name, credentials=OCTUE_MANAGED_CREDENTIALS):
+        if credentials == OCTUE_MANAGED_CREDENTIALS:
+            credentials = GCPCredentialsManager().get_credentials()
+        else:
+            credentials = credentials
+
+        self.client = storage.Client(project=project_name, credentials=credentials)
 
     def upload_file(self, local_path, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
         """Upload a local file to a Google Cloud bucket at

@@ -5,7 +5,7 @@ from gcloud_storage_emulator.server import create_server
 from google.cloud import storage
 
 from octue.utils.cloud.credentials import GCPCredentialsManager
-from octue.utils.cloud.persistence import GoogleCloudStorageClient
+from octue.utils.cloud.persistence import OCTUE_MANAGED_CREDENTIALS, GoogleCloudStorageClient
 from tests.base import BaseTestCase
 
 
@@ -28,7 +28,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
     def test_upload_and_download_file(self):
         """Test that a file can be uploaded to Google Cloud storage and downloaded again."""
-        storage_client = GoogleCloudStorageClient(project_name=self.PROJECT_NAME)
+        storage_client = GoogleCloudStorageClient(project_name=self.PROJECT_NAME, credentials=OCTUE_MANAGED_CREDENTIALS)
         filename = "file_to_upload.txt"
 
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -57,7 +57,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
     def test_upload_and_download_from_string(self):
         """Test that a string can be uploaded to Google Cloud storage as a file and downloaded again."""
-        storage_client = GoogleCloudStorageClient(project_name=self.PROJECT_NAME)
+        storage_client = GoogleCloudStorageClient(project_name=self.PROJECT_NAME, credentials=OCTUE_MANAGED_CREDENTIALS)
         filename = "file_to_upload.txt"
 
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -81,7 +81,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
     def test_upload_and_download_file_as_string(self):
         """Test that a file can be uploaded to Google Cloud storage and downloaded as a string."""
-        storage_client = GoogleCloudStorageClient(project_name=self.PROJECT_NAME)
+        storage_client = GoogleCloudStorageClient(project_name=self.PROJECT_NAME, credentials=OCTUE_MANAGED_CREDENTIALS)
         filename = "file_to_upload.txt"
 
         with tempfile.TemporaryDirectory() as temporary_directory:

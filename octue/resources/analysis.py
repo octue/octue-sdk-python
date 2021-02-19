@@ -4,7 +4,7 @@ import logging
 from octue.definitions import OUTPUT_STRANDS
 from octue.mixins import Hashable, Identifiable, Loggable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
-from octue.utils.cloud.persistence import GoogleCloudStorageClient
+from octue.utils.cloud.persistence import OCTUE_MANAGED_CREDENTIALS, GoogleCloudStorageClient
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.folders import get_file_name_from_strand
 from twined import ALL_STRANDS, Twine
@@ -125,7 +125,9 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
                     self.logger.debug("Wrote %r to file %r", k, file_name)
 
                 if upload_to_cloud:
-                    GoogleCloudStorageClient(project_name=project_name).upload_from_string(
+                    GoogleCloudStorageClient(
+                        project_name=project_name, credentials=OCTUE_MANAGED_CREDENTIALS
+                    ).upload_from_string(
                         serialised_data=serialised[k], bucket_name=bucket_name, path_in_bucket=file_name
                     )
 
