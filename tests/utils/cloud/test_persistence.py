@@ -48,7 +48,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
             download_local_path = f"{temporary_directory}/{filename}-download"
 
-            storage_client.download_file(
+            storage_client.download_to_file(
                 bucket_name=self.TEST_BUCKET_NAME, path_in_bucket=filename, local_path=download_local_path
             )
 
@@ -72,9 +72,34 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
             download_local_path = f"{temporary_directory}/{filename}-download"
 
-            storage_client.download_file(
+            storage_client.download_to_file(
                 bucket_name=self.TEST_BUCKET_NAME, path_in_bucket=filename, local_path=download_local_path
             )
 
             with open(download_local_path) as f:
                 self.assertTrue('{"height": 32}' in f.read())
+
+    def test_upload_and_download_file_as_string(self):
+        """Test that a file can be uploaded to Google Cloud storage and downloaded as a string."""
+        storage_client = GoogleCloudStorageClient(project_name=self.PROJECT_NAME)
+        filename = "file_to_upload.txt"
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+
+            upload_local_path = f"{temporary_directory}/{filename}"
+
+            with open(upload_local_path, "w") as f:
+                f.write("This is a test upload.")
+
+            upload_url = storage_client.upload_file(
+                local_path=upload_local_path,
+                bucket_name=self.TEST_BUCKET_NAME,
+                path_in_bucket=filename,
+            )
+
+            self.assertEqual(upload_url, f"https://storage.cloud.google.com/{self.TEST_BUCKET_NAME}/{filename}")
+
+        self.assertEqual(
+            storage_client.download_as_string(bucket_name=self.TEST_BUCKET_NAME, path_in_bucket=filename),
+            "This is a test upload.",
+        )
