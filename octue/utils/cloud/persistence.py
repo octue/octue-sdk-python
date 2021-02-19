@@ -59,6 +59,11 @@ class GoogleCloudStorageClient:
         logger.info("Downloaded %r from Google Cloud to as string.", download_url)
         return data.decode()
 
+    def delete(self, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
+        """Delete the given file from the given bucket."""
+        bucket = self.client.get_bucket(bucket_or_name=bucket_name)
+        bucket.blob(blob_name=path_in_bucket).delete(timeout=timeout)
+
     def _generate_resource_url(self, bucket_name, path_in_bucket):
         """Generate the URL for a resource in Google Cloud storage."""
         return f"{GOOGLE_CLOUD_STORAGE_URL}/{bucket_name}/{path_in_bucket}"
