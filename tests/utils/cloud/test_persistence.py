@@ -94,10 +94,16 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
             path_in_bucket=filename,
         )
 
-        storage_client.delete(
-            bucket_name=self.TEST_BUCKET_NAME,
-            path_in_bucket=filename,
+        self.assertEqual(
+            json.loads(
+                GoogleCloudStorageClient(project_name=self.PROJECT_NAME).download_as_string(
+                    bucket_name=self.TEST_BUCKET_NAME, path_in_bucket=filename
+                ),
+            ),
+            {"height": 32},
         )
+
+        storage_client.delete(bucket_name=self.TEST_BUCKET_NAME, path_in_bucket=filename)
 
         with self.assertRaises(google.api_core.exceptions.NotFound):
             GoogleCloudStorageClient(project_name=self.PROJECT_NAME).download_as_string(
