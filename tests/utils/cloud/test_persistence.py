@@ -8,18 +8,8 @@ from tests.base import BaseTestCase
 
 
 class TestUploadFileToGoogleCloud(BaseTestCase):
-
     PROJECT_NAME = os.environ["TEST_PROJECT_NAME"]
     TEST_BUCKET_NAME = os.environ["TEST_BUCKET_NAME"]
-
-    @classmethod
-    def setUpClass(cls):
-        cls.storage_emulator.start()
-        cls.create_google_cloud_test_bucket()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.storage_emulator.stop()
 
     def test_upload_and_download_file(self):
         """Test that a file can be uploaded to Google Cloud storage and downloaded again."""

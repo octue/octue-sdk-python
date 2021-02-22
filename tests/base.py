@@ -4,14 +4,11 @@ import subprocess
 import unittest
 import uuid
 from tempfile import TemporaryDirectory, gettempdir
-from gcloud_storage_emulator.server import create_server
-from google.cloud import storage
 
 from octue.logging_handlers import apply_log_handler
 from octue.mixins import MixinBase, Pathable
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.communication import Service
-from octue.utils.cloud.credentials import GCPCredentialsManager
 
 
 logger = logging.getLogger(__name__)
@@ -27,7 +24,6 @@ class BaseTestCase(unittest.TestCase):
     - sets a path to the test data directory
     """
 
-    storage_emulator = create_server("localhost", 9090, in_memory=True)
     project_name = os.environ["TEST_PROJECT_NAME"]
     bucket_name = os.environ["TEST_BUCKET_NAME"]
 
@@ -71,10 +67,3 @@ class BaseTestCase(unittest.TestCase):
         """ Make and return a new service ready to serve analyses from its run function. """
         run_function = lambda input_values, input_manifest: run_function_returnee  # noqa
         return Service(backend=backend, id=id or str(uuid.uuid4()), run_function=run_function)
-
-    @staticmethod
-    def create_google_cloud_test_bucket():
-        """Create a Google Cloud bucket for testing."""
-        storage.Client(
-            project=os.environ["TEST_PROJECT_NAME"], credentials=GCPCredentialsManager().get_credentials()
-        ).create_bucket(bucket_or_name=os.environ["TEST_BUCKET_NAME"])
