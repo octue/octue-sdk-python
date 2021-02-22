@@ -112,18 +112,18 @@ class DatafileTestCase(BaseTestCase):
 
     def test_from_google_cloud_storage(self):
         """Test that a Datafile can be constructed from a file on Google Cloud storage."""
-        storage_client = GoogleCloudStorageClient(project_name=self.project_name, credentials=OCTUE_MANAGED_CREDENTIALS)
-
+        project_name = os.environ["TEST_PROJECT_NAME"]
+        bucket_name = os.environ["TEST_BUCKET_NAME"]
         path_in_bucket = "file_to_upload.txt"
 
-        storage_client.upload_from_string(
+        GoogleCloudStorageClient(project_name=project_name, credentials=OCTUE_MANAGED_CREDENTIALS).upload_from_string(
             serialised_data=json.dumps({"height": 32}),
-            bucket_name=self.bucket_name,
+            bucket_name=bucket_name,
             path_in_bucket=path_in_bucket,
         )
 
         datafile = Datafile.from_google_cloud_storage(
-            project_name=self.project_name, bucket_name=self.bucket_name, path_in_bucket=path_in_bucket
+            project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket
         )
 
         self.assertTrue(isinstance(datafile.size_bytes, int))

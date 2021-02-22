@@ -24,9 +24,6 @@ class BaseTestCase(unittest.TestCase):
     - sets a path to the test data directory
     """
 
-    project_name = os.environ["TEST_PROJECT_NAME"]
-    bucket_name = os.environ["TEST_BUCKET_NAME"]
-
     def setUp(self):
         # Set up paths to the test data directory and to the app templates directory
         root_dir = os.path.dirname(os.path.abspath(__file__))
