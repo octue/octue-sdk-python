@@ -1,11 +1,13 @@
 import logging
 import os
 import time
+from datetime import datetime
 from blake3 import blake3
 
 from octue.exceptions import FileNotFoundException, InvalidInputException
 from octue.mixins import Filterable, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.utils import isfile
+from octue.utils.cloud.persistence import GoogleCloudStorageClient
 
 
 module_logger = logging.getLogger(__name__)
@@ -93,6 +95,22 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         if not skip_checks:
             self.check(**kwargs)
 
+        self._gcp_metadata = None
+
+    @classmethod
+    def from_google_cloud_storage(cls, project_name, bucket_name, path_in_bucket, cluster=0, sequence=None):
+        """Create a Datafile from a file in Google Cloud storage."""
+        client = GoogleCloudStorageClient(project_name)
+
+        datafile = cls(
+            path=f"gs://{bucket_name}/{path_in_bucket}",
+            cluster=cluster,
+            sequence=sequence,
+        )
+
+        datafile._gcp_metadata = client.get_metadata(bucket_name, path_in_bucket)
+        return datafile
+
     def _get_extension_from_path(self, path=None):
         """Gets extension of a file, either from a provided file path or from self.path field"""
         path = path or self.path
@@ -104,17 +122,28 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     @property
     def last_modified(self):
+        """Get the date/time the file was last modified in units of seconds since epoch."""
+        if self._path_is_in_google_cloud_storage:
+            unparsed_datetime = self._gcp_metadata["updated"]
+            parsed_datetime = datetime.strptime(unparsed_datetime, "%Y-%m-%d %H:%M:%S.%f")
+            return (parsed_datetime - datetime(1970, 1, 1)).total_seconds()
+
         return os.path.getmtime(self.absolute_path)
 
     @property
     def size_bytes(self):
+        if self._path_is_in_google_cloud_storage:
+            return int(self._gcp_metadata["size"])
         return os.path.getsize(self.absolute_path)
 
     def __repr__(self):
         return f"<{type(self).__name__}({self.name!r})>"
 
     def _calculate_hash(self):
-        """ Calculate the hash of the file. """
+        """Calculate the hash of the file."""
+        if self._path_is_in_google_cloud_storage:
+            return self._gcp_metadata["md5Hash"]
+
         hash = blake3()
 
         with open(self.absolute_path, "rb") as f:
@@ -132,7 +161,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
         if (extension is not None) and not self.path.endswith(extension):
             raise InvalidInputException(
-                f"Extension provided ({extension}) does not match file extension (from {self.path}). Pass extension=None to set extension from filename automatically."
+                f"Extension provided ({extension}) does not match file extension (from {self.path}). Pass extension="
+                f"None to set extension from filename automatically."
             )
 
         if not self.exists():

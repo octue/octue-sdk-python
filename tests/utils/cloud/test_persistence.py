@@ -2,10 +2,7 @@ import json
 import os
 import tempfile
 import google.api_core.exceptions
-from gcloud_storage_emulator.server import create_server
-from google.cloud import storage
 
-from octue.utils.cloud.credentials import GCPCredentialsManager
 from octue.utils.cloud.persistence import OCTUE_MANAGED_CREDENTIALS, GoogleCloudStorageClient
 from tests.base import BaseTestCase
 
@@ -14,14 +11,11 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
     PROJECT_NAME = os.environ["TEST_PROJECT_NAME"]
     TEST_BUCKET_NAME = os.environ["TEST_BUCKET_NAME"]
-    storage_emulator = create_server("localhost", 9090, in_memory=True)
 
     @classmethod
     def setUpClass(cls):
         cls.storage_emulator.start()
-        storage.Client(project=cls.PROJECT_NAME, credentials=GCPCredentialsManager().get_credentials()).create_bucket(
-            bucket_or_name=cls.TEST_BUCKET_NAME
-        )
+        cls.create_google_cloud_test_bucket()
 
     @classmethod
     def tearDownClass(cls):

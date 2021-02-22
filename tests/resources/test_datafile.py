@@ -1,10 +1,12 @@
 import copy
+import json
 import os
 import uuid
 
 from octue import exceptions
 from octue.mixins import MixinBase, Pathable
 from octue.resources import Datafile
+from octue.utils.cloud.persistence import OCTUE_MANAGED_CREDENTIALS, GoogleCloudStorageClient
 from ..base import BaseTestCase
 
 
@@ -107,3 +109,27 @@ class DatafileTestCase(BaseTestCase):
         first_file = self.create_valid_datafile()
         second_file = copy.deepcopy(first_file)
         self.assertEqual(first_file.hash_value, second_file.hash_value)
+
+    def test_from_google_cloud_storage(self):
+        """Test that a Datafile can be constructed from a file on Google Cloud storage."""
+        self.storage_emulator.start()
+        self.create_google_cloud_test_bucket()
+
+        storage_client = GoogleCloudStorageClient(project_name=self.project_name, credentials=OCTUE_MANAGED_CREDENTIALS)
+
+        path_in_bucket = "file_to_upload.txt"
+
+        storage_client.upload_from_string(
+            serialised_data=json.dumps({"height": 32}),
+            bucket_name=self.bucket_name,
+            path_in_bucket=path_in_bucket,
+        )
+
+        datafile = Datafile.from_google_cloud_storage(
+            project_name=self.project_name, bucket_name=self.bucket_name, path_in_bucket=path_in_bucket
+        )
+
+        self.assertTrue(isinstance(datafile.size_bytes, int))
+        self.assertTrue(isinstance(datafile.last_modified, float))
+        self.assertTrue(isinstance(datafile.hash_value, str))
+        self.storage_emulator.stop()
