@@ -8,15 +8,13 @@ TESTS_DIR = os.path.dirname(__file__)
 storage_emulator = GoogleCloudStorageEmulator()
 
 
-def startTestRun(self):
+def startTestRun(instance):
     storage_emulator.start()
 
 
-setattr(unittest.TestResult, "startTestRun", startTestRun)
-
-
-def stopTestRun(self):
+def stopTestRun(instance):
     storage_emulator.stop()
 
 
+setattr(unittest.TestResult, "startTestRun", startTestRun)
 setattr(unittest.TestResult, "stopTestRun", stopTestRun)
