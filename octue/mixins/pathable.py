@@ -4,10 +4,8 @@ from octue.exceptions import InvalidInputException
 
 
 class Pathable:
-    """Mixin class to enable resources to get their path location from an owner.
-
-    For example, datasets can get their path from the Manifest they belong to.
-
+    """Mixin class to enable resources to get their path location from an owner. For example, datasets can get their
+    path from the Manifest they belong to.
     """
 
     def __init__(self, *args, path=None, path_from=None, base_from=None, **kwargs):
@@ -27,6 +25,13 @@ class Pathable:
         self._path_from = path_from
         self._base_from = base_from
         self._path_is_absolute = False
+
+        if path and path.startswith("gs://"):
+            self._path_is_in_google_cloud_storage = True
+            self._path_is_absolute = True
+        else:
+            self._path_is_in_google_cloud_storage = False
+
         self.path = path
 
     @property
@@ -35,6 +40,9 @@ class Pathable:
         :return:
         :rtype:
         """
+        if self._path_is_in_google_cloud_storage:
+            return None
+
         if self._base_from:
             return self._base_from.absolute_path
 
@@ -42,8 +50,8 @@ class Pathable:
 
     @property
     def _path_prefix(self):
-        """Gets the path prefix (this is the absolute_path of the owner path_from object).
-        Defaults to the current working directory
+        """Gets the path prefix (this is the absolute_path of the owner path_from object). Defaults to the current
+        working directory.
         """
         if self._path_from is not None:
             return self._path_from.absolute_path
@@ -55,13 +63,17 @@ class Pathable:
 
     @property
     def absolute_path(self):
-        """The absolute path of this resource"""
+        """The absolute path of this resource."""
+        if self._path_is_in_google_cloud_storage:
+            return self.path
         return os.path.normpath(os.path.join(self._path_prefix, self._path))
 
     @property
     def relative_path(self):
-        """The path of this resource relative to its base path"""
-        return os.path.relpath(self.absolute_path, self._base_path)
+        """The path of this resource relative to its base path."""
+        if self._base_path is None:
+            return None
+        return os.path.relpath(self.absolute_path, start=self._base_path)
 
     @property
     def path(self):
@@ -76,14 +88,17 @@ class Pathable:
         be relative. Otherwise, absolute paths are acceptable.
         :type value: Union[str, path-like]
         """
+        if self._path_is_in_google_cloud_storage:
+            path_is_absolute = True
 
-        value = os.path.normpath(value or ".")
-
-        path_is_absolute = value == os.path.abspath(value)
+        else:
+            value = os.path.normpath(value or ".")
+            path_is_absolute = value == os.path.abspath(value)
 
         if path_is_absolute and self._path_from is not None:
             raise InvalidInputException(
-                f"You cannot an absolute path on a pathable instantiated with 'path_from'. Set a path relative to the path_from object ({self._path_from})"
+                f"You cannot an absolute path on a pathable instantiated with 'path_from'. Set a path relative to "
+                f"the path_from object ({self._path_from})"
             )
 
         self._path_is_absolute = path_is_absolute

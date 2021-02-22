@@ -87,3 +87,11 @@ class PathableTestCase(BaseTestCase):
         owner1 = MyPathable(path="owner")
         with self.assertRaises(InvalidInputException):
             MyPathable(path_from=owner1, path="/owned")
+
+    def test_with_google_cloud_storage_blob(self):
+        """Test that paths in Google Cloud storage buckets can be represented as a Pathable."""
+        path = "gs://my-bucket/file/in/bucket.json"
+        pathable = Pathable(path=path)
+        self.assertEqual(pathable.path, path)
+        self.assertEqual(pathable.absolute_path, path)
+        self.assertIsNone(pathable.relative_path)
