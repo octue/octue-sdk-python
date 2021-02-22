@@ -58,6 +58,11 @@ class GoogleCloudStorageClient:
         logger.info("Downloaded %r from Google Cloud to as string.", blob.public_url)
         return data.decode()
 
+    def get_metadata(self, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
+        """Get the metadata of the given file in the given bucket."""
+        bucket = self.client.get_bucket(bucket_or_name=bucket_name)
+        return bucket.get_blob(blob_name=path_in_bucket, timeout=timeout)._properties
+
     def delete(self, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
         """Delete the given file from the given bucket."""
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)

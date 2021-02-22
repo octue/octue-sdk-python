@@ -1,6 +1,7 @@
 import json
 import os
 import tempfile
+import google.api_core.exceptions
 from gcloud_storage_emulator.server import create_server
 from google.cloud import storage
 
@@ -97,3 +98,42 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
             storage_client.download_as_string(bucket_name=self.TEST_BUCKET_NAME, path_in_bucket=filename),
             "This is a test upload.",
         )
+
+    def test_delete(self):
+        """Test that a file can be deleted."""
+        storage_client = GoogleCloudStorageClient(project_name=self.PROJECT_NAME, credentials=OCTUE_MANAGED_CREDENTIALS)
+        filename = "file_to_upload.txt"
+
+        storage_client.upload_from_string(
+            serialised_data=json.dumps({"height": 32}),
+            bucket_name=self.TEST_BUCKET_NAME,
+            path_in_bucket=filename,
+        )
+
+        storage_client.delete(
+            bucket_name=self.TEST_BUCKET_NAME,
+            path_in_bucket=filename,
+        )
+
+        with self.assertRaises(google.api_core.exceptions.NotFound):
+            GoogleCloudStorageClient(project_name=self.PROJECT_NAME).download_as_string(
+                bucket_name=self.TEST_BUCKET_NAME, path_in_bucket=filename
+            )
+
+    def test_get_metadata(self):
+        """Test that file metadata can be retrieved."""
+        storage_client = GoogleCloudStorageClient(project_name=self.PROJECT_NAME, credentials=OCTUE_MANAGED_CREDENTIALS)
+        filename = "file_to_upload.txt"
+
+        storage_client.upload_from_string(
+            serialised_data=json.dumps({"height": 32}),
+            bucket_name=self.TEST_BUCKET_NAME,
+            path_in_bucket=filename,
+        )
+
+        metadata = storage_client.get_metadata(
+            bucket_name=self.TEST_BUCKET_NAME,
+            path_in_bucket=filename,
+        )
+
+        self.assertTrue(len(metadata) > 0)
