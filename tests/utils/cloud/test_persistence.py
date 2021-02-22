@@ -38,13 +38,11 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
             with open(upload_local_path, "w") as f:
                 f.write("This is a test upload.")
 
-            upload_url = storage_client.upload_file(
+            storage_client.upload_file(
                 local_path=upload_local_path,
                 bucket_name=self.TEST_BUCKET_NAME,
                 path_in_bucket=filename,
             )
-
-            self.assertEqual(upload_url, f"https://storage.cloud.google.com/{self.TEST_BUCKET_NAME}/{filename}")
 
             download_local_path = f"{temporary_directory}/{filename}-download"
 
@@ -62,13 +60,11 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
         with tempfile.TemporaryDirectory() as temporary_directory:
 
-            upload_url = storage_client.upload_from_string(
+            storage_client.upload_from_string(
                 serialised_data=json.dumps({"height": 32}),
                 bucket_name=self.TEST_BUCKET_NAME,
                 path_in_bucket=filename,
             )
-
-            self.assertEqual(upload_url, f"https://storage.cloud.google.com/{self.TEST_BUCKET_NAME}/{filename}")
 
             download_local_path = f"{temporary_directory}/{filename}-download"
 
@@ -91,13 +87,11 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
             with open(upload_local_path, "w") as f:
                 f.write("This is a test upload.")
 
-            upload_url = storage_client.upload_file(
+            storage_client.upload_file(
                 local_path=upload_local_path,
                 bucket_name=self.TEST_BUCKET_NAME,
                 path_in_bucket=filename,
             )
-
-            self.assertEqual(upload_url, f"https://storage.cloud.google.com/{self.TEST_BUCKET_NAME}/{filename}")
 
         self.assertEqual(
             storage_client.download_as_string(bucket_name=self.TEST_BUCKET_NAME, path_in_bucket=filename),

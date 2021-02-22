@@ -8,7 +8,6 @@ from octue.utils.cloud.credentials import GCPCredentialsManager
 logger = logging.getLogger(__name__)
 
 OCTUE_MANAGED_CREDENTIALS = "octue-managed"
-GOOGLE_CLOUD_STORAGE_URL = "https://storage.cloud.google.com"
 
 
 class GoogleCloudStorageClient:
@@ -25,45 +24,43 @@ class GoogleCloudStorageClient:
         https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>
         """
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
-        bucket.blob(blob_name=path_in_bucket).upload_from_filename(filename=local_path, timeout=timeout)
-        upload_url = f"{GOOGLE_CLOUD_STORAGE_URL}/{bucket_name}/{path_in_bucket}"
-        logger.info("Uploaded %r to Google Cloud at %r.", local_path, upload_url)
-        return upload_url
+        blob = bucket.blob(blob_name=path_in_bucket)
+        blob.upload_from_filename(filename=local_path, timeout=timeout)
+        logger.info("Uploaded %r to Google Cloud at %r.", local_path, blob.public_url)
+        return blob.public_url
 
     def upload_from_string(self, serialised_data, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
         """Upload serialised data in string form to a file in a Google Cloud bucket at
         https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>
         """
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
-        bucket.blob(blob_name=path_in_bucket).upload_from_string(data=serialised_data, timeout=timeout)
-        upload_url = self._generate_resource_url(bucket_name, path_in_bucket)
-        logger.info("Uploaded %r to Google Cloud at %r.", serialised_data, upload_url)
-        return upload_url
+        blob = bucket.blob(blob_name=path_in_bucket)
+        blob.upload_from_string(data=serialised_data, timeout=timeout)
+        logger.info("Uploaded data to Google Cloud at %r.", blob.public_url)
+        return blob.public_url
 
     def download_to_file(self, bucket_name, path_in_bucket, local_path, timeout=_DEFAULT_TIMEOUT):
         """Download a file to a file from a Google Cloud bucket at
         https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>
         """
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
-        bucket.blob(blob_name=path_in_bucket).download_to_filename(local_path, timeout=timeout)
-        download_url = self._generate_resource_url(bucket_name, path_in_bucket)
-        logger.info("Downloaded %r from Google Cloud to %r.", download_url, local_path)
+        blob = bucket.blob(blob_name=path_in_bucket)
+        blob.download_to_filename(local_path, timeout=timeout)
+        logger.info("Downloaded %r from Google Cloud to %r.", blob.public_url, local_path)
 
     def download_as_string(self, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
         """Download a file to a string from a Google Cloud bucket at
         https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>
         """
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
-        data = bucket.blob(blob_name=path_in_bucket).download_as_string(timeout=timeout)
-        download_url = self._generate_resource_url(bucket_name, path_in_bucket)
-        logger.info("Downloaded %r from Google Cloud to as string.", download_url)
+        blob = bucket.blob(blob_name=path_in_bucket)
+        data = blob.download_as_string(timeout=timeout)
+        logger.info("Downloaded %r from Google Cloud to as string.", blob.public_url)
         return data.decode()
 
     def delete(self, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
         """Delete the given file from the given bucket."""
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
-        bucket.blob(blob_name=path_in_bucket).delete(timeout=timeout)
-
-    def _generate_resource_url(self, bucket_name, path_in_bucket):
-        """Generate the URL for a resource in Google Cloud storage."""
-        return f"{GOOGLE_CLOUD_STORAGE_URL}/{bucket_name}/{path_in_bucket}"
+        blob = bucket.blob(blob_name=path_in_bucket)
+        blob.delete(timeout=timeout)
+        logger.info("Deleted %r from Google Cloud.", blob.public_url)
