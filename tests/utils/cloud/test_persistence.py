@@ -84,9 +84,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
         self.assertEqual(
             json.loads(
-                GoogleCloudStorageClient(project_name=self.PROJECT_NAME).download_as_string(
-                    bucket_name=self.TEST_BUCKET_NAME, path_in_bucket=self.FILENAME
-                ),
+                self.storage_client.download_as_string(bucket_name=self.TEST_BUCKET_NAME, path_in_bucket=self.FILENAME),
             ),
             {"height": 32},
         )
@@ -94,9 +92,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         self.storage_client.delete(bucket_name=self.TEST_BUCKET_NAME, path_in_bucket=self.FILENAME)
 
         with self.assertRaises(google.api_core.exceptions.NotFound):
-            GoogleCloudStorageClient(project_name=self.PROJECT_NAME).download_as_string(
-                bucket_name=self.TEST_BUCKET_NAME, path_in_bucket=self.FILENAME
-            )
+            self.storage_client.download_as_string(bucket_name=self.TEST_BUCKET_NAME, path_in_bucket=self.FILENAME)
 
     def test_get_metadata(self):
         """Test that file metadata can be retrieved."""
