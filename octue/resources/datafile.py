@@ -8,6 +8,7 @@ from octue.exceptions import FileNotFoundException, InvalidInputException
 from octue.mixins import Filterable, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.utils import isfile
 from octue.utils.cloud.persistence import GoogleCloudStorageClient
+from octue.utils.cloud.storage import generate_gs_path
 
 
 module_logger = logging.getLogger(__name__)
@@ -103,7 +104,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         client = GoogleCloudStorageClient(project_name)
 
         datafile = cls(
-            path=f"gs://{bucket_name}/{path_in_bucket}",
+            path=generate_gs_path(bucket_name, path_in_bucket),
             cluster=cluster,
             sequence=sequence,
         )

@@ -1,6 +1,7 @@
 import os
 
 from octue.exceptions import InvalidInputException
+from octue.utils.cloud.storage import CLOUD_STORAGE_PROTOCOL
 
 
 class Pathable:
@@ -26,7 +27,7 @@ class Pathable:
         self._base_from = base_from
         self._path_is_absolute = False
 
-        if path and path.startswith("gs://"):
+        if path and path.startswith(CLOUD_STORAGE_PROTOCOL):
             self._path_is_in_google_cloud_storage = True
             self._path_is_absolute = True
         else:
