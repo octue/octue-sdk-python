@@ -15,6 +15,13 @@ def join(*paths):
     while "" in paths:
         paths.remove("")
 
+    if any(path.startswith("/") for path in paths[1:]):
+        reverse_paths = list(reversed(paths))
+
+        for i, path in enumerate(reverse_paths):
+            if path.startswith("/"):
+                return "/".join(reversed(reverse_paths[: i + 1]))
+
     return "/".join(paths)
 
 
@@ -28,23 +35,15 @@ def generate_gs_path(bucket_name, *paths):
     return CLOUD_STORAGE_PROTOCOL + join(bucket_name, *paths)
 
 
-def get_bucket_from_path(path):
-    """Get the bucket name from a path.
-
-    :param str path:
-    :return str:
-    """
-    bucket_name = strip_protocol_from_path(path).split("/")[0]
-    return CLOUD_STORAGE_PROTOCOL + bucket_name
-
-
 def strip_protocol_from_path(path):
     """Strip the `gs://` protocol from the path.
 
     :param str path:
     :return str:
     """
-    return path.split(":")[1].strip("/")
+    if not path.startswith(CLOUD_STORAGE_PROTOCOL):
+        return path
+    return path.split(":")[1].lstrip("/")
 
 
 def relpath(path, start):
@@ -54,4 +53,7 @@ def relpath(path, start):
     :param str start:
     :return str:
     """
-    return strip_protocol_from_path(os.path.relpath(path, start=start))
+    if start is not None:
+        start = strip_protocol_from_path(start)
+
+    return os.path.relpath(strip_protocol_from_path(path), start)
