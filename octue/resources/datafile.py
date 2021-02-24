@@ -128,7 +128,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         """Get the date/time the file was last modified in units of seconds since epoch."""
         if self._path_is_in_google_cloud_storage:
             unparsed_datetime = self._gcp_metadata["updated"]
-            parsed_datetime = datetime.strptime(unparsed_datetime, "%Y-%m-%d %H:%M:%S.%f")
+            parsed_datetime = datetime.strptime(unparsed_datetime, "%Y-%m-%dT%H:%M:%S.%fZ")
             return (parsed_datetime - datetime(1970, 1, 1)).total_seconds()
 
         return os.path.getmtime(self.absolute_path)
