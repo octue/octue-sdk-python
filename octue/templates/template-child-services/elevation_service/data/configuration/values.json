@@ -2,6 +2,6 @@
     "backend": {
         "name": "GCPPubSubBackend",
         "project_name": "octue-amy",
-        "credentials_environment_variable": "GCP_SERVICE_ACCOUNT"
+        "credentials_environment_variable": "GOOGLE_APPLICATION_CREDENTIALS"
     }
 }
