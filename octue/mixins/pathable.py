@@ -98,7 +98,7 @@ class Pathable:
 
         if path_is_absolute and self._path_from is not None:
             raise InvalidInputException(
-                f"You cannot an absolute path on a pathable instantiated with 'path_from'. Set a path relative to "
+                f"You cannot set an absolute path on a pathable instantiated with 'path_from'. Set a path relative to "
                 f"the path_from object ({self._path_from})"
             )
 
