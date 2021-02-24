@@ -14,6 +14,11 @@ from octue.utils.cloud.storage import generate_gs_path
 module_logger = logging.getLogger(__name__)
 
 
+CLUSTER_DEFAULT = 0
+SEQUENCE_DEFAULT = None
+TAGS_DEFAULT = None
+
+
 class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable, Filterable):
     """Class for representing data files on the Octue system
 
@@ -72,9 +77,9 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         path=None,
         path_from=None,
         base_from=None,
-        cluster=0,
-        sequence=None,
-        tags=None,
+        cluster=CLUSTER_DEFAULT,
+        sequence=SEQUENCE_DEFAULT,
+        tags=TAGS_DEFAULT,
         posix_timestamp=None,
         skip_checks=True,
         **kwargs,
@@ -106,9 +111,9 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
         datafile = cls(
             path=generate_gs_path(bucket_name, path_in_bucket),
-            cluster=custom_metadata.get("cluster", 0),
-            sequence=custom_metadata.get("sequence", None),
-            tags=custom_metadata.get("tags", set()),
+            cluster=custom_metadata.get("cluster", CLUSTER_DEFAULT),
+            sequence=custom_metadata.get("sequence", SEQUENCE_DEFAULT),
+            tags=custom_metadata.get("tags", TAGS_DEFAULT),
         )
 
         datafile._gcp_metadata = metadata
