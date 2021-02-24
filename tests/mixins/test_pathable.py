@@ -2,7 +2,6 @@ import os
 
 from octue.exceptions import InvalidInputException
 from octue.mixins import MixinBase, Pathable
-from octue.utils.cloud.storage import generate_gs_path
 from ..base import BaseTestCase
 
 
@@ -88,8 +87,8 @@ class PathableTestCase(BaseTestCase):
 
     def test_with_google_cloud_storage_blob(self):
         """Test that paths in Google Cloud storage buckets can be represented as a Pathable."""
-        path = generate_gs_path("my-bucket", "file", "in", "bucket.json")
+        path = "gs://my-bucket/file/in/bucket.json"
         pathable = Pathable(path=path)
-        self.assertEqual(pathable.path, path)
-        self.assertEqual(pathable.absolute_path, path)
-        self.assertIsNone(pathable.path_relative_to())
+        self.assertEqual(pathable.path, "gs://my-bucket/file/in/bucket.json")
+        self.assertEqual(pathable.absolute_path, "gs://my-bucket/file/in/bucket.json")
+        self.assertEqual(pathable.path_relative_to(), "my-bucket/file/in/bucket.json")

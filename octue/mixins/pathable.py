@@ -1,7 +1,7 @@
 import os
 
 from octue.exceptions import InvalidInputException
-from octue.utils.cloud.storage import CLOUD_STORAGE_PROTOCOL
+from octue.utils.cloud import storage
 
 
 class Pathable:
@@ -21,8 +21,9 @@ class Pathable:
         self._path_from = path_from
         self._path_is_absolute = False
 
-        if path and path.startswith(CLOUD_STORAGE_PROTOCOL):
+        if path and path.startswith(storage.CLOUD_STORAGE_PROTOCOL):
             self._path_is_in_google_cloud_storage = True
+
         else:
             self._path_is_in_google_cloud_storage = False
 
@@ -45,14 +46,21 @@ class Pathable:
     def absolute_path(self):
         """The absolute path of this resource."""
         if self._path_is_in_google_cloud_storage:
-            return self.path
+            return storage.join(self._path_prefix, self._path)
+
         return os.path.normpath(os.path.join(self._path_prefix, self._path))
 
-    def path_relative_to(self, path=os.getcwd()):
-        """Get the path of this resource relative to another."""
+    def path_relative_to(self, path=None):
+        """Get the path of this resource relative to another. If no path is provided, the current directory is used if
+        the path is for a filesystem, or the bucket is used if the path is for Google Cloud.
+        """
         if isinstance(path, Pathable):
             path = path.absolute_path
-        return os.path.relpath(self.absolute_path, start=path)
+
+        if self._path_is_in_google_cloud_storage:
+            return storage.relpath(self.absolute_path, start=path)
+
+        return os.path.relpath(self.absolute_path, start=path or os.getcwd())
 
     @property
     def path(self):
@@ -67,7 +75,7 @@ class Pathable:
         be relative. Otherwise, absolute paths are acceptable.
         :type value: Union[str, path-like]
         """
-        if value and value.startswith(CLOUD_STORAGE_PROTOCOL):
+        if value and value.startswith(storage.CLOUD_STORAGE_PROTOCOL):
             path_is_absolute = True
 
         else:
