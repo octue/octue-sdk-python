@@ -92,3 +92,10 @@ class PathableTestCase(BaseTestCase):
         self.assertEqual(pathable.path, "gs://my-bucket/file/in/bucket.json")
         self.assertEqual(pathable.absolute_path, "gs://my-bucket/file/in/bucket.json")
         self.assertEqual(pathable.path_relative_to(), "my-bucket/file/in/bucket.json")
+
+    def test_google_cloud_storage_blob_relative_path(self):
+        """Test that paths in Google Cloud storage buckets can be represented as a Pathable."""
+        path = "gs://my-bucket/file/in/bucket.json"
+        pathable = Pathable(path=path)
+        self.assertEqual(pathable.path_relative_to("my-bucket/file"), "in/bucket.json")
+        self.assertEqual(pathable.path_relative_to("my-bucket/file/hello"), "../in/bucket.json")
