@@ -100,7 +100,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     @classmethod
     def from_google_cloud_storage(cls, project_name, bucket_name, path_in_bucket, cluster=0, sequence=None):
-        """Create a Datafile from a file in Google Cloud storage."""
+        """Instantiate a Datafile from a file in Google Cloud storage."""
         client = GoogleCloudStorageClient(project_name)
 
         datafile = cls(
