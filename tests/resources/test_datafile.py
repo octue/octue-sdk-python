@@ -111,8 +111,31 @@ class DatafileTestCase(BaseTestCase):
         second_file = copy.deepcopy(first_file)
         self.assertEqual(first_file.hash_value, second_file.hash_value)
 
-    def test_from_google_cloud_storage(self):
-        """Test that a Datafile can be constructed from a file on Google Cloud storage."""
+    def test_from_google_cloud_storage_with_no_metadata(self):
+        """Test that a Datafile can be constructed from a file on Google Cloud storage with no custom metadata."""
+        project_name = os.environ["TEST_PROJECT_NAME"]
+        bucket_name = os.environ["TEST_BUCKET_NAME"]
+        path_in_bucket = "file_to_upload.txt"
+
+        GoogleCloudStorageClient(project_name=project_name, credentials=OCTUE_MANAGED_CREDENTIALS).upload_from_string(
+            serialised_data=json.dumps({"height": 32}),
+            bucket_name=bucket_name,
+            path_in_bucket=path_in_bucket,
+        )
+
+        datafile = Datafile.from_google_cloud_storage(
+            project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket
+        )
+
+        self.assertEqual(datafile.cluster, 0)
+        self.assertEqual(datafile.sequence, None)
+        self.assertEqual(datafile.tags, TagSet())
+        self.assertTrue(isinstance(datafile.size_bytes, int))
+        self.assertTrue(isinstance(datafile.last_modified, float))
+        self.assertTrue(isinstance(datafile.hash_value, str))
+
+    def test_from_google_cloud_storage_with_metadata(self):
+        """Test that a Datafile can be constructed from a file on Google Cloud storage with custom metadata."""
         project_name = os.environ["TEST_PROJECT_NAME"]
         bucket_name = os.environ["TEST_BUCKET_NAME"]
         path_in_bucket = "file_to_upload.txt"

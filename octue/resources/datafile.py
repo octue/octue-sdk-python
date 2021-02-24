@@ -106,9 +106,9 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
         datafile = cls(
             path=generate_gs_path(bucket_name, path_in_bucket),
-            cluster=custom_metadata["cluster"],
-            sequence=custom_metadata["sequence"],
-            tags=custom_metadata["tags"],
+            cluster=custom_metadata.get("cluster", 0),
+            sequence=custom_metadata.get("sequence", None),
+            tags=custom_metadata.get("tags", set()),
         )
 
         datafile._gcp_metadata = metadata

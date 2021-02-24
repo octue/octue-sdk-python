@@ -27,7 +27,7 @@ class GoogleCloudStorageClient:
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         blob = bucket.blob(blob_name=path_in_bucket)
         blob.upload_from_filename(filename=local_path, timeout=timeout)
-        blob.metadata = self._encode_metadata(metadata)
+        blob.metadata = self._encode_metadata(metadata or {})
         blob.patch()
         logger.info("Uploaded %r to Google Cloud at %r.", local_path, blob.public_url)
         return blob.public_url
@@ -39,7 +39,7 @@ class GoogleCloudStorageClient:
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         blob = bucket.blob(blob_name=path_in_bucket)
         blob.upload_from_string(data=serialised_data, timeout=timeout)
-        blob.metadata = self._encode_metadata(metadata)
+        blob.metadata = self._encode_metadata(metadata or {})
         blob.patch()
         logger.info("Uploaded data to Google Cloud at %r.", blob.public_url)
         return blob.public_url
