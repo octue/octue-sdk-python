@@ -21,9 +21,9 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
     _FILTERSET_ATTRIBUTE = "files"
     _ATTRIBUTES_TO_HASH = "files", "name", "tags"
 
-    def __init__(self, id=None, logger=None, path=None, path_from=None, base_from=None, tags=None, **kwargs):
+    def __init__(self, id=None, logger=None, path=None, path_from=None, tags=None, **kwargs):
         """Construct a Dataset"""
-        super().__init__(id=id, logger=logger, tags=tags, path=path, path_from=path_from, base_from=base_from)
+        super().__init__(id=id, logger=logger, tags=tags, path=path, path_from=path_from)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
@@ -35,7 +35,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             if isinstance(fi, Datafile):
                 self.files.add(fi)
             else:
-                self.files.add(Datafile(**fi, path_from=self, base_from=self))
+                self.files.add(Datafile(**fi, path_from=self))
 
         self.__dict__.update(**kwargs)
 

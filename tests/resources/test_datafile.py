@@ -22,7 +22,7 @@ class DatafileTestCase(BaseTestCase):
         self.path = os.path.join("path-within-dataset", "a_test_file.csv")
 
     def create_valid_datafile(self):
-        return Datafile(path_from=self.path_from, base_from=self.path_from, path=self.path, skip_checks=False)
+        return Datafile(path_from=self.path_from, path=self.path, skip_checks=False)
 
     def test_instantiates(self):
         """Ensures a Datafile instantiates using only a path and generates a uuid ID"""

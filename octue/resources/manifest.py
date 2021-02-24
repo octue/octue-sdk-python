@@ -15,9 +15,9 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
 
     _ATTRIBUTES_TO_HASH = "datasets", "keys"
 
-    def __init__(self, id=None, logger=None, path=None, path_from=None, base_from=None, **kwargs):
+    def __init__(self, id=None, logger=None, path=None, path_from=None, **kwargs):
         """Construct a Manifest"""
-        super().__init__(id=id, logger=logger, path=path, path_from=path_from, base_from=base_from)
+        super().__init__(id=id, logger=logger, path=path, path_from=path_from)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.

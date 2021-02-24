@@ -40,9 +40,6 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     :parameter path_from: The root Pathable object (typically a Dataset) that this Datafile's path is relative to.
     :type path_from: Pathable
 
-    :parameter base_from: A Pathable object, which in most circumstances is the same as the path_from object, upon which
-    the `relative_path` property is based (if not given, `relative_path` is relative to current working directory
-
     :parameter path: The path of this file, which may include folders or subfolders, within the dataset. If no path_from
     parameter is set, then absolute paths are acceptable, otherwise relative paths are required.
     :type path: Union[str, path-like]
@@ -76,7 +73,6 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         logger=None,
         path=None,
         path_from=None,
-        base_from=None,
         cluster=CLUSTER_DEFAULT,
         sequence=SEQUENCE_DEFAULT,
         tags=TAGS_DEFAULT,
@@ -85,7 +81,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         **kwargs,
     ):
         """Construct a datafile"""
-        super().__init__(id=id, logger=logger, tags=tags, path=path, path_from=path_from, base_from=base_from)
+        super().__init__(id=id, logger=logger, tags=tags, path=path, path_from=path_from)
 
         self.cluster = cluster
         self.sequence = sequence

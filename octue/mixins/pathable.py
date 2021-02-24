@@ -9,7 +9,7 @@ class Pathable:
     path from the Manifest they belong to.
     """
 
-    def __init__(self, *args, path=None, path_from=None, base_from=None, **kwargs):
+    def __init__(self, *args, path=None, path_from=None, **kwargs):
         """Constructor for pathable mixin"""
         super().__init__(*args, **kwargs)
 
@@ -18,36 +18,15 @@ class Pathable:
                 "paths_from argument must be an instance of an object inheriting from Pathable() mixin"
             )
 
-        if (base_from is not None) and not isinstance(base_from, Pathable):
-            raise InvalidInputException(
-                "base_from argument must be an instance of an object inheriting from Pathable() mixin"
-            )
-
         self._path_from = path_from
-        self._base_from = base_from
         self._path_is_absolute = False
 
         if path and path.startswith(CLOUD_STORAGE_PROTOCOL):
             self._path_is_in_google_cloud_storage = True
-            self._path_is_absolute = True
         else:
             self._path_is_in_google_cloud_storage = False
 
         self.path = path
-
-    @property
-    def _base_path(self):
-        """Gets the absolute path of the base_from object, from which any relative paths are constructed
-        :return:
-        :rtype:
-        """
-        if self._path_is_in_google_cloud_storage:
-            return None
-
-        if self._base_from:
-            return self._base_from.absolute_path
-
-        return os.getcwd()
 
     @property
     def _path_prefix(self):
@@ -69,12 +48,11 @@ class Pathable:
             return self.path
         return os.path.normpath(os.path.join(self._path_prefix, self._path))
 
-    @property
-    def relative_path(self):
-        """The path of this resource relative to its base path."""
-        if self._base_path is None:
-            return None
-        return os.path.relpath(self.absolute_path, start=self._base_path)
+    def path_relative_to(self, path=os.getcwd()):
+        """Get the path of this resource relative to another."""
+        if isinstance(path, Pathable):
+            path = path.absolute_path
+        return os.path.relpath(self.absolute_path, start=path)
 
     @property
     def path(self):
