@@ -89,7 +89,7 @@ class Pathable:
         be relative. Otherwise, absolute paths are acceptable.
         :type value: Union[str, path-like]
         """
-        if value.startswith(CLOUD_STORAGE_PROTOCOL):
+        if value and value.startswith(CLOUD_STORAGE_PROTOCOL):
             path_is_absolute = True
 
         else:
