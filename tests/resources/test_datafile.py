@@ -120,12 +120,16 @@ class DatafileTestCase(BaseTestCase):
             serialised_data=json.dumps({"height": 32}),
             bucket_name=bucket_name,
             path_in_bucket=path_in_bucket,
+            metadata={"cluster": 0, "sequence": 1, "tags": []},
         )
 
         datafile = Datafile.from_google_cloud_storage(
             project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket
         )
 
+        self.assertEqual(datafile.cluster, 0)
+        self.assertEqual(datafile.sequence, 1)
+        self.assertEqual(len(datafile.tags), 0)
         self.assertTrue(isinstance(datafile.size_bytes, int))
         self.assertTrue(isinstance(datafile.last_modified, float))
         self.assertTrue(isinstance(datafile.hash_value, str))

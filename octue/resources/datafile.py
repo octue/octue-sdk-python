@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import time
@@ -99,17 +100,18 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         self._gcp_metadata = None
 
     @classmethod
-    def from_google_cloud_storage(cls, project_name, bucket_name, path_in_bucket, cluster=0, sequence=None):
+    def from_google_cloud_storage(cls, project_name, bucket_name, path_in_bucket):
         """Instantiate a Datafile from a file in Google Cloud storage."""
-        client = GoogleCloudStorageClient(project_name)
+        metadata = GoogleCloudStorageClient(project_name).get_metadata(bucket_name, path_in_bucket)
 
         datafile = cls(
             path=generate_gs_path(bucket_name, path_in_bucket),
-            cluster=cluster,
-            sequence=sequence,
+            cluster=json.loads(metadata["metadata"]["cluster"]),
+            sequence=json.loads(metadata["metadata"]["sequence"]),
+            tags=json.loads(metadata["metadata"]["tags"]),
         )
 
-        datafile._gcp_metadata = client.get_metadata(bucket_name, path_in_bucket)
+        datafile._gcp_metadata = metadata
         return datafile
 
     def _get_extension_from_path(self, path=None):

@@ -19,23 +19,27 @@ class GoogleCloudStorageClient:
 
         self.client = storage.Client(project=project_name, credentials=credentials)
 
-    def upload_file(self, local_path, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
+    def upload_file(self, local_path, bucket_name, path_in_bucket, metadata=None, timeout=_DEFAULT_TIMEOUT):
         """Upload a local file to a Google Cloud bucket at
         https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>
         """
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         blob = bucket.blob(blob_name=path_in_bucket)
         blob.upload_from_filename(filename=local_path, timeout=timeout)
+        blob.metadata = metadata
+        blob.patch()
         logger.info("Uploaded %r to Google Cloud at %r.", local_path, blob.public_url)
         return blob.public_url
 
-    def upload_from_string(self, serialised_data, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
+    def upload_from_string(self, serialised_data, bucket_name, path_in_bucket, metadata=None, timeout=_DEFAULT_TIMEOUT):
         """Upload serialised data in string form to a file in a Google Cloud bucket at
         https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>
         """
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         blob = bucket.blob(blob_name=path_in_bucket)
         blob.upload_from_string(data=serialised_data, timeout=timeout)
+        blob.metadata = metadata
+        blob.patch()
         logger.info("Uploaded data to Google Cloud at %r.", blob.public_url)
         return blob.public_url
 
