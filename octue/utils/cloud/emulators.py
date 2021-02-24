@@ -1,5 +1,5 @@
 import os
-from gcloud_storage_emulator.server import create_server
+from gcp_storage_emulator.server import create_server
 
 
 class GoogleCloudStorageEmulator:
