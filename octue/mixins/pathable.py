@@ -21,7 +21,7 @@ class Pathable:
         self._path_from = path_from
         self._path_is_absolute = False
 
-        if path and path.startswith(storage.CLOUD_STORAGE_PROTOCOL):
+        if path and path.startswith(storage.path.CLOUD_STORAGE_PROTOCOL):
             self._path_is_in_google_cloud_storage = True
 
         else:
@@ -46,7 +46,7 @@ class Pathable:
     def absolute_path(self):
         """The absolute path of this resource."""
         if self._path_is_in_google_cloud_storage:
-            return storage.join(self._path_prefix, self._path)
+            return storage.path.join(self._path_prefix, self._path)
 
         return os.path.normpath(os.path.join(self._path_prefix, self._path))
 
@@ -58,7 +58,7 @@ class Pathable:
             path = path.absolute_path
 
         if self._path_is_in_google_cloud_storage:
-            return storage.relpath(self.absolute_path, start=path)
+            return storage.path.relpath(self.absolute_path, start=path)
 
         return os.path.relpath(self.absolute_path, start=path or os.getcwd())
 
@@ -75,7 +75,7 @@ class Pathable:
         be relative. Otherwise, absolute paths are acceptable.
         :type value: Union[str, path-like]
         """
-        if value and value.startswith(storage.CLOUD_STORAGE_PROTOCOL):
+        if value and value.startswith(storage.path.CLOUD_STORAGE_PROTOCOL):
             path_is_absolute = True
 
         else:

@@ -4,7 +4,7 @@ import logging
 from octue.definitions import OUTPUT_STRANDS
 from octue.mixins import Hashable, Identifiable, Loggable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
-from octue.utils.cloud.persistence import OCTUE_MANAGED_CREDENTIALS, GoogleCloudStorageClient
+from octue.utils.cloud.storage.client import OCTUE_MANAGED_CREDENTIALS, GoogleCloudStorageClient
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.folders import get_file_name_from_strand
 from twined import ALL_STRANDS, Twine

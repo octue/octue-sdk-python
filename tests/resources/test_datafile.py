@@ -7,7 +7,7 @@ from octue import exceptions
 from octue.mixins import MixinBase, Pathable
 from octue.resources import Datafile
 from octue.resources.tag import TagSet
-from octue.utils.cloud.persistence import OCTUE_MANAGED_CREDENTIALS, GoogleCloudStorageClient
+from octue.utils.cloud.storage.client import OCTUE_MANAGED_CREDENTIALS, GoogleCloudStorageClient
 from ..base import BaseTestCase
 
 

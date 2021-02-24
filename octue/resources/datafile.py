@@ -7,8 +7,8 @@ from blake3 import blake3
 from octue.exceptions import FileNotFoundException, InvalidInputException
 from octue.mixins import Filterable, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.utils import isfile
-from octue.utils.cloud.persistence import GoogleCloudStorageClient
-from octue.utils.cloud.storage import generate_gs_path
+from octue.utils.cloud.storage.client import GoogleCloudStorageClient
+from octue.utils.cloud.storage.path import generate_gs_path
 
 
 module_logger = logging.getLogger(__name__)

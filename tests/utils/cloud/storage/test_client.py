@@ -3,7 +3,7 @@ import os
 import tempfile
 import google.api_core.exceptions
 
-from octue.utils.cloud.persistence import OCTUE_MANAGED_CREDENTIALS, GoogleCloudStorageClient
+from octue.utils.cloud.storage.client import OCTUE_MANAGED_CREDENTIALS, GoogleCloudStorageClient
 from tests.base import BaseTestCase
 
 
