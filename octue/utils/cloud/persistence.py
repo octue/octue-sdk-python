@@ -24,11 +24,9 @@ class GoogleCloudStorageClient:
         """Upload a local file to a Google Cloud bucket at
         https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>
         """
-        bucket = self.client.get_bucket(bucket_or_name=bucket_name)
-        blob = bucket.blob(blob_name=path_in_bucket)
+        blob = self._blob(bucket_name, path_in_bucket)
         blob.upload_from_filename(filename=local_path, timeout=timeout)
-        blob.metadata = self._encode_metadata(metadata or {})
-        blob.patch()
+        self._update_metadata(blob, metadata)
         logger.info("Uploaded %r to Google Cloud at %r.", local_path, blob.public_url)
         return blob.public_url
 
@@ -36,11 +34,9 @@ class GoogleCloudStorageClient:
         """Upload serialised data in string form to a file in a Google Cloud bucket at
         https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>
         """
-        bucket = self.client.get_bucket(bucket_or_name=bucket_name)
-        blob = bucket.blob(blob_name=path_in_bucket)
+        blob = self._blob(bucket_name, path_in_bucket)
         blob.upload_from_string(data=serialised_data, timeout=timeout)
-        blob.metadata = self._encode_metadata(metadata or {})
-        blob.patch()
+        self._update_metadata(blob, metadata)
         logger.info("Uploaded data to Google Cloud at %r.", blob.public_url)
         return blob.public_url
 
@@ -48,8 +44,7 @@ class GoogleCloudStorageClient:
         """Download a file to a file from a Google Cloud bucket at
         https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>
         """
-        bucket = self.client.get_bucket(bucket_or_name=bucket_name)
-        blob = bucket.blob(blob_name=path_in_bucket)
+        blob = self._blob(bucket_name, path_in_bucket)
         blob.download_to_filename(local_path, timeout=timeout)
         logger.info("Downloaded %r from Google Cloud to %r.", blob.public_url, local_path)
 
@@ -57,8 +52,7 @@ class GoogleCloudStorageClient:
         """Download a file to a string from a Google Cloud bucket at
         https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>
         """
-        bucket = self.client.get_bucket(bucket_or_name=bucket_name)
-        blob = bucket.blob(blob_name=path_in_bucket)
+        blob = self._blob(bucket_name, path_in_bucket)
         data = blob.download_as_string(timeout=timeout)
         logger.info("Downloaded %r from Google Cloud to as string.", blob.public_url)
         return data.decode()
@@ -75,10 +69,19 @@ class GoogleCloudStorageClient:
 
     def delete(self, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
         """Delete the given file from the given bucket."""
-        bucket = self.client.get_bucket(bucket_or_name=bucket_name)
-        blob = bucket.blob(blob_name=path_in_bucket)
+        blob = self._blob(bucket_name, path_in_bucket)
         blob.delete(timeout=timeout)
         logger.info("Deleted %r from Google Cloud.", blob.public_url)
+
+    def _blob(self, bucket_name, path_in_bucket):
+        """Instantiate a blob for the given bucket at the given path. Note that this is not synced up with Google Cloud."""
+        bucket = self.client.get_bucket(bucket_or_name=bucket_name)
+        return bucket.blob(blob_name=path_in_bucket)
+
+    def _update_metadata(self, blob, metadata):
+        """Update the metadata for the given blob. Note that this is synced up with Google Cloud."""
+        blob.metadata = self._encode_metadata(metadata or {})
+        blob.patch()
 
     def _encode_metadata(self, metadata):
         """Encode metadata as a dictionary of JSON strings."""
