@@ -6,6 +6,7 @@ import uuid
 from octue import exceptions
 from octue.mixins import MixinBase, Pathable
 from octue.resources import Datafile
+from octue.resources.tag import TagSet
 from octue.utils.cloud.persistence import OCTUE_MANAGED_CREDENTIALS, GoogleCloudStorageClient
 from ..base import BaseTestCase
 
@@ -120,7 +121,7 @@ class DatafileTestCase(BaseTestCase):
             serialised_data=json.dumps({"height": 32}),
             bucket_name=bucket_name,
             path_in_bucket=path_in_bucket,
-            metadata={"cluster": 0, "sequence": 1, "tags": []},
+            metadata={"cluster": 0, "sequence": 1, "tags": ["blah:shah:nah", "blib", "glib"]},
         )
 
         datafile = Datafile.from_google_cloud_storage(
@@ -129,7 +130,7 @@ class DatafileTestCase(BaseTestCase):
 
         self.assertEqual(datafile.cluster, 0)
         self.assertEqual(datafile.sequence, 1)
-        self.assertEqual(len(datafile.tags), 0)
+        self.assertEqual(datafile.tags, TagSet({"blah:shah:nah", "blib", "glib"}))
         self.assertTrue(isinstance(datafile.size_bytes, int))
         self.assertTrue(isinstance(datafile.last_modified, float))
         self.assertTrue(isinstance(datafile.hash_value, str))

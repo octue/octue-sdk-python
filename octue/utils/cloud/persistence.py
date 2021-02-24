@@ -1,3 +1,4 @@
+import json
 import logging
 from google.cloud import storage
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
@@ -26,7 +27,7 @@ class GoogleCloudStorageClient:
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         blob = bucket.blob(blob_name=path_in_bucket)
         blob.upload_from_filename(filename=local_path, timeout=timeout)
-        blob.metadata = metadata
+        blob.metadata = self._encode_metadata(metadata)
         blob.patch()
         logger.info("Uploaded %r to Google Cloud at %r.", local_path, blob.public_url)
         return blob.public_url
@@ -38,7 +39,7 @@ class GoogleCloudStorageClient:
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         blob = bucket.blob(blob_name=path_in_bucket)
         blob.upload_from_string(data=serialised_data, timeout=timeout)
-        blob.metadata = metadata
+        blob.metadata = self._encode_metadata(metadata)
         blob.patch()
         logger.info("Uploaded data to Google Cloud at %r.", blob.public_url)
         return blob.public_url
@@ -65,7 +66,12 @@ class GoogleCloudStorageClient:
     def get_metadata(self, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
         """Get the metadata of the given file in the given bucket."""
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
-        return bucket.get_blob(blob_name=path_in_bucket, timeout=timeout)._properties
+        metadata = bucket.get_blob(blob_name=path_in_bucket, timeout=timeout)._properties
+
+        if metadata["metadata"] is not None:
+            metadata["metadata"] = {key: json.loads(value) for key, value in metadata["metadata"].items()}
+
+        return metadata
 
     def delete(self, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
         """Delete the given file from the given bucket."""
@@ -73,3 +79,10 @@ class GoogleCloudStorageClient:
         blob = bucket.blob(blob_name=path_in_bucket)
         blob.delete(timeout=timeout)
         logger.info("Deleted %r from Google Cloud.", blob.public_url)
+
+    def _encode_metadata(self, metadata):
+        """Encode metadata as a dictionary of JSON strings."""
+        if not isinstance(metadata, dict):
+            raise TypeError(f"Metadata for Google Cloud storage should be a dictionary; received {metadata!r}")
+
+        return {key: json.dumps(value) for key, value in metadata.items()}
