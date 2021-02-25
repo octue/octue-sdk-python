@@ -53,7 +53,7 @@ class GoogleCloudStorageClient:
         https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>
         """
         blob = self._blob(bucket_name, path_in_bucket)
-        data = blob.download_as_string(timeout=timeout)
+        data = blob.download_as_bytes(timeout=timeout)
         logger.info("Downloaded %r from Google Cloud to as string.", blob.public_url)
         return data.decode()
 
