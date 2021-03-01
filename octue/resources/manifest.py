@@ -91,3 +91,10 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
             keys=serialised_manifest["keys"],
             path=serialised_manifest["path"],
         )
+
+    def upload_to_cloud(self, project_name, bucket_name, output_directory):
+        """Upload a manifest to a cloud location"""
+        for dataset in self.datasets:
+            dataset.upload_to_cloud(
+                project_name=project_name, bucket_name=bucket_name, output_directory=output_directory
+            )

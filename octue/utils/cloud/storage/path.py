@@ -10,19 +10,13 @@ def join(*paths):
     :param iter paths:
     :return str:
     """
-    paths = list(paths)
+    path = os.path.normpath(os.path.join(*paths)).replace(os.sep, "/")
 
-    while "" in paths:
-        paths.remove("")
+    if path.startswith("gs:/"):
+        if not path.startswith(CLOUD_STORAGE_PROTOCOL):
+            path = path.replace("gs:/", CLOUD_STORAGE_PROTOCOL)
 
-    if any(path.startswith("/") for path in paths[1:]):
-        reverse_paths = list(reversed(paths))
-
-        for i, path in enumerate(reverse_paths):
-            if path.startswith("/"):
-                return "/".join(reversed(reverse_paths[: i + 1]))
-
-    return "/".join(paths)
+    return path
 
 
 def generate_gs_path(bucket_name, *paths):

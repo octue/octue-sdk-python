@@ -6,9 +6,14 @@ from octue.exceptions import BrokenSequenceException, InvalidInputException, Une
 from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
+from octue.utils.cloud import storage
+from octue.utils.cloud.storage.client import GoogleCloudStorageClient
 
 
 module_logger = logging.getLogger(__name__)
+
+
+DATAFILES_DIRECTORY = "datafiles"
 
 
 class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable):
@@ -29,13 +34,13 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         #  so that resources get automatically instantiated.
         #  Add a proper `decoder` argument  to the load_json utility in twined so that datasets, datafiles and manifests
         #  get initialised properly, then remove this hackjob.
-        files = kwargs.pop("files", list())
         self.files = FilterSet()
-        for fi in files:
-            if isinstance(fi, Datafile):
-                self.files.add(fi)
+
+        for file in kwargs.pop("files", list()):
+            if isinstance(file, Datafile):
+                self.files.add(file)
             else:
-                self.files.add(Datafile(**fi, path_from=self))
+                self.files.add(Datafile(**file, path_from=self))
 
         self.__dict__.update(**kwargs)
 
@@ -141,3 +146,31 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             raise UnexpectedNumberOfResultsException("No files found with this tag")
 
         return results.pop()
+
+    def upload_to_cloud(self, project_name, bucket_name, output_directory):
+        """Upload a dataset to a cloud location.
+
+        :param str project_name:
+        :param str bucket_name:
+        :param str output_directory:
+        :return None:
+        """
+        storage_client = GoogleCloudStorageClient(project_name=project_name)
+
+        for datafile in self.files:
+            path_in_bucket = storage.path.join(output_directory, self.name, datafile.name)
+
+            storage_client.upload_file(
+                local_path=datafile.path,
+                bucket_name=bucket_name,
+                path_in_bucket=path_in_bucket,
+                metadata=datafile.metadata,
+            )
+
+            base, filename = os.path.split(path_in_bucket)
+
+            storage_client.upload_from_string(
+                serialised_data=datafile.serialise(to_string=True),
+                bucket_name=bucket_name,
+                path_in_bucket=storage.path.join(base, DATAFILES_DIRECTORY, filename),
+            )

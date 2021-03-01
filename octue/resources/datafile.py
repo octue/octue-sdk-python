@@ -125,6 +125,14 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         return str(os.path.split(self.path)[-1])
 
     @property
+    def metadata(self):
+        """Return the Datafile's metadata as a dictionary of primitives.
+
+        :return dict:
+        """
+        return {"cluster": self.cluster, "sequence": self.sequence, "tags": self.tags.serialise(to_string=False)}
+
+    @property
     def last_modified(self):
         """Get the date/time the file was last modified in units of seconds since epoch."""
         if self._path_is_in_google_cloud_storage:

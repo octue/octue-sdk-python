@@ -157,6 +157,10 @@ class TagSet:
         """ Return True if any of the tags contains value. """
         return any(value in tag for tag in self)
 
-    def serialise(self):
+    def serialise(self, to_string=True):
         """ Serialise tags to a sorted list string. """
-        return str(sorted(self))
+        serialised_tags = sorted(tag.name for tag in self)
+
+        if to_string:
+            return str(serialised_tags)
+        return serialised_tags
