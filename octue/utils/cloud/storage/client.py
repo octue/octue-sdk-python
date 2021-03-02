@@ -73,11 +73,15 @@ class GoogleCloudStorageClient:
         blob.delete(timeout=timeout)
         logger.info("Deleted %r from Google Cloud.", blob.public_url)
 
-    def scandir(self, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
+    def scandir(self, bucket_name, directory_path, filter=None, timeout=_DEFAULT_TIMEOUT):
         """Yield the blobs belonging to the given "directory" in the given bucket."""
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         blobs = bucket.list_blobs(timeout=timeout)
-        yield from (blob for blob in blobs if blob.name.startswith(path_in_bucket))
+
+        if filter:
+            return (blob for blob in blobs if blob.name.startswith(directory_path) and filter(blob))
+
+        return (blob for blob in blobs if blob.name.startswith(directory_path))
 
     def _blob(self, bucket_name, path_in_bucket):
         """Instantiate a blob for the given bucket at the given path. Note that this is not synced up with Google Cloud."""

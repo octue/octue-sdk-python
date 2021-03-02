@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import warnings
@@ -8,6 +9,7 @@ from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.utils.cloud import storage
 from octue.utils.cloud.storage.client import GoogleCloudStorageClient
+from octue.utils.encoders import OctueJSONEncoder
 
 
 module_logger = logging.getLogger(__name__)
@@ -43,6 +45,44 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
                 self.files.add(Datafile(**file, path_from=self))
 
         self.__dict__.update(**kwargs)
+
+    @classmethod
+    def from_cloud(cls, project_name, bucket_name, path_to_dataset_directory):
+        """Instantiate a Dataset from Google Cloud storage.
+
+        :param str project_name:
+        :param str bucket_name:
+        :param str path_to_dataset_directory:
+        :return Dataset:
+        """
+        storage_client = GoogleCloudStorageClient(project_name=project_name)
+
+        serialised_dataset = json.loads(
+            storage_client.download_as_string(
+                bucket_name=bucket_name,
+                path_in_bucket=storage.path.join(path_to_dataset_directory, "dataset.json"),
+            )
+        )
+
+        datafiles = FilterSet()
+
+        for blob in storage_client.scandir(
+            bucket_name=bucket_name,
+            directory_path=path_to_dataset_directory,
+            filter=lambda blob: blob.name.split("/")[-1] != "dataset.json",
+        ):
+            datafiles.add(
+                Datafile.from_google_cloud_storage(
+                    project_name=project_name, bucket_name=bucket_name, path_in_bucket=blob.name
+                )
+            )
+
+        return Dataset(
+            id=serialised_dataset["id"],
+            path=storage.path.generate_gs_path(bucket_name, path_to_dataset_directory),
+            tags=json.loads(serialised_dataset["tags"]),
+            files=datafiles,
+        )
 
     @property
     def name(self):
@@ -158,8 +198,11 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         if not shallow:
             return super().serialise(to_string=to_string)
 
-        serialised_dataset = super().serialise(to_string=to_string)
-        serialised_dataset["files"] = {file.absolute_path for file in self.files}
+        serialised_dataset = super().serialise()
+        serialised_dataset["files"] = [file.absolute_path for file in self.files]
+
+        if to_string:
+            return json.dumps(serialised_dataset, cls=OctueJSONEncoder, sort_keys=True, indent=4)
         return serialised_dataset
 
     def upload_to_cloud(self, project_name, bucket_name, output_directory):

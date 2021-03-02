@@ -292,13 +292,53 @@ class DatasetTestCase(BaseTestCase):
         serialised_dataset = dataset.serialise(shallow=True)
         self.assertEqual(serialised_dataset["files"], {file.absolute_path for file in dataset.files})
 
+    def test_from_cloud(self):
+        """Test that a Dataset in cloud storage can be accessed."""
+        project_name = "test-project"
+        bucket_name = os.environ["TEST_BUCKET_NAME"]
+        output_directory = "my_dataset"
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            file_0_path = os.path.join(temporary_directory, "file_0.txt")
+            file_1_path = os.path.join(temporary_directory, "file_1.txt")
+
+            with open(file_0_path, "w") as f:
+                f.write("[1, 2, 3]")
+
+            with open(file_1_path, "w") as f:
+                f.write("[4, 5, 6]")
+
+            dataset = Dataset(
+                name="my-dataset",
+                files={
+                    Datafile(path=file_0_path, sequence=0, tags={"hello"}),
+                    Datafile(path=file_1_path, sequence=1, tags={"goodbye"}),
+                },
+            )
+
+            dataset.upload_to_cloud(project_name, bucket_name, output_directory)
+
+        persisted_dataset = Dataset.from_cloud(
+            project_name=project_name,
+            bucket_name=bucket_name,
+            path_to_dataset_directory=storage.path.join(output_directory, dataset.name),
+        )
+
+        self.assertEqual(persisted_dataset.path, f"gs://{bucket_name}/{output_directory}")
+        self.assertEqual(persisted_dataset.id, dataset.id)
+        self.assertEqual(persisted_dataset.tags, dataset.tags)
+        self.assertEqual({file.name for file in persisted_dataset.files}, {file.name for file in dataset.files})
+
+        for file in persisted_dataset:
+            self.assertEqual(file.path, f"gs://{bucket_name}/{output_directory}/{file.name}")
+
     def test_upload_to_cloud(self):
         """Test that a dataset can be uploaded to the cloud, including all its files and a serialised JSON file of the
         Datafile instance.
         """
         project_name = "test-project"
         bucket_name = os.environ["TEST_BUCKET_NAME"]
-        output_directory = "my_datasets"
+        output_directory = "my_dataset"
 
         with tempfile.TemporaryDirectory() as temporary_directory:
             file_0_path = os.path.join(temporary_directory, "file_0.txt")
