@@ -6,7 +6,6 @@ import warnings
 
 from octue import exceptions
 from octue.resources import Datafile, Dataset
-from octue.resources.dataset import DATAFILES_DIRECTORY
 from octue.resources.filter_containers import FilterSet
 from octue.utils.cloud import storage
 from octue.utils.cloud.storage.client import GoogleCloudStorageClient
@@ -282,8 +281,15 @@ class DatasetTestCase(BaseTestCase):
         second_dataset = copy.deepcopy(first_dataset)
         self.assertEqual(first_dataset.hash_value, second_dataset.hash_value)
 
+    def test_serialise(self):
+        """Test that a dataset can be serialised."""
+        dataset = self.create_valid_dataset()
+        self.assertEqual(len(dataset.serialise()["files"]), 2)
+
     def test_upload_to_cloud(self):
-        """Test that a dataset can be uploaded to the cloud."""
+        """Test that a dataset can be uploaded to the cloud, including all its files and a serialised JSON file of the
+        Datafile instance.
+        """
         project_name = "test-project"
         bucket_name = os.environ["TEST_BUCKET_NAME"]
         output_directory = "my_datasets"
@@ -309,36 +315,24 @@ class DatasetTestCase(BaseTestCase):
                 project_name=project_name, bucket_name=bucket_name, output_directory=output_directory
             )
 
-        storage_client = GoogleCloudStorageClient(project_name)
+            storage_client = GoogleCloudStorageClient(project_name)
 
-        self.assertEqual(
-            storage_client.download_as_string(
-                bucket_name=bucket_name, path_in_bucket=storage.path.join(output_directory, "file_0.txt")
-            ),
-            "[1, 2, 3]",
-        )
-
-        self.assertEqual(
-            storage_client.download_as_string(
-                bucket_name=bucket_name, path_in_bucket=storage.path.join(output_directory, "file_1.txt")
-            ),
-            "[4, 5, 6]",
-        )
-
-        datafile_0 = json.loads(
-            storage_client.download_as_string(
-                bucket_name=bucket_name,
-                path_in_bucket=storage.path.join(output_directory, DATAFILES_DIRECTORY, "file_0.txt"),
+            persisted_file_0 = storage_client.download_as_string(
+                bucket_name=bucket_name, path_in_bucket=storage.path.join(output_directory, dataset.name, "file_0.txt")
             )
-        )
-        self.assertEqual(datafile_0["sequence"], 0)
-        self.assertEqual(datafile_0["tags"], str(["hello"]))
 
-        datafile_1 = json.loads(
-            storage_client.download_as_string(
-                bucket_name=bucket_name,
-                path_in_bucket=storage.path.join(output_directory, DATAFILES_DIRECTORY, "file_1.txt"),
+            self.assertEqual(persisted_file_0, "[1, 2, 3]")
+
+            persisted_file_1 = storage_client.download_as_string(
+                bucket_name=bucket_name, path_in_bucket=storage.path.join(output_directory, dataset.name, "file_1.txt")
             )
-        )
-        self.assertEqual(datafile_1["sequence"], 1)
-        self.assertEqual(datafile_1["tags"], str(["goodbye"]))
+            self.assertEqual(persisted_file_1, "[4, 5, 6]")
+
+            persisted_dataset = json.loads(
+                storage_client.download_as_string(
+                    bucket_name=bucket_name,
+                    path_in_bucket=storage.path.join(output_directory, dataset.name, "dataset.json"),
+                )
+            )
+
+            self.assertEqual(dataset.serialise(), persisted_dataset)
