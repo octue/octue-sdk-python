@@ -1,6 +1,7 @@
 import json
 import logging
 
+from octue import definitions
 from octue.exceptions import InvalidInputException, InvalidManifestException
 from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable
 from octue.utils.cloud import storage
@@ -69,7 +70,7 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         serialised_manifest = json.loads(
             storage_client.download_as_string(
                 bucket_name=bucket_name,
-                path_in_bucket=storage.path.join(directory_path, "manifest.json"),
+                path_in_bucket=storage.path.join(directory_path, definitions.MANIFEST_FILENAME),
             )
         )
 
@@ -78,7 +79,7 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         for blob in storage_client.scandir(
             bucket_name=bucket_name,
             directory_path=directory_path,
-            filter=lambda blob: blob.name.endswith("dataset.json"),
+            filter=lambda blob: blob.name.endswith(definitions.DATASET_FILENAME),
         ):
             dataset_directory_path = storage.path.split(blob.name)[0]
 
@@ -167,5 +168,5 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         GoogleCloudStorageClient(project_name=project_name).upload_from_string(
             serialised_data=self.serialise(shallow=True, to_string=True),
             bucket_name=bucket_name,
-            path_in_bucket=storage.path.join(output_directory, "manifest.json"),
+            path_in_bucket=storage.path.join(output_directory, definitions.MANIFEST_FILENAME),
         )

@@ -3,6 +3,7 @@ import logging
 import os
 import warnings
 
+from octue import definitions
 from octue.exceptions import BrokenSequenceException, InvalidInputException, UnexpectedNumberOfResultsException
 from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
@@ -62,7 +63,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         serialised_dataset = json.loads(
             storage_client.download_as_string(
                 bucket_name=bucket_name,
-                path_in_bucket=storage.path.join(path_to_dataset_directory, "dataset.json"),
+                path_in_bucket=storage.path.join(path_to_dataset_directory, definitions.DATASET_FILENAME),
             )
         )
 
@@ -71,7 +72,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         for blob in storage_client.scandir(
             bucket_name=bucket_name,
             directory_path=path_to_dataset_directory,
-            filter=lambda blob: blob.name.split("/")[-1] != "dataset.json",
+            filter=lambda blob: blob.name.split("/")[-1] != definitions.DATASET_FILENAME,
         ):
             datafiles.add(
                 Datafile.from_cloud(project_name=project_name, bucket_name=bucket_name, path_in_bucket=blob.name)
@@ -223,5 +224,5 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         GoogleCloudStorageClient(project_name=project_name).upload_from_string(
             serialised_data=self.serialise(shallow=True, to_string=True),
             bucket_name=bucket_name,
-            path_in_bucket=storage.path.join(output_directory, self.name, "dataset.json"),
+            path_in_bucket=storage.path.join(output_directory, self.name, definitions.DATASET_FILENAME),
         )
