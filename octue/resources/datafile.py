@@ -99,6 +99,16 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
         self._gcp_metadata = None
 
+    def __lt__(self, other):
+        if not isinstance(other, Datafile):
+            return False
+        return self.path < other.path
+
+    def __gt__(self, other):
+        if not isinstance(other, Datafile):
+            return False
+        return self.path > other.path
+
     @classmethod
     def from_google_cloud_storage(cls, project_name, bucket_name, path_in_bucket):
         """Instantiate a Datafile from a file in Google Cloud storage."""
@@ -114,6 +124,21 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
         datafile._gcp_metadata = metadata
         return datafile
+
+    def to_google_cloud_storage(self, project_name, bucket_name, path_in_bucket):
+        """Upload a datafile to Google Cloud Storage.
+
+        :param str project_name:
+        :param str bucket_name:
+        :param str path_in_bucket:
+        :return None:
+        """
+        GoogleCloudStorageClient(project_name=project_name).upload_file(
+            local_path=self.path,
+            bucket_name=bucket_name,
+            path_in_bucket=path_in_bucket,
+            metadata=self.metadata,
+        )
 
     def _get_extension_from_path(self, path=None):
         """Gets extension of a file, either from a provided file path or from self.path field"""
