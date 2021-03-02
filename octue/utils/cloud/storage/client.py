@@ -60,7 +60,7 @@ class GoogleCloudStorageClient:
     def get_metadata(self, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
         """Get the metadata of the given file in the given bucket."""
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
-        metadata = bucket.get_blob(blob_name=path_in_bucket, timeout=timeout)._properties
+        metadata = bucket.get_blob(blob_name=self._strip_leading_slash(path_in_bucket), timeout=timeout)._properties
 
         if metadata["metadata"] is not None:
             metadata["metadata"] = {key: json.loads(value) for key, value in metadata["metadata"].items()}
@@ -77,16 +77,21 @@ class GoogleCloudStorageClient:
         """Yield the blobs belonging to the given "directory" in the given bucket."""
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         blobs = bucket.list_blobs(timeout=timeout)
+        directory_path = self._strip_leading_slash(directory_path)
 
         if filter:
             return (blob for blob in blobs if blob.name.startswith(directory_path) and filter(blob))
 
         return (blob for blob in blobs if blob.name.startswith(directory_path))
 
+    def _strip_leading_slash(self, path):
+        """Strip the leading slash from a path."""
+        return path.lstrip("/")
+
     def _blob(self, bucket_name, path_in_bucket):
         """Instantiate a blob for the given bucket at the given path. Note that this is not synced up with Google Cloud."""
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
-        return bucket.blob(blob_name=path_in_bucket)
+        return bucket.blob(blob_name=self._strip_leading_slash(path_in_bucket))
 
     def _update_metadata(self, blob, metadata):
         """Update the metadata for the given blob. Note that this is synced up with Google Cloud."""

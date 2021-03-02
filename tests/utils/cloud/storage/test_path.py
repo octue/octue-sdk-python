@@ -16,6 +16,7 @@ class TestStorage(BaseTestCase):
         """Test that the `gs://` path can be generated correctly."""
         self.assertEqual(storage.path.generate_gs_path("my-bucket"), "gs://my-bucket")
         self.assertEqual(storage.path.generate_gs_path("my-bucket", "nah", "blah"), "gs://my-bucket/nah/blah")
+        self.assertEqual(storage.path.generate_gs_path("my-bucket", "/nah", "blah"), "gs://my-bucket/nah/blah")
 
     def test_strip_protocol_from_path(self):
         """Test that the `gs://` protocol can be stripped from a path."""

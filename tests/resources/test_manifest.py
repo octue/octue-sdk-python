@@ -61,11 +61,10 @@ class TestManifest(BaseTestCase):
         """Test that a Manifest can be instantiated from the cloud."""
         project_name = "test-project"
         bucket_name = os.environ["TEST_BUCKET_NAME"]
-        output_directory = "my_datasets"
 
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            file_0_path = os.path.join(temporary_directory, "file_0.txt")
-            file_1_path = os.path.join(temporary_directory, "file_1.txt")
+        with tempfile.TemporaryDirectory() as output_directory:
+            file_0_path = os.path.join(output_directory, "file_0.txt")
+            file_1_path = os.path.join(output_directory, "file_1.txt")
 
             with open(file_0_path, "w") as f:
                 f.write("[1, 2, 3]")
@@ -90,7 +89,7 @@ class TestManifest(BaseTestCase):
             directory_path=output_directory,
         )
 
-        self.assertEqual(persisted_manifest.path, f"gs://{bucket_name}/{output_directory}")
+        self.assertEqual(persisted_manifest.path, f"gs://{bucket_name}{output_directory}")
         self.assertEqual(persisted_manifest.id, manifest.id)
         self.assertEqual(persisted_manifest.keys, manifest.keys)
         self.assertEqual(
@@ -98,4 +97,4 @@ class TestManifest(BaseTestCase):
         )
 
         for dataset in persisted_manifest.datasets:
-            self.assertEqual(dataset.path, f"gs://{bucket_name}/{output_directory}/{dataset.name}")
+            self.assertEqual(dataset.path, f"gs://{bucket_name}{output_directory}/{dataset.name}")

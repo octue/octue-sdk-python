@@ -26,7 +26,9 @@ def generate_gs_path(bucket_name, *paths):
     :param iter paths:
     :return str:
     """
-    return CLOUD_STORAGE_PROTOCOL + join(bucket_name, *paths)
+    if not paths:
+        return CLOUD_STORAGE_PROTOCOL + bucket_name
+    return CLOUD_STORAGE_PROTOCOL + join(bucket_name, paths[0].lstrip("/"), *paths[1:])
 
 
 def strip_protocol_from_path(path):
