@@ -155,22 +155,17 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         :param str output_directory:
         :return None:
         """
+        for datafile in self.files:
+            datafile.to_google_cloud_storage(
+                project_name=project_name,
+                bucket_name=bucket_name,
+                path_in_bucket=storage.path.join(output_directory, self.name, datafile.name),
+            )
+
         storage_client = GoogleCloudStorageClient(project_name=project_name)
 
-        for datafile in self.files:
-            path_in_bucket = storage.path.join(output_directory, self.name, datafile.name)
-
-            storage_client.upload_file(
-                local_path=datafile.path,
-                bucket_name=bucket_name,
-                path_in_bucket=path_in_bucket,
-                metadata=datafile.metadata,
-            )
-
-            base, filename = os.path.split(path_in_bucket)
-
-            storage_client.upload_from_string(
-                serialised_data=datafile.serialise(to_string=True),
-                bucket_name=bucket_name,
-                path_in_bucket=storage.path.join(base, DATAFILES_DIRECTORY, filename),
-            )
+        storage_client.upload_from_string(
+            serialised_data=self.serialise(to_string=True),
+            bucket_name=bucket_name,
+            path_in_bucket=storage.path.join(output_directory, self.name, "dataset.json"),
+        )
