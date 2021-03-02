@@ -66,3 +66,7 @@ class TestStorage(BaseTestCase):
         self.assertEqual(storage.path.relpath(path="my-bucket/a/b/c/", start="my-bucket/a/b/c"), ".")
         self.assertEqual(storage.path.relpath(path="my-bucket/a/b/c/", start="my-bucket/a/d"), "../b/c")
         self.assertEqual(storage.path.relpath(path="my-bucket/a/d", start="my-bucket/a/b/c"), "../../d")
+
+    def test_split(self):
+        """Test that cloud paths can be split properly."""
+        self.assertEqual(storage.path.split("my-bucket/a/b/c.txt"), ("my-bucket/a/b", "c.txt"))

@@ -51,3 +51,13 @@ def relpath(path, start):
         start = strip_protocol_from_path(start)
 
     return os.path.relpath(strip_protocol_from_path(path), start)
+
+
+def split(path):
+    """Split a path into its head and tail.
+
+    :param str path:
+    :return (str, str):
+    """
+    paths = path.split("/")
+    return join(*paths[:-1]), paths[-1]
