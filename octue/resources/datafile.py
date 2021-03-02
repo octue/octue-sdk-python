@@ -110,7 +110,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         return self.path > other.absolute_path
 
     @classmethod
-    def from_google_cloud_storage(cls, project_name, bucket_name, path_in_bucket):
+    def from_cloud(cls, project_name, bucket_name, path_in_bucket):
         """Instantiate a Datafile from a file in Google Cloud storage."""
         metadata = GoogleCloudStorageClient(project_name).get_metadata(bucket_name, path_in_bucket)
         custom_metadata = metadata["metadata"]
@@ -125,7 +125,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         datafile._gcp_metadata = metadata
         return datafile
 
-    def to_google_cloud_storage(self, project_name, bucket_name, path_in_bucket):
+    def to_cloud(self, project_name, bucket_name, path_in_bucket):
         """Upload a datafile to Google Cloud Storage.
 
         :param str project_name:

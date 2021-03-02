@@ -111,7 +111,7 @@ class DatafileTestCase(BaseTestCase):
         second_file = copy.deepcopy(first_file)
         self.assertEqual(first_file.hash_value, second_file.hash_value)
 
-    def test_from_google_cloud_storage_with_no_metadata(self):
+    def test_from_cloud_with_no_metadata(self):
         """Test that a Datafile can be constructed from a file on Google Cloud storage with no custom metadata."""
         project_name = os.environ["TEST_PROJECT_NAME"]
         bucket_name = os.environ["TEST_BUCKET_NAME"]
@@ -123,7 +123,7 @@ class DatafileTestCase(BaseTestCase):
             path_in_bucket=path_in_bucket,
         )
 
-        datafile = Datafile.from_google_cloud_storage(
+        datafile = Datafile.from_cloud(
             project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket
         )
 
@@ -134,7 +134,7 @@ class DatafileTestCase(BaseTestCase):
         self.assertTrue(isinstance(datafile.last_modified, float))
         self.assertTrue(isinstance(datafile.hash_value, str))
 
-    def test_from_google_cloud_storage_with_metadata(self):
+    def test_from_cloud_with_metadata(self):
         """Test that a Datafile can be constructed from a file on Google Cloud storage with custom metadata."""
         project_name = os.environ["TEST_PROJECT_NAME"]
         bucket_name = os.environ["TEST_BUCKET_NAME"]
@@ -147,7 +147,7 @@ class DatafileTestCase(BaseTestCase):
             metadata={"cluster": 0, "sequence": 1, "tags": ["blah:shah:nah", "blib", "glib"]},
         )
 
-        datafile = Datafile.from_google_cloud_storage(
+        datafile = Datafile.from_cloud(
             project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket
         )
 

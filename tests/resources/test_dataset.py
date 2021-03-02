@@ -316,7 +316,7 @@ class DatasetTestCase(BaseTestCase):
                 },
             )
 
-            dataset.upload_to_cloud(project_name, bucket_name, output_directory)
+            dataset.to_cloud(project_name, bucket_name, output_directory)
 
         persisted_dataset = Dataset.from_cloud(
             project_name=project_name,
@@ -332,7 +332,7 @@ class DatasetTestCase(BaseTestCase):
         for file in persisted_dataset:
             self.assertEqual(file.path, f"gs://{bucket_name}/{output_directory}/{file.name}")
 
-    def test_upload_to_cloud(self):
+    def test_to_cloud(self):
         """Test that a dataset can be uploaded to the cloud, including all its files and a serialised JSON file of the
         Datafile instance.
         """
@@ -357,7 +357,7 @@ class DatasetTestCase(BaseTestCase):
                 }
             )
 
-            dataset.upload_to_cloud(project_name, bucket_name, output_directory)
+            dataset.to_cloud(project_name, bucket_name, output_directory)
 
             storage_client = GoogleCloudStorageClient(project_name)
 

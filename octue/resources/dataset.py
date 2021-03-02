@@ -72,9 +72,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             filter=lambda blob: blob.name.split("/")[-1] != "dataset.json",
         ):
             datafiles.add(
-                Datafile.from_google_cloud_storage(
-                    project_name=project_name, bucket_name=bucket_name, path_in_bucket=blob.name
-                )
+                Datafile.from_cloud(project_name=project_name, bucket_name=bucket_name, path_in_bucket=blob.name)
             )
 
         return Dataset(
@@ -205,7 +203,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             return json.dumps(serialised_dataset, cls=OctueJSONEncoder, sort_keys=True, indent=4)
         return serialised_dataset
 
-    def upload_to_cloud(self, project_name, bucket_name, output_directory):
+    def to_cloud(self, project_name, bucket_name, output_directory):
         """Upload a dataset to a cloud location.
 
         :param str project_name:
@@ -214,7 +212,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         :return None:
         """
         for datafile in self.files:
-            datafile.to_google_cloud_storage(
+            datafile.to_cloud(
                 project_name=project_name,
                 bucket_name=bucket_name,
                 path_in_bucket=storage.path.join(output_directory, self.name, datafile.name),
