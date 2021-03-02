@@ -3,6 +3,7 @@ import os
 import tempfile
 import google.api_core.exceptions
 
+from octue.utils.cloud import storage
 from octue.utils.cloud.storage.client import OCTUE_MANAGED_CREDENTIALS, GoogleCloudStorageClient
 from tests.base import BaseTestCase
 
@@ -93,6 +94,20 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
         with self.assertRaises(google.api_core.exceptions.NotFound):
             self.storage_client.download_as_string(bucket_name=self.TEST_BUCKET_NAME, path_in_bucket=self.FILENAME)
+
+    def test_scandir(self):
+        """Test that Google Cloud storage "directories"' contents can be listed."""
+        directory_path = storage.path.join("my", "path")
+
+        self.storage_client.upload_from_string(
+            serialised_data=json.dumps({"height": 32}),
+            bucket_name=self.TEST_BUCKET_NAME,
+            path_in_bucket=storage.path.join(directory_path, self.FILENAME),
+        )
+
+        contents = list(self.storage_client.scandir(bucket_name=self.TEST_BUCKET_NAME, path_in_bucket=directory_path))
+        self.assertEqual(len(contents), 1)
+        self.assertEqual(contents[0].name, storage.path.join(directory_path, self.FILENAME))
 
     def test_get_metadata(self):
         """Test that file metadata can be retrieved."""
