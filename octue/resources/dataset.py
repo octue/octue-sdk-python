@@ -147,6 +147,21 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
 
         return results.pop()
 
+    def serialise(self, shallow=False, to_string=False):
+        """Serialise to a dictionary of primitives or to a string. If `shallow` is `True`, the serialised `files`
+        field only contains the absolute path of the dataset's files, rather than their entire representation.
+
+        :param bool shallow:
+        :param bool to_string:
+        :return dict|str:
+        """
+        if not shallow:
+            return super().serialise(to_string=to_string)
+
+        serialised_dataset = super().serialise(to_string=to_string)
+        serialised_dataset["files"] = {file.absolute_path for file in self.files}
+        return serialised_dataset
+
     def upload_to_cloud(self, project_name, bucket_name, output_directory):
         """Upload a dataset to a cloud location.
 
@@ -165,7 +180,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         storage_client = GoogleCloudStorageClient(project_name=project_name)
 
         storage_client.upload_from_string(
-            serialised_data=self.serialise(to_string=True),
+            serialised_data=self.serialise(shallow=True, to_string=True),
             bucket_name=bucket_name,
             path_in_bucket=storage.path.join(output_directory, self.name, "dataset.json"),
         )

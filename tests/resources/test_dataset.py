@@ -286,6 +286,12 @@ class DatasetTestCase(BaseTestCase):
         dataset = self.create_valid_dataset()
         self.assertEqual(len(dataset.serialise()["files"]), 2)
 
+    def test_serialise_shallow(self):
+        """Test serialising shallowly."""
+        dataset = self.create_valid_dataset()
+        serialised_dataset = dataset.serialise(shallow=True)
+        self.assertEqual(serialised_dataset["files"], {file.absolute_path for file in dataset.files})
+
     def test_upload_to_cloud(self):
         """Test that a dataset can be uploaded to the cloud, including all its files and a serialised JSON file of the
         Datafile instance.
@@ -311,9 +317,7 @@ class DatasetTestCase(BaseTestCase):
                 }
             )
 
-            dataset.upload_to_cloud(
-                project_name=project_name, bucket_name=bucket_name, output_directory=output_directory
-            )
+            dataset.upload_to_cloud(project_name, bucket_name, output_directory)
 
             storage_client = GoogleCloudStorageClient(project_name)
 
@@ -335,4 +339,4 @@ class DatasetTestCase(BaseTestCase):
                 )
             )
 
-            self.assertEqual(dataset.serialise(), persisted_dataset)
+            self.assertEqual(dataset.serialise(shallow=True), persisted_dataset)
