@@ -1,5 +1,4 @@
 import copy
-import json
 import os
 import tempfile
 import warnings
@@ -372,11 +371,9 @@ class DatasetTestCase(BaseTestCase):
             )
             self.assertEqual(persisted_file_1, "[4, 5, 6]")
 
-            persisted_dataset = json.loads(
-                storage_client.download_as_string(
-                    bucket_name=bucket_name,
-                    path_in_bucket=storage.path.join(output_directory, dataset.name, "dataset.json"),
-                )
+            persisted_dataset = storage_client.download_as_string(
+                bucket_name=bucket_name,
+                path_in_bucket=storage.path.join(output_directory, dataset.name, "dataset.json"),
             )
 
-            self.assertEqual(dataset.serialise(shallow=True), persisted_dataset)
+            self.assertEqual(dataset.serialise(shallow=True, to_string=True), persisted_dataset)
