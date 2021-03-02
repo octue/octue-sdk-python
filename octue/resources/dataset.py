@@ -28,9 +28,11 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
     _FILTERSET_ATTRIBUTE = "files"
     _ATTRIBUTES_TO_HASH = "files", "name", "tags"
 
-    def __init__(self, id=None, logger=None, path=None, path_from=None, tags=None, **kwargs):
+    def __init__(self, name=None, id=None, logger=None, path=None, path_from=None, tags=None, **kwargs):
         """Construct a Dataset"""
         super().__init__(id=id, logger=logger, tags=tags, path=path, path_from=path_from)
+
+        self._name = name
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
@@ -84,7 +86,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
 
     @property
     def name(self):
-        return str(os.path.split(self.path)[-1])
+        return self._name or os.path.split(os.path.abspath(os.path.split(self.path)[-1]))[-1]
 
     def __iter__(self):
         yield from self.files
@@ -218,9 +220,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
                 path_in_bucket=storage.path.join(output_directory, self.name, datafile.name),
             )
 
-        storage_client = GoogleCloudStorageClient(project_name=project_name)
-
-        storage_client.upload_from_string(
+        GoogleCloudStorageClient(project_name=project_name).upload_from_string(
             serialised_data=self.serialise(shallow=True, to_string=True),
             bucket_name=bucket_name,
             path_in_bucket=storage.path.join(output_directory, self.name, "dataset.json"),
