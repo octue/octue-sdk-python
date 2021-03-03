@@ -23,9 +23,9 @@ You can filter a ``Dataset``'s files as follows:
 
     dataset = Dataset(
         files=[
-            Datafile(path="path-within-dataset/my_file.csv", tags="one a:2 b:3 all"),
-            Datafile(path="path-within-dataset/your_file.txt", tags="two a:2 b:3 all"),
-            Datafile(path="path-within-dataset/another_file.csv", tags="three all"),
+            Datafile(timestamp=time.time(), path="path-within-dataset/my_file.csv", tags="one a:2 b:3 all"),
+            Datafile(timestamp=time.time(), path="path-within-dataset/your_file.txt", tags="two a:2 b:3 all"),
+            Datafile(timestamp=time.time(), path="path-within-dataset/another_file.csv", tags="three all"),
         ]
     )
 

@@ -1,6 +1,7 @@
 import copy
 import os
 import tempfile
+import time
 import warnings
 
 from octue import exceptions
@@ -18,7 +19,7 @@ class DatasetTestCase(BaseTestCase):
 
     def test_instantiates_with_kwargs(self):
         """Ensures that keyword arguments can be used to construct the dataset initially"""
-        files = [Datafile(path="path-within-dataset/a_test_file.csv")]
+        files = [Datafile(timestamp=time.time(), path="path-within-dataset/a_test_file.csv")]
         resource = Dataset(files=files, tags="one two")
         self.assertEqual(len(resource.files), 1)
 
@@ -38,7 +39,7 @@ class DatasetTestCase(BaseTestCase):
         resource = Dataset()
 
         with warnings.catch_warnings(record=True) as warning:
-            resource.append(Datafile(path="path-within-dataset/a_test_file.csv"))
+            resource.append(Datafile(timestamp=time.time(), path="path-within-dataset/a_test_file.csv"))
             self.assertEqual(len(warning), 1)
             self.assertTrue(issubclass(warning[-1].category, DeprecationWarning))
             self.assertIn("deprecated", str(warning[-1].message))
@@ -47,14 +48,14 @@ class DatasetTestCase(BaseTestCase):
     def test_add_single_file_to_empty_dataset(self):
         """Ensures that when a dataset is empty, it can be added to"""
         resource = Dataset()
-        resource.add(Datafile(path="path-within-dataset/a_test_file.csv"))
+        resource.add(Datafile(timestamp=time.time(), path="path-within-dataset/a_test_file.csv"))
         self.assertEqual(len(resource.files), 1)
 
     def test_add_single_file_to_existing_dataset(self):
         """Ensures that when a dataset is not empty, it can be added to"""
-        files = [Datafile(path="path-within-dataset/a_test_file.csv")]
+        files = [Datafile(timestamp=time.time(), path="path-within-dataset/a_test_file.csv")]
         resource = Dataset(files=files, tags="one two")
-        resource.add(Datafile(path="path-within-dataset/a_test_file.csv"))
+        resource.add(Datafile(timestamp=time.time(), path="path-within-dataset/a_test_file.csv"))
         self.assertEqual(len(resource.files), 2)
 
     def test_add_with_datafile_creation_shortcut(self):
@@ -66,8 +67,8 @@ class DatasetTestCase(BaseTestCase):
     def test_add_multiple_files(self):
         """Ensures that when a dataset is not empty, it can be added to"""
         files = [
-            Datafile(path="path-within-dataset/a_test_file.csv"),
-            Datafile(path="path-within-dataset/a_test_file.csv"),
+            Datafile(timestamp=time.time(), path="path-within-dataset/a_test_file.csv"),
+            Datafile(timestamp=time.time(), path="path-within-dataset/a_test_file.csv"),
         ]
         resource = Dataset()
         resource.add(*files)
@@ -89,8 +90,8 @@ class DatasetTestCase(BaseTestCase):
         """Ensures that if the field name is a single underscore, that gets caught as an error"""
         resource = Dataset(
             files=[
-                Datafile(path="path-within-dataset/A_Test_file.csv"),
-                Datafile(path="path-within-dataset/a_test_file.txt"),
+                Datafile(timestamp=time.time(), path="path-within-dataset/A_Test_file.csv"),
+                Datafile(timestamp=time.time(), path="path-within-dataset/a_test_file.txt"),
             ]
         )
 
@@ -107,8 +108,8 @@ class DatasetTestCase(BaseTestCase):
         """Ensures that filter works with the name_contains and name_icontains lookups"""
         resource = Dataset(
             files=[
-                Datafile(path="path-within-dataset/A_Test_file.csv"),
-                Datafile(path="path-within-dataset/a_test_file.txt"),
+                Datafile(timestamp=time.time(), path="path-within-dataset/A_Test_file.csv"),
+                Datafile(timestamp=time.time(), path="path-within-dataset/a_test_file.txt"),
             ]
         )
         files = resource.files.filter("name__icontains", filter_value="Test")
@@ -126,8 +127,8 @@ class DatasetTestCase(BaseTestCase):
         """Ensures that filter works with the name_endswith and name_startswith lookups"""
         resource = Dataset(
             files=[
-                Datafile(path="path-within-dataset/a_my_file.csv"),
-                Datafile(path="path-within-dataset/a_your_file.csv"),
+                Datafile(timestamp=time.time(), path="path-within-dataset/a_my_file.csv"),
+                Datafile(timestamp=time.time(), path="path-within-dataset/a_your_file.csv"),
             ]
         )
         files = resource.files.filter("name__starts_with", filter_value="a_my")
@@ -151,9 +152,9 @@ class DatasetTestCase(BaseTestCase):
         """Ensures that filter works with tag lookups"""
         resource = Dataset(
             files=[
-                Datafile(path="path-within-dataset/a_my_file.csv", tags="one a:2 b:3 all"),
-                Datafile(path="path-within-dataset/a_your_file.csv", tags="two a:2 b:3 all"),
-                Datafile(path="path-within-dataset/a_your_file.csv", tags="three all"),
+                Datafile(timestamp=time.time(), path="path-within-dataset/a_my_file.csv", tags="one a:2 b:3 all"),
+                Datafile(timestamp=time.time(), path="path-within-dataset/a_your_file.csv", tags="two a:2 b:3 all"),
+                Datafile(timestamp=time.time(), path="path-within-dataset/a_your_file.csv", tags="three all"),
             ]
         )
 
@@ -173,9 +174,9 @@ class DatasetTestCase(BaseTestCase):
     def test_get_file_by_tag(self):
         """Ensures that get_files works with tag lookups"""
         files = [
-            Datafile(path="path-within-dataset/a_my_file.csv", tags="one a:2 b:3 all"),
-            Datafile(path="path-within-dataset/a_your_file.csv", tags="two a:2 b:3 all"),
-            Datafile(path="path-within-dataset/a_your_file.csv", tags="three all"),
+            Datafile(timestamp=time.time(), path="path-within-dataset/a_my_file.csv", tags="one a:2 b:3 all"),
+            Datafile(timestamp=time.time(), path="path-within-dataset/a_your_file.csv", tags="two a:2 b:3 all"),
+            Datafile(timestamp=time.time(), path="path-within-dataset/a_your_file.csv", tags="three all"),
         ]
 
         resource = Dataset(files=files)
@@ -199,9 +200,9 @@ class DatasetTestCase(BaseTestCase):
         """Ensures that filter works with sequence lookups"""
         resource = Dataset(
             files=[
-                Datafile(path="path-within-dataset/a_my_file.csv", sequence=0),
-                Datafile(path="path-within-dataset/a_your_file.csv", sequence=1),
-                Datafile(path="path-within-dataset/a_your_file.csv", sequence=None),
+                Datafile(timestamp=time.time(), path="path-within-dataset/a_my_file.csv", sequence=0),
+                Datafile(timestamp=time.time(), path="path-within-dataset/a_your_file.csv", sequence=1),
+                Datafile(timestamp=time.time(), path="path-within-dataset/a_your_file.csv", sequence=None),
             ]
         )
         files = resource.files.filter("sequence__is_not", None)
@@ -210,9 +211,9 @@ class DatasetTestCase(BaseTestCase):
     def test_get_file_sequence(self):
         """Ensures that get_files works with sequence lookups"""
         files = [
-            Datafile(path="path-within-dataset/a_my_file.csv", sequence=0),
-            Datafile(path="path-within-dataset/a_your_file.csv", sequence=1),
-            Datafile(path="path-within-dataset/a_your_file.csv", sequence=None),
+            Datafile(timestamp=time.time(), path="path-within-dataset/a_my_file.csv", sequence=0),
+            Datafile(timestamp=time.time(), path="path-within-dataset/a_your_file.csv", sequence=1),
+            Datafile(timestamp=time.time(), path="path-within-dataset/a_your_file.csv", sequence=None),
         ]
 
         got_files = Dataset(files=files).get_file_sequence("name__ends_with", filter_value=".csv", strict=True)
@@ -222,9 +223,9 @@ class DatasetTestCase(BaseTestCase):
         """Ensures that get_files works with sequence lookups"""
         resource = Dataset(
             files=[
-                Datafile(path="path-within-dataset/a_my_file.csv", sequence=2),
-                Datafile(path="path-within-dataset/a_your_file.csv", sequence=4),
-                Datafile(path="path-within-dataset/a_your_file.csv", sequence=None),
+                Datafile(timestamp=time.time(), path="path-within-dataset/a_my_file.csv", sequence=2),
+                Datafile(timestamp=time.time(), path="path-within-dataset/a_your_file.csv", sequence=4),
+                Datafile(timestamp=time.time(), path="path-within-dataset/a_your_file.csv", sequence=None),
             ]
         )
         with self.assertRaises(exceptions.BrokenSequenceException):
@@ -233,8 +234,8 @@ class DatasetTestCase(BaseTestCase):
     def test_filter_name_filters_include_extension(self):
         """Ensures that filters applied to the name will catch terms in the extension"""
         files = [
-            Datafile(path="path-within-dataset/a_test_file.csv"),
-            Datafile(path="path-within-dataset/a_test_file.txt"),
+            Datafile(timestamp=time.time(), path="path-within-dataset/a_test_file.csv"),
+            Datafile(timestamp=time.time(), path="path-within-dataset/a_test_file.txt"),
         ]
 
         self.assertEqual(
@@ -245,8 +246,8 @@ class DatasetTestCase(BaseTestCase):
         """Ensures that filters applied to the name will not catch terms in the extension"""
         resource = Dataset(
             files=[
-                Datafile(path="first-path-within-dataset/a_test_file.csv"),
-                Datafile(path="second-path-within-dataset/a_test_file.txt"),
+                Datafile(timestamp=time.time(), path="first-path-within-dataset/a_test_file.csv"),
+                Datafile(timestamp=time.time(), path="second-path-within-dataset/a_test_file.txt"),
             ]
         )
         files = resource.files.filter("name__icontains", filter_value="second")
@@ -256,8 +257,8 @@ class DatasetTestCase(BaseTestCase):
         """ Test that Dataset.get_files is deprecated but gets redirected to Dataset.files.filter. """
         resource = Dataset(
             files=[
-                Datafile(path="first-path-within-dataset/a_test_file.csv"),
-                Datafile(path="second-path-within-dataset/a_test_file.txt"),
+                Datafile(timestamp=time.time(), path="first-path-within-dataset/a_test_file.csv"),
+                Datafile(timestamp=time.time(), path="second-path-within-dataset/a_test_file.txt"),
             ]
         )
 
@@ -310,8 +311,8 @@ class DatasetTestCase(BaseTestCase):
             dataset = Dataset(
                 name="dataset_0",
                 files={
-                    Datafile(path=file_0_path, sequence=0, tags={"hello"}),
-                    Datafile(path=file_1_path, sequence=1, tags={"goodbye"}),
+                    Datafile(timestamp=time.time(), path=file_0_path, sequence=0, tags={"hello"}),
+                    Datafile(timestamp=time.time(), path=file_1_path, sequence=1, tags={"goodbye"}),
                 },
             )
 
@@ -351,8 +352,8 @@ class DatasetTestCase(BaseTestCase):
 
             dataset = Dataset(
                 files={
-                    Datafile(path=file_0_path, sequence=0, tags={"hello"}),
-                    Datafile(path=file_1_path, sequence=1, tags={"goodbye"}),
+                    Datafile(timestamp=time.time(), path=file_0_path, sequence=0, tags={"hello"}),
+                    Datafile(timestamp=time.time(), path=file_1_path, sequence=1, tags={"goodbye"}),
                 }
             )
 

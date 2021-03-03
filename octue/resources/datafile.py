@@ -1,6 +1,5 @@
 import logging
 import os
-import time
 from datetime import datetime
 from blake3 import blake3
 
@@ -31,7 +30,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
           "sequence": 0,
           "extension": "csv",
           "tags": "",
-          "posix_timestamp": 0,
+          "timestamp": 0,
           "id": "abff07bc-7c19-4ed5-be6d-a6546eae8e86",
           "last_modified": "2019-02-28T22:40:30.533005Z",
           "size_bytes": 59684813,
@@ -60,16 +59,17 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     :parameter tags: Space-separated string of tags relevant to this file
     :type tags: str
 
-    :parameter posix_timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when it
+    :parameter timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when it
     was created but could relate to a relevant time point for the data
-    :type posix_timestamp: number
+    :type timestamp: number
     """
 
-    _ATTRIBUTES_TO_HASH = "name", "cluster", "sequence", "posix_timestamp", "tags"
+    _ATTRIBUTES_TO_HASH = "name", "cluster", "sequence", "timestamp", "tags"
     _EXCLUDE_SERIALISE_FIELDS = ("logger", "open")
 
     def __init__(
         self,
+        timestamp,
         id=ID_DEFAULT,
         logger=None,
         path=None,
@@ -77,7 +77,6 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         cluster=CLUSTER_DEFAULT,
         sequence=SEQUENCE_DEFAULT,
         tags=TAGS_DEFAULT,
-        posix_timestamp=None,
         skip_checks=True,
         **kwargs,
     ):
@@ -88,7 +87,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
         self.cluster = cluster
         self.sequence = sequence
-        self.posix_timestamp = posix_timestamp or time.time()
+        self.timestamp = timestamp
 
         if path is None:
             raise InvalidInputException("You must supply a valid 'path' for a Datafile")
@@ -113,15 +112,25 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         return self.path > other.absolute_path
 
     @classmethod
-    def from_cloud(cls, project_name, bucket_name, path_in_bucket):
-        """Instantiate a Datafile from a file in Google Cloud storage."""
+    def from_cloud(cls, project_name, bucket_name, path_in_bucket, timestamp=None):
+        """Instantiate a Datafile from a previously-persisted Datafile in Google Cloud storage. To instantiate a
+        Datafile from a regular file on Google Cloud storage, the usage is the same, but include a meaningful value for
+        the `timestamp` parameter. The hash for this kind of file will be the Google MD5 hash.
+
+        :param str project_name:
+        :param str bucket_name:
+        :param str path_in_bucket:
+        :param float|None timestamp:
+        :return Datafile:
+        """
         metadata = GoogleCloudStorageClient(project_name).get_metadata(bucket_name, path_in_bucket)
         custom_metadata = metadata["metadata"]
 
         datafile = cls(
+            timestamp=custom_metadata.get("timestamp", timestamp),
             id=custom_metadata.get("id", ID_DEFAULT),
             path=generate_gs_path(bucket_name, path_in_bucket),
-            hash_value=custom_metadata.get("hash_value", None),
+            hash_value=custom_metadata.get("hash_value", metadata["md5Hash"]),
             cluster=custom_metadata.get("cluster", CLUSTER_DEFAULT),
             sequence=custom_metadata.get("sequence", SEQUENCE_DEFAULT),
             tags=custom_metadata.get("tags", TAGS_DEFAULT),
@@ -143,6 +152,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             bucket_name=bucket_name,
             path_in_bucket=path_in_bucket,
             metadata={
+                "timestamp": self.timestamp,
                 "id": self.id,
                 "hash_value": self.hash_value,
                 "cluster": self.cluster,
@@ -218,13 +228,13 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
         Use it like:
         ```
-        my_datafile = Datafile(path='subfolder/subsubfolder/my_datafile.json)
+        my_datafile = Datafile(timestamp=time.time(), path='subfolder/subsubfolder/my_datafile.json)
         with my_datafile.open('w') as fp:
             fp.write("{}")
         ```
         This is equivalent to the standard python:
         ```
-        my_datafile = Datafile(path='subfolder/subsubfolder/my_datafile.json)
+        my_datafile = Datafile(timestamp=time.time(), path='subfolder/subsubfolder/my_datafile.json)
         os.makedirs(os.path.split(my_datafile.absolute_path)[0], exist_ok=True)
         with open(my_datafile.absolute_path, 'w') as fp:
             fp.write("{}")

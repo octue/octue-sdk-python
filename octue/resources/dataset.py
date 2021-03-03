@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import time
 import warnings
 
 from octue import definitions
@@ -119,7 +120,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
 
         else:
             # Add a single file, constructed by passing the arguments through to DataFile()
-            self.files.add(Datafile(**kwargs))
+            self.files.add(Datafile(timestamp=time.time(), **kwargs))
 
     def append(self, *args, **kwargs):
         warnings.warn(
