@@ -4,7 +4,6 @@ import logging
 from octue.definitions import OUTPUT_STRANDS
 from octue.mixins import Hashable, Identifiable, Loggable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
-from octue.utils.cloud.storage.client import OCTUE_MANAGED_CREDENTIALS, GoogleCloudStorageClient
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.folders import get_file_name_from_strand
 from twined import ALL_STRANDS, Twine
@@ -115,10 +114,10 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         if output_dir is None:
             return serialised_strands
 
-        # Optionally write the serialised strand to disk and/or Google Cloud storage.
+        # Optionally write the serialised strands to disk.
         for output_strand in OUTPUT_STRANDS:
-
             if serialised_strands[output_strand] is not None:
+
                 filename = get_file_name_from_strand(output_strand, output_dir)
 
                 if save_locally:
@@ -126,13 +125,15 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
                         fp.write(serialised_strands[output_strand])
                     self.logger.debug("Wrote %r to file %r", output_strand, filename)
 
-                if upload_to_cloud:
-                    GoogleCloudStorageClient(
-                        project_name=project_name, credentials=OCTUE_MANAGED_CREDENTIALS
-                    ).upload_from_string(
-                        serialised_data=serialised_strands[output_strand],
-                        bucket_name=bucket_name,
-                        path_in_bucket=filename,
-                    )
+        # Optionally write the manifest to Google Cloud storage.
+        if upload_to_cloud:
+            if hasattr(self, "output_manifest"):
+                self.output_manifest.to_cloud(project_name, bucket_name, output_dir)
+                self.logger.debug(
+                    "Wrote %r to cloud storage at project %r in bucket %r.",
+                    self.output_manifest,
+                    project_name,
+                    bucket_name,
+                )
 
         return serialised_strands
