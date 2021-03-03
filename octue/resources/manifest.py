@@ -92,8 +92,26 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         return Manifest(
             id=serialised_manifest["id"],
             path=storage.path.generate_gs_path(bucket_name, directory_path),
+            hash_value=serialised_manifest["hash_value"],
             datasets=datasets,
             keys=serialised_manifest["keys"],
+        )
+
+    def to_cloud(self, project_name, bucket_name, output_directory):
+        """Upload a manifest to a cloud location.
+
+        :param str project_name:
+        :param str bucket_name:
+        :param str output_directory:
+        :return None:
+        """
+        for dataset in self.datasets:
+            dataset.to_cloud(project_name=project_name, bucket_name=bucket_name, output_directory=output_directory)
+
+        GoogleCloudStorageClient(project_name=project_name).upload_from_string(
+            serialised_data=self.serialise(shallow=True, to_string=True),
+            bucket_name=bucket_name,
+            path_in_bucket=storage.path.join(output_directory, definitions.MANIFEST_FILENAME),
         )
 
     def get_dataset(self, key):
@@ -152,21 +170,4 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
             datasets=serialised_manifest["datasets"],
             keys=serialised_manifest["keys"],
             path=serialised_manifest["path"],
-        )
-
-    def to_cloud(self, project_name, bucket_name, output_directory):
-        """Upload a manifest to a cloud location.
-
-        :param str project_name:
-        :param str bucket_name:
-        :param str output_directory:
-        :return None:
-        """
-        for dataset in self.datasets:
-            dataset.to_cloud(project_name=project_name, bucket_name=bucket_name, output_directory=output_directory)
-
-        GoogleCloudStorageClient(project_name=project_name).upload_from_string(
-            serialised_data=self.serialise(shallow=True, to_string=True),
-            bucket_name=bucket_name,
-            path_in_bucket=storage.path.join(output_directory, definitions.MANIFEST_FILENAME),
         )

@@ -92,6 +92,7 @@ class TestManifest(BaseTestCase):
 
         self.assertEqual(persisted_manifest.path, f"gs://{bucket_name}{output_directory}")
         self.assertEqual(persisted_manifest.id, manifest.id)
+        self.assertEqual(persisted_manifest.hash_value, manifest.hash_value)
         self.assertEqual(persisted_manifest.keys, manifest.keys)
         self.assertEqual(
             {dataset.name for dataset in persisted_manifest.datasets}, {dataset.name for dataset in manifest.datasets}
