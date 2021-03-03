@@ -32,7 +32,6 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
           "tags": "",
           "timestamp": 0,
           "id": "abff07bc-7c19-4ed5-be6d-a6546eae8e86",
-          "last_modified": "2019-02-28T22:40:30.533005Z",
           "size_bytes": 59684813,
           "sha-512/256": "somesha"
         },
@@ -152,7 +151,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         return str(os.path.split(self.path)[-1])
 
     @property
-    def last_modified(self):
+    def _last_modified(self):
         """Get the date/time the file was last modified in units of seconds since epoch."""
         if self._path_is_in_google_cloud_storage:
             unparsed_datetime = self._gcp_metadata["updated"]

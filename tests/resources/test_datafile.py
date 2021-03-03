@@ -59,7 +59,7 @@ class DatafileTestCase(BaseTestCase):
         """Ensures that its possible to set the sequence, cluster and timestamp"""
         df = self.create_valid_datafile()
         self.assertIsInstance(df.size_bytes, int)
-        self.assertGreaterEqual(df.last_modified, 1598200190.5771205)
+        self.assertGreaterEqual(df._last_modified, 1598200190.5771205)
         self.assertEqual("a_test_file.csv", df.name)
 
         df.sequence = 2
@@ -74,7 +74,7 @@ class DatafileTestCase(BaseTestCase):
             df.size_bytes = 1
 
         with self.assertRaises(AttributeError):
-            df.last_modified = 1000000000.5771205
+            df._last_modified = 1000000000.5771205
 
     def test_repr(self):
         """ Test that Datafiles are represented as expected. """
@@ -92,7 +92,6 @@ class DatafileTestCase(BaseTestCase):
             "cluster",
             "extension",
             "id",
-            "last_modified",
             "name",
             "path",
             "timestamp",
@@ -135,7 +134,7 @@ class DatafileTestCase(BaseTestCase):
         self.assertEqual(datafile.sequence, None)
         self.assertEqual(datafile.tags, TagSet())
         self.assertTrue(isinstance(datafile.size_bytes, int))
-        self.assertTrue(isinstance(datafile.last_modified, float))
+        self.assertTrue(isinstance(datafile._last_modified, float))
         self.assertTrue(isinstance(datafile.hash_value, str))
 
     def test_from_cloud_with_metadata(self):
@@ -165,4 +164,4 @@ class DatafileTestCase(BaseTestCase):
             self.assertEqual(persisted_datafile.sequence, datafile.sequence)
             self.assertEqual(persisted_datafile.tags, datafile.tags)
             self.assertEqual(persisted_datafile.size_bytes, datafile.size_bytes)
-            self.assertTrue(isinstance(persisted_datafile.last_modified, float))
+            self.assertTrue(isinstance(persisted_datafile._last_modified, float))
