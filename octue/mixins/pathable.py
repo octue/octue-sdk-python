@@ -5,8 +5,9 @@ from octue.utils.cloud import storage
 
 
 class Pathable:
-    """Mixin class to enable resources to get their path location from an owner. For example, datasets can get their
-    path from the Manifest they belong to.
+    """Mixin class to enable resources to get their path location from an owner.
+
+    For example, datasets can get their path from the Manifest they belong to.
     """
 
     def __init__(self, *args, path=None, path_from=None, **kwargs):
@@ -31,8 +32,9 @@ class Pathable:
 
     @property
     def _path_prefix(self):
-        """Gets the path prefix (this is the absolute_path of the owner path_from object). Defaults to the current
-        working directory.
+        """Gets the path prefix (this is the absolute_path of the owner path_from object).
+
+        Defaults to the current working directory.
         """
         if self._path_from is not None:
             return self._path_from.absolute_path
