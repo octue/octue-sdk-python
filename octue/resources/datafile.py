@@ -36,17 +36,19 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
           "sha-512/256": "somesha"
         },
 
-    :param Pathable path_from: The root Pathable object (typically a Dataset) that this Datafile's path is relative to.
-    :param Union[str, path-like] path: The path of this file, which may include folders or subfolders, within the
-        dataset. If no path_from parameter is set, then absolute paths are acceptable, otherwise relative paths are required.
+    :parameter float timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when it
+        was created but could relate to a relevant time point for the data
+    :param str id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
     :param logging.Logger logger: A logger instance to which operations with this datafile will be logged. Defaults to
         the module logger.
-    :param str id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
+    :param Union[str, path-like] path: The path of this file, which may include folders or subfolders, within the
+        dataset. If no path_from parameter is set, then absolute paths are acceptable, otherwise relative paths are required.
+    :param Pathable path_from: The root Pathable object (typically a Dataset) that this Datafile's path is relative to.
     :param int cluster: The cluster of files, within a dataset, to which this belongs (default 0)
     :param int sequence: A sequence number of this file within its cluster (if sequences are appropriate)
     :param str tags: Space-separated string of tags relevant to this file
-    :parameter float timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when it
-        was created but could relate to a relevant time point for the data
+    :param bool skip_checks:
+
     :return None:
     """
 
