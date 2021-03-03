@@ -1,5 +1,4 @@
 import collections.abc
-import functools
 from blake3 import blake3
 
 
@@ -17,6 +16,9 @@ class Hashable:
     _ATTRIBUTES_TO_HASH = None
     _HASH_TYPE = "BLAKE3"
 
+    def __init__(self, *args, **kwargs):
+        self._hash_value = None
+
     @classmethod
     def hash_non_class_object(cls, object_):
         """ Use the Hashable class to hash an arbitrary object that isn't an attribute of a class instance. """
@@ -29,13 +31,32 @@ class Hashable:
         return holder.hash_value
 
     @property
-    @functools.lru_cache(maxsize=1)
     def hash_value(self):
-        """ Get the hash of the instance. """
+        """Get the hash of the instance."""
+        if self._hash_value:
+            return self._hash_value
+
         if not self._ATTRIBUTES_TO_HASH:
             return None
 
-        return self._calculate_hash()
+        self._hash_value = self._calculate_hash()
+        return self._hash_value
+
+    @hash_value.setter
+    def hash_value(self, value):
+        """Set the hash of the instance to a custom value.
+
+        :param str value:
+        :return None:
+        """
+        self._hash_value = value
+
+    def reset_hash(self):
+        """Reset the hash value to the calculated hash (rather than whatever value has been set).
+
+        :return None:
+        """
+        self._hash_value = self._calculate_hash()
 
     def _calculate_hash(self, hash_=None):
         """Calculate the BLAKE3 hash of the sorted attributes in self._ATTRIBUTES_TO_HASH. If hash_ is not None and is
