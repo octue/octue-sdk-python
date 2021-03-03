@@ -73,7 +73,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         for blob in storage_client.scandir(
             bucket_name=bucket_name,
             directory_path=path_to_dataset_directory,
-            filter=lambda blob: blob.name.split("/")[-1] != definitions.DATASET_FILENAME,
+            filter=lambda blob: storage.path.split(blob.name)[-1] in serialised_dataset["files"],
         ):
             datafiles.add(
                 Datafile.from_cloud(project_name=project_name, bucket_name=bucket_name, path_in_bucket=blob.name)
@@ -224,7 +224,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             return super().serialise(to_string=to_string)
 
         serialised_dataset = super().serialise()
-        serialised_dataset["files"] = [file.absolute_path for file in self.files]
+        serialised_dataset["files"] = [file.name for file in self.files]
 
         if to_string:
             return json.dumps(serialised_dataset, cls=OctueJSONEncoder, sort_keys=True, indent=4)
