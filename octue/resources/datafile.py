@@ -14,6 +14,7 @@ from octue.utils.cloud.storage.path import generate_gs_path
 module_logger = logging.getLogger(__name__)
 
 
+ID_DEFAULT = None
 CLUSTER_DEFAULT = 0
 SEQUENCE_DEFAULT = None
 TAGS_DEFAULT = None
@@ -69,7 +70,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     def __init__(
         self,
-        id=None,
+        id=ID_DEFAULT,
         logger=None,
         path=None,
         path_from=None,
@@ -116,7 +117,9 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         custom_metadata = metadata["metadata"]
 
         datafile = cls(
+            id=custom_metadata.get("id", ID_DEFAULT),
             path=generate_gs_path(bucket_name, path_in_bucket),
+            hash_value=custom_metadata.get("hash_value", None),
             cluster=custom_metadata.get("cluster", CLUSTER_DEFAULT),
             sequence=custom_metadata.get("sequence", SEQUENCE_DEFAULT),
             tags=custom_metadata.get("tags", TAGS_DEFAULT),
@@ -140,11 +143,6 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             metadata=self.metadata,
         )
 
-    def _get_extension_from_path(self, path=None):
-        """Gets extension of a file, either from a provided file path or from self.path field"""
-        path = path or self.path
-        return os.path.splitext(path)[-1].strip(".")
-
     @property
     def name(self):
         return str(os.path.split(self.path)[-1])
@@ -155,7 +153,13 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
         :return dict:
         """
-        return {"cluster": self.cluster, "sequence": self.sequence, "tags": self.tags.serialise(to_string=False)}
+        return {
+            "id": self.id,
+            "hash_value": self.hash_value,
+            "cluster": self.cluster,
+            "sequence": self.sequence,
+            "tags": self.tags.serialise(to_string=False),
+        }
 
     @property
     def last_modified(self):
@@ -175,6 +179,11 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     def __repr__(self):
         return f"<{type(self).__name__}({self.name!r})>"
+
+    def _get_extension_from_path(self, path=None):
+        """Gets extension of a file, either from a provided file path or from self.path field"""
+        path = path or self.path
+        return os.path.splitext(path)[-1].strip(".")
 
     def _calculate_hash(self):
         """Calculate the hash of the file."""

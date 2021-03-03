@@ -16,8 +16,8 @@ class Hashable:
     _ATTRIBUTES_TO_HASH = None
     _HASH_TYPE = "BLAKE3"
 
-    def __init__(self, *args, **kwargs):
-        self._hash_value = None
+    def __init__(self, hash_value=None, *args, **kwargs):
+        self._hash_value = hash_value
 
     @classmethod
     def hash_non_class_object(cls, object_):
