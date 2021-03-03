@@ -102,3 +102,40 @@ class TestManifest(BaseTestCase):
             self.assertEqual(dataset.path, f"gs://{bucket_name}{output_directory}/{dataset.name}")
             self.assertTrue(len(dataset.files), 2)
             self.assertTrue(all(isinstance(file, Datafile) for file in dataset.files))
+
+    def test_from_cloud_only_collects_its_own_datasets(self):
+        """Test that instantiating a Manifest from the cloud ignores datasets outside of its own."""
+        project_name = "test-project"
+        bucket_name = os.environ["TEST_BUCKET_NAME"]
+
+        with tempfile.TemporaryDirectory() as output_directory:
+            file_0_path = os.path.join(output_directory, "file_0.txt")
+
+            with open(file_0_path, "w") as f:
+                f.write("[1, 2, 3]")
+
+            dataset = Dataset(
+                name="my-dataset",
+                files={
+                    Datafile(timestamp=time.time(), path=file_0_path, sequence=0, tags={"hello"}),
+                },
+            )
+
+            manifest = Manifest(datasets=[dataset], keys={"my-dataset": 0})
+            manifest.to_cloud(project_name, bucket_name, output_directory)
+
+            another_dataset = Dataset(
+                name="dataset-not-to-touch",
+                files={Datafile(timestamp=time.time(), path=file_0_path, sequence=0, tags={"hello"})},
+            )
+
+            another_dataset.to_cloud(project_name, bucket_name, output_directory)
+
+        persisted_manifest = Manifest.from_cloud(
+            project_name=project_name,
+            bucket_name=bucket_name,
+            directory_path=output_directory,
+        )
+
+        self.assertEqual(len(persisted_manifest.datasets), 1)
+        self.assertTrue(another_dataset.name not in [dataset.name for dataset in persisted_manifest.datasets])
