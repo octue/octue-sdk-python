@@ -115,12 +115,11 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
             return serialised_strands
 
         # Optionally write the serialised strands to disk.
-        for output_strand in OUTPUT_STRANDS:
-            if serialised_strands[output_strand] is not None:
+        if save_locally:
+            for output_strand in OUTPUT_STRANDS:
+                if serialised_strands[output_strand] is not None:
 
-                filename = get_file_name_from_strand(output_strand, output_dir)
-
-                if save_locally:
+                    filename = get_file_name_from_strand(output_strand, output_dir)
                     with open(filename, "w") as fp:
                         fp.write(serialised_strands[output_strand])
                     self.logger.debug("Wrote %r to file %r", output_strand, filename)
