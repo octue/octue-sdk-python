@@ -142,26 +142,18 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             local_path=self.path,
             bucket_name=bucket_name,
             path_in_bucket=path_in_bucket,
-            metadata=self.metadata,
+            metadata={
+                "id": self.id,
+                "hash_value": self.hash_value,
+                "cluster": self.cluster,
+                "sequence": self.sequence,
+                "tags": self.tags.serialise(to_string=False),
+            },
         )
 
     @property
     def name(self):
         return str(os.path.split(self.path)[-1])
-
-    @property
-    def metadata(self):
-        """Return the Datafile's metadata as a dictionary of primitives.
-
-        :return dict:
-        """
-        return {
-            "id": self.id,
-            "hash_value": self.hash_value,
-            "cluster": self.cluster,
-            "sequence": self.sequence,
-            "tags": self.tags.serialise(to_string=False),
-        }
 
     @property
     def last_modified(self):
