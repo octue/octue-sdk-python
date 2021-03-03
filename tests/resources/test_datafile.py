@@ -121,7 +121,7 @@ class DatafileTestCase(BaseTestCase):
         path_in_bucket = "file_to_upload.txt"
 
         GoogleCloudStorageClient(project_name=project_name, credentials=OCTUE_MANAGED_CREDENTIALS).upload_from_string(
-            serialised_data=json.dumps({"height": 32}),
+            string=json.dumps({"height": 32}),
             bucket_name=bucket_name,
             path_in_bucket=path_in_bucket,
         )

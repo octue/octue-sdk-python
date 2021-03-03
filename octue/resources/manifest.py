@@ -112,7 +112,7 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
             dataset.to_cloud(project_name=project_name, bucket_name=bucket_name, output_directory=output_directory)
 
         GoogleCloudStorageClient(project_name=project_name).upload_from_string(
-            serialised_data=self.serialise(shallow=True, to_string=True),
+            string=self.serialise(shallow=True, to_string=True),
             bucket_name=bucket_name,
             path_in_bucket=storage.path.join(output_directory, definitions.MANIFEST_FILENAME),
         )

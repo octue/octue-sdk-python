@@ -104,7 +104,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             )
 
         GoogleCloudStorageClient(project_name=project_name).upload_from_string(
-            serialised_data=self.serialise(shallow=True, to_string=True),
+            string=self.serialise(shallow=True, to_string=True),
             bucket_name=bucket_name,
             path_in_bucket=storage.path.join(output_directory, self.name, definitions.DATASET_FILENAME),
         )

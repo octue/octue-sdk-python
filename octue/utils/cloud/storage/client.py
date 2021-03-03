@@ -35,14 +35,14 @@ class GoogleCloudStorageClient:
         self._update_metadata(blob, metadata)
         logger.info("Uploaded %r to Google Cloud at %r.", local_path, blob.public_url)
 
-    def upload_from_string(self, serialised_data, bucket_name, path_in_bucket, metadata=None, timeout=_DEFAULT_TIMEOUT):
+    def upload_from_string(self, string, bucket_name, path_in_bucket, metadata=None, timeout=_DEFAULT_TIMEOUT):
         """Upload serialised data in string form to a file in a Google Cloud bucket at
         https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>
         """
         blob = self._blob(bucket_name, path_in_bucket)
-        blob.crc32c = self._compute_crc32c_checksum(serialised_data)
+        blob.crc32c = self._compute_crc32c_checksum(string)
 
-        blob.upload_from_string(data=serialised_data, timeout=timeout)
+        blob.upload_from_string(data=string, timeout=timeout)
         self._update_metadata(blob, metadata)
         logger.info("Uploaded data to Google Cloud at %r.", blob.public_url)
 

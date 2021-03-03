@@ -64,7 +64,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         """Test that a string can be uploaded to Google Cloud storage as a file and downloaded again."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             self.storage_client.upload_from_string(
-                serialised_data=json.dumps({"height": 32}),
+                string=json.dumps({"height": 32}),
                 bucket_name=self.TEST_BUCKET_NAME,
                 path_in_bucket=self.FILENAME,
             )
@@ -86,7 +86,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         ):
             with self.assertRaises(google.api_core.exceptions.BadRequest) as e:
                 self.storage_client.upload_from_string(
-                    serialised_data=json.dumps({"height": 15}),
+                    string=json.dumps({"height": 15}),
                     bucket_name=self.TEST_BUCKET_NAME,
                     path_in_bucket=self.FILENAME,
                 )
@@ -116,7 +116,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
     def test_delete(self):
         """Test that a file can be deleted."""
         self.storage_client.upload_from_string(
-            serialised_data=json.dumps({"height": 32}),
+            string=json.dumps({"height": 32}),
             bucket_name=self.TEST_BUCKET_NAME,
             path_in_bucket=self.FILENAME,
         )
@@ -138,7 +138,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         directory_path = storage.path.join("my", "path")
 
         self.storage_client.upload_from_string(
-            serialised_data=json.dumps({"height": 32}),
+            string=json.dumps({"height": 32}),
             bucket_name=self.TEST_BUCKET_NAME,
             path_in_bucket=storage.path.join(directory_path, self.FILENAME),
         )
@@ -156,7 +156,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
     def test_get_metadata(self):
         """Test that file metadata can be retrieved."""
         self.storage_client.upload_from_string(
-            serialised_data=json.dumps({"height": 32}),
+            string=json.dumps({"height": 32}),
             bucket_name=self.TEST_BUCKET_NAME,
             path_in_bucket=self.FILENAME,
         )
