@@ -34,7 +34,6 @@ class GoogleCloudStorageClient:
         blob.upload_from_filename(filename=local_path, timeout=timeout)
         self._update_metadata(blob, metadata)
         logger.info("Uploaded %r to Google Cloud at %r.", local_path, blob.public_url)
-        return blob.public_url
 
     def upload_from_string(self, serialised_data, bucket_name, path_in_bucket, metadata=None, timeout=_DEFAULT_TIMEOUT):
         """Upload serialised data in string form to a file in a Google Cloud bucket at
@@ -46,7 +45,6 @@ class GoogleCloudStorageClient:
         blob.upload_from_string(data=serialised_data, timeout=timeout)
         self._update_metadata(blob, metadata)
         logger.info("Uploaded data to Google Cloud at %r.", blob.public_url)
-        return blob.public_url
 
     def download_to_file(self, bucket_name, path_in_bucket, local_path, timeout=_DEFAULT_TIMEOUT):
         """Download a file to a file from a Google Cloud bucket at
