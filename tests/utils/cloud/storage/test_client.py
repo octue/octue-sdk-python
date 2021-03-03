@@ -109,6 +109,12 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         self.assertEqual(len(contents), 1)
         self.assertEqual(contents[0].name, storage.path.join(directory_path, self.FILENAME))
 
+    def test_scandir_with_empty_directory(self):
+        """Test that an empty directory shows as such."""
+        directory_path = storage.path.join("another", "path")
+        contents = list(self.storage_client.scandir(bucket_name=self.TEST_BUCKET_NAME, directory_path=directory_path))
+        self.assertEqual(len(contents), 0)
+
     def test_get_metadata(self):
         """Test that file metadata can be retrieved."""
         self.storage_client.upload_from_string(
