@@ -71,3 +71,12 @@ class TestStorage(BaseTestCase):
     def test_split(self):
         """Test that cloud paths can be split properly."""
         self.assertEqual(storage.path.split("my-bucket/a/b/c.txt"), ("my-bucket/a/b", "c.txt"))
+
+    def test_dirname(self):
+        """Test that the name of the directory of the given path can be found."""
+        self.assertEqual(storage.path.dirname("a/b/c"), "a/b")
+        self.assertEqual(storage.path.dirname("a/b/c", name_only=True), "b")
+        self.assertEqual(storage.path.dirname("/a/b/c"), "/a/b")
+        self.assertEqual(storage.path.dirname("/a/b/c", name_only=True), "b")
+        self.assertEqual(storage.path.dirname("a"), "")
+        self.assertEqual(storage.path.dirname("/a"), "/")

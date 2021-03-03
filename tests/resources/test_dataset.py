@@ -290,7 +290,7 @@ class DatasetTestCase(BaseTestCase):
         """Test serialising shallowly."""
         dataset = self.create_valid_dataset()
         serialised_dataset = dataset.serialise(shallow=True)
-        self.assertEqual(serialised_dataset["files"], [file.absolute_path for file in dataset.files])
+        self.assertEqual(serialised_dataset["files"], [file.name for file in dataset.files])
 
     def test_from_cloud(self):
         """Test that a Dataset in cloud storage can be accessed."""

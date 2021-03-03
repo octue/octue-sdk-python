@@ -63,3 +63,18 @@ def split(path):
     """
     paths = path.split("/")
     return join(*paths[:-1]), paths[-1]
+
+
+def dirname(path, name_only=False):
+    """Get the path of the directory of the given path. If `name_only` is `True`, just return the name of the directory.
+
+    :param str path:
+    :param bool name_only:
+    :return str:
+    """
+    directory_path = os.path.dirname(path)
+
+    if name_only:
+        return split(directory_path)[-1]
+
+    return directory_path

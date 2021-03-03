@@ -79,7 +79,10 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         for blob in storage_client.scandir(
             bucket_name=bucket_name,
             directory_path=directory_path,
-            filter=lambda blob: blob.name.endswith(definitions.DATASET_FILENAME),
+            filter=lambda blob: (
+                blob.name.endswith(definitions.DATASET_FILENAME)
+                and storage.path.dirname(blob.name, name_only=True) in serialised_manifest["datasets"]
+            ),
         ):
             dataset_directory_path = storage.path.split(blob.name)[0]
 
