@@ -20,7 +20,7 @@ TAGS_DEFAULT = None
 
 
 class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable, Filterable):
-    """Class for representing data files on the Octue system
+    """Class for representing data files on the Octue system.
 
     Files in a manifest look like this:
 
@@ -37,31 +37,18 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
           "sha-512/256": "somesha"
         },
 
-    :parameter path_from: The root Pathable object (typically a Dataset) that this Datafile's path is relative to.
-    :type path_from: Pathable
-
-    :parameter path: The path of this file, which may include folders or subfolders, within the dataset. If no path_from
-    parameter is set, then absolute paths are acceptable, otherwise relative paths are required.
-    :type path: Union[str, path-like]
-
-    :parameter logger: A logger instance to which operations with this datafile will be logged. Defaults to the module logger.
-    :type logger: logging.Logger
-
-    :parameter id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
-    :type id: str
-
-    :parameter cluster: The cluster of files, within a dataset, to which this belongs (default 0)
-    :type cluster: int
-
-    :parameter sequence: A sequence number of this file within its cluster (if sequences are appropriate)
-    :type sequence: int
-
-    :parameter tags: Space-separated string of tags relevant to this file
-    :type tags: str
-
-    :parameter timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when it
-    was created but could relate to a relevant time point for the data
-    :type timestamp: number
+    :param Pathable path_from: The root Pathable object (typically a Dataset) that this Datafile's path is relative to.
+    :param Union[str, path-like] path: The path of this file, which may include folders or subfolders, within the
+        dataset. If no path_from parameter is set, then absolute paths are acceptable, otherwise relative paths are required.
+    :param logging.Logger logger: A logger instance to which operations with this datafile will be logged. Defaults to
+        the module logger.
+    :param str id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
+    :param int cluster: The cluster of files, within a dataset, to which this belongs (default 0)
+    :param int sequence: A sequence number of this file within its cluster (if sequences are appropriate)
+    :param str tags: Space-separated string of tags relevant to this file
+    :parameter float timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when it
+        was created but could relate to a relevant time point for the data
+    :return None:
     """
 
     _ATTRIBUTES_TO_HASH = "name", "cluster", "sequence", "timestamp", "tags"
@@ -80,7 +67,6 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         skip_checks=True,
         **kwargs,
     ):
-        """Construct a datafile"""
         super().__init__(
             id=id, hash_value=kwargs.get("hash_value"), logger=logger, tags=tags, path=path, path_from=path_from
         )
