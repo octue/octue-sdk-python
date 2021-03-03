@@ -98,3 +98,5 @@ class TestManifest(BaseTestCase):
 
         for dataset in persisted_manifest.datasets:
             self.assertEqual(dataset.path, f"gs://{bucket_name}{output_directory}/{dataset.name}")
+            self.assertTrue(len(dataset.files), 2)
+            self.assertTrue(all(isinstance(file, Datafile) for file in dataset.files))
