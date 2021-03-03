@@ -1,5 +1,7 @@
+import base64
 import json
 import logging
+from crc32c import crc32
 from google.cloud import storage
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
@@ -25,6 +27,10 @@ class GoogleCloudStorageClient:
         https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>
         """
         blob = self._blob(bucket_name, path_in_bucket)
+
+        with open(local_path) as f:
+            blob.crc32c = self._compute_crc32c_checksum(f.read())
+
         blob.upload_from_filename(filename=local_path, timeout=timeout)
         self._update_metadata(blob, metadata)
         logger.info("Uploaded %r to Google Cloud at %r.", local_path, blob.public_url)
@@ -35,6 +41,8 @@ class GoogleCloudStorageClient:
         https://storage.cloud.google.com/<bucket_name>/<path_in_bucket>
         """
         blob = self._blob(bucket_name, path_in_bucket)
+        blob.crc32c = self._compute_crc32c_checksum(serialised_data)
+
         blob.upload_from_string(data=serialised_data, timeout=timeout)
         self._update_metadata(blob, metadata)
         logger.info("Uploaded data to Google Cloud at %r.", blob.public_url)
@@ -92,6 +100,11 @@ class GoogleCloudStorageClient:
         """Instantiate a blob for the given bucket at the given path. Note that this is not synced up with Google Cloud."""
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         return bucket.blob(blob_name=self._strip_leading_slash(path_in_bucket))
+
+    def _compute_crc32c_checksum(self, string):
+        """Compute the CRC32 checksum of the string."""
+        checksum = crc32(string.encode())
+        return base64.b64encode(checksum.to_bytes(length=4, byteorder="big")).decode("utf-8")
 
     def _update_metadata(self, blob, metadata):
         """Update the metadata for the given blob. Note that this is synced up with Google Cloud."""

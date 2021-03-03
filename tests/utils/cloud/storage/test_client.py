@@ -1,6 +1,7 @@
 import json
 import os
 import tempfile
+from unittest.mock import patch
 import google.api_core.exceptions
 
 from octue.utils.cloud import storage
@@ -37,6 +38,28 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
             with open(download_local_path) as f:
                 self.assertTrue("This is a test upload." in f.read())
 
+    def test_upload_file_fails_if_checksum_is_not_correct(self):
+        """Test that uploading a file fails if its checksum isn't the correct."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            upload_local_path = f"{temporary_directory}/{self.FILENAME}"
+
+            with open(upload_local_path, "w") as f:
+                f.write("This is a test upload.")
+
+            with patch(
+                "octue.utils.cloud.storage.client.GoogleCloudStorageClient._compute_crc32c_checksum",
+                return_value="L3eGig==",
+            ):
+
+                with self.assertRaises(google.api_core.exceptions.BadRequest) as e:
+                    self.storage_client.upload_file(
+                        local_path=upload_local_path,
+                        bucket_name=self.TEST_BUCKET_NAME,
+                        path_in_bucket=self.FILENAME,
+                    )
+
+                self.assertTrue("doesn't match calculated CRC32C" in e.exception.message)
+
     def test_upload_from_string(self):
         """Test that a string can be uploaded to Google Cloud storage as a file and downloaded again."""
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -54,6 +77,21 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
             with open(download_local_path) as f:
                 self.assertTrue('{"height": 32}' in f.read())
+
+    def test_upload_from_string_fails_if_checksum_is_not_correct(self):
+        """Test that uploading a string fails if its checksum isn't the correct."""
+        with patch(
+            "octue.utils.cloud.storage.client.GoogleCloudStorageClient._compute_crc32c_checksum",
+            return_value="L3eGig==",
+        ):
+            with self.assertRaises(google.api_core.exceptions.BadRequest) as e:
+                self.storage_client.upload_from_string(
+                    serialised_data=json.dumps({"height": 15}),
+                    bucket_name=self.TEST_BUCKET_NAME,
+                    path_in_bucket=self.FILENAME,
+                )
+
+            self.assertTrue("doesn't match calculated CRC32C" in e.exception.message)
 
     def test_download_as_string(self):
         """Test that a file can be uploaded to Google Cloud storage and downloaded as a string."""
