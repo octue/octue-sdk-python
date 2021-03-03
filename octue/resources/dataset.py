@@ -81,9 +81,32 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
 
         return Dataset(
             id=serialised_dataset["id"],
+            name=serialised_dataset["name"],
+            hash_value=serialised_dataset["hash_value"],
             path=storage.path.generate_gs_path(bucket_name, path_to_dataset_directory),
             tags=json.loads(serialised_dataset["tags"]),
             files=datafiles,
+        )
+
+    def to_cloud(self, project_name, bucket_name, output_directory):
+        """Upload a dataset to a cloud location.
+
+        :param str project_name:
+        :param str bucket_name:
+        :param str output_directory:
+        :return None:
+        """
+        for datafile in self.files:
+            datafile.to_cloud(
+                project_name=project_name,
+                bucket_name=bucket_name,
+                path_in_bucket=storage.path.join(output_directory, self.name, datafile.name),
+            )
+
+        GoogleCloudStorageClient(project_name=project_name).upload_from_string(
+            serialised_data=self.serialise(shallow=True, to_string=True),
+            bucket_name=bucket_name,
+            path_in_bucket=storage.path.join(output_directory, self.name, definitions.DATASET_FILENAME),
         )
 
     @property
@@ -206,24 +229,3 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         if to_string:
             return json.dumps(serialised_dataset, cls=OctueJSONEncoder, sort_keys=True, indent=4)
         return serialised_dataset
-
-    def to_cloud(self, project_name, bucket_name, output_directory):
-        """Upload a dataset to a cloud location.
-
-        :param str project_name:
-        :param str bucket_name:
-        :param str output_directory:
-        :return None:
-        """
-        for datafile in self.files:
-            datafile.to_cloud(
-                project_name=project_name,
-                bucket_name=bucket_name,
-                path_in_bucket=storage.path.join(output_directory, self.name, datafile.name),
-            )
-
-        GoogleCloudStorageClient(project_name=project_name).upload_from_string(
-            serialised_data=self.serialise(shallow=True, to_string=True),
-            bucket_name=bucket_name,
-            path_in_bucket=storage.path.join(output_directory, self.name, definitions.DATASET_FILENAME),
-        )

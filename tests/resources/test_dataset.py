@@ -326,6 +326,8 @@ class DatasetTestCase(BaseTestCase):
 
         self.assertEqual(persisted_dataset.path, f"gs://{bucket_name}/{output_directory}/{dataset.name}")
         self.assertEqual(persisted_dataset.id, dataset.id)
+        self.assertEqual(persisted_dataset.name, dataset.name)
+        self.assertEqual(persisted_dataset.hash_value, dataset.hash_value)
         self.assertEqual(persisted_dataset.tags, dataset.tags)
         self.assertEqual({file.name for file in persisted_dataset.files}, {file.name for file in dataset.files})
 

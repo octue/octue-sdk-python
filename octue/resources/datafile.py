@@ -154,7 +154,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     @property
     def _last_modified(self):
-        """Get the date/time the file was last modified in units of seconds since epoch."""
+        """Get the date/time the file was last modified in units of seconds since epoch (posix time)."""
         if self._path_is_in_google_cloud_storage:
             unparsed_datetime = self._gcp_metadata["updated"]
             parsed_datetime = datetime.strptime(unparsed_datetime, "%Y-%m-%dT%H:%M:%S.%fZ")
