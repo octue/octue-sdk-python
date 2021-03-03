@@ -1,6 +1,7 @@
 import copy
 import json
 import os
+import tempfile
 import uuid
 
 from octue import exceptions
@@ -140,20 +141,23 @@ class DatafileTestCase(BaseTestCase):
         bucket_name = os.environ["TEST_BUCKET_NAME"]
         path_in_bucket = "file_to_upload.txt"
 
-        GoogleCloudStorageClient(project_name=project_name, credentials=OCTUE_MANAGED_CREDENTIALS).upload_from_string(
-            serialised_data=json.dumps({"height": 32}),
-            bucket_name=bucket_name,
-            path_in_bucket=path_in_bucket,
-            metadata={"cluster": 0, "sequence": 1, "tags": ["blah:shah:nah", "blib", "glib"]},
-        )
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            file_0_path = os.path.join(temporary_directory, "file_0.txt")
 
-        datafile = Datafile.from_cloud(
-            project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket
-        )
+            with open(file_0_path, "w") as f:
+                f.write("[1, 2, 3]")
 
-        self.assertEqual(datafile.cluster, 0)
-        self.assertEqual(datafile.sequence, 1)
-        self.assertEqual(datafile.tags, TagSet({"blah:shah:nah", "blib", "glib"}))
-        self.assertTrue(isinstance(datafile.size_bytes, int))
-        self.assertTrue(isinstance(datafile.last_modified, float))
-        self.assertTrue(isinstance(datafile.hash_value, str))
+            datafile = Datafile(path=file_0_path, cluster=0, sequence=1, tags={"blah:shah:nah", "blib", "glib"})
+            datafile.to_cloud(project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
+
+            persisted_datafile = Datafile.from_cloud(
+                project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket
+            )
+
+            self.assertEqual(persisted_datafile.id, datafile.id)
+            self.assertEqual(persisted_datafile.hash_value, datafile.hash_value)
+            self.assertEqual(persisted_datafile.cluster, datafile.cluster)
+            self.assertEqual(persisted_datafile.sequence, datafile.sequence)
+            self.assertEqual(persisted_datafile.tags, datafile.tags)
+            self.assertEqual(persisted_datafile.size_bytes, datafile.size_bytes)
+            self.assertTrue(isinstance(persisted_datafile.last_modified, float))

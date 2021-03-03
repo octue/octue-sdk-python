@@ -82,7 +82,9 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         **kwargs,
     ):
         """Construct a datafile"""
-        super().__init__(id=id, logger=logger, tags=tags, path=path, path_from=path_from)
+        super().__init__(
+            id=id, hash_value=kwargs.get("hash_value"), logger=logger, tags=tags, path=path, path_from=path_from
+        )
 
         self.cluster = cluster
         self.sequence = sequence
@@ -187,9 +189,6 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     def _calculate_hash(self):
         """Calculate the hash of the file."""
-        if self._path_is_in_google_cloud_storage:
-            return self._gcp_metadata["md5Hash"]
-
         hash = blake3()
 
         with open(self.absolute_path, "rb") as f:

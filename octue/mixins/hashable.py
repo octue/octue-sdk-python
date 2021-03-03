@@ -18,6 +18,7 @@ class Hashable:
 
     def __init__(self, hash_value=None, *args, **kwargs):
         self._hash_value = hash_value
+        super().__init__(*args, **kwargs)
 
     @classmethod
     def hash_non_class_object(cls, object_):
