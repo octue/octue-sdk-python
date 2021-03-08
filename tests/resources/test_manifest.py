@@ -28,11 +28,10 @@ class TestManifest(BaseTestCase):
         """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance. """
         project_name = "test-project"
         bucket_name = os.environ["TEST_BUCKET_NAME"]
-        output_directory = "my_datasets"
 
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            file_0_path = os.path.join(temporary_directory, "file_0.txt")
-            file_1_path = os.path.join(temporary_directory, "file_1.txt")
+        with tempfile.TemporaryDirectory() as output_directory:
+            file_0_path = os.path.join(output_directory, "file_0.txt")
+            file_1_path = os.path.join(output_directory, "file_1.txt")
 
             with open(file_0_path, "w") as f:
                 f.write("[1, 2, 3]")
@@ -61,7 +60,7 @@ class TestManifest(BaseTestCase):
                 )
             )
 
-            self.assertEqual(persisted_manifest["datasets"], ["gs://octue-test-bucket/my_datasets/my-dataset"])
+            self.assertEqual(persisted_manifest["datasets"], [f"gs://octue-test-bucket{output_directory}/my-dataset"])
             self.assertEqual(persisted_manifest["keys"], {"my-dataset": 0})
 
     def test_to_cloud_without_storing_datasets(self):
