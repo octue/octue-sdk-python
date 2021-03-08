@@ -96,15 +96,11 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         files = []
 
         for datafile in self.files:
-            path_in_bucket = storage.path.join(output_directory, self.name, datafile.name)
-
-            datafile.to_cloud(
-                project_name=project_name,
-                bucket_name=bucket_name,
-                path_in_bucket=path_in_bucket,
+            datafile_path = datafile.to_cloud(
+                project_name, bucket_name, path_in_bucket=storage.path.join(output_directory, self.name, datafile.name)
             )
 
-            files.append(storage.path.generate_gs_path(bucket_name, path_in_bucket))
+            files.append(datafile_path)
 
         serialised_dataset = self.serialise()
         serialised_dataset["files"] = sorted(files)
@@ -116,6 +112,8 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             bucket_name=bucket_name,
             path_in_bucket=storage.path.join(output_directory, self.name, definitions.DATASET_FILENAME),
         )
+
+        return storage.path.generate_gs_path(bucket_name, output_directory, self.name)
 
     @property
     def name(self):

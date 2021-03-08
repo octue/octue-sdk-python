@@ -6,6 +6,7 @@ from blake3 import blake3
 from octue.exceptions import FileNotFoundException, InvalidInputException
 from octue.mixins import Filterable, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.utils import isfile
+from octue.utils.cloud import storage
 from octue.utils.cloud.storage.client import GoogleCloudStorageClient
 from octue.utils.cloud.storage.path import generate_gs_path
 
@@ -147,6 +148,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
                 "tags": self.tags.serialise(to_string=False),
             },
         )
+
+        return storage.path.generate_gs_path(bucket_name, path_in_bucket)
 
     @property
     def name(self):

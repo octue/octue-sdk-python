@@ -86,7 +86,7 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         )
 
     def to_cloud(self, project_name, bucket_name, path_to_manifest_file):
-        """Upload a manifest to a cloud location.
+        """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory.
 
         :param str project_name:
         :param str bucket_name:
@@ -94,13 +94,11 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         :return None:
         """
         datasets = []
+        output_directory = storage.path.dirname(path_to_manifest_file)
 
         for dataset in self.datasets:
-            dataset_directory_name = storage.path.dirname(path_to_manifest_file)
-            dataset.to_cloud(
-                project_name=project_name, bucket_name=bucket_name, output_directory=dataset_directory_name
-            )
-            datasets.append(storage.path.generate_gs_path(bucket_name, dataset_directory_name, dataset.name))
+            dataset_path = dataset.to_cloud(project_name, bucket_name, output_directory=output_directory)
+            datasets.append(dataset_path)
 
         serialised_manifest = self.serialise()
         serialised_manifest["datasets"] = sorted(datasets)
@@ -112,6 +110,8 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
             bucket_name=bucket_name,
             path_in_bucket=path_to_manifest_file,
         )
+
+        return storage.path.generate_gs_path(bucket_name, path_to_manifest_file)
 
     def get_dataset(self, key):
         """Gets a dataset by its key name (as defined in the twine)
