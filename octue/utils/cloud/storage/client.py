@@ -1,7 +1,7 @@
 import base64
 import json
 import logging
-from crc32c import crc32
+from crc32c import crc32c
 from google.cloud import storage
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
@@ -101,7 +101,7 @@ class GoogleCloudStorageClient:
 
     def _compute_crc32c_checksum(self, string):
         """Compute the CRC32 checksum of the string."""
-        checksum = crc32(string.encode())
+        checksum = crc32c(string.encode())
         return base64.b64encode(checksum.to_bytes(length=4, byteorder="big")).decode("utf-8")
 
     def _update_metadata(self, blob, metadata):
