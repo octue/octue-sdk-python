@@ -90,12 +90,12 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     def __lt__(self, other):
         if not isinstance(other, Datafile):
-            return False
+            raise TypeError(f"An object of type {type(self)} cannot be compared with {type(other)}.")
         return self.absolute_path < other.absolute_path
 
     def __gt__(self, other):
         if not isinstance(other, Datafile):
-            return False
+            raise TypeError(f"An object of type {type(self)} cannot be compared with {type(other)}.")
         return self.absolute_path > other.absolute_path
 
     @classmethod

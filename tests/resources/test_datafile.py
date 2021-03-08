@@ -41,6 +41,28 @@ class DatafileTestCase(BaseTestCase):
 
         self.assertIn("You must supply a valid 'path' for a Datafile", error.exception.args[0])
 
+    def test_gt(self):
+        """Test that datafiles can be ordered using the greater-than operator."""
+        a = Datafile(timestamp=time.time(), path="a_path")
+        b = Datafile(timestamp=time.time(), path="b_path")
+        self.assertTrue(a < b)
+
+    def test_gt_with_wrong_type(self):
+        """Test that datafiles cannot be ordered compared to other types."""
+        with self.assertRaises(TypeError):
+            Datafile(timestamp=time.time(), path="a_path") < "hello"
+
+    def test_lt(self):
+        """Test that datafiles can be ordered using the less-than operator."""
+        a = Datafile(timestamp=time.time(), path="a_path")
+        b = Datafile(timestamp=time.time(), path="b_path")
+        self.assertTrue(b > a)
+
+    def test_lt_with_wrong_type(self):
+        """Test that datafiles cannot be ordered compared to other types."""
+        with self.assertRaises(TypeError):
+            Datafile(timestamp=time.time(), path="a_path") > "hello"
+
     def test_checks_fail_when_file_doesnt_exist(self):
         path = "not_a_real_file.csv"
         with self.assertRaises(exceptions.FileNotFoundException) as error:
