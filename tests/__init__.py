@@ -9,10 +9,20 @@ storage_emulator = GoogleCloudStorageEmulator()
 
 
 def startTestRun(instance):
+    """Start the test run, running any code in this function first.
+
+    :param unittest.TestResult instance:
+    :return None:
+    """
     storage_emulator.start()
 
 
 def stopTestRun(instance):
+    """Finish the test run, running any code in this function first.
+
+    :param unittest.TestResult instance:
+    :return None:
+    """
     storage_emulator.stop()
 
 
