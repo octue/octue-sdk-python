@@ -85,20 +85,25 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
             keys=serialised_manifest["keys"],
         )
 
-    def to_cloud(self, project_name, bucket_name, path_to_manifest_file):
+    def to_cloud(self, project_name, bucket_name, path_to_manifest_file, store_datasets=True):
         """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory.
 
         :param str project_name:
         :param str bucket_name:
         :param str path_to_manifest_file:
-        :return None:
+        :param bool store_datasets: if True, upload datasets to same directory as manifest file
+        :return str: gs:// path for manifest file
         """
         datasets = []
         output_directory = storage.path.dirname(path_to_manifest_file)
 
         for dataset in self.datasets:
-            dataset_path = dataset.to_cloud(project_name, bucket_name, output_directory=output_directory)
-            datasets.append(dataset_path)
+
+            if store_datasets:
+                dataset_path = dataset.to_cloud(project_name, bucket_name, output_directory=output_directory)
+                datasets.append(dataset_path)
+            else:
+                datasets.append(dataset.absolute_path)
 
         serialised_manifest = self.serialise()
         serialised_manifest["datasets"] = sorted(datasets)

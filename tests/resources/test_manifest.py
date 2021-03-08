@@ -64,6 +64,49 @@ class TestManifest(BaseTestCase):
             self.assertEqual(persisted_manifest["datasets"], ["gs://octue-test-bucket/my_datasets/my-dataset"])
             self.assertEqual(persisted_manifest["keys"], {"my-dataset": 0})
 
+    def test_to_cloud_without_storing_datasets(self):
+        """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance. """
+        project_name = "test-project"
+        bucket_name = os.environ["TEST_BUCKET_NAME"]
+
+        with tempfile.TemporaryDirectory() as output_directory:
+            file_0_path = os.path.join(output_directory, "file_0.txt")
+            file_1_path = os.path.join(output_directory, "file_1.txt")
+
+            with open(file_0_path, "w") as f:
+                f.write("[1, 2, 3]")
+
+            with open(file_1_path, "w") as f:
+                f.write("[4, 5, 6]")
+
+            dataset = Dataset(
+                name="my-dataset",
+                path=output_directory,
+                files={
+                    Datafile(timestamp=time.time(), path=file_0_path, sequence=0, tags={"hello"}),
+                    Datafile(timestamp=time.time(), path=file_1_path, sequence=1, tags={"goodbye"}),
+                },
+            )
+
+            manifest = Manifest(datasets=[dataset], keys={"my-dataset": 0})
+
+            manifest.to_cloud(
+                project_name,
+                bucket_name,
+                path_to_manifest_file=storage.path.join(output_directory, "manifest.json"),
+                store_datasets=False,
+            )
+
+            persisted_manifest = json.loads(
+                GoogleCloudStorageClient(project_name).download_as_string(
+                    bucket_name=bucket_name,
+                    path_in_bucket=storage.path.join(output_directory, "manifest.json"),
+                )
+            )
+
+            self.assertEqual(persisted_manifest["datasets"], [output_directory])
+            self.assertEqual(persisted_manifest["keys"], {"my-dataset": 0})
+
     def test_from_cloud(self):
         """Test that a Manifest can be instantiated from the cloud."""
         project_name = "test-project"

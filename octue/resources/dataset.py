@@ -91,7 +91,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         :param str project_name:
         :param str bucket_name:
         :param str output_directory:
-        :return None:
+        :return str: gs:// path for dataset
         """
         files = []
 

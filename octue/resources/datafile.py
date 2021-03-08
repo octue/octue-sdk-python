@@ -133,7 +133,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         :param str project_name:
         :param str bucket_name:
         :param str path_in_bucket:
-        :return None:
+        :return str: gs:// path for datafile
         """
         GoogleCloudStorageClient(project_name=project_name).upload_file(
             local_path=self.path,
