@@ -17,9 +17,11 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
 
     _ATTRIBUTES_TO_HASH = "datasets", "keys"
 
-    def __init__(self, id=None, logger=None, path=None, path_from=None, **kwargs):
+    def __init__(self, id=None, logger=None, path=None, path_from=None, datasets=None, keys=None, **kwargs):
         """Construct a Manifest"""
         super().__init__(id=id, logger=logger, path=path, path_from=path_from)
+        datasets = datasets or []
+        self.keys = keys or {}
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
@@ -27,21 +29,16 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         #  get initialised properly, then tidy up this hackjob. Also need to allow Pathables to update ownership
         #  (because decoders work from the bottom of the tree upwards, not top-down)
 
-        datasets = kwargs.pop("datasets", list())
-        self.keys = kwargs.pop("keys", dict())
-
         # TODO we need to add keys to the manifest file schema in twined so that we know what dataset(s) map to what keys
         #  In the meantime, we enforce at this level that keys will match
-        n_keys = len(self.keys.keys())
-        n_datasets = len(datasets)
-        if n_keys != n_datasets:
+        if len(self.keys) != len(datasets):
             raise InvalidManifestException(
-                f"Manifest instantiated with {n_keys} keys, and {n_datasets} datasets... keys must match datasets!"
+                f"Manifest instantiated with {len(self.keys)} keys, and {len(datasets)} datasets... keys must match datasets!"
             )
 
         # Sort the keys by the dataset index so we have a list of keys in the same order as the dataset list.
         # We'll use this to name the dataset folders
-        key_list = [k for k, v in sorted(self.keys.items(), key=lambda item: item[1])]
+        key_list = [key for key, value in sorted(self.keys.items(), key=lambda item: item[1])]
 
         # Instantiate the datasets if not already done
         self.datasets = []
@@ -52,7 +49,7 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
                 self.datasets.append(Dataset(**dataset, path=key, path_from=self))
 
         # Instantiate the rest of everything!
-        self.__dict__.update(**kwargs)
+        vars(self).update(**kwargs)
 
     @classmethod
     def from_cloud(cls, project_name, bucket_name, path_to_manifest_file):
