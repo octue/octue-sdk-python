@@ -10,6 +10,9 @@ def join(*paths):
     :param iter paths:
     :return str:
     """
+    if not paths:
+        return ""
+
     path = os.path.normpath(os.path.join(*paths)).replace(os.sep, "/")
 
     if path.startswith("gs:/"):
@@ -29,6 +32,16 @@ def generate_gs_path(bucket_name, *paths):
     if not paths:
         return CLOUD_STORAGE_PROTOCOL + bucket_name
     return CLOUD_STORAGE_PROTOCOL + join(bucket_name, paths[0].lstrip("/"), *paths[1:])
+
+
+def split_bucket_name_from_gs_path(gs_path):
+    """Split the bucket name from the path.
+
+    :param str gs_path:
+    :return (str, str):
+    """
+    path = strip_protocol_from_path(gs_path).split("/")
+    return path[0], join(*path[1:])
 
 
 def strip_protocol_from_path(path):

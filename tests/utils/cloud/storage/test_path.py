@@ -5,6 +5,7 @@ from tests.base import BaseTestCase
 class TestStorage(BaseTestCase):
     def test_join(self):
         """Test that paths can be joined correctly."""
+        self.assertEqual(storage.path.join(), "")
         self.assertEqual(storage.path.join("a", "b", "c"), "a/b/c")
         self.assertEqual(storage.path.join("/a", "b", "c"), "/a/b/c")
         self.assertEqual(storage.path.join("", "nah", "blah"), "nah/blah")
@@ -17,6 +18,13 @@ class TestStorage(BaseTestCase):
         self.assertEqual(storage.path.generate_gs_path("my-bucket"), "gs://my-bucket")
         self.assertEqual(storage.path.generate_gs_path("my-bucket", "nah", "blah"), "gs://my-bucket/nah/blah")
         self.assertEqual(storage.path.generate_gs_path("my-bucket", "/nah", "blah"), "gs://my-bucket/nah/blah")
+
+    def test_split_bucket_name_from_gs_path(self):
+        """Test that the bucket name can be split from the path in a gs path."""
+        self.assertEqual(
+            storage.path.split_bucket_name_from_gs_path("gs://my-bucket/path/file.txt"), ("my-bucket", "path/file.txt")
+        )
+        self.assertEqual(storage.path.split_bucket_name_from_gs_path("gs://my-bucket"), ("my-bucket", ""))
 
     def test_strip_protocol_from_path(self):
         """Test that the `gs://` protocol can be stripped from a path."""

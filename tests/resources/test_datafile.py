@@ -136,7 +136,7 @@ class DatafileTestCase(BaseTestCase):
         second_file = copy.deepcopy(first_file)
         self.assertEqual(first_file.hash_value, second_file.hash_value)
 
-    def test_from_cloud_with_no_metadata(self):
+    def test_from_cloud_with_bare_file(self):
         """Test that a Datafile can be constructed from a file on Google Cloud storage with no custom metadata."""
         project_name = os.environ["TEST_PROJECT_NAME"]
         bucket_name = os.environ["TEST_BUCKET_NAME"]
@@ -152,6 +152,7 @@ class DatafileTestCase(BaseTestCase):
             project_name=project_name, bucket_name=bucket_name, datafile_path=path_in_bucket, timestamp=time.time()
         )
 
+        self.assertEqual(datafile.path, f"gs://{bucket_name}/{path_in_bucket}")
         self.assertEqual(datafile.cluster, 0)
         self.assertEqual(datafile.sequence, None)
         self.assertEqual(datafile.tags, TagSet())
@@ -159,7 +160,7 @@ class DatafileTestCase(BaseTestCase):
         self.assertTrue(isinstance(datafile._last_modified, float))
         self.assertTrue(isinstance(datafile.hash_value, str))
 
-    def test_from_cloud_with_metadata(self):
+    def test_from_cloud_with_datafile(self):
         """Test that a Datafile can be constructed from a file on Google Cloud storage with custom metadata."""
         project_name = os.environ["TEST_PROJECT_NAME"]
         bucket_name = os.environ["TEST_BUCKET_NAME"]
@@ -180,6 +181,7 @@ class DatafileTestCase(BaseTestCase):
                 project_name=project_name, bucket_name=bucket_name, datafile_path=path_in_bucket
             )
 
+            self.assertEqual(persisted_datafile.path, f"gs://{bucket_name}/{path_in_bucket}")
             self.assertEqual(persisted_datafile.id, datafile.id)
             self.assertEqual(persisted_datafile.hash_value, datafile.hash_value)
             self.assertEqual(persisted_datafile.cluster, datafile.cluster)

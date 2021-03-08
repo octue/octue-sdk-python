@@ -11,7 +11,6 @@ from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.utils.cloud import storage
 from octue.utils.cloud.storage.client import GoogleCloudStorageClient
-from octue.utils.encoders import OctueJSONEncoder
 
 
 module_logger = logging.getLogger(__name__)
@@ -70,13 +69,11 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
 
         datafiles = FilterSet()
 
-        for blob in storage_client.scandir(
-            bucket_name=bucket_name,
-            directory_path=path_to_dataset_directory,
-            filter=lambda blob: storage.path.split(blob.name)[-1] in serialised_dataset["files"],
-        ):
+        for file in serialised_dataset["files"]:
+            file_bucket_name, path = storage.path.split_bucket_name_from_gs_path(file)
+
             datafiles.add(
-                Datafile.from_cloud(project_name=project_name, bucket_name=bucket_name, datafile_path=blob.name)
+                Datafile.from_cloud(project_name=project_name, bucket_name=file_bucket_name, datafile_path=path)
             )
 
         return Dataset(
@@ -96,15 +93,24 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         :param str output_directory:
         :return None:
         """
+        files = []
+
         for datafile in self.files:
+            path_in_bucket = storage.path.join(output_directory, self.name, datafile.name)
+
             datafile.to_cloud(
                 project_name=project_name,
                 bucket_name=bucket_name,
-                path_in_bucket=storage.path.join(output_directory, self.name, datafile.name),
+                path_in_bucket=path_in_bucket,
             )
 
+            files.append(storage.path.generate_gs_path(bucket_name, path_in_bucket))
+
+        serialised_dataset = self.serialise()
+        serialised_dataset["files"] = sorted(files)
+
         GoogleCloudStorageClient(project_name=project_name).upload_from_string(
-            string=self.serialise(shallow=True, to_string=True),
+            string=json.dumps(serialised_dataset),
             bucket_name=bucket_name,
             path_in_bucket=storage.path.join(output_directory, self.name, definitions.DATASET_FILENAME),
         )
@@ -211,21 +217,3 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             raise UnexpectedNumberOfResultsException("No files found with this tag")
 
         return results.pop()
-
-    def serialise(self, shallow=False, to_string=False):
-        """Serialise to a dictionary of primitives or to a string. If `shallow` is `True`, the serialised `files`
-        field only contains the absolute path of the dataset's files, rather than their entire representation.
-
-        :param bool shallow:
-        :param bool to_string:
-        :return dict|str:
-        """
-        if not shallow:
-            return super().serialise(to_string=to_string)
-
-        serialised_dataset = super().serialise()
-        serialised_dataset["files"] = [file.name for file in self.files]
-
-        if to_string:
-            return json.dumps(serialised_dataset, cls=OctueJSONEncoder, sort_keys=True, indent=4)
-        return serialised_dataset
