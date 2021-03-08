@@ -149,7 +149,7 @@ class DatafileTestCase(BaseTestCase):
         )
 
         datafile = Datafile.from_cloud(
-            project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket, timestamp=time.time()
+            project_name=project_name, bucket_name=bucket_name, datafile_path=path_in_bucket, timestamp=time.time()
         )
 
         self.assertEqual(datafile.cluster, 0)
@@ -177,7 +177,7 @@ class DatafileTestCase(BaseTestCase):
             datafile.to_cloud(project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
 
             persisted_datafile = Datafile.from_cloud(
-                project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket
+                project_name=project_name, bucket_name=bucket_name, datafile_path=path_in_bucket
             )
 
             self.assertEqual(persisted_datafile.id, datafile.id)

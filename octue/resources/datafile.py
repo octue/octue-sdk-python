@@ -99,24 +99,24 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         return self.absolute_path > other.absolute_path
 
     @classmethod
-    def from_cloud(cls, project_name, bucket_name, path_in_bucket, timestamp=None):
+    def from_cloud(cls, project_name, bucket_name, datafile_path, timestamp=None):
         """Instantiate a Datafile from a previously-persisted Datafile in Google Cloud storage. To instantiate a
         Datafile from a regular file on Google Cloud storage, the usage is the same, but include a meaningful value for
         the `timestamp` parameter. The hash for this kind of file will be the Google MD5 hash.
 
         :param str project_name:
         :param str bucket_name:
-        :param str path_in_bucket:
+        :param str datafile_path: path to file represented by datafile
         :param float|None timestamp:
         :return Datafile:
         """
-        metadata = GoogleCloudStorageClient(project_name).get_metadata(bucket_name, path_in_bucket)
+        metadata = GoogleCloudStorageClient(project_name).get_metadata(bucket_name, datafile_path)
         custom_metadata = metadata["metadata"]
 
         datafile = cls(
             timestamp=custom_metadata.get("timestamp", timestamp),
             id=custom_metadata.get("id", ID_DEFAULT),
-            path=generate_gs_path(bucket_name, path_in_bucket),
+            path=generate_gs_path(bucket_name, datafile_path),
             hash_value=custom_metadata.get("hash_value", metadata["md5Hash"]),
             cluster=custom_metadata.get("cluster", CLUSTER_DEFAULT),
             sequence=custom_metadata.get("sequence", SEQUENCE_DEFAULT),

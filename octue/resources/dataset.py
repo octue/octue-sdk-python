@@ -56,7 +56,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
 
         :param str project_name:
         :param str bucket_name:
-        :param str path_to_dataset_directory:
+        :param str path_to_dataset_directory: path to dataset directory (directory containing dataset's files)
         :return Dataset:
         """
         storage_client = GoogleCloudStorageClient(project_name=project_name)
@@ -76,7 +76,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             filter=lambda blob: storage.path.split(blob.name)[-1] in serialised_dataset["files"],
         ):
             datafiles.add(
-                Datafile.from_cloud(project_name=project_name, bucket_name=bucket_name, path_in_bucket=blob.name)
+                Datafile.from_cloud(project_name=project_name, bucket_name=bucket_name, datafile_path=blob.name)
             )
 
         return Dataset(
