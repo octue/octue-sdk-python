@@ -91,12 +91,12 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     def __lt__(self, other):
         if not isinstance(other, Datafile):
             return False
-        return self.path < other.absolute_path
+        return self.absolute_path < other.absolute_path
 
     def __gt__(self, other):
         if not isinstance(other, Datafile):
             return False
-        return self.path > other.absolute_path
+        return self.absolute_path > other.absolute_path
 
     @classmethod
     def from_cloud(cls, project_name, bucket_name, path_in_bucket, timestamp=None):
