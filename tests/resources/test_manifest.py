@@ -1,4 +1,5 @@
 import copy
+import json
 import os
 import tempfile
 import time
@@ -49,14 +50,19 @@ class TestManifest(BaseTestCase):
 
             manifest = Manifest(datasets=[dataset], keys={"my-dataset": 0})
 
-            manifest.to_cloud(project_name, bucket_name, output_directory)
-
-            persisted_manifest = GoogleCloudStorageClient(project_name).download_as_string(
-                bucket_name=bucket_name,
-                path_in_bucket=storage.path.join(output_directory, "manifest.json"),
+            manifest.to_cloud(
+                project_name, bucket_name, path_to_manifest_file=storage.path.join(output_directory, "manifest.json")
             )
 
-            self.assertEqual(manifest.serialise(shallow=True, to_string=True), persisted_manifest)
+            persisted_manifest = json.loads(
+                GoogleCloudStorageClient(project_name).download_as_string(
+                    bucket_name=bucket_name,
+                    path_in_bucket=storage.path.join(output_directory, "manifest.json"),
+                )
+            )
+
+            self.assertEqual(persisted_manifest["datasets"], ["gs://octue-test-bucket/my_datasets/my-dataset"])
+            self.assertEqual(persisted_manifest["keys"], {"my-dataset": 0})
 
     def test_from_cloud(self):
         """Test that a Manifest can be instantiated from the cloud."""
@@ -82,15 +88,17 @@ class TestManifest(BaseTestCase):
             )
 
             manifest = Manifest(datasets=[dataset], keys={"my-dataset": 0})
-            manifest.to_cloud(project_name, bucket_name, output_directory)
+            manifest.to_cloud(
+                project_name, bucket_name, path_to_manifest_file=storage.path.join(output_directory, "manifest.json")
+            )
 
         persisted_manifest = Manifest.from_cloud(
             project_name=project_name,
             bucket_name=bucket_name,
-            directory_path=output_directory,
+            path_to_manifest_file=storage.path.join(output_directory, "manifest.json"),
         )
 
-        self.assertEqual(persisted_manifest.path, f"gs://{bucket_name}{output_directory}")
+        self.assertEqual(persisted_manifest.path, f"gs://{bucket_name}{output_directory}/manifest.json")
         self.assertEqual(persisted_manifest.id, manifest.id)
         self.assertEqual(persisted_manifest.hash_value, manifest.hash_value)
         self.assertEqual(persisted_manifest.keys, manifest.keys)
@@ -102,40 +110,3 @@ class TestManifest(BaseTestCase):
             self.assertEqual(dataset.path, f"gs://{bucket_name}{output_directory}/{dataset.name}")
             self.assertTrue(len(dataset.files), 2)
             self.assertTrue(all(isinstance(file, Datafile) for file in dataset.files))
-
-    def test_from_cloud_only_collects_its_own_datasets(self):
-        """Test that instantiating a Manifest from the cloud ignores datasets outside of its own."""
-        project_name = "test-project"
-        bucket_name = os.environ["TEST_BUCKET_NAME"]
-
-        with tempfile.TemporaryDirectory() as output_directory:
-            file_0_path = os.path.join(output_directory, "file_0.txt")
-
-            with open(file_0_path, "w") as f:
-                f.write("[1, 2, 3]")
-
-            dataset = Dataset(
-                name="my-dataset",
-                files={
-                    Datafile(timestamp=time.time(), path=file_0_path, sequence=0, tags={"hello"}),
-                },
-            )
-
-            manifest = Manifest(datasets=[dataset], keys={"my-dataset": 0})
-            manifest.to_cloud(project_name, bucket_name, output_directory)
-
-            another_dataset = Dataset(
-                name="dataset-not-to-touch",
-                files={Datafile(timestamp=time.time(), path=file_0_path, sequence=0, tags={"hello"})},
-            )
-
-            another_dataset.to_cloud(project_name, bucket_name, output_directory)
-
-        persisted_manifest = Manifest.from_cloud(
-            project_name=project_name,
-            bucket_name=bucket_name,
-            directory_path=output_directory,
-        )
-
-        self.assertEqual(len(persisted_manifest.datasets), 1)
-        self.assertTrue(another_dataset.name not in [dataset.name for dataset in persisted_manifest.datasets])

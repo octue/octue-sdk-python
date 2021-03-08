@@ -108,6 +108,8 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
 
         serialised_dataset = self.serialise()
         serialised_dataset["files"] = sorted(files)
+        del serialised_dataset["absolute_path"]
+        del serialised_dataset["path"]
 
         GoogleCloudStorageClient(project_name=project_name).upload_from_string(
             string=json.dumps(serialised_dataset),

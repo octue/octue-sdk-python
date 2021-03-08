@@ -1,12 +1,10 @@
 import json
 import logging
 
-from octue import definitions
 from octue.exceptions import InvalidInputException, InvalidManifestException
 from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable
 from octue.utils.cloud import storage
 from octue.utils.cloud.storage.client import GoogleCloudStorageClient
-from octue.utils.encoders import OctueJSONEncoder
 from .dataset import Dataset
 
 
@@ -57,64 +55,65 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         self.__dict__.update(**kwargs)
 
     @classmethod
-    def from_cloud(cls, project_name, bucket_name, directory_path):
+    def from_cloud(cls, project_name, bucket_name, path_to_manifest_file):
         """Instantiate a Manifest from Google Cloud storage.
 
         :param str project_name:
         :param str bucket_name:
-        :param str directory_path:
+        :param str path_to_manifest_file:
         :return Dataset:
         """
         storage_client = GoogleCloudStorageClient(project_name=project_name)
 
         serialised_manifest = json.loads(
-            storage_client.download_as_string(
-                bucket_name=bucket_name,
-                path_in_bucket=storage.path.join(directory_path, definitions.MANIFEST_FILENAME),
-            )
+            storage_client.download_as_string(bucket_name=bucket_name, path_in_bucket=path_to_manifest_file)
         )
 
         datasets = []
 
-        for blob in storage_client.scandir(
-            bucket_name=bucket_name,
-            directory_path=directory_path,
-            filter=lambda blob: (
-                blob.name.endswith(definitions.DATASET_FILENAME)
-                and storage.path.dirname(blob.name, name_only=True) in serialised_manifest["datasets"]
-            ),
-        ):
-            dataset_directory_path = storage.path.split(blob.name)[0]
+        for dataset in serialised_manifest["datasets"]:
+            dataset_bucket_name, path = storage.path.split_bucket_name_from_gs_path(dataset)
 
             datasets.append(
                 Dataset.from_cloud(
-                    project_name=project_name, bucket_name=bucket_name, path_to_dataset_directory=dataset_directory_path
+                    project_name=project_name, bucket_name=dataset_bucket_name, path_to_dataset_directory=path
                 )
             )
 
         return Manifest(
             id=serialised_manifest["id"],
-            path=storage.path.generate_gs_path(bucket_name, directory_path),
+            path=storage.path.generate_gs_path(bucket_name, path_to_manifest_file),
             hash_value=serialised_manifest["hash_value"],
             datasets=datasets,
             keys=serialised_manifest["keys"],
         )
 
-    def to_cloud(self, project_name, bucket_name, output_directory):
+    def to_cloud(self, project_name, bucket_name, path_to_manifest_file):
         """Upload a manifest to a cloud location.
 
         :param str project_name:
         :param str bucket_name:
-        :param str output_directory:
+        :param str path_to_manifest_file:
         :return None:
         """
+        datasets = []
+
         for dataset in self.datasets:
-            dataset.to_cloud(project_name=project_name, bucket_name=bucket_name, output_directory=output_directory)
+            dataset_directory_name = storage.path.dirname(path_to_manifest_file)
+            dataset.to_cloud(
+                project_name=project_name, bucket_name=bucket_name, output_directory=dataset_directory_name
+            )
+            datasets.append(storage.path.generate_gs_path(bucket_name, dataset_directory_name, dataset.name))
+
+        serialised_manifest = self.serialise()
+        serialised_manifest["datasets"] = sorted(datasets)
+        del serialised_manifest["absolute_path"]
+        del serialised_manifest["path"]
 
         GoogleCloudStorageClient(project_name=project_name).upload_from_string(
-            string=self.serialise(shallow=True, to_string=True),
+            string=json.dumps(serialised_manifest),
             bucket_name=bucket_name,
-            path_in_bucket=storage.path.join(output_directory, definitions.MANIFEST_FILENAME),
+            path_in_bucket=path_to_manifest_file,
         )
 
     def get_dataset(self, key):
@@ -143,24 +142,6 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
             self.datasets.append(Dataset(logger=self.logger, path_from=self, path=dataset_spec["key"]))
 
         return self
-
-    def serialise(self, shallow=False, to_string=False):
-        """Serialise to a dictionary of primitives or to a string. If `shallow` is `True`, the serialised `files`
-        field only contains the absolute path of the dataset's files, rather than their entire representation.
-
-        :param bool shallow:
-        :param bool to_string:
-        :return dict|str:
-        """
-        if not shallow:
-            return super().serialise(to_string=to_string)
-
-        serialised_manifest = super().serialise()
-        serialised_manifest["datasets"] = [dataset.name for dataset in self.datasets]
-
-        if to_string:
-            return json.dumps(serialised_manifest, cls=OctueJSONEncoder, sort_keys=True, indent=4)
-        return serialised_manifest
 
     @classmethod
     def deserialise(cls, serialised_manifest, from_string=False):
