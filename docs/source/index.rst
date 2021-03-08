@@ -18,6 +18,7 @@ Not all of Octue's API functionality is implemented in the SDK yet, we're active
    filter_containers
    analysis_objects
    child_services
+   cloud_storage
    license
    version_history
    bibliography
