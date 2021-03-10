@@ -29,7 +29,7 @@ def apply_log_handler(logger, handler=None, log_level=logging.INFO):
         local_logger = logging.getLogger(__name__)
         local_logger.addHandler(get_default_handler(log_level=log_level))
         local_logger.setLevel(log_level)
-        local_logger.info("Logs streaming to %s", logger.handlers[0].host + ":" + str(logger.handlers[0].port))
+        local_logger.info("Logs streaming to %s:%s", logger.handlers[0].host, str(logger.handlers[0].port))
 
 
 def get_default_handler(log_level):
