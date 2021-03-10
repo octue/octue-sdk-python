@@ -52,6 +52,10 @@ if __name__ == "__main__":
     setup_version = get_setup_version()
     full_branch_name = get_branch_name()
 
+    if full_branch_name == "main":
+        print("main branch does not need to be checked.")
+        sys.exit(0)
+
     try:
         if release_branch_version_matches_setup_version(setup_version, full_branch_name):
             print(f"Release branch name matches setup.py version: {setup_version!r}.")
