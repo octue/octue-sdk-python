@@ -2,7 +2,6 @@ import copy
 import json
 import os
 import tempfile
-import time
 import uuid
 
 from octue import exceptions
@@ -24,11 +23,11 @@ class DatafileTestCase(BaseTestCase):
         self.path = os.path.join("path-within-dataset", "a_test_file.csv")
 
     def create_valid_datafile(self):
-        return Datafile(timestamp=time.time(), path_from=self.path_from, path=self.path, skip_checks=False)
+        return Datafile(timestamp=None, path_from=self.path_from, path=self.path, skip_checks=False)
 
     def test_instantiates(self):
         """Ensures a Datafile instantiates using only a path and generates a uuid ID"""
-        df = Datafile(timestamp=time.time(), path="a_path")
+        df = Datafile(timestamp=None, path="a_path")
         self.assertTrue(isinstance(df.id, str))
         self.assertEqual(type(uuid.UUID(df.id)), uuid.UUID)
         self.assertIsNone(df.sequence)
@@ -37,43 +36,41 @@ class DatafileTestCase(BaseTestCase):
     def test_path_argument_required(self):
         """Ensures instantiation without a path will fail"""
         with self.assertRaises(exceptions.InvalidInputException) as error:
-            Datafile(timestamp=time.time())
+            Datafile(timestamp=None)
 
         self.assertIn("You must supply a valid 'path' for a Datafile", error.exception.args[0])
 
     def test_gt(self):
         """Test that datafiles can be ordered using the greater-than operator."""
-        a = Datafile(timestamp=time.time(), path="a_path")
-        b = Datafile(timestamp=time.time(), path="b_path")
+        a = Datafile(timestamp=None, path="a_path")
+        b = Datafile(timestamp=None, path="b_path")
         self.assertTrue(a < b)
 
     def test_gt_with_wrong_type(self):
         """Test that datafiles cannot be ordered compared to other types."""
         with self.assertRaises(TypeError):
-            Datafile(timestamp=time.time(), path="a_path") < "hello"
+            Datafile(timestamp=None, path="a_path") < "hello"
 
     def test_lt(self):
         """Test that datafiles can be ordered using the less-than operator."""
-        a = Datafile(timestamp=time.time(), path="a_path")
-        b = Datafile(timestamp=time.time(), path="b_path")
+        a = Datafile(timestamp=None, path="a_path")
+        b = Datafile(timestamp=None, path="b_path")
         self.assertTrue(b > a)
 
     def test_lt_with_wrong_type(self):
         """Test that datafiles cannot be ordered compared to other types."""
         with self.assertRaises(TypeError):
-            Datafile(timestamp=time.time(), path="a_path") > "hello"
+            Datafile(timestamp=None, path="a_path") > "hello"
 
     def test_checks_fail_when_file_doesnt_exist(self):
         path = "not_a_real_file.csv"
         with self.assertRaises(exceptions.FileNotFoundException) as error:
-            Datafile(timestamp=time.time(), path=path, skip_checks=False)
+            Datafile(timestamp=None, path=path, skip_checks=False)
         self.assertIn("No file found at", error.exception.args[0])
 
     def test_conflicting_extension_fails_check(self):
         with self.assertRaises(exceptions.InvalidInputException) as error:
-            Datafile(
-                timestamp=time.time(), path_from=self.path_from, path=self.path, skip_checks=False, extension="notcsv"
-            )
+            Datafile(timestamp=None, path_from=self.path_from, path=self.path, skip_checks=False, extension="notcsv")
 
         self.assertIn("Extension provided (notcsv) does not match file extension", error.exception.args[0])
 
@@ -149,7 +146,7 @@ class DatafileTestCase(BaseTestCase):
         )
 
         datafile = Datafile.from_cloud(
-            project_name=project_name, bucket_name=bucket_name, datafile_path=path_in_bucket, timestamp=time.time()
+            project_name=project_name, bucket_name=bucket_name, datafile_path=path_in_bucket, timestamp=None
         )
 
         self.assertEqual(datafile.path, f"gs://{bucket_name}/{path_in_bucket}")
@@ -173,7 +170,7 @@ class DatafileTestCase(BaseTestCase):
                 f.write("[1, 2, 3]")
 
             datafile = Datafile(
-                timestamp=time.time(), path=file_0_path, cluster=0, sequence=1, tags={"blah:shah:nah", "blib", "glib"}
+                timestamp=None, path=file_0_path, cluster=0, sequence=1, tags={"blah:shah:nah", "blib", "glib"}
             )
             datafile.to_cloud(project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
 

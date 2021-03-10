@@ -2,7 +2,6 @@ import copy
 import json
 import os
 import tempfile
-import time
 
 from octue.resources import Datafile, Dataset, Manifest
 from octue.utils.cloud import storage
@@ -42,8 +41,8 @@ class TestManifest(BaseTestCase):
             dataset = Dataset(
                 name="my-dataset",
                 files={
-                    Datafile(timestamp=time.time(), path=file_0_path, sequence=0, tags={"hello"}),
-                    Datafile(timestamp=time.time(), path=file_1_path, sequence=1, tags={"goodbye"}),
+                    Datafile(timestamp=None, path=file_0_path, sequence=0, tags={"hello"}),
+                    Datafile(timestamp=None, path=file_1_path, sequence=1, tags={"goodbye"}),
                 },
             )
 
@@ -82,8 +81,8 @@ class TestManifest(BaseTestCase):
                 name="my-dataset",
                 path=output_directory,
                 files={
-                    Datafile(timestamp=time.time(), path=file_0_path, sequence=0, tags={"hello"}),
-                    Datafile(timestamp=time.time(), path=file_1_path, sequence=1, tags={"goodbye"}),
+                    Datafile(timestamp=None, path=file_0_path, sequence=0, tags={"hello"}),
+                    Datafile(timestamp=None, path=file_1_path, sequence=1, tags={"goodbye"}),
                 },
             )
 
@@ -124,8 +123,8 @@ class TestManifest(BaseTestCase):
             dataset = Dataset(
                 name="my-dataset",
                 files={
-                    Datafile(timestamp=time.time(), path=file_0_path, sequence=0, tags={"hello"}),
-                    Datafile(timestamp=time.time(), path=file_1_path, sequence=1, tags={"goodbye"}),
+                    Datafile(timestamp=None, path=file_0_path, sequence=0, tags={"hello"}),
+                    Datafile(timestamp=None, path=file_1_path, sequence=1, tags={"goodbye"}),
                 },
             )
 

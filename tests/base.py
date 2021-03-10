@@ -1,7 +1,6 @@
 import logging
 import os
 import subprocess
-import time
 import unittest
 import uuid
 from tempfile import TemporaryDirectory, gettempdir
@@ -49,8 +48,8 @@ class BaseTestCase(unittest.TestCase):
         path = os.path.join("path-within-dataset", "a_test_file.csv")
 
         files = [
-            Datafile(timestamp=time.time(), path_from=path_from, path=path, skip_checks=False),
-            Datafile(timestamp=time.time(), path_from=path_from, path=path, skip_checks=False),
+            Datafile(timestamp=None, path_from=path_from, path=path, skip_checks=False),
+            Datafile(timestamp=None, path_from=path_from, path=path, skip_checks=False),
         ]
 
         return Dataset(files=files)

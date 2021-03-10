@@ -1,4 +1,3 @@
-import time
 from cleaner import clean, read_csv_files, read_dat_file
 
 from octue.resources import Datafile
@@ -80,7 +79,7 @@ def run(analysis, *args, **kwargs):
     # dataset - doing so avoids any race conditions arising (if other instances of this application are running at the
     # same time), and avoids storage leaks, because files get cleaned up correctly.
     timeseries_datafile = Datafile(
-        timestamp=time.time(),
+        timestamp=None,
         path="cleaned.csv",
         path_from=output_dataset,  # Tells it where it should be stored, in this case the output dataset folder
         skip_checks=True,  # We haven't created the actual file yet, so checks would definitely fail!

@@ -37,13 +37,14 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
           "sha-512/256": "somesha"
         },
 
-    :parameter float timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when it
-        was created but could relate to a relevant time point for the data
+    :parameter float|None timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when
+        it was created but could relate to a relevant time point for the data
     :param str id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
     :param logging.Logger logger: A logger instance to which operations with this datafile will be logged. Defaults to
         the module logger.
     :param Union[str, path-like] path: The path of this file, which may include folders or subfolders, within the
-        dataset. If no path_from parameter is set, then absolute paths are acceptable, otherwise relative paths are required.
+        dataset. If no path_from parameter is set, then absolute paths are acceptable, otherwise relative paths are
+        required.
     :param Pathable path_from: The root Pathable object (typically a Dataset) that this Datafile's path is relative to.
     :param int cluster: The cluster of files, within a dataset, to which this belongs (default 0)
     :param int sequence: A sequence number of this file within its cluster (if sequences are appropriate)
@@ -218,13 +219,13 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
         Use it like:
         ```
-        my_datafile = Datafile(timestamp=time.time(), path='subfolder/subsubfolder/my_datafile.json)
+        my_datafile = Datafile(timestamp=None, path='subfolder/subsubfolder/my_datafile.json)
         with my_datafile.open('w') as fp:
             fp.write("{}")
         ```
         This is equivalent to the standard python:
         ```
-        my_datafile = Datafile(timestamp=time.time(), path='subfolder/subsubfolder/my_datafile.json)
+        my_datafile = Datafile(timestamp=None, path='subfolder/subsubfolder/my_datafile.json)
         os.makedirs(os.path.split(my_datafile.absolute_path)[0], exist_ok=True)
         with open(my_datafile.absolute_path, 'w') as fp:
             fp.write("{}")
