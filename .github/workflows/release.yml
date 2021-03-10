@@ -5,7 +5,7 @@ on:
   pull_request:
     types: [closed]
     branches:
-      - main
+      - test-main
 
 jobs:
   release:
@@ -15,13 +15,15 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Get package version
-      run: PACKAGE_VERSION=$(python setup.py --version)
+      run: |
+        PACKAGE_VERSION=$(python setup.py --version)
+        echo env.PACKAGE_VERSION
     - name: Create Release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
       with:
-        tag_name: ${{ env.PACKAGE_VERSION }}
+        tag_name: env.PACKAGE_VERSION
         release_name: ${{ github.event.pull_request.title }}
         body: ${{ github.event.pull_request.body }}
         draft: false
