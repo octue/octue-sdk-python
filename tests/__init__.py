@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from octue.utils.cloud.emulators import GoogleCloudStorageEmulator
+from tests.emulators import GoogleCloudStorageEmulator
 
 
 TESTS_DIR = os.path.dirname(__file__)
