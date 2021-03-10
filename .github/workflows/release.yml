@@ -22,13 +22,7 @@ jobs:
         echo
         ls
         echo
-        ls ..
-        echo
-        ls ../..
-        echo
-        ls ../../..
-        echo
-        ls ../../../..
+        ls octue-sdk-python
         echo
         PACKAGE_VERSION=$(python setup.py --version)
     - name: Create Release
