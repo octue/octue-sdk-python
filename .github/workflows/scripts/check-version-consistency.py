@@ -53,7 +53,7 @@ if __name__ == "__main__":
     full_branch_name = get_branch_name()
 
     if full_branch_name == "main":
-        print("main branch does not need to be checked.")
+        print(f"The branch is not a release branch: 'main'.")
         sys.exit(0)
 
     try:
