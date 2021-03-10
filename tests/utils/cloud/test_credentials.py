@@ -1,7 +1,7 @@
 import google.oauth2.service_account
-from tests.base import BaseTestCase
 
-from octue.resources.communication.credentials import GCPCredentialsManager
+from octue.utils.cloud.credentials import GCPCredentialsManager
+from tests.base import BaseTestCase
 
 
 class TestGCPCredentialsManager(BaseTestCase):

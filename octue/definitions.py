@@ -6,9 +6,8 @@ FOLDER_DEFAULTS = {
 }
 
 VALUES_FILENAME = "values.json"
-
 MANIFEST_FILENAME = "manifest.json"
-
+DATASET_FILENAME = "dataset.json"
 CHILDREN_FILENAME = "children.json"
 
 STRAND_FILENAME_MAP = {

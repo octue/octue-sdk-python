@@ -148,35 +148,37 @@ See services communicate in real time: running the child services template
 
 1. Contact Octue to request a Google Cloud Platform service account credentials file.
 
-2. Save this file locally and create a ``GCP_SERVICE_ACCOUNT`` environment variable whose value is the file's absolute path. This variable must be available to all three terminal windows used to run the template - see below for one method of doing this. **IMPORTANT**: Do not commit this or any other credentials or credentials file to git, GitHub, or any other version control software or website - doing so opens you, your systems and equipment, and our systems and equipment up to hackers and cyber attack.
+2. Save this file locally and create a ``GOOGLE_APPLICATION_CREDENTIALS`` environment variable whose value is the absolute path to a file containing GCP service account credentials. This variable must be available to all three terminal windows used to run the template - see below for one method of doing this. **IMPORTANT**: Do not commit this or any other credentials or credentials file to git, GitHub, or any other version control software or website - doing so opens you, your systems and equipment, and our systems and equipment up to hackers and cyber attack.
 
 3. From the repository root, start the elevation service as a server in a terminal window:
 
 .. code-block:: bash
 
-    GCP_SERVICE_ACCOUNT=</absolute/path/to/gcp_credentials.json> octue-app --log-level=debug --show-twined-logs
+    GOOGLE_APPLICATION_CREDENTIALS=</absolute/path/to/gcp_credentials.json> octue-app --log-level=debug --show-twined-logs
         start \
         --app-dir=octue/templates/template-child-services/elevation_service \
         --twine=octue/templates/template-child-services/elevation_service/twine.json \
         --config-dir=octue/templates/template-child-services/elevation_service/data/configuration \
         --service-id=8dgd07fa-6bcd-4ec3-a331-69f737a15332
+        --delete-topic-and-subscription-on-exit
 
 4. In another terminal window, start the wind speeds service as a server:
 
 .. code-block:: bash
 
-    GCP_SERVICE_ACCOUNT=</absolute/path/to/gcp_credentials.json> octue-app --log-level=debug --show-twined-logs \
+    GOOGLE_APPLICATION_CREDENTIALS=</absolute/path/to/gcp_credentials.json> octue-app --log-level=debug --show-twined-logs \
         start \
         --app-dir=octue/templates/template-child-services/wind_speed_service \
         --twine=octue/templates/template-child-services/wind_speed_service/twine.json \
         --config-dir=octue/templates/template-child-services/wind_speed_service/data/configuration \
         --service-id=7b9d07fa-6bcd-4ec3-a331-69f737a15751
+        --delete-topic-and-subscription-on-exit
 
 5. In a third terminal window, run the parent app (don't start it as a server):
 
 .. code-block:: bash
 
-    GCP_SERVICE_ACCOUNT=</absolute/path/to/gcp_credentials.json> octue-app --log-level=debug --show-twined-logs \
+    GOOGLE_APPLICATION_CREDENTIALS=</absolute/path/to/gcp_credentials.json> octue-app --log-level=debug --show-twined-logs \
         run \
         --app-dir=octue/templates/template-child-services/parent_service \
         --twine=octue/templates/template-child-services/parent_service/twine.json \

@@ -4,7 +4,7 @@ from stringcase import snakecase
 
 
 def clean(data, date):
-    """ Clean up data from meteorological mast anemometers and wind vanes...
+    """Clean up data from meteorological mast anemometers and wind vanes...
 
     ... or rename the function and do pretty much whatever you want with the data!
 

@@ -4,7 +4,7 @@ from octue.utils.encoders import OctueJSONEncoder
 
 
 class Serialisable:
-    """ Mixin class to make resources serialisable to JSON.
+    """Mixin class to make resources serialisable to JSON.
 
     Objects must have a `.logger` and a `.id` property
 
@@ -14,13 +14,12 @@ class Serialisable:
     _EXCLUDE_SERIALISE_FIELDS = ("logger",)
 
     def __init__(self, *args, **kwargs):
-        """ Constructor for serialisable mixin
-        """
+        """Constructor for serialisable mixin"""
         # Ensure it passes construction arguments up the chain
         super().__init__(*args, **kwargs)
 
     def to_file(self, file_name, **kwargs):
-        """ Write to a JSON file
+        """Write to a JSON file
 
         :parameter file_name:  file to write to, including relative or absolute path and .json extension
         :type file_name: path-like
@@ -30,7 +29,7 @@ class Serialisable:
             fp.write(self.serialise(**kwargs, to_string=True))
 
     def serialise(self, to_string=False, **kwargs):
-        """ Serialise into a primitive dict or JSON string
+        """Serialise into a primitive dict or JSON string
 
         Serialises all non-private and non-protected attributes except for 'logger', unless the subclass has a
         `_serialise_fields` tuple of the attribute names to serialise. For example:

@@ -3,6 +3,8 @@ import logging
 
 from octue.exceptions import InvalidInputException, InvalidManifestException
 from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable
+from octue.utils.cloud import storage
+from octue.utils.cloud.storage.client import GoogleCloudStorageClient
 from .dataset import Dataset
 
 
@@ -10,15 +12,14 @@ module_logger = logging.getLogger(__name__)
 
 
 class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
-    """ A representation of a manifest, which can contain multiple datasets This is used to manage all files coming into
-    (or leaving), a data service for an analysis at the configuration, input or output stage. """
+    """A representation of a manifest, which can contain multiple datasets This is used to manage all files coming into
+    (or leaving), a data service for an analysis at the configuration, input or output stage."""
 
     _ATTRIBUTES_TO_HASH = "datasets", "keys"
 
-    def __init__(self, id=None, logger=None, path=None, path_from=None, base_from=None, **kwargs):
-        """ Construct a Manifest
-        """
-        super().__init__(id=id, logger=logger, path=path, path_from=path_from, base_from=base_from)
+    def __init__(self, id=None, logger=None, path=None, path_from=None, datasets=None, keys=None, **kwargs):
+        """Construct a Manifest"""
+        super().__init__(id=id, logger=logger, path=path, path_from=path_from)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
@@ -26,21 +27,19 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         #  get initialised properly, then tidy up this hackjob. Also need to allow Pathables to update ownership
         #  (because decoders work from the bottom of the tree upwards, not top-down)
 
-        datasets = kwargs.pop("datasets", list())
-        self.keys = kwargs.pop("keys", dict())
+        datasets = datasets or []
+        self.keys = keys or {}
 
         # TODO we need to add keys to the manifest file schema in twined so that we know what dataset(s) map to what keys
         #  In the meantime, we enforce at this level that keys will match
-        n_keys = len(self.keys.keys())
-        n_datasets = len(datasets)
-        if n_keys != n_datasets:
+        if len(self.keys) != len(datasets):
             raise InvalidManifestException(
-                f"Manifest instantiated with {n_keys} keys, and {n_datasets} datasets... keys must match datasets!"
+                f"Manifest instantiated with {len(self.keys)} keys, and {len(datasets)} datasets... keys must match datasets!"
             )
 
         # Sort the keys by the dataset index so we have a list of keys in the same order as the dataset list.
         # We'll use this to name the dataset folders
-        key_list = [k for k, v in sorted(self.keys.items(), key=lambda item: item[1])]
+        key_list = [key for key, value in sorted(self.keys.items(), key=lambda item: item[1])]
 
         # Instantiate the datasets if not already done
         self.datasets = []
@@ -51,12 +50,79 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
                 self.datasets.append(Dataset(**dataset, path=key, path_from=self))
 
         # Instantiate the rest of everything!
-        self.__dict__.update(**kwargs)
+        vars(self).update(**kwargs)
+
+    @classmethod
+    def from_cloud(cls, project_name, bucket_name, path_to_manifest_file):
+        """Instantiate a Manifest from Google Cloud storage.
+
+        :param str project_name:
+        :param str bucket_name:
+        :param str path_to_manifest_file:
+        :return Dataset:
+        """
+        storage_client = GoogleCloudStorageClient(project_name=project_name)
+
+        serialised_manifest = json.loads(
+            storage_client.download_as_string(bucket_name=bucket_name, path_in_bucket=path_to_manifest_file)
+        )
+
+        datasets = []
+
+        for dataset in serialised_manifest["datasets"]:
+            dataset_bucket_name, path = storage.path.split_bucket_name_from_gs_path(dataset)
+
+            datasets.append(
+                Dataset.from_cloud(
+                    project_name=project_name, bucket_name=dataset_bucket_name, path_to_dataset_directory=path
+                )
+            )
+
+        return Manifest(
+            id=serialised_manifest["id"],
+            path=storage.path.generate_gs_path(bucket_name, path_to_manifest_file),
+            hash_value=serialised_manifest["hash_value"],
+            datasets=datasets,
+            keys=serialised_manifest["keys"],
+        )
+
+    def to_cloud(self, project_name, bucket_name, path_to_manifest_file, store_datasets=True):
+        """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory.
+
+        :param str project_name:
+        :param str bucket_name:
+        :param str path_to_manifest_file:
+        :param bool store_datasets: if True, upload datasets to same directory as manifest file
+        :return str: gs:// path for manifest file
+        """
+        datasets = []
+        output_directory = storage.path.dirname(path_to_manifest_file)
+
+        for dataset in self.datasets:
+
+            if store_datasets:
+                dataset_path = dataset.to_cloud(project_name, bucket_name, output_directory=output_directory)
+                datasets.append(dataset_path)
+            else:
+                datasets.append(dataset.absolute_path)
+
+        serialised_manifest = self.serialise()
+        serialised_manifest["datasets"] = sorted(datasets)
+        del serialised_manifest["absolute_path"]
+        del serialised_manifest["path"]
+
+        GoogleCloudStorageClient(project_name=project_name).upload_from_string(
+            string=json.dumps(serialised_manifest),
+            bucket_name=bucket_name,
+            path_in_bucket=path_to_manifest_file,
+        )
+
+        return storage.path.generate_gs_path(bucket_name, path_to_manifest_file)
 
     def get_dataset(self, key):
-        """ Gets a dataset by its key name (as defined in the twine)
-        :return: Dataset selected by its key
-        :rtype: Dataset
+        """Gets a dataset by its key name (as defined in the twine)
+
+        :return Dataset: Dataset selected by its key
         """
         idx = self.keys.get(key, None)
         if idx is None:
@@ -67,8 +133,7 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         return self.datasets[idx]
 
     def prepare(self, data):
-        """ Prepare new manifest from a manifest_spec
-        """
+        """Prepare new manifest from a manifest_spec"""
         if len(self.datasets) > 0:
             raise InvalidInputException("You cannot `prepare()` a manifest already instantiated with datasets")
 

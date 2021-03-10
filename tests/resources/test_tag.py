@@ -1,7 +1,6 @@
-from tests.base import BaseTestCase
-
 from octue.resources.filter_containers import FilterSet
 from octue.resources.tag import Tag, TagSet
+from tests.base import BaseTestCase
 
 
 class TestTag(BaseTestCase):

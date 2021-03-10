@@ -11,4 +11,4 @@ the following main attributes:
 - ``cluster`` - the integer cluster of files, within a dataset, to which this belongs (default 0)
 - ``sequence`` - a sequence number of this file within its cluster (if sequences are appropriate)
 - ``tags`` - a space-separated string or iterable of tags relevant to this file
-- ``posix_timestamp`` - a posix timestamp associated with the file, in seconds since epoch, typically when it was created but could relate to a relevant time point for the data
+- ``timestamp`` - a posix timestamp associated with the file, in seconds since epoch, typically when it was created but could relate to a relevant time point for the data

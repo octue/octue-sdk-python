@@ -9,14 +9,12 @@ def mock_app(analysis):
 
 class RunnerTestCase(BaseTestCase):
     def test_instantiate_runner(self):
-        """ Ensures that runner whose twine requires configuration can be instantiated
-        """
+        """Ensures that runner whose twine requires configuration can be instantiated"""
         runner = Runner(twine="{}")
         self.assertEqual(runner.__class__.__name__, "Runner")
 
     def test_run_with_configuration_passes(self):
-        """ Ensures that runs can be made with configuration only
-        """
+        """Ensures that runs can be made with configuration only"""
         runner = Runner(
             twine="""{
             "configuration_values_schema": {
@@ -34,8 +32,7 @@ class RunnerTestCase(BaseTestCase):
         runner.run(mock_app)
 
     def test_instantiation_without_configuration_fails(self):
-        """ Ensures that runner can be instantiated with a string that points to a path
-        """
+        """Ensures that runner can be instantiated with a string that points to a path"""
         with self.assertRaises(twined.exceptions.TwineValueException) as error:
             Runner(
                 twine="""{
@@ -56,8 +53,7 @@ class RunnerTestCase(BaseTestCase):
         )
 
     def test_run_output_values_validation(self):
-        """ Ensures that runner can be instantiated with a string that points to a path
-        """
+        """Ensures that runner can be instantiated with a string that points to a path"""
         runner = Runner(
             twine="""{
             "output_values_schema": {
@@ -85,8 +81,7 @@ class RunnerTestCase(BaseTestCase):
         runner.run(fcn).finalise()
 
     def test_exception_raised_when_strand_data_missing(self):
-        """ Ensures that protected attributes can't be set
-        """
+        """Ensures that protected attributes can't be set"""
         runner = Runner(
             twine="""{
                 "configuration_values_schema": {

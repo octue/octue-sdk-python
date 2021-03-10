@@ -15,7 +15,7 @@ module_logger = logging.getLogger(__name__)
 
 
 class Runner:
-    """ Runs analyses in the app framework
+    """Runs analyses in the app framework
 
     The Runner class provides a set of configuration parameters for use by your application, together with a range of
     methods for managing input and output file parsing as well as controlling logging.
@@ -66,14 +66,17 @@ class Runner:
 
         # Validate and initialise configuration data
         self.configuration = self.twine.validate(
-            configuration_values=configuration_values, configuration_manifest=configuration_manifest, cls=CLASS_MAP,
+            configuration_values=configuration_values,
+            configuration_manifest=configuration_manifest,
+            cls=CLASS_MAP,
         )
         package_logger.debug("Configuration validated.")
 
         # Set path for configuration manifest.
         # TODO this is hacky, we need to rearchitect the twined validation so we can do this kind of thing in there
         self.configuration["configuration_manifest"] = self._update_manifest_path(
-            self.configuration.get("configuration_manifest", None), configuration_manifest,
+            self.configuration.get("configuration_manifest", None),
+            configuration_manifest,
         )
 
         # Store the log level (same log level used for all analyses)
@@ -89,7 +92,7 @@ class Runner:
 
     @staticmethod
     def _update_manifest_path(manifest, pathname):
-        """ A Quick hack to stitch the new Pathable functionality in the 0.1.4 release into the CLI and runner.
+        """A Quick hack to stitch the new Pathable functionality in the 0.1.4 release into the CLI and runner.
 
         The way we define a manifest path can be more robustly implemented as we migrate functionality into the twined
         library
@@ -119,7 +122,7 @@ class Runner:
         output_manifest_path=None,
         skip_checks=False,
     ):
-        """ Run an analysis
+        """Run an analysis
 
         :parameter app_src: Either: an instance of the AppFrom manager class which has a run() method, or
         a function which accepts a single parameter (the instantiated analysis), or a string pointing
@@ -174,13 +177,17 @@ class Runner:
             }
 
         # TODO this is hacky, we need to rearchitect the twined validation so we can do this kind of thing in there
-        inputs["input_manifest"] = self._update_manifest_path(inputs.get("input_manifest", None), input_manifest,)
+        inputs["input_manifest"] = self._update_manifest_path(
+            inputs.get("input_manifest", None),
+            input_manifest,
+        )
 
         outputs_and_monitors = self.twine.prepare("monitors", "output_values", "output_manifest", cls=CLASS_MAP)
 
         # TODO this is hacky, we need to rearchitect the twined validation so we can do this kind of thing in there
         outputs_and_monitors["output_manifest"] = self._update_manifest_path(
-            outputs_and_monitors.get("output_manifest", None), output_manifest_path,
+            outputs_and_monitors.get("output_manifest", None),
+            output_manifest_path,
         )
 
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
@@ -214,15 +221,14 @@ class Runner:
 
 
 def unwrap(fcn):
-    """ Recurse through wrapping to get the raw function without decorators.
-    """
+    """Recurse through wrapping to get the raw function without decorators."""
     if hasattr(fcn, "__wrapped__"):
         return unwrap(fcn.__wrapped__)
     return fcn
 
 
 class AppFrom:
-    """ Context manager that imports module 'app' from user's code base at a location app_path.
+    """Context manager that imports module 'app' from user's code base at a location app_path.
 
      The manager will issue a warning if an existing module called "app" is already loaded.
 
@@ -237,7 +243,7 @@ class AppFrom:
 
     def __init__(self, app_path="."):
         self.app_path = os.path.abspath(os.path.normpath(app_path))
-        module_logger.debug(f"Initialising AppFrom context at app_path {self.app_path}")
+        module_logger.debug("Initialising AppFrom context at app_path %s", self.app_path)
         self.app_module = None
 
     def __enter__(self):
@@ -257,7 +263,7 @@ class AppFrom:
         # path, this'll be an unexpected side effect, and don't do it in cleanup in case the called code inserts a path)
         sys.path.pop(0)
         module_logger.debug(
-            f"Imported app at app_path and cleaned up temporary modification to sys.path {self.app_path}"
+            "Imported app at app_path and cleaned up temporary modification to sys.path %s", self.app_path
         )
 
         return self
@@ -265,10 +271,9 @@ class AppFrom:
     def __exit__(self, exc_type, exc_value, traceback):
         # Unload the imported module
         del sys.modules["app"]
-        module_logger.debug(f"Deleted app from sys.modules and cleaned up (app_path {self.app_path})")
+        module_logger.debug("Deleted app from sys.modules and cleaned up (app_path %s)", self.app_path)
 
     @property
     def run(self):
-        """ Returns the unwrapped run function from app.py in the application's root directory
-        """
+        """Returns the unwrapped run function from app.py in the application's root directory"""
         return unwrap(self.app_module.run)

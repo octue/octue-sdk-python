@@ -6,8 +6,7 @@ from .mandelbrot import mandelbrot
 
 
 def fractal(analysis):
-    """ Compute the heightmap of a fractal and output a data file containing visualisation data
-    """
+    """Compute the heightmap of a fractal and output a data file containing visualisation data"""
 
     # Call the 'mandel' function to compute the fractal. Here, we just treat 'mandel' as a legacy function, passing in
     # what we need from the analysis object and getting results back
@@ -61,6 +60,7 @@ def fractal(analysis):
     # conditions arising (if other instances of this application are running at the same time), and avoids
     # storage leaks, because files get cleaned up correctly.
     df = Datafile(
+        timestamp=None,
         path="my_mandelbrot_file.json",  # File name including extension (and can include subfolders within the dataset)
         local_path_prefix=output_dataset.path,  # TODO set up for the right paths Destination (root of the output dataset folder on the present machine)
         skip_checks=True,  # We haven't created the actual file yet, so it'll definitely fail checks!

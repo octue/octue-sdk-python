@@ -36,7 +36,7 @@ the hash:
     - ``name``
     - ``cluster``
     - ``sequence``
-    - ``posix_timestamp``
+    - ``timestamp``
     - ``tags``
 
 - For a ``Dataset``, the hashes of its ``Datafiles`` are included, along with its ``tags``.

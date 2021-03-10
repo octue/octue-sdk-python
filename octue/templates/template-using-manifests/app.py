@@ -4,7 +4,7 @@ from octue.resources import Datafile
 
 
 def run(analysis, *args, **kwargs):
-    """ An app to read a time series of files from a dataset, clean them and write a new, cleaned, dataset.
+    """An app to read a time series of files from a dataset, clean them and write a new, cleaned, dataset.
 
     See the "fractal" template for an introduction to the analysis object and the purpose of this 'run' function.
 
@@ -20,12 +20,12 @@ def run(analysis, *args, **kwargs):
     """
 
     # You can use the attached logger to record debug statements, general information, warnings or errors
-    analysis.logger.info(f"Starting clean up of files in {analysis.input_manifest.absolute_path}")
+    analysis.logger.info("Starting clean up of files in %s", analysis.input_manifest.absolute_path)
 
     # Get the configuration value for our time averaging window (or if not present, use the default specified in
     # the twine)
     time_window = (analysis.configuration_values.get("time_window", 600),)
-    analysis.logger.info(f"Averaging window set to {time_window}s")
+    analysis.logger.info("Averaging window set to %ss", time_window)
 
     # Get the input dataset which will be read in
     input_dataset = analysis.input_manifest.get_dataset("raw_met_mast_data")
@@ -79,6 +79,7 @@ def run(analysis, *args, **kwargs):
     # dataset - doing so avoids any race conditions arising (if other instances of this application are running at the
     # same time), and avoids storage leaks, because files get cleaned up correctly.
     timeseries_datafile = Datafile(
+        timestamp=None,
         path="cleaned.csv",
         path_from=output_dataset,  # Tells it where it should be stored, in this case the output dataset folder
         skip_checks=True,  # We haven't created the actual file yet, so checks would definitely fail!

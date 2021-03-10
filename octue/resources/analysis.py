@@ -24,7 +24,7 @@ CLASS_MAP = {"configuration_manifest": Manifest, "input_manifest": Manifest, "ou
 
 
 class Analysis(Identifiable, Loggable, Serialisable, Taggable):
-    """ Analysis class, holding references to all input and output data
+    """Analysis class, holding references to all input and output data
 
     ## The Analysis Instance
 
@@ -55,8 +55,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
     """
 
     def __init__(self, twine, skip_checks=False, **kwargs):
-        """ Constructor of Analysis instance
-        """
+        """Constructor of Analysis instance"""
 
         # Instantiate the twine (if not already) and attach it to self
         if not isinstance(twine, Twine):
@@ -82,8 +81,8 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         # Init superclasses
         super().__init__(**kwargs)
 
-    def finalise(self, output_dir=None):
-        """ Validates and serialises output_values and output_manifest, optionally writing them to files
+    def finalise(self, output_dir=None, save_locally=True, upload_to_cloud=False, project_name=None, bucket_name=None):
+        """Validates and serialises output_values and output_manifest, optionally writing them to files
 
         If output_dir is given, then the serialised outputs are also written to files in the output directory
 
@@ -98,24 +97,42 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         # Using twined's validate_strand method gives us sugar to check for both extra outputs
         # (e.g. output_values where there shouldn't be any) and missing outputs (e.g. output_values is None when it
         # should be a dict of data)
-        serialised = dict()
-        for k in OUTPUT_STRANDS:
-            self.logger.debug(f"Serialising {k}")
-            att = getattr(self, k)
-            if att is not None:
-                att = json.dumps(att, cls=OctueJSONEncoder)
+        serialised_strands = {}
 
-            serialised[k] = att
+        for output_strand in OUTPUT_STRANDS:
+            self.logger.debug("Serialising %s", output_strand)
+
+            attribute = getattr(self, output_strand)
+            if attribute is not None:
+                attribute = json.dumps(attribute, cls=OctueJSONEncoder)
+
+            serialised_strands[output_strand] = attribute
 
         self.logger.debug("Validating serialised output json against twine")
-        self.twine.validate(**serialised)
+        self.twine.validate(**serialised_strands)
 
-        # Optionally write the serialised strand to disk
-        for k in OUTPUT_STRANDS:
-            if output_dir and serialised[k] is not None:
-                file_name = get_file_name_from_strand(k, output_dir)
-                self.logger.debug(f"Writing {k} to file {file_name}")
-                with open(file_name, "w") as fp:
-                    fp.write(serialised[k])
+        if output_dir is None:
+            return serialised_strands
 
-        return serialised
+        # Optionally write the serialised strands to disk.
+        if save_locally:
+            for output_strand in OUTPUT_STRANDS:
+                if serialised_strands[output_strand] is not None:
+
+                    filename = get_file_name_from_strand(output_strand, output_dir)
+                    with open(filename, "w") as fp:
+                        fp.write(serialised_strands[output_strand])
+                    self.logger.debug("Wrote %r to file %r", output_strand, filename)
+
+        # Optionally write the manifest to Google Cloud storage.
+        if upload_to_cloud:
+            if hasattr(self, "output_manifest"):
+                self.output_manifest.to_cloud(project_name, bucket_name, output_dir)
+                self.logger.debug(
+                    "Wrote %r to cloud storage at project %r in bucket %r.",
+                    self.output_manifest,
+                    project_name,
+                    bucket_name,
+                )
+
+        return serialised_strands

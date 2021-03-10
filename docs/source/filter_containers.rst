@@ -21,7 +21,7 @@ There are two types of filter containers currently implemented:
 - ``Dataset.files`` to store ``Datafiles``
 - ``TagSet.tags`` to store ``Tags``
 
-You can see filtering in action on the files of a ``Dataset`` `here <dataset.rst>`_.
+You can see filtering in action on the files of a ``Dataset`` :doc:`here <dataset>`.
 
 
 ---------
@@ -34,7 +34,7 @@ Filters are named as ``"<name_of_attribute_to_check>__<filter_action>"``, and an
 .. code-block:: python
 
     filter_set = FilterSet(
-        {Datafile(path="my_file.csv"), Datafile(path="your_file.txt"), Datafile(path="another_file.csv")}
+        {Datafile(timestamp=time.time(), path="my_file.csv"), Datafile(timestamp=time.time(), path="your_file.txt"), Datafile(timestamp=time.time(), path="another_file.csv")}
     )
 
     filter_set.filter(filter_name="name__ends_with", filter_value=".csv")

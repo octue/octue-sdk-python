@@ -1,22 +1,25 @@
 import copy
+import json
+import os
+import tempfile
 import warnings
-from tests.base import BaseTestCase
 
 from octue import exceptions
 from octue.resources import Datafile, Dataset
 from octue.resources.filter_containers import FilterSet
+from octue.utils.cloud import storage
+from octue.utils.cloud.storage.client import GoogleCloudStorageClient
+from tests.base import BaseTestCase
 
 
 class DatasetTestCase(BaseTestCase):
     def test_instantiates_with_no_args(self):
-        """ Ensures a Datafile instantiates using only a path and generates a uuid ID
-        """
+        """Ensures a Datafile instantiates using only a path and generates a uuid ID"""
         Dataset()
 
     def test_instantiates_with_kwargs(self):
-        """ Ensures that keyword arguments can be used to construct the dataset initially
-        """
-        files = [Datafile(path="path-within-dataset/a_test_file.csv")]
+        """Ensures that keyword arguments can be used to construct the dataset initially"""
+        files = [Datafile(timestamp=None, path="path-within-dataset/a_test_file.csv")]
         resource = Dataset(files=files, tags="one two")
         self.assertEqual(len(resource.files), 1)
 
@@ -36,48 +39,43 @@ class DatasetTestCase(BaseTestCase):
         resource = Dataset()
 
         with warnings.catch_warnings(record=True) as warning:
-            resource.append(Datafile(path="path-within-dataset/a_test_file.csv"))
+            resource.append(Datafile(timestamp=None, path="path-within-dataset/a_test_file.csv"))
             self.assertEqual(len(warning), 1)
             self.assertTrue(issubclass(warning[-1].category, DeprecationWarning))
             self.assertIn("deprecated", str(warning[-1].message))
             self.assertEqual(len(resource.files), 1)
 
     def test_add_single_file_to_empty_dataset(self):
-        """ Ensures that when a dataset is empty, it can be added to
-        """
+        """Ensures that when a dataset is empty, it can be added to"""
         resource = Dataset()
-        resource.add(Datafile(path="path-within-dataset/a_test_file.csv"))
+        resource.add(Datafile(timestamp=None, path="path-within-dataset/a_test_file.csv"))
         self.assertEqual(len(resource.files), 1)
 
     def test_add_single_file_to_existing_dataset(self):
-        """ Ensures that when a dataset is not empty, it can be added to
-        """
-        files = [Datafile(path="path-within-dataset/a_test_file.csv")]
+        """Ensures that when a dataset is not empty, it can be added to"""
+        files = [Datafile(timestamp=None, path="path-within-dataset/a_test_file.csv")]
         resource = Dataset(files=files, tags="one two")
-        resource.add(Datafile(path="path-within-dataset/a_test_file.csv"))
+        resource.add(Datafile(timestamp=None, path="path-within-dataset/a_test_file.csv"))
         self.assertEqual(len(resource.files), 2)
 
     def test_add_with_datafile_creation_shortcut(self):
-        """ Ensures that when a dataset is not empty, it can be added to
-        """
+        """Ensures that when a dataset is not empty, it can be added to"""
         resource = Dataset()
-        resource.add(path="path-within-dataset/a_test_file.csv")
+        resource.add(timestamp=None, path="path-within-dataset/a_test_file.csv")
         self.assertEqual(len(resource.files), 1)
 
     def test_add_multiple_files(self):
-        """ Ensures that when a dataset is not empty, it can be added to
-        """
+        """Ensures that when a dataset is not empty, it can be added to"""
         files = [
-            Datafile(path="path-within-dataset/a_test_file.csv"),
-            Datafile(path="path-within-dataset/a_test_file.csv"),
+            Datafile(timestamp=None, path="path-within-dataset/a_test_file.csv"),
+            Datafile(timestamp=None, path="path-within-dataset/a_test_file.csv"),
         ]
         resource = Dataset()
         resource.add(*files)
         self.assertEqual(len(resource.files), 2)
 
     def test_cannot_add_non_datafiles(self):
-        """ Ensures that exception will be raised if adding a non-datafile object
-        """
+        """Ensures that exception will be raised if adding a non-datafile object"""
 
         class NotADatafile:
             pass
@@ -89,12 +87,11 @@ class DatasetTestCase(BaseTestCase):
         self.assertIn("must be of class Datafile to add it to a Dataset", e.exception.args[0])
 
     def test_filter_catches_single_underscore_mistake(self):
-        """ Ensures that if the field name is a single underscore, that gets caught as an error
-        """
+        """Ensures that if the field name is a single underscore, that gets caught as an error"""
         resource = Dataset(
             files=[
-                Datafile(path="path-within-dataset/A_Test_file.csv"),
-                Datafile(path="path-within-dataset/a_test_file.txt"),
+                Datafile(timestamp=None, path="path-within-dataset/A_Test_file.csv"),
+                Datafile(timestamp=None, path="path-within-dataset/a_test_file.txt"),
             ]
         )
 
@@ -108,12 +105,11 @@ class DatasetTestCase(BaseTestCase):
         )
 
     def test_filter_name_contains(self):
-        """ Ensures that filter works with the name_contains and name_icontains lookups
-        """
+        """Ensures that filter works with the name_contains and name_icontains lookups"""
         resource = Dataset(
             files=[
-                Datafile(path="path-within-dataset/A_Test_file.csv"),
-                Datafile(path="path-within-dataset/a_test_file.txt"),
+                Datafile(timestamp=None, path="path-within-dataset/A_Test_file.csv"),
+                Datafile(timestamp=None, path="path-within-dataset/a_test_file.txt"),
             ]
         )
         files = resource.files.filter("name__icontains", filter_value="Test")
@@ -128,12 +124,11 @@ class DatasetTestCase(BaseTestCase):
         self.assertEqual(2, len(files))
 
     def test_filter_name_with(self):
-        """ Ensures that filter works with the name_endswith and name_startswith lookups
-        """
+        """Ensures that filter works with the name_endswith and name_startswith lookups"""
         resource = Dataset(
             files=[
-                Datafile(path="path-within-dataset/a_my_file.csv"),
-                Datafile(path="path-within-dataset/a_your_file.csv"),
+                Datafile(timestamp=None, path="path-within-dataset/a_my_file.csv"),
+                Datafile(timestamp=None, path="path-within-dataset/a_your_file.csv"),
             ]
         )
         files = resource.files.filter("name__starts_with", filter_value="a_my")
@@ -154,13 +149,12 @@ class DatasetTestCase(BaseTestCase):
         self.assertEqual(0, len(files))
 
     def test_filter_by_tag(self):
-        """ Ensures that filter works with tag lookups
-        """
+        """Ensures that filter works with tag lookups"""
         resource = Dataset(
             files=[
-                Datafile(path="path-within-dataset/a_my_file.csv", tags="one a:2 b:3 all"),
-                Datafile(path="path-within-dataset/a_your_file.csv", tags="two a:2 b:3 all"),
-                Datafile(path="path-within-dataset/a_your_file.csv", tags="three all"),
+                Datafile(timestamp=None, path="path-within-dataset/a_my_file.csv", tags="one a:2 b:3 all"),
+                Datafile(timestamp=None, path="path-within-dataset/a_your_file.csv", tags="two a:2 b:3 all"),
+                Datafile(timestamp=None, path="path-within-dataset/a_your_file.csv", tags="three all"),
             ]
         )
 
@@ -178,12 +172,11 @@ class DatasetTestCase(BaseTestCase):
         # self.assertEqual(1, len(files))
 
     def test_get_file_by_tag(self):
-        """ Ensures that get_files works with tag lookups
-        """
+        """Ensures that get_files works with tag lookups"""
         files = [
-            Datafile(path="path-within-dataset/a_my_file.csv", tags="one a:2 b:3 all"),
-            Datafile(path="path-within-dataset/a_your_file.csv", tags="two a:2 b:3 all"),
-            Datafile(path="path-within-dataset/a_your_file.csv", tags="three all"),
+            Datafile(timestamp=None, path="path-within-dataset/a_my_file.csv", tags="one a:2 b:3 all"),
+            Datafile(timestamp=None, path="path-within-dataset/a_your_file.csv", tags="two a:2 b:3 all"),
+            Datafile(timestamp=None, path="path-within-dataset/a_your_file.csv", tags="three all"),
         ]
 
         resource = Dataset(files=files)
@@ -204,49 +197,45 @@ class DatasetTestCase(BaseTestCase):
         self.assertIn("No files found with this tag", e.exception.args[0])
 
     def test_filter_by_sequence_not_none(self):
-        """ Ensures that filter works with sequence lookups
-        """
+        """Ensures that filter works with sequence lookups"""
         resource = Dataset(
             files=[
-                Datafile(path="path-within-dataset/a_my_file.csv", sequence=0),
-                Datafile(path="path-within-dataset/a_your_file.csv", sequence=1),
-                Datafile(path="path-within-dataset/a_your_file.csv", sequence=None),
+                Datafile(timestamp=None, path="path-within-dataset/a_my_file.csv", sequence=0),
+                Datafile(timestamp=None, path="path-within-dataset/a_your_file.csv", sequence=1),
+                Datafile(timestamp=None, path="path-within-dataset/a_your_file.csv", sequence=None),
             ]
         )
         files = resource.files.filter("sequence__is_not", None)
         self.assertEqual(2, len(files))
 
     def test_get_file_sequence(self):
-        """ Ensures that get_files works with sequence lookups
-        """
+        """Ensures that get_files works with sequence lookups"""
         files = [
-            Datafile(path="path-within-dataset/a_my_file.csv", sequence=0),
-            Datafile(path="path-within-dataset/a_your_file.csv", sequence=1),
-            Datafile(path="path-within-dataset/a_your_file.csv", sequence=None),
+            Datafile(timestamp=None, path="path-within-dataset/a_my_file.csv", sequence=0),
+            Datafile(timestamp=None, path="path-within-dataset/a_your_file.csv", sequence=1),
+            Datafile(timestamp=None, path="path-within-dataset/a_your_file.csv", sequence=None),
         ]
 
         got_files = Dataset(files=files).get_file_sequence("name__ends_with", filter_value=".csv", strict=True)
         self.assertEqual(got_files, files[:2])
 
     def test_get_broken_file_sequence(self):
-        """ Ensures that get_files works with sequence lookups
-        """
+        """Ensures that get_files works with sequence lookups"""
         resource = Dataset(
             files=[
-                Datafile(path="path-within-dataset/a_my_file.csv", sequence=2),
-                Datafile(path="path-within-dataset/a_your_file.csv", sequence=4),
-                Datafile(path="path-within-dataset/a_your_file.csv", sequence=None),
+                Datafile(timestamp=None, path="path-within-dataset/a_my_file.csv", sequence=2),
+                Datafile(timestamp=None, path="path-within-dataset/a_your_file.csv", sequence=4),
+                Datafile(timestamp=None, path="path-within-dataset/a_your_file.csv", sequence=None),
             ]
         )
         with self.assertRaises(exceptions.BrokenSequenceException):
             resource.get_file_sequence("name__ends_with", filter_value=".csv", strict=True)
 
     def test_filter_name_filters_include_extension(self):
-        """ Ensures that filters applied to the name will catch terms in the extension
-        """
+        """Ensures that filters applied to the name will catch terms in the extension"""
         files = [
-            Datafile(path="path-within-dataset/a_test_file.csv"),
-            Datafile(path="path-within-dataset/a_test_file.txt"),
+            Datafile(timestamp=None, path="path-within-dataset/a_test_file.csv"),
+            Datafile(timestamp=None, path="path-within-dataset/a_test_file.txt"),
         ]
 
         self.assertEqual(
@@ -254,12 +243,11 @@ class DatasetTestCase(BaseTestCase):
         )
 
     def test_filter_name_filters_exclude_path(self):
-        """ Ensures that filters applied to the name will not catch terms in the extension
-        """
+        """Ensures that filters applied to the name will not catch terms in the extension"""
         resource = Dataset(
             files=[
-                Datafile(path="first-path-within-dataset/a_test_file.csv"),
-                Datafile(path="second-path-within-dataset/a_test_file.txt"),
+                Datafile(timestamp=None, path="first-path-within-dataset/a_test_file.csv"),
+                Datafile(timestamp=None, path="second-path-within-dataset/a_test_file.txt"),
             ]
         )
         files = resource.files.filter("name__icontains", filter_value="second")
@@ -269,8 +257,8 @@ class DatasetTestCase(BaseTestCase):
         """ Test that Dataset.get_files is deprecated but gets redirected to Dataset.files.filter. """
         resource = Dataset(
             files=[
-                Datafile(path="first-path-within-dataset/a_test_file.csv"),
-                Datafile(path="second-path-within-dataset/a_test_file.txt"),
+                Datafile(timestamp=None, path="first-path-within-dataset/a_test_file.csv"),
+                Datafile(timestamp=None, path="second-path-within-dataset/a_test_file.txt"),
             ]
         )
 
@@ -292,3 +280,104 @@ class DatasetTestCase(BaseTestCase):
         first_dataset = self.create_valid_dataset()
         second_dataset = copy.deepcopy(first_dataset)
         self.assertEqual(first_dataset.hash_value, second_dataset.hash_value)
+
+    def test_serialise(self):
+        """Test that a dataset can be serialised."""
+        dataset = self.create_valid_dataset()
+        self.assertEqual(len(dataset.serialise()["files"]), 2)
+
+    def test_from_cloud(self):
+        """Test that a Dataset in cloud storage can be accessed."""
+        project_name = "test-project"
+        bucket_name = os.environ["TEST_BUCKET_NAME"]
+
+        with tempfile.TemporaryDirectory() as output_directory:
+            file_0_path = os.path.join(output_directory, "file_0.txt")
+            file_1_path = os.path.join(output_directory, "file_1.txt")
+
+            with open(file_0_path, "w") as f:
+                f.write("[1, 2, 3]")
+
+            with open(file_1_path, "w") as f:
+                f.write("[4, 5, 6]")
+
+            dataset = Dataset(
+                name="dataset_0",
+                files={
+                    Datafile(timestamp=None, path=file_0_path, sequence=0, tags={"hello"}),
+                    Datafile(timestamp=None, path=file_1_path, sequence=1, tags={"goodbye"}),
+                },
+            )
+
+            dataset.to_cloud(project_name=project_name, bucket_name=bucket_name, output_directory=output_directory)
+
+        persisted_dataset = Dataset.from_cloud(
+            project_name=project_name,
+            bucket_name=bucket_name,
+            path_to_dataset_directory=storage.path.join(output_directory, dataset.name),
+        )
+
+        self.assertEqual(persisted_dataset.path, f"gs://{bucket_name}{output_directory}/{dataset.name}")
+        self.assertEqual(persisted_dataset.id, dataset.id)
+        self.assertEqual(persisted_dataset.name, dataset.name)
+        self.assertEqual(persisted_dataset.hash_value, dataset.hash_value)
+        self.assertEqual(persisted_dataset.tags, dataset.tags)
+        self.assertEqual({file.name for file in persisted_dataset.files}, {file.name for file in dataset.files})
+
+        for file in persisted_dataset:
+            self.assertEqual(file.path, f"gs://{bucket_name}{output_directory}/{dataset.name}/{file.name}")
+
+    def test_to_cloud(self):
+        """Test that a dataset can be uploaded to the cloud, including all its files and a serialised JSON file of the
+        Datafile instance.
+        """
+        project_name = "test-project"
+        bucket_name = os.environ["TEST_BUCKET_NAME"]
+        output_directory = "my_datasets"
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            file_0_path = os.path.join(temporary_directory, "file_0.txt")
+            file_1_path = os.path.join(temporary_directory, "file_1.txt")
+
+            with open(file_0_path, "w") as f:
+                f.write("[1, 2, 3]")
+
+            with open(file_1_path, "w") as f:
+                f.write("[4, 5, 6]")
+
+            dataset = Dataset(
+                files={
+                    Datafile(timestamp=None, path=file_0_path, sequence=0, tags={"hello"}),
+                    Datafile(timestamp=None, path=file_1_path, sequence=1, tags={"goodbye"}),
+                }
+            )
+
+            dataset.to_cloud(project_name, bucket_name, output_directory)
+
+            storage_client = GoogleCloudStorageClient(project_name)
+
+            persisted_file_0 = storage_client.download_as_string(
+                bucket_name=bucket_name, path_in_bucket=storage.path.join(output_directory, dataset.name, "file_0.txt")
+            )
+
+            self.assertEqual(persisted_file_0, "[1, 2, 3]")
+
+            persisted_file_1 = storage_client.download_as_string(
+                bucket_name=bucket_name, path_in_bucket=storage.path.join(output_directory, dataset.name, "file_1.txt")
+            )
+            self.assertEqual(persisted_file_1, "[4, 5, 6]")
+
+            persisted_dataset = json.loads(
+                storage_client.download_as_string(
+                    bucket_name=bucket_name,
+                    path_in_bucket=storage.path.join(output_directory, dataset.name, "dataset.json"),
+                )
+            )
+
+            self.assertEqual(
+                persisted_dataset["files"],
+                [
+                    "gs://octue-test-bucket/my_datasets/octue-sdk-python/file_0.txt",
+                    "gs://octue-test-bucket/my_datasets/octue-sdk-python/file_1.txt",
+                ],
+            )

@@ -1,5 +1,5 @@
 def run(analysis, *args, **kwargs):
-    """ Your main entrypoint to run the application
+    """Your main entrypoint to run the application
 
     This is the function that gets run each time somebody requests an analysis from the digital twin / data service.
     You should write your own code and call it from here.
@@ -34,7 +34,10 @@ def run(analysis, *args, **kwargs):
     wind_speeds = analysis.children["wind_speed"].ask(input_values=analysis.input_values, timeout=20)["output_values"]
 
     analysis.logger.info(
-        f"The wind speeds and elevations at {analysis.input_values['locations']} are {elevations} and {wind_speeds}."
+        "The wind speeds and elevations at %s are %s and %s.",
+        analysis.input_values["locations"],
+        elevations,
+        wind_speeds,
     )
 
     analysis.output_values = {"wind_speeds": wind_speeds, "elevations": elevations}

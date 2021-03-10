@@ -1,8 +1,7 @@
-from tests.base import BaseTestCase
-
 from octue import exceptions
 from octue.mixins import Filterable
 from octue.resources.filter_containers import FilterList, FilterSet
+from tests.base import BaseTestCase
 
 
 class Cat(Filterable):

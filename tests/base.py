@@ -1,12 +1,18 @@
+import logging
 import os
 import subprocess
 import unittest
 import uuid
 from tempfile import TemporaryDirectory, gettempdir
 
+from octue.logging_handlers import apply_log_handler
 from octue.mixins import MixinBase, Pathable
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.communication import Service
+
+
+logger = logging.getLogger(__name__)
+apply_log_handler(logger, log_level=logging.DEBUG)
 
 
 class MyPathable(Pathable, MixinBase):
@@ -14,8 +20,8 @@ class MyPathable(Pathable, MixinBase):
 
 
 class BaseTestCase(unittest.TestCase):
-    """ Base test case for twined:
-        - sets a path to the test data directory
+    """Base test case for twined:
+    - sets a path to the test data directory
     """
 
     def setUp(self):
@@ -26,7 +32,7 @@ class BaseTestCase(unittest.TestCase):
         super().setUp()
 
     def callCli(self, args):
-        """ Utility to call the octue CLI (eg for a templated example) in a separate subprocess
+        """Utility to call the octue CLI (eg for a templated example) in a separate subprocess
         Enables testing that multiple processes aren't using the same memory space, or for running multiple apps in
         parallel to ensure they don't conflict
         """
@@ -42,8 +48,8 @@ class BaseTestCase(unittest.TestCase):
         path = os.path.join("path-within-dataset", "a_test_file.csv")
 
         files = [
-            Datafile(path_from=path_from, base_from=path_from, path=path, skip_checks=False),
-            Datafile(path_from=path_from, base_from=path_from, path=path, skip_checks=False),
+            Datafile(timestamp=None, path_from=path_from, path=path, skip_checks=False),
+            Datafile(timestamp=None, path_from=path_from, path=path, skip_checks=False),
         ]
 
         return Dataset(files=files)

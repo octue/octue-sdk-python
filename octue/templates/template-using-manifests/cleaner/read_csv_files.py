@@ -2,7 +2,7 @@ import pandas
 
 
 def read_csv_files(files):
-    """ Read a sequence of CSV files file containing meteorological mast anemometer and wind vane data
+    """Read a sequence of CSV files file containing meteorological mast anemometer and wind vane data
 
     You don't really need to care about this, because your files are unlikely to be in the same form as our
     example csv files. But for the sake of a complete example, we show you how we'd read these in here.

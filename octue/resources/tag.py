@@ -10,7 +10,7 @@ TAG_PATTERN = re.compile(r"^$|^[a-z0-9][a-z0-9:\-]*(?<![:-])$")
 
 
 class Tag(Filterable):
-    """ A tag starts and ends with a character in [a-z] or [0-9]. It can contain the colon discriminator or hyphens.
+    """A tag starts and ends with a character in [a-z] or [0-9]. It can contain the colon discriminator or hyphens.
     Empty strings are also valid. More valid examples:
        system:32
        angry-marmaduke
@@ -138,8 +138,7 @@ class TagSet:
         return f"<TagSet({self.tags})>"
 
     def add_tags(self, *args):
-        """ Adds one or more new tag strings to the object tags. New tags will be cleaned and validated.
-        """
+        """Adds one or more new tag strings to the object tags. New tags will be cleaned and validated."""
         self.tags |= {Tag(arg) for arg in args}
 
     def get_subtags(self):
@@ -158,6 +157,10 @@ class TagSet:
         """ Return True if any of the tags contains value. """
         return any(value in tag for tag in self)
 
-    def serialise(self):
+    def serialise(self, to_string=True):
         """ Serialise tags to a sorted list string. """
-        return str(sorted(self))
+        serialised_tags = sorted(tag.name for tag in self)
+
+        if to_string:
+            return str(serialised_tags)
+        return serialised_tags

@@ -2,7 +2,7 @@ from fractal import fractal
 
 
 def run(analysis, *args, **kwargs):
-    """ Your main entrypoint to run the application
+    """Your main entrypoint to run the application
 
     This is the function that gets run each time somebody requests an analysis from the digital twin / data service.
     You should write your own code and call it from here.
@@ -33,9 +33,9 @@ def run(analysis, *args, **kwargs):
     """
 
     # You can use the attached logger to record debug statements, general information, warnings or errors
-    # analysis.logger.info(f"The input directory is {analysis.input_dir}")
-    # analysis.logger.info(f"The output directory is {analysis.output_dir}")
-    # analysis.logger.info(f"The tmp directory, where you can store temporary files or caches, is {analysis.tmp_dir}")
+    # analysis.logger.info("The input directory is %s", analysis.input_dir)
+    # analysis.logger.info("The output directory is %s", analysis.output_dir)
+    # analysis.logger.info("The tmp directory, where you can store temporary files or caches, is %s", analysis.tmp_dir)
 
     # Print statements will get logged...
     print("Hello! The app is running!")  # noqa: T001
@@ -47,7 +47,7 @@ def run(analysis, *args, **kwargs):
     )
 
     # You can access any of the configuration or input values, anywhere in your code, from the analysis object
-    analysis.logger.info(f"The maximum number of iterations will be {analysis.configuration_values}")
+    analysis.logger.info("The maximum number of iterations will be %s", analysis.configuration_values)
 
     # Run the code
     fractal(analysis)
