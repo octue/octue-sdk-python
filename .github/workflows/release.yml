@@ -1,6 +1,6 @@
 name: Publish on merge of release/x.y.z into main
 
-# Only trigger when a pull request into main branch is closed
+# Only trigger when a pull request into main branch is closed.
 on:
   pull_request:
     types: [closed]
@@ -9,19 +9,17 @@ on:
 
 jobs:
   release:
-    # This job will only run if the PR has been merged (and not closed without merging)
+    # This job will only run if the PR has been merged (and not closed without merging).
     if: github.event.pull_request.merged == true && startsWith( github.head_ref, 'release/' )
     runs-on: ubuntu-latest
     steps:
-    - name: Show refs
-      run: |
-        echo "PR #${{ github.event.number }} (${{ github.head_ref }}) has been merged into main."
+    - uses: actions/checkout@v2
     - name: Get package version
-      run: PACKAGE_VERSION=$(python setup.py --version)
+      run: echo "PACKAGE_VERSION=$(python setup.py --version)" >> $GITHUB_ENV
     - name: Create Release
       uses: actions/create-release@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, no need to create your own.
       with:
         tag_name: ${{ env.PACKAGE_VERSION }}
         release_name: ${{ github.event.pull_request.title }}
