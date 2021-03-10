@@ -148,7 +148,7 @@ See services communicate in real time: running the child services template
 
 1. Contact Octue to request a Google Cloud Platform service account credentials file.
 
-2. Save this file locally and create a ``GOOGLE_APPLICATION_CREDENTIALS`` environment variable whose value is the file's absolute path. This variable must be available to all three terminal windows used to run the template - see below for one method of doing this. **IMPORTANT**: Do not commit this or any other credentials or credentials file to git, GitHub, or any other version control software or website - doing so opens you, your systems and equipment, and our systems and equipment up to hackers and cyber attack.
+2. Save this file locally and create a ``GOOGLE_APPLICATION_CREDENTIALS`` environment variable whose value is the absolute path to a file containing GCP service account credentials. This variable must be available to all three terminal windows used to run the template - see below for one method of doing this. **IMPORTANT**: Do not commit this or any other credentials or credentials file to git, GitHub, or any other version control software or website - doing so opens you, your systems and equipment, and our systems and equipment up to hackers and cyber attack.
 
 3. From the repository root, start the elevation service as a server in a terminal window:
 

@@ -5,7 +5,8 @@ Cloud storage
 =============
 
 Octue SDK is currently integrated with Google Cloud Storage. Later on, we intend to integrate with other cloud
-providers, too.
+providers, too. If you need a certain cloud provider and are interested in contributing to or sponsoring its development
+in Octue SDK, please join the discussion `in this issue. <https://github.com/octue/octue-sdk-python/issues/108>`_
 
 ----------------------
 Data container classes
@@ -16,11 +17,11 @@ checked before and after upload and download to ensure any data corruption is av
 
 Datafile
 --------
-Assuming you have an instance of ``Datafile`` called ``datafile``:
+Assuming you have an instance of ``Datafile`` called ``my_datafile``:
 
 .. code-block:: python
 
-    datafile.to_cloud(project_name=<project-name>, bucket_name=<bucket-name>, path_in_bucket=<path/in/bucket>)
+    my_datafile.to_cloud(project_name=<project-name>, bucket_name=<bucket-name>, path_in_bucket=<path/in/bucket>)
     >>> gs://<bucket-name>/<path/in/bucket>
 
     downloaded_datafile = Datafile.from_cloud(project_name=<project-name>, bucket_name=<bucket-name>, datafile_path=<path/in/bucket>)
@@ -42,25 +43,25 @@ dataset's datafiles:
          |--- <file-2>
          ...
 
-Datasets are downloaded from their directory. Assuming you have an instance of ``Dataset`` called ``dataset``:
+Datasets are downloaded from their directory. Assuming you have an instance of ``Dataset`` called ``my_dataset``:
 
 .. code-block:: python
 
-    dataset.to_cloud(project_name=<project-name>, bucket_name=<bucket-name>, output_directory=<output-directory>)
-    >>> gs://<bucket-name>/<output-directory>/<dataset.name>
+    my_dataset.to_cloud(project_name=<project-name>, bucket_name=<bucket-name>, output_directory=<output-directory>)
+    >>> gs://<bucket-name>/<output-directory>/<my_dataset.name>
 
-    downloaded_dataset = Dataset.from_cloud(project_name=<project-name>, bucket_name=<bucket-name>, path_to_dataset_directory=<output-directory>/<dataset.name>)
+    downloaded_dataset = Dataset.from_cloud(project_name=<project-name>, bucket_name=<bucket-name>, path_to_dataset_directory=<output-directory>/<my_dataset.name>)
 
 
 Manifest
 --------
 Manifests are uploaded as a file to the given path. The manifest's datasets are uploaded by default into the same
 directory as the manifest file, but this can be disabled by specifying ``store_datasets=False``. Manifests are
-downloaded by providing the path to the manifest file. Assuming you have an instance of ``Manifest`` called ``manifest``:
+downloaded by providing the path to the manifest file. Assuming you have an instance of ``Manifest`` called ``my_manifest``:
 
 .. code-block:: python
 
-    manifest.to_cloud(project_name=<project-name>, bucket_name=<bucket-name>, path_to_manifest_file=<path/to/manifest/file.json>)
+    my_manifest.to_cloud(project_name=<project-name>, bucket_name=<bucket-name>, path_to_manifest_file=<path/to/manifest/file.json>)
     >>> gs://<bucket-name>/<path/to/manifest/file.json>
 
     downloaded_manifest = Manifest.from_cloud(project_name=<project-name>, bucket_name=<bucket-name>, path_to_manifest_file=<path/to/manifest/file.json>)
@@ -140,7 +141,7 @@ Files can also be deleted.
 
 **Scanning cloud directories**
 
-A popular method in the ``os.path`` module is ``scandir``, which scans the given directory for files and directories
+A popular method in the ``os`` module is ``scandir``, which scans the given directory for files and directories
 and allows iteration through them, providing metadata about them. We have implemented a similar method for Google Cloud
 storage. A filter can optionally be applied to the blobs (files).
 
@@ -169,9 +170,9 @@ Credentials
 To use any of the methods above, valid Google Cloud Storage credentials are needed. There are a few ways to
 provide them:
 
-1. Provide ``octue.utils.cloud.storage.client.OCTUE_MANAGED_CREDENTIALS`` as the credentials parameter to the
-   storage client (this is the default value so can be left unspecified), and an environment variable
-   ``GOOGLE_APPLICATION_CREDENTIALS`` containing either the path to or contents of a service account JSON file
+1. Provide no credentials to the storage client (which by default uses Octue-managed credentials from the environment)
+   while providing an environment variable ``GOOGLE_APPLICATION_CREDENTIALS`` containing either the path to or contents
+   of a service account JSON file.
 
-2. Provide an instance of ``google.auth.credentials.Credentials`` as the credentials parameter of the storage client,
-   opening up a more diverse array of credential possibilities.
+2. Advanced users of Google Cloud may choose to provide an instance of ``google.auth.credentials.Credentials`` as the
+   credentials parameter of the storage client, opening up a more diverse array of credential possibilities.
