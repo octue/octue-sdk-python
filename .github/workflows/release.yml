@@ -17,7 +17,20 @@ jobs:
       run: |
         echo "PR #${{ github.event.number }} (${{ github.head_ref }}) has been merged into main."
     - name: Get package version
-      run: PACKAGE_VERSION=$(python setup.py --version)
+      run: |
+        pwd
+        echo
+        ls
+        echo
+        ls ..
+        echo
+        ls ../..
+        echo
+        ls ../../..
+        echo
+        ls ../../../..
+        echo
+        PACKAGE_VERSION=$(python setup.py --version)
     - name: Create Release
       uses: actions/create-release@v1
       env:
