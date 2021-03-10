@@ -69,7 +69,8 @@ def relpath(path, start):
 
 
 def split(path):
-    """Split a path into its head and tail.
+    """Split a path into its head and tail. `storage.path.split` (this function) is the analogue of `os.path.split` for
+    Google Cloud Storage paths.
 
     :param str path:
     :return (str, str):
