@@ -20,14 +20,15 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
     def __init__(self, id=None, logger=None, path=None, path_from=None, datasets=None, keys=None, **kwargs):
         """Construct a Manifest"""
         super().__init__(id=id, logger=logger, path=path, path_from=path_from)
-        datasets = datasets or []
-        self.keys = keys or {}
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
         #  Add a proper `decoder` argument  to the load_json utility in twined so that datasets, datafiles and manifests
         #  get initialised properly, then tidy up this hackjob. Also need to allow Pathables to update ownership
         #  (because decoders work from the bottom of the tree upwards, not top-down)
+
+        datasets = datasets or []
+        self.keys = keys or {}
 
         # TODO we need to add keys to the manifest file schema in twined so that we know what dataset(s) map to what keys
         #  In the meantime, we enforce at this level that keys will match
