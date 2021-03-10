@@ -142,8 +142,9 @@ Files can also be deleted.
 **Scanning cloud directories**
 
 A popular method in the ``os`` module is ``scandir``, which scans the given directory for files and directories
-and allows iteration through them, providing metadata about them. We have implemented a similar method for Google Cloud
-storage. A filter can optionally be applied to the blobs (files).
+and allows iteration through them, providing their metadata (but not their file contents, which you can separately
+request while using the method). We have implemented a similar method for Google Cloud storage. A filter can optionally
+be applied to the blobs (files).
 
 .. code-block:: python
 
