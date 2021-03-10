@@ -1,14 +1,21 @@
+import json
 import logging
 import os
 import warnings
 
+from octue import definitions
 from octue.exceptions import BrokenSequenceException, InvalidInputException, UnexpectedNumberOfResultsException
 from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
+from octue.utils.cloud import storage
+from octue.utils.cloud.storage.client import GoogleCloudStorageClient
 
 
 module_logger = logging.getLogger(__name__)
+
+
+DATAFILES_DIRECTORY = "datafiles"
 
 
 class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable):
@@ -21,27 +28,95 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
     _FILTERSET_ATTRIBUTE = "files"
     _ATTRIBUTES_TO_HASH = "files", "name", "tags"
 
-    def __init__(self, id=None, logger=None, path=None, path_from=None, base_from=None, tags=None, **kwargs):
+    def __init__(self, name=None, id=None, logger=None, path=None, path_from=None, tags=None, **kwargs):
         """Construct a Dataset"""
-        super().__init__(id=id, logger=logger, tags=tags, path=path, path_from=path_from, base_from=base_from)
+        super().__init__(id=id, logger=logger, tags=tags, path=path, path_from=path_from)
+
+        self._name = name
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
         #  Add a proper `decoder` argument  to the load_json utility in twined so that datasets, datafiles and manifests
         #  get initialised properly, then remove this hackjob.
-        files = kwargs.pop("files", list())
         self.files = FilterSet()
-        for fi in files:
-            if isinstance(fi, Datafile):
-                self.files.add(fi)
+
+        for file in kwargs.pop("files", list()):
+            if isinstance(file, Datafile):
+                self.files.add(file)
             else:
-                self.files.add(Datafile(**fi, path_from=self, base_from=self))
+                self.files.add(Datafile(**file, path_from=self))
 
         self.__dict__.update(**kwargs)
 
+    @classmethod
+    def from_cloud(cls, project_name, bucket_name, path_to_dataset_directory):
+        """Instantiate a Dataset from Google Cloud storage.
+
+        :param str project_name:
+        :param str bucket_name:
+        :param str path_to_dataset_directory: path to dataset directory (directory containing dataset's files)
+        :return Dataset:
+        """
+        storage_client = GoogleCloudStorageClient(project_name=project_name)
+
+        serialised_dataset = json.loads(
+            storage_client.download_as_string(
+                bucket_name=bucket_name,
+                path_in_bucket=storage.path.join(path_to_dataset_directory, definitions.DATASET_FILENAME),
+            )
+        )
+
+        datafiles = FilterSet()
+
+        for file in serialised_dataset["files"]:
+            file_bucket_name, path = storage.path.split_bucket_name_from_gs_path(file)
+
+            datafiles.add(
+                Datafile.from_cloud(project_name=project_name, bucket_name=file_bucket_name, datafile_path=path)
+            )
+
+        return Dataset(
+            id=serialised_dataset["id"],
+            name=serialised_dataset["name"],
+            hash_value=serialised_dataset["hash_value"],
+            path=storage.path.generate_gs_path(bucket_name, path_to_dataset_directory),
+            tags=json.loads(serialised_dataset["tags"]),
+            files=datafiles,
+        )
+
+    def to_cloud(self, project_name, bucket_name, output_directory):
+        """Upload a dataset to a cloud location.
+
+        :param str project_name:
+        :param str bucket_name:
+        :param str output_directory:
+        :return str: gs:// path for dataset
+        """
+        files = []
+
+        for datafile in self.files:
+            datafile_path = datafile.to_cloud(
+                project_name, bucket_name, path_in_bucket=storage.path.join(output_directory, self.name, datafile.name)
+            )
+
+            files.append(datafile_path)
+
+        serialised_dataset = self.serialise()
+        serialised_dataset["files"] = sorted(files)
+        del serialised_dataset["absolute_path"]
+        del serialised_dataset["path"]
+
+        GoogleCloudStorageClient(project_name=project_name).upload_from_string(
+            string=json.dumps(serialised_dataset),
+            bucket_name=bucket_name,
+            path_in_bucket=storage.path.join(output_directory, self.name, definitions.DATASET_FILENAME),
+        )
+
+        return storage.path.generate_gs_path(bucket_name, output_directory, self.name)
+
     @property
     def name(self):
-        return str(os.path.split(self.path)[-1])
+        return self._name or os.path.split(os.path.abspath(os.path.split(self.path)[-1]))[-1]
 
     def __iter__(self):
         yield from self.files

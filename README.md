@@ -57,7 +57,7 @@ you'll need to do something like:
 ```
 git clone <your_forked_repo_address>    # Fetches the repo to your local machine
 cd octue-sdk-python                     # Move into the repo directory
-pyenv virtualenv 3.6.9 myenv            # Makes a virtual environment for you to install the dev tools into. Use any python >= 3.6
+pyenv virtualenv 3.8 myenv              # Makes a virtual environment for you to install the dev tools into. Use any python >= 3.8
 pyend activate myenv                    # Activates the virtual environment so you don't screw up other installations
 pip install -r requirements-dev.txt     # Installs the testing and code formatting utilities
 pre-commit install                      # Installs the pre-commit code formatting hooks in the git repo

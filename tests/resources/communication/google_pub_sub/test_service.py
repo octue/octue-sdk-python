@@ -34,7 +34,7 @@ class TestService(BaseTestCase):
     (GCP), or a local emulator."""
 
     BACKEND = GCPPubSubBackend(
-        project_name=os.environ["TEST_PROJECT_NAME"], credentials_environment_variable="GCP_SERVICE_ACCOUNT"
+        project_name=os.environ["TEST_PROJECT_NAME"], credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS"
     )
 
     @staticmethod

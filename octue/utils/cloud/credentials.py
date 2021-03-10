@@ -12,7 +12,7 @@ class GCPCredentialsManager:
     writes it to a file in a temporary directory.
     """
 
-    def __init__(self, environment_variable_name="GCP_SERVICE_ACCOUNT"):
+    def __init__(self, environment_variable_name="GOOGLE_APPLICATION_CREDENTIALS"):
         self.environment_variable_name = environment_variable_name
 
         try:

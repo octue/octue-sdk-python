@@ -4,7 +4,6 @@ import logging
 from octue.definitions import OUTPUT_STRANDS
 from octue.mixins import Hashable, Identifiable, Loggable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
-from octue.utils.cloud.persistence import GoogleCloudStorageClient
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.folders import get_file_name_from_strand
 from twined import ALL_STRANDS, Twine
@@ -98,35 +97,42 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         # Using twined's validate_strand method gives us sugar to check for both extra outputs
         # (e.g. output_values where there shouldn't be any) and missing outputs (e.g. output_values is None when it
         # should be a dict of data)
-        serialised = dict()
-        for k in OUTPUT_STRANDS:
-            self.logger.debug("Serialising %s", k)
-            att = getattr(self, k)
-            if att is not None:
-                att = json.dumps(att, cls=OctueJSONEncoder)
+        serialised_strands = {}
 
-            serialised[k] = att
+        for output_strand in OUTPUT_STRANDS:
+            self.logger.debug("Serialising %s", output_strand)
+
+            attribute = getattr(self, output_strand)
+            if attribute is not None:
+                attribute = json.dumps(attribute, cls=OctueJSONEncoder)
+
+            serialised_strands[output_strand] = attribute
 
         self.logger.debug("Validating serialised output json against twine")
-        self.twine.validate(**serialised)
+        self.twine.validate(**serialised_strands)
 
         if output_dir is None:
-            return serialised
+            return serialised_strands
 
-        # Optionally write the serialised strand to disk and/or Google Cloud storage.
-        for k in OUTPUT_STRANDS:
+        # Optionally write the serialised strands to disk.
+        if save_locally:
+            for output_strand in OUTPUT_STRANDS:
+                if serialised_strands[output_strand] is not None:
 
-            if serialised[k] is not None:
-                file_name = get_file_name_from_strand(k, output_dir)
+                    filename = get_file_name_from_strand(output_strand, output_dir)
+                    with open(filename, "w") as fp:
+                        fp.write(serialised_strands[output_strand])
+                    self.logger.debug("Wrote %r to file %r", output_strand, filename)
 
-                if save_locally:
-                    with open(file_name, "w") as fp:
-                        fp.write(serialised[k])
-                    self.logger.debug("Wrote %r to file %r", k, file_name)
+        # Optionally write the manifest to Google Cloud storage.
+        if upload_to_cloud:
+            if hasattr(self, "output_manifest"):
+                self.output_manifest.to_cloud(project_name, bucket_name, output_dir)
+                self.logger.debug(
+                    "Wrote %r to cloud storage at project %r in bucket %r.",
+                    self.output_manifest,
+                    project_name,
+                    bucket_name,
+                )
 
-                if upload_to_cloud:
-                    GoogleCloudStorageClient(project_name=project_name).upload_from_string(
-                        serialised_data=serialised[k], bucket_name=bucket_name, path_in_bucket=file_name
-                    )
-
-        return serialised
+        return serialised_strands

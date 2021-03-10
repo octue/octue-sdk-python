@@ -14,7 +14,7 @@ class PathableTestCase(BaseTestCase):
         """Ensures the class instantiates without arguments, with default paths at the current working directory"""
         resource = MyPathable()
         self.assertEqual(os.getcwd(), resource.absolute_path)
-        self.assertEqual(".", resource.relative_path)
+        self.assertEqual(".", resource.path_relative_to())
         self.assertEqual(".", resource.path)
 
     def test_paths_chain(self):
@@ -49,22 +49,22 @@ class PathableTestCase(BaseTestCase):
         """Ensures that pathable resources have a relative path (by default relative to current working directory)"""
         owner = MyPathable(path="owner")
         owned = MyPathable(path_from=owner, path="owned")
-        self.assertEqual(os.path.join("owner", "owned"), owned.relative_path)
+        self.assertEqual(os.path.join("owner", "owned"), owned.path_relative_to())
 
     def test_paths_relative_to_base(self):
         """Ensures that pathable resources have a relative path that is relative to base_path if given"""
         # Check it works for a single depth
         owner1 = MyPathable(path="owner")
-        owned1 = MyPathable(path_from=owner1, path="owned", base_from=owner1)
-        self.assertEqual(os.path.join("owned"), owned1.relative_path)
+        owned1 = MyPathable(path_from=owner1, path="owned")
+        self.assertEqual("owned", owned1.path_relative_to(owner1))
 
         # Check it works at from several depths
         owner2 = MyPathable(path="owner")
         owned2 = MyPathable(path_from=owner2, path="owned")
-        owned_owned2 = MyPathable(path_from=owned2, path="owned_owned", base_from=owner2)
-        self.assertEqual(os.path.join("owned", "owned_owned"), owned_owned2.relative_path)
+        owned_owned2 = MyPathable(path_from=owned2, path="owned_owned")
+        self.assertEqual(os.path.join("owned", "owned_owned"), owned_owned2.path_relative_to(owner2))
 
-    def test_invalid_base_and_path_from(self):
+    def test_invalid_path_from(self):
         """Ensures that exceptions are correctly raised when the *_from objects are not Pathables"""
 
         class NotPathable:
@@ -72,9 +72,6 @@ class PathableTestCase(BaseTestCase):
 
         with self.assertRaises(InvalidInputException):
             MyPathable(path="owner", path_from=NotPathable())
-
-        with self.assertRaises(InvalidInputException):
-            MyPathable(path="owner", base_from=NotPathable())
 
     def test_valid_absolute_path_without_from_path(self):
         """Ensures that an absolute path can be set if no from_path object is present"""
@@ -87,3 +84,18 @@ class PathableTestCase(BaseTestCase):
         owner1 = MyPathable(path="owner")
         with self.assertRaises(InvalidInputException):
             MyPathable(path_from=owner1, path="/owned")
+
+    def test_with_google_cloud_storage_blob(self):
+        """Test that paths in Google Cloud storage buckets can be represented as a Pathable."""
+        path = "gs://my-bucket/file/in/bucket.json"
+        pathable = Pathable(path=path)
+        self.assertEqual(pathable.path, "gs://my-bucket/file/in/bucket.json")
+        self.assertEqual(pathable.absolute_path, "gs://my-bucket/file/in/bucket.json")
+        self.assertEqual(pathable.path_relative_to(), "my-bucket/file/in/bucket.json")
+
+    def test_google_cloud_storage_blob_relative_path(self):
+        """Test that paths in Google Cloud storage buckets can be represented as a Pathable."""
+        path = "gs://my-bucket/file/in/bucket.json"
+        pathable = Pathable(path=path)
+        self.assertEqual(pathable.path_relative_to("my-bucket/file"), "in/bucket.json")
+        self.assertEqual(pathable.path_relative_to("my-bucket/file/hello"), "../in/bucket.json")
