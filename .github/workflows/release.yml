@@ -13,18 +13,9 @@ jobs:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
-    - name: Show refs
-      run: |
-        echo "PR #${{ github.event.number }} (${{ github.head_ref }}) has been merged into main."
+    - uses: actions/checkout@v2
     - name: Get package version
-      run: |
-        pwd
-        echo
-        ls
-        echo
-        ls octue-sdk-python
-        echo
-        PACKAGE_VERSION=$(python setup.py --version)
+      run: PACKAGE_VERSION=$(python setup.py --version)
     - name: Create Release
       uses: actions/create-release@v1
       env:
@@ -35,3 +26,6 @@ jobs:
         body: ${{ github.event.pull_request.body }}
         draft: false
         prerelease: false
+    - name: Show refs
+      run: |
+        echo "PR #${{ github.event.number }} (${{ github.head_ref }}) has been merged into main."
