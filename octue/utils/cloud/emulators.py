@@ -62,13 +62,7 @@ class TestResultModifier:
     STORAGE_EMULATOR_HOST_ENVIRONMENT_VARIABLE_NAME = "STORAGE_EMULATOR_HOST"
 
     def __init__(self):
-        # if os.environ.get(self.STORAGE_EMULATOR_HOST_ENVIRONMENT_VARIABLE_NAME) is not None:
-        #     self.storage_emulator_port_is_preset = True
-        #     port = int(os.environ[self.STORAGE_EMULATOR_HOST_ENVIRONMENT_VARIABLE_NAME].split(":")[-1])
-        # else:
         port = get_free_tcp_port()
-        # self.storage_emulator_port_is_preset = False
-
         self.storage_emulator_host = f"http://localhost:{port}"
         self.storage_emulator = GoogleCloudStorageEmulator(port=port)
 
@@ -78,7 +72,6 @@ class TestResultModifier:
         :param unittest.TestResult test_result:
         :return None:
         """
-        # if not self.storage_emulator_port_is_preset:
         os.environ[self.STORAGE_EMULATOR_HOST_ENVIRONMENT_VARIABLE_NAME] = self.storage_emulator_host
         self.storage_emulator.start()
 
@@ -89,5 +82,4 @@ class TestResultModifier:
         :return None:
         """
         self.storage_emulator.stop()
-        # if not self.storage_emulator_port_is_preset:
         del os.environ[self.STORAGE_EMULATOR_HOST_ENVIRONMENT_VARIABLE_NAME]

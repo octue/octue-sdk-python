@@ -28,7 +28,6 @@ class GoogleCloudStorageClient:
             credentials = credentials
 
         self.client = storage.Client(project=project_name, credentials=credentials)
-        print(f"HELLO THIS IS THE STORAGE URL: {self.client._base_connection.API_BASE_URL}")
 
     def upload_file(self, local_path, bucket_name, path_in_bucket, metadata=None, timeout=_DEFAULT_TIMEOUT):
         """Upload a local file to a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>.
