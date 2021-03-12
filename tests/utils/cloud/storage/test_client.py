@@ -10,10 +10,14 @@ from tests.base import BaseTestCase
 
 
 class TestUploadFileToGoogleCloud(BaseTestCase):
-    PROJECT_NAME = os.environ["TEST_PROJECT_NAME"]
-    TEST_BUCKET_NAME = os.environ["TEST_BUCKET_NAME"]
-    FILENAME = "my_file.txt"
-    storage_client = GoogleCloudStorageClient(project_name=PROJECT_NAME, credentials=OCTUE_MANAGED_CREDENTIALS)
+    @classmethod
+    def setUpClass(cls):
+        cls.PROJECT_NAME = os.environ["TEST_PROJECT_NAME"]
+        cls.TEST_BUCKET_NAME = os.environ["TEST_BUCKET_NAME"]
+        cls.FILENAME = "my_file.txt"
+        cls.storage_client = GoogleCloudStorageClient(
+            project_name=cls.PROJECT_NAME, credentials=OCTUE_MANAGED_CREDENTIALS
+        )
 
     def test_upload_and_download_file(self):
         """Test that a file can be uploaded to Google Cloud storage and downloaded again."""
