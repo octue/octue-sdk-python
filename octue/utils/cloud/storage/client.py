@@ -103,7 +103,7 @@ class GoogleCloudStorageClient:
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         metadata = bucket.get_blob(blob_name=self._strip_leading_slash(path_in_bucket), timeout=timeout)._properties
 
-        if metadata["metadata"] is not None:
+        if metadata.get("metadata") is not None:
             metadata["metadata"] = {key: json.loads(value) for key, value in metadata["metadata"].items()}
 
         return metadata
