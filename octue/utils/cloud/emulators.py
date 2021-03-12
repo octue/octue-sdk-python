@@ -56,15 +56,21 @@ class GoogleCloudStorageEmulatorTestResultModifier:
     """A class providing `startTestRun` and `endTestRun` methods for use by a `unittest.TestResult` that start up a
     Google Cloud Storage emulator on a free port before the tests run and stop it after they've all run.
 
+    :param str host:
+    :param bool in_memory:
+    :param str default_bucket_name:
     :return None:
     """
 
     STORAGE_EMULATOR_HOST_ENVIRONMENT_VARIABLE_NAME = "STORAGE_EMULATOR_HOST"
 
-    def __init__(self):
+    def __init__(self, host="http://localhost", in_memory=True, default_bucket_name=os.environ["TEST_BUCKET_NAME"]):
         port = get_free_tcp_port()
-        self.storage_emulator_host = f"http://localhost:{port}"
-        self.storage_emulator = GoogleCloudStorageEmulator(port=port)
+        self.storage_emulator_host = f"{host}:{port}"
+
+        self.storage_emulator = GoogleCloudStorageEmulator(
+            host=host, port=port, in_memory=in_memory, default_bucket=default_bucket_name
+        )
 
     def startTestRun(self):
         """Start the Google Cloud Storage emulator before starting the test run.
