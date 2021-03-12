@@ -52,9 +52,9 @@ def get_free_tcp_port():
         return port
 
 
-class TestResultModifier:
-    """A class providing `startTestRun` and `endTestRun` methods for use by a `unittest.TestResult`. The methods run
-    before and after all tests respectively.
+class GoogleCloudStorageEmulatorTestResultModifier:
+    """A class providing `startTestRun` and `endTestRun` methods for use by a `unittest.TestResult` that start up a
+    Google Cloud Storage emulator on a free port before the tests run and stop it after they've all run.
 
     :return None:
     """
