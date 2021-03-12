@@ -1,4 +1,6 @@
 import os
+import socket
+from contextlib import closing
 from gcp_storage_emulator.server import create_server
 
 
@@ -37,3 +39,45 @@ class GoogleCloudStorageEmulator:
         :return None:
         """
         self._server.stop()
+
+
+def get_free_tcp_port():
+    """Get a free TCP port.
+
+    :return int:
+    """
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.bind(("", 0))
+        _, port = s.getsockname()
+        return port
+
+
+class TestResultModifier:
+    """A class providing `startTestRun` and `endTestRun` methods for use by a `unittest.TestResult`. The methods run
+    before and after all tests respectively.
+
+    :return None:
+    """
+
+    def __init__(self):
+        PORT = get_free_tcp_port()
+        self.STORAGE_EMULATOR_HOST = f"http://localhost:{PORT}"
+        self.storage_emulator = GoogleCloudStorageEmulator(port=PORT)
+
+    def startTestRun(self):
+        """Start the Google Cloud Storage emulator before starting the test run.
+
+        :param unittest.TestResult test_result:
+        :return None:
+        """
+        os.environ["STORAGE_EMULATOR_HOST"] = self.STORAGE_EMULATOR_HOST
+        self.storage_emulator.start()
+
+    def stopTestRun(self):
+        """Stop the Google Cloud Storage emulator before starting the test run.
+
+        :param unittest.TestResult test_result:
+        :return None:
+        """
+        self.storage_emulator.stop()
+        del os.environ["STORAGE_EMULATOR_HOST"]
