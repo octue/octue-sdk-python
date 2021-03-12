@@ -3,7 +3,7 @@ import socket
 import unittest
 from contextlib import closing
 
-from tests.emulators import GoogleCloudStorageEmulator
+from octue.utils.cloud.emulators import GoogleCloudStorageEmulator
 
 
 TESTS_DIR = os.path.dirname(__file__)
