@@ -1,5 +1,4 @@
 import concurrent.futures
-import os
 import time
 import uuid
 import google.api_core.exceptions
@@ -8,6 +7,7 @@ from octue import exceptions
 from octue.resources.communication.google_pub_sub.service import OCTUE_NAMESPACE, Service
 from octue.resources.communication.service_backends import GCPPubSubBackend
 from octue.resources.manifest import Manifest
+from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 
 
@@ -34,7 +34,7 @@ class TestService(BaseTestCase):
     (GCP), or a local emulator."""
 
     BACKEND = GCPPubSubBackend(
-        project_name=os.environ["TEST_PROJECT_NAME"], credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS"
+        project_name=TEST_PROJECT_NAME, credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS"
     )
 
     @staticmethod
