@@ -113,7 +113,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         :return Datafile:
         """
         metadata = GoogleCloudStorageClient(project_name).get_metadata(bucket_name, datafile_path)
-        custom_metadata = metadata["metadata"]
+        custom_metadata = metadata.get("metadata") or {}
 
         datafile = cls(
             timestamp=custom_metadata.get("timestamp", timestamp),
