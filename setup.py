@@ -27,7 +27,7 @@ setup(
         "google-cloud-pubsub>=2.2.0",
         "google-cloud-storage>=1.35.1",
         "twined==0.0.16",
-    ],  # Dev note: you also need to bump twined in tox.ini
+    ],
     url="https://www.github.com/octue/octue-sdk-python",
     license="MIT",
     author="Thomas Clark (github: thclark)",

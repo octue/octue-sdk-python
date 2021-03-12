@@ -61,7 +61,6 @@ pyenv virtualenv 3.8 myenv              # Makes a virtual environment for you to
 pyend activate myenv                    # Activates the virtual environment so you don't screw up other installations
 pip install -r requirements-dev.txt     # Installs the testing and code formatting utilities
 pre-commit install                      # Installs the pre-commit code formatting hooks in the git repo
-tox                                     # Runs the tests with coverage. NB you can also just set up pycharm or vscode to run these.
 ```
 
 - Adopt a Test Driven Development approach to implementing new features or fixing bugs.
