@@ -64,9 +64,9 @@ class GoogleCloudStorageEmulatorTestResultModifier:
 
     STORAGE_EMULATOR_HOST_ENVIRONMENT_VARIABLE_NAME = "STORAGE_EMULATOR_HOST"
 
-    def __init__(self, host="http://localhost", in_memory=True, default_bucket_name=os.environ["TEST_BUCKET_NAME"]):
+    def __init__(self, host="localhost", in_memory=True, default_bucket_name=os.environ["TEST_BUCKET_NAME"]):
         port = get_free_tcp_port()
-        self.storage_emulator_host = f"{host}:{port}"
+        self.storage_emulator_host = f"http://{host}:{port}"
 
         self.storage_emulator = GoogleCloudStorageEmulator(
             host=host, port=port, in_memory=in_memory, default_bucket=default_bucket_name
