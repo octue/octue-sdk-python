@@ -13,7 +13,7 @@ class GoogleCloudStorageEmulator:
     :return None:
     """
 
-    def __init__(self, host="localhost", port=9090, in_memory=True, default_bucket=os.environ["TEST_BUCKET_NAME"]):
+    def __init__(self, host="localhost", port=9090, in_memory=True, default_bucket=None):
         self._server = create_server(host, port, in_memory=in_memory, default_bucket=default_bucket)
 
     def __enter__(self):
@@ -64,7 +64,7 @@ class GoogleCloudStorageEmulatorTestResultModifier:
 
     STORAGE_EMULATOR_HOST_ENVIRONMENT_VARIABLE_NAME = "STORAGE_EMULATOR_HOST"
 
-    def __init__(self, host="localhost", in_memory=True, default_bucket_name=os.environ["TEST_BUCKET_NAME"]):
+    def __init__(self, host="localhost", in_memory=True, default_bucket_name=None):
         port = get_free_tcp_port()
         self.storage_emulator_host = f"http://{host}:{port}"
 

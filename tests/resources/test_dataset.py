@@ -9,6 +9,7 @@ from octue.resources import Datafile, Dataset
 from octue.resources.filter_containers import FilterSet
 from octue.utils.cloud import storage
 from octue.utils.cloud.storage.client import GoogleCloudStorageClient
+from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
 
 
@@ -289,7 +290,6 @@ class DatasetTestCase(BaseTestCase):
     def test_from_cloud(self):
         """Test that a Dataset in cloud storage can be accessed."""
         project_name = "test-project"
-        bucket_name = os.environ["TEST_BUCKET_NAME"]
 
         with tempfile.TemporaryDirectory() as output_directory:
             file_0_path = os.path.join(output_directory, "file_0.txt")
@@ -309,15 +309,15 @@ class DatasetTestCase(BaseTestCase):
                 },
             )
 
-            dataset.to_cloud(project_name=project_name, bucket_name=bucket_name, output_directory=output_directory)
+            dataset.to_cloud(project_name=project_name, bucket_name=TEST_BUCKET_NAME, output_directory=output_directory)
 
         persisted_dataset = Dataset.from_cloud(
             project_name=project_name,
-            bucket_name=bucket_name,
+            bucket_name=TEST_BUCKET_NAME,
             path_to_dataset_directory=storage.path.join(output_directory, dataset.name),
         )
 
-        self.assertEqual(persisted_dataset.path, f"gs://{bucket_name}{output_directory}/{dataset.name}")
+        self.assertEqual(persisted_dataset.path, f"gs://{TEST_BUCKET_NAME}{output_directory}/{dataset.name}")
         self.assertEqual(persisted_dataset.id, dataset.id)
         self.assertEqual(persisted_dataset.name, dataset.name)
         self.assertEqual(persisted_dataset.hash_value, dataset.hash_value)
@@ -325,14 +325,13 @@ class DatasetTestCase(BaseTestCase):
         self.assertEqual({file.name for file in persisted_dataset.files}, {file.name for file in dataset.files})
 
         for file in persisted_dataset:
-            self.assertEqual(file.path, f"gs://{bucket_name}{output_directory}/{dataset.name}/{file.name}")
+            self.assertEqual(file.path, f"gs://{TEST_BUCKET_NAME}{output_directory}/{dataset.name}/{file.name}")
 
     def test_to_cloud(self):
         """Test that a dataset can be uploaded to the cloud, including all its files and a serialised JSON file of the
         Datafile instance.
         """
         project_name = "test-project"
-        bucket_name = os.environ["TEST_BUCKET_NAME"]
         output_directory = "my_datasets"
 
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -352,24 +351,26 @@ class DatasetTestCase(BaseTestCase):
                 }
             )
 
-            dataset.to_cloud(project_name, bucket_name, output_directory)
+            dataset.to_cloud(project_name, TEST_BUCKET_NAME, output_directory)
 
             storage_client = GoogleCloudStorageClient(project_name)
 
             persisted_file_0 = storage_client.download_as_string(
-                bucket_name=bucket_name, path_in_bucket=storage.path.join(output_directory, dataset.name, "file_0.txt")
+                bucket_name=TEST_BUCKET_NAME,
+                path_in_bucket=storage.path.join(output_directory, dataset.name, "file_0.txt"),
             )
 
             self.assertEqual(persisted_file_0, "[1, 2, 3]")
 
             persisted_file_1 = storage_client.download_as_string(
-                bucket_name=bucket_name, path_in_bucket=storage.path.join(output_directory, dataset.name, "file_1.txt")
+                bucket_name=TEST_BUCKET_NAME,
+                path_in_bucket=storage.path.join(output_directory, dataset.name, "file_1.txt"),
             )
             self.assertEqual(persisted_file_1, "[4, 5, 6]")
 
             persisted_dataset = json.loads(
                 storage_client.download_as_string(
-                    bucket_name=bucket_name,
+                    bucket_name=TEST_BUCKET_NAME,
                     path_in_bucket=storage.path.join(output_directory, dataset.name, "dataset.json"),
                 )
             )
