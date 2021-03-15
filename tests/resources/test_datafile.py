@@ -8,7 +8,8 @@ from octue import exceptions
 from octue.mixins import MixinBase, Pathable
 from octue.resources import Datafile
 from octue.resources.tag import TagSet
-from octue.utils.cloud.storage.client import OCTUE_MANAGED_CREDENTIALS, GoogleCloudStorageClient
+from octue.utils.cloud.storage.client import GoogleCloudStorageClient
+from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from ..base import BaseTestCase
 
 
@@ -135,21 +136,19 @@ class DatafileTestCase(BaseTestCase):
 
     def test_from_cloud_with_bare_file(self):
         """Test that a Datafile can be constructed from a file on Google Cloud storage with no custom metadata."""
-        project_name = os.environ["TEST_PROJECT_NAME"]
-        bucket_name = os.environ["TEST_BUCKET_NAME"]
         path_in_bucket = "file_to_upload.txt"
 
-        GoogleCloudStorageClient(project_name=project_name, credentials=OCTUE_MANAGED_CREDENTIALS).upload_from_string(
+        GoogleCloudStorageClient(project_name=TEST_PROJECT_NAME).upload_from_string(
             string=json.dumps({"height": 32}),
-            bucket_name=bucket_name,
+            bucket_name=TEST_BUCKET_NAME,
             path_in_bucket=path_in_bucket,
         )
 
         datafile = Datafile.from_cloud(
-            project_name=project_name, bucket_name=bucket_name, datafile_path=path_in_bucket, timestamp=None
+            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path=path_in_bucket, timestamp=None
         )
 
-        self.assertEqual(datafile.path, f"gs://{bucket_name}/{path_in_bucket}")
+        self.assertEqual(datafile.path, f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}")
         self.assertEqual(datafile.cluster, 0)
         self.assertEqual(datafile.sequence, None)
         self.assertEqual(datafile.tags, TagSet())
@@ -159,8 +158,6 @@ class DatafileTestCase(BaseTestCase):
 
     def test_from_cloud_with_datafile(self):
         """Test that a Datafile can be constructed from a file on Google Cloud storage with custom metadata."""
-        project_name = os.environ["TEST_PROJECT_NAME"]
-        bucket_name = os.environ["TEST_BUCKET_NAME"]
         path_in_bucket = "file_to_upload.txt"
 
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -172,13 +169,15 @@ class DatafileTestCase(BaseTestCase):
             datafile = Datafile(
                 timestamp=None, path=file_0_path, cluster=0, sequence=1, tags={"blah:shah:nah", "blib", "glib"}
             )
-            datafile.to_cloud(project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
-
-            persisted_datafile = Datafile.from_cloud(
-                project_name=project_name, bucket_name=bucket_name, datafile_path=path_in_bucket
+            datafile.to_cloud(
+                project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket=path_in_bucket
             )
 
-            self.assertEqual(persisted_datafile.path, f"gs://{bucket_name}/{path_in_bucket}")
+            persisted_datafile = Datafile.from_cloud(
+                project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path=path_in_bucket
+            )
+
+            self.assertEqual(persisted_datafile.path, f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}")
             self.assertEqual(persisted_datafile.id, datafile.id)
             self.assertEqual(persisted_datafile.hash_value, datafile.hash_value)
             self.assertEqual(persisted_datafile.cluster, datafile.cluster)
