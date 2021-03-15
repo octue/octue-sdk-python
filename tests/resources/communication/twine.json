@@ -1,0 +1,11 @@
+{
+    "input_values_schema": {
+        "type": "object",
+        "required": ["n_iterations"],
+        "properties": {
+            "n_iterations": {
+                "type": "integer"
+            }
+        }
+    }
+}
