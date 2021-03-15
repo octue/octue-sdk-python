@@ -59,7 +59,7 @@ class Service(CoolNameable):
         subscription = Subscription(name=self.id, topic=topic, namespace=OCTUE_NAMESPACE, service=self)
         subscription.create(allow_existing=True)
 
-        future = self.subscriber.subscribe(subscription=subscription.path, callback=self.answer)
+        future = self.subscriber.subscribe(subscription=subscription.path, callback=self.receive_question_then_answer)
         logger.debug("%r is waiting for questions.", self)
 
         with self.subscriber:
@@ -72,17 +72,19 @@ class Service(CoolNameable):
                 topic.delete()
                 subscription.delete()
 
-    def answer(self, question):
-        """Acknowledge and answer a question (i.e. receive the question (input values and/or manifest), run the
-        Service's app to analyse it, and return the output values to the asker). Answers are published to a topic whose
-        name is generated from the UUID sent with the question, and are in the format specified in the Service's Twine
-        file.
-        """
+    def receive_question_then_answer(self, question):
+        """Receive a question, acknowledge it, then answer it."""
         logger.info("%r received a question.", self)
         data = json.loads(question.data.decode())
         question_uuid = question.attributes["question_uuid"]
         question.ack()
+        self.answer(data, question_uuid)
 
+    def answer(self, data, question_uuid):
+        """Answer a question (i.e. run the Service's app to analyse the given data, and return the output values to the
+        asker). Answers are published to a topic whose name is generated from the UUID sent with the question, and are
+        in the format specified in the Service's Twine file.
+        """
         topic = Topic(
             name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)), namespace=OCTUE_NAMESPACE, service=self
         )
