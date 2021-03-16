@@ -138,7 +138,7 @@ class Service(CoolNameable):
         future.result()
 
         logger.debug("%r asked question to %r service. Question UUID is %r.", self, service_id, question_uuid)
-        return response_subscription
+        return response_subscription, question_uuid
 
     def wait_for_answer(self, subscription, timeout=20):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once

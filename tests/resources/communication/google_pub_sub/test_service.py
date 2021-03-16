@@ -40,7 +40,7 @@ class TestService(BaseTestCase):
     @staticmethod
     def ask_question_and_wait_for_answer(asking_service, responding_service, input_values, input_manifest):
         """ Get an asking service to ask a question to a responding service and wait for the answer. """
-        subscription = asking_service.ask(responding_service.id, input_values, input_manifest)
+        subscription, _ = asking_service.ask(responding_service.id, input_values, input_manifest)
         return asking_service.wait_for_answer(subscription)
 
     @staticmethod
@@ -267,7 +267,7 @@ class TestService(BaseTestCase):
 
         def child_run_function(input_values, input_manifest):
             service = Service(backend=self.BACKEND)
-            subscription = service.ask(service_id=child_of_child.id, input_values=input_values)
+            subscription, _ = service.ask(service_id=child_of_child.id, input_values=input_values)
 
             mock_analysis = MockAnalysis()
             mock_analysis.output_values = {input_values["question"]: service.wait_for_answer(subscription)}
@@ -319,8 +319,8 @@ class TestService(BaseTestCase):
 
         def child_run_function(input_values, input_manifest):
             child_service = Service(backend=self.BACKEND)
-            subscription_1 = child_service.ask(service_id=first_child_of_child.id, input_values=input_values)
-            subscription_2 = child_service.ask(service_id=second_child_of_child.id, input_values=input_values)
+            subscription_1, _ = child_service.ask(service_id=first_child_of_child.id, input_values=input_values)
+            subscription_2, _ = child_service.ask(service_id=second_child_of_child.id, input_values=input_values)
 
             mock_analysis = MockAnalysis()
             mock_analysis.output_values = {
