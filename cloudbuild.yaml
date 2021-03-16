@@ -1,0 +1,11 @@
+steps:
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  env:
+  - SERVICE_ID=$SERVICE_ID
+  args:
+  - gcloud
+  - functions
+  - deploy
+  - run_analysis
+  - --source=octue/resources/communication/google_cloud_function
+  - --trigger-topic octue.services.$SERVICE_ID
