@@ -18,6 +18,9 @@ class Subscription:
             self.service.backend.project_name, f"{namespace}.{self.name}"
         )
 
+    def __repr__(self):
+        return f"<{type(self).__name__}({self.name})>"
+
     def create(self, allow_existing=False):
         """ Create a Google Pub/Sub subscription that can be subscribed to. """
         if not allow_existing:

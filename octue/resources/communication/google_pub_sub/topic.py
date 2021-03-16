@@ -15,6 +15,9 @@ class Topic:
         self.service = service
         self.path = self.service.publisher.topic_path(service.backend.project_name, f"{namespace}.{self.name}")
 
+    def __repr__(self):
+        return f"<{type(self).__name__}({self.name})>"
+
     def create(self, allow_existing=False):
         """ Create a Google Pub/Sub topic that can be published to. """
         if not allow_existing:
