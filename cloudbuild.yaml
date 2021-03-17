@@ -7,6 +7,7 @@ steps:
   - run_analysis
   - --source=octue/resources/communication/google_cloud_function
   - --runtime=python38
-  - --trigger-topic=octue.services.$_SERVICE_ID
+  - --trigger-topic=$_SERVICE_ID
+  - --set-env-vars=DEPLOYMENT_CONFIGURATION_PATH=deployment_configuration.json,SERVICE_ID=$_SERVICE_ID
 substitutions:
-  _SERVICE_ID: fae64d4f-8757-407e-afb1-5f49e5177dc7
+  _SERVICE_ID: octue.services.fae64d4f-8757-407e-afb1-5f49e5177dc7
