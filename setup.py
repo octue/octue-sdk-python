@@ -17,13 +17,13 @@ with open("LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.1.11",
+    version="0.1.11",  # octue/resources/communication/google_cloud_function/requirements.txt should be in sync
     py_modules=["cli"],
     install_requires=[
         "blake3>=0.1.8",
         "click>=7.1.2",
         "coolname>=1.1.0",
-        "crcmod>=1.7",
+        "crc32c>=2.2",
         "google-cloud-pubsub>=2.2.0",
         "google-cloud-storage>=1.35.1",
         "twined==0.0.16",
