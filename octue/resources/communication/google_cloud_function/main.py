@@ -14,9 +14,7 @@ def run_analysis(event, context, deployment_configuration=None):
     :param google.cloud.functions.Context context: metadata for the event
     :return None:
     """
-    if deployment_configuration is None:
-        with open(os.environ["DEPLOYMENT_CONFIGURATION_PATH"]) as f:
-            deployment_configuration = json.load(f)
+    deployment_configuration = deployment_configuration or json.loads(os.environ["DEPLOYMENT_CONFIGURATION_PATH"])
 
     runner = Runner(
         app_src=deployment_configuration["app_dir"],

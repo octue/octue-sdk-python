@@ -1,4 +1,4 @@
-# To deploy, run this from the repository root: gcloud builds submit --config=cloudbuild.yaml octue/resources/communication/google_cloud_function
+# To deploy, run this from the repository root: gcloud builds submit --config=cloudbuild.yaml .
 
 steps:
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -7,10 +7,11 @@ steps:
   - functions
   - deploy
   - run_analysis
-  - --source=.
+  - --source=octue/resources/communication/google_cloud_function
   - --runtime=python38
   - --trigger-topic=$_SERVICE_ID
-  - --set-env-vars=DEPLOYMENT_CONFIGURATION_PATH=$_DEPLOYMENT_CONFIGURATION_PATH,SERVICE_ID=$_SERVICE_ID
+  - --set-env-vars=^##^DEPLOYMENT_CONFIGURATION=$_DEPLOYMENT_CONFIGURATION
+  - --set-env-vars=SERVICE_ID=$_SERVICE_ID
 substitutions:
-  _DEPLOYMENT_CONFIGURATION_PATH: ./deployment_configuration.json
+  _DEPLOYMENT_CONFIGURATION: '{"app_dir":"tests/resources/communication", "twine":"tests/resources/communication/twine.json"}'
   _SERVICE_ID: octue.services.fae64d4f-8757-407e-afb1-5f49e5177dc7
