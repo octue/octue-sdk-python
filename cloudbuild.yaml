@@ -1,7 +1,7 @@
 steps:
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   env:
-  - SERVICE_ID=fae64d4f-8757-407e-afb1-5f49e5177dc7
+  - 'SERVICE_ID=fae64d4f-8757-407e-afb1-5f49e5177dc7'
   args:
   - gcloud
   - functions
