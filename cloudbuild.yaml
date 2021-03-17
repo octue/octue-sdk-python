@@ -1,11 +1,11 @@
 steps:
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-  env:
-  - 'SERVICE_ID=fae64d4f-8757-407e-afb1-5f49e5177dc7'
   args:
   - gcloud
   - functions
   - deploy
   - run_analysis
   - --source=octue/resources/communication/google_cloud_function
-  - --trigger-topic octue.services.$SERVICE_ID
+  - --trigger-topic octue.services.$_SERVICE_ID
+substitutions:
+  _SERVICE_ID: fae64d4f-8757-407e-afb1-5f49e5177dc7
