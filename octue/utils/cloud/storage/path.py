@@ -13,7 +13,7 @@ def join(*paths):
     if not paths:
         return ""
 
-    path = os.path.normpath(os.path.join(*paths)).replace(os.sep, "/")
+    path = os.path.normpath(os.path.join(*paths)).replace(os.sep, "/").replace("\\", "/")
 
     if path.startswith("gs:/"):
         if not path.startswith(CLOUD_STORAGE_PROTOCOL):
@@ -65,7 +65,7 @@ def relpath(path, start):
     if start is not None:
         start = strip_protocol_from_path(start)
 
-    return os.path.relpath(strip_protocol_from_path(path), start)
+    return os.path.relpath(strip_protocol_from_path(path), start).replace("\\", "/")
 
 
 def split(path):
@@ -86,7 +86,7 @@ def dirname(path, name_only=False):
     :param bool name_only:
     :return str:
     """
-    directory_path = os.path.dirname(path)
+    directory_path = os.path.dirname(path).replace("\\", "/")
 
     if name_only:
         return split(directory_path)[-1]
