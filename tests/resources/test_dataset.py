@@ -271,10 +271,10 @@ class DatasetTestCase(BaseTestCase):
             self.assertEqual(len(filtered_files), 0)
 
     def test_hash_value(self):
-        """ Test hashing a dataset with multiple files gives a hash of length 128. """
+        """Test hashing a dataset with multiple files gives a hash of length 8."""
         hash_ = self.create_valid_dataset().hash_value
         self.assertTrue(isinstance(hash_, str))
-        self.assertTrue(len(hash_) == 64)
+        self.assertTrue(len(hash_) == 8)
 
     def test_hashes_for_the_same_dataset_are_the_same(self):
         """ Ensure the hashes for two datasets that are exactly the same are the same."""
