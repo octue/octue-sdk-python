@@ -9,8 +9,34 @@
 
 Utilities for running python based data services, digital twins and applications with the Octue toolkit and [twined](https://twined.readthedocs.io/en/latest/?badge=latest) SDK for python based apps running within octue.
 
+## Installation and usage
+For usage as a scientist or engineer, run the following command in your environment:
+```shell
+pip install octue
+```
+
+The command line interface (CLI) can then be accessed via:
+```shell
+octue-app --help
+```
 
 ## Developer notes
+
+### Installation
+For development, run the following from the repository root, which will editably install the package:
+```bash
+pip install -r requirements-dev.txt
+```
+
+### Testing
+These environment variables need to be set to run the tests:
+* `GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service/account/file.json`
+* `TEST_PROJECT_NAME=<name-of-google-cloud-project-to-run-pub-sub-tests-on>`
+
+Then, from the repository root, run
+```bash
+python3 -m unittest
+```
 
 **Documentation for use of the library is [here](https://octue-python-sdk.readthedocs.io). You don't need to pay attention to the following unless you plan to develop `octue-sdk-python` itself.**
 
@@ -61,7 +87,6 @@ pyenv virtualenv 3.8 myenv              # Makes a virtual environment for you to
 pyend activate myenv                    # Activates the virtual environment so you don't screw up other installations
 pip install -r requirements-dev.txt     # Installs the testing and code formatting utilities
 pre-commit install                      # Installs the pre-commit code formatting hooks in the git repo
-tox                                     # Runs the tests with coverage. NB you can also just set up pycharm or vscode to run these.
 ```
 
 - Adopt a Test Driven Development approach to implementing new features or fixing bugs.
@@ -79,7 +104,7 @@ roadmap, into which you can make your PR. We'll help review the changes and impr
 The process for creating a new release is as follows:
 
 1. Check out a branch for the next version, called `vX.Y.Z`
-2. Create a Pull Request into the `master` branch.
+2. Create a Pull Request into the `main` branch.
 3. Undertake your changes, committing and pushing to branch `vX.Y.Z`
 4. Ensure that documentation is updated to match changes, and increment the changelog. **Pull requests which do not update documentation will be refused.**
 5. Ensure that test coverage is sufficient. **Pull requests that decrease test coverage will be refused.**

@@ -1,30 +1,13 @@
 import os
 import unittest
 
-from tests.emulators import GoogleCloudStorageEmulator
+from octue.utils.cloud.emulators import GoogleCloudStorageEmulatorTestResultModifier
 
 
 TESTS_DIR = os.path.dirname(__file__)
-storage_emulator = GoogleCloudStorageEmulator()
+TEST_PROJECT_NAME = os.environ["TEST_PROJECT_NAME"]
+TEST_BUCKET_NAME = "octue-test-bucket"
 
-
-def startTestRun(instance):
-    """Start the test run, running any code in this function first.
-
-    :param unittest.TestResult instance:
-    :return None:
-    """
-    storage_emulator.start()
-
-
-def stopTestRun(instance):
-    """Finish the test run, running any code in this function first.
-
-    :param unittest.TestResult instance:
-    :return None:
-    """
-    storage_emulator.stop()
-
-
-setattr(unittest.TestResult, "startTestRun", startTestRun)
-setattr(unittest.TestResult, "stopTestRun", stopTestRun)
+test_result_modifier = GoogleCloudStorageEmulatorTestResultModifier(default_bucket_name=TEST_BUCKET_NAME)
+setattr(unittest.TestResult, "startTestRun", test_result_modifier.startTestRun)
+setattr(unittest.TestResult, "stopTestRun", test_result_modifier.stopTestRun)

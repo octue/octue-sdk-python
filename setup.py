@@ -17,7 +17,7 @@ with open("LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.1.9",
+    version="0.1.11",
     py_modules=["cli"],
     install_requires=[
         "blake3>=0.1.8",
@@ -27,7 +27,7 @@ setup(
         "google-cloud-pubsub>=2.2.0",
         "google-cloud-storage>=1.35.1",
         "twined==0.0.16",
-    ],  # Dev note: you also need to bump twined in tox.ini
+    ],
     url="https://www.github.com/octue/octue-sdk-python",
     license="MIT",
     author="Thomas Clark (github: thclark)",
