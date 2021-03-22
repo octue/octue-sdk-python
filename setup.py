@@ -22,6 +22,7 @@ setup(
     install_requires=[
         "click>=7.1.2",
         "coolname>=1.1.0",
+        "Flask>=1.1",
         "google-crc32c>=1.1.2",
         "google-cloud-pubsub>=2.2.0",
         "google-cloud-storage>=1.35.1",
