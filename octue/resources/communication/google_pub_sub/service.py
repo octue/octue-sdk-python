@@ -38,13 +38,14 @@ class Service(CoolNameable):
         self.id = id
         self.backend = backend
         self.run_function = run_function
-        self.publisher = pubsub_v1.PublisherClient(
-            credentials=GCPCredentialsManager(backend.credentials_environment_variable).get_credentials(),
-            batch_settings=BATCH_SETTINGS,
-        )
-        self.subscriber = pubsub_v1.SubscriberClient(
-            credentials=GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
-        )
+
+        if backend.credentials_environment_variable is None:
+            credentials = None
+        else:
+            credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
+
+        self.publisher = pubsub_v1.PublisherClient(credentials=credentials, batch_settings=BATCH_SETTINGS)
+        self.subscriber = pubsub_v1.SubscriberClient(credentials=credentials)
         super().__init__()
 
     def __repr__(self):
