@@ -1,5 +1,6 @@
+import base64
 import collections.abc
-from blake3 import blake3
+from google_crc32c import Checksum
 
 
 _HASH_PREPARATION_FUNCTIONS = {
@@ -14,7 +15,7 @@ _HASH_PREPARATION_FUNCTIONS = {
 class Hashable:
 
     _ATTRIBUTES_TO_HASH = None
-    _HASH_TYPE = "BLAKE3"
+    _HASH_TYPE = "CRC32C"
 
     def __init__(self, hash_value=None, *args, **kwargs):
         self._hash_value = hash_value
@@ -60,9 +61,9 @@ class Hashable:
         self._hash_value = self._calculate_hash()
 
     def _calculate_hash(self, hash_=None):
-        """Calculate the BLAKE3 hash of the sorted attributes in self._ATTRIBUTES_TO_HASH. If hash_ is not None and is
-        a BLAKE3 hasher object, its in-progress hash will be updated, rather than starting from scratch."""
-        hash_ = hash_ or blake3()
+        """Calculate the hash of the sorted attributes in self._ATTRIBUTES_TO_HASH. If hash_ is not None and is
+        a hasher object, its in-progress hash will be updated, rather than starting from scratch."""
+        hash_ = hash_ or Checksum()
 
         for attribute_name in sorted(self._ATTRIBUTES_TO_HASH):
             attribute = getattr(self, attribute_name)
@@ -78,11 +79,11 @@ class Hashable:
 
             hash_.update(items_to_hash.encode())
 
-        return hash_.hexdigest()
+        return base64.b64encode(hash_.digest()).decode("utf-8")
 
     @staticmethod
     def _prepare_iterable_for_hashing(attribute_name, attribute):
-        """ Prepare an iterable attribute for hashing, using the items' own BLAKE3 hashes if available. """
+        """ Prepare an iterable attribute for hashing, using the items' own hashes if available. """
         items = tuple(attribute)
 
         if any(hasattr(item, "hash_value") for item in items):

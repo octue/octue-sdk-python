@@ -43,4 +43,4 @@ class AnalysisTestCase(BaseTestCase):
         for strand_name in _HASH_FUNCTIONS:
             hash_ = getattr(analysis, f"{strand_name}_hash")
             self.assertTrue(isinstance(hash_, str))
-            self.assertTrue(len(hash_) == 64)
+            self.assertTrue(len(hash_) == 8)

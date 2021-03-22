@@ -123,10 +123,10 @@ class DatafileTestCase(BaseTestCase):
             self.assertIn(k, df_dict.keys())
 
     def test_hash_value(self):
-        """ Test hashing a datafile gives a hash of length 128. """
+        """Test hashing a datafile gives a hash of length 8."""
         hash_ = self.create_valid_datafile().hash_value
         self.assertTrue(isinstance(hash_, str))
-        self.assertTrue(len(hash_) == 64)
+        self.assertTrue(len(hash_) == 8)
 
     def test_hashes_for_the_same_datafile_are_the_same(self):
         """ Ensure the hashes for two datafiles that are exactly the same are the same."""
