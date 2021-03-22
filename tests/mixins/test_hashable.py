@@ -62,7 +62,7 @@ class HashableTestCase(BaseTestCase):
     def test_set_hash_value_overrides_calculated_hash(self):
         """Test that hash values that are set override the calculated value."""
         type_with_hash = TypeWithAttributeToHash()
-        self.assertEqual(len(type_with_hash.hash_value), 64)
+        self.assertEqual(len(type_with_hash.hash_value), 8)
 
         type_with_hash.hash_value = "hello"
         self.assertEqual(type_with_hash.hash_value, "hello")
@@ -71,7 +71,7 @@ class HashableTestCase(BaseTestCase):
         """Test that hash values can be set and then reset to the calculated value."""
         type_with_hash = TypeWithAttributeToHash()
         original_calculated_hash = type_with_hash.hash_value
-        self.assertEqual(len(original_calculated_hash), 64)
+        self.assertEqual(len(original_calculated_hash), 8)
 
         type_with_hash.hash_value = "hello"
         self.assertEqual(type_with_hash.hash_value, "hello")
