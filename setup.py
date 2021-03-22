@@ -20,10 +20,9 @@ setup(
     version="0.1.11",  # octue/resources/communication/google_cloud_function/requirements.txt should be in sync
     py_modules=["cli"],
     install_requires=[
-        "blake3>=0.1.8",
         "click>=7.1.2",
         "coolname>=1.1.0",
-        "crc32c>=2.2",
+        "google-crc32c>=1.1.2",
         "google-cloud-pubsub>=2.2.0",
         "google-cloud-storage>=1.35.1",
         "twined==0.0.16",

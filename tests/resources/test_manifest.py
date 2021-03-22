@@ -12,11 +12,11 @@ from tests.base import BaseTestCase
 
 class TestManifest(BaseTestCase):
     def test_hash_value(self):
-        """ Test hashing a manifest with multiple datasets gives a hash of length 128. """
+        """Test hashing a manifest with multiple datasets gives a hash of length 8."""
         manifest = self.create_valid_manifest()
         hash_ = manifest.hash_value
         self.assertTrue(isinstance(hash_, str))
-        self.assertTrue(len(hash_) == 64)
+        self.assertTrue(len(hash_) == 8)
 
     def test_hashes_for_the_same_manifest_are_the_same(self):
         """ Ensure the hashes for two manifests that are exactly the same are the same."""

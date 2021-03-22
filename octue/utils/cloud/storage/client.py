@@ -1,9 +1,9 @@
 import base64
 import json
 import logging
-from crc32c import crc32c
 from google.cloud import storage
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
+from google_crc32c import Checksum
 
 from octue.utils.cloud.credentials import GCPCredentialsManager
 
@@ -162,8 +162,8 @@ class GoogleCloudStorageClient:
         :param str string:
         :return str:
         """
-        checksum = crc32c(string.encode())
-        return base64.b64encode(checksum.to_bytes(length=4, byteorder="big")).decode("utf-8")
+        checksum = Checksum(string.encode())
+        return base64.b64encode(checksum.digest()).decode("utf-8")
 
     def _update_metadata(self, blob, metadata):
         """Update the metadata for the given blob. Note that this is synced up with Google Cloud.

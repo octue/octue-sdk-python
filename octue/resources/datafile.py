@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime
-from blake3 import blake3
+from google_crc32c import Checksum
 
 from octue.exceptions import FileNotFoundException, InvalidInputException
 from octue.mixins import Filterable, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
@@ -182,7 +182,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     def _calculate_hash(self):
         """Calculate the hash of the file."""
-        hash = blake3()
+        hash = Checksum()
 
         with open(self.absolute_path, "rb") as f:
             # Read and update hash value in blocks of 4K
