@@ -41,7 +41,10 @@ class TestCloudRun(TestCase):
 
         topic.create()
 
-        asker = Service(id=str(uuid.uuid4()), backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        asker = Service(
+            id=str(uuid.uuid4()),
+            backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME, credentials_environment_variable=None),
+        )
 
         with mock.patch("google.cloud.pubsub_v1.publisher.client.Client.publish"):
             subscription, question_uuid = asker.ask(
