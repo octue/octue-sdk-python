@@ -6,7 +6,7 @@ import uuid
 from unittest import TestCase, mock
 
 from octue.deployment.google import cloud_run
-from octue.deployment.google.cloud_run import run_analysis
+from octue.deployment.google.cloud_run import answer_question
 from octue.resources.communication.google_pub_sub import Topic
 from octue.resources.communication.google_pub_sub.service import OCTUE_NAMESPACE, Service
 from octue.resources.communication.service_backends import GCPPubSubBackend
@@ -51,7 +51,7 @@ class TestCloudRun(TestCase):
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             answer_future = executor.submit(asker.wait_for_answer, subscription)
             executor.submit(
-                run_analysis,
+                answer_question,
                 data={"input_values": input_values, "input_manifest": input_manifest},
                 question_uuid=question_uuid,
                 deployment_configuration=deployment_configuration,

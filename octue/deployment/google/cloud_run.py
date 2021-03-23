@@ -35,7 +35,7 @@ def index():
     question_uuid = message["attributes"]["question_uuid"]
     logger.info("Received question %r.", question_uuid)
 
-    run_analysis(data, question_uuid)
+    answer_question(data, question_uuid)
     logger.info("Analysis run and response sent for question %r.", question_uuid)
     return ("", 204)
 
@@ -50,10 +50,11 @@ def _log_bad_request_and_return_400_response(message):
     return (f"Bad Request: {message}", 400)
 
 
-def run_analysis(
+def answer_question(
     data, question_uuid, deployment_configuration_path="deployment_configuration.json", deployment_configuration=None
 ):
-    """Run an analysis on the given data using the app with the deployment configuration.
+    """Answer a question from a service by running an analysis on the given data using the app with the deployment
+    configuration.
 
     :param dict event: Google Cloud event
     :param google.cloud.functions.Context context: metadata for the event
