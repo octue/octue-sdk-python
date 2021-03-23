@@ -32,21 +32,24 @@ class TestCloudRun(TestCase):
         input_values = {"n_iterations": 3}
         input_manifest = None
 
-        answering_service = Service(id=answering_service_id, backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
-
         # Create answering service topic (this would have been created already in production).
-        topic = Topic(name=answering_service_id, namespace=OCTUE_NAMESPACE, service=answering_service)
+        topic = Topic(
+            name=answering_service_id,
+            namespace=OCTUE_NAMESPACE,
+            service=Service(id=answering_service_id, backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME)),
+        )
+
         topic.create()
 
-        asking_service = Service(id=str(uuid.uuid4()), backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        asker = Service(id=str(uuid.uuid4()), backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         with mock.patch("google.cloud.pubsub_v1.publisher.client.Client.publish"):
-            subscription, question_uuid = asking_service.ask(
+            subscription, question_uuid = asker.ask(
                 service_id=answering_service_id, input_values=input_values, input_manifest=input_manifest
             )
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-            answer_future = executor.submit(asking_service.wait_for_answer, subscription)
+            answer_future = executor.submit(asker.wait_for_answer, subscription)
             executor.submit(
                 run_analysis,
                 data={"input_values": input_values, "input_manifest": input_manifest},
@@ -54,7 +57,8 @@ class TestCloudRun(TestCase):
                 deployment_configuration=deployment_configuration,
             )
 
-        answer = answer_future.result()
+            answer = answer_future.result()
+
         self.assertEqual(answer, {"output_values": "It worked!", "output_manifest": None})
         topic.delete()
 
