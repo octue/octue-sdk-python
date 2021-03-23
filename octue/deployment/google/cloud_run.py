@@ -40,18 +40,21 @@ def index():
     return ("", 204)
 
 
-def run_analysis(data, question_uuid, deployment_configuration_path=None):
+def run_analysis(
+    data, question_uuid, deployment_configuration_path="deployment_configuration.json", deployment_configuration=None
+):
     """Run an analysis on the given data using the app with the deployment configuration.
 
     :param dict event: Google Cloud event
     :param google.cloud.functions.Context context: metadata for the event
     :return None:
     """
-    with open(deployment_configuration_path or "deployment_configuration.json") as f:
-        deployment_configuration = json.load(f)
+    if not deployment_configuration:
+        with open(deployment_configuration_path) as f:
+            deployment_configuration = json.load(f)
 
     runner = Runner(
-        app_src=".",
+        app_src=deployment_configuration.get("app_dir", "."),
         twine=deployment_configuration.get("twine", "twine.json"),
         configuration_values=deployment_configuration.get("configuration_values", None),
         configuration_manifest=deployment_configuration.get("configuration_manifest", None),
