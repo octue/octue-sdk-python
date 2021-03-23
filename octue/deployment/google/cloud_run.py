@@ -18,29 +18,36 @@ app = Flask(__name__)
 
 @app.route("/", methods=["POST"])
 def index():
-    logger.info(request)
-    logger.info(vars(request))
     envelope = request.get_json()
-    logger.info(envelope)
 
     if not envelope:
-        message = "No Pub/Sub message received."
-        logger.error(message)
-        return f"Bad Request: {message}", 400
+        return _log_bad_request_and_return_400_response("No Pub/Sub message received.")
 
     if not isinstance(envelope, dict) or "message" not in envelope:
-        message = "Invalid Pub/Sub message format."
-        logger.error(message)
-        return f"Bad Request: {message}", 400
+        return _log_bad_request_and_return_400_response("Invalid Pub/Sub message format.")
 
-    pubsub_message = envelope["message"]
-    data = json.loads(base64.b64decode(pubsub_message["data"]).decode("utf-8").strip())
-    question_uuid = pubsub_message["attributes"]["question_uuid"]
+    message = envelope["message"]
+
+    if "data" not in message or "attributes" not in message or "question_uuid" not in message["attributes"]:
+        return _log_bad_request_and_return_400_response("Invalid Pub/Sub message format.")
+
+    data = json.loads(base64.b64decode(message["data"]).decode("utf-8").strip())
+    question_uuid = message["attributes"]["question_uuid"]
     logger.info("Received question %r.", question_uuid)
 
     run_analysis(data, question_uuid)
     logger.info("Analysis run and response sent for question %r.", question_uuid)
     return ("", 204)
+
+
+def _log_bad_request_and_return_400_response(message):
+    """Log an error return a bad request (400) response.
+
+    :param str message:
+    :return (str, int):
+    """
+    logger.error(message)
+    return (f"Bad Request: {message}", 400)
 
 
 def run_analysis(
