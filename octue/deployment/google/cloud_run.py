@@ -18,6 +18,10 @@ app = Flask(__name__)
 
 @app.route("/", methods=["POST"])
 def index():
+    """Receive questions from Google Cloud Run in the form of Google Pub/Sub messages.
+
+    :return (str, int):
+    """
     envelope = request.get_json()
 
     if not envelope:
@@ -56,8 +60,10 @@ def answer_question(
     """Answer a question from a service by running an analysis on the given data using the app with the deployment
     configuration.
 
-    :param dict event: Google Cloud event
-    :param google.cloud.functions.Context context: metadata for the event
+    :param dict data:
+    :param str question_uuid:
+    :param str deployment_configuration_path:
+    :param dict|None deployment_configuration:
     :return None:
     """
     if not deployment_configuration:
