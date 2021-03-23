@@ -38,13 +38,9 @@ class TestCloudRun(TestCase):
             namespace=OCTUE_NAMESPACE,
             service=Service(id=answering_service_id, backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME)),
         )
-
         topic.create()
 
-        asker = Service(
-            id=str(uuid.uuid4()),
-            backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME, credentials_environment_variable=None),
-        )
+        asker = Service(id=str(uuid.uuid4()), backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         with mock.patch("google.cloud.pubsub_v1.publisher.client.Client.publish"):
             subscription, question_uuid = asker.ask(
@@ -53,12 +49,19 @@ class TestCloudRun(TestCase):
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             answer_future = executor.submit(asker.wait_for_answer, subscription)
-            executor.submit(
-                answer_question,
-                data={"input_values": input_values, "input_manifest": input_manifest},
-                question_uuid=question_uuid,
-                deployment_configuration=deployment_configuration,
-            )
+
+            # Avoid using Google's implicit credentials for test.
+            with mock.patch(
+                "octue.resources.communication.service_backends.GCPPubSubBackend",
+                new=GCPPubSubBackend(project_name=TEST_PROJECT_NAME),
+            ):
+
+                executor.submit(
+                    answer_question,
+                    data={"input_values": input_values, "input_manifest": input_manifest},
+                    question_uuid=question_uuid,
+                    deployment_configuration=deployment_configuration,
+                )
 
             answer = answer_future.result()
 
