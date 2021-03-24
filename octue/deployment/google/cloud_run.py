@@ -39,11 +39,12 @@ def index():
     if "data" not in message or "attributes" not in message or "question_uuid" not in message["attributes"]:
         return _log_bad_request_and_return_400_response("Invalid Pub/Sub message format.")
 
+    project_name = envelope["subscription"].split("/")[1]
     data = json.loads(base64.b64decode(message["data"]).decode("utf-8").strip())
     question_uuid = message["attributes"]["question_uuid"]
     logger.info("Received question %r.", question_uuid)
 
-    answer_question(data, question_uuid)
+    answer_question(project_name, data, question_uuid)
     logger.info("Analysis run and response sent for question %r.", question_uuid)
     return ("", 204)
 
@@ -59,11 +60,16 @@ def _log_bad_request_and_return_400_response(message):
 
 
 def answer_question(
-    data, question_uuid, deployment_configuration_path="deployment_configuration.json", deployment_configuration=None
+    project_name,
+    data,
+    question_uuid,
+    deployment_configuration_path="deployment_configuration.json",
+    deployment_configuration=None,
 ):
     """Answer a question from a service by running an analysis on the given data using the app with the deployment
     configuration.
 
+    :param str project_name:
     :param dict data:
     :param str question_uuid:
     :param str deployment_configuration_path:
@@ -87,11 +93,9 @@ def answer_question(
         show_twined_logs=deployment_configuration.get("show_twined_logs", False),
     )
 
-    logger.info(os.environ["PROJECT_ID"])
-
     service = Service(
         id=os.environ["SERVICE_ID"],
-        backend=GCPPubSubBackend(project_name=os.environ["PROJECT_ID"], credentials_environment_variable=None),
+        backend=GCPPubSubBackend(project_name=project_name, credentials_environment_variable=None),
         run_function=runner.run,
     )
 
