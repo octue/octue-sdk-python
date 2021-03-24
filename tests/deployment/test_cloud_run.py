@@ -101,3 +101,13 @@ class TestCloudRun(TestCase):
                 )
 
                 self.assertEqual(response.status_code, 204)
+
+    def test_cloud_run_integration(self):
+        """Test that the Google Cloud Run integration works, providing a service that can be asked questions and send
+        responses.
+        """
+        service_to_ask = "octue.services.009ea106-dc37-4521-a8cc-3e0836064334"
+        asker = Service(id=str(uuid.uuid4()), backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        subscription, _ = asker.ask(service_id=service_to_ask, input_values={"n_iterations": 3})
+        answer = asker.wait_for_answer(subscription)
+        self.assertEqual(answer, {"output_values": [1, 2, 3, 4, 5], "output_manifest": None})
