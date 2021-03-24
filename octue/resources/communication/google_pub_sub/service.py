@@ -6,7 +6,6 @@ from google.api_core import retry
 from google.cloud import pubsub_v1
 
 from octue import exceptions
-from octue.logging_handlers import apply_log_handler
 from octue.mixins import CoolNameable
 from octue.resources.communication.google_pub_sub import Subscription, Topic
 from octue.resources.manifest import Manifest
@@ -14,9 +13,6 @@ from octue.utils.cloud.credentials import GCPCredentialsManager
 
 
 logger = logging.getLogger(__name__)
-
-
-apply_log_handler(logger)
 
 
 OCTUE_NAMESPACE = "octue.services"
