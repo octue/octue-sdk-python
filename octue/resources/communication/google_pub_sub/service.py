@@ -100,18 +100,6 @@ class Service(CoolNameable):
         else:
             serialised_output_manifest = analysis.output_manifest.serialise(to_string=True)
 
-        logger.info(topic.path)
-        logger.info(analysis.output_values)
-        logger.info(serialised_output_manifest)
-        logger.info(
-            json.dumps({"output_values": analysis.output_values, "output_manifest": serialised_output_manifest})
-        )
-        logger.info(
-            json.dumps(
-                {"output_values": analysis.output_values, "output_manifest": serialised_output_manifest}
-            ).encode()
-        )
-
         self.publisher.publish(
             topic=topic.path,
             data=json.dumps(

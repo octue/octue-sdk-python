@@ -24,8 +24,6 @@ def index():
     """
     envelope = request.get_json()
 
-    logger.info(envelope)
-
     if not envelope:
         return _log_bad_request_and_return_400_response("No Pub/Sub message received.")
 
@@ -33,8 +31,6 @@ def index():
         return _log_bad_request_and_return_400_response("Invalid Pub/Sub message format.")
 
     message = envelope["message"]
-
-    logger.info(message)
 
     if "data" not in message or "attributes" not in message or "question_uuid" not in message["attributes"]:
         return _log_bad_request_and_return_400_response("Invalid Pub/Sub message format.")
