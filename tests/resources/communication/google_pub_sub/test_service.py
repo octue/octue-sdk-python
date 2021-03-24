@@ -98,7 +98,7 @@ class TestService(BaseTestCase):
         """Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
         results in an error."""
         with self.assertRaises(exceptions.ServiceNotFound):
-            Service(backend=self.BACKEND, id=str(uuid.uuid4())).ask(service_id=1234, input_values=[1, 2, 3, 4])
+            Service(backend=self.BACKEND).ask(service_id="hello", input_values=[1, 2, 3, 4])
 
     def test_ask(self):
         """ Test that a service can ask a question to another service that is serving and receive an answer. """
