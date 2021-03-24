@@ -39,7 +39,7 @@ class Service(CoolNameable):
     """
 
     def __init__(self, backend, id=None, run_function=None):
-        self.id = id
+        self.id = id or str(uuid.uuid4())
         self.backend = backend
         self.run_function = run_function
 
