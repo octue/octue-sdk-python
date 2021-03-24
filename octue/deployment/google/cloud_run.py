@@ -24,6 +24,8 @@ def index():
     """
     envelope = request.get_json()
 
+    logger.info(envelope)
+
     if not envelope:
         return _log_bad_request_and_return_400_response("No Pub/Sub message received.")
 
@@ -31,6 +33,8 @@ def index():
         return _log_bad_request_and_return_400_response("Invalid Pub/Sub message format.")
 
     message = envelope["message"]
+
+    logger.info(message)
 
     if "data" not in message or "attributes" not in message or "question_uuid" not in message["attributes"]:
         return _log_bad_request_and_return_400_response("Invalid Pub/Sub message format.")
@@ -82,6 +86,8 @@ def answer_question(
         handler=deployment_configuration.get("log_handler", None),
         show_twined_logs=deployment_configuration.get("show_twined_logs", False),
     )
+
+    logger.info(os.environ["PROJECT_ID"])
 
     service = Service(
         id=os.environ["SERVICE_ID"],

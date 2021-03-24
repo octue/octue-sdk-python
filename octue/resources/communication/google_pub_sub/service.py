@@ -6,6 +6,7 @@ from google.api_core import retry
 from google.cloud import pubsub_v1
 
 from octue import exceptions
+from octue.logging_handlers import apply_log_handler
 from octue.mixins import CoolNameable
 from octue.resources.communication.google_pub_sub import Subscription, Topic
 from octue.resources.manifest import Manifest
@@ -13,6 +14,9 @@ from octue.utils.cloud.credentials import GCPCredentialsManager
 
 
 logger = logging.getLogger(__name__)
+
+
+apply_log_handler(logger)
 
 
 OCTUE_NAMESPACE = "octue.services"
@@ -95,6 +99,18 @@ class Service(CoolNameable):
             serialised_output_manifest = None
         else:
             serialised_output_manifest = analysis.output_manifest.serialise(to_string=True)
+
+        logger.info(topic.path)
+        logger.info(analysis.output_values)
+        logger.info(serialised_output_manifest)
+        logger.info(
+            json.dumps({"output_values": analysis.output_values, "output_manifest": serialised_output_manifest})
+        )
+        logger.info(
+            json.dumps(
+                {"output_values": analysis.output_values, "output_manifest": serialised_output_manifest}
+            ).encode()
+        )
 
         self.publisher.publish(
             topic=topic.path,
