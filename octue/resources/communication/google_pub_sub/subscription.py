@@ -11,12 +11,14 @@ class Subscription:
     """
 
     def __init__(self, name, topic, namespace, service):
-        self.name = name
+        if name.startswith(namespace):
+            self.name = name
+        else:
+            self.name = f"{namespace}.{name}"
+
         self.topic = topic
         self.service = service
-        self.path = self.service.subscriber.subscription_path(
-            self.service.backend.project_name, f"{namespace}.{self.name}"
-        )
+        self.path = self.service.subscriber.subscription_path(self.service.backend.project_name, self.name)
 
     def __repr__(self):
         return f"<{type(self).__name__}({self.name})>"
