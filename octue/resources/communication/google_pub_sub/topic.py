@@ -11,9 +11,16 @@ class Topic:
     """
 
     def __init__(self, name, namespace, service):
-        self.name = name
+        if name.startswith(namespace):
+            self.name = name
+        else:
+            self.name = f"{namespace}.{name}"
+
         self.service = service
-        self.path = self.service.publisher.topic_path(service.backend.project_name, f"{namespace}.{self.name}")
+        self.path = self.service.publisher.topic_path(service.backend.project_name, self.name)
+
+    def __repr__(self):
+        return f"<{type(self).__name__}({self.name})>"
 
     def create(self, allow_existing=False):
         """ Create a Google Pub/Sub topic that can be published to. """

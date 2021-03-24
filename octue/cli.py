@@ -1,4 +1,3 @@
-import functools
 import os
 import sys
 import click
@@ -137,23 +136,24 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     )
 
     runner = Runner(
+        app_src=app_dir,
         twine=twine,
         configuration_values=configruation_values,
         configuration_manifest=configuration_manifest,
+        output_manifest_path=os.path.join(output_dir, MANIFEST_FILENAME),
+        children=children,
+        skip_checks=global_cli_context["skip_checks"],
         log_level=global_cli_context["log_level"],
         handler=global_cli_context["log_handler"],
         show_twined_logs=global_cli_context["show_twined_logs"],
     )
 
     analysis = runner.run(
-        app_src=app_dir,
         analysis_id=global_cli_context["analysis_id"],
         input_values=input_values,
         input_manifest=input_manifest,
-        children=children,
-        output_manifest_path=os.path.join(output_dir, MANIFEST_FILENAME),
-        skip_checks=global_cli_context["skip_checks"],
     )
+
     analysis.finalise(output_dir=output_dir)
     return 0
 
@@ -209,25 +209,21 @@ def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topi
     )
 
     runner = Runner(
+        app_src=app_dir,
         twine=twine,
         configuration_values=configuration_values,
         configuration_manifest=configuration_manifest,
+        children=children,
+        skip_checks=global_cli_context["skip_checks"],
         log_level=global_cli_context["log_level"],
         handler=global_cli_context["log_handler"],
         show_twined_logs=global_cli_context["show_twined_logs"],
     )
 
-    run_function = functools.partial(
-        runner.run,
-        app_src=app_dir,
-        children=children,
-        skip_checks=global_cli_context["skip_checks"],
-    )
-
     backend_configuration_values = runner.configuration["configuration_values"]["backend"]
     backend = service_backends.get_backend(backend_configuration_values.pop("name"))(**backend_configuration_values)
 
-    service = Service(id=service_id, backend=backend, run_function=run_function)
+    service = Service(id=service_id, backend=backend, run_function=runner.run)
     service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=delete_topic_and_subscription_on_exit)
 
 
