@@ -62,8 +62,8 @@ def answer_question(
     deployment_configuration_path="deployment_configuration.json",
     deployment_configuration=None,
 ):
-    """Answer a question from a service by running an analysis on the given data using the app with the deployment
-    configuration.
+    """Answer a question from a service by running the deployed app with the deployment configuration. Either the
+    `deployment_configuration_path` should be specified, or the `deployment_configuration`.
 
     :param str project_name:
     :param dict data:
