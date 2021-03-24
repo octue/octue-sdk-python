@@ -17,7 +17,7 @@ with open("LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.1.11",  # octue/resources/communication/google_cloud_function/requirements.txt should be in sync
+    version="0.1.11",  # Ensure all requirements files containing octue are updated, too (e.g. docs build).
     py_modules=["cli"],
     install_requires=[
         "click>=7.1.2",
