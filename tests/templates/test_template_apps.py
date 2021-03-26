@@ -91,7 +91,7 @@ class TemplateAppsTestCase(BaseTestCase):
         elevation_service_uuid = str(uuid.uuid4())
         elevation_process = subprocess.Popen(
             [
-                "python",
+                sys.executable,
                 cli_path,
                 "start",
                 f"--app-dir={elevation_service_path}",
@@ -106,7 +106,7 @@ class TemplateAppsTestCase(BaseTestCase):
         wind_speed_service_uuid = str(uuid.uuid4())
         wind_speed_process = subprocess.Popen(
             [
-                "python",
+                sys.executable,
                 cli_path,
                 "start",
                 f"--app-dir={wind_speed_service_path}",
