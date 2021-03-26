@@ -41,14 +41,25 @@ class Runner:
 
     def __init__(
         self,
+        app_src,
         twine="twine.json",
         configuration_values=None,
         configuration_manifest=None,
+        output_manifest_path=None,
+        credentials=None,
+        children=None,
+        skip_checks=False,
         log_level=logging.INFO,
         handler=None,
         show_twined_logs=False,
     ):
         """ Constructor for the Runner class. """
+        self.app_src = app_src
+        self.output_manifest_path = output_manifest_path
+        self.credentials = credentials
+        self.children = children
+        self.skip_checks = skip_checks
+
         # Store the log level (same log level used for all analyses)
         self._log_level = log_level
         self.handler = handler
@@ -111,17 +122,7 @@ class Runner:
         # Otherwise do nothing and rely on manifest having its path variable set already
         return manifest
 
-    def run(
-        self,
-        app_src,
-        analysis_id=None,
-        input_values=None,
-        input_manifest=None,
-        credentials=None,
-        children=None,
-        output_manifest_path=None,
-        skip_checks=False,
-    ):
+    def run(self, analysis_id=None, input_values=None, input_manifest=None):
         """Run an analysis
 
         :parameter app_src: Either: an instance of the AppFrom manager class which has a run() method, or
@@ -162,8 +163,8 @@ class Runner:
         inputs = self.twine.validate(
             input_values=input_values,
             input_manifest=input_manifest,
-            credentials=credentials,
-            children=children,
+            credentials=self.credentials,
+            children=self.children,
             cls=CLASS_MAP,
             allow_missing=False,
             allow_extra=False,
@@ -187,7 +188,7 @@ class Runner:
         # TODO this is hacky, we need to rearchitect the twined validation so we can do this kind of thing in there
         outputs_and_monitors["output_manifest"] = self._update_manifest_path(
             outputs_and_monitors.get("output_manifest", None),
-            output_manifest_path,
+            self.output_manifest_path,
         )
 
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
@@ -198,20 +199,20 @@ class Runner:
             id=analysis_id,
             logger=analysis_logger,
             twine=self.twine,
-            skip_checks=skip_checks,
+            skip_checks=self.skip_checks,
             **self.configuration,
             **inputs,
             **outputs_and_monitors,
         )
 
         try:
-            if hasattr(app_src, "run"):
-                app_src.run(analysis)
-            elif isinstance(app_src, str):
-                with AppFrom(app_src) as app:
+            if hasattr(self.app_src, "run"):
+                self.app_src.run(analysis)
+            elif isinstance(self.app_src, str):
+                with AppFrom(self.app_src) as app:
                     app.run(analysis)
             else:
-                app_src(analysis)
+                self.app_src(analysis)
 
         except Exception as e:
             analysis_logger.error(str(e))

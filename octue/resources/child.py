@@ -21,5 +21,5 @@ class Child:
         """Ask the child a question (i.e. send it some input value and/or a manifest and wait for it to run an analysis
         on them and return the output values). The input values given must adhere to the Twine file of the child.
         """
-        subscription = self._service.ask(self.id, input_values, input_manifest)
+        subscription, _ = self._service.ask(self.id, input_values, input_manifest)
         return self._service.wait_for_answer(subscription, timeout)

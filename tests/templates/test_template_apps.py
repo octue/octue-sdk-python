@@ -56,26 +56,26 @@ class TemplateAppsTestCase(BaseTestCase):
         """ Ensures fractal app can be configured with its default configuration. """
         self.set_template("template-python-fractal")
         runner = Runner(
+            app_src=self.template_path,
             twine=self.template_twine,
             configuration_values=os.path.join("data", "configuration", "configuration_values.json"),
+            output_manifest_path=os.path.join("data", "output", "manifest.json"),
         )
-        analysis = runner.run(
-            app_src=self.template_path, output_manifest_path=os.path.join("data", "output", "manifest.json")
-        )
+
+        analysis = runner.run()
         analysis.finalise(output_dir=os.path.join("data", "output"))
 
     def test_using_manifests(self):
         """ Ensures using-manifests app works correctly. """
         self.set_template("template-using-manifests")
         runner = Runner(
+            app_src=self.template_path,
             twine=self.template_twine,
             configuration_values=os.path.join("data", "configuration", "values.json"),
-        )
-        analysis = runner.run(
-            app_src=self.template_path,
-            input_manifest=os.path.join("data", "input", "manifest.json"),
             output_manifest_path=os.path.join("data", "output", "manifest.json"),
         )
+
+        analysis = runner.run(input_manifest=os.path.join("data", "input", "manifest.json"))
         analysis.finalise(output_dir=os.path.join("data", "output"))
         self.assertTrue(os.path.isfile(os.path.join("data", "output", "cleaned_met_mast_data", "cleaned.csv")))
 
@@ -91,7 +91,7 @@ class TemplateAppsTestCase(BaseTestCase):
         elevation_service_uuid = str(uuid.uuid4())
         elevation_process = subprocess.Popen(
             [
-                "python",
+                sys.executable,
                 cli_path,
                 "start",
                 f"--app-dir={elevation_service_path}",
@@ -106,7 +106,7 @@ class TemplateAppsTestCase(BaseTestCase):
         wind_speed_service_uuid = str(uuid.uuid4())
         wind_speed_process = subprocess.Popen(
             [
-                "python",
+                sys.executable,
                 cli_path,
                 "start",
                 f"--app-dir={wind_speed_service_path}",
@@ -135,11 +135,13 @@ class TemplateAppsTestCase(BaseTestCase):
                 with open(test_children_path, "w") as f:
                     json.dump(template_children, f)
 
-                runner = Runner(twine=os.path.join(parent_service_path, "twine.json"))
+                runner = Runner(
+                    app_src=parent_service_path,
+                    twine=os.path.join(parent_service_path, "twine.json"),
+                    children=test_children_path,
+                )
                 time.sleep(5)
                 analysis = runner.run(
-                    app_src=parent_service_path,
-                    children=test_children_path,
                     input_values=os.path.join(parent_service_path, "data", "input", "values.json"),
                 )
 

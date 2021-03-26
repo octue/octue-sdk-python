@@ -35,16 +35,17 @@ class Service(CoolNameable):
     """
 
     def __init__(self, backend, id=None, run_function=None):
-        self.id = id
+        self.id = id or str(uuid.uuid4())
         self.backend = backend
         self.run_function = run_function
-        self.publisher = pubsub_v1.PublisherClient(
-            credentials=GCPCredentialsManager(backend.credentials_environment_variable).get_credentials(),
-            batch_settings=BATCH_SETTINGS,
-        )
-        self.subscriber = pubsub_v1.SubscriberClient(
-            credentials=GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
-        )
+
+        if backend.credentials_environment_variable is None:
+            credentials = None
+        else:
+            credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
+
+        self.publisher = pubsub_v1.PublisherClient(credentials=credentials, batch_settings=BATCH_SETTINGS)
+        self.subscriber = pubsub_v1.SubscriberClient(credentials=credentials)
         super().__init__()
 
     def __repr__(self):
@@ -59,7 +60,7 @@ class Service(CoolNameable):
         subscription = Subscription(name=self.id, topic=topic, namespace=OCTUE_NAMESPACE, service=self)
         subscription.create(allow_existing=True)
 
-        future = self.subscriber.subscribe(subscription=subscription.path, callback=self.answer)
+        future = self.subscriber.subscribe(subscription=subscription.path, callback=self.receive_question_then_answer)
         logger.debug("%r is waiting for questions.", self)
 
         with self.subscriber:
@@ -72,17 +73,19 @@ class Service(CoolNameable):
                 topic.delete()
                 subscription.delete()
 
-    def answer(self, question):
-        """Acknowledge and answer a question (i.e. receive the question (input values and/or manifest), run the
-        Service's app to analyse it, and return the output values to the asker). Answers are published to a topic whose
-        name is generated from the UUID sent with the question, and are in the format specified in the Service's Twine
-        file.
-        """
+    def receive_question_then_answer(self, question):
+        """Receive a question, acknowledge it, then answer it."""
         logger.info("%r received a question.", self)
         data = json.loads(question.data.decode())
         question_uuid = question.attributes["question_uuid"]
         question.ack()
+        self.answer(data, question_uuid)
 
+    def answer(self, data, question_uuid):
+        """Answer a question (i.e. run the Service's app to analyse the given data, and return the output values to the
+        asker). Answers are published to a topic whose name is generated from the UUID sent with the question, and are
+        in the format specified in the Service's Twine file.
+        """
         topic = Topic(
             name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)), namespace=OCTUE_NAMESPACE, service=self
         )
@@ -136,7 +139,7 @@ class Service(CoolNameable):
         future.result()
 
         logger.debug("%r asked question to %r service. Question UUID is %r.", self, service_id, question_uuid)
-        return response_subscription
+        return response_subscription, question_uuid
 
     def wait_for_answer(self, subscription, timeout=20):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once

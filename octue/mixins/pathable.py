@@ -95,7 +95,7 @@ class Pathable:
 
         else:
             value = os.path.normpath(value or ".")
-            path_is_absolute = value == os.path.abspath(value)
+            path_is_absolute = os.path.isabs(value)
 
         if path_is_absolute and self._path_from is not None:
             raise InvalidInputException(

@@ -10,12 +10,13 @@ def mock_app(analysis):
 class RunnerTestCase(BaseTestCase):
     def test_instantiate_runner(self):
         """Ensures that runner whose twine requires configuration can be instantiated"""
-        runner = Runner(twine="{}")
+        runner = Runner(app_src=".", twine="{}")
         self.assertEqual(runner.__class__.__name__, "Runner")
 
     def test_run_with_configuration_passes(self):
         """Ensures that runs can be made with configuration only"""
         runner = Runner(
+            app_src=mock_app,
             twine="""{
             "configuration_values_schema": {
                 "type": "object",
@@ -29,12 +30,13 @@ class RunnerTestCase(BaseTestCase):
             configuration_values="{}",
         )
 
-        runner.run(mock_app)
+        runner.run()
 
     def test_instantiation_without_configuration_fails(self):
         """Ensures that runner can be instantiated with a string that points to a path"""
         with self.assertRaises(twined.exceptions.TwineValueException) as error:
             Runner(
+                app_src=".",
                 twine="""{
                 "configuration_values_schema": {
                     "type": "object",
@@ -44,7 +46,7 @@ class RunnerTestCase(BaseTestCase):
                         }
                     }
                 }
-            }"""
+            }""",
             )
 
         self.assertIn(
@@ -54,23 +56,25 @@ class RunnerTestCase(BaseTestCase):
 
     def test_run_output_values_validation(self):
         """Ensures that runner can be instantiated with a string that points to a path"""
-        runner = Runner(
-            twine="""{
-            "output_values_schema": {
-                "type": "object",
-                "required": ["n_iterations"],
-                "properties": {
-                    "n_iterations": {
-                        "type": "integer"
+        twine = """
+            {
+                "output_values_schema": {
+                    "type": "object",
+                    "required": ["n_iterations"],
+                    "properties": {
+                        "n_iterations": {
+                            "type": "integer"
+                        }
                     }
                 }
             }
-        }"""
-        )
+
+        """
+        runner = Runner(app_src=mock_app, twine=twine)
 
         # Test for failure with an incorrect output
         with self.assertRaises(twined.exceptions.InvalidValuesContents) as error:
-            runner.run(mock_app).finalise()
+            runner.run().finalise()
 
         self.assertIn("'n_iterations' is a required property", error.exception.args[0])
 
@@ -78,11 +82,12 @@ class RunnerTestCase(BaseTestCase):
         def fcn(analysis):
             analysis.output_values["n_iterations"] = 10
 
-        runner.run(fcn).finalise()
+        Runner(app_src=fcn, twine=twine).run().finalise()
 
     def test_exception_raised_when_strand_data_missing(self):
         """Ensures that protected attributes can't be set"""
         runner = Runner(
+            app_src=mock_app,
             twine="""{
                 "configuration_values_schema": {
                     "type": "object",
@@ -106,7 +111,7 @@ class RunnerTestCase(BaseTestCase):
         )
 
         with self.assertRaises(twined.exceptions.TwineValueException) as error:
-            runner.run(mock_app)
+            runner.run()
 
         self.assertIn(
             "The 'input_values' strand is defined in the twine, but no data is provided in sources",
@@ -116,6 +121,7 @@ class RunnerTestCase(BaseTestCase):
     def test_output_manifest_is_not_none(self):
         """ Ensure the output manifest of an analysis is not None if an output manifest is defined in the Twine. """
         runner = Runner(
+            app_src=mock_app,
             twine="""
                 {
                     "output_manifest": [
@@ -129,8 +135,8 @@ class RunnerTestCase(BaseTestCase):
                         }
                     ]
                 }
-            """
+            """,
         )
 
-        analysis = runner.run(mock_app)
+        analysis = runner.run()
         self.assertIsNotNone(analysis.output_manifest)
