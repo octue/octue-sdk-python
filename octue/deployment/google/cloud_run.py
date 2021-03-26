@@ -59,7 +59,7 @@ def answer_question(
     project_name,
     data,
     question_uuid,
-    deployment_configuration_path="deployment_configuration.json",
+    deployment_configuration_path=None,
     deployment_configuration=None,
 ):
     """Answer a question from a service by running the deployed app with the deployment configuration. Either the
@@ -73,8 +73,12 @@ def answer_question(
     :return None:
     """
     if not deployment_configuration:
-        with open(deployment_configuration_path) as f:
-            deployment_configuration = json.load(f)
+
+        if deployment_configuration_path is None:
+            deployment_configuration = {}
+        else:
+            with open(deployment_configuration_path) as f:
+                deployment_configuration = json.load(f)
 
     runner = Runner(
         app_src=deployment_configuration.get("app_dir", "."),
