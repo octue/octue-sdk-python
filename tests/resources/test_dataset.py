@@ -291,9 +291,9 @@ class DatasetTestCase(BaseTestCase):
         """Test that a Dataset in cloud storage can be accessed."""
         project_name = "test-project"
 
-        with tempfile.TemporaryDirectory() as output_directory:
-            file_0_path = os.path.join(output_directory, "file_0.txt")
-            file_1_path = os.path.join(output_directory, "file_1.txt")
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            file_0_path = os.path.join(temporary_directory, "file_0.txt")
+            file_1_path = os.path.join(temporary_directory, "file_1.txt")
 
             with open(file_0_path, "w") as f:
                 f.write("[1, 2, 3]")
@@ -309,15 +309,15 @@ class DatasetTestCase(BaseTestCase):
                 },
             )
 
-            dataset.to_cloud(project_name=project_name, bucket_name=TEST_BUCKET_NAME, output_directory=output_directory)
+            dataset.to_cloud(project_name=project_name, bucket_name=TEST_BUCKET_NAME, output_directory="a_directory")
 
         persisted_dataset = Dataset.from_cloud(
             project_name=project_name,
             bucket_name=TEST_BUCKET_NAME,
-            path_to_dataset_directory=storage.path.join(output_directory, dataset.name),
+            path_to_dataset_directory=storage.path.join("a_directory", dataset.name),
         )
 
-        self.assertEqual(persisted_dataset.path, f"gs://{TEST_BUCKET_NAME}{output_directory}/{dataset.name}")
+        self.assertEqual(persisted_dataset.path, f"gs://{TEST_BUCKET_NAME}/a_directory/{dataset.name}")
         self.assertEqual(persisted_dataset.id, dataset.id)
         self.assertEqual(persisted_dataset.name, dataset.name)
         self.assertEqual(persisted_dataset.hash_value, dataset.hash_value)
@@ -325,7 +325,7 @@ class DatasetTestCase(BaseTestCase):
         self.assertEqual({file.name for file in persisted_dataset.files}, {file.name for file in dataset.files})
 
         for file in persisted_dataset:
-            self.assertEqual(file.path, f"gs://{TEST_BUCKET_NAME}{output_directory}/{dataset.name}/{file.name}")
+            self.assertEqual(file.path, f"gs://{TEST_BUCKET_NAME}/a_directory/{dataset.name}/{file.name}")
 
     def test_to_cloud(self):
         """Test that a dataset can be uploaded to the cloud, including all its files and a serialised JSON file of the

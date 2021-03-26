@@ -75,8 +75,8 @@ class PathableTestCase(BaseTestCase):
 
     def test_valid_absolute_path_without_from_path(self):
         """Ensures that an absolute path can be set if no from_path object is present"""
-        owner1 = MyPathable(path="/owner")
-        self.assertEqual("/owner", owner1.absolute_path)
+        owner1 = MyPathable(path=f"{os.sep}owner")
+        self.assertEqual(f"{os.sep}owner", owner1.absolute_path)
 
     def test_invalid_absolute_path_with_from_path(self):
         """Ensures that pathable resources have a relative path that is relative to base_path if given"""
