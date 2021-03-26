@@ -28,9 +28,9 @@ class TestManifest(BaseTestCase):
         """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance. """
         project_name = "test-project"
 
-        with tempfile.TemporaryDirectory() as output_directory:
-            file_0_path = os.path.join(output_directory, "file_0.txt")
-            file_1_path = os.path.join(output_directory, "file_1.txt")
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            file_0_path = os.path.join(temporary_directory, "file_0.txt")
+            file_1_path = os.path.join(temporary_directory, "file_1.txt")
 
             with open(file_0_path, "w") as f:
                 f.write("[1, 2, 3]")
@@ -68,9 +68,9 @@ class TestManifest(BaseTestCase):
         """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance. """
         project_name = "test-project"
 
-        with tempfile.TemporaryDirectory() as output_directory:
-            file_0_path = os.path.join(output_directory, "file_0.txt")
-            file_1_path = os.path.join(output_directory, "file_1.txt")
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            file_0_path = os.path.join(temporary_directory, "file_0.txt")
+            file_1_path = os.path.join(temporary_directory, "file_1.txt")
 
             with open(file_0_path, "w") as f:
                 f.write("[1, 2, 3]")
@@ -80,7 +80,7 @@ class TestManifest(BaseTestCase):
 
             dataset = Dataset(
                 name="my-dataset",
-                path=output_directory,
+                path=temporary_directory,
                 files={
                     Datafile(timestamp=None, path=file_0_path, sequence=0, tags={"hello"}),
                     Datafile(timestamp=None, path=file_1_path, sequence=1, tags={"goodbye"}),
@@ -103,16 +103,16 @@ class TestManifest(BaseTestCase):
             )
         )
 
-        self.assertEqual(persisted_manifest["datasets"], [output_directory])
+        self.assertEqual(persisted_manifest["datasets"], [temporary_directory])
         self.assertEqual(persisted_manifest["keys"], {"my-dataset": 0})
 
     def test_from_cloud(self):
         """Test that a Manifest can be instantiated from the cloud."""
         project_name = "test-project"
 
-        with tempfile.TemporaryDirectory() as output_directory:
-            file_0_path = os.path.join(output_directory, "file_0.txt")
-            file_1_path = os.path.join(output_directory, "file_1.txt")
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            file_0_path = os.path.join(temporary_directory, "file_0.txt")
+            file_1_path = os.path.join(temporary_directory, "file_1.txt")
 
             with open(file_0_path, "w") as f:
                 f.write("[1, 2, 3]")

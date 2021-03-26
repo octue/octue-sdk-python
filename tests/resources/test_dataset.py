@@ -291,9 +291,9 @@ class DatasetTestCase(BaseTestCase):
         """Test that a Dataset in cloud storage can be accessed."""
         project_name = "test-project"
 
-        with tempfile.TemporaryDirectory() as output_directory:
-            file_0_path = os.path.join(output_directory, "file_0.txt")
-            file_1_path = os.path.join(output_directory, "file_1.txt")
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            file_0_path = os.path.join(temporary_directory, "file_0.txt")
+            file_1_path = os.path.join(temporary_directory, "file_1.txt")
 
             with open(file_0_path, "w") as f:
                 f.write("[1, 2, 3]")
