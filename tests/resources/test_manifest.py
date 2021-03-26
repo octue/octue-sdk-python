@@ -51,18 +51,18 @@ class TestManifest(BaseTestCase):
             manifest.to_cloud(
                 project_name,
                 TEST_BUCKET_NAME,
-                path_to_manifest_file=storage.path.join(output_directory, "manifest.json"),
+                path_to_manifest_file=storage.path.join("blah", "manifest.json"),
             )
 
-            persisted_manifest = json.loads(
-                GoogleCloudStorageClient(project_name).download_as_string(
-                    bucket_name=TEST_BUCKET_NAME,
-                    path_in_bucket=storage.path.join(output_directory, "manifest.json"),
-                )
+        persisted_manifest = json.loads(
+            GoogleCloudStorageClient(project_name).download_as_string(
+                bucket_name=TEST_BUCKET_NAME,
+                path_in_bucket=storage.path.join("blah", "manifest.json"),
             )
+        )
 
-            self.assertEqual(persisted_manifest["datasets"], [f"gs://octue-test-bucket{output_directory}/my-dataset"])
-            self.assertEqual(persisted_manifest["keys"], {"my-dataset": 0})
+        self.assertEqual(persisted_manifest["datasets"], ["gs://octue-test-bucket/blah/my-dataset"])
+        self.assertEqual(persisted_manifest["keys"], {"my-dataset": 0})
 
     def test_to_cloud_without_storing_datasets(self):
         """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance. """
@@ -92,19 +92,19 @@ class TestManifest(BaseTestCase):
             manifest.to_cloud(
                 project_name,
                 TEST_BUCKET_NAME,
-                path_to_manifest_file=storage.path.join(output_directory, "manifest.json"),
+                path_to_manifest_file=storage.path.join("my-manifests", "manifest.json"),
                 store_datasets=False,
             )
 
-            persisted_manifest = json.loads(
-                GoogleCloudStorageClient(project_name).download_as_string(
-                    bucket_name=TEST_BUCKET_NAME,
-                    path_in_bucket=storage.path.join(output_directory, "manifest.json"),
-                )
+        persisted_manifest = json.loads(
+            GoogleCloudStorageClient(project_name).download_as_string(
+                bucket_name=TEST_BUCKET_NAME,
+                path_in_bucket=storage.path.join("my-manifests", "manifest.json"),
             )
+        )
 
-            self.assertEqual(persisted_manifest["datasets"], [output_directory])
-            self.assertEqual(persisted_manifest["keys"], {"my-dataset": 0})
+        self.assertEqual(persisted_manifest["datasets"], [output_directory])
+        self.assertEqual(persisted_manifest["keys"], {"my-dataset": 0})
 
     def test_from_cloud(self):
         """Test that a Manifest can be instantiated from the cloud."""
