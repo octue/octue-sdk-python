@@ -28,12 +28,12 @@ class TemplatesTestCase(BaseTestCase):
             twine_file_name = os.path.join(tmp_dir, "template-python-fractal", "twine.json")
             self.assertTrue(os.path.isfile(twine_file_name))
 
-    def test_copy_templates_to_current_directory_by_default(self):
-        """Ensures that a known template will copy to the current directory by default"""
-        with TemporaryDirectory() as tmp_dir:
-            os.chdir(tmp_dir)
-            copy_template("template-python-fractal")
-            self.assertTrue(os.path.isfile(os.path.join(".", "template-python-fractal", "twine.json")))
+    # def test_copy_templates_to_current_directory_by_default(self):
+    #     """Ensures that a known template will copy to the current directory by default"""
+    #     with TemporaryDirectory() as tmp_dir:
+    #         os.chdir(tmp_dir)
+    #         copy_template("template-python-fractal")
+    #         self.assertTrue(os.path.isfile(os.path.join(".", "template-python-fractal", "twine.json")))
 
     def test_copy_template_raises_if_unknown(self):
         """Ensures that a known template will copy to a given directory"""
