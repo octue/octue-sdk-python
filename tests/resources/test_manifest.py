@@ -132,16 +132,16 @@ class TestManifest(BaseTestCase):
             manifest.to_cloud(
                 project_name,
                 TEST_BUCKET_NAME,
-                path_to_manifest_file=storage.path.join(output_directory, "manifest.json"),
+                path_to_manifest_file=storage.path.join("my-directory", "manifest.json"),
             )
 
         persisted_manifest = Manifest.from_cloud(
             project_name=project_name,
             bucket_name=TEST_BUCKET_NAME,
-            path_to_manifest_file=storage.path.join(output_directory, "manifest.json"),
+            path_to_manifest_file=storage.path.join("my-directory", "manifest.json"),
         )
 
-        self.assertEqual(persisted_manifest.path, f"gs://{TEST_BUCKET_NAME}{output_directory}/manifest.json")
+        self.assertEqual(persisted_manifest.path, f"gs://{TEST_BUCKET_NAME}/my-directory/manifest.json")
         self.assertEqual(persisted_manifest.id, manifest.id)
         self.assertEqual(persisted_manifest.hash_value, manifest.hash_value)
         self.assertEqual(persisted_manifest.keys, manifest.keys)
@@ -150,6 +150,6 @@ class TestManifest(BaseTestCase):
         )
 
         for dataset in persisted_manifest.datasets:
-            self.assertEqual(dataset.path, f"gs://{TEST_BUCKET_NAME}{output_directory}/{dataset.name}")
+            self.assertEqual(dataset.path, f"gs://{TEST_BUCKET_NAME}/my-directory/{dataset.name}")
             self.assertTrue(len(dataset.files), 2)
             self.assertTrue(all(isinstance(file, Datafile) for file in dataset.files))
