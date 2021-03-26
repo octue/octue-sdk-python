@@ -13,7 +13,7 @@ def join(*paths):
     if not paths:
         return ""
 
-    path = os.path.normpath(os.path.join(*paths)).replace(os.sep, "/").replace("\\", "/")
+    path = os.path.normpath(os.path.join(*paths)).replace("\\", "/")
 
     if path.startswith("gs:/"):
         if not path.startswith(CLOUD_STORAGE_PROTOCOL):
