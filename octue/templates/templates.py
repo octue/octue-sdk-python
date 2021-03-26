@@ -11,7 +11,7 @@ from octue import exceptions
 PACKAGED_TEMPLATES = tuple(name for name in resource_listdir("octue", "templates") if name.startswith("template-"))
 
 
-def copy_template(template_name, destination_dir="."):
+def copy_template(template_name, destination_dir=None):
     """Copies one of the application templates from the octue/templates to a destination directory (current dir by default)
 
     :parameter template_name: The name of the template to copy, must be one of AVAILABLE_TEMPLATES.
@@ -27,5 +27,5 @@ def copy_template(template_name, destination_dir="."):
         )
 
     resource = resource_filename("octue.templates", template_name)
-    dest = os.path.join(destination_dir, template_name)
+    dest = os.path.join(destination_dir or os.getcwd(), template_name)
     copytree(resource, dest)
