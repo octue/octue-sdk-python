@@ -119,7 +119,7 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     twine = Twine(source=twine)
 
     (
-        configruation_values,
+        configuration_values,
         configuration_manifest,
         input_values,
         input_manifest,
@@ -138,7 +138,7 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     runner = Runner(
         app_src=app_dir,
         twine=twine,
-        configuration_values=configruation_values,
+        configuration_values=configuration_values,
         configuration_manifest=configuration_manifest,
         output_manifest_path=os.path.join(output_dir, MANIFEST_FILENAME),
         children=children,
