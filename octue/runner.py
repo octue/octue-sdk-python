@@ -162,7 +162,8 @@ class Runner:
 
         :return: None
         """
-        self._populate_environment_with_google_cloud_secrets()
+        if self.credentials is not None:
+            self._populate_environment_with_google_cloud_secrets()
 
         inputs = self.twine.validate(
             input_values=input_values,
