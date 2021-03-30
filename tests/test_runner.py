@@ -1,4 +1,5 @@
 import os
+from unittest.mock import Mock, patch
 
 import twined
 from octue import Runner
@@ -176,8 +177,17 @@ class RunnerTestCase(BaseTestCase):
             ],
         )
 
+        class MockAccessSecretVersionResponse:
+            payload = Mock()
+            payload.data = b"My precious!"
+
         # An error will be raised if secret validation fails.
-        runner.run()
+        with patch(
+            "google.cloud.secretmanager_v1.services.secret_manager_service.client.SecretManagerServiceClient"
+            ".access_secret_version",
+            return_value=MockAccessSecretVersionResponse(),
+        ):
+            runner.run()
 
         # Check that first secret is still present and that the Google Cloud secret is now in the environment.
         self.assertEqual(os.environ["SECRET_THE_FIRST"], "my-secret")
