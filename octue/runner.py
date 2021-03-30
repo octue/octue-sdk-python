@@ -2,11 +2,13 @@ import importlib
 import logging
 import os
 import sys
+from google.cloud import secretmanager
 
 from octue.logging_handlers import apply_log_handler
 from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.utils import gen_uuid
+from octue.utils.cloud.credentials import GCPCredentialsManager
 from twined import Twine
 
 
@@ -160,6 +162,8 @@ class Runner:
 
         :return: None
         """
+        self._populate_environment_with_google_cloud_secrets()
+
         inputs = self.twine.validate(
             input_values=input_values,
             input_manifest=input_manifest,
@@ -219,6 +223,24 @@ class Runner:
             raise e
 
         return analysis
+
+    def _populate_environment_with_google_cloud_secrets(self):
+        """Get any secrets specified in the credentials strand from Google Cloud Secret Manager and put them in the
+        local environment, ready for use by the runner.
+
+        :return None:
+        """
+        secrets_client = secretmanager.SecretManagerServiceClient(credentials=GCPCredentialsManager().get_credentials())
+
+        for credential in self.credentials:
+            if credential.get("location") == "google":
+
+                secret_path = secrets_client.secret_version_path(
+                    project=credential["project_name"], secret=credential["name"], secret_version=credential["version"]
+                )
+
+                secret = secrets_client.access_secret_version(name=secret_path).payload.data.decode("UTF-8")
+                os.environ[credential["name"]] = secret
 
 
 def unwrap(fcn):

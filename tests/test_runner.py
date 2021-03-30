@@ -1,3 +1,5 @@
+import os
+
 import twined
 from octue import Runner
 from .base import BaseTestCase
@@ -140,3 +142,43 @@ class RunnerTestCase(BaseTestCase):
 
         analysis = runner.run()
         self.assertIsNotNone(analysis.output_manifest)
+
+    def test_runner_with_credentials(self):
+        """Test that credentials can be found locally and populated into the environment from Google Cloud Secret
+        Manager.
+        """
+        os.environ["SECRET_THE_FIRST"] = "my-secret"
+
+        runner = Runner(
+            app_src=mock_app,
+            twine="""
+                {
+                    "credentials": [
+                        {
+                            "name": "SECRET_THE_FIRST",
+                            "purpose": "Token for accessing a 3rd party API service"
+                        },
+                        {
+                            "name": "TEST_SECRET",
+                            "purpose": "Token for accessing a 3rd party API service"
+                        }
+                    ]
+                }
+            """,
+            credentials=[
+                {"name": "SECRET_THE_FIRST"},
+                {
+                    "name": "TEST_SECRET",
+                    "location": "google",
+                    "project_name": os.environ["TEST_PROJECT_NAME"],
+                    "version": "latest",
+                },
+            ],
+        )
+
+        # An error will be raised if secret validation fails.
+        runner.run()
+
+        # Check that first secret is still present and that the Google Cloud secret is now in the environment.
+        self.assertEqual(os.environ["SECRET_THE_FIRST"], "my-secret")
+        self.assertEqual(os.environ["TEST_SECRET"], "My precious!")
