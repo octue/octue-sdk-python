@@ -192,3 +192,12 @@ class RunnerTestCase(BaseTestCase):
         # Check that first secret is still present and that the Google Cloud secret is now in the environment.
         self.assertEqual(os.environ["SECRET_THE_FIRST"], "my-secret")
         self.assertEqual(os.environ["TEST_SECRET"], "My precious!")
+
+    def test_invalid_app_directory(self):
+        """ Ensure an error containing the searched location is raised if the app source can't be found. """
+        runner = Runner(app_src="..", twine="{}")
+
+        with self.assertRaises(ModuleNotFoundError) as e:
+            runner.run()
+            self.assertTrue("No module named 'app'" in e.msg)
+            self.assertTrue(os.path.abspath(runner.app_src) in e.msg)

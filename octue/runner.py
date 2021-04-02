@@ -219,6 +219,9 @@ class Runner:
             else:
                 self.app_src(analysis)
 
+        except ModuleNotFoundError as e:
+            raise ModuleNotFoundError(f"{e.msg} in {os.path.abspath(self.app_src)!r}.")
+
         except Exception as e:
             analysis_logger.error(str(e))
             raise e
