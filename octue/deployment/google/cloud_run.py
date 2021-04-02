@@ -55,21 +55,26 @@ def _log_bad_request_and_return_400_response(message):
     return (f"Bad Request: {message}", 400)
 
 
-def answer_question(project_name, data, question_uuid, deployment_configuration_path=None):
+def answer_question(project_name, data, question_uuid):
     """Answer a question from a service by running the deployed app with the deployment configuration. Either the
     `deployment_configuration_path` should be specified, or the `deployment_configuration`.
 
     :param str project_name:
     :param dict data:
     :param str question_uuid:
-    :param str|None deployment_configuration_path:
     :return None:
     """
-    deployment_configuration = {}
+    deployment_configuration_path = "deployment_configuration.json"
 
-    if deployment_configuration_path is not None:
+    try:
         with open(deployment_configuration_path) as f:
             deployment_configuration = json.load(f)
+
+        logger.info("Deployment configuration loaded from %r.", os.path.abspath(deployment_configuration_path))
+
+    except FileNotFoundError:
+        deployment_configuration = {}
+        logger.info("Default deployment configuration used.")
 
     runner = Runner(
         app_src=deployment_configuration.get("app_dir", "."),
