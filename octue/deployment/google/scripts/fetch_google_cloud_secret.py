@@ -11,7 +11,7 @@ def fetch_gcloud_secrets(secret, version="latest", env_file=".env"):
     """Fetches the secret from google cloud secrets manager and writes to a local file
 
     :param str secret: The name of the secret in google cloud Secret Manager
-    :param str version: The verison of the secret to use, default "latest"
+    :param str version: The version of the secret to use, default "latest"
     :param str env_file: Name of the file to write secrets to, default ".env"
     :return None:
     """
