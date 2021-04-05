@@ -5,10 +5,10 @@ import tempfile
 import uuid
 
 from octue import exceptions
+from octue.cloud.storage import GoogleCloudStorageClient
 from octue.mixins import MixinBase, Pathable
 from octue.resources import Datafile
 from octue.resources.tag import TagSet
-from octue.utils.cloud.storage.client import GoogleCloudStorageClient
 from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from ..base import BaseTestCase
 

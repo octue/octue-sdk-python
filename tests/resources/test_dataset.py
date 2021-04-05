@@ -5,10 +5,10 @@ import tempfile
 import warnings
 
 from octue import exceptions
+from octue.cloud import storage
+from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset
 from octue.resources.filter_containers import FilterSet
-from octue.utils.cloud import storage
-from octue.utils.cloud.storage.client import GoogleCloudStorageClient
 from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
 

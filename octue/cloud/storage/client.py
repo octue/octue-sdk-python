@@ -5,7 +5,7 @@ from google.cloud import storage
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google_crc32c import Checksum
 
-from octue.utils.cloud.credentials import GCPCredentialsManager
+from octue.cloud.credentials import GCPCredentialsManager
 
 
 logger = logging.getLogger(__name__)

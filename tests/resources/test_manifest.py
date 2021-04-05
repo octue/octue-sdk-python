@@ -3,9 +3,9 @@ import json
 import os
 import tempfile
 
+from octue.cloud import storage
+from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset, Manifest
-from octue.utils.cloud import storage
-from octue.utils.cloud.storage.client import GoogleCloudStorageClient
 from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
 

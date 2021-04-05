@@ -3,8 +3,8 @@ import tempfile
 from unittest.mock import patch
 import google.api_core.exceptions
 
-from octue.utils.cloud import storage
-from octue.utils.cloud.storage.client import GoogleCloudStorageClient
+from octue.cloud import storage
+from octue.cloud.storage import GoogleCloudStorageClient
 from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 

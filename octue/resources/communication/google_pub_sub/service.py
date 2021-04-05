@@ -6,10 +6,10 @@ from google.api_core import retry
 from google.cloud import pubsub_v1
 
 from octue import exceptions
+from octue.cloud.credentials import GCPCredentialsManager
 from octue.mixins import CoolNameable
 from octue.resources.communication.google_pub_sub import Subscription, Topic
 from octue.resources.manifest import Manifest
-from octue.utils.cloud.credentials import GCPCredentialsManager
 
 
 logger = logging.getLogger(__name__)

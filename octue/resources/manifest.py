@@ -1,10 +1,10 @@
 import json
 import logging
 
+from octue.cloud import storage
+from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException, InvalidManifestException
 from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable
-from octue.utils.cloud import storage
-from octue.utils.cloud.storage.client import GoogleCloudStorageClient
 from .dataset import Dataset
 
 

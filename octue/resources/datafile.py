@@ -3,12 +3,11 @@ import os
 from datetime import datetime
 from google_crc32c import Checksum
 
+from octue.cloud import storage
+from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import FileNotFoundException, InvalidInputException
 from octue.mixins import Filterable, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.utils import isfile
-from octue.utils.cloud import storage
-from octue.utils.cloud.storage.client import GoogleCloudStorageClient
-from octue.utils.cloud.storage.path import generate_gs_path
 
 
 module_logger = logging.getLogger(__name__)
@@ -118,7 +117,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         datafile = cls(
             timestamp=custom_metadata.get("timestamp", timestamp),
             id=custom_metadata.get("id", ID_DEFAULT),
-            path=generate_gs_path(bucket_name, datafile_path),
+            path=storage.path.generate_gs_path(bucket_name, datafile_path),
             hash_value=custom_metadata.get("hash_value", metadata["md5Hash"]),
             cluster=custom_metadata.get("cluster", CLUSTER_DEFAULT),
             sequence=custom_metadata.get("sequence", SEQUENCE_DEFAULT),
