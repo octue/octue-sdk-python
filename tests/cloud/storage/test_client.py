@@ -23,6 +23,13 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         self.storage_client.create_bucket(name)
         self.assertEqual(self.storage_client.client.lookup_bucket(name).name, name)
 
+    def test_create_bucket_in_non_default_location(self):
+        """Test that a bucket can be created in a non-default location."""
+        name = "bucket-of-sand"
+        self.assertIsNone(self.storage_client.client.lookup_bucket(name))
+        self.storage_client.create_bucket(name, location="EUROPE-WEST2")
+        self.assertEqual(self.storage_client.client.lookup_bucket(name).name, name)
+
     def test_create_bucket_when_already_exists_and_existence_allowed(self):
         """Test that a bucket isn't re-created if it already exists and pre-existence is allowed."""
         name = "bucket-of-grass"
