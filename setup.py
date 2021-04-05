@@ -27,6 +27,7 @@ setup(
         "google-cloud-secret-manager>=2.3.0",
         "google-cloud-storage>=1.35.1",
         "google-crc32c>=1.1.2",
+        "gunicorn",
         "twined @ https://github.com/octue/twined/archive/fix/credentials-validation.zip",
     ],
     url="https://www.github.com/octue/octue-sdk-python",

@@ -8,9 +8,6 @@ WORKDIR $PROJECT_ROOT
 
 RUN apt-get update -y && apt-get install -y --fix-missing build-essential && rm -rf /var/lib/apt/lists/*
 
-# Gunicorn is required to run the Flask server that connected the Docker container to Cloud Run.
-RUN pip install gunicorn
-
 # This will cache bust if any of the requirements change.
 COPY requirements*.txt .
 COPY setup.py* .
