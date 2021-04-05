@@ -3,9 +3,10 @@ import time
 import google.api_core.exceptions
 
 from octue import exceptions
+from octue.exceptions import FileLocationError
+from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.communication.google_pub_sub.service import OCTUE_NAMESPACE, Service
 from octue.resources.communication.service_backends import GCPPubSubBackend
-from octue.resources.manifest import Manifest
 from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 
@@ -133,6 +134,13 @@ class TestService(BaseTestCase):
         asking_service = Service(backend=self.BACKEND)
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
+        files = [
+            Datafile(timestamp=None, path="gs://hello/file.txt"),
+            Datafile(timestamp=None, path="gs://goodbye/file.csv"),
+        ]
+
+        input_manifest = Manifest(datasets=[Dataset(files=files)], keys={"my_dataset": 0})
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             executor.submit(responding_service.serve)
 
@@ -143,13 +151,38 @@ class TestService(BaseTestCase):
                 asking_service=asking_service,
                 responding_service=responding_service,
                 input_values={},
-                input_manifest=Manifest(),
+                input_manifest=input_manifest,
             )
 
             self.assertEqual(
                 asker_future.result(),
                 {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
             )
+
+            self._shutdown_executor_and_clear_threads(executor)
+
+        self._delete_topics_and_subscriptions(responding_service)
+
+    def test_ask_with_input_manifest_with_local_paths_raises_error(self):
+        """Test that an error is raised if an input manifest whose datasets and/or files are not located in the cloud
+        is used in a question.
+        """
+        asking_service = Service(backend=self.BACKEND)
+        responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            executor.submit(responding_service.serve)
+
+            time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
+
+            with self.assertRaises(FileLocationError):
+                executor.submit(
+                    self.ask_question_and_wait_for_answer,
+                    asking_service=asking_service,
+                    responding_service=responding_service,
+                    input_values={},
+                    input_manifest=Manifest(),
+                )
 
             self._shutdown_executor_and_clear_threads(executor)
 

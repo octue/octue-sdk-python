@@ -7,6 +7,7 @@ from google.cloud import pubsub_v1
 
 from octue import exceptions
 from octue.cloud.credentials import GCPCredentialsManager
+from octue.exceptions import FileLocationError
 from octue.mixins import CoolNameable
 from octue.resources.communication.google_pub_sub import Subscription, Topic
 from octue.resources.manifest import Manifest
@@ -40,12 +41,12 @@ class Service(CoolNameable):
         self.run_function = run_function
 
         if backend.credentials_environment_variable is None:
-            credentials = None
+            self.credentials = None
         else:
-            credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
+            self.credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
 
-        self.publisher = pubsub_v1.PublisherClient(credentials=credentials, batch_settings=BATCH_SETTINGS)
-        self.subscriber = pubsub_v1.SubscriberClient(credentials=credentials)
+        self.publisher = pubsub_v1.PublisherClient(credentials=self.credentials, batch_settings=BATCH_SETTINGS)
+        self.subscriber = pubsub_v1.SubscriberClient(credentials=self.credentials)
         super().__init__()
 
     def __repr__(self):
@@ -110,6 +111,13 @@ class Service(CoolNameable):
         before sending the question to the serving Service - the topic is the expected publishing place for the answer
         from the serving Service when it comes, and the subscription is set up to subscribe to this.
         """
+        if (input_manifest is not None) and (not input_manifest.all_datasets_are_in_cloud()):
+            raise FileLocationError(
+                "All datasets of the input manifest and all files of the datasets must be uploaded to the cloud before "
+                "asking a service to perform an analysis upon them. The manifest must then be updated with the new "
+                "cloud locations."
+            )
+
         question_topic = Topic(name=service_id, namespace=OCTUE_NAMESPACE, service=self)
         if not question_topic.exists():
             raise exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
