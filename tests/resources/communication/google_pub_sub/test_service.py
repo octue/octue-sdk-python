@@ -1,9 +1,9 @@
 import concurrent.futures
 import time
+import uuid
 import google.api_core.exceptions
 
 from octue import exceptions
-from octue.exceptions import FileLocationError
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.communication.google_pub_sub.service import OCTUE_NAMESPACE, Service
 from octue.resources.communication.service_backends import GCPPubSubBackend
@@ -168,25 +168,13 @@ class TestService(BaseTestCase):
         is used in a question.
         """
         asking_service = Service(backend=self.BACKEND)
-        responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            executor.submit(responding_service.serve)
-
-            time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
-
-            with self.assertRaises(FileLocationError):
-                executor.submit(
-                    self.ask_question_and_wait_for_answer,
-                    asking_service=asking_service,
-                    responding_service=responding_service,
-                    input_values={},
-                    input_manifest=Manifest(),
-                )
-
-            self._shutdown_executor_and_clear_threads(executor)
-
-        self._delete_topics_and_subscriptions(responding_service)
+        with self.assertRaises(exceptions.FileLocationError):
+            asking_service.ask(
+                service_id=str(uuid.uuid4()),
+                input_values={},
+                input_manifest=Manifest(),
+            )
 
     def test_ask_with_output_manifest(self):
         """ Test that a service can receive an output manifest as part of the answer to a question. """
