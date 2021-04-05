@@ -48,6 +48,12 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
 
         self.__dict__.update(**kwargs)
 
+    def __iter__(self):
+        yield from self.files
+
+    def __len__(self):
+        return len(self.files)
+
     @classmethod
     def from_cloud(cls, project_name, bucket_name, path_to_dataset_directory):
         """Instantiate a Dataset from Google Cloud storage.
@@ -118,11 +124,15 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
     def name(self):
         return self._name or os.path.split(os.path.abspath(os.path.split(self.path)[-1]))[-1]
 
-    def __iter__(self):
-        yield from self.files
+    def all_files_are_in_cloud(self):
+        """Do all the files of the dataset exist in the cloud?
 
-    def __len__(self):
-        return len(self.files)
+        :return bool:
+        """
+        if not self.files:
+            return False
+
+        return all(file.is_in_cloud() for file in self.files)
 
     def add(self, *args, **kwargs):
         """Add a data/results file to the manifest

@@ -5,6 +5,7 @@ from google_crc32c import Checksum
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
+from octue.cloud.storage.path import CLOUD_STORAGE_PROTOCOL
 from octue.exceptions import FileNotFoundException, InvalidInputException
 from octue.mixins import Filterable, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.utils import isfile
@@ -99,6 +100,9 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             raise TypeError(f"An object of type {type(self)} cannot be compared with {type(other)}.")
         return self.absolute_path > other.absolute_path
 
+    def __repr__(self):
+        return f"<{type(self).__name__}({self.name!r})>"
+
     @classmethod
     def from_cloud(cls, project_name, bucket_name, datafile_path, timestamp=None):
         """Instantiate a Datafile from a previously-persisted Datafile in Google Cloud storage. To instantiate a
@@ -171,8 +175,12 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             return int(self._gcp_metadata["size"])
         return os.path.getsize(self.absolute_path)
 
-    def __repr__(self):
-        return f"<{type(self).__name__}({self.name!r})>"
+    def is_in_cloud(self):
+        """Does the file exist in the cloud?
+
+        :return bool:
+        """
+        return self.path.startswith(CLOUD_STORAGE_PROTOCOL)
 
     def _get_extension_from_path(self, path=None):
         """Gets extension of a file, either from a provided file path or from self.path field"""

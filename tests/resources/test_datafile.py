@@ -129,10 +129,15 @@ class DatafileTestCase(BaseTestCase):
         self.assertTrue(len(hash_) == 8)
 
     def test_hashes_for_the_same_datafile_are_the_same(self):
-        """ Ensure the hashes for two datafiles that are exactly the same are the same."""
+        """Ensure the hashes for two datafiles that are exactly the same are the same."""
         first_file = self.create_valid_datafile()
         second_file = copy.deepcopy(first_file)
         self.assertEqual(first_file.hash_value, second_file.hash_value)
+
+    def test_is_in_cloud(self):
+        """Test whether a file is in the cloud or not can be determined."""
+        self.assertFalse(self.create_valid_datafile().is_in_cloud())
+        self.assertTrue(Datafile(timestamp=None, path="gs://hello/file.txt").is_in_cloud())
 
     def test_from_cloud_with_bare_file(self):
         """Test that a Datafile can be constructed from a file on Google Cloud storage with no custom metadata."""

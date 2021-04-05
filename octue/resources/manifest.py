@@ -119,6 +119,16 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
 
         return storage.path.generate_gs_path(bucket_name, path_to_manifest_file)
 
+    def all_datasets_are_in_cloud(self):
+        """Do all the files of all the datasets of the manifest exist in the cloud?
+
+        :return bool:
+        """
+        if not self.datasets:
+            return False
+
+        return all(dataset.all_files_are_in_cloud() for dataset in self.datasets)
+
     def get_dataset(self, key):
         """Gets a dataset by its key name (as defined in the twine)
 
