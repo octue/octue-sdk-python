@@ -4,9 +4,9 @@ import uuid
 import google.api_core.exceptions
 
 from octue import exceptions
+from octue.cloud.pub_sub.service import OCTUE_NAMESPACE, Service
 from octue.resources import Datafile, Dataset, Manifest
-from octue.resources.communication.google_pub_sub.service import OCTUE_NAMESPACE, Service
-from octue.resources.communication.service_backends import GCPPubSubBackend
+from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 

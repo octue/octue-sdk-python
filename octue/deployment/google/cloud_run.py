@@ -4,9 +4,9 @@ import logging
 import os
 from flask import Flask, request
 
+from octue.cloud.pub_sub.service import Service
 from octue.logging_handlers import apply_log_handler
-from octue.resources.communication.google_pub_sub.service import Service
-from octue.resources.communication.service_backends import GCPPubSubBackend
+from octue.resources.service_backends import GCPPubSubBackend
 from octue.runner import Runner
 
 

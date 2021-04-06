@@ -7,9 +7,9 @@ from google.cloud import pubsub_v1
 
 from octue import exceptions
 from octue.cloud.credentials import GCPCredentialsManager
+from octue.cloud.pub_sub import Subscription, Topic
 from octue.exceptions import FileLocationError
 from octue.mixins import CoolNameable
-from octue.resources.communication.google_pub_sub import Subscription, Topic
 from octue.resources.manifest import Manifest
 
 
