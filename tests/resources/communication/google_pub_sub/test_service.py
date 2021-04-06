@@ -77,23 +77,6 @@ class TestService(BaseTestCase):
         asking_service = Service(backend=self.BACKEND)
         self.assertEqual(repr(asking_service), f"<Service({asking_service.name!r})>")
 
-    def test_serve_with_timeout(self):
-        """ Test that a serving service only serves for as long as its timeout. """
-        responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            start_time = time.perf_counter()
-            responding_future = executor.submit(
-                responding_service.serve,
-                timeout=10,
-                delete_topic_and_subscription_on_exit=True,
-            )
-
-            responding_future.result()
-            self.assertTrue(time.perf_counter() - start_time < 20)
-
-        self._delete_topics_and_subscriptions(responding_service)
-
     def test_ask_on_non_existent_service_results_in_error(self):
         """Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
         results in an error."""
