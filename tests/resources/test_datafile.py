@@ -166,14 +166,13 @@ class DatafileTestCase(BaseTestCase):
         """Test that a Datafile can be constructed from a file on Google Cloud storage with custom metadata."""
         path_in_bucket = "file_to_upload.txt"
 
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            file_0_path = os.path.join(temporary_directory, "file_0.txt")
+        with tempfile.NamedTemporaryFile() as temporary_file:
 
-            with open(file_0_path, "w") as f:
+            with open(temporary_file.name, "w") as f:
                 f.write("[1, 2, 3]")
 
             datafile = Datafile(
-                timestamp=None, path=file_0_path, cluster=0, sequence=1, tags={"blah:shah:nah", "blib", "glib"}
+                timestamp=None, path=temporary_file.name, cluster=0, sequence=1, tags={"blah:shah:nah", "blib", "glib"}
             )
             datafile.to_cloud(
                 project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket=path_in_bucket

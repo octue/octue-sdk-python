@@ -11,6 +11,8 @@ from tests.base import BaseTestCase
 
 
 class TestManifest(BaseTestCase):
+    TEST_PROJECT_NAME = "test-project"
+
     def test_hash_value(self):
         """Test hashing a manifest with multiple datasets gives a hash of length 8."""
         manifest = self.create_valid_manifest()
@@ -39,8 +41,6 @@ class TestManifest(BaseTestCase):
 
     def test_to_cloud(self):
         """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance. """
-        project_name = "test-project"
-
         with tempfile.TemporaryDirectory() as temporary_directory:
             file_0_path = os.path.join(temporary_directory, "file_0.txt")
             file_1_path = os.path.join(temporary_directory, "file_1.txt")
@@ -62,13 +62,13 @@ class TestManifest(BaseTestCase):
             manifest = Manifest(datasets=[dataset], keys={"my-dataset": 0})
 
             manifest.to_cloud(
-                project_name,
+                self.TEST_PROJECT_NAME,
                 TEST_BUCKET_NAME,
                 path_to_manifest_file=storage.path.join("blah", "manifest.json"),
             )
 
         persisted_manifest = json.loads(
-            GoogleCloudStorageClient(project_name).download_as_string(
+            GoogleCloudStorageClient(self.TEST_PROJECT_NAME).download_as_string(
                 bucket_name=TEST_BUCKET_NAME,
                 path_in_bucket=storage.path.join("blah", "manifest.json"),
             )
@@ -79,8 +79,6 @@ class TestManifest(BaseTestCase):
 
     def test_to_cloud_without_storing_datasets(self):
         """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance. """
-        project_name = "test-project"
-
         with tempfile.TemporaryDirectory() as temporary_directory:
             file_0_path = os.path.join(temporary_directory, "file_0.txt")
             file_1_path = os.path.join(temporary_directory, "file_1.txt")
@@ -103,14 +101,14 @@ class TestManifest(BaseTestCase):
             manifest = Manifest(datasets=[dataset], keys={"my-dataset": 0})
 
             manifest.to_cloud(
-                project_name,
+                self.TEST_PROJECT_NAME,
                 TEST_BUCKET_NAME,
                 path_to_manifest_file=storage.path.join("my-manifests", "manifest.json"),
                 store_datasets=False,
             )
 
         persisted_manifest = json.loads(
-            GoogleCloudStorageClient(project_name).download_as_string(
+            GoogleCloudStorageClient(self.TEST_PROJECT_NAME).download_as_string(
                 bucket_name=TEST_BUCKET_NAME,
                 path_in_bucket=storage.path.join("my-manifests", "manifest.json"),
             )
@@ -121,8 +119,6 @@ class TestManifest(BaseTestCase):
 
     def test_from_cloud(self):
         """Test that a Manifest can be instantiated from the cloud."""
-        project_name = "test-project"
-
         with tempfile.TemporaryDirectory() as temporary_directory:
             file_0_path = os.path.join(temporary_directory, "file_0.txt")
             file_1_path = os.path.join(temporary_directory, "file_1.txt")
@@ -143,13 +139,13 @@ class TestManifest(BaseTestCase):
 
             manifest = Manifest(datasets=[dataset], keys={"my-dataset": 0})
             manifest.to_cloud(
-                project_name,
+                self.TEST_PROJECT_NAME,
                 TEST_BUCKET_NAME,
                 path_to_manifest_file=storage.path.join("my-directory", "manifest.json"),
             )
 
         persisted_manifest = Manifest.from_cloud(
-            project_name=project_name,
+            project_name=self.TEST_PROJECT_NAME,
             bucket_name=TEST_BUCKET_NAME,
             path_to_manifest_file=storage.path.join("my-directory", "manifest.json"),
         )
