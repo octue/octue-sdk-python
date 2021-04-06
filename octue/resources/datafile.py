@@ -88,7 +88,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         if not skip_checks:
             self.check(**kwargs)
 
-        self._gcp_metadata = None
+        self._gcp_metadata = {}
 
     def __lt__(self, other):
         if not isinstance(other, Datafile):
@@ -163,7 +163,11 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     def _last_modified(self):
         """Get the date/time the file was last modified in units of seconds since epoch (posix time)."""
         if self._path_is_in_google_cloud_storage:
-            unparsed_datetime = self._gcp_metadata["updated"]
+            unparsed_datetime = self._gcp_metadata.get("updated")
+
+            if unparsed_datetime is None:
+                return unparsed_datetime
+
             parsed_datetime = datetime.strptime(unparsed_datetime, "%Y-%m-%dT%H:%M:%S.%fZ")
             return (parsed_datetime - datetime(1970, 1, 1)).total_seconds()
 
@@ -172,7 +176,13 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     @property
     def size_bytes(self):
         if self._path_is_in_google_cloud_storage:
-            return int(self._gcp_metadata["size"])
+            size = self._gcp_metadata.get("size")
+
+            if size is None:
+                return size
+
+            return int(size)
+
         return os.path.getsize(self.absolute_path)
 
     def is_in_cloud(self):
@@ -189,6 +199,9 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     def _calculate_hash(self):
         """Calculate the hash of the file."""
+        if self.is_in_cloud():
+            return self._gcp_metadata.get("hash_value", "")
+
         hash = Checksum()
 
         with open(self.absolute_path, "rb") as f:

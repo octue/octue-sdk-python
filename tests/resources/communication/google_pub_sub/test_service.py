@@ -4,7 +4,7 @@ import uuid
 import google.api_core.exceptions
 
 from octue import exceptions
-from octue.resources import Manifest
+from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.communication.google_pub_sub.service import OCTUE_NAMESPACE, Service
 from octue.resources.communication.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
@@ -126,40 +126,40 @@ class TestService(BaseTestCase):
 
         self._delete_topics_and_subscriptions(responding_service)
 
-    # def test_ask_with_input_manifest(self):
-    #     """Test that a service can ask a question including an input_manifest to another service that is serving and
-    #     receive an answer.
-    #     """
-    #     asking_service = Service(backend=self.BACKEND)
-    #     responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
-    #
-    #     files = [
-    #         Datafile(timestamp=None, path="gs://hello/file.txt"),
-    #         Datafile(timestamp=None, path="gs://goodbye/file.csv"),
-    #     ]
-    #
-    #     input_manifest = Manifest(datasets=[Dataset(files=files)], keys={"my_dataset": 0})
-    #
-    #     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-    #         executor.submit(responding_service.serve)
-    #
-    #         time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
-    #
-    #         answer = self.ask_question_and_wait_for_answer(
-    #             asking_service=asking_service,
-    #             responding_service=responding_service,
-    #             input_values={},
-    #             input_manifest=input_manifest,
-    #         )
-    #
-    #         self.assertEqual(
-    #             answer,
-    #             {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
-    #         )
-    #
-    #         self._shutdown_executor_and_clear_threads(executor)
-    #
-    #     self._delete_topics_and_subscriptions(responding_service)
+    def test_ask_with_input_manifest(self):
+        """Test that a service can ask a question including an input_manifest to another service that is serving and
+        receive an answer.
+        """
+        asking_service = Service(backend=self.BACKEND)
+        responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
+
+        files = [
+            Datafile(timestamp=None, path="gs://my-dataset/hello.txt"),
+            Datafile(timestamp=None, path="gs://my-dataset/goodbye.csv"),
+        ]
+
+        input_manifest = Manifest(datasets=[Dataset(files=files)], path="gs://my-dataset", keys={"my_dataset": 0})
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            executor.submit(responding_service.serve)
+
+            time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
+
+            answer = self.ask_question_and_wait_for_answer(
+                asking_service=asking_service,
+                responding_service=responding_service,
+                input_values={},
+                input_manifest=input_manifest,
+            )
+
+            self.assertEqual(
+                answer,
+                {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
+            )
+
+            self._shutdown_executor_and_clear_threads(executor)
+
+        self._delete_topics_and_subscriptions(responding_service)
 
     def test_ask_with_input_manifest_with_local_paths_raises_error(self):
         """Test that an error is raised if an input manifest whose datasets and/or files are not located in the cloud
