@@ -103,27 +103,6 @@ class Runner:
                 "engineers but may still be useful to app development by scientists."
             )
 
-    @staticmethod
-    def _update_manifest_path(manifest, pathname):
-        """A Quick hack to stitch the new Pathable functionality in the 0.1.4 release into the CLI and runner.
-
-        The way we define a manifest path can be more robustly implemented as we migrate functionality into the twined
-        library
-
-        :param manifest:
-        :type manifest:
-        :param pathname:
-        :type pathname:
-        :return:
-        :rtype:
-        """
-        if manifest is not None and hasattr(pathname, "endswith"):
-            if pathname.endswith(".json"):
-                manifest.path = os.path.split(pathname)[0]
-
-        # Otherwise do nothing and rely on manifest having its path variable set already
-        return manifest
-
     def run(self, analysis_id=None, input_values=None, input_manifest=None):
         """Run an analysis
 
@@ -227,6 +206,27 @@ class Runner:
             raise e
 
         return analysis
+
+    @staticmethod
+    def _update_manifest_path(manifest, pathname):
+        """A Quick hack to stitch the new Pathable functionality in the 0.1.4 release into the CLI and runner.
+
+        The way we define a manifest path can be more robustly implemented as we migrate functionality into the twined
+        library
+
+        :param manifest:
+        :type manifest:
+        :param pathname:
+        :type pathname:
+        :return:
+        :rtype:
+        """
+        if manifest is not None and hasattr(pathname, "endswith"):
+            if pathname.endswith(".json"):
+                manifest.path = os.path.split(pathname)[0]
+
+        # Otherwise do nothing and rely on manifest having its path variable set already
+        return manifest
 
     def _populate_environment_with_google_cloud_secrets(self):
         """Get any secrets specified in the credentials strand from Google Cloud Secret Manager and put them in the
