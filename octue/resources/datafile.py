@@ -199,7 +199,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         return self.path.startswith(CLOUD_STORAGE_PROTOCOL)
 
     def download(self):
-        """Download the datafile from the cloud.
+        """Download the datafile from the cloud, add its local path to the cache, and return the path. If the file has
+        already been downloaded, downloading again is avoided.
 
         :raise octue.exceptions.FileLocationError: if the file is not located in the cloud (i.e. it is local)
         :return str:
@@ -287,6 +288,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
                 obj.mode = mode
                 obj.kwargs = kwargs
                 obj.fp = None
+                obj.path = None
 
             def __enter__(obj):
                 """Open the datafile, first downloading it from the cloud if necessary.
@@ -294,18 +296,31 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
                 :return io.TextIOWrapper:
                 """
                 if datafile.is_in_cloud():
-                    path = datafile.download()
+                    obj.path = datafile.download()
                 else:
-                    path = datafile.absolute_path
+                    obj.path = datafile.absolute_path
 
                 if "w" in obj.mode:
-                    os.makedirs(os.path.split(path)[0], exist_ok=True)
+                    os.makedirs(os.path.split(obj.path)[0], exist_ok=True)
 
-                obj.fp = open(path, obj.mode, **obj.kwargs)
+                obj.fp = open(obj.path, obj.mode, **obj.kwargs)
                 return obj.fp
 
             def __exit__(obj, *args):
+                """Close the datafile, updating the corresponding file in the cloud if necessary.
+
+                :return None:
+                """
                 if obj.fp is not None:
                     obj.fp.close()
+
+                if any(character in obj.mode for character in {"w", "a", "x", "+", "U"}) and datafile.is_in_cloud():
+                    cloud_path = datafile.absolute_path
+                    datafile.path = obj.path
+
+                    datafile.to_cloud(
+                        datafile._gcp_metadata["project_name"], *storage.path.split_bucket_name_from_gs_path(cloud_path)
+                    )
+                    datafile.path = cloud_path
 
         return DataFileContextManager

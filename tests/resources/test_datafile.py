@@ -267,7 +267,7 @@ class DatafileTestCase(BaseTestCase):
                 self.assertEqual(f.read(), "hello")
 
     def test_open_with_reading_cloud_file(self):
-        """Test that a cloud datafile can be opened."""
+        """Test that a cloud datafile can be opened for reading."""
         file_contents = "[1, 2, 3]"
 
         with tempfile.NamedTemporaryFile() as temporary_file:
@@ -286,3 +286,46 @@ class DatafileTestCase(BaseTestCase):
 
         with datafile.open() as f:
             self.assertEqual(f.read(), file_contents)
+
+    def test_open_with_writing_to_cloud_file(self):
+        """Test that a cloud datafile can be opened for writing and that both the remote and local copies are updated."""
+        original_file_contents = "[1, 2, 3]"
+        filename = "nope.txt"
+
+        with tempfile.NamedTemporaryFile() as temporary_file:
+            with open(temporary_file.name, "w") as f:
+                f.write(original_file_contents)
+
+            Datafile(timestamp=None, path=temporary_file.name).to_cloud(
+                project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket=filename
+            )
+
+        self.assertFalse(os.path.exists(temporary_file.name))
+
+        datafile = Datafile.from_cloud(
+            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path=filename
+        )
+
+        new_file_contents = "nanana"
+
+        with datafile.open("w") as f:
+            f.write(new_file_contents)
+
+            # Check that the cloud file isn't updated until the context manager is closed.
+            self.assertEqual(
+                GoogleCloudStorageClient(project_name=TEST_PROJECT_NAME).download_as_string(
+                    bucket_name=TEST_BUCKET_NAME, path_in_bucket=filename
+                ),
+                original_file_contents,
+            )
+
+        with datafile.open() as f:
+            self.assertEqual(f.read(), new_file_contents)
+
+        # Check that the cloud file has now been updated.
+        self.assertEqual(
+            GoogleCloudStorageClient(project_name=TEST_PROJECT_NAME).download_as_string(
+                bucket_name=TEST_BUCKET_NAME, path_in_bucket=filename
+            ),
+            new_file_contents,
+        )
