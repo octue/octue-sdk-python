@@ -280,19 +280,28 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             fp.write("{}")
         ```
         """
-
-        absolute_path = self.absolute_path
+        datafile = self
 
         class DataFileContextManager:
             def __init__(obj, mode="r", **kwargs):
                 obj.mode = mode
                 obj.kwargs = kwargs
-                obj.absolute_path = absolute_path
-                if "w" in obj.mode:
-                    os.makedirs(os.path.split(obj.absolute_path)[0], exist_ok=True)
+                obj.fp = None
 
             def __enter__(obj):
-                obj.fp = open(obj.absolute_path, obj.mode, **obj.kwargs)
+                """Open the datafile, first downloading it from the cloud if necessary.
+
+                :return io.TextIOWrapper:
+                """
+                if datafile.is_in_cloud():
+                    path = datafile.download()
+                else:
+                    path = datafile.absolute_path
+
+                if "w" in obj.mode:
+                    os.makedirs(os.path.split(path)[0], exist_ok=True)
+
+                obj.fp = open(path, obj.mode, **obj.kwargs)
                 return obj.fp
 
             def __exit__(obj, *args):

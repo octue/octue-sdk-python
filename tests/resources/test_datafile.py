@@ -234,3 +234,55 @@ class DatafileTestCase(BaseTestCase):
         with patch("tempfile.NamedTemporaryFile") as temporary_file_mock:
             datafile.download()
             self.assertFalse(temporary_file_mock.called)
+
+    def test_open_with_reading_local_file(self):
+        """Test that a local datafile can be opened."""
+        file_contents = "[1, 2, 3]"
+
+        with tempfile.NamedTemporaryFile() as temporary_file:
+
+            with open(temporary_file.name, "w") as f:
+                f.write(file_contents)
+
+            datafile = Datafile(timestamp=None, path=temporary_file.name)
+
+            with datafile.open() as f:
+                self.assertEqual(f.read(), file_contents)
+
+    def test_open_with_writing_local_file(self):
+        """Test that a local datafile can be written to."""
+        file_contents = "[1, 2, 3]"
+
+        with tempfile.NamedTemporaryFile() as temporary_file:
+
+            with open(temporary_file.name, "w") as f:
+                f.write(file_contents)
+
+            datafile = Datafile(timestamp=None, path=temporary_file.name)
+
+            with datafile.open("w") as f:
+                f.write("hello")
+
+            with datafile.open() as f:
+                self.assertEqual(f.read(), "hello")
+
+    def test_open_with_reading_cloud_file(self):
+        """Test that a cloud datafile can be opened."""
+        file_contents = "[1, 2, 3]"
+
+        with tempfile.NamedTemporaryFile() as temporary_file:
+            with open(temporary_file.name, "w") as f:
+                f.write(file_contents)
+
+            Datafile(timestamp=None, path=temporary_file.name).to_cloud(
+                project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket="nope.txt"
+            )
+
+        self.assertFalse(os.path.exists(temporary_file.name))
+
+        datafile = Datafile.from_cloud(
+            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path="nope.txt"
+        )
+
+        with datafile.open() as f:
+            self.assertEqual(f.read(), file_contents)
