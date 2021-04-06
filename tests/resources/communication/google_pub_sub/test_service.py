@@ -105,13 +105,12 @@ class TestService(BaseTestCase):
         asking_service = Service(backend=self.BACKEND)
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             executor.submit(responding_service.serve)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
 
-            asker_future = executor.submit(
-                self.ask_question_and_wait_for_answer,
+            answer = self.ask_question_and_wait_for_answer(
                 asking_service=asking_service,
                 responding_service=responding_service,
                 input_values={},
@@ -119,7 +118,7 @@ class TestService(BaseTestCase):
             )
 
             self.assertEqual(
-                asker_future.result(),
+                answer,
                 {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
             )
 
@@ -141,13 +140,12 @@ class TestService(BaseTestCase):
 
         input_manifest = Manifest(datasets=[Dataset(files=files)], keys={"my_dataset": 0})
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             executor.submit(responding_service.serve)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
 
-            asker_future = executor.submit(
-                self.ask_question_and_wait_for_answer,
+            answer = self.ask_question_and_wait_for_answer(
                 asking_service=asking_service,
                 responding_service=responding_service,
                 input_values={},
@@ -155,7 +153,7 @@ class TestService(BaseTestCase):
             )
 
             self.assertEqual(
-                asker_future.result(),
+                answer,
                 {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
             )
 
@@ -167,10 +165,8 @@ class TestService(BaseTestCase):
         """Test that an error is raised if an input manifest whose datasets and/or files are not located in the cloud
         is used in a question.
         """
-        asking_service = Service(backend=self.BACKEND)
-
         with self.assertRaises(exceptions.FileLocationError):
-            asking_service.ask(
+            Service(backend=self.BACKEND).ask(
                 service_id=str(uuid.uuid4()),
                 input_values={},
                 input_manifest=Manifest(),
@@ -181,20 +177,18 @@ class TestService(BaseTestCase):
         asking_service = Service(backend=self.BACKEND)
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysisWithOutputManifest())
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             executor.submit(responding_service.serve)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
 
-            asker_future = executor.submit(
-                self.ask_question_and_wait_for_answer,
+            answer = self.ask_question_and_wait_for_answer(
                 asking_service=asking_service,
                 responding_service=responding_service,
                 input_values={},
                 input_manifest=None,
             )
 
-            answer = asker_future.result()
             self.assertEqual(answer["output_values"], MockAnalysisWithOutputManifest.output_values)
             self.assertEqual(answer["output_manifest"].id, MockAnalysisWithOutputManifest.output_manifest.id)
             self._shutdown_executor_and_clear_threads(executor)
@@ -328,7 +322,6 @@ class TestService(BaseTestCase):
     def test_server_can_ask_its_own_children_questions(self):
         """Test that a child can contact more than one of its own children while answering a question from a parent."""
         first_child_of_child = self.make_new_server(self.BACKEND, run_function_returnee=DifferentMockAnalysis())
-
         second_child_of_child = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
         def child_run_function(input_values, input_manifest):
