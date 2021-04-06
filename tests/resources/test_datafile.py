@@ -3,6 +3,7 @@ import json
 import os
 import tempfile
 import uuid
+from unittest.mock import patch
 
 from octue import exceptions
 from octue.cloud.storage import GoogleCloudStorageClient
@@ -190,3 +191,46 @@ class DatafileTestCase(BaseTestCase):
             self.assertEqual(persisted_datafile.tags, datafile.tags)
             self.assertEqual(persisted_datafile.size_bytes, datafile.size_bytes)
             self.assertTrue(isinstance(persisted_datafile._last_modified, float))
+
+    def test_download(self):
+        """Test that a file can be downloaded from the cloud."""
+        file_contents = "[1, 2, 3]"
+
+        with tempfile.NamedTemporaryFile() as temporary_file:
+
+            with open(temporary_file.name, "w") as f:
+                f.write(file_contents)
+
+            Datafile(timestamp=None, path=temporary_file.name).to_cloud(
+                project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket="nope.txt"
+            )
+
+        datafile = Datafile.from_cloud(
+            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path="nope.txt"
+        )
+
+        with open(datafile.download()) as f:
+            self.assertEqual(f.read(), file_contents)
+
+    def test_downloading_cached_file_avoids_downloading_again(self):
+        """Test that attempting to download a cached file avoids downloading it again."""
+        with tempfile.NamedTemporaryFile() as temporary_file:
+
+            with open(temporary_file.name, "w") as f:
+                f.write("[1, 2, 3]")
+
+            Datafile(timestamp=None, path=temporary_file.name).to_cloud(
+                project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket="nope.txt"
+            )
+
+        datafile = Datafile.from_cloud(
+            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path="nope.txt"
+        )
+
+        # Download for first time.
+        datafile.download()
+
+        # Check that a new file isn't downloaded the second time.
+        with patch("tempfile.NamedTemporaryFile") as temporary_file_mock:
+            datafile.download()
+            self.assertFalse(temporary_file_mock.called)

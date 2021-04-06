@@ -1,8 +1,10 @@
 import logging
 import os
+import tempfile
 from datetime import datetime
 from google_crc32c import Checksum
 
+from octue import exceptions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.cloud.storage.path import CLOUD_STORAGE_PROTOCOL
@@ -12,6 +14,9 @@ from octue.utils import isfile
 
 
 module_logger = logging.getLogger(__name__)
+
+
+FILE_CACHE = {}
 
 
 ID_DEFAULT = None
@@ -129,6 +134,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         )
 
         datafile._gcp_metadata = metadata
+        datafile._gcp_metadata["project_name"] = project_name
         return datafile
 
     def to_cloud(self, project_name, bucket_name, path_in_bucket):
@@ -191,6 +197,29 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         :return bool:
         """
         return self.path.startswith(CLOUD_STORAGE_PROTOCOL)
+
+    def download(self):
+        """Download the datafile from the cloud.
+
+        :raise octue.exceptions.FileLocationError: if the file is not located in the cloud (i.e. it is local)
+        :return str:
+        """
+        if not self.is_in_cloud():
+            raise exceptions.FileLocationError(
+                f"Local files cannot be downloaded from the cloud; path: {self.absolute_path}"
+            )
+
+        if self.absolute_path in FILE_CACHE:
+            return FILE_CACHE[self.absolute_path]
+
+        temporary_location = tempfile.NamedTemporaryFile(delete=False).name
+
+        GoogleCloudStorageClient(project_name=self._gcp_metadata["project_name"]).download_to_file(
+            *storage.path.split_bucket_name_from_gs_path(self.absolute_path), local_path=temporary_location
+        )
+
+        FILE_CACHE[self.absolute_path] = temporary_location
+        return temporary_location
 
     def _get_extension_from_path(self, path=None):
         """Gets extension of a file, either from a provided file path or from self.path field"""
