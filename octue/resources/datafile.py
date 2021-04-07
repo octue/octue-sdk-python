@@ -61,7 +61,18 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     """
 
     _ATTRIBUTES_TO_HASH = "name", "cluster", "sequence", "timestamp", "tags"
-    _EXCLUDE_SERIALISE_FIELDS = ("logger", "open")
+    _SERIALISE_FIELDS = (
+        "absolute_path",
+        "cluster",
+        "hash_value",
+        "id",
+        "name",
+        "path",
+        "sequence",
+        "tags",
+        "timestamp",
+        "_cloud_metadata",
+    )
 
     def __init__(
         self,
@@ -77,7 +88,13 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         **kwargs,
     ):
         super().__init__(
-            id=id, hash_value=kwargs.get("hash_value"), logger=logger, tags=tags, path=path, path_from=path_from
+            id=id,
+            name=kwargs.get("name"),
+            hash_value=kwargs.get("hash_value"),
+            logger=logger,
+            tags=tags,
+            path=path,
+            path_from=path_from,
         )
 
         self.cluster = cluster
@@ -94,7 +111,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         if not skip_checks:
             self.check(**kwargs)
 
-        self._gcp_metadata = {}
+        self._cloud_metadata = {}
 
     def __lt__(self, other):
         if not isinstance(other, Datafile):
@@ -110,7 +127,19 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         return f"<{type(self).__name__}({self.name!r})>"
 
     @classmethod
-    def from_cloud(cls, project_name, bucket_name, datafile_path, timestamp=None):
+    def deserialise(cls, serialised_datafile):
+        """Deserialise a Datafile from a dictionary.
+
+        :param dict serialised_datafile:
+        :return Datafile:
+        """
+        cloud_metadata = serialised_datafile.pop("_cloud_metadata")
+        datafile = Datafile(**serialised_datafile)
+        datafile._cloud_metadata = cloud_metadata
+        return datafile
+
+    @classmethod
+    def from_cloud(cls, project_name, bucket_name, datafile_path, **kwargs):
         """Instantiate a Datafile from a previously-persisted Datafile in Google Cloud storage. To instantiate a
         Datafile from a regular file on Google Cloud storage, the usage is the same, but include a meaningful value for
         the `timestamp` parameter.
@@ -125,17 +154,17 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         custom_metadata = metadata.get("metadata") or {}
 
         datafile = cls(
-            timestamp=custom_metadata.get("timestamp", timestamp),
-            id=custom_metadata.get("id", ID_DEFAULT),
+            timestamp=custom_metadata.get("timestamp", kwargs.get("timestamp")),
+            id=custom_metadata.get("id", kwargs.get("id", ID_DEFAULT)),
             path=storage.path.generate_gs_path(bucket_name, datafile_path),
-            hash_value=custom_metadata.get("hash_value", metadata["crc32c"]),
-            cluster=custom_metadata.get("cluster", CLUSTER_DEFAULT),
-            sequence=custom_metadata.get("sequence", SEQUENCE_DEFAULT),
-            tags=custom_metadata.get("tags", TAGS_DEFAULT),
+            hash_value=custom_metadata.get("hash_value", kwargs.get("hash_value", metadata["crc32c"])),
+            cluster=custom_metadata.get("cluster", kwargs.get("cluster", CLUSTER_DEFAULT)),
+            sequence=custom_metadata.get("sequence", kwargs.get("sequence", SEQUENCE_DEFAULT)),
+            tags=custom_metadata.get("tags", kwargs.get("tags", TAGS_DEFAULT)),
         )
 
-        datafile._gcp_metadata = metadata
-        datafile._gcp_metadata["project_name"] = project_name
+        datafile._cloud_metadata = metadata
+        datafile._cloud_metadata["project_name"] = project_name
         return datafile
 
     def to_cloud(self, project_name, bucket_name, path_in_bucket):
@@ -164,13 +193,13 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     @property
     def name(self):
-        return str(os.path.split(self.path)[-1])
+        return self._name or str(os.path.split(self.path)[-1])
 
     @property
     def _last_modified(self):
         """Get the date/time the file was last modified in units of seconds since epoch (posix time)."""
         if self._path_is_in_google_cloud_storage:
-            unparsed_datetime = self._gcp_metadata.get("updated")
+            unparsed_datetime = self._cloud_metadata.get("updated")
 
             if unparsed_datetime is None:
                 return unparsed_datetime
@@ -183,7 +212,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     @property
     def size_bytes(self):
         if self._path_is_in_google_cloud_storage:
-            size = self._gcp_metadata.get("size")
+            size = self._cloud_metadata.get("size")
 
             if size is None:
                 return size
@@ -216,7 +245,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
         temporary_location = tempfile.NamedTemporaryFile(delete=False).name
 
-        GoogleCloudStorageClient(project_name=self._gcp_metadata["project_name"]).download_to_file(
+        GoogleCloudStorageClient(project_name=self._cloud_metadata["project_name"]).download_to_file(
             *storage.path.split_bucket_name_from_gs_path(self.absolute_path), local_path=temporary_location
         )
 
@@ -231,7 +260,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     def _calculate_hash(self):
         """Calculate the hash of the file."""
         if self.is_in_cloud():
-            return self._gcp_metadata.get("hash_value", "")
+            return self._cloud_metadata.get("hash_value", "")
 
         hash = Checksum()
 
@@ -321,7 +350,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
                     datafile_copy = copy.copy(datafile)
                     datafile_copy.path = obj.path
                     datafile_copy.to_cloud(
-                        datafile._gcp_metadata["project_name"], *storage.path.split_bucket_name_from_gs_path(cloud_path)
+                        datafile._cloud_metadata["project_name"],
+                        *storage.path.split_bucket_name_from_gs_path(cloud_path),
                     )
 
         return DataFileContextManager
