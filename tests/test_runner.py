@@ -166,15 +166,17 @@ class RunnerTestCase(BaseTestCase):
                     ]
                 }
             """,
-            credentials=[
-                {"name": "SECRET_THE_FIRST"},
-                {
-                    "name": "TEST_SECRET",
-                    "location": "google",
-                    "project_name": os.environ["TEST_PROJECT_NAME"],
-                    "version": "latest",
-                },
-            ],
+            credentials="""
+                [
+                    {"name": "SECRET_THE_FIRST"},
+                    {
+                        "name": "TEST_SECRET",
+                        "location": "google",
+                        "project_name": "windquest",
+                        "version": "latest"
+                    }
+                ]
+            """,
         )
 
         class MockAccessSecretVersionResponse:

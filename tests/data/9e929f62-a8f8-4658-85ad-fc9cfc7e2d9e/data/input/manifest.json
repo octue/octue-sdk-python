@@ -1,0 +1,51 @@
+{
+  "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
+  "keys": {
+    "raw_met_mast_data": 0
+  },
+  "datasets": [
+    {
+      "id": "7ead4669-8162-4f64-8cd5-4abe92509e17",
+      "name": "meteorological mast dataset",
+      "tags": "met mast wind location:108346",
+      "files": [
+        {
+          "path": "08DEC/High Res Meteorological Mast Data - 8 Dec_1.csv",
+          "cluster": 0,
+          "sequence": 0,
+          "extension": "csv",
+          "tags": "timeseries",
+          "timestamp": 1605783547.0,
+          "id": "acff07bc-7c19-4ed5-be6d-a6546eae8e86",
+          "name": "High Res Meteorological Mast Data - 8 Dec_1.csv",
+          "size_bytes": 4443,
+          "sha-512/256": "somesha"
+        },
+        {
+          "path": "08DEC/High Res Meteorological Mast Data - 8 Dec_2.csv",
+          "cluster": 0,
+          "sequence": 1,
+          "extension": "csv",
+          "tags": "timeseries",
+          "timestamp": 1605783547.0,
+          "id": "bdff07bc-7c19-4ed5-be6d-a6546eae8e45",
+          "name": "High Res Meteorological Mast Data - 8 Dec_2.csv",
+          "size_bytes": 4471,
+          "sha-512/256": "someothersha"
+        },
+        {
+          "path": "08DEC/meta - 8 Dec.dat",
+          "cluster": 1,
+          "sequence": 0,
+          "extension": "dat",
+          "tags": "meta",
+          "timestamp": 1605783547.0,
+          "id": "ceff07bc-7c19-4ed5-be6d-a6546eae8e86",
+          "name": "meta - 8 Dec_1.da",
+          "size_bytes": 4443,
+          "sha-512/256": "somesha"
+        }
+      ]
+    }
+  ]
+}

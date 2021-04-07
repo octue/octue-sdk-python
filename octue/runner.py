@@ -1,4 +1,5 @@
 import importlib
+import json
 import logging
 import os
 import sys
@@ -58,7 +59,7 @@ class Runner:
         """ Constructor for the Runner class. """
         self.app_src = app_src
         self.output_manifest_path = output_manifest_path
-        self.credentials = credentials
+        self.credentials = json.loads(credentials)
         self.children = children
         self.skip_checks = skip_checks
 
