@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import warnings
 from google.oauth2 import service_account
 
 
@@ -18,11 +19,17 @@ class GCPCredentialsManager:
         try:
             self.environment_variable_value = os.environ[self.environment_variable_name]
         except KeyError:
-            raise EnvironmentError(f"There is no environment variable called {self.environment_variable_name}.")
+            warnings.warn(
+                f"No environment variable called {self.environment_variable_name!r}; resorting to default Google Cloud "
+                f"credentials."
+            )
+            self.environment_variable_value = None
 
     def get_credentials(self):
         """Get the Google OAUTH2 service account credentials for which the environment variable value is either the
         filename containing them or a JSON string version of them."""
+        if self.environment_variable_value is None:
+            return None
 
         # Check that the environment variable refers to a valid *and* real path.
         if os.path.exists(self.environment_variable_value):

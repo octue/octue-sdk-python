@@ -5,9 +5,9 @@ from tests.base import BaseTestCase
 
 
 class TestGCPCredentialsManager(BaseTestCase):
-    def test_error_is_raise_if_no_environment_variable(self):
-        """ Ensure an error is raised if the given environment variable can't be found. """
-        with self.assertRaises(EnvironmentError):
+    def test_warning_issued_if_no_environment_variable(self):
+        """ Ensure a warning is issued if the given environment variable can't be found. """
+        with self.assertWarns(Warning):
             GCPCredentialsManager(environment_variable_name="heeby_jeeby-11111-33103")
 
     def test_credentials_can_be_loaded_from_file(self):
