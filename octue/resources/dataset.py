@@ -30,9 +30,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
 
     def __init__(self, name=None, id=None, logger=None, path=None, path_from=None, tags=None, **kwargs):
         """Construct a Dataset"""
-        super().__init__(id=id, logger=logger, tags=tags, path=path, path_from=path_from)
-
-        self._name = name
+        super().__init__(name=name, id=id, logger=logger, tags=tags, path=path, path_from=path_from)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
@@ -44,7 +42,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             if isinstance(file, Datafile):
                 self.files.add(file)
             else:
-                self.files.add(Datafile(**file, path_from=self))
+                self.files.add(Datafile.deserialise(file))
 
         self.__dict__.update(**kwargs)
 
@@ -179,7 +177,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         )
         return self.files.filter(filter_name=field_lookup, filter_value=filter_value)
 
-    def get_file_sequence(self, filter_name, filter_value=None, strict=True):
+    def get_file_sequence(self, filter_name=None, filter_value=None, strict=True):
         """Get an ordered sequence of files matching a criterion
 
         Accepts the same search arguments as `get_files`.
@@ -191,8 +189,11 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         :returns: Sorted list of Datafiles
         :rtype: list(Datafile)
         """
+        results = self.files
 
-        results = self.files.filter(filter_name=filter_name, filter_value=filter_value)
+        if filter_name is not None:
+            results = results.filter(filter_name=filter_name, filter_value=filter_value)
+
         results = results.filter("sequence__is_not", None)
 
         def get_sequence_number(file):
