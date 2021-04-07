@@ -47,7 +47,7 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
             if isinstance(dataset, Dataset):
                 self.datasets.append(dataset)
             else:
-                self.datasets.append(Dataset(**dataset, path=key, path_from=self))
+                self.datasets.append(Dataset(**dataset))
 
         # Instantiate the rest of everything!
         vars(self).update(**kwargs)
