@@ -102,26 +102,24 @@ class DatafileTestCase(BaseTestCase):
         self.assertEqual(repr(self.create_valid_datafile()), "<Datafile('a_test_file.csv')>")
 
     def test_serialisable(self):
-        """Ensures a datafile can serialise to json format"""
-        df = self.create_valid_datafile()
-        df_dict = df.serialise()
+        """Ensure datafiles can be serialised to JSON."""
+        serialised_datafile = self.create_valid_datafile().serialise()
+        self.assertFalse(any(key.startswith("_") for key in serialised_datafile.keys() - {"_cloud_metadata"}))
 
-        for k in df_dict.keys():
-            self.assertFalse(k.startswith("_"))
-
-        for k in (
+        expected_fields = {
+            "absolute_path",
             "cluster",
-            "extension",
             "id",
             "name",
             "path",
             "timestamp",
             "sequence",
-            "size_bytes",
             "tags",
             "hash_value",
-        ):
-            self.assertIn(k, df_dict.keys())
+            "_cloud_metadata",
+        }
+
+        self.assertEqual(serialised_datafile.keys(), expected_fields)
 
     def test_hash_value(self):
         """Test hashing a datafile gives a hash of length 8."""
