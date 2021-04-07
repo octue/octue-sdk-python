@@ -1,3 +1,4 @@
+import json
 import re
 from functools import lru_cache
 
@@ -91,12 +92,15 @@ class TagSet:
 
     def __init__(self, tags=None, *args, **kwargs):
         """ Construct a TagSet. """
-        # TODO Call the superclass with *args anad **kwargs, then update everything to using ResourceBase
+        # TODO Call the superclass with *args and **kwargs, then update everything to using ResourceBase
         tags = tags or FilterSet()
 
-        # Space delimited string of tag names.
+        # JSON-encoded list of tag names, or space-delimited string of tag names.
         if isinstance(tags, str):
-            self.tags = FilterSet(Tag(tag) for tag in tags.strip().split())
+            try:
+                self.tags = json.loads(tags)
+            except json.decoder.JSONDecodeError:
+                self.tags = FilterSet(Tag(tag) for tag in tags.strip().split())
 
         elif isinstance(tags, TagSet):
             self.tags = FilterSet(tags.tags)
