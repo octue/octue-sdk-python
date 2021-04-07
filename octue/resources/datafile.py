@@ -1,3 +1,4 @@
+import copy
 import logging
 import os
 import tempfile
@@ -316,11 +317,11 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
                 if any(character in obj.mode for character in {"w", "a", "x", "+", "U"}) and datafile.is_in_cloud():
                     cloud_path = datafile.absolute_path
-                    datafile.path = obj.path
 
-                    datafile.to_cloud(
+                    datafile_copy = copy.copy(datafile)
+                    datafile_copy.path = obj.path
+                    datafile_copy.to_cloud(
                         datafile._gcp_metadata["project_name"], *storage.path.split_bucket_name_from_gs_path(cloud_path)
                     )
-                    datafile.path = cloud_path
 
         return DataFileContextManager
