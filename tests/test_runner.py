@@ -157,11 +157,13 @@ class RunnerTestCase(BaseTestCase):
                     "credentials": [
                         {
                             "name": "SECRET_THE_FIRST",
-                            "purpose": "Token for accessing a 3rd party API service"
+                            "purpose": "Token for accessing a 3rd party API service",
+                            "location": "local"
                         },
                         {
                             "name": "TEST_SECRET",
-                            "purpose": "Token for accessing a 3rd party API service"
+                            "purpose": "Token for accessing a 3rd party API service",
+                            "location": "local"
                         }
                     ]
                 }
