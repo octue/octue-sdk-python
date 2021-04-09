@@ -106,6 +106,8 @@ class Service(CoolNameable):
         asker). Answers are published to a topic whose name is generated from the UUID sent with the question, and are
         in the format specified in the Service's Twine file.
         """
+        question_uuid = "182286888011292759059881263422179369423"
+
         topic = Topic(
             name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)), namespace=OCTUE_NAMESPACE, service=self
         )
