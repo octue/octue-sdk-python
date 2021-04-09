@@ -1,10 +1,10 @@
 import importlib
-import json
 import logging
 import os
 import sys
 from google.cloud import secretmanager
 
+import twined.utils.load_json
 from octue.cloud.credentials import GCPCredentialsManager
 from octue.logging_handlers import apply_log_handler
 from octue.resources import Child
@@ -56,12 +56,13 @@ class Runner:
         handler=None,
         show_twined_logs=False,
     ):
-        """ Constructor for the Runner class. """
         self.app_src = app_src
         self.output_manifest_path = output_manifest_path
-        self.credentials = json.loads(credentials)
         self.children = children
         self.skip_checks = skip_checks
+
+        # Credentials must be loaded before validation so that remote credentials can be retrieved first.
+        self.credentials = twined.utils.load_json(credentials)
 
         # Store the log level (same log level used for all analyses)
         self._log_level = log_level
