@@ -60,12 +60,12 @@ class Service(CoolNameable):
         self.run_function = run_function
 
         if backend.credentials_environment_variable is None:
-            self.credentials = None
+            credentials = None
         else:
-            self.credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
+            credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
 
-        self.publisher = pubsub_v1.PublisherClient(credentials=self.credentials, batch_settings=BATCH_SETTINGS)
-        self.subscriber = pubsub_v1.SubscriberClient(credentials=self.credentials)
+        self.publisher = pubsub_v1.PublisherClient(credentials=credentials, batch_settings=BATCH_SETTINGS)
+        self.subscriber = pubsub_v1.SubscriberClient(credentials=credentials)
         super().__init__()
 
     def __repr__(self):
@@ -106,8 +106,6 @@ class Service(CoolNameable):
         asker). Answers are published to a topic whose name is generated from the UUID sent with the question, and are
         in the format specified in the Service's Twine file.
         """
-        # question_uuid = "182286888011292759059881263422179369423"
-
         topic = Topic(
             name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)), namespace=OCTUE_NAMESPACE, service=self
         )
@@ -145,7 +143,6 @@ class Service(CoolNameable):
             raise exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
 
         question_uuid = str(int(uuid.uuid4()))
-        # question_uuid = "182286888011292759059881263422179369423"
 
         response_topic_and_subscription_name = ".".join((service_id, ANSWERS_NAMESPACE, question_uuid))
         response_topic = Topic(name=response_topic_and_subscription_name, namespace=OCTUE_NAMESPACE, service=self)
