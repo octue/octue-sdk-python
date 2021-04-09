@@ -155,7 +155,8 @@ class Service(CoolNameable):
         """
         answer = self.subscriber.pull(
             request={"subscription": subscription.path, "max_messages": 1},
-            retry=retry.Retry(deadline=timeout),
+            retry=retry.Retry(deadline=timeout * 10),
+            timeout=timeout,
         ).received_messages[0]
 
         self.subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
