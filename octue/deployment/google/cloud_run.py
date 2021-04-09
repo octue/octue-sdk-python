@@ -96,4 +96,4 @@ def answer_question(project_name, data, question_uuid):
         run_function=runner.run,
     )
 
-    service.answer(data=data, question_uuid=question_uuid)
+    service.answer(data=data, question_uuid=question_uuid, timeout=60)

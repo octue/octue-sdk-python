@@ -2,6 +2,8 @@ import json
 import logging
 import uuid
 from concurrent.futures import TimeoutError
+import google.api_core
+import google.api_core.exceptions
 from google.api_core import retry
 from google.cloud import pubsub_v1
 
@@ -23,6 +25,23 @@ ANSWERS_NAMESPACE = "answers"
 # Switch message batching off by setting max_messages to 1. This minimises latency and is recommended for
 # microservices publishing single messages in a request-response sequence.
 BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_latency=0.01, max_messages=1)
+
+
+def create_custom_retry(timeout):
+    return retry.Retry(
+        maximum=timeout / 4,
+        deadline=timeout,
+        predicate=google.api_core.retry.if_exception_type(
+            google.api_core.exceptions.NotFound,
+            google.api_core.exceptions.Aborted,
+            google.api_core.exceptions.DeadlineExceeded,
+            google.api_core.exceptions.InternalServerError,
+            google.api_core.exceptions.ResourceExhausted,
+            google.api_core.exceptions.ServiceUnavailable,
+            google.api_core.exceptions.Unknown,
+            google.api_core.exceptions.Cancelled,
+        ),
+    )
 
 
 class Service(CoolNameable):
@@ -82,7 +101,7 @@ class Service(CoolNameable):
         question.ack()
         self.answer(data, question_uuid)
 
-    def answer(self, data, question_uuid):
+    def answer(self, data, question_uuid, timeout=30):
         """Answer a question (i.e. run the Service's app to analyse the given data, and return the output values to the
         asker). Answers are published to a topic whose name is generated from the UUID sent with the question, and are
         in the format specified in the Service's Twine file.
@@ -102,6 +121,7 @@ class Service(CoolNameable):
             data=json.dumps(
                 {"output_values": analysis.output_values, "output_manifest": serialised_output_manifest}
             ).encode(),
+            retry=create_custom_retry(timeout),
         )
         logger.info("%r responded on topic %r.", self, topic.path)
 
@@ -149,15 +169,20 @@ class Service(CoolNameable):
         logger.debug("%r asked question to %r service. Question UUID is %r.", self, service_id, question_uuid)
         return response_subscription, question_uuid
 
-    def wait_for_answer(self, subscription, timeout=20):
+    def wait_for_answer(self, subscription, timeout=30):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
         """
-        answer = self.subscriber.pull(
+        pull_response = self.subscriber.pull(
             request={"subscription": subscription.path, "max_messages": 1},
-            retry=retry.Retry(deadline=timeout * 10),
             timeout=timeout,
-        ).received_messages[0]
+            retry=create_custom_retry(timeout),
+        )
+
+        try:
+            answer = pull_response.received_messages[0]
+        except IndexError:
+            raise TimeoutError("No answer received from topic %r", subscription.topic.path)
 
         self.subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
         logger.debug("%r received a response to question on topic %r", self, subscription.topic.path)
