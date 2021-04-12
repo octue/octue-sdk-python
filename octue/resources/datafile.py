@@ -203,7 +203,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             unparsed_datetime = self._cloud_metadata.get("updated")
 
             if unparsed_datetime is None:
-                return unparsed_datetime
+                return None
 
             parsed_datetime = datetime.strptime(unparsed_datetime, "%Y-%m-%dT%H:%M:%S.%fZ")
             return (parsed_datetime - datetime(1970, 1, 1)).total_seconds()
@@ -216,7 +216,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             size = self._cloud_metadata.get("size")
 
             if size is None:
-                return size
+                return None
 
             return int(size)
 
@@ -230,8 +230,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         return self.path.startswith(CLOUD_STORAGE_PROTOCOL)
 
     def get_local_path(self):
-        """Get the local path for the datafile, downloading it from the cloud if necessary. If downloaded, the local
-        path is added to a cache to avoid downloading again.
+        """Get the local path for the datafile, downloading it from the cloud to a temporary file if necessary. If
+        downloaded, the local path is added to a cache to avoid downloading again in the same runtime.
 
         :raise octue.exceptions.FileLocationError: if the file is not located in the cloud (i.e. it is local)
         :return str:
@@ -242,14 +242,14 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         if self.absolute_path in TEMPORARY_LOCAL_FILE_CACHE:
             return TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path]
 
-        temporary_location = tempfile.NamedTemporaryFile(delete=False).name
+        temporary_local_path = tempfile.NamedTemporaryFile(delete=False).name
 
         GoogleCloudStorageClient(project_name=self._cloud_metadata["project_name"]).download_to_file(
-            *storage.path.split_bucket_name_from_gs_path(self.absolute_path), local_path=temporary_location
+            *storage.path.split_bucket_name_from_gs_path(self.absolute_path), local_path=temporary_local_path
         )
 
-        TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path] = temporary_location
-        return temporary_location
+        TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path] = temporary_local_path
+        return temporary_local_path
 
     def _get_extension_from_path(self, path=None):
         """Gets extension of a file, either from a provided file path or from self.path field"""
@@ -324,10 +324,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
                 :return io.TextIOWrapper:
                 """
-                if datafile.is_in_cloud():
-                    obj.path = datafile.get_local_path()
-                else:
-                    obj.path = datafile.absolute_path
+                obj.path = datafile.get_local_path()
 
                 if "w" in obj.mode:
                     os.makedirs(os.path.split(obj.path)[0], exist_ok=True)
@@ -343,7 +340,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
                 if obj.fp is not None:
                     obj.fp.close()
 
-                if any(character in obj.mode for character in {"w", "a", "x", "+", "U"}) and datafile.is_in_cloud():
+                if datafile.is_in_cloud() and any(character in obj.mode for character in {"w", "a", "x", "+", "U"}):
                     cloud_path = datafile.absolute_path
 
                     datafile_copy = copy.copy(datafile)
