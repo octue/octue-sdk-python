@@ -127,14 +127,14 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         return f"<{type(self).__name__}({self.name!r})>"
 
     @classmethod
-    def deserialise(cls, serialised_datafile):
+    def deserialise(cls, serialised_datafile, path_from=None):
         """Deserialise a Datafile from a dictionary.
 
         :param dict serialised_datafile:
         :return Datafile:
         """
-        cloud_metadata = serialised_datafile.pop("_cloud_metadata")
-        datafile = Datafile(**serialised_datafile)
+        cloud_metadata = serialised_datafile.pop("_cloud_metadata", {})
+        datafile = Datafile(**serialised_datafile, path_from=path_from)
         datafile._cloud_metadata = cloud_metadata
         return datafile
 
