@@ -16,7 +16,7 @@ from octue.utils import isfile
 module_logger = logging.getLogger(__name__)
 
 
-FILE_CACHE = {}
+TEMPORARY_LOCAL_FILE_CACHE = {}
 
 
 ID_DEFAULT = None
@@ -237,8 +237,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         if not self.is_in_cloud():
             return self.absolute_path
 
-        if self.absolute_path in FILE_CACHE:
-            return FILE_CACHE[self.absolute_path]
+        if self.absolute_path in TEMPORARY_LOCAL_FILE_CACHE:
+            return TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path]
 
         temporary_location = tempfile.NamedTemporaryFile(delete=False).name
 
@@ -246,7 +246,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             *storage.path.split_bucket_name_from_gs_path(self.absolute_path), local_path=temporary_location
         )
 
-        FILE_CACHE[self.absolute_path] = temporary_location
+        TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path] = temporary_location
         return temporary_location
 
     def _get_extension_from_path(self, path=None):
