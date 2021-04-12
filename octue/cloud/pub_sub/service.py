@@ -28,6 +28,12 @@ BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_l
 
 
 def create_custom_retry(timeout):
+    """Create a custom `Retry` object specifying that the given Google Cloud request should retry for the given amount
+    of time for the given exceptions.
+
+    :param float timeout:
+    :return google.api_core.retry.Retry:
+    """
     return retry.Retry(
         maximum=timeout / 4,
         deadline=timeout,
