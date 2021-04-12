@@ -104,7 +104,6 @@ class DatafileTestCase(BaseTestCase):
     def test_serialisable(self):
         """Ensure datafiles can be serialised to JSON."""
         serialised_datafile = self.create_valid_datafile().serialise()
-        self.assertFalse(any(key.startswith("_") for key in serialised_datafile.keys() - {"_cloud_metadata"}))
 
         expected_fields = {
             "absolute_path",
@@ -189,8 +188,8 @@ class DatafileTestCase(BaseTestCase):
             self.assertEqual(persisted_datafile.size_bytes, datafile.size_bytes)
             self.assertTrue(isinstance(persisted_datafile._last_modified, float))
 
-    def test_download(self):
-        """Test that a file can be downloaded from the cloud."""
+    def test_get_local_path(self):
+        """Test that a file in the cloud can be temporarily downloaded and its local path returned."""
         file_contents = "[1, 2, 3]"
 
         with tempfile.NamedTemporaryFile() as temporary_file:
@@ -209,7 +208,7 @@ class DatafileTestCase(BaseTestCase):
         with open(datafile.get_local_path()) as f:
             self.assertEqual(f.read(), file_contents)
 
-    def test_downloading_cached_file_avoids_downloading_again(self):
+    def test_get_local_path_with_cached_file_avoids_downloading_again(self):
         """Test that attempting to download a cached file avoids downloading it again."""
         with tempfile.NamedTemporaryFile() as temporary_file:
 
@@ -316,9 +315,6 @@ class DatafileTestCase(BaseTestCase):
                 original_file_contents,
             )
 
-        with datafile.open() as f:
-            self.assertEqual(f.read(), new_file_contents)
-
         # Check that the cloud file has now been updated.
         self.assertEqual(
             GoogleCloudStorageClient(project_name=TEST_PROJECT_NAME).download_as_string(
@@ -326,3 +322,7 @@ class DatafileTestCase(BaseTestCase):
             ),
             new_file_contents,
         )
+
+        # Check that the local copy has been updated.
+        with datafile.open() as f:
+            self.assertEqual(f.read(), new_file_contents)
