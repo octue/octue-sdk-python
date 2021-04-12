@@ -148,57 +148,54 @@ class RunnerTestCase(BaseTestCase):
         """Test that credentials can be found locally and populated into the environment from Google Cloud Secret
         Manager.
         """
-        os.environ["SECRET_THE_FIRST"] = "my-secret"
+        with patch.dict(os.environ, {"LOCAL_CREDENTIAL": "my-secret"}):
 
-        runner = Runner(
-            app_src=mock_app,
-            twine="""
-                {
-                    "credentials": [
+            runner = Runner(
+                app_src=mock_app,
+                twine="""
+                    {
+                        "credentials": [
+                            {
+                                "name": "LOCAL_CREDENTIAL",
+                                "purpose": "Token for accessing a 3rd party API service"
+                            },
+                            {
+                                "name": "CLOUD_CREDENTIALS",
+                                "purpose": "Token for accessing another 3rd party API service"
+                            }
+                        ]
+                    }
+                """,
+                credentials="""
+                    [
+                        {"name": "LOCAL_CREDENTIAL"},
                         {
-                            "name": "SECRET_THE_FIRST",
-                            "purpose": "Token for accessing a 3rd party API service",
-                            "location": "local"
-                        },
-                        {
-                            "name": "TEST_SECRET",
-                            "purpose": "Token for accessing a 3rd party API service",
-                            "location": "local"
+                            "name": "CLOUD_CREDENTIALS",
+                            "location": "google",
+                            "project_name": "test-project",
+                            "version": "latest"
                         }
                     ]
-                }
-            """,
-            credentials="""
-                [
-                    {"name": "SECRET_THE_FIRST"},
-                    {
-                        "name": "TEST_SECRET",
-                        "location": "google",
-                        "project_name": "windquest",
-                        "version": "latest"
-                    }
-                ]
-            """,
-        )
+                """,
+            )
 
-        class MockAccessSecretVersionResponse:
-            payload = Mock()
-            payload.data = b"My precious!"
+            class MockAccessSecretVersionResponse:
+                payload = Mock()
+                payload.data = b"My precious!"
 
-        # An error will be raised if secret validation fails.
-        with patch(
-            "google.cloud.secretmanager_v1.services.secret_manager_service.client.SecretManagerServiceClient"
-            ".access_secret_version",
-            return_value=MockAccessSecretVersionResponse(),
-        ):
-            runner.run()
+            with patch(
+                "google.cloud.secretmanager_v1.services.secret_manager_service.client.SecretManagerServiceClient"
+                ".access_secret_version",
+                return_value=MockAccessSecretVersionResponse(),
+            ):
+                runner.run()
 
-        # Check that first secret is still present and that the Google Cloud secret is now in the environment.
-        self.assertEqual(os.environ["SECRET_THE_FIRST"], "my-secret")
-        self.assertEqual(os.environ["TEST_SECRET"], "My precious!")
+            # Check that first secret is still present and that the Google Cloud secret is now in the environment.
+            self.assertEqual(os.environ["LOCAL_CREDENTIAL"], "my-secret")
+            self.assertEqual(os.environ["CLOUD_CREDENTIALS"], "My precious!")
 
     def test_invalid_app_directory(self):
-        """ Ensure an error containing the searched location is raised if the app source can't be found. """
+        """Ensure an error containing the searched location is raised if the app source can't be found."""
         runner = Runner(app_src="..", twine="{}")
 
         with self.assertRaises(ModuleNotFoundError) as e:
