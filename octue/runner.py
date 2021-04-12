@@ -236,20 +236,19 @@ class Runner:
 
         :return None:
         """
-        if not any(credential.get("location") == "google" for credential in self.credentials):
+        google_secrets = tuple(credential for credential in self.credentials if credential.get("location") == "google")
+
+        if not any(google_secrets):
             return
 
         secrets_client = secretmanager.SecretManagerServiceClient(credentials=GCPCredentialsManager().get_credentials())
 
-        for credential in self.credentials:
-            if credential.get("location") == "google":
-
-                secret_path = secrets_client.secret_version_path(
-                    project=credential["project_name"], secret=credential["name"], secret_version=credential["version"]
-                )
-
-                secret = secrets_client.access_secret_version(name=secret_path).payload.data.decode("UTF-8")
-                os.environ[credential["name"]] = secret
+        for credential in google_secrets:
+            secret_path = secrets_client.secret_version_path(
+                project=credential["project_name"], secret=credential["name"], secret_version=credential["version"]
+            )
+            secret = secrets_client.access_secret_version(name=secret_path).payload.data.decode("UTF-8")
+            os.environ[credential["name"]] = secret
 
 
 def unwrap(fcn):
