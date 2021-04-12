@@ -236,6 +236,9 @@ class Runner:
 
         :return None:
         """
+        if not any(credential.get("location") == "google" for credential in self.credentials):
+            return
+
         secrets_client = secretmanager.SecretManagerServiceClient(credentials=GCPCredentialsManager().get_credentials())
 
         for credential in self.credentials:
