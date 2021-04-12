@@ -1,4 +1,3 @@
-import copy
 import logging
 import os
 import tempfile
@@ -177,7 +176,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         :return str: gs:// path for datafile
         """
         GoogleCloudStorageClient(project_name=project_name).upload_file(
-            local_path=self.path,
+            local_path=self.get_local_path(),
             bucket_name=bucket_name,
             path_in_bucket=path_in_bucket,
             metadata={
@@ -341,13 +340,9 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
                     obj.fp.close()
 
                 if datafile.is_in_cloud() and any(character in obj.mode for character in {"w", "a", "x", "+", "U"}):
-                    cloud_path = datafile.absolute_path
-
-                    datafile_copy = copy.copy(datafile)
-                    datafile_copy.path = obj.path
-                    datafile_copy.to_cloud(
+                    datafile.to_cloud(
                         datafile._cloud_metadata["project_name"],
-                        *storage.path.split_bucket_name_from_gs_path(cloud_path),
+                        *storage.path.split_bucket_name_from_gs_path(datafile.absolute_path),
                     )
 
         return DataFileContextManager

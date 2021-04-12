@@ -188,6 +188,34 @@ class DatafileTestCase(BaseTestCase):
             self.assertEqual(persisted_datafile.size_bytes, datafile.size_bytes)
             self.assertTrue(isinstance(persisted_datafile._last_modified, float))
 
+    def test_to_cloud_updates_cloud_files(self):
+        """Test that calling Datafile.to_cloud on a datafile that is already cloud-based updates it in the cloud."""
+        path_in_bucket = "file_to_upload.txt"
+
+        with tempfile.NamedTemporaryFile() as temporary_file:
+
+            with open(temporary_file.name, "w") as f:
+                f.write("[1, 2, 3]")
+
+            datafile = Datafile(timestamp=None, path=temporary_file.name, cluster=0)
+
+            datafile.to_cloud(
+                project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket=path_in_bucket
+            )
+
+            datafile.cluster = 3
+
+            datafile.to_cloud(
+                project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket=path_in_bucket
+            )
+
+            self.assertEqual(
+                Datafile.from_cloud(
+                    project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path=path_in_bucket
+                ).cluster,
+                3,
+            )
+
     def test_get_local_path(self):
         """Test that a file in the cloud can be temporarily downloaded and its local path returned."""
         file_contents = "[1, 2, 3]"
