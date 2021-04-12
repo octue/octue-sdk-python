@@ -140,8 +140,10 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     @classmethod
     def from_cloud(cls, project_name, bucket_name, datafile_path, **kwargs):
         """Instantiate a Datafile from a previously-persisted Datafile in Google Cloud storage. To instantiate a
-        Datafile from a regular file on Google Cloud storage, the usage is the same, but include a meaningful value for
-        the `timestamp` parameter.
+        Datafile from a regular file on Google Cloud storage, the usage is the same, but a meaningful value for each of
+        the instantiated Datafile's attributes can be included in the kwargs.
+
+        Note that a value provided for an attribute in kwargs will override any existing value for the attribute.
 
         :param str project_name:
         :param str bucket_name:
@@ -153,13 +155,13 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         custom_metadata = metadata.get("metadata") or {}
 
         datafile = cls(
-            timestamp=custom_metadata.get("timestamp", kwargs.get("timestamp")),
-            id=custom_metadata.get("id", kwargs.get("id", ID_DEFAULT)),
+            timestamp=kwargs.get("timestamp", custom_metadata.get("timestamp")),
+            id=kwargs.get("id", custom_metadata.get("id", ID_DEFAULT)),
             path=storage.path.generate_gs_path(bucket_name, datafile_path),
-            hash_value=custom_metadata.get("hash_value", kwargs.get("hash_value", metadata["crc32c"])),
-            cluster=custom_metadata.get("cluster", kwargs.get("cluster", CLUSTER_DEFAULT)),
-            sequence=custom_metadata.get("sequence", kwargs.get("sequence", SEQUENCE_DEFAULT)),
-            tags=custom_metadata.get("tags", kwargs.get("tags", TAGS_DEFAULT)),
+            hash_value=kwargs.get("hash_value", custom_metadata.get("hash_value", metadata.get("crc32c"))),
+            cluster=kwargs.get("cluster", custom_metadata.get("cluster", CLUSTER_DEFAULT)),
+            sequence=kwargs.get("sequence", custom_metadata.get("sequence", SEQUENCE_DEFAULT)),
+            tags=kwargs.get("tags", custom_metadata.get("tags", TAGS_DEFAULT)),
         )
 
         datafile._cloud_metadata = metadata
