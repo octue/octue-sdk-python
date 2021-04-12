@@ -5,7 +5,6 @@ import tempfile
 from datetime import datetime
 from google_crc32c import Checksum
 
-from octue import exceptions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.cloud.storage.path import CLOUD_STORAGE_PROTOCOL
@@ -228,17 +227,15 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         """
         return self.path.startswith(CLOUD_STORAGE_PROTOCOL)
 
-    def download(self):
-        """Download the datafile from the cloud, add its local path to the cache, and return the path. If the file has
-        already been downloaded, downloading again is avoided.
+    def get_local_path(self):
+        """Get the local path for the datafile, downloading it from the cloud if necessary. If downloaded, the local
+        path is added to a cache to avoid downloading again.
 
         :raise octue.exceptions.FileLocationError: if the file is not located in the cloud (i.e. it is local)
         :return str:
         """
         if not self.is_in_cloud():
-            raise exceptions.FileLocationError(
-                f"Local files cannot be downloaded from the cloud; path: {self.absolute_path}"
-            )
+            return self.absolute_path
 
         if self.absolute_path in FILE_CACHE:
             return FILE_CACHE[self.absolute_path]
@@ -326,7 +323,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
                 :return io.TextIOWrapper:
                 """
                 if datafile.is_in_cloud():
-                    obj.path = datafile.download()
+                    obj.path = datafile.get_local_path()
                 else:
                     obj.path = datafile.absolute_path
 

@@ -206,7 +206,7 @@ class DatafileTestCase(BaseTestCase):
             project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path="nope.txt"
         )
 
-        with open(datafile.download()) as f:
+        with open(datafile.get_local_path()) as f:
             self.assertEqual(f.read(), file_contents)
 
     def test_downloading_cached_file_avoids_downloading_again(self):
@@ -225,11 +225,11 @@ class DatafileTestCase(BaseTestCase):
         )
 
         # Download for first time.
-        datafile.download()
+        datafile.get_local_path()
 
         # Check that a new file isn't downloaded the second time.
         with patch("tempfile.NamedTemporaryFile") as temporary_file_mock:
-            datafile.download()
+            datafile.get_local_path()
             self.assertFalse(temporary_file_mock.called)
 
     def test_open_with_reading_local_file(self):
