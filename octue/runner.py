@@ -23,23 +23,20 @@ class Runner:
     The Runner class provides a set of configuration parameters for use by your application, together with a range of
     methods for managing input and output file parsing as well as controlling logging.
 
-    :parameter twine: string path to the twine file, or a string containing valid twine json
-
-    :parameter paths: string or dict. If a string, contains a single path to an existing data directory where
-    (if not already present), subdirectories 'configuration', 'input', 'tmp', 'log' and 'output' will be created. If a
-    dict, it should contain all of those keys, with each of their values being a path to a directory (which will be
-    recursively created if it doesn't exist)
-
-    :parameter configuration_values: The strand data. Can be expressed as a string path of a *.json file (relative
-    or absolute), as an open file-like object (containing json data), as a string of json data or as an
-    already-parsed dict.
-
-    :parameter configuration_manifest: The strand data. Can be expressed as a string path of a *.json file
-    (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
-    already-parsed dict.
-
-    :parameter skip_file_checks: If true, skip the check that all files in the manifest are present on disc - this
-    can be an extremely long process for large datasets.
+    :param str twine: string path to the twine file, or a string containing valid twine json
+    :param str|dict paths: If a string, contains a single path to an existing data directory where
+        (if not already present), subdirectories 'configuration', 'input', 'tmp', 'log' and 'output' will be created. If a
+        dict, it should contain all of those keys, with each of their values being a path to a directory (which will be
+        recursively created if it doesn't exist)
+    :param str|dict|_io.TextIOWrapper configuration_values: The strand data. Can be expressed as a string path of a
+        *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json
+        data or as an already-parsed dict.
+    :param str|dict|_io.TextIOWrapper configuration_manifest: The strand data. Can be expressed as a string path of a
+    *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or
+    as an already-parsed dict.
+    :param bool skip_file_checks: If true, skip the check that all files in the manifest are present on disc - this
+        can be an extremely long process for large datasets.
+    :param str project_name: name of Google Cloud project to get credentials from
     """
 
     def __init__(
