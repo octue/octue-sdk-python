@@ -166,17 +166,6 @@ class RunnerTestCase(BaseTestCase):
                         ]
                     }
                 """,
-                credentials="""
-                    [
-                        {"name": "LOCAL_CREDENTIAL"},
-                        {
-                            "name": "CLOUD_CREDENTIALS",
-                            "location": "google",
-                            "project_name": "test-project",
-                            "version": "latest"
-                        }
-                    ]
-                """,
             )
 
             class MockAccessSecretVersionResponse:

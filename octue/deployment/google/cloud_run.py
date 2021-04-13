@@ -82,7 +82,6 @@ def answer_question(project_name, data, question_uuid):
         configuration_values=deployment_configuration.get("configuration_values", None),
         configuration_manifest=deployment_configuration.get("configuration_manifest", None),
         output_manifest_path=deployment_configuration.get("output_manifest", None),
-        credentials=deployment_configuration.get("credentials", None),
         children=deployment_configuration.get("children", None),
         skip_checks=deployment_configuration.get("skip_checks", False),
         log_level=deployment_configuration.get("log_level", "INFO"),

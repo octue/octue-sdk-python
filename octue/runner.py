@@ -2,9 +2,9 @@ import importlib
 import logging
 import os
 import sys
+import google.api_core.exceptions
 from google.cloud import secretmanager
 
-import twined.utils.load_json
 from octue.cloud.credentials import GCPCredentialsManager
 from octue.logging_handlers import apply_log_handler
 from octue.resources import Child
@@ -49,7 +49,6 @@ class Runner:
         configuration_values=None,
         configuration_manifest=None,
         output_manifest_path=None,
-        credentials=None,
         children=None,
         skip_checks=False,
         log_level=logging.INFO,
@@ -60,9 +59,6 @@ class Runner:
         self.output_manifest_path = output_manifest_path
         self.children = children
         self.skip_checks = skip_checks
-
-        # Credentials must be loaded before validation so that remote credentials can be retrieved first.
-        self.credentials = twined.utils.load_json(credentials)
 
         # Store the log level (same log level used for all analyses)
         self._log_level = log_level
@@ -143,13 +139,16 @@ class Runner:
 
         :return: None
         """
-        if self.credentials is not None:
+        if hasattr(self.twine, "credentials"):
             self._populate_environment_with_google_cloud_secrets()
+            credentials = self.twine.credentials
+        else:
+            credentials = None
 
         inputs = self.twine.validate(
             input_values=input_values,
             input_manifest=input_manifest,
-            credentials=self.credentials,
+            credentials=credentials,
             children=self.children,
             cls=CLASS_MAP,
             allow_missing=False,
@@ -236,18 +235,27 @@ class Runner:
 
         :return None:
         """
-        google_secrets = tuple(credential for credential in self.credentials if credential.get("location") == "google")
+        missing_credentials = tuple(
+            credential for credential in self.twine.credentials if credential["name"] not in os.environ
+        )
 
-        if not any(google_secrets):
+        if not missing_credentials:
             return
 
-        secrets_client = secretmanager.SecretManagerServiceClient(credentials=GCPCredentialsManager().get_credentials())
+        google_cloud_credentials = GCPCredentialsManager().get_credentials()
+        secrets_client = secretmanager.SecretManagerServiceClient(credentials=google_cloud_credentials)
 
-        for credential in google_secrets:
+        for credential in missing_credentials:
             secret_path = secrets_client.secret_version_path(
-                project=credential["project_name"], secret=credential["name"], secret_version=credential["version"]
+                project=google_cloud_credentials.project_id, secret=credential["name"], secret_version="latest"
             )
-            secret = secrets_client.access_secret_version(name=secret_path).payload.data.decode("UTF-8")
+
+            try:
+                secret = secrets_client.access_secret_version(name=secret_path).payload.data.decode("UTF-8")
+            except google.api_core.exceptions.NotFound:
+                # No need to raise an error here as the Twine validation that follows will do so.
+                continue
+
             os.environ[credential["name"]] = secret
 
 
