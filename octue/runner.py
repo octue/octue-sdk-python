@@ -54,6 +54,7 @@ class Runner:
         log_level=logging.INFO,
         handler=None,
         show_twined_logs=False,
+        project_name=None,
     ):
         self.app_src = app_src
         self.output_manifest_path = output_manifest_path
@@ -100,6 +101,8 @@ class Runner:
                 "Showing package logs as well as analysis logs (the package logs are recommended for software "
                 "engineers but may still be useful to app development by scientists."
             )
+
+        self._project_name = project_name
 
     def run(self, analysis_id=None, input_values=None, input_manifest=None):
         """Run an analysis
@@ -245,9 +248,14 @@ class Runner:
         google_cloud_credentials = GCPCredentialsManager().get_credentials()
         secrets_client = secretmanager.SecretManagerServiceClient(credentials=google_cloud_credentials)
 
+        if google_cloud_credentials is None:
+            project_name = self._project_name
+        else:
+            project_name = google_cloud_credentials.project_id
+
         for credential in missing_credentials:
             secret_path = secrets_client.secret_version_path(
-                project=google_cloud_credentials.project_id, secret=credential["name"], secret_version="latest"
+                project=project_name, secret=credential["name"], secret_version="latest"
             )
 
             try:

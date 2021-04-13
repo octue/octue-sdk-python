@@ -87,6 +87,7 @@ def answer_question(project_name, data, question_uuid):
         log_level=deployment_configuration.get("log_level", "INFO"),
         handler=deployment_configuration.get("log_handler", None),
         show_twined_logs=deployment_configuration.get("show_twined_logs", False),
+        project_name=project_name,
     )
 
     service = Service(
