@@ -122,6 +122,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
     def name(self):
         return self._name or os.path.split(os.path.abspath(os.path.split(self.path)[-1]))[-1]
 
+    @property
     def all_files_are_in_cloud(self):
         """Do all the files of the dataset exist in the cloud?
 
@@ -130,7 +131,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         if not self.files:
             return False
 
-        return all(file.is_in_cloud() for file in self.files)
+        return all(file.is_in_cloud for file in self.files)
 
     def add(self, *args, **kwargs):
         """Add a data/results file to the manifest

@@ -134,8 +134,8 @@ class DatafileTestCase(BaseTestCase):
 
     def test_is_in_cloud(self):
         """Test whether a file is in the cloud or not can be determined."""
-        self.assertFalse(self.create_valid_datafile().is_in_cloud())
-        self.assertTrue(Datafile(timestamp=None, path="gs://hello/file.txt").is_in_cloud())
+        self.assertFalse(self.create_valid_datafile().is_in_cloud)
+        self.assertTrue(Datafile(timestamp=None, path="gs://hello/file.txt").is_in_cloud)
 
     def test_from_cloud_with_bare_file(self):
         """Test that a Datafile can be constructed from a file on Google Cloud storage with no custom metadata."""

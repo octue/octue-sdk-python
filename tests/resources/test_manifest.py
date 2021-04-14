@@ -28,8 +28,8 @@ class TestManifest(BaseTestCase):
 
     def test_all_datasets_are_in_cloud(self):
         """Test whether all files of all datasets in a manifest are in the cloud or not can be determined."""
-        self.assertFalse(Manifest().all_datasets_are_in_cloud())
-        self.assertFalse(self.create_valid_manifest().all_datasets_are_in_cloud())
+        self.assertFalse(Manifest().all_datasets_are_in_cloud)
+        self.assertFalse(self.create_valid_manifest().all_datasets_are_in_cloud)
 
         files = [
             Datafile(timestamp=None, path="gs://hello/file.txt"),
@@ -37,7 +37,7 @@ class TestManifest(BaseTestCase):
         ]
 
         manifest = Manifest(datasets=[Dataset(files=files)], keys={"my_dataset": 0})
-        self.assertTrue(manifest.all_datasets_are_in_cloud())
+        self.assertTrue(manifest.all_datasets_are_in_cloud)
 
     def test_to_cloud(self):
         """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance. """

@@ -221,6 +221,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
         return os.path.getsize(self.absolute_path)
 
+    @property
     def is_in_cloud(self):
         """Does the file exist in the cloud?
 
@@ -235,7 +236,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         :raise octue.exceptions.FileLocationError: if the file is not located in the cloud (i.e. it is local)
         :return str:
         """
-        if not self.is_in_cloud():
+        if not self.is_in_cloud:
             return self.absolute_path
 
         if self.absolute_path in TEMPORARY_LOCAL_FILE_CACHE:
@@ -257,7 +258,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     def _calculate_hash(self):
         """Calculate the hash of the file."""
-        if self.is_in_cloud():
+        if self.is_in_cloud:
             return self._cloud_metadata.get("hash_value", "")
 
         hash = Checksum()
@@ -339,7 +340,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
                 if obj.fp is not None:
                     obj.fp.close()
 
-                if datafile.is_in_cloud() and any(character in obj.mode for character in {"w", "a", "x", "+", "U"}):
+                if datafile.is_in_cloud and any(character in obj.mode for character in {"w", "a", "x", "+", "U"}):
                     datafile.to_cloud(
                         datafile._cloud_metadata["project_name"],
                         *storage.path.split_bucket_name_from_gs_path(datafile.absolute_path),

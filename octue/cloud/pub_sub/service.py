@@ -137,7 +137,7 @@ class Service(CoolNameable):
         before sending the question to the serving Service - the topic is the expected publishing place for the answer
         from the serving Service when it comes, and the subscription is set up to subscribe to this.
         """
-        if (input_manifest is not None) and (not input_manifest.all_datasets_are_in_cloud()):
+        if (input_manifest is not None) and (not input_manifest.all_datasets_are_in_cloud):
             raise FileLocationError(
                 "All datasets of the input manifest and all files of the datasets must be uploaded to the cloud before "
                 "asking a service to perform an analysis upon them. The manifest must then be updated with the new "
