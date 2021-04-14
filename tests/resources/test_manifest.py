@@ -39,6 +39,24 @@ class TestManifest(BaseTestCase):
         manifest = Manifest(datasets=[Dataset(files=files)], keys={"my_dataset": 0})
         self.assertTrue(manifest.all_datasets_are_in_cloud)
 
+    def test_deserialise(self):
+        """Test that manifests can be deserialised."""
+        manifest = self.create_valid_manifest()
+        serialised_manifest = manifest.serialise()
+        deserialised_manifest = Manifest.deserialise(serialised_manifest)
+
+        self.assertEqual(manifest.name, deserialised_manifest.name)
+        self.assertEqual(manifest.id, deserialised_manifest.id)
+        self.assertEqual(manifest.absolute_path, deserialised_manifest.absolute_path)
+        self.assertEqual(manifest.hash_value, deserialised_manifest.hash_value)
+        self.assertEqual(manifest.keys, deserialised_manifest.keys)
+
+        for original_dataset, deserialised_dataset in zip(manifest.datasets, deserialised_manifest.datasets):
+            self.assertEqual(original_dataset.name, deserialised_dataset.name)
+            self.assertEqual(original_dataset.id, deserialised_dataset.id)
+            self.assertEqual(original_dataset.absolute_path, deserialised_dataset.absolute_path)
+            self.assertEqual(original_dataset.hash_value, deserialised_dataset.hash_value)
+
     def test_to_cloud(self):
         """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance. """
         with tempfile.TemporaryDirectory() as temporary_directory:
