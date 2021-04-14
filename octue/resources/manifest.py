@@ -53,6 +53,20 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         vars(self).update(**kwargs)
 
     @classmethod
+    def deserialise(cls, serialised_manifest, from_string=False):
+        """Deserialise a Manifest from a dictionary."""
+        if from_string:
+            serialised_manifest = json.loads(serialised_manifest)
+
+        return cls(
+            name=serialised_manifest["name"],
+            id=serialised_manifest["id"],
+            datasets=serialised_manifest["datasets"],
+            keys=serialised_manifest["keys"],
+            path=serialised_manifest["path"],
+        )
+
+    @classmethod
     def from_cloud(cls, project_name, bucket_name, path_to_manifest_file):
         """Instantiate a Manifest from Google Cloud storage.
 
@@ -156,16 +170,3 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
             self.datasets.append(Dataset(logger=self.logger, path_from=self, path=dataset_spec["key"]))
 
         return self
-
-    @classmethod
-    def deserialise(cls, serialised_manifest, from_string=False):
-        """ Deserialise a Manifest from a dictionary. """
-        if from_string:
-            serialised_manifest = json.loads(serialised_manifest)
-
-        return cls(
-            id=serialised_manifest["id"],
-            datasets=serialised_manifest["datasets"],
-            keys=serialised_manifest["keys"],
-            path=serialised_manifest["path"],
-        )
