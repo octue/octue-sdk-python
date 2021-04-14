@@ -10,14 +10,15 @@ RUN apt-get update -y && apt-get install -y --fix-missing build-essential && rm 
 
 # This will cache bust if any of the requirements change.
 COPY requirements*.txt .
-COPY setup.py* .
+COPY setup.* .
 
 COPY . .
 
 # Install requirements (supports requirements.txt, requirements-dev.txt, and setup.py; all will be run if all are present.)
-RUN pip install --upgrade pip && pip install -r requirements.txt; exit 0
-RUN pip install --upgrade pip && pip install -r requirements-dev.txt; exit 0
-RUN pip install --upgrade pip && pip install .; exit 0
+RUN if [ ! -f "requirements.txt" ] && [ ! -f "requirements-dev.txt" ] && [ ! -f "setup.py" ]; then exit 1; fi
+RUN if [ -f "requirements.txt" ]; then pip install --upgrade pip && pip install -r requirements.txt; fi
+RUN if [ -f "requirements-dev.txt" ]; then pip install --upgrade pip && pip install -r requirements-dev.txt; fi
+RUN if [ -f "setup.py" ]; then pip install --upgrade pip && pip install -e .; fi
 
 EXPOSE $PORT
 
