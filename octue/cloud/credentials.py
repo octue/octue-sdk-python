@@ -20,6 +20,10 @@ class GCPCredentialsManager:
     def __init__(self, environment_variable_name="GOOGLE_APPLICATION_CREDENTIALS"):
         self.environment_variable_name = environment_variable_name
 
+        if self.environment_variable_name is None:
+            self.service_account_json = None
+            return
+
         try:
             self.service_account_json = os.environ[self.environment_variable_name]
         except KeyError:

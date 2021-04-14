@@ -65,11 +65,7 @@ class Service(CoolNameable):
         self.backend = backend
         self.run_function = run_function
 
-        if backend.credentials_environment_variable is None:
-            credentials = None
-        else:
-            credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
-
+        credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
         self.publisher = pubsub_v1.PublisherClient(credentials=credentials, batch_settings=BATCH_SETTINGS)
         self.subscriber = pubsub_v1.SubscriberClient(credentials=credentials)
         super().__init__()
