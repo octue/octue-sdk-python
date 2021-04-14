@@ -34,7 +34,7 @@ class GoogleCloudStorageClient:
         `False`, raise an error.
 
         :param str name:
-        :param str|None location: physical region of bucket; defaults to US
+        :param str|None location: physical region of bucket; e.g. "europe-west6"; defaults to "US"
         :param bool allow_existing:
         :param float timeout:
         :raise google.cloud.exceptions.Conflict:
