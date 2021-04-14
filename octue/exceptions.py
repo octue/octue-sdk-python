@@ -72,3 +72,9 @@ class BackendNotFound(OctueSDKException):
     """Raise when details of a backend that doesn't exist in `octue.resources.service_backends` are given for use as a
     Service backend.
     """
+
+
+class AttributeConflict(OctueSDKException):
+    """Raise if, when trying to set an attribute whose current value has a significantly higher confidence than the new
+    value, the new value conflicts with the current value.
+    """

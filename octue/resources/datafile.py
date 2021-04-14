@@ -7,7 +7,7 @@ from google_crc32c import Checksum
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.cloud.storage.path import CLOUD_STORAGE_PROTOCOL
-from octue.exceptions import FileNotFoundException, InvalidInputException
+from octue.exceptions import AttributeConflict, FileNotFoundException, InvalidInputException
 from octue.mixins import Filterable, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.utils import isfile
 
@@ -136,27 +136,41 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         return datafile
 
     @classmethod
-    def from_cloud(cls, project_name, bucket_name, datafile_path, **kwargs):
+    def from_cloud(cls, project_name, bucket_name, datafile_path, allow_overwrite=False, **kwargs):
         """Instantiate a Datafile from a previously-persisted Datafile in Google Cloud storage. To instantiate a
         Datafile from a regular file on Google Cloud storage, the usage is the same, but a meaningful value for each of
-        the instantiated Datafile's attributes can be included in the kwargs.
+        the instantiated Datafile's attributes can be included in the kwargs (a "regular" file is a file that has been
+        uploaded to storage without being wrapped in a Datafile instance - i.e. a normal file).
 
         Note that a value provided for an attribute in kwargs will override any existing value for the attribute.
 
         :param str project_name:
         :param str bucket_name:
         :param str datafile_path: path to file represented by datafile
-        :param float|None timestamp:
+        :param bool allow_overwrite: if `True`, allow attributes of the datafile to be overwritten by values given in
+            kwargs
         :return Datafile:
         """
         metadata = GoogleCloudStorageClient(project_name).get_metadata(bucket_name, datafile_path)
         custom_metadata = metadata.get("metadata") or {}
 
+        if not allow_overwrite:
+            for attribute_name, attribute_value in kwargs.items():
+
+                if custom_metadata.get(attribute_name) == attribute_value:
+                    continue
+
+                raise AttributeConflict(
+                    f"The value {custom_metadata.get(attribute_name)!r} of the {cls.__name__} attribute "
+                    f"{attribute_name!r} conflicts with the value given in kwargs {attribute_value!r}. If you wish to "
+                    f"overwrite the attribute value, set `allow_overwrite` to `True`."
+                )
+
         datafile = cls(
             timestamp=kwargs.get("timestamp", custom_metadata.get("timestamp")),
             id=kwargs.get("id", custom_metadata.get("id", ID_DEFAULT)),
             path=storage.path.generate_gs_path(bucket_name, datafile_path),
-            hash_value=kwargs.get("hash_value", custom_metadata.get("hash_value", metadata.get("crc32c"))),
+            hash_value=kwargs.get("hash_value", custom_metadata.get("hash_value", metadata.get("crc32c", None))),
             cluster=kwargs.get("cluster", custom_metadata.get("cluster", CLUSTER_DEFAULT)),
             sequence=kwargs.get("sequence", custom_metadata.get("sequence", SEQUENCE_DEFAULT)),
             tags=kwargs.get("tags", custom_metadata.get("tags", TAGS_DEFAULT)),

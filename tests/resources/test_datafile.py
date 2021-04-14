@@ -163,7 +163,6 @@ class DatafileTestCase(BaseTestCase):
         path_in_bucket = "file_to_upload.txt"
 
         with tempfile.NamedTemporaryFile() as temporary_file:
-
             with open(temporary_file.name, "w") as f:
                 f.write("[1, 2, 3]")
 
@@ -186,6 +185,55 @@ class DatafileTestCase(BaseTestCase):
             self.assertEqual(persisted_datafile.tags, datafile.tags)
             self.assertEqual(persisted_datafile.size_bytes, datafile.size_bytes)
             self.assertTrue(isinstance(persisted_datafile._last_modified, float))
+
+    def test_from_cloud_with_overwrite(self):
+        """Test that a datafile can be instantiated from the cloud and have its attributes overwritten if new values
+        are given in kwargs.
+        """
+        path_in_bucket = "file_to_upload.txt"
+
+        with tempfile.NamedTemporaryFile() as temporary_file:
+            with open(temporary_file.name, "w") as f:
+                f.write("[1, 2, 3]")
+
+            Datafile(timestamp=None, path=temporary_file.name).to_cloud(
+                project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket=path_in_bucket
+            )
+
+        new_id = str(uuid.uuid4())
+
+        new_datafile = Datafile.from_cloud(
+            project_name=TEST_PROJECT_NAME,
+            bucket_name=TEST_BUCKET_NAME,
+            datafile_path=path_in_bucket,
+            allow_overwrite=True,
+            id=new_id,
+        )
+
+        self.assertEqual(new_datafile.id, new_id)
+
+    def test_from_cloud_with_overwrite_when_disallowed_results_in_error(self):
+        """Test that attempting to overwrite the attributes of a datafile instantiated from the cloud when not allowed
+        results in an error.
+        """
+        path_in_bucket = "my-file.txt"
+
+        with tempfile.NamedTemporaryFile() as temporary_file:
+            with open(temporary_file.name, "w") as f:
+                f.write("[1, 2, 3]")
+
+            Datafile(timestamp=None, path=temporary_file.name).to_cloud(
+                project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket=path_in_bucket
+            )
+
+        with self.assertRaises(exceptions.AttributeConflict):
+            Datafile.from_cloud(
+                project_name=TEST_PROJECT_NAME,
+                bucket_name=TEST_BUCKET_NAME,
+                datafile_path=path_in_bucket,
+                allow_overwrite=False,
+                id=str(uuid.uuid4()),
+            )
 
     def test_to_cloud_updates_cloud_files(self):
         """Test that calling Datafile.to_cloud on a datafile that is already cloud-based updates it in the cloud."""
