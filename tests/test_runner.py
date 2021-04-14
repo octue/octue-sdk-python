@@ -145,6 +145,26 @@ class RunnerTestCase(BaseTestCase):
         self.assertIsNotNone(analysis.output_manifest)
 
     def test_runner_with_credentials(self):
+        """Test that credentials can be used with Runner."""
+        with patch.dict(os.environ, {"LOCAL_CREDENTIAL": "my-secret"}):
+            runner = Runner(
+                app_src=mock_app,
+                twine="""
+                    {
+                        "credentials": [
+                            {
+                                "name": "LOCAL_CREDENTIAL",
+                                "purpose": "Token for accessing a 3rd party API service"
+                            }
+                        ]
+                    }
+                """,
+            )
+
+            runner.run()
+            self.assertEqual(os.environ["LOCAL_CREDENTIAL"], "my-secret")
+
+    def test_runner_with_google_secret_credentials(self):
         """Test that credentials can be found locally and populated into the environment from Google Cloud Secret
         Manager.
         """
