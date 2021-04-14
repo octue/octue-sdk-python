@@ -9,20 +9,21 @@ WORKDIR $PROJECT_ROOT
 RUN apt-get update -y && apt-get install -y --fix-missing build-essential && rm -rf /var/lib/apt/lists/*
 
 # This will cache bust if any of the requirements change.
-COPY requirements.txt ./
-
-# Gunicorn is required to run the Flask server that connected the Docker container to Cloud Run.
-RUN echo "gunicorn" >> requirements.txt
-
-# Upgrade to latest pip and setuptools after the cache bust, then install requirements
-RUN pip install --upgrade pip && pip install -r requirements.txt
+COPY requirements*.txt .
+COPY setup.* .
 
 COPY . .
 
+# Install requirements (supports requirements.txt, requirements-dev.txt, and setup.py; all will be run if all are present.)
+RUN if [ ! -f "requirements.txt" ] && [ ! -f "requirements-dev.txt" ] && [ ! -f "setup.py" ]; then exit 1; fi
+RUN if [ -f "requirements.txt" ]; then pip install --upgrade pip && pip install -r requirements.txt; fi
+RUN if [ -f "requirements-dev.txt" ]; then pip install --upgrade pip && pip install -r requirements-dev.txt; fi
+RUN if [ -f "setup.py" ]; then pip install --upgrade pip && pip install -e .; fi
+
 EXPOSE $PORT
 
-ARG _TRIGGER_ID
-ENV SERVICE_ID=$_TRIGGER_ID
+ARG _SERVICE_ID
+ENV SERVICE_ID=$_SERVICE_ID
 
 ARG _GUNICORN_WORKERS=1
 ENV _GUNICORN_WORKERS=$_GUNICORN_WORKERS

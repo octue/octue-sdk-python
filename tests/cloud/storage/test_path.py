@@ -1,4 +1,4 @@
-from octue.utils.cloud import storage
+from octue.cloud import storage
 from tests.base import BaseTestCase
 
 

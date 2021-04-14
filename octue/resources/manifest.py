@@ -1,10 +1,10 @@
 import json
 import logging
 
+from octue.cloud import storage
+from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException, InvalidManifestException
 from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable
-from octue.utils.cloud import storage
-from octue.utils.cloud.storage.client import GoogleCloudStorageClient
 from .dataset import Dataset
 
 
@@ -47,10 +47,24 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
             if isinstance(dataset, Dataset):
                 self.datasets.append(dataset)
             else:
-                self.datasets.append(Dataset(**dataset, path=key, path_from=self))
+                self.datasets.append(Dataset(**dataset))
 
         # Instantiate the rest of everything!
         vars(self).update(**kwargs)
+
+    @classmethod
+    def deserialise(cls, serialised_manifest, from_string=False):
+        """Deserialise a Manifest from a dictionary."""
+        if from_string:
+            serialised_manifest = json.loads(serialised_manifest)
+
+        return cls(
+            name=serialised_manifest["name"],
+            id=serialised_manifest["id"],
+            datasets=serialised_manifest["datasets"],
+            keys=serialised_manifest["keys"],
+            path=serialised_manifest["path"],
+        )
 
     @classmethod
     def from_cloud(cls, project_name, bucket_name, path_to_manifest_file):
@@ -119,6 +133,17 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
 
         return storage.path.generate_gs_path(bucket_name, path_to_manifest_file)
 
+    @property
+    def all_datasets_are_in_cloud(self):
+        """Do all the files of all the datasets of the manifest exist in the cloud?
+
+        :return bool:
+        """
+        if not self.datasets:
+            return False
+
+        return all(dataset.all_files_are_in_cloud for dataset in self.datasets)
+
     def get_dataset(self, key):
         """Gets a dataset by its key name (as defined in the twine)
 
@@ -145,16 +170,3 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
             self.datasets.append(Dataset(logger=self.logger, path_from=self, path=dataset_spec["key"]))
 
         return self
-
-    @classmethod
-    def deserialise(cls, serialised_manifest, from_string=False):
-        """ Deserialise a Manifest from a dictionary. """
-        if from_string:
-            serialised_manifest = json.loads(serialised_manifest)
-
-        return cls(
-            id=serialised_manifest["id"],
-            datasets=serialised_manifest["datasets"],
-            keys=serialised_manifest["keys"],
-            path=serialised_manifest["path"],
-        )

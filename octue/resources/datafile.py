@@ -1,17 +1,21 @@
 import logging
 import os
+import tempfile
 from datetime import datetime
 from google_crc32c import Checksum
 
-from octue.exceptions import FileNotFoundException, InvalidInputException
+from octue.cloud import storage
+from octue.cloud.storage import GoogleCloudStorageClient
+from octue.cloud.storage.path import CLOUD_STORAGE_PROTOCOL
+from octue.exceptions import AttributeConflict, FileNotFoundException, InvalidInputException
 from octue.mixins import Filterable, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.utils import isfile
-from octue.utils.cloud import storage
-from octue.utils.cloud.storage.client import GoogleCloudStorageClient
-from octue.utils.cloud.storage.path import generate_gs_path
 
 
 module_logger = logging.getLogger(__name__)
+
+
+TEMPORARY_LOCAL_FILE_CACHE = {}
 
 
 ID_DEFAULT = None
@@ -55,7 +59,17 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     """
 
     _ATTRIBUTES_TO_HASH = "name", "cluster", "sequence", "timestamp", "tags"
-    _EXCLUDE_SERIALISE_FIELDS = ("logger", "open")
+    _SERIALISE_FIELDS = (
+        "cluster",
+        "hash_value",
+        "id",
+        "name",
+        "path",
+        "sequence",
+        "tags",
+        "timestamp",
+        "_cloud_metadata",
+    )
 
     def __init__(
         self,
@@ -71,7 +85,13 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         **kwargs,
     ):
         super().__init__(
-            id=id, hash_value=kwargs.get("hash_value"), logger=logger, tags=tags, path=path, path_from=path_from
+            id=id,
+            name=kwargs.get("name"),
+            hash_value=kwargs.get("hash_value"),
+            logger=logger,
+            tags=tags,
+            path=path,
+            path_from=path_from,
         )
 
         self.cluster = cluster
@@ -88,7 +108,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         if not skip_checks:
             self.check(**kwargs)
 
-        self._gcp_metadata = None
+        self._cloud_metadata = {}
 
     def __lt__(self, other):
         if not isinstance(other, Datafile):
@@ -100,32 +120,64 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             raise TypeError(f"An object of type {type(self)} cannot be compared with {type(other)}.")
         return self.absolute_path > other.absolute_path
 
+    def __repr__(self):
+        return f"<{type(self).__name__}({self.name!r})>"
+
     @classmethod
-    def from_cloud(cls, project_name, bucket_name, datafile_path, timestamp=None):
+    def deserialise(cls, serialised_datafile, path_from=None):
+        """Deserialise a Datafile from a dictionary.
+
+        :param dict serialised_datafile:
+        :return Datafile:
+        """
+        cloud_metadata = serialised_datafile.pop("_cloud_metadata", {})
+        datafile = Datafile(**serialised_datafile, path_from=path_from)
+        datafile._cloud_metadata = cloud_metadata
+        return datafile
+
+    @classmethod
+    def from_cloud(cls, project_name, bucket_name, datafile_path, allow_overwrite=False, **kwargs):
         """Instantiate a Datafile from a previously-persisted Datafile in Google Cloud storage. To instantiate a
-        Datafile from a regular file on Google Cloud storage, the usage is the same, but include a meaningful value for
-        the `timestamp` parameter. The hash for this kind of file will be the Google MD5 hash.
+        Datafile from a regular file on Google Cloud storage, the usage is the same, but a meaningful value for each of
+        the instantiated Datafile's attributes can be included in the kwargs (a "regular" file is a file that has been
+        uploaded to storage without being wrapped in a Datafile instance - i.e. a normal file).
+
+        Note that a value provided for an attribute in kwargs will override any existing value for the attribute.
 
         :param str project_name:
         :param str bucket_name:
         :param str datafile_path: path to file represented by datafile
-        :param float|None timestamp:
+        :param bool allow_overwrite: if `True`, allow attributes of the datafile to be overwritten by values given in
+            kwargs
         :return Datafile:
         """
         metadata = GoogleCloudStorageClient(project_name).get_metadata(bucket_name, datafile_path)
         custom_metadata = metadata.get("metadata") or {}
 
+        if not allow_overwrite:
+            for attribute_name, attribute_value in kwargs.items():
+
+                if custom_metadata.get(attribute_name) == attribute_value:
+                    continue
+
+                raise AttributeConflict(
+                    f"The value {custom_metadata.get(attribute_name)!r} of the {cls.__name__} attribute "
+                    f"{attribute_name!r} conflicts with the value given in kwargs {attribute_value!r}. If you wish to "
+                    f"overwrite the attribute value, set `allow_overwrite` to `True`."
+                )
+
         datafile = cls(
-            timestamp=custom_metadata.get("timestamp", timestamp),
-            id=custom_metadata.get("id", ID_DEFAULT),
-            path=generate_gs_path(bucket_name, datafile_path),
-            hash_value=custom_metadata.get("hash_value", metadata["md5Hash"]),
-            cluster=custom_metadata.get("cluster", CLUSTER_DEFAULT),
-            sequence=custom_metadata.get("sequence", SEQUENCE_DEFAULT),
-            tags=custom_metadata.get("tags", TAGS_DEFAULT),
+            timestamp=kwargs.get("timestamp", custom_metadata.get("timestamp")),
+            id=kwargs.get("id", custom_metadata.get("id", ID_DEFAULT)),
+            path=storage.path.generate_gs_path(bucket_name, datafile_path),
+            hash_value=kwargs.get("hash_value", custom_metadata.get("hash_value", metadata.get("crc32c", None))),
+            cluster=kwargs.get("cluster", custom_metadata.get("cluster", CLUSTER_DEFAULT)),
+            sequence=kwargs.get("sequence", custom_metadata.get("sequence", SEQUENCE_DEFAULT)),
+            tags=kwargs.get("tags", custom_metadata.get("tags", TAGS_DEFAULT)),
         )
 
-        datafile._gcp_metadata = metadata
+        datafile._cloud_metadata = metadata
+        datafile._cloud_metadata["project_name"] = project_name
         return datafile
 
     def to_cloud(self, project_name, bucket_name, path_in_bucket):
@@ -137,7 +189,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         :return str: gs:// path for datafile
         """
         GoogleCloudStorageClient(project_name=project_name).upload_file(
-            local_path=self.path,
+            local_path=self.get_local_path(),
             bucket_name=bucket_name,
             path_in_bucket=path_in_bucket,
             metadata={
@@ -154,13 +206,17 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     @property
     def name(self):
-        return str(os.path.split(self.path)[-1])
+        return self._name or str(os.path.split(self.path)[-1])
 
     @property
     def _last_modified(self):
         """Get the date/time the file was last modified in units of seconds since epoch (posix time)."""
         if self._path_is_in_google_cloud_storage:
-            unparsed_datetime = self._gcp_metadata["updated"]
+            unparsed_datetime = self._cloud_metadata.get("updated")
+
+            if unparsed_datetime is None:
+                return None
+
             parsed_datetime = datetime.strptime(unparsed_datetime, "%Y-%m-%dT%H:%M:%S.%fZ")
             return (parsed_datetime - datetime(1970, 1, 1)).total_seconds()
 
@@ -169,11 +225,44 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     @property
     def size_bytes(self):
         if self._path_is_in_google_cloud_storage:
-            return int(self._gcp_metadata["size"])
+            size = self._cloud_metadata.get("size")
+
+            if size is None:
+                return None
+
+            return int(size)
+
         return os.path.getsize(self.absolute_path)
 
-    def __repr__(self):
-        return f"<{type(self).__name__}({self.name!r})>"
+    @property
+    def is_in_cloud(self):
+        """Does the file exist in the cloud?
+
+        :return bool:
+        """
+        return self.path.startswith(CLOUD_STORAGE_PROTOCOL)
+
+    def get_local_path(self):
+        """Get the local path for the datafile, downloading it from the cloud to a temporary file if necessary. If
+        downloaded, the local path is added to a cache to avoid downloading again in the same runtime.
+
+        :raise octue.exceptions.FileLocationError: if the file is not located in the cloud (i.e. it is local)
+        :return str:
+        """
+        if not self.is_in_cloud:
+            return self.absolute_path
+
+        if self.absolute_path in TEMPORARY_LOCAL_FILE_CACHE:
+            return TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path]
+
+        temporary_local_path = tempfile.NamedTemporaryFile(delete=False).name
+
+        GoogleCloudStorageClient(project_name=self._cloud_metadata["project_name"]).download_to_file(
+            *storage.path.split_bucket_name_from_gs_path(self.absolute_path), local_path=temporary_local_path
+        )
+
+        TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path] = temporary_local_path
+        return temporary_local_path
 
     def _get_extension_from_path(self, path=None):
         """Gets extension of a file, either from a provided file path or from self.path field"""
@@ -182,6 +271,9 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     def _calculate_hash(self):
         """Calculate the hash of the file."""
+        if self.is_in_cloud:
+            return self._cloud_metadata.get("hash_value", "")
+
         hash = Checksum()
 
         with open(self.absolute_path, "rb") as f:
@@ -231,23 +323,40 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             fp.write("{}")
         ```
         """
-
-        absolute_path = self.absolute_path
+        datafile = self
 
         class DataFileContextManager:
             def __init__(obj, mode="r", **kwargs):
                 obj.mode = mode
                 obj.kwargs = kwargs
-                obj.absolute_path = absolute_path
-                if "w" in obj.mode:
-                    os.makedirs(os.path.split(obj.absolute_path)[0], exist_ok=True)
+                obj.fp = None
+                obj.path = None
 
             def __enter__(obj):
-                obj.fp = open(obj.absolute_path, obj.mode, **obj.kwargs)
+                """Open the datafile, first downloading it from the cloud if necessary.
+
+                :return io.TextIOWrapper:
+                """
+                obj.path = datafile.get_local_path()
+
+                if "w" in obj.mode:
+                    os.makedirs(os.path.split(obj.path)[0], exist_ok=True)
+
+                obj.fp = open(obj.path, obj.mode, **obj.kwargs)
                 return obj.fp
 
             def __exit__(obj, *args):
+                """Close the datafile, updating the corresponding file in the cloud if necessary.
+
+                :return None:
+                """
                 if obj.fp is not None:
                     obj.fp.close()
+
+                if datafile.is_in_cloud and any(character in obj.mode for character in {"w", "a", "x", "+", "U"}):
+                    datafile.to_cloud(
+                        datafile._cloud_metadata["project_name"],
+                        *storage.path.split_bucket_name_from_gs_path(datafile.absolute_path),
+                    )
 
         return DataFileContextManager

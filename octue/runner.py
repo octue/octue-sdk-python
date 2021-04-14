@@ -2,7 +2,10 @@ import importlib
 import logging
 import os
 import sys
+import google.api_core.exceptions
+from google.cloud import secretmanager
 
+from octue.cloud.credentials import GCPCredentialsManager
 from octue.logging_handlers import apply_log_handler
 from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
@@ -20,23 +23,20 @@ class Runner:
     The Runner class provides a set of configuration parameters for use by your application, together with a range of
     methods for managing input and output file parsing as well as controlling logging.
 
-    :parameter twine: string path to the twine file, or a string containing valid twine json
-
-    :parameter paths: string or dict. If a string, contains a single path to an existing data directory where
-    (if not already present), subdirectories 'configuration', 'input', 'tmp', 'log' and 'output' will be created. If a
-    dict, it should contain all of those keys, with each of their values being a path to a directory (which will be
-    recursively created if it doesn't exist)
-
-    :parameter configuration_values: The strand data. Can be expressed as a string path of a *.json file (relative
-    or absolute), as an open file-like object (containing json data), as a string of json data or as an
-    already-parsed dict.
-
-    :parameter configuration_manifest: The strand data. Can be expressed as a string path of a *.json file
-    (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
-    already-parsed dict.
-
-    :parameter skip_file_checks: If true, skip the check that all files in the manifest are present on disc - this
-    can be an extremely long process for large datasets.
+    :param str twine: string path to the twine file, or a string containing valid twine json
+    :param str|dict paths: If a string, contains a single path to an existing data directory where
+        (if not already present), subdirectories 'configuration', 'input', 'tmp', 'log' and 'output' will be created. If a
+        dict, it should contain all of those keys, with each of their values being a path to a directory (which will be
+        recursively created if it doesn't exist)
+    :param str|dict|_io.TextIOWrapper configuration_values: The strand data. Can be expressed as a string path of a
+        *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json
+        data or as an already-parsed dict.
+    :param str|dict|_io.TextIOWrapper configuration_manifest: The strand data. Can be expressed as a string path of a
+    *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or
+    as an already-parsed dict.
+    :param bool skip_file_checks: If true, skip the check that all files in the manifest are present on disc - this
+        can be an extremely long process for large datasets.
+    :param str project_name: name of Google Cloud project to get credentials from
     """
 
     def __init__(
@@ -46,17 +46,15 @@ class Runner:
         configuration_values=None,
         configuration_manifest=None,
         output_manifest_path=None,
-        credentials=None,
         children=None,
         skip_checks=False,
         log_level=logging.INFO,
         handler=None,
         show_twined_logs=False,
+        project_name=None,
     ):
-        """ Constructor for the Runner class. """
         self.app_src = app_src
         self.output_manifest_path = output_manifest_path
-        self.credentials = credentials
         self.children = children
         self.skip_checks = skip_checks
 
@@ -101,26 +99,7 @@ class Runner:
                 "engineers but may still be useful to app development by scientists."
             )
 
-    @staticmethod
-    def _update_manifest_path(manifest, pathname):
-        """A Quick hack to stitch the new Pathable functionality in the 0.1.4 release into the CLI and runner.
-
-        The way we define a manifest path can be more robustly implemented as we migrate functionality into the twined
-        library
-
-        :param manifest:
-        :type manifest:
-        :param pathname:
-        :type pathname:
-        :return:
-        :rtype:
-        """
-        if manifest is not None and hasattr(pathname, "endswith"):
-            if pathname.endswith(".json"):
-                manifest.path = os.path.split(pathname)[0]
-
-        # Otherwise do nothing and rely on manifest having its path variable set already
-        return manifest
+        self._project_name = project_name
 
     def run(self, analysis_id=None, input_values=None, input_manifest=None):
         """Run an analysis
@@ -160,10 +139,16 @@ class Runner:
 
         :return: None
         """
+        if hasattr(self.twine, "credentials"):
+            self._populate_environment_with_google_cloud_secrets()
+            credentials = self.twine.credentials
+        else:
+            credentials = None
+
         inputs = self.twine.validate(
             input_values=input_values,
             input_manifest=input_manifest,
-            credentials=self.credentials,
+            credentials=credentials,
             children=self.children,
             cls=CLASS_MAP,
             allow_missing=False,
@@ -214,11 +199,69 @@ class Runner:
             else:
                 self.app_src(analysis)
 
+        except ModuleNotFoundError as e:
+            raise ModuleNotFoundError(f"{e.msg} in {os.path.abspath(self.app_src)!r}.")
+
         except Exception as e:
             analysis_logger.error(str(e))
             raise e
 
         return analysis
+
+    @staticmethod
+    def _update_manifest_path(manifest, pathname):
+        """A Quick hack to stitch the new Pathable functionality in the 0.1.4 release into the CLI and runner.
+
+        The way we define a manifest path can be more robustly implemented as we migrate functionality into the twined
+        library
+
+        :param manifest:
+        :type manifest:
+        :param pathname:
+        :type pathname:
+        :return:
+        :rtype:
+        """
+        if manifest is not None and hasattr(pathname, "endswith"):
+            if pathname.endswith(".json"):
+                manifest.path = os.path.split(pathname)[0]
+
+        # Otherwise do nothing and rely on manifest having its path variable set already
+        return manifest
+
+    def _populate_environment_with_google_cloud_secrets(self):
+        """Get any secrets specified in the credentials strand from Google Cloud Secret Manager and put them in the
+        local environment, ready for use by the runner.
+
+        :return None:
+        """
+        missing_credentials = tuple(
+            credential for credential in self.twine.credentials if credential["name"] not in os.environ
+        )
+
+        if not missing_credentials:
+            return
+
+        google_cloud_credentials = GCPCredentialsManager().get_credentials()
+        secrets_client = secretmanager.SecretManagerServiceClient(credentials=google_cloud_credentials)
+
+        if google_cloud_credentials is None:
+            project_name = self._project_name
+        else:
+            project_name = google_cloud_credentials.project_id
+
+        for credential in missing_credentials:
+            secret_path = secrets_client.secret_version_path(
+                project=project_name, secret=credential["name"], secret_version="latest"
+            )
+
+            try:
+                secret = secrets_client.access_secret_version(name=secret_path).payload.data.decode("UTF-8")
+            except google.api_core.exceptions.NotFound:
+                # No need to raise an error here as the Twine validation that follows will do so.
+                continue
+
+            os.environ[credential["name"]] = secret
 
 
 def unwrap(fcn):

@@ -10,6 +10,10 @@ class FileNotFoundException(InvalidInputException, FileNotFoundError):
     """Raise when a required folder (e.g. <data_dir>/input) cannot be found"""
 
 
+class FileLocationError(Exception):
+    """Raise when a file exists in an unsupported location for a given operation."""
+
+
 class ProtectedAttributeException(OctueSDKException, KeyError):
     """Raise when a user attempts to set an attribute whose value should be protected"""
 
@@ -67,4 +71,10 @@ class ServiceNotFound(OctueSDKException):
 class BackendNotFound(OctueSDKException):
     """Raise when details of a backend that doesn't exist in `octue.resources.service_backends` are given for use as a
     Service backend.
+    """
+
+
+class AttributeConflict(OctueSDKException):
+    """Raise if, when trying to set an attribute whose current value has a significantly higher confidence than the new
+    value, the new value conflicts with the current value.
     """

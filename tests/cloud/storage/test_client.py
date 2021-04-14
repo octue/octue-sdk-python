@@ -2,9 +2,10 @@ import json
 import tempfile
 from unittest.mock import patch
 import google.api_core.exceptions
+import google.cloud.exceptions
 
-from octue.utils.cloud import storage
-from octue.utils.cloud.storage.client import GoogleCloudStorageClient
+from octue.cloud import storage
+from octue.cloud.storage import GoogleCloudStorageClient
 from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 
@@ -15,21 +16,54 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         cls.FILENAME = "my_file.txt"
         cls.storage_client = GoogleCloudStorageClient(project_name=TEST_PROJECT_NAME)
 
+    def test_create_bucket(self):
+        """Test that a bucket can be created."""
+        name = "bucket-of-sand"
+        self.assertIsNone(self.storage_client.client.lookup_bucket(name))
+        self.storage_client.create_bucket(name)
+        self.assertEqual(self.storage_client.client.lookup_bucket(name).name, name)
+
+    def test_create_bucket_in_non_default_location(self):
+        """Test that a bucket can be created in a non-default location."""
+        name = "bucket-of-chocolate"
+        self.assertIsNone(self.storage_client.client.lookup_bucket(name))
+        self.storage_client.create_bucket(name, location="EUROPE-WEST2")
+        self.assertEqual(self.storage_client.client.lookup_bucket(name).name, name)
+
+    def test_create_bucket_when_already_exists_and_existence_allowed(self):
+        """Test that a bucket isn't re-created if it already exists and pre-existence is allowed."""
+        name = "bucket-of-grass"
+        self.storage_client.create_bucket(name)
+        self.assertIsNotNone(self.storage_client.client.lookup_bucket(name))
+        self.storage_client.upload_from_string("hello", bucket_name=name, path_in_bucket="file.txt")
+        self.storage_client.create_bucket(name, allow_existing=True)
+        self.assertEqual(self.storage_client.download_as_string(bucket_name=name, path_in_bucket="file.txt"), "hello")
+
+    def test_error_raised_when_creating_existing_bucket_and_existence_not_allowed(self):
+        """Test that an error is raised when trying to create a bucket that already exists and pre-existence isn't
+        allowed.
+        """
+        name = "bucket-of-cucumbers"
+        self.storage_client.create_bucket(name)
+        self.assertIsNotNone(self.storage_client.client.lookup_bucket(name))
+
+        with self.assertRaises(google.api_core.exceptions.Conflict):
+            self.storage_client.create_bucket(name, allow_existing=False)
+
     def test_upload_and_download_file(self):
         """Test that a file can be uploaded to Google Cloud storage and downloaded again."""
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            upload_local_path = f"{temporary_directory}/{self.FILENAME}"
+        with tempfile.NamedTemporaryFile() as temporary_file:
 
-            with open(upload_local_path, "w") as f:
+            with open(temporary_file.name, "w") as f:
                 f.write("This is a test upload.")
 
             self.storage_client.upload_file(
-                local_path=upload_local_path,
+                local_path=temporary_file.name,
                 bucket_name=TEST_BUCKET_NAME,
                 path_in_bucket=self.FILENAME,
             )
 
-            download_local_path = f"{temporary_directory}/{self.FILENAME}-download"
+            download_local_path = tempfile.NamedTemporaryFile().name
 
             self.storage_client.download_to_file(
                 bucket_name=TEST_BUCKET_NAME, path_in_bucket=self.FILENAME, local_path=download_local_path
@@ -40,20 +74,18 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
     def test_upload_file_fails_if_checksum_is_not_correct(self):
         """Test that uploading a file fails if its checksum isn't the correct."""
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            upload_local_path = f"{temporary_directory}/{self.FILENAME}"
-
-            with open(upload_local_path, "w") as f:
+        with tempfile.NamedTemporaryFile() as temporary_file:
+            with open(temporary_file.name, "w") as f:
                 f.write("This is a test upload.")
 
             with patch(
-                "octue.utils.cloud.storage.client.GoogleCloudStorageClient._compute_crc32c_checksum",
+                "octue.cloud.storage.client.GoogleCloudStorageClient._compute_crc32c_checksum",
                 return_value="L3eGig==",
             ):
 
                 with self.assertRaises(google.api_core.exceptions.BadRequest) as e:
                     self.storage_client.upload_file(
-                        local_path=upload_local_path,
+                        local_path=temporary_file.name,
                         bucket_name=TEST_BUCKET_NAME,
                         path_in_bucket=self.FILENAME,
                     )
@@ -62,26 +94,24 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
     def test_upload_from_string(self):
         """Test that a string can be uploaded to Google Cloud storage as a file and downloaded again."""
-        with tempfile.TemporaryDirectory() as temporary_directory:
+        with tempfile.NamedTemporaryFile() as temporary_file:
             self.storage_client.upload_from_string(
                 string=json.dumps({"height": 32}),
                 bucket_name=TEST_BUCKET_NAME,
                 path_in_bucket=self.FILENAME,
             )
 
-            download_local_path = f"{temporary_directory}/{self.FILENAME}-download"
-
             self.storage_client.download_to_file(
-                bucket_name=TEST_BUCKET_NAME, path_in_bucket=self.FILENAME, local_path=download_local_path
+                bucket_name=TEST_BUCKET_NAME, path_in_bucket=self.FILENAME, local_path=temporary_file.name
             )
 
-            with open(download_local_path) as f:
+            with open(temporary_file.name) as f:
                 self.assertTrue('{"height": 32}' in f.read())
 
     def test_upload_from_string_fails_if_checksum_is_not_correct(self):
         """Test that uploading a string fails if its checksum isn't the correct."""
         with patch(
-            "octue.utils.cloud.storage.client.GoogleCloudStorageClient._compute_crc32c_checksum",
+            "octue.cloud.storage.client.GoogleCloudStorageClient._compute_crc32c_checksum",
             return_value="L3eGig==",
         ):
             with self.assertRaises(google.api_core.exceptions.BadRequest) as e:
@@ -95,15 +125,12 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
     def test_download_as_string(self):
         """Test that a file can be uploaded to Google Cloud storage and downloaded as a string."""
-        with tempfile.TemporaryDirectory() as temporary_directory:
-
-            upload_local_path = f"{temporary_directory}/{self.FILENAME}"
-
-            with open(upload_local_path, "w") as f:
+        with tempfile.NamedTemporaryFile() as temporary_file:
+            with open(temporary_file.name, "w") as f:
                 f.write("This is a test upload.")
 
             self.storage_client.upload_file(
-                local_path=upload_local_path,
+                local_path=temporary_file.name,
                 bucket_name=TEST_BUCKET_NAME,
                 path_in_bucket=self.FILENAME,
             )

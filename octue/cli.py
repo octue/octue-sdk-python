@@ -3,9 +3,10 @@ import sys
 import click
 import pkg_resources
 
+from octue.cloud.pub_sub.service import Service
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.logging_handlers import get_remote_handler
-from octue.resources.communication import Service, service_backends
+from octue.resources import service_backends
 from octue.runner import Runner
 from twined import Twine
 
@@ -119,7 +120,7 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     twine = Twine(source=twine)
 
     (
-        configruation_values,
+        configuration_values,
         configuration_manifest,
         input_values,
         input_manifest,
@@ -138,7 +139,7 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     runner = Runner(
         app_src=app_dir,
         twine=twine,
-        configuration_values=configruation_values,
+        configuration_values=configuration_values,
         configuration_manifest=configuration_manifest,
         output_manifest_path=os.path.join(output_dir, MANIFEST_FILENAME),
         children=children,
