@@ -106,7 +106,6 @@ class DatafileTestCase(BaseTestCase):
         serialised_datafile = self.create_valid_datafile().serialise()
 
         expected_fields = {
-            "absolute_path",
             "cluster",
             "id",
             "name",

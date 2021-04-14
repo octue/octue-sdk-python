@@ -60,7 +60,6 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     _ATTRIBUTES_TO_HASH = "name", "cluster", "sequence", "timestamp", "tags"
     _SERIALISE_FIELDS = (
-        "absolute_path",
         "cluster",
         "hash_value",
         "id",
