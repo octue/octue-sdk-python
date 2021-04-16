@@ -52,61 +52,58 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
     def test_upload_and_download_file(self):
         """Test that a file can be uploaded to Google Cloud storage and downloaded again."""
-        with tempfile.NamedTemporaryFile() as temporary_file:
+        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
+            temporary_file.write("This is a test upload.")
 
-            with open(temporary_file.name, "w") as f:
-                f.write("This is a test upload.")
+        self.storage_client.upload_file(
+            local_path=temporary_file.name,
+            bucket_name=TEST_BUCKET_NAME,
+            path_in_bucket=self.FILENAME,
+        )
 
-            self.storage_client.upload_file(
-                local_path=temporary_file.name,
-                bucket_name=TEST_BUCKET_NAME,
-                path_in_bucket=self.FILENAME,
-            )
+        download_local_path = tempfile.NamedTemporaryFile().name
 
-            download_local_path = tempfile.NamedTemporaryFile().name
+        self.storage_client.download_to_file(
+            bucket_name=TEST_BUCKET_NAME, path_in_bucket=self.FILENAME, local_path=download_local_path
+        )
 
-            self.storage_client.download_to_file(
-                bucket_name=TEST_BUCKET_NAME, path_in_bucket=self.FILENAME, local_path=download_local_path
-            )
-
-            with open(download_local_path) as f:
-                self.assertTrue("This is a test upload." in f.read())
+        with open(download_local_path) as f:
+            self.assertTrue("This is a test upload." in f.read())
 
     def test_upload_file_fails_if_checksum_is_not_correct(self):
         """Test that uploading a file fails if its checksum isn't the correct."""
-        with tempfile.NamedTemporaryFile() as temporary_file:
-            with open(temporary_file.name, "w") as f:
-                f.write("This is a test upload.")
+        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
+            temporary_file.write("This is a test upload.")
 
-            with patch(
-                "octue.cloud.storage.client.GoogleCloudStorageClient._compute_crc32c_checksum",
-                return_value="L3eGig==",
-            ):
+        with patch(
+            "octue.cloud.storage.client.GoogleCloudStorageClient._compute_crc32c_checksum",
+            return_value="L3eGig==",
+        ):
 
-                with self.assertRaises(google.api_core.exceptions.BadRequest) as e:
-                    self.storage_client.upload_file(
-                        local_path=temporary_file.name,
-                        bucket_name=TEST_BUCKET_NAME,
-                        path_in_bucket=self.FILENAME,
-                    )
+            with self.assertRaises(google.api_core.exceptions.BadRequest) as e:
+                self.storage_client.upload_file(
+                    local_path=temporary_file.name,
+                    bucket_name=TEST_BUCKET_NAME,
+                    path_in_bucket=self.FILENAME,
+                )
 
-                self.assertTrue("doesn't match calculated CRC32C" in e.exception.message)
+            self.assertTrue("doesn't match calculated CRC32C" in e.exception.message)
 
     def test_upload_from_string(self):
         """Test that a string can be uploaded to Google Cloud storage as a file and downloaded again."""
-        with tempfile.NamedTemporaryFile() as temporary_file:
-            self.storage_client.upload_from_string(
-                string=json.dumps({"height": 32}),
-                bucket_name=TEST_BUCKET_NAME,
-                path_in_bucket=self.FILENAME,
-            )
+        self.storage_client.upload_from_string(
+            string=json.dumps({"height": 32}),
+            bucket_name=TEST_BUCKET_NAME,
+            path_in_bucket=self.FILENAME,
+        )
 
+        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
             self.storage_client.download_to_file(
                 bucket_name=TEST_BUCKET_NAME, path_in_bucket=self.FILENAME, local_path=temporary_file.name
             )
 
-            with open(temporary_file.name) as f:
-                self.assertTrue('{"height": 32}' in f.read())
+        with open(temporary_file.name) as f:
+            self.assertTrue('{"height": 32}' in f.read())
 
     def test_upload_from_string_fails_if_checksum_is_not_correct(self):
         """Test that uploading a string fails if its checksum isn't the correct."""
@@ -125,15 +122,14 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
     def test_download_as_string(self):
         """Test that a file can be uploaded to Google Cloud storage and downloaded as a string."""
-        with tempfile.NamedTemporaryFile() as temporary_file:
-            with open(temporary_file.name, "w") as f:
-                f.write("This is a test upload.")
+        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
+            temporary_file.write("This is a test upload.")
 
-            self.storage_client.upload_file(
-                local_path=temporary_file.name,
-                bucket_name=TEST_BUCKET_NAME,
-                path_in_bucket=self.FILENAME,
-            )
+        self.storage_client.upload_file(
+            local_path=temporary_file.name,
+            bucket_name=TEST_BUCKET_NAME,
+            path_in_bucket=self.FILENAME,
+        )
 
         self.assertEqual(
             self.storage_client.download_as_string(bucket_name=TEST_BUCKET_NAME, path_in_bucket=self.FILENAME),
