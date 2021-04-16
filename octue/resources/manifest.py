@@ -4,22 +4,22 @@ import logging
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException, InvalidManifestException
-from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable
+from octue.mixins import Hashable, Identifiable, Loggable, Serialisable
 from .dataset import Dataset
 
 
 module_logger = logging.getLogger(__name__)
 
 
-class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
+class Manifest(Serialisable, Loggable, Identifiable, Hashable):
     """A representation of a manifest, which can contain multiple datasets This is used to manage all files coming into
     (or leaving), a data service for an analysis at the configuration, input or output stage."""
 
     _ATTRIBUTES_TO_HASH = "datasets", "keys"
 
-    def __init__(self, id=None, logger=None, path=None, path_from=None, datasets=None, keys=None, **kwargs):
+    def __init__(self, id=None, logger=None, datasets=None, keys=None, **kwargs):
         """Construct a Manifest"""
-        super().__init__(id=id, logger=logger, path=path, path_from=path_from)
+        super().__init__(id=id, logger=logger)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
@@ -63,7 +63,6 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
             id=serialised_manifest["id"],
             datasets=serialised_manifest["datasets"],
             keys=serialised_manifest["keys"],
-            path=serialised_manifest["path"],
         )
 
     @classmethod
@@ -94,7 +93,6 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
 
         return Manifest(
             id=serialised_manifest["id"],
-            path=storage.path.generate_gs_path(bucket_name, path_to_manifest_file),
             hash_value=serialised_manifest["hash_value"],
             datasets=datasets,
             keys=serialised_manifest["keys"],
@@ -122,8 +120,6 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
 
         serialised_manifest = self.serialise()
         serialised_manifest["datasets"] = sorted(datasets)
-        del serialised_manifest["absolute_path"]
-        del serialised_manifest["path"]
 
         GoogleCloudStorageClient(project_name=project_name).upload_from_string(
             string=json.dumps(serialised_manifest),
@@ -167,6 +163,6 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
             self.keys[dataset_spec["key"]] = idx
             # TODO generate a unique name based on the filter key, tag datasets so that the tag filters in the spec
             #  apply automatically and generate a description of the dataset
-            self.datasets.append(Dataset(logger=self.logger, path_from=self, path=dataset_spec["key"]))
+            self.datasets.append(Dataset(logger=self.logger, path=dataset_spec["key"]))
 
         return self

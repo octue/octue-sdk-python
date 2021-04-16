@@ -47,7 +47,6 @@ class TestManifest(BaseTestCase):
 
         self.assertEqual(manifest.name, deserialised_manifest.name)
         self.assertEqual(manifest.id, deserialised_manifest.id)
-        self.assertEqual(manifest.absolute_path, deserialised_manifest.absolute_path)
         self.assertEqual(manifest.hash_value, deserialised_manifest.hash_value)
         self.assertEqual(manifest.keys, deserialised_manifest.keys)
 
@@ -168,7 +167,6 @@ class TestManifest(BaseTestCase):
             path_to_manifest_file=storage.path.join("my-directory", "manifest.json"),
         )
 
-        self.assertEqual(persisted_manifest.path, f"gs://{TEST_BUCKET_NAME}/my-directory/manifest.json")
         self.assertEqual(persisted_manifest.id, manifest.id)
         self.assertEqual(persisted_manifest.hash_value, manifest.hash_value)
         self.assertEqual(persisted_manifest.keys, manifest.keys)
