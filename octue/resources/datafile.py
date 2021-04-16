@@ -74,6 +74,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     def __init__(
         self,
         timestamp,
+        name=None,
         id=ID_DEFAULT,
         logger=None,
         path=None,
@@ -86,7 +87,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     ):
         super().__init__(
             id=id,
-            name=kwargs.get("name"),
+            name=name,
             hash_value=kwargs.get("hash_value"),
             logger=logger,
             tags=tags,
