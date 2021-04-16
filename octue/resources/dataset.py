@@ -42,7 +42,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             if isinstance(file, Datafile):
                 self.files.add(file)
             else:
-                self.files.add(Datafile.deserialise(file))
+                self.files.add(Datafile.deserialise(file, path_from=self))
 
         self.__dict__.update(**kwargs)
 
