@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
@@ -17,9 +18,8 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
 
     _ATTRIBUTES_TO_HASH = "datasets", "keys"
 
-    def __init__(self, id=None, logger=None, path=None, path_from=None, datasets=None, keys=None, **kwargs):
-        """Construct a Manifest"""
-        super().__init__(id=id, logger=logger, path=path, path_from=path_from)
+    def __init__(self, id=None, logger=None, path=None, datasets=None, keys=None, **kwargs):
+        super().__init__(id=id, logger=logger, path=path)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
@@ -40,19 +40,7 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         # Sort the keys by the dataset index so we have a list of keys in the same order as the dataset list.
         # We'll use this to name the dataset folders
         key_list = [key for key, value in sorted(self.keys.items(), key=lambda item: item[1])]
-
-        # Instantiate the datasets if not already done
-        self.datasets = []
-        for key, dataset in zip(key_list, datasets):
-            if isinstance(dataset, Dataset):
-                self.datasets.append(dataset)
-            else:
-                if "path" in dataset:
-                    self.datasets.append(Dataset(**dataset))
-                else:
-                    self.datasets.append(Dataset(**dataset, path=key, path_from=self))
-
-        # Instantiate the rest of everything!
+        self._instantiate_datasets(datasets, key_list)
         vars(self).update(**kwargs)
 
     @classmethod
@@ -173,3 +161,33 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
             self.datasets.append(Dataset(logger=self.logger, path_from=self, path=dataset_spec["key"]))
 
         return self
+
+    def _instantiate_datasets(self, datasets, key_list):
+        """Add the given datasets to the manifest, instantiating them if needed and giving them the correct path.
+        There are several possible forms the datasets can come in:
+        * Instantiated Dataset instances
+        * Fully serialised form - includes path
+        * manifest.json form - does not include path
+        * Including datafiles that already exist
+        * Including datafiles that don't yet exist or are not possessed currently (e.g. future output locations or
+          cloud files
+
+        :param iter(any) datasets:
+        :param list key_list:
+        :return None:
+        """
+        self.datasets = []
+        for key, dataset in zip(key_list, datasets):
+
+            if isinstance(dataset, Dataset):
+                self.datasets.append(dataset)
+
+            else:
+                if "path" in dataset:
+                    if not os.path.isabs(dataset["path"]):
+                        self.datasets.append(Dataset(**dataset, path=dataset.pop("path"), path_from=self))
+                    else:
+                        self.datasets.append(Dataset(**dataset))
+
+                else:
+                    self.datasets.append(Dataset(**dataset, path=key, path_from=self))
