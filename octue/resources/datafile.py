@@ -132,7 +132,9 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         """
         cloud_metadata = serialised_datafile.pop("_cloud_metadata", {})
 
-        if not os.path.isabs(serialised_datafile["path"]):
+        if not os.path.isabs(serialised_datafile["path"]) and not serialised_datafile["path"].startswith(
+            CLOUD_STORAGE_PROTOCOL
+        ):
             datafile = Datafile(**serialised_datafile, path_from=path_from)
         else:
             datafile = Datafile(**serialised_datafile)
