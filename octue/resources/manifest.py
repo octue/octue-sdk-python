@@ -185,7 +185,8 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
             else:
                 if "path" in dataset:
                     if not os.path.isabs(dataset["path"]):
-                        self.datasets.append(Dataset(**dataset, path=dataset.pop("path"), path_from=self))
+                        path = dataset.pop("path")
+                        self.datasets.append(Dataset(**dataset, path=path, path_from=self))
                     else:
                         self.datasets.append(Dataset(**dataset))
 
