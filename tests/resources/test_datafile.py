@@ -376,3 +376,57 @@ class DatafileTestCase(BaseTestCase):
         # Check that the local copy has been updated.
         with datafile.open() as f:
             self.assertEqual(f.read(), new_file_contents)
+
+    def test_deserialise(self):
+        """Test that a Datafile can be deserialised faithfully."""
+        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
+            temporary_file.write("hello")
+
+        datafile = Datafile(path=temporary_file.name, timestamp=None)
+        serialised_datafile = datafile.serialise()
+        deserialised_datafile = Datafile.deserialise(serialised_datafile)
+
+        self.assertEqual(datafile.id, deserialised_datafile.id)
+        self.assertEqual(datafile.name, deserialised_datafile.name)
+        self.assertEqual(datafile.path, deserialised_datafile.path)
+        self.assertEqual(datafile.absolute_path, deserialised_datafile.absolute_path)
+        self.assertEqual(datafile.hash_value, deserialised_datafile.hash_value)
+        self.assertEqual(datafile.size_bytes, deserialised_datafile.size_bytes)
+        self.assertEqual(datafile.cluster, deserialised_datafile.cluster)
+        self.assertEqual(datafile.sequence, deserialised_datafile.sequence)
+
+    def test_deserialise_uses_path_from_if_path_is_relative(self):
+        """Test that Datafile.deserialise uses the path_from parameter if the datafile's path is relative."""
+        original_working_directory = os.getcwd()
+
+        with tempfile.TemporaryDirectory("w") as temporary_directory:
+            os.chdir(temporary_directory)
+
+            with open("my-file.txt", "w") as f:
+                f.write("hello")
+
+            datafile = Datafile(path="my-file.txt", timestamp=None)
+            serialised_datafile = datafile.serialise()
+
+            pathable = Pathable(path="/an/absolute/path")
+            deserialised_datafile = Datafile.deserialise(serialised_datafile, path_from=pathable)
+
+            self.assertEqual(datafile.id, deserialised_datafile.id)
+            self.assertEqual(deserialised_datafile.absolute_path, "/an/absolute/path/my-file.txt")
+
+        os.chdir(original_working_directory)
+
+    def test_deserialise_ignores_path_from_if_path_is_absolute(self):
+        """Test that Datafile.deserialise ignores the path_from parameter if the datafile's path is absolute."""
+        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
+            temporary_file.write("hello")
+
+        datafile = Datafile(path=temporary_file.name, timestamp=None)
+        serialised_datafile = datafile.serialise()
+
+        pathable = Pathable(path="/an/absolute/path")
+        deserialised_datafile = Datafile.deserialise(serialised_datafile, path_from=pathable)
+
+        self.assertEqual(datafile.id, deserialised_datafile.id)
+        self.assertFalse(pathable.path in deserialised_datafile.path)
+        self.assertEqual(deserialised_datafile.path, temporary_file.name)
