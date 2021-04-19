@@ -131,7 +131,12 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         :return Datafile:
         """
         cloud_metadata = serialised_datafile.pop("_cloud_metadata", {})
-        datafile = Datafile(**serialised_datafile, path_from=path_from)
+
+        if not os.path.isabs(serialised_datafile["path"]):
+            datafile = Datafile(**serialised_datafile, path_from=path_from)
+        else:
+            datafile = Datafile(**serialised_datafile)
+
         datafile._cloud_metadata = cloud_metadata
         return datafile
 
