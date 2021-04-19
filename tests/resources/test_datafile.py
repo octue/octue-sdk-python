@@ -395,26 +395,22 @@ class DatafileTestCase(BaseTestCase):
         self.assertEqual(datafile.cluster, deserialised_datafile.cluster)
         self.assertEqual(datafile.sequence, deserialised_datafile.sequence)
 
-    # def test_deserialise_uses_path_from_if_path_is_relative(self):
-    #     """Test that Datafile.deserialise uses the path_from parameter if the datafile's path is relative."""
-    #     original_working_directory = os.getcwd()
-    #
-    #     with tempfile.TemporaryDirectory() as temporary_directory:
-    #         os.chdir(temporary_directory)
-    #
-    #         with open("my-file.txt", "w") as f:
-    #             f.write("hello")
-    #
-    #         datafile = Datafile(path="my-file.txt", timestamp=None)
-    #         serialised_datafile = datafile.serialise()
-    #
-    #         pathable = Pathable(path="/an/absolute/path")
-    #         deserialised_datafile = Datafile.deserialise(serialised_datafile, path_from=pathable)
-    #
-    #         self.assertEqual(datafile.id, deserialised_datafile.id)
-    #         self.assertEqual(deserialised_datafile.absolute_path, "/an/absolute/path/my-file.txt")
-    #
-    #     os.chdir(original_working_directory)
+    def test_deserialise_uses_path_from_if_path_is_relative(self):
+        """Test that Datafile.deserialise uses the path_from parameter if the datafile's path is relative."""
+        with tempfile.NamedTemporaryFile("w", dir=os.getcwd(), delete=False) as temporary_file:
+            temporary_file.write("hello")
+
+        filename = os.path.split(temporary_file.name)[-1]
+        datafile = Datafile(path=filename, timestamp=None)
+        serialised_datafile = datafile.serialise()
+
+        pathable = Pathable(path="/an/absolute/path")
+        deserialised_datafile = Datafile.deserialise(serialised_datafile, path_from=pathable)
+
+        self.assertEqual(datafile.id, deserialised_datafile.id)
+        self.assertEqual(deserialised_datafile.absolute_path, os.path.join("/an/absolute/path", filename))
+
+        os.remove(temporary_file.name)
 
     def test_deserialise_ignores_path_from_if_path_is_absolute(self):
         """Test that Datafile.deserialise ignores the path_from parameter if the datafile's path is absolute."""
