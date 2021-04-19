@@ -404,11 +404,11 @@ class DatafileTestCase(BaseTestCase):
         datafile = Datafile(path=filename, timestamp=None)
         serialised_datafile = datafile.serialise()
 
-        pathable = Pathable(path="/an/absolute/path")
+        pathable = Pathable(path=os.path.join(os.sep, "an", "absolute", "path"))
         deserialised_datafile = Datafile.deserialise(serialised_datafile, path_from=pathable)
 
         self.assertEqual(datafile.id, deserialised_datafile.id)
-        self.assertEqual(deserialised_datafile.absolute_path, os.path.join("/an/absolute/path", filename))
+        self.assertEqual(deserialised_datafile.absolute_path, os.path.join(pathable.absolute_path, filename))
 
         os.remove(temporary_file.name)
 
@@ -420,7 +420,7 @@ class DatafileTestCase(BaseTestCase):
         datafile = Datafile(path=temporary_file.name, timestamp=None)
         serialised_datafile = datafile.serialise()
 
-        pathable = Pathable(path="/an/absolute/path")
+        pathable = Pathable(path=os.path.join(os.sep, "an", "absolute", "path"))
         deserialised_datafile = Datafile.deserialise(serialised_datafile, path_from=pathable)
 
         self.assertEqual(datafile.id, deserialised_datafile.id)
