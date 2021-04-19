@@ -37,10 +37,10 @@ class DatafileTestCase(BaseTestCase):
 
     def test_path_argument_required(self):
         """Ensures instantiation without a path will fail"""
-        with self.assertRaises(exceptions.InvalidInputException) as error:
+        with self.assertRaises(TypeError) as error:
             Datafile(timestamp=None)
 
-        self.assertIn("You must supply a valid 'path' for a Datafile", error.exception.args[0])
+        self.assertIn("__init__() missing 1 required positional argument: 'path'", error.exception.args[0])
 
     def test_gt(self):
         """Test that datafiles can be ordered using the greater-than operator."""

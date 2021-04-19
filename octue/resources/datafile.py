@@ -73,10 +73,10 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     def __init__(
         self,
+        path,
         timestamp,
         id=ID_DEFAULT,
         logger=None,
-        path=None,
         path_from=None,
         cluster=CLUSTER_DEFAULT,
         sequence=SEQUENCE_DEFAULT,
@@ -97,9 +97,6 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         self.cluster = cluster
         self.sequence = sequence
         self.timestamp = timestamp
-
-        if path is None:
-            raise InvalidInputException("You must supply a valid 'path' for a Datafile")
 
         # Set up the file extension or get it from the file path if none passed
         self.extension = self._get_extension_from_path()
@@ -125,9 +122,11 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     @classmethod
     def deserialise(cls, serialised_datafile, path_from=None):
-        """Deserialise a Datafile from a dictionary.
+        """Deserialise a Datafile from a dictionary. The `path_from` parameter is only used if the path in the
+        serialised Dataset is relative.
 
         :param dict serialised_datafile:
+        :param octue.mixins.Pathable path_from:
         :return Datafile:
         """
         cloud_metadata = serialised_datafile.pop("_cloud_metadata", {})
