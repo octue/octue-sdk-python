@@ -399,7 +399,7 @@ class DatafileTestCase(BaseTestCase):
         """Test that Datafile.deserialise uses the path_from parameter if the datafile's path is relative."""
         original_working_directory = os.getcwd()
 
-        with tempfile.TemporaryDirectory("w") as temporary_directory:
+        with tempfile.TemporaryDirectory() as temporary_directory:
             os.chdir(temporary_directory)
 
             with open("my-file.txt", "w") as f:
