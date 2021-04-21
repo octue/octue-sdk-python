@@ -17,6 +17,7 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
     (or leaving), a data service for an analysis at the configuration, input or output stage."""
 
     _ATTRIBUTES_TO_HASH = "datasets", "keys"
+    _SERIALISE_FIELDS = "datasets", "keys", "hash_value", "id", "name", "path"
 
     def __init__(self, id=None, logger=None, path=None, datasets=None, keys=None, **kwargs):
         super().__init__(id=id, logger=logger, path=path)
@@ -99,7 +100,6 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
 
         serialised_manifest = self.serialise()
         serialised_manifest["datasets"] = sorted(datasets)
-        del serialised_manifest["absolute_path"]
         del serialised_manifest["path"]
 
         GoogleCloudStorageClient(project_name=project_name).upload_from_string(
