@@ -1,3 +1,6 @@
+import os
+from unittest.mock import Mock, patch
+
 import twined
 from octue import Runner
 from .base import BaseTestCase
@@ -140,3 +143,71 @@ class RunnerTestCase(BaseTestCase):
 
         analysis = runner.run()
         self.assertIsNotNone(analysis.output_manifest)
+
+    def test_runner_with_credentials(self):
+        """Test that credentials can be used with Runner."""
+        with patch.dict(os.environ, {"LOCAL_CREDENTIAL": "my-secret"}):
+            runner = Runner(
+                app_src=mock_app,
+                twine="""
+                    {
+                        "credentials": [
+                            {
+                                "name": "LOCAL_CREDENTIAL",
+                                "purpose": "Token for accessing a 3rd party API service"
+                            }
+                        ]
+                    }
+                """,
+            )
+
+            runner.run()
+            self.assertEqual(os.environ["LOCAL_CREDENTIAL"], "my-secret")
+
+    def test_runner_with_google_secret_credentials(self):
+        """Test that credentials can be found locally and populated into the environment from Google Cloud Secret
+        Manager.
+        """
+        with patch.dict(os.environ, {"LOCAL_CREDENTIAL": "my-secret"}):
+
+            runner = Runner(
+                app_src=mock_app,
+                twine="""
+                    {
+                        "credentials": [
+                            {
+                                "name": "LOCAL_CREDENTIAL",
+                                "purpose": "Token for accessing a 3rd party API service"
+                            },
+                            {
+                                "name": "CLOUD_CREDENTIALS",
+                                "purpose": "Token for accessing another 3rd party API service"
+                            }
+                        ]
+                    }
+                """,
+            )
+
+            class MockAccessSecretVersionResponse:
+                payload = Mock()
+                payload.data = b"My precious!"
+
+            with patch(
+                "google.cloud.secretmanager_v1.services.secret_manager_service.client.SecretManagerServiceClient"
+                ".access_secret_version",
+                return_value=MockAccessSecretVersionResponse(),
+            ):
+                runner.run()
+
+            # Check that first secret is still present and that the Google Cloud secret is now in the environment.
+            self.assertEqual(os.environ["LOCAL_CREDENTIAL"], "my-secret")
+            self.assertEqual(os.environ["CLOUD_CREDENTIALS"], "My precious!")
+
+    def test_invalid_app_directory(self):
+        """Ensure an error containing the searched location is raised if the app source can't be found."""
+        runner = Runner(app_src="..", twine="{}")
+
+        with self.assertRaises(ModuleNotFoundError) as e:
+            runner.run()
+            self.assertTrue("No module named 'app'" in e.msg)
+            self.assertTrue(os.path.abspath(runner.app_src) in e.msg)

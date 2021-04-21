@@ -24,5 +24,8 @@ class GCPPubSubBackend:
         self.project_name = project_name
         self.credentials_environment_variable = credentials_environment_variable
 
+    def __repr__(self):
+        return f"<{type(self).__name__}(project_name={self.project_name!r})>"
+
 
 AVAILABLE_BACKENDS = {key: value for key, value in locals().items() if key.endswith("Backend")}

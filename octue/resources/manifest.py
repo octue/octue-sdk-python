@@ -1,10 +1,11 @@
 import json
 import logging
+import os
 
+from octue.cloud import storage
+from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException, InvalidManifestException
 from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable
-from octue.utils.cloud import storage
-from octue.utils.cloud.storage.client import GoogleCloudStorageClient
 from .dataset import Dataset
 
 
@@ -17,9 +18,8 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
 
     _ATTRIBUTES_TO_HASH = "datasets", "keys"
 
-    def __init__(self, id=None, logger=None, path=None, path_from=None, datasets=None, keys=None, **kwargs):
-        """Construct a Manifest"""
-        super().__init__(id=id, logger=logger, path=path, path_from=path_from)
+    def __init__(self, id=None, logger=None, path=None, datasets=None, keys=None, **kwargs):
+        super().__init__(id=id, logger=logger, path=path)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
@@ -40,17 +40,22 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         # Sort the keys by the dataset index so we have a list of keys in the same order as the dataset list.
         # We'll use this to name the dataset folders
         key_list = [key for key, value in sorted(self.keys.items(), key=lambda item: item[1])]
-
-        # Instantiate the datasets if not already done
-        self.datasets = []
-        for key, dataset in zip(key_list, datasets):
-            if isinstance(dataset, Dataset):
-                self.datasets.append(dataset)
-            else:
-                self.datasets.append(Dataset(**dataset, path=key, path_from=self))
-
-        # Instantiate the rest of everything!
+        self._instantiate_datasets(datasets, key_list)
         vars(self).update(**kwargs)
+
+    @classmethod
+    def deserialise(cls, serialised_manifest, from_string=False):
+        """Deserialise a Manifest from a dictionary."""
+        if from_string:
+            serialised_manifest = json.loads(serialised_manifest)
+
+        return cls(
+            name=serialised_manifest["name"],
+            id=serialised_manifest["id"],
+            datasets=serialised_manifest["datasets"],
+            keys=serialised_manifest["keys"],
+            path=serialised_manifest["path"],
+        )
 
     @classmethod
     def from_cloud(cls, project_name, bucket_name, path_to_manifest_file):
@@ -119,6 +124,17 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
 
         return storage.path.generate_gs_path(bucket_name, path_to_manifest_file)
 
+    @property
+    def all_datasets_are_in_cloud(self):
+        """Do all the files of all the datasets of the manifest exist in the cloud?
+
+        :return bool:
+        """
+        if not self.datasets:
+            return False
+
+        return all(dataset.all_files_are_in_cloud for dataset in self.datasets)
+
     def get_dataset(self, key):
         """Gets a dataset by its key name (as defined in the twine)
 
@@ -146,15 +162,33 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
 
         return self
 
-    @classmethod
-    def deserialise(cls, serialised_manifest, from_string=False):
-        """ Deserialise a Manifest from a dictionary. """
-        if from_string:
-            serialised_manifest = json.loads(serialised_manifest)
+    def _instantiate_datasets(self, datasets, key_list):
+        """Add the given datasets to the manifest, instantiating them if needed and giving them the correct path.
+        There are several possible forms the datasets can come in:
+        * Instantiated Dataset instances
+        * Fully serialised form - includes path
+        * manifest.json form - does not include path
+        * Including datafiles that already exist
+        * Including datafiles that don't yet exist or are not possessed currently (e.g. future output locations or
+          cloud files
 
-        return cls(
-            id=serialised_manifest["id"],
-            datasets=serialised_manifest["datasets"],
-            keys=serialised_manifest["keys"],
-            path=serialised_manifest["path"],
-        )
+        :param iter(any) datasets:
+        :param list key_list:
+        :return None:
+        """
+        self.datasets = []
+        for key, dataset in zip(key_list, datasets):
+
+            if isinstance(dataset, Dataset):
+                self.datasets.append(dataset)
+
+            else:
+                if "path" in dataset:
+                    if not os.path.isabs(dataset["path"]):
+                        path = dataset.pop("path")
+                        self.datasets.append(Dataset(**dataset, path=path, path_from=self))
+                    else:
+                        self.datasets.append(Dataset(**dataset))
+
+                else:
+                    self.datasets.append(Dataset(**dataset, path=key, path_from=self))

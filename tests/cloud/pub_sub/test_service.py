@@ -1,11 +1,12 @@
 import concurrent.futures
 import time
+import uuid
 import google.api_core.exceptions
 
 from octue import exceptions
-from octue.resources.communication.google_pub_sub.service import OCTUE_NAMESPACE, Service
-from octue.resources.communication.service_backends import GCPPubSubBackend
-from octue.resources.manifest import Manifest
+from octue.cloud.pub_sub.service import OCTUE_NAMESPACE, Service
+from octue.resources import Datafile, Dataset, Manifest
+from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 
@@ -76,23 +77,6 @@ class TestService(BaseTestCase):
         asking_service = Service(backend=self.BACKEND)
         self.assertEqual(repr(asking_service), f"<Service({asking_service.name!r})>")
 
-    def test_serve_with_timeout(self):
-        """ Test that a serving service only serves for as long as its timeout. """
-        responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            start_time = time.perf_counter()
-            responding_future = executor.submit(
-                responding_service.serve,
-                timeout=10,
-                delete_topic_and_subscription_on_exit=True,
-            )
-
-            responding_future.result()
-            self.assertTrue(time.perf_counter() - start_time < 20)
-
-        self._delete_topics_and_subscriptions(responding_service)
-
     def test_ask_on_non_existent_service_results_in_error(self):
         """Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
         results in an error."""
@@ -104,13 +88,12 @@ class TestService(BaseTestCase):
         asking_service = Service(backend=self.BACKEND)
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             executor.submit(responding_service.serve)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
 
-            asker_future = executor.submit(
-                self.ask_question_and_wait_for_answer,
+            answer = self.ask_question_and_wait_for_answer(
                 asking_service=asking_service,
                 responding_service=responding_service,
                 input_values={},
@@ -118,7 +101,7 @@ class TestService(BaseTestCase):
             )
 
             self.assertEqual(
-                asker_future.result(),
+                answer,
                 {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
             )
 
@@ -133,21 +116,27 @@ class TestService(BaseTestCase):
         asking_service = Service(backend=self.BACKEND)
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        files = [
+            Datafile(timestamp=None, path="gs://my-dataset/hello.txt"),
+            Datafile(timestamp=None, path="gs://my-dataset/goodbye.csv"),
+        ]
+
+        input_manifest = Manifest(datasets=[Dataset(files=files)], path="gs://my-dataset", keys={"my_dataset": 0})
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             executor.submit(responding_service.serve)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
 
-            asker_future = executor.submit(
-                self.ask_question_and_wait_for_answer,
+            answer = self.ask_question_and_wait_for_answer(
                 asking_service=asking_service,
                 responding_service=responding_service,
                 input_values={},
-                input_manifest=Manifest(),
+                input_manifest=input_manifest,
             )
 
             self.assertEqual(
-                asker_future.result(),
+                answer,
                 {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
             )
 
@@ -155,25 +144,34 @@ class TestService(BaseTestCase):
 
         self._delete_topics_and_subscriptions(responding_service)
 
+    def test_ask_with_input_manifest_with_local_paths_raises_error(self):
+        """Test that an error is raised if an input manifest whose datasets and/or files are not located in the cloud
+        is used in a question.
+        """
+        with self.assertRaises(exceptions.FileLocationError):
+            Service(backend=self.BACKEND).ask(
+                service_id=str(uuid.uuid4()),
+                input_values={},
+                input_manifest=Manifest(),
+            )
+
     def test_ask_with_output_manifest(self):
         """ Test that a service can receive an output manifest as part of the answer to a question. """
         asking_service = Service(backend=self.BACKEND)
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysisWithOutputManifest())
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             executor.submit(responding_service.serve)
 
             time.sleep(SERVER_WAIT_TIME)  # Wait for the responding service to be ready to answer.
 
-            asker_future = executor.submit(
-                self.ask_question_and_wait_for_answer,
+            answer = self.ask_question_and_wait_for_answer(
                 asking_service=asking_service,
                 responding_service=responding_service,
                 input_values={},
                 input_manifest=None,
             )
 
-            answer = asker_future.result()
             self.assertEqual(answer["output_values"], MockAnalysisWithOutputManifest.output_values)
             self.assertEqual(answer["output_manifest"].id, MockAnalysisWithOutputManifest.output_manifest.id)
             self._shutdown_executor_and_clear_threads(executor)
@@ -307,7 +305,6 @@ class TestService(BaseTestCase):
     def test_server_can_ask_its_own_children_questions(self):
         """Test that a child can contact more than one of its own children while answering a question from a parent."""
         first_child_of_child = self.make_new_server(self.BACKEND, run_function_returnee=DifferentMockAnalysis())
-
         second_child_of_child = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
 
         def child_run_function(input_values, input_manifest):

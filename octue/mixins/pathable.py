@@ -1,7 +1,7 @@
 import os
 
+from octue.cloud import storage
 from octue.exceptions import InvalidInputException
-from octue.utils.cloud import storage
 
 
 class Pathable:

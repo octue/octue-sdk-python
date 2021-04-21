@@ -5,7 +5,7 @@ from google.cloud import storage
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google_crc32c import Checksum
 
-from octue.utils.cloud.credentials import GCPCredentialsManager
+from octue.cloud.credentials import GCPCredentialsManager
 
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,23 @@ class GoogleCloudStorageClient:
             credentials = credentials
 
         self.client = storage.Client(project=project_name, credentials=credentials)
+
+    def create_bucket(self, name, location=None, allow_existing=False, timeout=_DEFAULT_TIMEOUT):
+        """Create a new bucket. If the bucket already exists, and `allow_existing` is `True`, do nothing; if it is
+        `False`, raise an error.
+
+        :param str name:
+        :param str|None location: physical region of bucket; e.g. "europe-west6"; defaults to "US"
+        :param bool allow_existing:
+        :param float timeout:
+        :raise google.cloud.exceptions.Conflict:
+        :return None:
+        """
+        if allow_existing:
+            if self.client.lookup_bucket(bucket_name=name, timeout=timeout) is not None:
+                return
+
+        self.client.create_bucket(bucket_or_name=name, location=location, timeout=timeout)
 
     def upload_file(self, local_path, bucket_name, path_in_bucket, metadata=None, timeout=_DEFAULT_TIMEOUT):
         """Upload a local file to a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>.

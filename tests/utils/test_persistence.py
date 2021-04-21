@@ -20,10 +20,11 @@ def _create_file_of_size(path, size):
 class TestCalculateDiskUsage(unittest.TestCase):
     def test_calculate_disk_usage_with_single_file(self):
         """Test that the disk usage of a single file is calculated correctly."""
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            dummy_file_path = os.path.join(temporary_directory, "dummy_file")
-            _create_file_of_size(dummy_file_path, 1)
-            self.assertEqual(calculate_disk_usage(dummy_file_path), 1)
+        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
+            pass
+
+        _create_file_of_size(temporary_file.name, 1)
+        self.assertEqual(calculate_disk_usage(temporary_file.name), 1)
 
     def test_with_filter_satisfied(self):
         """Test that files meeting a filter are included in the calculated size."""
@@ -38,14 +39,15 @@ class TestCalculateDiskUsage(unittest.TestCase):
 
     def test_with_filter_unsatisfied(self):
         """Test that files not meeting a filter are not included in the calculated size."""
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            dummy_file_path = os.path.join(temporary_directory, "dummy_file")
-            _create_file_of_size(dummy_file_path, 1)
+        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
+            pass
 
-            self.assertEqual(
-                calculate_disk_usage(dummy_file_path, filter=lambda path: os.path.split(path)[-1].startswith("hello")),
-                0,
-            )
+        _create_file_of_size(temporary_file.name, 1)
+
+        self.assertEqual(
+            calculate_disk_usage(temporary_file.name, filter=lambda path: os.path.split(path)[-1].startswith("dummy")),
+            0,
+        )
 
     def test_calculate_disk_usage_with_shallow_directory(self):
         """Test that the disk usage of a directory with only files in is calculated correctly."""

@@ -21,8 +21,9 @@ class Identifiable:
     ```
     """
 
-    def __init__(self, *args, id=None, **kwargs):
+    def __init__(self, *args, id=None, name=None, **kwargs):
         """Constructor for Identifiable class"""
+        self._name = name
         super().__init__(*args, **kwargs)
 
         # Store a boolean record of whether this object was created with a previously-existing uuid or was created new.
@@ -55,3 +56,7 @@ class Identifiable:
     @property
     def id(self):
         return self._id
+
+    @property
+    def name(self):
+        return self._name

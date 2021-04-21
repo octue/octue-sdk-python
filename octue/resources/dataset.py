@@ -4,12 +4,12 @@ import os
 import warnings
 
 from octue import definitions
+from octue.cloud import storage
+from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import BrokenSequenceException, InvalidInputException, UnexpectedNumberOfResultsException
 from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
-from octue.utils.cloud import storage
-from octue.utils.cloud.storage.client import GoogleCloudStorageClient
 
 
 module_logger = logging.getLogger(__name__)
@@ -30,9 +30,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
 
     def __init__(self, name=None, id=None, logger=None, path=None, path_from=None, tags=None, **kwargs):
         """Construct a Dataset"""
-        super().__init__(id=id, logger=logger, tags=tags, path=path, path_from=path_from)
-
-        self._name = name
+        super().__init__(name=name, id=id, logger=logger, tags=tags, path=path, path_from=path_from)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
@@ -44,9 +42,15 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             if isinstance(file, Datafile):
                 self.files.add(file)
             else:
-                self.files.add(Datafile(**file, path_from=self))
+                self.files.add(Datafile.deserialise(file, path_from=self))
 
         self.__dict__.update(**kwargs)
+
+    def __iter__(self):
+        yield from self.files
+
+    def __len__(self):
+        return len(self.files)
 
     @classmethod
     def from_cloud(cls, project_name, bucket_name, path_to_dataset_directory):
@@ -118,11 +122,16 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
     def name(self):
         return self._name or os.path.split(os.path.abspath(os.path.split(self.path)[-1]))[-1]
 
-    def __iter__(self):
-        yield from self.files
+    @property
+    def all_files_are_in_cloud(self):
+        """Do all the files of the dataset exist in the cloud?
 
-    def __len__(self):
-        return len(self.files)
+        :return bool:
+        """
+        if not self.files:
+            return False
+
+        return all(file.is_in_cloud for file in self.files)
 
     def add(self, *args, **kwargs):
         """Add a data/results file to the manifest
@@ -169,7 +178,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         )
         return self.files.filter(filter_name=field_lookup, filter_value=filter_value)
 
-    def get_file_sequence(self, filter_name, filter_value=None, strict=True):
+    def get_file_sequence(self, filter_name=None, filter_value=None, strict=True):
         """Get an ordered sequence of files matching a criterion
 
         Accepts the same search arguments as `get_files`.
@@ -181,8 +190,11 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         :returns: Sorted list of Datafiles
         :rtype: list(Datafile)
         """
+        results = self.files
 
-        results = self.files.filter(filter_name=filter_name, filter_value=filter_value)
+        if filter_name is not None:
+            results = results.filter(filter_name=filter_name, filter_value=filter_value)
+
         results = results.filter("sequence__is_not", None)
 
         def get_sequence_number(file):

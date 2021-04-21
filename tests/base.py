@@ -5,10 +5,10 @@ import unittest
 import uuid
 from tempfile import TemporaryDirectory, gettempdir
 
+from octue.cloud.pub_sub.service import Service
 from octue.logging_handlers import apply_log_handler
 from octue.mixins import MixinBase, Pathable
 from octue.resources import Datafile, Dataset, Manifest
-from octue.resources.communication import Service
 
 
 logger = logging.getLogger(__name__)

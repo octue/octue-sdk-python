@@ -81,22 +81,18 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
         # Init superclasses
         super().__init__(**kwargs)
 
-    def finalise(self, output_dir=None, save_locally=True, upload_to_cloud=False, project_name=None, bucket_name=None):
-        """Validates and serialises output_values and output_manifest, optionally writing them to files
+    def finalise(self, output_dir=None, save_locally=False, upload_to_cloud=False, project_name=None, bucket_name=None):
+        """Validate and serialise the output values and manifest, optionally writing them to files and/or the manifest
+        to the cloud.
 
-        If output_dir is given, then the serialised outputs are also written to files in the output directory
-
-        :parameter output_dir: path-like pointing to directory where the outputs should be saved to file (if None, files
-         are not written)
-        :type output_dir:  path-like
-
-        :return: dictionary of serialised strings for values and manifest data.
-        :rtype: dict
+        :param str output_dir: path-like pointing to directory where the outputs should be saved to file (if None, files
+            are not written)
+        :param bool save_locally:
+        :param bool upload_to_cloud:
+        :param str project_name:
+        :param str bucket_name:
+        :return dict: serialised strings for values and manifest data.
         """
-
-        # Using twined's validate_strand method gives us sugar to check for both extra outputs
-        # (e.g. output_values where there shouldn't be any) and missing outputs (e.g. output_values is None when it
-        # should be a dict of data)
         serialised_strands = {}
 
         for output_strand in OUTPUT_STRANDS:
@@ -110,9 +106,6 @@ class Analysis(Identifiable, Loggable, Serialisable, Taggable):
 
         self.logger.debug("Validating serialised output json against twine")
         self.twine.validate(**serialised_strands)
-
-        if output_dir is None:
-            return serialised_strands
 
         # Optionally write the serialised strands to disk.
         if save_locally:

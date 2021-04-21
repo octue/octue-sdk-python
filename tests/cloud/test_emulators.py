@@ -1,6 +1,6 @@
 import unittest
 
-from octue.utils.cloud.emulators import GoogleCloudStorageEmulatorTestResultModifier
+from octue.cloud.emulators import GoogleCloudStorageEmulatorTestResultModifier
 
 
 class TestGoogleCloudStorageEmulatorTestResultModifier(unittest.TestCase):

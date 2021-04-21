@@ -48,7 +48,7 @@ class Serialisable:
         automatically. Additional keyword arguments will be passed to ``json.dumps()`` to enable full override
         of formatting options
 
-        :return: json string or dict contianing a serialised / primitive version of the resource.
+        :return: json string or dict containing a serialised/primitive version of the resource.
         :rtype: str, dict
         """
         self.logger.debug("Serialising %s %s", self.__class__.__name__, self.id)

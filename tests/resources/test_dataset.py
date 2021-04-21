@@ -5,10 +5,10 @@ import tempfile
 import warnings
 
 from octue import exceptions
+from octue.cloud import storage
+from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset
 from octue.resources.filter_containers import FilterSet
-from octue.utils.cloud import storage
-from octue.utils.cloud.storage.client import GoogleCloudStorageClient
 from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
 
@@ -286,6 +286,18 @@ class DatasetTestCase(BaseTestCase):
         """Test that a dataset can be serialised."""
         dataset = self.create_valid_dataset()
         self.assertEqual(len(dataset.serialise()["files"]), 2)
+
+    def test_is_in_cloud(self):
+        """Test whether all files of a dataset are in the cloud or not can be determined."""
+        self.assertFalse(Dataset().all_files_are_in_cloud)
+        self.assertFalse(self.create_valid_dataset().all_files_are_in_cloud)
+
+        files = [
+            Datafile(timestamp=None, path="gs://hello/file.txt"),
+            Datafile(timestamp=None, path="gs://goodbye/file.csv"),
+        ]
+
+        self.assertTrue(Dataset(files=files).all_files_are_in_cloud)
 
     def test_from_cloud(self):
         """Test that a Dataset in cloud storage can be accessed."""
