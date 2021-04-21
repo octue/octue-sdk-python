@@ -17,7 +17,7 @@ with open("LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.1.12",  # Ensure all requirements files containing octue are updated, too (e.g. docs build).
+    version="0.1.13",  # Ensure all requirements files containing octue are updated, too (e.g. docs build).
     py_modules=["cli"],
     install_requires=[
         "click>=7.1.2",
@@ -28,7 +28,7 @@ setup(
         "google-cloud-storage>=1.35.1",
         "google-crc32c>=1.1.2",
         "gunicorn",
-        "twined @ https://github.com/octue/twined/archive/fix/credentials-validation.zip",
+        "twined>=0.0.17",
     ],
     url="https://www.github.com/octue/octue-sdk-python",
     license="MIT",
