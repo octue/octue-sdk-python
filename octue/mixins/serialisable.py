@@ -18,6 +18,10 @@ class Serialisable:
         # Ensure it passes construction arguments up the chain
         super().__init__(*args, **kwargs)
 
+    @classmethod
+    def deserialise(cls, serialised_object):
+        return cls(**serialised_object)
+
     def to_file(self, file_name, **kwargs):
         """Write to a JSON file
 
