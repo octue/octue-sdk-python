@@ -15,7 +15,7 @@ Automated deployment with Octue means:
 
 All you need to enable automated deployments are the following files in your repository root:
 
-* A ``requirements.txt`` file that includes ``octue>=0.1.13`` and the rest of your service's dependencies
+* A ``requirements.txt`` file that includes ``octue>=0.1.14`` and the rest of your service's dependencies
 * A ``twine.json`` file
 * A ``deployment_configuration.json`` file (optional)
 
