@@ -28,6 +28,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
 
     _FILTERSET_ATTRIBUTE = "files"
     _ATTRIBUTES_TO_HASH = "files", "name", "tags"
+    _SERIALISE_FIELDS = "files", "name", "tags", "hash_value", "id", "path"
 
     def __init__(self, name=None, id=None, logger=None, path=None, path_from=None, tags=None, **kwargs):
         """Construct a Dataset"""
@@ -108,7 +109,6 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
 
         serialised_dataset = self.serialise()
         serialised_dataset["files"] = sorted(files)
-        del serialised_dataset["absolute_path"]
         del serialised_dataset["path"]
 
         GoogleCloudStorageClient(project_name=project_name).upload_from_string(
