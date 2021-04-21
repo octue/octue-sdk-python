@@ -204,7 +204,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
                 "hash_value": self.hash_value,
                 "cluster": self.cluster,
                 "sequence": self.sequence,
-                "tags": self.tags.serialise(to_string=False),
+                "tags": self.tags.serialise(),
             },
         )
 
