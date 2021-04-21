@@ -10,6 +10,7 @@ from octue.exceptions import BrokenSequenceException, InvalidInputException, Une
 from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
+from octue.resources.tag import TagSet
 
 
 module_logger = logging.getLogger(__name__)
@@ -84,7 +85,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             name=serialised_dataset["name"],
             hash_value=serialised_dataset["hash_value"],
             path=storage.path.generate_gs_path(bucket_name, path_to_dataset_directory),
-            tags=json.loads(serialised_dataset["tags"]),
+            tags=TagSet(serialised_dataset["tags"]),
             files=datafiles,
         )
 
