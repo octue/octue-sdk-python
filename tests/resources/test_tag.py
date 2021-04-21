@@ -174,18 +174,19 @@ class TestTagSet(BaseTestCase):
 
     def test_serialise(self):
         """ Ensure that TagSets are serialised to the string form of a list. """
-        self.assertEqual(self.TAG_SET.serialise(), "['a', 'b:c', 'd:e:f']")
+        self.assertEqual(self.TAG_SET.serialise(), ["a", "b:c", "d:e:f"])
 
     def test_serialise_orders_tags(self):
-        """ Ensure that TagSets are serialised to the string form of a list. """
+        """Ensure that TagSets serialise to a list."""
         tag_set = TagSet("z hello a c:no")
-        self.assertEqual(tag_set.serialise(), "['a', 'c:no', 'hello', 'z']")
+        self.assertEqual(tag_set.serialise(), ["a", "c:no", "hello", "z"])
 
-    def test_str_is_equivalent_to_serialise(self):
-        """ Test that calling `str` on a TagSet is equivalent to using the `serialise` method. """
-        tag_set = TagSet("z hello a c:no")
-        self.assertEqual(str(tag_set), tag_set.serialise())
+    def test_deserialise(self):
+        """Test that serialisation is reversible."""
+        serialised_tag_set = self.TAG_SET.serialise()
+        deserialised_tag_set = TagSet.deserialise(serialised_tag_set)
+        self.assertEqual(deserialised_tag_set, self.TAG_SET)
 
     def test_repr(self):
-        """ Test the representation of a TagSet appears as expected. """
+        """Test the representation of a TagSet appears as expected."""
         self.assertEqual(repr(self.TAG_SET), f"<TagSet({repr(self.TAG_SET.tags)})>")

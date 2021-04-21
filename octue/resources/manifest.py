@@ -17,6 +17,7 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
     (or leaving), a data service for an analysis at the configuration, input or output stage."""
 
     _ATTRIBUTES_TO_HASH = "datasets", "keys"
+    _SERIALISE_FIELDS = "datasets", "keys", "hash_value", "id", "name", "path"
 
     def __init__(self, id=None, logger=None, path=None, datasets=None, keys=None, **kwargs):
         super().__init__(id=id, logger=logger, path=path)
@@ -42,20 +43,6 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         key_list = [key for key, value in sorted(self.keys.items(), key=lambda item: item[1])]
         self._instantiate_datasets(datasets, key_list)
         vars(self).update(**kwargs)
-
-    @classmethod
-    def deserialise(cls, serialised_manifest, from_string=False):
-        """Deserialise a Manifest from a dictionary."""
-        if from_string:
-            serialised_manifest = json.loads(serialised_manifest)
-
-        return cls(
-            name=serialised_manifest["name"],
-            id=serialised_manifest["id"],
-            datasets=serialised_manifest["datasets"],
-            keys=serialised_manifest["keys"],
-            path=serialised_manifest["path"],
-        )
 
     @classmethod
     def from_cloud(cls, project_name, bucket_name, path_to_manifest_file):
@@ -113,7 +100,6 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
 
         serialised_manifest = self.serialise()
         serialised_manifest["datasets"] = sorted(datasets)
-        del serialised_manifest["absolute_path"]
         del serialised_manifest["path"]
 
         GoogleCloudStorageClient(project_name=project_name).upload_from_string(
