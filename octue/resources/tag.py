@@ -158,6 +158,15 @@ class TagSet(Serialisable):
         """ Return True if any of the tags contains value. """
         return any(value in tag for tag in self)
 
+    def filter(self, filter_name=None, filter_value=None):
+        """Filter the tags with the given filter for the given value.
+
+        :param str filter_name:
+        :param any filter_value:
+        :return octue.resources.filter_containers.FilterSet:
+        """
+        return self.tags.filter(filter_name=filter_name, filter_value=filter_value)
+
     def serialise(self, to_string=False, **kwargs):
         """Serialise to a sorted list of tag names.
 
