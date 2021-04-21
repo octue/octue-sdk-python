@@ -1,4 +1,4 @@
-FROM python:slim-buster
+FROM python:3.9-slim-buster
 
 # Allow statements and log messages to immediately appear in the Knative logs on Google Cloud.
 ENV PYTHONUNBUFFERED True
