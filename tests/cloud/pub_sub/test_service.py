@@ -91,12 +91,12 @@ class TestService(BaseTestCase):
         """Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
         results in an error."""
         with self.assertRaises(exceptions.ServiceNotFound):
-            Service(backend=self.BACKEND).ask(service_id="hello", input_values=[1, 2, 3, 4])
+            MockService(backend=self.BACKEND).ask(service_id="hello", input_values=[1, 2, 3, 4])
 
     def test_ask(self):
         """ Test that a service can ask a question to another service that is serving and receive an answer. """
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
-        asking_service = MockService(backend=self.BACKEND, mock_answers=[MockAnalysis()])
+        asking_service = MockService(backend=self.BACKEND, responders=[responding_service])
         responding_service.serve()
 
         answer = self.ask_question_and_wait_for_answer(
@@ -116,7 +116,7 @@ class TestService(BaseTestCase):
         receive an answer.
         """
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
-        asking_service = MockService(backend=self.BACKEND, mock_answers=[MockAnalysis()])
+        asking_service = MockService(backend=self.BACKEND, responders=[responding_service])
 
         files = [
             Datafile(timestamp=None, path="gs://my-dataset/hello.txt"),
@@ -155,7 +155,7 @@ class TestService(BaseTestCase):
         responding_service = self.make_new_server(
             self.BACKEND, run_function_returnee=MockAnalysisWithOutputManifest(), use_mock=True
         )
-        asking_service = MockService(backend=self.BACKEND, mock_answers=[MockAnalysisWithOutputManifest()])
+        asking_service = MockService(backend=self.BACKEND, responders=[responding_service])
         responding_service.serve()
 
         answer = self.ask_question_and_wait_for_answer(
@@ -171,7 +171,7 @@ class TestService(BaseTestCase):
     def test_service_can_ask_multiple_questions(self):
         """ Test that a service can ask multiple questions to the same server and expect replies to them all. """
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
-        asking_service = MockService(backend=self.BACKEND, mock_answers=[MockAnalysis()])
+        asking_service = MockService(backend=self.BACKEND, responders=[responding_service])
         responding_service.serve()
 
         answers = []
@@ -194,12 +194,12 @@ class TestService(BaseTestCase):
 
     def test_service_can_ask_questions_to_multiple_servers(self):
         """ Test that a service can ask questions to different servers and expect replies to them all. """
-        asking_service = MockService(backend=self.BACKEND, mock_answers=[MockAnalysis(), DifferentMockAnalysis()])
-
         responding_service_1 = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
         responding_service_2 = self.make_new_server(
             self.BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True
         )
+
+        asking_service = MockService(backend=self.BACKEND, responders=[responding_service_1, responding_service_2])
 
         responding_service_1.serve()
         responding_service_2.serve()
@@ -233,49 +233,41 @@ class TestService(BaseTestCase):
 
     def test_server_can_ask_its_own_child_questions(self):
         """Test that a child can contact its own child while answering a question from a parent."""
-        child_of_child = self.make_new_server(self.BACKEND, run_function_returnee=DifferentMockAnalysis())
+        child_of_child = self.make_new_server(
+            self.BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True
+        )
 
         def child_run_function(input_values, input_manifest):
-            service = Service(backend=self.BACKEND)
-            subscription, _ = service.ask(service_id=child_of_child.id, input_values=input_values)
-
+            subscription, _ = child.ask(service_id=child_of_child.id, input_values=input_values)
             mock_analysis = MockAnalysis()
-            mock_analysis.output_values = {input_values["question"]: service.wait_for_answer(subscription)}
+            mock_analysis.output_values = {input_values["question"]: child.wait_for_answer(subscription)}
             return mock_analysis
 
-        parent = Service(backend=self.BACKEND)
-        child = Service(backend=self.BACKEND, run_function=child_run_function)
+        child = MockService(backend=self.BACKEND, run_function=child_run_function, responders=[child_of_child])
+        parent = MockService(backend=self.BACKEND, responders=[child])
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            executor.submit(child.serve)
-            executor.submit(child_of_child.serve)
+        child.serve()
+        child_of_child.serve()
 
-            time.sleep(SERVER_WAIT_TIME)  # Wait for the responding services to be ready to answer.
+        answer = self.ask_question_and_wait_for_answer(
+            asking_service=parent,
+            responding_service=child,
+            input_values={"question": "What does the child of the child say?"},
+            input_manifest=None,
+        )
 
-            asker_future = executor.submit(
-                self.ask_question_and_wait_for_answer,
-                asking_service=parent,
-                responding_service=child,
-                input_values={"question": "What does the child of the child say?"},
-                input_manifest=None,
-            )
-
-            self.assertEqual(
-                asker_future.result(),
-                {
-                    "output_values": {
-                        "What does the child of the child say?": {
-                            "output_values": DifferentMockAnalysis.output_values,
-                            "output_manifest": DifferentMockAnalysis.output_manifest,
-                        }
-                    },
-                    "output_manifest": None,
+        self.assertEqual(
+            answer,
+            {
+                "output_values": {
+                    "What does the child of the child say?": {
+                        "output_values": DifferentMockAnalysis.output_values,
+                        "output_manifest": DifferentMockAnalysis.output_manifest,
+                    }
                 },
-            )
-
-            self._shutdown_executor_and_clear_threads(executor)
-
-        self._delete_topics_and_subscriptions(child, child_of_child)
+                "output_manifest": None,
+            },
+        )
 
     def test_server_can_ask_its_own_children_questions(self):
         """Test that a child can contact more than one of its own children while answering a question from a parent."""

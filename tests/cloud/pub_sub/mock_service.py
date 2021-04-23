@@ -15,11 +15,11 @@ class MockService:
 
     messages = {}
 
-    def __init__(self, backend, id=None, run_function=None, mock_answers=None):
+    def __init__(self, backend, id=None, run_function=None, responders=None):
         self.id = id or str(uuid.uuid4())
         self.backend = backend
         self.run_function = run_function
-        self.mock_answers = mock_answers or []
+        self.responders = responders or []
         self._mock_answer_index = 0
 
     def serve(self):
@@ -76,8 +76,8 @@ class MockService:
         response_topic_name = (
             f"projects/{self.backend.project_name}/topics/octue.{service_id}.{ANSWERS_NAMESPACE}.{question_uuid}"
         )
-        self.messages[response_topic_name] = self.mock_answers[self._mock_answer_index]
-        self._mock_answer_index = (self._mock_answer_index + 1) % 2
+        # self.messages[response_topic_name] = self.mock_answers[self._mock_answer_index]
+        # self._mock_answer_index = (self._mock_answer_index + 1) % 2
 
         if input_manifest is not None:
             input_manifest = input_manifest.serialise(to_string=True)
@@ -87,7 +87,15 @@ class MockService:
             "attributes": {"question_uuid": question_uuid},
         }
 
+        self.messages[response_topic_name] = self._get_responder(service_id).run_function(input_values, input_manifest)
         return MockFuture(response_topic_name), question_uuid
+
+    def _get_responder(self, service_id):
+        for responder in self.responders:
+            if responder.id == service_id:
+                return responder
+
+        return None
 
     def wait_for_answer(self, subscription, timeout=30):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
