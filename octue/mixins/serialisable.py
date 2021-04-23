@@ -17,12 +17,16 @@ class Serialisable:
         super().__init__(*args, **kwargs)
 
     @classmethod
-    def deserialise(cls, serialised_object):
+    def deserialise(cls, serialised_object, from_string=False):
         """Deserialise the given JSON-serialised object.
 
-        :param dict serialised_object:
+        :param str|dict serialised_object:
+        :param bool from_string:
         :return any:
         """
+        if from_string:
+            serialised_object = json.loads(serialised_object)
+
         return cls(**serialised_object)
 
     def to_file(self, file_name, **kwargs):
