@@ -7,7 +7,6 @@ class Serialisable:
     """Mixin class to make resources serialisable to JSON.
 
     Objects must have a `.logger` and a `.id` property
-
     """
 
     _SERIALISE_FIELDS = None
@@ -15,25 +14,29 @@ class Serialisable:
 
     def __init__(self, *args, **kwargs):
         """Constructor for serialisable mixin"""
-        # Ensure it passes construction arguments up the chain
         super().__init__(*args, **kwargs)
 
     @classmethod
     def deserialise(cls, serialised_object):
+        """Deserialise the given JSON-serialised object.
+
+        :param dict serialised_object:
+        :return any:
+        """
         return cls(**serialised_object)
 
     def to_file(self, file_name, **kwargs):
-        """Write to a JSON file
+        """Write the object to a JSON file.
 
-        :parameter file_name:  file to write to, including relative or absolute path and .json extension
-        :type file_name: path-like
+        :parameter str file_name: file to write to, including relative or absolute path and .json extension
+        :return None:
         """
         self.logger.debug("Writing %s %s to file %s", self.__class__.__name__, self.id, file_name)
         with open(file_name, "w") as fp:
             fp.write(self.serialise(**kwargs, to_string=True))
 
     def serialise(self, to_string=False, **kwargs):
-        """Serialise into a primitive dict or JSON string
+        """Serialise into a primitive dict or JSON string.
 
         Serialises all non-private and non-protected attributes except for 'logger', unless the subclass has a
         `_serialise_fields` tuple of the attribute names to serialise. For example:
