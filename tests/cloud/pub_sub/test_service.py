@@ -1,5 +1,4 @@
 import concurrent.futures
-import time
 import uuid
 import google.api_core.exceptions
 
@@ -10,9 +9,6 @@ from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 from tests.cloud.pub_sub.mock_service import MockService
-
-
-SERVER_WAIT_TIME = 5
 
 
 class MockAnalysis:
@@ -96,7 +92,7 @@ class TestService(BaseTestCase):
     def test_ask(self):
         """ Test that a service can ask a question to another service that is serving and receive an answer. """
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
-        asking_service = MockService(backend=self.BACKEND, responders=[responding_service])
+        asking_service = MockService(backend=self.BACKEND, children=[responding_service])
         responding_service.serve()
 
         answer = self.ask_question_and_wait_for_answer(
@@ -116,7 +112,7 @@ class TestService(BaseTestCase):
         receive an answer.
         """
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
-        asking_service = MockService(backend=self.BACKEND, responders=[responding_service])
+        asking_service = MockService(backend=self.BACKEND, children=[responding_service])
 
         files = [
             Datafile(timestamp=None, path="gs://my-dataset/hello.txt"),
@@ -155,7 +151,7 @@ class TestService(BaseTestCase):
         responding_service = self.make_new_server(
             self.BACKEND, run_function_returnee=MockAnalysisWithOutputManifest(), use_mock=True
         )
-        asking_service = MockService(backend=self.BACKEND, responders=[responding_service])
+        asking_service = MockService(backend=self.BACKEND, children=[responding_service])
         responding_service.serve()
 
         answer = self.ask_question_and_wait_for_answer(
@@ -171,7 +167,7 @@ class TestService(BaseTestCase):
     def test_service_can_ask_multiple_questions(self):
         """ Test that a service can ask multiple questions to the same server and expect replies to them all. """
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
-        asking_service = MockService(backend=self.BACKEND, responders=[responding_service])
+        asking_service = MockService(backend=self.BACKEND, children=[responding_service])
         responding_service.serve()
 
         answers = []
@@ -199,7 +195,7 @@ class TestService(BaseTestCase):
             self.BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True
         )
 
-        asking_service = MockService(backend=self.BACKEND, responders=[responding_service_1, responding_service_2])
+        asking_service = MockService(backend=self.BACKEND, children=[responding_service_1, responding_service_2])
 
         responding_service_1.serve()
         responding_service_2.serve()
@@ -243,8 +239,8 @@ class TestService(BaseTestCase):
             mock_analysis.output_values = {input_values["question"]: child.wait_for_answer(subscription)}
             return mock_analysis
 
-        child = MockService(backend=self.BACKEND, run_function=child_run_function, responders=[child_of_child])
-        parent = MockService(backend=self.BACKEND, responders=[child])
+        child = MockService(backend=self.BACKEND, run_function=child_run_function, children=[child_of_child])
+        parent = MockService(backend=self.BACKEND, children=[child])
 
         child.serve()
         child_of_child.serve()
@@ -271,57 +267,54 @@ class TestService(BaseTestCase):
 
     def test_server_can_ask_its_own_children_questions(self):
         """Test that a child can contact more than one of its own children while answering a question from a parent."""
-        first_child_of_child = self.make_new_server(self.BACKEND, run_function_returnee=DifferentMockAnalysis())
-        second_child_of_child = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis())
+        first_child_of_child = self.make_new_server(
+            self.BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True
+        )
+        second_child_of_child = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
 
         def child_run_function(input_values, input_manifest):
-            child_service = Service(backend=self.BACKEND)
-            subscription_1, _ = child_service.ask(service_id=first_child_of_child.id, input_values=input_values)
-            subscription_2, _ = child_service.ask(service_id=second_child_of_child.id, input_values=input_values)
+            subscription_1, _ = child.ask(service_id=first_child_of_child.id, input_values=input_values)
+            subscription_2, _ = child.ask(service_id=second_child_of_child.id, input_values=input_values)
 
             mock_analysis = MockAnalysis()
             mock_analysis.output_values = {
-                "first_child_of_child": child_service.wait_for_answer(subscription_1),
-                "second_child_of_child": child_service.wait_for_answer(subscription_2),
+                "first_child_of_child": child.wait_for_answer(subscription_1),
+                "second_child_of_child": child.wait_for_answer(subscription_2),
             }
 
             return mock_analysis
 
-        parent = Service(backend=self.BACKEND)
-        child = Service(backend=self.BACKEND, run_function=child_run_function)
+        child = MockService(
+            backend=self.BACKEND,
+            run_function=child_run_function,
+            children=[first_child_of_child, second_child_of_child],
+        )
+        parent = MockService(backend=self.BACKEND, children=[child])
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-            executor.submit(child.serve)
-            executor.submit(first_child_of_child.serve)
-            executor.submit(second_child_of_child.serve)
+        child.serve()
+        first_child_of_child.serve()
+        second_child_of_child.serve()
 
-            time.sleep(SERVER_WAIT_TIME)  # Wait for the responding services to be ready to answer.
+        answer = self.ask_question_and_wait_for_answer(
+            asking_service=parent,
+            responding_service=child,
+            input_values={"question": "What does the child of the child say?"},
+            input_manifest=None,
+        )
 
-            asker_future = executor.submit(
-                self.ask_question_and_wait_for_answer,
-                asking_service=parent,
-                responding_service=child,
-                input_values={"question": "What does the child of the child say?"},
-                input_manifest=None,
-            )
-
-            self.assertEqual(
-                asker_future.result(),
-                {
-                    "output_values": {
-                        "first_child_of_child": {
-                            "output_values": DifferentMockAnalysis.output_values,
-                            "output_manifest": DifferentMockAnalysis.output_manifest,
-                        },
-                        "second_child_of_child": {
-                            "output_values": MockAnalysis.output_values,
-                            "output_manifest": MockAnalysis.output_manifest,
-                        },
+        self.assertEqual(
+            answer,
+            {
+                "output_values": {
+                    "first_child_of_child": {
+                        "output_values": DifferentMockAnalysis.output_values,
+                        "output_manifest": DifferentMockAnalysis.output_manifest,
                     },
-                    "output_manifest": None,
+                    "second_child_of_child": {
+                        "output_values": MockAnalysis.output_values,
+                        "output_manifest": MockAnalysis.output_manifest,
+                    },
                 },
-            )
-
-            self._shutdown_executor_and_clear_threads(executor)
-
-        self._delete_topics_and_subscriptions(child, first_child_of_child, second_child_of_child)
+                "output_manifest": None,
+            },
+        )
