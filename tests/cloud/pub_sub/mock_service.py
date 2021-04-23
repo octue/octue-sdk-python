@@ -1,8 +1,55 @@
 import json
-import uuid
 
-from octue import exceptions
-from octue.cloud.pub_sub.service import ANSWERS_NAMESPACE
+from octue.cloud.pub_sub.service import Service
+
+
+MESSAGES = {}
+
+
+class MockTopic:
+    def __init__(self, name, namespace, service):
+        if name.startswith(namespace):
+            self.name = name
+        else:
+            self.name = f"{namespace}.{name}"
+
+        self.service = service
+        self.path = f"projects/{service.backend.project_name}/topics/{self.name}"
+
+    def create(self, allow_existing=False):
+        if not allow_existing:
+            if self.exists():
+                return
+
+        if not self.exists():
+            MESSAGES[self.path] = None
+
+    def delete(self):
+        del MESSAGES[self.path]
+
+    def exists(self):
+        return self.path in MESSAGES
+
+
+class MockSubscription:
+    def __init__(self, name, topic, namespace, service):
+        if name.startswith(namespace):
+            self.name = name
+        else:
+            self.name = f"{namespace}.{name}"
+
+        self.topic = topic
+        self.service = service
+        self.path = f"projects/{service.backend.project_name}/subscriptions/{self.name}"
+
+    def create(self, allow_existing=False):
+        pass
+
+    def delete(self):
+        pass
+
+    def exists(self):
+        return self.path in MESSAGES
 
 
 class MockFuture:
@@ -15,8 +62,58 @@ class MockFuture:
     def __init__(self, subscription_path):
         self.subscription_path = subscription_path
 
+    def result(self, timeout=None):
+        return self.subscription_path
 
-class MockService:
+    def cancel(self):
+        pass
+
+
+class MockSubscriber:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    def subscribe(self, subscription, callback):
+        return MockFuture(subscription_path=subscription)
+
+    def pull(self, request, timeout=None, retry=None):
+        return MockPullResponse(
+            received_messages=[MockMessageWrapper(message=MockMessage(data=MESSAGES[request["subscription"]]))]
+        )
+
+    def acknowledge(self, request):
+        pass
+
+
+class MockPullResponse:
+    def __init__(self, received_messages=None):
+        self.received_messages = received_messages or []
+
+
+class MockMessageWrapper:
+    def __init__(self, message):
+        self.message = message
+        self.ack_id = None
+
+
+class MockMessage:
+    def __init__(self, data):
+        self.data = data
+
+
+class MockPublisher:
+    def publish(self, topic, data, retry=None, **attributes):
+        MESSAGES[topic] = {
+            "data": data,
+            "attributes": attributes,
+        }
+        return MockFuture(None)
+
+
+class MockService(Service):
     """A mock Google Pub/Sub Service that can send and receive messages synchronously to other instances.
 
     :param octue.resources.service_backends.GCPPubSubBackEnd backend:
@@ -25,47 +122,11 @@ class MockService:
     :param list(MockService) children:
     """
 
-    messages = {}
-
     def __init__(self, backend, id=None, run_function=None, children=None):
-        self.id = id or str(uuid.uuid4())
-        self.backend = backend
-        self.run_function = run_function
+        super().__init__(backend, id, run_function)
         self.children = children or []
-        self._mock_answer_index = 0
-
-    def serve(self):
-        """Register the mock service as available to receive questions.
-
-        :return None:
-        """
-        topic_name = f"projects/{self.backend.project_name}/topics/octue.{self.id}"
-        self.messages[topic_name] = None
-
-    def answer(self, data, question_uuid, timeout=30):
-        """Answer a question, putting it in the messages register under the relevant key. Serialise the manifest before
-        putting the answer in the register.
-
-        :param dict data:
-        :param str question_uuid:
-        :param float timeout:
-        :return None:
-        """
-        analysis = self.run_function(input_values=data["input_values"], input_manifest=data["input_manifest"])
-
-        if analysis.output_manifest is None:
-            serialised_output_manifest = None
-        else:
-            serialised_output_manifest = analysis.output_manifest.serialise(to_string=True)
-
-        topic_name = f"projects/{self.backend.project_name}/topics/octue.{self.id}.{ANSWERS_NAMESPACE}.{question_uuid}"
-
-        self.messages[topic_name] = {
-            "data": json.dumps(
-                {"output_values": analysis.output_values, "output_manifest": serialised_output_manifest}
-            ).encode(),
-            "attributes": None,
-        }
+        self.publisher = MockPublisher()
+        self.subscriber = MockSubscriber()
 
     def ask(self, service_id, input_values, input_manifest=None):
         """Put the question into the messages register, register the existence of the corresponding response topic, add
@@ -76,45 +137,19 @@ class MockService:
         :param octue.resources.manifest.Manifest input_manifest:
         :return MockFuture, str:
         """
-        if (input_manifest is not None) and (not input_manifest.all_datasets_are_in_cloud):
-            raise exceptions.FileLocationError(
-                "All datasets of the input manifest and all files of the datasets must be uploaded to the cloud before "
-                "asking a service to perform an analysis upon them. The manifest must then be updated with the new "
-                "cloud locations."
-            )
+        response_subscription, question_uuid = super().ask(service_id, input_values, input_manifest)
+        analysis = self._get_child(service_id).run_function(input_values, input_manifest)
 
-        question_topic_name = f"projects/{self.backend.project_name}/topics/octue.{service_id}"
+        if analysis.output_manifest is None:
+            serialised_output_manifest = None
+        else:
+            serialised_output_manifest = analysis.output_manifest.serialise(to_string=True)
 
-        if question_topic_name not in self.messages:
-            raise exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
+        MESSAGES[response_subscription.path] = json.dumps(
+            {"output_values": analysis.output_values, "output_manifest": serialised_output_manifest}
+        ).encode()
 
-        question_uuid = str(uuid.uuid4())
-
-        if input_manifest is not None:
-            input_manifest = input_manifest.serialise(to_string=True)
-
-        self.messages[question_topic_name] = {
-            "data": json.dumps({"input_values": input_values, "input_manifest": input_manifest}).encode(),
-            "attributes": {"question_uuid": question_uuid},
-        }
-
-        response_topic_path = (
-            f"projects/{self.backend.project_name}/topics/octue.{service_id}.{ANSWERS_NAMESPACE}.{question_uuid}"
-        )
-
-        self.messages[response_topic_path] = self._get_child(service_id).run_function(input_values, input_manifest)
-        return MockFuture(subscription_path=response_topic_path), question_uuid
-
-    def wait_for_answer(self, subscription, timeout=30):
-        """Get the answer from the message register, change it into the correct format, and return it.
-
-        :param subscription:
-        :param timeout:
-        :return:
-        """
-        answer = self.messages[subscription.subscription_path]
-        data = {"output_values": answer.output_values, "output_manifest": answer.output_manifest}
-        return {"output_values": data["output_values"], "output_manifest": data["output_manifest"]}
+        return response_subscription, question_uuid
 
     def _get_child(self, service_id):
         """Get the correct responding MockService from the children.

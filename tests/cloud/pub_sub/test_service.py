@@ -1,5 +1,6 @@
 import concurrent.futures
 import uuid
+from unittest.mock import patch
 import google.api_core.exceptions
 
 from octue import exceptions
@@ -8,7 +9,7 @@ from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
-from tests.cloud.pub_sub.mock_service import MockService
+from tests.cloud.pub_sub.mock_service import MockService, MockSubscription, MockTopic
 
 
 class MockAnalysis:
@@ -86,21 +87,25 @@ class TestService(BaseTestCase):
     def test_ask_on_non_existent_service_results_in_error(self):
         """Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
         results in an error."""
-        with self.assertRaises(exceptions.ServiceNotFound):
-            MockService(backend=self.BACKEND).ask(service_id="hello", input_values=[1, 2, 3, 4])
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with self.assertRaises(exceptions.ServiceNotFound):
+                MockService(backend=self.BACKEND).ask(service_id="hello", input_values=[1, 2, 3, 4])
 
     def test_ask(self):
         """ Test that a service can ask a question to another service that is serving and receive an answer. """
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
         asking_service = MockService(backend=self.BACKEND, children=[responding_service])
-        responding_service.serve()
 
-        answer = self.ask_question_and_wait_for_answer(
-            asking_service=asking_service,
-            responding_service=responding_service,
-            input_values={},
-            input_manifest=None,
-        )
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                responding_service.serve()
+
+                answer = self.ask_question_and_wait_for_answer(
+                    asking_service=asking_service,
+                    responding_service=responding_service,
+                    input_values={},
+                    input_manifest=None,
+                )
 
         self.assertEqual(
             answer,
@@ -121,14 +126,16 @@ class TestService(BaseTestCase):
 
         input_manifest = Manifest(datasets=[Dataset(files=files)], path="gs://my-dataset", keys={"my_dataset": 0})
 
-        responding_service.serve()
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                responding_service.serve()
 
-        answer = self.ask_question_and_wait_for_answer(
-            asking_service=asking_service,
-            responding_service=responding_service,
-            input_values={},
-            input_manifest=input_manifest,
-        )
+                answer = self.ask_question_and_wait_for_answer(
+                    asking_service=asking_service,
+                    responding_service=responding_service,
+                    input_values={},
+                    input_manifest=input_manifest,
+                )
 
         self.assertEqual(
             answer,
@@ -140,7 +147,7 @@ class TestService(BaseTestCase):
         is used in a question.
         """
         with self.assertRaises(exceptions.FileLocationError):
-            Service(backend=self.BACKEND).ask(
+            MockService(backend=self.BACKEND).ask(
                 service_id=str(uuid.uuid4()),
                 input_values={},
                 input_manifest=Manifest(),
@@ -152,14 +159,17 @@ class TestService(BaseTestCase):
             self.BACKEND, run_function_returnee=MockAnalysisWithOutputManifest(), use_mock=True
         )
         asking_service = MockService(backend=self.BACKEND, children=[responding_service])
-        responding_service.serve()
 
-        answer = self.ask_question_and_wait_for_answer(
-            asking_service=asking_service,
-            responding_service=responding_service,
-            input_values={},
-            input_manifest=None,
-        )
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                responding_service.serve()
+
+                answer = self.ask_question_and_wait_for_answer(
+                    asking_service=asking_service,
+                    responding_service=responding_service,
+                    input_values={},
+                    input_manifest=None,
+                )
 
         self.assertEqual(answer["output_values"], MockAnalysisWithOutputManifest.output_values)
         self.assertEqual(answer["output_manifest"].id, MockAnalysisWithOutputManifest.output_manifest.id)
@@ -168,19 +178,22 @@ class TestService(BaseTestCase):
         """ Test that a service can ask multiple questions to the same server and expect replies to them all. """
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
         asking_service = MockService(backend=self.BACKEND, children=[responding_service])
-        responding_service.serve()
 
-        answers = []
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                responding_service.serve()
 
-        for i in range(5):
-            answers.append(
-                self.ask_question_and_wait_for_answer(
-                    asking_service=asking_service,
-                    responding_service=responding_service,
-                    input_values={},
-                    input_manifest=None,
-                )
-            )
+                answers = []
+
+                for i in range(5):
+                    answers.append(
+                        self.ask_question_and_wait_for_answer(
+                            asking_service=asking_service,
+                            responding_service=responding_service,
+                            input_values={},
+                            input_manifest=None,
+                        )
+                    )
 
         for answer in answers:
             self.assertEqual(
@@ -197,22 +210,24 @@ class TestService(BaseTestCase):
 
         asking_service = MockService(backend=self.BACKEND, children=[responding_service_1, responding_service_2])
 
-        responding_service_1.serve()
-        responding_service_2.serve()
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                responding_service_1.serve()
+                responding_service_2.serve()
 
-        first_question_future = self.ask_question_and_wait_for_answer(
-            asking_service=asking_service,
-            responding_service=responding_service_1,
-            input_values={},
-            input_manifest=None,
-        )
+                first_question_future = self.ask_question_and_wait_for_answer(
+                    asking_service=asking_service,
+                    responding_service=responding_service_1,
+                    input_values={},
+                    input_manifest=None,
+                )
 
-        second_question_future = self.ask_question_and_wait_for_answer(
-            asking_service=asking_service,
-            responding_service=responding_service_2,
-            input_values={},
-            input_manifest=None,
-        )
+                second_question_future = self.ask_question_and_wait_for_answer(
+                    asking_service=asking_service,
+                    responding_service=responding_service_2,
+                    input_values={},
+                    input_manifest=None,
+                )
 
         self.assertEqual(
             first_question_future,
@@ -242,28 +257,30 @@ class TestService(BaseTestCase):
         child = MockService(backend=self.BACKEND, run_function=child_run_function, children=[child_of_child])
         parent = MockService(backend=self.BACKEND, children=[child])
 
-        child.serve()
-        child_of_child.serve()
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                child.serve()
+                child_of_child.serve()
 
-        answer = self.ask_question_and_wait_for_answer(
-            asking_service=parent,
-            responding_service=child,
-            input_values={"question": "What does the child of the child say?"},
-            input_manifest=None,
-        )
+                answer = self.ask_question_and_wait_for_answer(
+                    asking_service=parent,
+                    responding_service=child,
+                    input_values={"question": "What does the child of the child say?"},
+                    input_manifest=None,
+                )
 
-        self.assertEqual(
-            answer,
-            {
-                "output_values": {
-                    "What does the child of the child say?": {
-                        "output_values": DifferentMockAnalysis.output_values,
-                        "output_manifest": DifferentMockAnalysis.output_manifest,
-                    }
-                },
-                "output_manifest": None,
-            },
-        )
+                self.assertEqual(
+                    answer,
+                    {
+                        "output_values": {
+                            "What does the child of the child say?": {
+                                "output_values": DifferentMockAnalysis.output_values,
+                                "output_manifest": DifferentMockAnalysis.output_manifest,
+                            }
+                        },
+                        "output_manifest": None,
+                    },
+                )
 
     def test_server_can_ask_its_own_children_questions(self):
         """Test that a child can contact more than one of its own children while answering a question from a parent."""
@@ -291,16 +308,18 @@ class TestService(BaseTestCase):
         )
         parent = MockService(backend=self.BACKEND, children=[child])
 
-        child.serve()
-        first_child_of_child.serve()
-        second_child_of_child.serve()
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                child.serve()
+                first_child_of_child.serve()
+                second_child_of_child.serve()
 
-        answer = self.ask_question_and_wait_for_answer(
-            asking_service=parent,
-            responding_service=child,
-            input_values={"question": "What does the child of the child say?"},
-            input_manifest=None,
-        )
+                answer = self.ask_question_and_wait_for_answer(
+                    asking_service=parent,
+                    responding_service=child,
+                    input_values={"question": "What does the child of the child say?"},
+                    input_manifest=None,
+                )
 
         self.assertEqual(
             answer,
