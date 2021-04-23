@@ -4,7 +4,7 @@ from functools import lru_cache
 
 from octue.exceptions import InvalidTagException
 from octue.mixins import Filterable, Serialisable
-from octue.resources.filter_containers import FilterSet
+from octue.resources.filter_containers import FilterList, FilterSet
 from octue.utils.encoders import OctueJSONEncoder
 
 
@@ -29,8 +29,11 @@ class Tag(Filterable):
     @property
     @lru_cache(maxsize=1)
     def subtags(self):
-        """ Return the subtags of the tag as a new TagSet (e.g. TagSet({'a', 'b', 'c'}) for the Tag('a:b:c'). """
-        return TagSet({Tag(subtag_name) for subtag_name in (self.name.split(":"))})
+        """Return the subtags of the tag in order as a FilterList (e.g. FilterList(['a', 'b', 'c']) for Tag('a:b:c').
+
+        :return FilterList(Tag):
+        """
+        return FilterList(Tag(subtag_name) for subtag_name in self.name.split(":"))
 
     def __eq__(self, other):
         if isinstance(other, str):
