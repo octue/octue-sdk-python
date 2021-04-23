@@ -197,6 +197,6 @@ class Service(CoolNameable):
         if data["output_manifest"] is None:
             output_manifest = None
         else:
-            output_manifest = Manifest.deserialise(data["output_manifest"], from_string=True)
+            output_manifest = Manifest.deserialise(data["output_manifest"])
 
         return {"output_values": data["output_values"], "output_manifest": output_manifest}
