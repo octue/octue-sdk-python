@@ -3,8 +3,9 @@ import re
 from functools import lru_cache
 
 from octue.exceptions import InvalidTagException
-from octue.mixins import Filterable
-from octue.resources.filter_containers import FilterSet
+from octue.mixins import Filterable, Serialisable
+from octue.resources.filter_containers import FilterList, FilterSet
+from octue.utils.encoders import OctueJSONEncoder
 
 
 TAG_PATTERN = re.compile(r"^$|^[a-z0-9][a-z0-9:\-]*(?<![:-])$")
@@ -28,8 +29,11 @@ class Tag(Filterable):
     @property
     @lru_cache(maxsize=1)
     def subtags(self):
-        """ Return the subtags of the tag as a new TagSet (e.g. TagSet({'a', 'b', 'c'}) for the Tag('a:b:c'). """
-        return TagSet({Tag(subtag_name) for subtag_name in (self.name.split(":"))})
+        """Return the subtags of the tag in order as a FilterList (e.g. FilterList(['a', 'b', 'c']) for Tag('a:b:c').
+
+        :return FilterList(Tag):
+        """
+        return FilterList(Tag(subtag_name) for subtag_name in self.name.split(":"))
 
     def __eq__(self, other):
         if isinstance(other, str):
@@ -85,7 +89,7 @@ class Tag(Filterable):
         return cleaned_name
 
 
-class TagSet:
+class TagSet(Serialisable):
     """ Class to handle a set of tags as a string. """
 
     _FILTERSET_ATTRIBUTE = "tags"
@@ -113,10 +117,6 @@ class TagSet:
             raise InvalidTagException(
                 "Tags must be expressed as a whitespace-delimited string or an iterable of strings or Tag instances."
             )
-
-    def __str__(self):
-        """ Serialise tags to a sorted list string. """
-        return self.serialise()
 
     def __eq__(self, other):
         """ Does this TagSet have the same tags as another TagSet? """
@@ -161,10 +161,35 @@ class TagSet:
         """ Return True if any of the tags contains value. """
         return any(value in tag for tag in self)
 
-    def serialise(self, to_string=True):
-        """ Serialise tags to a sorted list string. """
-        serialised_tags = sorted(tag.name for tag in self)
+    def filter(self, filter_name=None, filter_value=None):
+        """Filter the tags with the given filter for the given value.
+
+        :param str filter_name:
+        :param any filter_value:
+        :return octue.resources.filter_containers.FilterSet:
+        """
+        return self.tags.filter(filter_name=filter_name, filter_value=filter_value)
+
+    def serialise(self, to_string=False, **kwargs):
+        """Serialise to a sorted list of tag names.
+
+        :param bool to_string:
+        :return list|str:
+        """
+        string = json.dumps(
+            sorted(tag.name for tag in self.tags), cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs
+        )
 
         if to_string:
-            return str(serialised_tags)
-        return serialised_tags
+            return string
+
+        return json.loads(string)
+
+    @classmethod
+    def deserialise(cls, serialised_tagset):
+        """Deserialise from a sorted list of tag names.
+
+        :param list serialised_tagset:
+        :return TagSet:
+        """
+        return cls(tags=serialised_tagset)

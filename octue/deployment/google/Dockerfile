@@ -8,10 +8,6 @@ WORKDIR $PROJECT_ROOT
 
 RUN apt-get update -y && apt-get install -y --fix-missing build-essential && rm -rf /var/lib/apt/lists/*
 
-# This will cache bust if any of the requirements change.
-COPY requirements*.txt .
-COPY setup.* .
-
 COPY . .
 
 # Install requirements (supports requirements.txt, requirements-dev.txt, and setup.py; all will be run if all are present.)

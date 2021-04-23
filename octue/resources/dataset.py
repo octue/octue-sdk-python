@@ -10,6 +10,7 @@ from octue.exceptions import BrokenSequenceException, InvalidInputException, Une
 from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
+from octue.resources.tag import TagSet
 
 
 module_logger = logging.getLogger(__name__)
@@ -27,6 +28,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
 
     _FILTERSET_ATTRIBUTE = "files"
     _ATTRIBUTES_TO_HASH = "files", "name", "tags"
+    _SERIALISE_FIELDS = "files", "name", "tags", "hash_value", "id", "path"
 
     def __init__(self, name=None, id=None, logger=None, path=None, path_from=None, tags=None, **kwargs):
         """Construct a Dataset"""
@@ -84,7 +86,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             name=serialised_dataset["name"],
             hash_value=serialised_dataset["hash_value"],
             path=storage.path.generate_gs_path(bucket_name, path_to_dataset_directory),
-            tags=json.loads(serialised_dataset["tags"]),
+            tags=TagSet(serialised_dataset["tags"]),
             files=datafiles,
         )
 
@@ -107,7 +109,6 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
 
         serialised_dataset = self.serialise()
         serialised_dataset["files"] = sorted(files)
-        del serialised_dataset["absolute_path"]
         del serialised_dataset["path"]
 
         GoogleCloudStorageClient(project_name=project_name).upload_from_string(

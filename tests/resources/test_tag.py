@@ -1,4 +1,4 @@
-from octue.resources.filter_containers import FilterSet
+from octue.resources.filter_containers import FilterList, FilterSet
 from octue.resources.tag import Tag, TagSet
 from tests.base import BaseTestCase
 
@@ -6,7 +6,7 @@ from tests.base import BaseTestCase
 class TestTag(BaseTestCase):
     def test_subtags(self):
         """ Test that subtags are correctly parsed from tags. """
-        self.assertEqual(Tag("a:b:c").subtags, TagSet({Tag("a"), Tag("b"), Tag("c")}))
+        self.assertEqual(Tag("a:b:c").subtags, FilterList([Tag("a"), Tag("b"), Tag("c")]))
 
     def test_tag_comparison(self):
         """ Test that tags can be alphabetically compared. """
@@ -42,8 +42,8 @@ class TestTag(BaseTestCase):
 
     def test_subtags_starts_with(self):
         """ Test that the start of subtags can be checked. """
-        self.assertTrue(Tag("hello:world").subtags.any_tag_starts_with("w"))
-        self.assertFalse(Tag("hello:world").subtags.any_tag_starts_with("e"))
+        self.assertTrue(TagSet(Tag("hello:world").subtags).any_tag_starts_with("w"))
+        self.assertFalse(TagSet(Tag("hello:world").subtags).any_tag_starts_with("e"))
 
     def test_ends_with(self):
         """ Test that the end of a tag can be checked. """
@@ -52,8 +52,8 @@ class TestTag(BaseTestCase):
 
     def test_subtags_ends_with(self):
         """ Test that the end of subtags can be checked. """
-        self.assertTrue(Tag("hello:world").subtags.any_tag_ends_with("o"))
-        self.assertFalse(Tag("hello:world").subtags.any_tag_ends_with("e"))
+        self.assertTrue(TagSet(Tag("hello:world").subtags).any_tag_ends_with("o"))
+        self.assertFalse(TagSet(Tag("hello:world").subtags).any_tag_ends_with("e"))
 
 
 class TestTagSet(BaseTestCase):
@@ -174,18 +174,19 @@ class TestTagSet(BaseTestCase):
 
     def test_serialise(self):
         """ Ensure that TagSets are serialised to the string form of a list. """
-        self.assertEqual(self.TAG_SET.serialise(), "['a', 'b:c', 'd:e:f']")
+        self.assertEqual(self.TAG_SET.serialise(), ["a", "b:c", "d:e:f"])
 
     def test_serialise_orders_tags(self):
-        """ Ensure that TagSets are serialised to the string form of a list. """
+        """Ensure that TagSets serialise to a list."""
         tag_set = TagSet("z hello a c:no")
-        self.assertEqual(tag_set.serialise(), "['a', 'c:no', 'hello', 'z']")
+        self.assertEqual(tag_set.serialise(), ["a", "c:no", "hello", "z"])
 
-    def test_str_is_equivalent_to_serialise(self):
-        """ Test that calling `str` on a TagSet is equivalent to using the `serialise` method. """
-        tag_set = TagSet("z hello a c:no")
-        self.assertEqual(str(tag_set), tag_set.serialise())
+    def test_deserialise(self):
+        """Test that serialisation is reversible."""
+        serialised_tag_set = self.TAG_SET.serialise()
+        deserialised_tag_set = TagSet.deserialise(serialised_tag_set)
+        self.assertEqual(deserialised_tag_set, self.TAG_SET)
 
     def test_repr(self):
-        """ Test the representation of a TagSet appears as expected. """
+        """Test the representation of a TagSet appears as expected."""
         self.assertEqual(repr(self.TAG_SET), f"<TagSet({repr(self.TAG_SET.tags)})>")
