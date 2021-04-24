@@ -63,7 +63,7 @@ class TestService(BaseTestCase):
     def test_ask(self):
         """ Test that a service can ask a question to another service that is serving and receive an answer. """
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
-        asking_service = MockService(backend=self.BACKEND, children=[responding_service])
+        asking_service = MockService(backend=self.BACKEND, children={responding_service.id: responding_service})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
@@ -86,7 +86,7 @@ class TestService(BaseTestCase):
         receive an answer.
         """
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
-        asking_service = MockService(backend=self.BACKEND, children=[responding_service])
+        asking_service = MockService(backend=self.BACKEND, children={responding_service.id: responding_service})
 
         files = [
             Datafile(timestamp=None, path="gs://my-dataset/hello.txt"),
@@ -127,7 +127,7 @@ class TestService(BaseTestCase):
         responding_service = self.make_new_server(
             self.BACKEND, run_function_returnee=MockAnalysisWithOutputManifest(), use_mock=True
         )
-        asking_service = MockService(backend=self.BACKEND, children=[responding_service])
+        asking_service = MockService(backend=self.BACKEND, children={responding_service.id: responding_service})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
@@ -146,7 +146,7 @@ class TestService(BaseTestCase):
     def test_service_can_ask_multiple_questions(self):
         """ Test that a service can ask multiple questions to the same server and expect replies to them all. """
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
-        asking_service = MockService(backend=self.BACKEND, children=[responding_service])
+        asking_service = MockService(backend=self.BACKEND, children={responding_service.id: responding_service})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
@@ -177,7 +177,10 @@ class TestService(BaseTestCase):
             self.BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True
         )
 
-        asking_service = MockService(backend=self.BACKEND, children=[responding_service_1, responding_service_2])
+        asking_service = MockService(
+            backend=self.BACKEND,
+            children={responding_service_1.id: responding_service_1, responding_service_2.id: responding_service_2},
+        )
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
@@ -223,8 +226,10 @@ class TestService(BaseTestCase):
             mock_analysis.output_values = {input_values["question"]: child.wait_for_answer(subscription)}
             return mock_analysis
 
-        child = MockService(backend=self.BACKEND, run_function=child_run_function, children=[child_of_child])
-        parent = MockService(backend=self.BACKEND, children=[child])
+        child = MockService(
+            backend=self.BACKEND, run_function=child_run_function, children={child_of_child.id: child_of_child}
+        )
+        parent = MockService(backend=self.BACKEND, children={child.id: child})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
@@ -273,9 +278,9 @@ class TestService(BaseTestCase):
         child = MockService(
             backend=self.BACKEND,
             run_function=child_run_function,
-            children=[first_child_of_child, second_child_of_child],
+            children={first_child_of_child.id: first_child_of_child, second_child_of_child.id: second_child_of_child},
         )
-        parent = MockService(backend=self.BACKEND, children=[child])
+        parent = MockService(backend=self.BACKEND, children={child.id: child})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):

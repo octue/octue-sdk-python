@@ -127,7 +127,7 @@ class MockService(Service):
 
     def __init__(self, backend, id=None, run_function=None, children=None):
         super().__init__(backend, id, run_function)
-        self.children = children or []
+        self.children = children or {}
         self.publisher = MockPublisher()
         self.subscriber = MockSubscriber()
 
@@ -142,20 +142,8 @@ class MockService(Service):
         """
         response_subscription, question_uuid = super().ask(service_id, input_values, input_manifest)
 
-        self._get_child(service_id).answer(
+        self.children[service_id].answer(
             data={"input_values": input_values, "input_manifest": input_manifest}, question_uuid=question_uuid
         )
 
         return response_subscription, question_uuid
-
-    def _get_child(self, service_id):
-        """Get the correct responding MockService from the children.
-
-        :param str service_id:
-        :return MockService:
-        """
-        for child in self.children:
-            if child.id == service_id:
-                return child
-
-        return None
