@@ -11,8 +11,9 @@ from tests.cloud.pub_sub.mock_service import MockService, MockSubscription, Mock
 
 
 class MockAnalysis:
-    output_values = "Hello! It worked!"
-    output_manifest = None
+    def __init__(self, output_values="Hello! It worked!", output_manifest=None):
+        self.output_values = output_values
+        self.output_manifest = output_manifest
 
 
 class DifferentMockAnalysis:
@@ -78,7 +79,7 @@ class TestService(BaseTestCase):
 
         self.assertEqual(
             answer,
-            {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
+            {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
         )
 
     def test_ask_with_input_manifest(self):
@@ -108,7 +109,7 @@ class TestService(BaseTestCase):
 
         self.assertEqual(
             answer,
-            {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
+            {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
         )
 
     def test_ask_with_input_manifest_with_local_paths_raises_error(self):
@@ -167,7 +168,7 @@ class TestService(BaseTestCase):
         for answer in answers:
             self.assertEqual(
                 answer,
-                {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
+                {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
             )
 
     def test_service_can_ask_questions_to_multiple_servers(self):
@@ -187,14 +188,14 @@ class TestService(BaseTestCase):
                 responding_service_1.serve()
                 responding_service_2.serve()
 
-                first_question_future = self.ask_question_and_wait_for_answer(
+                answer_1 = self.ask_question_and_wait_for_answer(
                     asking_service=asking_service,
                     responding_service=responding_service_1,
                     input_values={},
                     input_manifest=None,
                 )
 
-                second_question_future = self.ask_question_and_wait_for_answer(
+                answer_2 = self.ask_question_and_wait_for_answer(
                     asking_service=asking_service,
                     responding_service=responding_service_2,
                     input_values={},
@@ -202,12 +203,12 @@ class TestService(BaseTestCase):
                 )
 
         self.assertEqual(
-            first_question_future,
-            {"output_values": MockAnalysis.output_values, "output_manifest": MockAnalysis.output_manifest},
+            answer_1,
+            {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
         )
 
         self.assertEqual(
-            second_question_future,
+            answer_2,
             {
                 "output_values": DifferentMockAnalysis.output_values,
                 "output_manifest": DifferentMockAnalysis.output_manifest,
@@ -222,13 +223,12 @@ class TestService(BaseTestCase):
 
         def child_run_function(input_values, input_manifest):
             subscription, _ = child.ask(service_id=child_of_child.id, input_values=input_values)
-            mock_analysis = MockAnalysis()
-            mock_analysis.output_values = {input_values["question"]: child.wait_for_answer(subscription)}
-            return mock_analysis
+            return MockAnalysis(output_values={input_values["question"]: child.wait_for_answer(subscription)})
 
         child = MockService(
             backend=self.BACKEND, run_function=child_run_function, children={child_of_child.id: child_of_child}
         )
+
         parent = MockService(backend=self.BACKEND, children={child.id: child})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
@@ -304,8 +304,8 @@ class TestService(BaseTestCase):
                         "output_manifest": DifferentMockAnalysis.output_manifest,
                     },
                     "second_child_of_child": {
-                        "output_values": MockAnalysis.output_values,
-                        "output_manifest": MockAnalysis.output_manifest,
+                        "output_values": MockAnalysis().output_values,
+                        "output_manifest": MockAnalysis().output_manifest,
                     },
                 },
                 "output_manifest": None,
