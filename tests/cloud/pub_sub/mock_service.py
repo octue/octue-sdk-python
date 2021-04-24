@@ -74,11 +74,8 @@ class MockFuture:
     :return None
     """
 
-    def __init__(self, subscription_path):
-        self.subscription_path = subscription_path
-
     def result(self, timeout=None):
-        return self.subscription_path
+        pass
 
     def cancel(self):
         pass
@@ -92,7 +89,7 @@ class MockSubscriber:
         pass
 
     def subscribe(self, subscription, callback):
-        return MockFuture(subscription_path=subscription)
+        return MockFuture()
 
     def pull(self, request, timeout=None, retry=None):
         return MockPullResponse(
@@ -125,7 +122,7 @@ class MockPublisher:
     def publish(self, topic, data, retry=None, **attributes):
         subscription = topic.replace("topics", "subscriptions")
         MESSAGES[subscription] = {"data": data, "attributes": attributes}
-        return MockFuture(None)
+        return MockFuture()
 
 
 class MockService(Service):
