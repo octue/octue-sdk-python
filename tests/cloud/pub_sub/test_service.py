@@ -11,6 +11,13 @@ from tests.cloud.pub_sub.mock_service import MockService, MockSubscription, Mock
 
 
 class MockAnalysis:
+    """A mock Analysis object with just the output strands.
+
+    :param any output_values:
+    :param octue.resources.manifest.Manifest|None output_manifest:
+    :return None:
+    """
+
     def __init__(self, output_values="Hello! It worked!", output_manifest=None):
         self.output_values = output_values
         self.output_manifest = output_manifest
@@ -267,13 +274,12 @@ class TestService(BaseTestCase):
             subscription_1, _ = child.ask(service_id=first_child_of_child.id, input_values=input_values)
             subscription_2, _ = child.ask(service_id=second_child_of_child.id, input_values=input_values)
 
-            mock_analysis = MockAnalysis()
-            mock_analysis.output_values = {
-                "first_child_of_child": child.wait_for_answer(subscription_1),
-                "second_child_of_child": child.wait_for_answer(subscription_2),
-            }
-
-            return mock_analysis
+            return MockAnalysis(
+                output_values={
+                    "first_child_of_child": child.wait_for_answer(subscription_1),
+                    "second_child_of_child": child.wait_for_answer(subscription_2),
+                }
+            )
 
         child = MockService(
             backend=self.BACKEND,
