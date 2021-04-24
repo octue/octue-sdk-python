@@ -1,10 +1,8 @@
-import concurrent.futures
 import uuid
 from unittest.mock import patch
-import google.api_core.exceptions
 
 from octue import exceptions
-from octue.cloud.pub_sub.service import OCTUE_NAMESPACE, Service
+from octue.cloud.pub_sub.service import Service
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
@@ -49,35 +47,6 @@ class TestService(BaseTestCase):
         """ Get an asking service to ask a question to a responding service and wait for the answer. """
         subscription, _ = asking_service.ask(responding_service.id, input_values, input_manifest)
         return asking_service.wait_for_answer(subscription)
-
-    @staticmethod
-    def _delete_topics_and_subscriptions(*services):
-        """Delete the topics and subscriptions created for each service. This method is necessary as it is difficult to
-        end the threads running serving services gracefully, which would delete the topics and subscriptions if asked.
-        """
-        for service in services:
-            topic_path = service.publisher.topic_path(service.backend.project_name, f"{OCTUE_NAMESPACE}.{service.id}")
-            try:
-                service.publisher.delete_topic(topic=topic_path)
-            except google.api_core.exceptions.NotFound:
-                pass
-
-            subscription_path = service.subscriber.subscription_path(
-                service.backend.project_name, f"{OCTUE_NAMESPACE}.{service.id}"
-            )
-
-            try:
-                service.subscriber.delete_subscription(subscription=subscription_path)
-            except (google.api_core.exceptions.NotFound, ValueError):
-                pass
-
-    def _shutdown_executor_and_clear_threads(self, executor):
-        """Shut down a concurrent.futures executor by clearing its threads. This cuts loose infinitely-waiting threads,
-        allowing the test to finish.
-        """
-        executor._threads.clear()
-        executor.shutdown()
-        concurrent.futures.thread._threads_queues.clear()
 
     def test_repr(self):
         """ Test that services are represented as a string correctly. """
