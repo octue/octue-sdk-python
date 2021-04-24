@@ -5,6 +5,14 @@ MESSAGES = {}
 
 
 class MockTopic:
+    """A mock topic that publishes messages to a global dictionary rather than Google Pub/Sub.
+
+    :param str name:
+    :param str namespace:
+    :param MockService service:
+    :return None:
+    """
+
     def __init__(self, name, namespace, service):
         if name.startswith(namespace):
             self.name = name
@@ -30,6 +38,15 @@ class MockTopic:
 
 
 class MockSubscription:
+    """A mock subscription that gets messages from a global dictionary rather than Google Pub/Sub.
+
+    :param str name:
+    :param MockTopic topic:
+    :param str namespace:
+    :param MockService service:
+    :return None:
+    """
+
     def __init__(self, name, topic, namespace, service):
         if name.startswith(namespace):
             self.name = name
@@ -107,12 +124,7 @@ class MockMessage:
 class MockPublisher:
     def publish(self, topic, data, retry=None, **attributes):
         subscription = topic.replace("topics", "subscriptions")
-
-        MESSAGES[subscription] = {
-            "data": data,
-            "attributes": attributes,
-        }
-
+        MESSAGES[subscription] = {"data": data, "attributes": attributes}
         return MockFuture(None)
 
 
@@ -122,7 +134,8 @@ class MockService(Service):
     :param octue.resources.service_backends.GCPPubSubBackEnd backend:
     :param str id:
     :param callable run_function:
-    :param list(MockService) children:
+    :param dict(str, MockService)|None children:
+    :return None:
     """
 
     def __init__(self, backend, id=None, run_function=None, children=None):
@@ -136,8 +149,8 @@ class MockService(Service):
         the response to the register, and return a MockFuture containing the answer subscription path.
 
         :param str service_id:
-        :param dict input_values:
-        :param octue.resources.manifest.Manifest input_manifest:
+        :param dict|list input_values:
+        :param octue.resources.manifest.Manifest|None input_manifest:
         :return MockFuture, str:
         """
         response_subscription, question_uuid = super().ask(service_id, input_values, input_manifest)
