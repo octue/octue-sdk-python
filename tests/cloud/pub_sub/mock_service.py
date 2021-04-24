@@ -5,7 +5,7 @@ MESSAGES = {}
 
 
 class MockTopic:
-    """A mock topic that publishes messages to a global dictionary rather than Google Pub/Sub.
+    """A mock topic that registers in a global dictionary rather than Google Pub/Sub.
 
     :param str name:
     :param str namespace:
@@ -38,7 +38,7 @@ class MockTopic:
 
 
 class MockSubscription:
-    """A mock subscription that gets messages from a global dictionary rather than Google Pub/Sub.
+    """A mock subscription that registers in a global dictionary rather than Google Pub/Sub.
 
     :param str name:
     :param MockTopic topic:
@@ -68,10 +68,9 @@ class MockSubscription:
 
 
 class MockFuture:
-    """A mock future that contains the subscription path for the corresponding answer.
+    """A mock future that is returned after publishing or subscribing.
 
-    :param str subscription_path:
-    :return None
+    :return None:
     """
 
     def result(self, timeout=None):
@@ -82,6 +81,11 @@ class MockFuture:
 
 
 class MockSubscriber:
+    """A mock subscriber that gets messages from a global dictionary instead of Google Pub/Sub.
+
+    :return None:
+    """
+
     def __enter__(self):
         return self
 
@@ -101,17 +105,35 @@ class MockSubscriber:
 
 
 class MockPullResponse:
+    """A mock PullResponse that can be returned by `MockSubscriber.pull`.
+
+    :param iter|None received_messages:
+    :return None:
+    """
+
     def __init__(self, received_messages=None):
         self.received_messages = received_messages or []
 
 
 class MockMessageWrapper:
+    """A message wrapper that wraps a MockMessage.
+
+    :param MockMessage message:
+    :return None:
+    """
+
     def __init__(self, message):
         self.message = message
         self.ack_id = None
 
 
 class MockMessage:
+    """A mock Pub/Sub message containing serialised data and any number of attributes.
+
+    :param bytes data:
+    :return None:
+    """
+
     def __init__(self, data, **attributes):
         self.data = data
         for key, value in attributes.items():
@@ -119,6 +141,11 @@ class MockMessage:
 
 
 class MockPublisher:
+    """A mock publisher that puts messages in a global dictionary instead of Google Pub/Sub.
+
+    :return None:
+    """
+
     def publish(self, topic, data, retry=None, **attributes):
         subscription = topic.replace("topics", "subscriptions")
         MESSAGES[subscription] = {"data": data, "attributes": attributes}
