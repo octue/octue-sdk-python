@@ -1,5 +1,3 @@
-import json
-
 from octue.cloud.pub_sub.service import Service
 
 
@@ -81,7 +79,7 @@ class MockSubscriber:
 
     def pull(self, request, timeout=None, retry=None):
         return MockPullResponse(
-            received_messages=[MockMessageWrapper(message=MockMessage(data=MESSAGES[request["subscription"]]))]
+            received_messages=[MockMessageWrapper(message=MockMessage(**MESSAGES[request["subscription"]]))]
         )
 
     def acknowledge(self, request):
@@ -100,16 +98,21 @@ class MockMessageWrapper:
 
 
 class MockMessage:
-    def __init__(self, data):
+    def __init__(self, data, **attributes):
         self.data = data
+        for key, value in attributes.items():
+            setattr(self, key, value)
 
 
 class MockPublisher:
     def publish(self, topic, data, retry=None, **attributes):
-        MESSAGES[topic] = {
+        subscription = topic.replace("topics", "subscriptions")
+
+        MESSAGES[subscription] = {
             "data": data,
             "attributes": attributes,
         }
+
         return MockFuture(None)
 
 
@@ -138,16 +141,10 @@ class MockService(Service):
         :return MockFuture, str:
         """
         response_subscription, question_uuid = super().ask(service_id, input_values, input_manifest)
-        analysis = self._get_child(service_id).run_function(input_values, input_manifest)
 
-        if analysis.output_manifest is None:
-            serialised_output_manifest = None
-        else:
-            serialised_output_manifest = analysis.output_manifest.serialise(to_string=True)
-
-        MESSAGES[response_subscription.path] = json.dumps(
-            {"output_values": analysis.output_values, "output_manifest": serialised_output_manifest}
-        ).encode()
+        self._get_child(service_id).answer(
+            data={"input_values": input_values, "input_manifest": input_manifest}, question_uuid=question_uuid
+        )
 
         return response_subscription, question_uuid
 
