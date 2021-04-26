@@ -7,7 +7,7 @@ from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
-from tests.cloud.pub_sub.mock_service import MockService, MockSubscription, MockTopic
+from tests.cloud.pub_sub.mocks import MockService, MockSubscription, MockTopic
 
 
 class MockAnalysis:
