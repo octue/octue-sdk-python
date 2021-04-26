@@ -77,6 +77,17 @@ class MockFuture:
         pass
 
 
+class MockPublisher:
+    """A mock publisher that puts messages in a global dictionary instead of Google Pub/Sub.
+
+    :return None:
+    """
+
+    def publish(self, topic, data, retry=None, **attributes):
+        MESSAGES[topic.split("/")[-1]] = MockMessage(data=data, **attributes)
+        return MockFuture()
+
+
 class MockSubscriber:
     """A mock subscriber that gets messages from a global dictionary instead of Google Pub/Sub.
 
@@ -94,9 +105,7 @@ class MockSubscriber:
 
     def pull(self, request, timeout=None, retry=None):
         topic_and_subscription_name = request["subscription"].split("/")[-1]
-        return MockPullResponse(
-            received_messages=[MockMessageWrapper(message=MockMessage(**MESSAGES[topic_and_subscription_name]))]
-        )
+        return MockPullResponse(received_messages=[MockMessageWrapper(message=MESSAGES[topic_and_subscription_name])])
 
     def acknowledge(self, request):
         pass
@@ -136,17 +145,6 @@ class MockMessage:
         self.data = data
         for key, value in attributes.items():
             setattr(self, key, value)
-
-
-class MockPublisher:
-    """A mock publisher that puts messages in a global dictionary instead of Google Pub/Sub.
-
-    :return None:
-    """
-
-    def publish(self, topic, data, retry=None, **attributes):
-        MESSAGES[topic.split("/")[-1]] = {"data": data, "attributes": attributes}
-        return MockFuture()
 
 
 class MockService(Service):
