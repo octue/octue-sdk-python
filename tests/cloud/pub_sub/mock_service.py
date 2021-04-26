@@ -63,12 +63,9 @@ class MockSubscription:
     def delete(self):
         pass
 
-    def exists(self):
-        return self.path in MESSAGES
-
 
 class MockFuture:
-    """A mock future that is returned after publishing or subscribing.
+    """A mock future that is returned when publishing or subscribing.
 
     :return None:
     """
@@ -105,7 +102,7 @@ class MockSubscriber:
 
 
 class MockPullResponse:
-    """A mock PullResponse that can be returned by `MockSubscriber.pull`.
+    """A mock PullResponse that is returned by `MockSubscriber.pull`.
 
     :param iter|None received_messages:
     :return None:
@@ -116,7 +113,7 @@ class MockPullResponse:
 
 
 class MockMessageWrapper:
-    """A message wrapper that wraps a MockMessage.
+    """A wrapper for MockMessage.
 
     :param MockMessage message:
     :return None:
