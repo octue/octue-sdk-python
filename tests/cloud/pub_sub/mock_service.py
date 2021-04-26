@@ -1,10 +1,11 @@
+from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import Service
 
 
 MESSAGES = {}
 
 
-class MockTopic:
+class MockTopic(Topic):
     """A mock topic that registers in a global dictionary rather than Google Pub/Sub.
 
     :param str name:
@@ -12,15 +13,6 @@ class MockTopic:
     :param MockService service:
     :return None:
     """
-
-    def __init__(self, name, namespace, service):
-        if name.startswith(namespace):
-            self.name = name
-        else:
-            self.name = f"{namespace}.{name}"
-
-        self.service = service
-        self.path = f"projects/{service.backend.project_name}/topics/{self.name}"
 
     def create(self, allow_existing=False):
         if not allow_existing:
@@ -37,7 +29,7 @@ class MockTopic:
         return self.path in MESSAGES
 
 
-class MockSubscription:
+class MockSubscription(Subscription):
     """A mock subscription that registers in a global dictionary rather than Google Pub/Sub.
 
     :param str name:
@@ -46,16 +38,6 @@ class MockSubscription:
     :param MockService service:
     :return None:
     """
-
-    def __init__(self, name, topic, namespace, service):
-        if name.startswith(namespace):
-            self.name = name
-        else:
-            self.name = f"{namespace}.{name}"
-
-        self.topic = topic
-        self.service = service
-        self.path = f"projects/{service.backend.project_name}/subscriptions/{self.name}"
 
     def create(self, allow_existing=False):
         pass
@@ -87,6 +69,10 @@ class MockPublisher:
         MESSAGES[topic.split("/")[-1]] = MockMessage(data=data, **attributes)
         return MockFuture()
 
+    @staticmethod
+    def topic_path(project_name, topic_name):
+        return f"projects/{project_name}/topics/{topic_name}"
+
 
 class MockSubscriber:
     """A mock subscriber that gets messages from a global dictionary instead of Google Pub/Sub.
@@ -109,6 +95,10 @@ class MockSubscriber:
 
     def acknowledge(self, request):
         pass
+
+    @staticmethod
+    def subscription_path(project_name, subscription_name):
+        return f"projects/{project_name}/subscriptions/{subscription_name}"
 
 
 class MockPullResponse:
