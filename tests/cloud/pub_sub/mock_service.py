@@ -93,8 +93,9 @@ class MockSubscriber:
         return MockFuture()
 
     def pull(self, request, timeout=None, retry=None):
+        topic_and_subscription_name = request["subscription"].split("/")[-1]
         return MockPullResponse(
-            received_messages=[MockMessageWrapper(message=MockMessage(**MESSAGES[request["subscription"]]))]
+            received_messages=[MockMessageWrapper(message=MockMessage(**MESSAGES[topic_and_subscription_name]))]
         )
 
     def acknowledge(self, request):
@@ -144,8 +145,7 @@ class MockPublisher:
     """
 
     def publish(self, topic, data, retry=None, **attributes):
-        subscription = topic.replace("topics", "subscriptions")
-        MESSAGES[subscription] = {"data": data, "attributes": attributes}
+        MESSAGES[topic.split("/")[-1]] = {"data": data, "attributes": attributes}
         return MockFuture()
 
 
