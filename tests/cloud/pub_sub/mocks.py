@@ -1,3 +1,5 @@
+import google.api_core.exceptions
+
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import Service
 
@@ -5,39 +7,50 @@ from octue.cloud.pub_sub.service import Service
 MESSAGES = {}
 
 
-class MockTopic(Topic):
-    """A mock topic that registers in a global dictionary rather than Google Pub/Sub.
+def get_service_id(path):
+    """Get the service ID (e.g. octue.services.<uuid>) from a topic or subscription path (e.g.
+    projects/<project-name>/topics/octue.services.<uuid>)
 
-    :param str name:
-    :param str namespace:
-    :param MockService service:
-    :return None:
+    :param str path:
+    :return str:
     """
+    return path.split("/")[-1]
+
+
+class MockTopic(Topic):
+    """A mock topic that registers in a global messages dictionary rather than Google Pub/Sub."""
 
     def create(self, allow_existing=False):
+        """Register the topic in the global messages dictionary.
+
+        :param bool allow_existing: if True, don't raise an error if the topic already exists
+        :raise google.api_core.exceptions.AlreadyExists: if the topic already exists
+        :return None:
+        """
         if not allow_existing:
             if self.exists():
-                return
+                raise google.api_core.exceptions.AlreadyExists(f"Topic {self.path!r} already exists.")
 
         if not self.exists():
-            MESSAGES[self.path] = None
+            MESSAGES[get_service_id(self.path)] = None
 
     def delete(self):
-        del MESSAGES[self.path]
+        """Delete the topic from the global messages dictionary.
+
+        :return None:
+        """
+        del MESSAGES[get_service_id(self.path)]
 
     def exists(self):
-        return self.path in MESSAGES
+        """Check if the topic exists in the global messages dictionary.
+
+        :return bool:
+        """
+        return get_service_id(self.path) in MESSAGES
 
 
 class MockSubscription(Subscription):
-    """A mock subscription that registers in a global dictionary rather than Google Pub/Sub.
-
-    :param str name:
-    :param MockTopic topic:
-    :param str namespace:
-    :param MockService service:
-    :return None:
-    """
+    """A mock subscription that registers in a global dictionary rather than Google Pub/Sub."""
 
     def create(self, allow_existing=False):
         pass
@@ -47,10 +60,7 @@ class MockSubscription(Subscription):
 
 
 class MockFuture:
-    """A mock future that is returned when publishing or subscribing.
-
-    :return None:
-    """
+    """A mock future that is returned when publishing or subscribing."""
 
     def result(self, timeout=None):
         pass
@@ -60,25 +70,33 @@ class MockFuture:
 
 
 class MockPublisher:
-    """A mock publisher that puts messages in a global dictionary instead of Google Pub/Sub.
-
-    :return None:
-    """
+    """A mock publisher that puts messages in a global dictionary instead of Google Pub/Sub."""
 
     def publish(self, topic, data, retry=None, **attributes):
-        MESSAGES[topic.split("/")[-1]] = MockMessage(data=data, **attributes)
+        """Put the data and attributes into a MockMessage and add it to the global messages dictionary before returning
+        a MockFuture.
+
+        :param str topic:
+        :param bytes data:
+        :param google.api_core.retry.Retry|None retry:
+        :return MockFuture:
+        """
+        MESSAGES[get_service_id(topic)] = MockMessage(data=data, **attributes)
         return MockFuture()
 
     @staticmethod
     def topic_path(project_name, topic_name):
+        """Generate the full topic path from the project and topic names.
+
+        :param str project_name:
+        :param str topic_name:
+        :return str:
+        """
         return f"projects/{project_name}/topics/{topic_name}"
 
 
 class MockSubscriber:
-    """A mock subscriber that gets messages from a global dictionary instead of Google Pub/Sub.
-
-    :return None:
-    """
+    """A mock subscriber that gets messages from a global dictionary instead of Google Pub/Sub."""
 
     def __enter__(self):
         return self
@@ -87,24 +105,46 @@ class MockSubscriber:
         pass
 
     def subscribe(self, subscription, callback):
+        """Simulate subscribing to a topic by returning a mock future.
+
+        :param MockSubscription subscription:
+        :param callable callback:
+        :return MockFuture:
+        """
         return MockFuture()
 
     def pull(self, request, timeout=None, retry=None):
-        topic_and_subscription_name = request["subscription"].split("/")[-1]
-        return MockPullResponse(received_messages=[MockMessageWrapper(message=MESSAGES[topic_and_subscription_name])])
+        """Return a MockPullResponse containing one MockMessage wrapped in a MockMessageWrapper. The MockMessage is
+        retrieved from the global messages dictionary for the subscription included in the request under the
+        "subscription" key.
+
+        :param dict request:
+        :param float|None timeout:
+        :param google.api_core.retry.Retry|None retry:
+        :return MockPullResponse:
+        """
+        return MockPullResponse(
+            received_messages=[MockMessageWrapper(message=MESSAGES[get_service_id(request["subscription"])])]
+        )
 
     def acknowledge(self, request):
         pass
 
     @staticmethod
     def subscription_path(project_name, subscription_name):
+        """Generate the full subscription path from the given project and subscription names.
+
+        :param str project_name:
+        :param str subscription_name:
+        :return str:
+        """
         return f"projects/{project_name}/subscriptions/{subscription_name}"
 
 
 class MockPullResponse:
     """A mock PullResponse that is returned by `MockSubscriber.pull`.
 
-    :param iter|None received_messages:
+    :param iter(MockMessageWrapper)|None received_messages: mock pub/sub messages wrapped in the MockMessageWrapper
     :return None:
     """
 
