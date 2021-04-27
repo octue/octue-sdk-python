@@ -81,7 +81,7 @@ class RunnerTestCase(BaseTestCase):
             self.assertTrue(
                 any(
                     "Showing package logs as well as analysis logs (the package logs are recommended for software "
-                    "engineers but may still be useful to app development by scientists." in arg[0][0].msg
+                    "engineers but may still be useful to app development by scientists)." in arg[0][0].msg
                     for arg in mock_log_handler_emit.call_args_list
                 )
             )

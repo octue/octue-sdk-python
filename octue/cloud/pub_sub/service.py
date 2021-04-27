@@ -13,6 +13,7 @@ from octue.cloud.pub_sub import Subscription, Topic
 from octue.exceptions import FileLocationError
 from octue.mixins import CoolNameable
 from octue.resources.manifest import Manifest
+from octue.utils.encoders import OctueJSONEncoder
 
 
 logger = logging.getLogger(__name__)
@@ -121,7 +122,8 @@ class Service(CoolNameable):
         self.publisher.publish(
             topic=topic.path,
             data=json.dumps(
-                {"output_values": analysis.output_values, "output_manifest": serialised_output_manifest}
+                {"output_values": analysis.output_values, "output_manifest": serialised_output_manifest},
+                cls=OctueJSONEncoder,
             ).encode(),
             retry=create_custom_retry(timeout),
         )
