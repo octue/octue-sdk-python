@@ -59,6 +59,11 @@ class Service(CoolNameable):
 
     Services communicate entirely via Google Pub/Sub and can ask and/or respond to questions from any other Service that
     has a corresponding topic on Google Pub/Sub.
+
+    :param octue.resources.service_backends.ServiceBackend backend:
+    :param str|None service_id:
+    :param callable|None run_function:
+    :return None:
     """
 
     def __init__(self, backend, service_id=None, run_function=None):
