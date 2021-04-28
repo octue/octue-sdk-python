@@ -224,7 +224,7 @@ def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topi
     backend_configuration_values = runner.configuration["configuration_values"]["backend"]
     backend = service_backends.get_backend(backend_configuration_values.pop("name"))(**backend_configuration_values)
 
-    service = Service(id=service_id, backend=backend, run_function=runner.run)
+    service = Service(service_id=service_id, backend=backend, run_function=runner.run)
     service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=delete_topic_and_subscription_on_exit)
 
 

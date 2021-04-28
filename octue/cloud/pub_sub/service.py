@@ -61,8 +61,14 @@ class Service(CoolNameable):
     has a corresponding topic on Google Pub/Sub.
     """
 
-    def __init__(self, backend, id=None, run_function=None):
-        self.id = id or str(uuid.uuid4())
+    def __init__(self, backend, service_id=None, run_function=None):
+        if service_id is None:
+            self.id = str(uuid.uuid4())
+        elif not service_id:
+            raise ValueError(f"service_id should be None or a non-falsey value; received {service_id!r} instead.")
+        else:
+            self.id = service_id
+
         self.backend = backend
         self.run_function = run_function
 

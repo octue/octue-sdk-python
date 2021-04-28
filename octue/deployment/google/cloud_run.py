@@ -101,7 +101,7 @@ def answer_question(project_name, data, question_uuid):
     )
 
     service = Service(
-        id=service_id,
+        service_id=service_id,
         backend=GCPPubSubBackend(project_name=project_name, credentials_environment_variable=None),
         run_function=runner.run,
     )

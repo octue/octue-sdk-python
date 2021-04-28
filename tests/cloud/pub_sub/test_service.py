@@ -61,6 +61,17 @@ class TestService(BaseTestCase):
         asking_service = Service(backend=self.BACKEND)
         self.assertEqual(repr(asking_service), f"<Service({asking_service.name!r})>")
 
+    def test_service_id_cannot_be_non_none_empty_vaue(self):
+        """Ensure that a ValueError is raised if a non-None empty value is provided as the service_id."""
+        with self.assertRaises(ValueError):
+            Service(backend=self.BACKEND, service_id="")
+
+        with self.assertRaises(ValueError):
+            Service(backend=self.BACKEND, service_id=[])
+
+        with self.assertRaises(ValueError):
+            Service(backend=self.BACKEND, service_id={})
+
     def test_ask_on_non_existent_service_results_in_error(self):
         """Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
         results in an error."""
