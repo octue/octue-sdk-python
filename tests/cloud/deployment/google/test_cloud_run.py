@@ -4,8 +4,8 @@ import os
 import uuid
 from unittest import TestCase, mock
 
+from octue.cloud.deployment.google import cloud_run
 from octue.cloud.pub_sub.service import Service
-from octue.deployment.google import cloud_run
 from octue.exceptions import MissingServiceID
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
