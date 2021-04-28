@@ -23,7 +23,7 @@ class ServiceBackend(ABC):
     """A dataclass specifying the backend for an Octue Service, including any credentials and other information it
     needs.
 
-    :param str credentials_environment_variable:
+    :param str|None credentials_environment_variable:
     :return None:
     """
 
@@ -35,7 +35,7 @@ class GCPPubSubBackend(ServiceBackend):
     """A dataclass containing the details needed to use Google Cloud Platform Pub/Sub as a Service backend.
 
     :param str project_name:
-    :param str credentials_environment_variable:
+    :param str|None credentials_environment_variable:
     :return None:
     """
 
