@@ -147,7 +147,7 @@ class RunnerTestCase(BaseTestCase):
                 f"--twine={os.path.join(elevation_service_path, 'twine.json')}",
                 f"--config-dir={os.path.join(elevation_service_path, 'data', 'configuration')}",
                 f"--service-id={uuid.uuid4()}",
-                "--timeout=5",
+                "--timeout=0",
             ],
         )
 
