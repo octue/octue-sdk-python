@@ -78,3 +78,7 @@ class AttributeConflict(OctueSDKException):
     """Raise if, when trying to set an attribute whose current value has a significantly higher confidence than the new
     value, the new value conflicts with the current value.
     """
+
+
+class MissingServiceID(OctueSDKException):
+    """Raise when a specific ID for a service is expected to be provided, but is missing or None."""
