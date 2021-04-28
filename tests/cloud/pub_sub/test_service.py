@@ -1,3 +1,4 @@
+import concurrent.futures
 import uuid
 from unittest.mock import patch
 
@@ -7,7 +8,7 @@ from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
-from tests.cloud.pub_sub.mocks import MockService, MockSubscription, MockTopic
+from tests.cloud.pub_sub.mocks import MockPullResponse, MockService, MockSubscription, MockTopic
 
 
 class MockAnalysis:
@@ -78,6 +79,16 @@ class TestService(BaseTestCase):
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with self.assertRaises(exceptions.ServiceNotFound):
                 MockService(backend=self.BACKEND).ask(service_id="hello", input_values=[1, 2, 3, 4])
+
+    def test_timeout_error_raised_if_no_messages_received_when_waiting(self):
+        """Test that a concurrent.futures.TimeoutError is raised if no messages are received while waiting."""
+        service = Service(backend=self.BACKEND)
+        mock_topic = MockTopic(name="world", namespace="hello", service=service)
+        mock_subscription = MockSubscription(name="world", topic=mock_topic, namespace="hello", service=service)
+
+        with patch("octue.cloud.pub_sub.service.pubsub_v1.SubscriberClient.pull", return_value=MockPullResponse()):
+            with self.assertRaises(concurrent.futures.TimeoutError):
+                service.wait_for_answer(subscription=mock_subscription)
 
     def test_ask(self):
         """ Test that a service can ask a question to another service that is serving and receive an answer. """
