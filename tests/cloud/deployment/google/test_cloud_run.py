@@ -33,7 +33,7 @@ class TestCloudRun(TestCase):
     def test_post_to_index_with_valid_payload(self):
         """Test that the Flask endpoint returns a 204 (ok, no content) response to a valid payload."""
         with cloud_run.app.test_client() as client:
-            with mock.patch("octue.deployment.google.cloud_run.answer_question"):
+            with mock.patch("octue.cloud.deployment.google.cloud_run.answer_question"):
 
                 response = client.post(
                     "/",
