@@ -211,13 +211,12 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     def _last_modified(self):
         """Get the date/time the file was last modified in units of seconds since epoch (posix time)."""
         if self._path_is_in_google_cloud_storage:
-            unparsed_datetime = self._cloud_metadata.get("updated")
+            last_modified = self._cloud_metadata.get("updated")
 
-            if unparsed_datetime is None:
+            if last_modified is None:
                 return None
 
-            parsed_datetime = datetime.strptime(unparsed_datetime, "%Y-%m-%dT%H:%M:%S.%fZ")
-            return (parsed_datetime - datetime(1970, 1, 1)).total_seconds()
+            return (last_modified - datetime(1970, 1, 1, tzinfo=last_modified.tzinfo)).total_seconds()
 
         return os.path.getmtime(self.absolute_path)
 

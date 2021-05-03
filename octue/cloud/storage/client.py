@@ -121,7 +121,10 @@ class GoogleCloudStorageClient:
         blob = bucket.get_blob(blob_name=self._strip_leading_slash(path_in_bucket), timeout=timeout)
         metadata = blob._properties
 
-        # Get custom time from blob rather than properties so that it is a datetime.datetime object and not a string.
+        # Get timestamps from blob rather than properties so they are datetime.datetime objects rather than strings.
+        metadata["updated"] = blob.updated
+        metadata["timeCreated"] = blob.time_created
+        metadata["timeDeleted"] = blob.time_deleted
         metadata["customTime"] = blob.custom_time
 
         # Decode custom metadata from JSON.
