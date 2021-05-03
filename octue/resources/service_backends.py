@@ -27,7 +27,7 @@ class ServiceBackend(ABC):
     :return None:
     """
 
-    def __init__(self, credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS"):
+    def __init__(self, credentials_environment_variable):
         self.credentials_environment_variable = credentials_environment_variable
 
 
