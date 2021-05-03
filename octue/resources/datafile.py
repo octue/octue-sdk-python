@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 import tempfile
@@ -9,7 +10,7 @@ from octue.cloud.storage.path import CLOUD_STORAGE_PROTOCOL
 from octue.exceptions import AttributeConflict, FileNotFoundException, InvalidInputException
 from octue.mixins import Filterable, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.utils import isfile
-from octue.utils.time import convert_to_posix_time
+from octue.utils.time import convert_from_posix_time, convert_to_posix_time
 
 
 module_logger = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
           "sha-512/256": "somesha"
         },
 
-    :parameter datetime.datetime|None timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when
+    :parameter datetime.datetime|int|float|None timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when
         it was created but could relate to a relevant time point for the data
     :param str id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
     :param logging.Logger logger: A logger instance to which operations with this datafile will be logged. Defaults to
@@ -206,6 +207,27 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     @property
     def name(self):
         return self._name or str(os.path.split(self.path)[-1])
+
+    @property
+    def timestamp(self):
+        return self._timestamp
+
+    @timestamp.setter
+    def timestamp(self, value):
+        """Set the datafile's timestamp.
+
+        :param datetime.datetime|int|float|None value:
+        :raise TypeError: if value is of an incorrect type
+        :return None:
+        """
+        if isinstance(value, datetime.datetime) or value is None:
+            self._timestamp = value
+        elif isinstance(value, (int, float)):
+            self._timestamp = convert_from_posix_time(value)
+        else:
+            raise TypeError(
+                f"timestamp should be a datetime.datetime instance, an int, a float, or None; received {value!r}"
+            )
 
     @property
     def posix_timestamp(self):

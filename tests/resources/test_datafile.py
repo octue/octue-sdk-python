@@ -43,6 +43,16 @@ class DatafileTestCase(BaseTestCase):
 
         self.assertIn("__init__() missing 1 required positional argument: 'path'", error.exception.args[0])
 
+    def test_setting_timestamp(self):
+        """Test that both datetime and posix timestamps can be used for a Datafile, that the timestamp attribute is
+        always converted to a datetime instance, and that invalid timestamps raise an error.
+        """
+        self.assertTrue(isinstance(Datafile(timestamp=datetime.now(), path="a_path").timestamp, datetime))
+        self.assertTrue(isinstance(Datafile(timestamp=50, path="a_path").timestamp, datetime))
+
+        with self.assertRaises(TypeError):
+            Datafile(timestamp="50", path="a_path")
+
     def test_gt(self):
         """Test that datafiles can be ordered using the greater-than operator."""
         a = Datafile(timestamp=None, path="a_path")
