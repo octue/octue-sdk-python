@@ -181,14 +181,14 @@ class MockService(Service):
     """A mock Google Pub/Sub Service that can send and receive messages synchronously to other instances.
 
     :param octue.resources.service_backends.GCPPubSubBackEnd backend:
-    :param str id:
+    :param str service_id:
     :param callable run_function:
     :param dict(str, MockService)|None children:
     :return None:
     """
 
-    def __init__(self, backend, id=None, run_function=None, children=None):
-        super().__init__(backend, id, run_function)
+    def __init__(self, backend, service_id=None, run_function=None, children=None):
+        super().__init__(backend, service_id, run_function)
         self.children = children or {}
         self.publisher = MockPublisher()
         self.subscriber = MockSubscriber()

@@ -5,6 +5,7 @@ import os
 from flask import Flask, request
 
 from octue.cloud.pub_sub.service import Service
+from octue.exceptions import MissingServiceID
 from octue.logging_handlers import apply_log_handler
 from octue.resources.service_backends import GCPPubSubBackend
 from octue.runner import Runner
@@ -12,6 +13,10 @@ from octue.runner import Runner
 
 logger = logging.getLogger(__name__)
 apply_log_handler(logger, log_level=logging.INFO)
+
+
+DEPLOYMENT_CONFIGURATION_PATH = "deployment_configuration.json"
+
 
 app = Flask(__name__)
 
@@ -64,13 +69,18 @@ def answer_question(project_name, data, question_uuid):
     :param str question_uuid:
     :return None:
     """
-    deployment_configuration_path = "deployment_configuration.json"
+    service_id = os.environ.get("SERVICE_ID")
+
+    if not service_id:
+        raise MissingServiceID(
+            "The ID for the deployed service is missing - ensure SERVICE_ID is available as an environment variable."
+        )
 
     try:
-        with open(deployment_configuration_path) as f:
+        with open(DEPLOYMENT_CONFIGURATION_PATH) as f:
             deployment_configuration = json.load(f)
 
-        logger.info("Deployment configuration loaded from %r.", os.path.abspath(deployment_configuration_path))
+        logger.info("Deployment configuration loaded from %r.", os.path.abspath(DEPLOYMENT_CONFIGURATION_PATH))
 
     except FileNotFoundError:
         deployment_configuration = {}
@@ -91,7 +101,7 @@ def answer_question(project_name, data, question_uuid):
     )
 
     service = Service(
-        id=os.environ["SERVICE_ID"],
+        service_id=service_id,
         backend=GCPPubSubBackend(project_name=project_name, credentials_environment_variable=None),
         run_function=runner.run,
     )

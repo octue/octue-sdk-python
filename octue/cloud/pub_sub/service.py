@@ -13,6 +13,7 @@ from octue.cloud.pub_sub import Subscription, Topic
 from octue.exceptions import FileLocationError
 from octue.mixins import CoolNameable
 from octue.resources.manifest import Manifest
+from octue.utils.encoders import OctueJSONEncoder
 
 
 logger = logging.getLogger(__name__)
@@ -58,10 +59,21 @@ class Service(CoolNameable):
 
     Services communicate entirely via Google Pub/Sub and can ask and/or respond to questions from any other Service that
     has a corresponding topic on Google Pub/Sub.
+
+    :param octue.resources.service_backends.ServiceBackend backend:
+    :param str|None service_id:
+    :param callable|None run_function:
+    :return None:
     """
 
-    def __init__(self, backend, id=None, run_function=None):
-        self.id = id or str(uuid.uuid4())
+    def __init__(self, backend, service_id=None, run_function=None):
+        if service_id is None:
+            self.id = str(uuid.uuid4())
+        elif not service_id:
+            raise ValueError(f"service_id should be None or a non-falsey value; received {service_id!r} instead.")
+        else:
+            self.id = service_id
+
         self.backend = backend
         self.run_function = run_function
 
@@ -121,7 +133,8 @@ class Service(CoolNameable):
         self.publisher.publish(
             topic=topic.path,
             data=json.dumps(
-                {"output_values": analysis.output_values, "output_manifest": serialised_output_manifest}
+                {"output_values": analysis.output_values, "output_manifest": serialised_output_manifest},
+                cls=OctueJSONEncoder,
             ).encode(),
             retry=create_custom_retry(timeout),
         )

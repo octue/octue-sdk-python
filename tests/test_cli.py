@@ -81,7 +81,7 @@ class RunnerTestCase(BaseTestCase):
             self.assertTrue(
                 any(
                     "Showing package logs as well as analysis logs (the package logs are recommended for software "
-                    "engineers but may still be useful to app development by scientists." in arg[0][0].msg
+                    "engineers but may still be useful to app development by scientists)." in arg[0][0].msg
                     for arg in mock_log_handler_emit.call_args_list
                 )
             )
@@ -147,7 +147,7 @@ class RunnerTestCase(BaseTestCase):
                 f"--twine={os.path.join(elevation_service_path, 'twine.json')}",
                 f"--config-dir={os.path.join(elevation_service_path, 'data', 'configuration')}",
                 f"--service-id={uuid.uuid4()}",
-                "--timeout=5",
+                "--timeout=0",
             ],
         )
 

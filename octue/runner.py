@@ -23,7 +23,7 @@ class Runner:
     The Runner class provides a set of configuration parameters for use by your application, together with a range of
     methods for managing input and output file parsing as well as controlling logging.
 
-    :param str twine: string path to the twine file, or a string containing valid twine json
+    :param str|twined.Twine twine: path to the twine file, a string containing valid twine json, or a Twine instance
     :param str|dict paths: If a string, contains a single path to an existing data directory where
         (if not already present), subdirectories 'configuration', 'input', 'tmp', 'log' and 'output' will be created. If a
         dict, it should contain all of those keys, with each of their values being a path to a directory (which will be
@@ -57,15 +57,13 @@ class Runner:
         self.output_manifest_path = output_manifest_path
         self.children = children
         self.skip_checks = skip_checks
-
-        # Store the log level (same log level used for all analyses)
         self._log_level = log_level
         self.handler = handler
 
         if show_twined_logs:
             apply_log_handler(logger=package_logger, handler=self.handler)
 
-        # Ensure the twine is present and instantiate it
+        # Ensure the twine is present and instantiate it.
         if isinstance(twine, Twine):
             self.twine = twine
         else:
@@ -88,15 +86,11 @@ class Runner:
             configuration_manifest,
         )
 
-        # Store the log level (same log level used for all analyses)
-        self._log_level = log_level
-        self.handler = handler
-
         if show_twined_logs:
             apply_log_handler(logger=package_logger, handler=self.handler, log_level=self._log_level)
             package_logger.info(
                 "Showing package logs as well as analysis logs (the package logs are recommended for software "
-                "engineers but may still be useful to app development by scientists."
+                "engineers but may still be useful to app development by scientists)."
             )
 
         self._project_name = project_name

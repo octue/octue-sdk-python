@@ -1,10 +1,12 @@
 import base64
 import json
+import os
 import uuid
 from unittest import TestCase, mock
 
+from octue.cloud.deployment.google import cloud_run
 from octue.cloud.pub_sub.service import Service
-from octue.deployment.google import cloud_run
+from octue.exceptions import MissingServiceID
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
 
@@ -31,7 +33,7 @@ class TestCloudRun(TestCase):
     def test_post_to_index_with_valid_payload(self):
         """Test that the Flask endpoint returns a 204 (ok, no content) response to a valid payload."""
         with cloud_run.app.test_client() as client:
-            with mock.patch("octue.deployment.google.cloud_run.answer_question"):
+            with mock.patch("octue.cloud.deployment.google.cloud_run.answer_question"):
 
                 response = client.post(
                     "/",
@@ -47,6 +49,20 @@ class TestCloudRun(TestCase):
                 )
 
                 self.assertEqual(response.status_code, 204)
+
+    def test_error_is_raised_if_service_id_environment_variable_is_missing_or_empty(self):
+        """Test that a MissingServiceID error is raised if the `SERVICE_ID` environment variable is missing or empty."""
+        with mock.patch.dict(os.environ, clear=True):
+            with self.assertRaises(MissingServiceID):
+                cloud_run.answer_question(
+                    project_name="a-project-name", data={}, question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29"
+                )
+
+        with mock.patch.dict(os.environ, {"SERVICE_ID": ""}):
+            with self.assertRaises(MissingServiceID):
+                cloud_run.answer_question(
+                    project_name="a-project-name", data={}, question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29"
+                )
 
     def test_cloud_run_integration(self):
         """Test that the Google Cloud Run integration works, providing a service that can be asked questions and send
