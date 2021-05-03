@@ -102,7 +102,7 @@ class TagSet(Serialisable):
         # JSON-encoded list of tag names, or space-delimited string of tag names.
         if isinstance(tags, str):
             try:
-                self.tags = json.loads(tags)
+                self.tags = FilterSet(Tag(tag) for tag in json.loads(tags))
             except json.decoder.JSONDecodeError:
                 self.tags = FilterSet(Tag(tag) for tag in tags.strip().split())
 
