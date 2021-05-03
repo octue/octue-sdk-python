@@ -198,7 +198,7 @@ class GoogleCloudStorageClient:
         :return None:
         """
         if metadata is not None:
-            blob.custom_time = metadata.pop("timestamp")
+            blob.custom_time = metadata.pop("timestamp", None)
             blob.metadata = self._encode_metadata(metadata)
             blob.patch()
 
