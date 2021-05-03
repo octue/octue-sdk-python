@@ -3,6 +3,7 @@ import json
 import os
 import tempfile
 import uuid
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 from octue import exceptions
@@ -147,7 +148,7 @@ class DatafileTestCase(BaseTestCase):
         )
 
         datafile = Datafile.from_cloud(
-            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path=path_in_bucket, timestamp=None
+            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path=path_in_bucket
         )
 
         self.assertEqual(datafile.path, f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}")
@@ -166,7 +167,11 @@ class DatafileTestCase(BaseTestCase):
             temporary_file.write("[1, 2, 3]")
 
         datafile = Datafile(
-            timestamp=None, path=temporary_file.name, cluster=0, sequence=1, tags={"blah:shah:nah", "blib", "glib"}
+            timestamp=datetime.now(tz=timezone.utc),
+            path=temporary_file.name,
+            cluster=0,
+            sequence=1,
+            tags={"blah:shah:nah", "blib", "glib"},
         )
         datafile.to_cloud(project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket=path_in_bucket)
 
@@ -176,6 +181,7 @@ class DatafileTestCase(BaseTestCase):
 
         self.assertEqual(persisted_datafile.path, f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}")
         self.assertEqual(persisted_datafile.id, datafile.id)
+        self.assertEqual(persisted_datafile.timestamp, datafile.timestamp)
         self.assertEqual(persisted_datafile.hash_value, datafile.hash_value)
         self.assertEqual(persisted_datafile.cluster, datafile.cluster)
         self.assertEqual(persisted_datafile.sequence, datafile.sequence)

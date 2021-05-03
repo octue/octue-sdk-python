@@ -1,5 +1,6 @@
 import base64
 import collections.abc
+import datetime
 from google_crc32c import Checksum
 
 
@@ -9,6 +10,7 @@ _HASH_PREPARATION_FUNCTIONS = {
     float: str,
     type(None): lambda attribute: "None",
     dict: lambda attribute: str(sorted(attribute.items())),
+    datetime.datetime: str,
 }
 
 

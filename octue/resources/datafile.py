@@ -35,13 +35,13 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
           "sequence": 0,
           "extension": "csv",
           "tags": "",
-          "timestamp": 0,
+          "timestamp": datetime.datetime(2021, 5, 3, 18, 15, 58, 298086),
           "id": "abff07bc-7c19-4ed5-be6d-a6546eae8e86",
           "size_bytes": 59684813,
           "sha-512/256": "somesha"
         },
 
-    :parameter float|None timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when
+    :parameter datetime.datetime|None timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when
         it was created but could relate to a relevant time point for the data
     :param str id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
     :param logging.Logger logger: A logger instance to which operations with this datafile will be logged. Defaults to
@@ -173,7 +173,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
                 )
 
         datafile = cls(
-            timestamp=kwargs.get("timestamp", custom_metadata.get("timestamp")),
+            timestamp=kwargs.get("timestamp", metadata.get("customTime")),
             id=kwargs.get("id", custom_metadata.get("id", ID_DEFAULT)),
             path=storage.path.generate_gs_path(bucket_name, datafile_path),
             hash_value=kwargs.get("hash_value", custom_metadata.get("hash_value", metadata.get("crc32c", None))),

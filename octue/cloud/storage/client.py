@@ -118,8 +118,13 @@ class GoogleCloudStorageClient:
         :return dict:
         """
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
-        metadata = bucket.get_blob(blob_name=self._strip_leading_slash(path_in_bucket), timeout=timeout)._properties
+        blob = bucket.get_blob(blob_name=self._strip_leading_slash(path_in_bucket), timeout=timeout)
+        metadata = blob._properties
 
+        # Get custom time from blob rather than properties so that it is a datetime.datetime object and not a string.
+        metadata["customTime"] = blob.custom_time
+
+        # Decode custom metadata from JSON.
         if metadata.get("metadata") is not None:
             metadata["metadata"] = {key: json.loads(value) for key, value in metadata["metadata"].items()}
 
@@ -189,8 +194,10 @@ class GoogleCloudStorageClient:
         :param dict metadata:
         :return None:
         """
-        blob.metadata = self._encode_metadata(metadata or {})
-        blob.patch()
+        if metadata is not None:
+            blob.custom_time = metadata.pop("timestamp")
+            blob.metadata = self._encode_metadata(metadata)
+            blob.patch()
 
     def _encode_metadata(self, metadata):
         """Encode metadata as a dictionary of JSON strings.
