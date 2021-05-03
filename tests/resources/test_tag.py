@@ -1,9 +1,21 @@
+from octue import exceptions
 from octue.resources.filter_containers import FilterList, FilterSet
 from octue.resources.tag import Tag, TagSet
 from tests.base import BaseTestCase
 
 
 class TestTag(BaseTestCase):
+    def test_invalid_tags_cause_error(self):
+        """Test that invalid tags cause an error to be raised."""
+        for tag in ":a", "@", "a_b", "-bah", "humbug:", r"back\slashy", {"not-a": "string"}:
+            with self.assertRaises(exceptions.InvalidTagException):
+                Tag(tag)
+
+    def test_valid_tags(self):
+        """Test that valid tags instantiate as expected."""
+        for tag in "hello", "hello:world", "hello-world:goodbye", "HELLO-WORLD", "Asia/Pacific":
+            Tag(tag)
+
     def test_subtags(self):
         """ Test that subtags are correctly parsed from tags. """
         self.assertEqual(Tag("a:b:c").subtags, FilterList([Tag("a"), Tag("b"), Tag("c")]))

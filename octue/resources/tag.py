@@ -8,7 +8,7 @@ from octue.resources.filter_containers import FilterList, FilterSet
 from octue.utils.encoders import OctueJSONEncoder
 
 
-TAG_PATTERN = re.compile(r"^$|^[a-z0-9][a-z0-9:\-]*(?<![:-])$")
+TAG_PATTERN = re.compile(r"^$|^[A-Za-z0-9/][A-Za-z0-9:\-/]*(?<![:-])$")
 
 
 class Tag(Filterable):
