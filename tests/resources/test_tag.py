@@ -7,7 +7,7 @@ from tests.base import BaseTestCase
 class TestTag(BaseTestCase):
     def test_invalid_tags_cause_error(self):
         """Test that invalid tags cause an error to be raised."""
-        for tag in ":a", "@", "a_b", "-bah", "humbug:", r"back\slashy", {"not-a": "string"}:
+        for tag in ":a", "@", "a_b", "-bah", "humbug:", r"back\slashy", {"not-a": "string"}, "/a", "a/":
             with self.assertRaises(exceptions.InvalidTagException):
                 Tag(tag)
 
