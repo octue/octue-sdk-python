@@ -198,14 +198,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             local_path=self.get_local_path(),
             bucket_name=bucket_name,
             path_in_bucket=path_in_bucket,
-            metadata={
-                "timestamp": self.timestamp,
-                "id": self.id,
-                "hash_value": self.hash_value,
-                "cluster": self.cluster,
-                "sequence": self.sequence,
-                "tags": self.tags.serialise(),
-            },
+            metadata=self.metadata(),
         )
 
         return storage.path.generate_gs_path(bucket_name, path_in_bucket)
@@ -366,3 +359,17 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
                     )
 
         return DataFileContextManager
+
+    def metadata(self):
+        """Get the datafile's metadata in a serialised form.
+
+        :return dict:
+        """
+        return {
+            "id": self.id,
+            "timestamp": self.timestamp,
+            "hash_value": self.hash_value,
+            "cluster": self.cluster,
+            "sequence": self.sequence,
+            "tags": self.tags.serialise(),
+        }
