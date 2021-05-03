@@ -1,7 +1,6 @@
 import logging
 import os
 import tempfile
-from datetime import datetime
 from google_crc32c import Checksum
 
 from octue.cloud import storage
@@ -10,6 +9,7 @@ from octue.cloud.storage.path import CLOUD_STORAGE_PROTOCOL
 from octue.exceptions import AttributeConflict, FileNotFoundException, InvalidInputException
 from octue.mixins import Filterable, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.utils import isfile
+from octue.utils.time import convert_to_posix_time
 
 
 module_logger = logging.getLogger(__name__)
@@ -208,15 +208,25 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         return self._name or str(os.path.split(self.path)[-1])
 
     @property
+    def posix_timestamp(self):
+        if self.timestamp is None:
+            return None
+
+        return convert_to_posix_time(self.timestamp)
+
+    @property
     def _last_modified(self):
-        """Get the date/time the file was last modified in units of seconds since epoch (posix time)."""
+        """Get the date/time the file was last modified in units of seconds since epoch (posix time).
+
+        :return float:
+        """
         if self._path_is_in_google_cloud_storage:
             last_modified = self._cloud_metadata.get("updated")
 
             if last_modified is None:
                 return None
 
-            return (last_modified - datetime(1970, 1, 1, tzinfo=last_modified.tzinfo)).total_seconds()
+            return convert_to_posix_time(last_modified)
 
         return os.path.getmtime(self.absolute_path)
 
