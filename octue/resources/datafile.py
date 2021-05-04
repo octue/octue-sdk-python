@@ -207,6 +207,22 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
         return storage.path.generate_gs_path(bucket_name, path_in_bucket)
 
+    def update_metadata(self, project_name=None, bucket_name=None, path_in_bucket=None):
+        """Update the metadata for the datafile in the cloud.
+
+        :param str|None project_name:
+        :param str|None bucket_name:
+        :param str|None path_in_bucket:
+        :return None:
+        """
+        project_name, bucket_name, path_in_bucket = self._get_cloud_location(project_name, bucket_name, path_in_bucket)
+
+        GoogleCloudStorageClient(project_name=project_name).update_metadata(
+            bucket_name=bucket_name,
+            path_in_bucket=path_in_bucket,
+            metadata=self.metadata(),
+        )
+
     @property
     def name(self):
         return self._name or str(os.path.split(self.path)[-1])
@@ -289,9 +305,9 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     def _get_cloud_location(self, project_name=None, bucket_name=None, path_in_bucket=None):
         """Get the cloud location details for the bucket, allowing the keyword arguments to override any stored values.
 
-        :param str project_name:
-        :param str bucket_name:
-        :param str path_in_bucket:
+        :param str|None project_name:
+        :param str|None bucket_name:
+        :param str|None path_in_bucket:
         :return (str, str, str):
         """
         project_name = project_name or self._cloud_metadata["project_name"]

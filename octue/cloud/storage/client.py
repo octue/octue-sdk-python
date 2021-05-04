@@ -83,6 +83,17 @@ class GoogleCloudStorageClient:
         self._update_metadata(blob, metadata)
         logger.info("Uploaded data to Google Cloud at %r.", blob.public_url)
 
+    def update_metadata(self, bucket_name, path_in_bucket, metadata):
+        """Update the metadata for the given cloud file.
+
+        :param str bucket_name:
+        :param str path_in_bucket:
+        :param dict metadata:
+        :return None:
+        """
+        blob = self._blob(bucket_name, path_in_bucket)
+        self._update_metadata(blob, metadata)
+
     def download_to_file(self, bucket_name, path_in_bucket, local_path, timeout=_DEFAULT_TIMEOUT):
         """Download a file to a file from a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>.
 
