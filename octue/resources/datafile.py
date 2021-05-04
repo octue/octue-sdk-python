@@ -184,16 +184,20 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
         datafile._cloud_metadata = metadata
         datafile._cloud_metadata["project_name"] = project_name
+        datafile._cloud_metadata["bucket_name"] = bucket_name
+        datafile._cloud_metadata["path_in_bucket"] = datafile_path
         return datafile
 
-    def to_cloud(self, project_name, bucket_name, path_in_bucket):
+    def to_cloud(self, project_name=None, bucket_name=None, path_in_bucket=None):
         """Upload a datafile to Google Cloud Storage.
 
-        :param str project_name:
-        :param str bucket_name:
-        :param str path_in_bucket:
+        :param str|None project_name:
+        :param str|None bucket_name:
+        :param str|None path_in_bucket:
         :return str: gs:// path for datafile
         """
+        project_name, bucket_name, path_in_bucket = self._get_cloud_location(project_name, bucket_name, path_in_bucket)
+
         GoogleCloudStorageClient(project_name=project_name).upload_file(
             local_path=self.get_local_path(),
             bucket_name=bucket_name,
@@ -282,6 +286,19 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
         return super()._calculate_hash(hash)
 
+    def _get_cloud_location(self, project_name=None, bucket_name=None, path_in_bucket=None):
+        """Get the cloud location details for the bucket, allowing the keyword arguments to override any stored values.
+
+        :param str project_name:
+        :param str bucket_name:
+        :param str path_in_bucket:
+        :return (str, str, str):
+        """
+        project_name = project_name or self._cloud_metadata["project_name"]
+        bucket_name = bucket_name or self._cloud_metadata["bucket_name"]
+        path_in_bucket = path_in_bucket or self._cloud_metadata["path_in_bucket"]
+        return project_name, bucket_name, path_in_bucket
+
     def check(self, size_bytes=None, sha=None, last_modified=None, extension=None):
         """Check file presence and integrity"""
         # TODO Check consistency of size_bytes input against self.size_bytes property for a file if we have one
@@ -353,10 +370,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
                     obj.fp.close()
 
                 if datafile.is_in_cloud and any(character in obj.mode for character in {"w", "a", "x", "+", "U"}):
-                    datafile.to_cloud(
-                        datafile._cloud_metadata["project_name"],
-                        *storage.path.split_bucket_name_from_gs_path(datafile.absolute_path),
-                    )
+                    datafile.to_cloud()
 
         return DataFileContextManager
 
