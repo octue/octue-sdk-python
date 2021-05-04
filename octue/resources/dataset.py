@@ -28,7 +28,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
 
     _FILTERSET_ATTRIBUTE = "files"
     _ATTRIBUTES_TO_HASH = ("files",)
-    _SERIALISE_FIELDS = "files", "name", "tags", "hash_value", "id", "path"
+    _SERIALISE_FIELDS = "files", "name", "tags", "id", "path"
 
     def __init__(self, name=None, id=None, logger=None, path=None, path_from=None, tags=None, **kwargs):
         """Construct a Dataset"""
@@ -84,7 +84,6 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         return Dataset(
             id=serialised_dataset["id"],
             name=serialised_dataset["name"],
-            hash_value=serialised_dataset["hash_value"],
             path=storage.path.generate_gs_path(bucket_name, path_to_dataset_directory),
             tags=TagSet(serialised_dataset["tags"]),
             files=datafiles,

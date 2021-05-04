@@ -61,7 +61,6 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     _SERIALISE_FIELDS = (
         "cluster",
-        "hash_value",
         "id",
         "name",
         "path",

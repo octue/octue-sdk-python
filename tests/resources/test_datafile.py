@@ -113,7 +113,6 @@ class DatafileTestCase(BaseTestCase):
             "timestamp",
             "sequence",
             "tags",
-            "hash_value",
             "_cloud_metadata",
         }
 
