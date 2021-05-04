@@ -270,7 +270,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     def _calculate_hash(self):
         """Calculate the hash of the file."""
         if self.is_in_cloud:
-            return self._cloud_metadata.get("crc32c", "")
+            return self._cloud_metadata["crc32c"]
 
         hash = Checksum()
 

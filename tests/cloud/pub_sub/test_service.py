@@ -123,6 +123,12 @@ class TestService(BaseTestCase):
             Datafile(timestamp=None, path="gs://my-dataset/goodbye.csv"),
         ]
 
+        # Set hash values as they will be absent because the Datafiles haven't been instantiated using
+        # Datafile.from_cloud, meaning they have none of the expected cloud metadata. This wouldn't be a valid usage of
+        # Datafile but makes this test simpler. The files aren't actually used by the answering service.
+        for file in files:
+            file._cloud_metadata["crc32c"] = "AAAAAA=="
+
         input_manifest = Manifest(datasets=[Dataset(files=files)], path="gs://my-dataset", keys={"my_dataset": 0})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
