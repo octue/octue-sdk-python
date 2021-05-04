@@ -9,6 +9,7 @@ from octue.cloud.storage import GoogleCloudStorageClient
 from octue.cloud.storage.path import CLOUD_STORAGE_PROTOCOL
 from octue.exceptions import AttributeConflict, FileNotFoundException, InvalidInputException
 from octue.mixins import Filterable, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
+from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils import isfile
 
 
@@ -270,7 +271,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     def _calculate_hash(self):
         """Calculate the hash of the file."""
         if self.is_in_cloud:
-            return self._cloud_metadata["crc32c"]
+            return self._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
 
         hash = Checksum()
 
