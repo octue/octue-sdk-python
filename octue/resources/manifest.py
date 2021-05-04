@@ -16,7 +16,7 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
     """A representation of a manifest, which can contain multiple datasets This is used to manage all files coming into
     (or leaving), a data service for an analysis at the configuration, input or output stage."""
 
-    _ATTRIBUTES_TO_HASH = "datasets", "keys"
+    _ATTRIBUTES_TO_HASH = ("datasets",)
     _SERIALISE_FIELDS = "datasets", "keys", "hash_value", "id", "name", "path"
 
     def __init__(self, id=None, logger=None, path=None, datasets=None, keys=None, **kwargs):

@@ -27,7 +27,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
     """
 
     _FILTERSET_ATTRIBUTE = "files"
-    _ATTRIBUTES_TO_HASH = "files", "name", "tags"
+    _ATTRIBUTES_TO_HASH = ("files",)
     _SERIALISE_FIELDS = "files", "name", "tags", "hash_value", "id", "path"
 
     def __init__(self, name=None, id=None, logger=None, path=None, path_from=None, tags=None, **kwargs):
