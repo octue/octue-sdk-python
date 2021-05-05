@@ -4,6 +4,8 @@ import datetime
 from google_crc32c import Checksum
 
 
+EMPTY_STRING_HASH_VALUE = "AAAAAA=="
+
 _HASH_PREPARATION_FUNCTIONS = {
     str: lambda attribute: attribute,
     int: str,
@@ -21,6 +23,7 @@ class Hashable:
 
     def __init__(self, hash_value=None, *args, **kwargs):
         self._hash_value = hash_value
+        self._ATTRIBUTES_TO_HASH = self._ATTRIBUTES_TO_HASH or []
         super().__init__(*args, **kwargs)
 
     @classmethod
@@ -39,9 +42,6 @@ class Hashable:
         """Get the hash of the instance."""
         if self._hash_value:
             return self._hash_value
-
-        if not self._ATTRIBUTES_TO_HASH:
-            return None
 
         self._hash_value = self._calculate_hash()
         return self._hash_value
