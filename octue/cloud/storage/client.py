@@ -27,6 +27,7 @@ class GoogleCloudStorageClient:
             credentials = credentials
 
         self.client = storage.Client(project=project_name, credentials=credentials)
+        self.project_name = project_name
 
     def create_bucket(self, name, location=None, allow_existing=False, timeout=_DEFAULT_TIMEOUT):
         """Create a new bucket. If the bucket already exists, and `allow_existing` is `True`, do nothing; if it is
@@ -133,15 +134,18 @@ class GoogleCloudStorageClient:
         if blob is None:
             return None
 
-        metadata = blob._properties
-
-        # Get these attributes from blob rather than properties so they are not incorrectly strings.
-        metadata["size"] = blob.size
-        metadata["updated"] = blob.updated
-        metadata["timeCreated"] = blob.time_created
-        metadata["timeDeleted"] = blob.time_deleted
-        metadata["customTime"] = blob.custom_time
-        return metadata
+        return {
+            "custom_metadata": blob.metadata or {},
+            "crc32c": blob.crc32c,
+            "size": blob.size,
+            "updated": blob.updated,
+            "time_created": blob.time_created,
+            "time_deleted": blob.time_deleted,
+            "custom_time": blob.custom_time,
+            "project_name": self.project_name,
+            "bucket_name": bucket_name,
+            "path_in_bucket": path_in_bucket,
+        }
 
     def delete(self, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
         """Delete the given file from the given bucket.

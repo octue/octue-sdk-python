@@ -158,23 +158,20 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         :return Datafile:
         """
         datafile = cls(timestamp=None, path=storage.path.generate_gs_path(bucket_name, datafile_path))
-
-        cloud_metadata = datafile.get_cloud_metadata(project_name, bucket_name, datafile_path)
-        custom_metadata = cloud_metadata.get("metadata") or {}
+        datafile.get_cloud_metadata(project_name, bucket_name, datafile_path)
+        custom_metadata = datafile._cloud_metadata.get("custom_metadata")
 
         if not allow_overwrite:
             cls._check_for_attribute_conflict(custom_metadata, **kwargs)
 
         datafile._set_id(kwargs.get("id", custom_metadata.get("id", ID_DEFAULT)))
         datafile.path = storage.path.generate_gs_path(bucket_name, datafile_path)
-        datafile.timestamp = kwargs.get("timestamp", cloud_metadata.get("customTime"))
-        datafile.immutable_hash_value = cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
+        datafile.timestamp = kwargs.get("timestamp", datafile._cloud_metadata.get("custom_time"))
+        datafile.immutable_hash_value = datafile._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
         datafile.cluster = kwargs.get("cluster", custom_metadata.get("cluster", CLUSTER_DEFAULT))
         datafile.sequence = kwargs.get("sequence", custom_metadata.get("sequence", SEQUENCE_DEFAULT))
         datafile.tags = kwargs.get("tags", custom_metadata.get("tags", TAGS_DEFAULT))
 
-        datafile._cloud_metadata = cloud_metadata
-        datafile._store_cloud_location(project_name, bucket_name, datafile_path)
         return datafile
 
     def to_cloud(self, project_name=None, bucket_name=None, path_in_bucket=None):
@@ -186,12 +183,12 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         :return str: gs:// path for datafile
         """
         project_name, bucket_name, path_in_bucket = self._get_cloud_location(project_name, bucket_name, path_in_bucket)
+        self.get_cloud_metadata(project_name, bucket_name, path_in_bucket)
+
         storage_client = GoogleCloudStorageClient(project_name=project_name)
 
-        cloud_metadata = self.get_cloud_metadata(project_name, bucket_name, path_in_bucket) or {}
-
         # If the datafile's file has been changed locally, overwrite its cloud copy.
-        if cloud_metadata.get("crc32c") != self.hash_value:
+        if self._cloud_metadata.get("crc32c") != self.hash_value:
             storage_client.upload_file(
                 local_path=self.get_local_path(),
                 bucket_name=bucket_name,
@@ -203,10 +200,11 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         local_metadata = self.metadata()
         timestamp = local_metadata.pop("timestamp")
 
-        if cloud_metadata.get("metadata") != local_metadata or timestamp != cloud_metadata.get("customTime"):
+        if self._cloud_metadata.get("custom_metadata") != local_metadata or timestamp != self._cloud_metadata.get(
+            "custom_time"
+        ):
             self.update_cloud_metadata(project_name, bucket_name, path_in_bucket)
 
-        self._store_cloud_location(project_name, bucket_name, path_in_bucket)
         return storage.path.generate_gs_path(bucket_name, path_in_bucket)
 
     def get_cloud_metadata(self, project_name=None, bucket_name=None, path_in_bucket=None):
@@ -223,14 +221,13 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         if cloud_metadata is None:
             return None
 
-        if "metadata" in cloud_metadata:
-            if cloud_metadata["metadata"]["cluster"] is not None:
-                cloud_metadata["metadata"]["cluster"] = int(cloud_metadata["metadata"]["cluster"])
+        if cloud_metadata["custom_metadata"].get("cluster") is not None:
+            cloud_metadata["custom_metadata"] = int(cloud_metadata["custom_metadata"]["cluster"])
 
-            if cloud_metadata["metadata"]["sequence"] is not None:
-                cloud_metadata["metadata"]["sequence"] = int(cloud_metadata["metadata"]["sequence"])
+        if cloud_metadata["custom_metadata"].get("sequence") is not None:
+            cloud_metadata["custom_metadata"]["sequence"] = int(cloud_metadata["custom_metadata"]["sequence"])
 
-        return cloud_metadata
+        self._cloud_metadata = cloud_metadata
 
     def update_cloud_metadata(self, project_name=None, bucket_name=None, path_in_bucket=None):
         """Update the cloud metadata for the datafile.
