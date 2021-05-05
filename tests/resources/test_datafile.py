@@ -267,6 +267,82 @@ class DatafileTestCase(BaseTestCase):
             3,
         )
 
+    def test_to_cloud_raises_error_if_no_cloud_location_provided_and_datafile_not_from_cloud(self):
+        """Test that trying to send a datafile to the cloud with no cloud location provided when the datafile was not
+        constructed from a cloud file results in cloud location error.
+        """
+        datafile = Datafile(path="hello.txt", timestamp=None)
+
+        with self.assertRaises(exceptions.CloudLocationNotSpecified):
+            datafile.to_cloud()
+
+    def test_to_cloud_works_with_implicit_cloud_location_if_cloud_location_previously_provided(self):
+        """Test datafile.to_cloud works with an implicit cloud location if the cloud location has previously been
+        provided.
+        """
+        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
+            temporary_file.write("glib")
+
+        Datafile(timestamp=None, path=temporary_file.name).to_cloud(
+            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket="glib.txt"
+        )
+
+        new_datafile = Datafile.from_cloud(
+            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path="glib.txt"
+        )
+
+        new_datafile.to_cloud()
+
+    def test_update_cloud_metadata(self):
+        """Test that a cloud datafile's metadata can be updated."""
+        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
+            temporary_file.write("glib")
+
+        Datafile(timestamp=None, path=temporary_file.name).to_cloud(
+            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket="glib.txt"
+        )
+
+        new_datafile = Datafile(path="glib.txt", timestamp=None, cluster=32)
+        new_datafile.update_cloud_metadata(
+            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket="glib.txt"
+        )
+
+        self.assertEqual(
+            Datafile.from_cloud(
+                project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path="glib.txt"
+            ).cluster,
+            32,
+        )
+
+    def test_update_cloud_metadata_works_with_implicit_cloud_location_if_cloud_location_previously_provided(self):
+        """Test that datafile.update_metadata works with an implicit cloud location if the cloud location has been
+        previously provided.
+        """
+        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
+            temporary_file.write("blib")
+
+        datafile = Datafile(timestamp=None, path=temporary_file.name)
+        datafile.to_cloud(project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket="blib.txt")
+
+        datafile.cluster = 32
+        datafile.update_cloud_metadata()
+
+        self.assertEqual(
+            Datafile.from_cloud(
+                project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path="blib.txt"
+            ).cluster,
+            32,
+        )
+
+    def test_update_cloud_metadata_raises_error_if_no_cloud_location_provided_and_datafile_not_from_cloud(self):
+        """Test that trying to update a cloud datafile's metadata with no cloud location provided when the datafile was
+        not constructed from a cloud file results in cloud location error.
+        """
+        datafile = Datafile(path="hello.txt", timestamp=None)
+
+        with self.assertRaises(exceptions.CloudLocationNotSpecified):
+            datafile.update_cloud_metadata()
+
     def test_get_local_path(self):
         """Test that a file in the cloud can be temporarily downloaded and its local path returned."""
         file_contents = "[1, 2, 3]"
