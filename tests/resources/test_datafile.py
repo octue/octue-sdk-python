@@ -442,3 +442,11 @@ class DatafileTestCase(BaseTestCase):
         self.assertEqual(datafile.id, deserialised_datafile.id)
         self.assertFalse(pathable.path in deserialised_datafile.path)
         self.assertEqual(deserialised_datafile.path, temporary_file.name)
+
+    def test_posix_timestamp(self):
+        """Test that the posix timestamp property works properly."""
+        datafile = Datafile(path="hello.txt", timestamp=None)
+        self.assertIsNone(datafile.posix_timestamp)
+
+        datafile.timestamp = datetime(1970, 1, 1)
+        self.assertEqual(datafile.posix_timestamp, 0)
