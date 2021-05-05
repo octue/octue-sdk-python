@@ -185,7 +185,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             timestamp=kwargs.get("timestamp", metadata.get("customTime")),
             id=kwargs.get("id", custom_metadata.get("id", ID_DEFAULT)),
             path=storage.path.generate_gs_path(bucket_name, datafile_path),
-            hash_value=metadata.get("crc32c", None),
+            hash_value=metadata.get("crc32c", EMPTY_STRING_HASH_VALUE),
             cluster=cluster,
             sequence=sequence,
             tags=kwargs.get("tags", custom_metadata.get("tags", TAGS_DEFAULT)),
@@ -309,13 +309,10 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     def _calculate_hash(self):
         """Calculate the hash of the file."""
-        if self.is_in_cloud:
-            return self._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
-
         hash = Checksum()
 
         with open(self.absolute_path, "rb") as f:
-            # Read and update hash value in blocks of 4K
+            # Read and update hash value in blocks of 4K.
             for byte_block in iter(lambda: f.read(4096), b""):
                 hash.update(byte_block)
 
