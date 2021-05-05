@@ -221,11 +221,13 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         if cloud_metadata is None:
             return None
 
-        if cloud_metadata["custom_metadata"].get("cluster") is not None:
-            cloud_metadata["custom_metadata"] = int(cloud_metadata["custom_metadata"]["cluster"])
+        custom_metadata = cloud_metadata["custom_metadata"]
 
-        if cloud_metadata["custom_metadata"].get("sequence") is not None:
-            cloud_metadata["custom_metadata"]["sequence"] = int(cloud_metadata["custom_metadata"]["sequence"])
+        if custom_metadata.get("cluster") is not None:
+            custom_metadata["cluster"] = int(custom_metadata["cluster"])
+
+        if custom_metadata.get("sequence") is not None:
+            custom_metadata["sequence"] = int(custom_metadata["sequence"])
 
         self._cloud_metadata = cloud_metadata
 
