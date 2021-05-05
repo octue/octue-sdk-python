@@ -3,6 +3,7 @@ import json
 import os
 import tempfile
 import uuid
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 from octue import exceptions
@@ -41,6 +42,16 @@ class DatafileTestCase(BaseTestCase):
             Datafile(timestamp=None)
 
         self.assertIn("__init__() missing 1 required positional argument: 'path'", error.exception.args[0])
+
+    def test_setting_timestamp(self):
+        """Test that both datetime and posix timestamps can be used for a Datafile, that the timestamp attribute is
+        always converted to a datetime instance, and that invalid timestamps raise an error.
+        """
+        self.assertTrue(isinstance(Datafile(timestamp=datetime.now(), path="a_path").timestamp, datetime))
+        self.assertTrue(isinstance(Datafile(timestamp=50, path="a_path").timestamp, datetime))
+
+        with self.assertRaises(TypeError):
+            Datafile(timestamp="50", path="a_path")
 
     def test_gt(self):
         """Test that datafiles can be ordered using the greater-than operator."""
@@ -146,7 +157,7 @@ class DatafileTestCase(BaseTestCase):
         )
 
         datafile = Datafile.from_cloud(
-            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path=path_in_bucket, timestamp=None
+            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path=path_in_bucket
         )
 
         self.assertEqual(datafile.path, f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}")
@@ -165,7 +176,11 @@ class DatafileTestCase(BaseTestCase):
             temporary_file.write("[1, 2, 3]")
 
         datafile = Datafile(
-            timestamp=None, path=temporary_file.name, cluster=0, sequence=1, tags={"blah:shah:nah", "blib", "glib"}
+            timestamp=datetime.now(tz=timezone.utc),
+            path=temporary_file.name,
+            cluster=0,
+            sequence=1,
+            tags={"blah:shah:nah", "blib", "glib"},
         )
         datafile.to_cloud(project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket=path_in_bucket)
 
@@ -175,6 +190,7 @@ class DatafileTestCase(BaseTestCase):
 
         self.assertEqual(persisted_datafile.path, f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}")
         self.assertEqual(persisted_datafile.id, datafile.id)
+        self.assertEqual(persisted_datafile.timestamp, datafile.timestamp)
         self.assertEqual(persisted_datafile.hash_value, datafile.hash_value)
         self.assertEqual(persisted_datafile.cluster, datafile.cluster)
         self.assertEqual(persisted_datafile.sequence, datafile.sequence)
@@ -425,3 +441,11 @@ class DatafileTestCase(BaseTestCase):
         self.assertEqual(datafile.id, deserialised_datafile.id)
         self.assertFalse(pathable.path in deserialised_datafile.path)
         self.assertEqual(deserialised_datafile.path, temporary_file.name)
+
+    def test_posix_timestamp(self):
+        """Test that the posix timestamp property works properly."""
+        datafile = Datafile(path="hello.txt", timestamp=None)
+        self.assertIsNone(datafile.posix_timestamp)
+
+        datafile.timestamp = datetime(1970, 1, 1)
+        self.assertEqual(datafile.posix_timestamp, 0)

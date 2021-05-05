@@ -8,12 +8,12 @@ from octue.resources.filter_containers import FilterList, FilterSet
 from octue.utils.encoders import OctueJSONEncoder
 
 
-TAG_PATTERN = re.compile(r"^$|^[a-z0-9][a-z0-9:\-]*(?<![:-])$")
+TAG_PATTERN = re.compile(r"^$|^[A-Za-z0-9][A-Za-z0-9:\-/]*(?<![/:-])$")
 
 
 class Tag(Filterable):
-    """A tag starts and ends with a character in [a-z] or [0-9]. It can contain the colon discriminator or hyphens.
-    Empty strings are also valid. More valid examples:
+    """A tag starts and ends with a character in [A-Za-z0-9]. It can contain the colon discriminator, forward slashes
+    or hyphens. Empty strings are also valid. More valid examples:
        system:32
        angry-marmaduke
        mega-man:torso:component:12
@@ -102,7 +102,7 @@ class TagSet(Serialisable):
         # JSON-encoded list of tag names, or space-delimited string of tag names.
         if isinstance(tags, str):
             try:
-                self.tags = json.loads(tags)
+                self.tags = FilterSet(Tag(tag) for tag in json.loads(tags))
             except json.decoder.JSONDecodeError:
                 self.tags = FilterSet(Tag(tag) for tag in tags.strip().split())
 
