@@ -114,7 +114,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         return self, self._open_context_manager.__enter__()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._open_context_manager.__exit__()
+        self._open_context_manager.__exit__(exc_type, exc_val, exc_tb)
 
     def __lt__(self, other):
         if not isinstance(other, Datafile):
