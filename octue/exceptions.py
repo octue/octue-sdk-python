@@ -82,3 +82,9 @@ class AttributeConflict(OctueSDKException):
 
 class MissingServiceID(OctueSDKException):
     """Raise when a specific ID for a service is expected to be provided, but is missing or None."""
+
+
+class CloudLocationNotSpecified(OctueSDKException):
+    """Raise when attempting to interact with a cloud resource implicitly but the implicit details of its location are
+    missing.
+    """

@@ -7,7 +7,7 @@ from google_crc32c import Checksum
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.cloud.storage.path import CLOUD_STORAGE_PROTOCOL
-from octue.exceptions import AttributeConflict, FileNotFoundException, InvalidInputException
+from octue.exceptions import AttributeConflict, CloudLocationNotSpecified, FileNotFoundException, InvalidInputException
 from octue.mixins import Filterable, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils import isfile
@@ -344,11 +344,20 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         :param str|None project_name:
         :param str|None bucket_name:
         :param str|None path_in_bucket:
+        :raise octue.exceptions.CloudLocationNotSpecified: if an exact cloud location isn't provided and isn't available
+            implicitly (i.e. the Datafile wasn't loaded from the cloud previously)
         :return (str, str, str):
         """
-        project_name = project_name or self._cloud_metadata["project_name"]
-        bucket_name = bucket_name or self._cloud_metadata["bucket_name"]
-        path_in_bucket = path_in_bucket or self._cloud_metadata["path_in_bucket"]
+        try:
+            project_name = project_name or self._cloud_metadata["project_name"]
+            bucket_name = bucket_name or self._cloud_metadata["bucket_name"]
+            path_in_bucket = path_in_bucket or self._cloud_metadata["path_in_bucket"]
+        except KeyError:
+            raise CloudLocationNotSpecified(
+                f"{self!r} wasn't previously loaded from the cloud so doesn't have an implicit cloud location - please"
+                f"specify its exact location (its project_name, bucket_name, and path_in_bucket)."
+            )
+
         return project_name, bucket_name, path_in_bucket
 
     def check(self, size_bytes=None, sha=None, last_modified=None, extension=None):
