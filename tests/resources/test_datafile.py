@@ -470,7 +470,19 @@ class DatafileTestCase(BaseTestCase):
         datafile.timestamp = datetime(1970, 1, 1)
         self.assertEqual(datafile.posix_timestamp, 0)
 
-    def test_from_datafile_context_manager(self):
+    def test_datafile_as_context_manager(self):
+        """Test that Datafile can be used as a context manager to manage local changes."""
+        temporary_file = tempfile.NamedTemporaryFile("w", delete=False)
+        contents = "Here is the content."
+
+        with Datafile(path=temporary_file.name, timestamp=None, mode="w") as (datafile, f):
+            f.write(contents)
+
+        # Check that the cloud file has been updated.
+        with datafile.open() as f:
+            self.assertEqual(f.read(), contents)
+
+    def test_from_datafile_as_context_manager(self):
         """Test that Datafile.from_cloud can be used as a context manager to manage cloud changes."""
         _, project_name, bucket_name, path_in_bucket, original_content = self.create_datafile_in_cloud()
         new_contents = "Here is the new content."
