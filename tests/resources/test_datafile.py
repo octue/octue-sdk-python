@@ -261,7 +261,18 @@ class DatafileTestCase(BaseTestCase):
 
         self.assertEqual(Datafile.from_cloud(project_name, bucket_name, path_in_bucket).cluster, 3)
 
-    def test_to_cloud_does_not_try_to_update_metadata_if_no_metadata_change_has_been_made(self):
+    def test_to_cloud_does_not_update_cloud_metadata_if_update_cloud_metadata_is_false(self):
+        """Test that calling Datafile.to_cloud with `update_cloud_metadata=False` doesn't update the cloud metadata."""
+        datafile, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud(cluster=0)
+        datafile.cluster = 3
+
+        with patch("octue.resources.datafile.Datafile.update_cloud_metadata") as mock:
+            datafile.to_cloud(project_name, bucket_name, path_in_bucket, update_cloud_metadata=False)
+            self.assertFalse(mock.called)
+
+        self.assertEqual(Datafile.from_cloud(project_name, bucket_name, path_in_bucket).cluster, 0)
+
+    def test_to_cloud_does_not_update_metadata_if_no_metadata_change_has_been_made(self):
         """Test that Datafile.to_cloud does not try to update cloud metadata if no metadata change has been made."""
         _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud(cluster=0)
 

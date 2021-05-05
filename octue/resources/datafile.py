@@ -151,7 +151,16 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         return datafile
 
     @classmethod
-    def from_cloud(cls, project_name, bucket_name, datafile_path, allow_overwrite=False, mode="r", **kwargs):
+    def from_cloud(
+        cls,
+        project_name,
+        bucket_name,
+        datafile_path,
+        allow_overwrite=False,
+        mode="r",
+        update_cloud_metadata=True,
+        **kwargs,
+    ):
         """Instantiate a Datafile from a previously-persisted Datafile in Google Cloud storage. To instantiate a
         Datafile from a regular file on Google Cloud storage, the usage is the same, but a meaningful value for each of
         the instantiated Datafile's attributes can be included in the kwargs (a "regular" file is a file that has been
@@ -164,6 +173,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         :param str datafile_path: path to file represented by datafile
         :param bool allow_overwrite: if `True`, allow attributes of the datafile to be overwritten by values given in
             kwargs
+        :param str mode:
+        :param bool update_cloud_metadata:
         :return Datafile:
         """
         datafile = cls(timestamp=None, path=storage.path.generate_gs_path(bucket_name, datafile_path))
@@ -180,16 +191,17 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         datafile.cluster = kwargs.pop("cluster", custom_metadata.get("cluster", CLUSTER_DEFAULT))
         datafile.sequence = kwargs.pop("sequence", custom_metadata.get("sequence", SEQUENCE_DEFAULT))
         datafile.tags = kwargs.pop("tags", custom_metadata.get("tags", TAGS_DEFAULT))
-        datafile._open_attributes = {"mode": mode, **kwargs}
+        datafile._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
 
         return datafile
 
-    def to_cloud(self, project_name=None, bucket_name=None, path_in_bucket=None):
+    def to_cloud(self, project_name=None, bucket_name=None, path_in_bucket=None, update_cloud_metadata=True):
         """Upload a datafile to Google Cloud Storage.
 
         :param str|None project_name:
         :param str|None bucket_name:
         :param str|None path_in_bucket:
+        :param bool update_cloud_metadata:
         :return str: gs:// path for datafile
         """
         project_name, bucket_name, path_in_bucket = self._get_cloud_location(project_name, bucket_name, path_in_bucket)
@@ -206,14 +218,15 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
                 metadata=self.metadata(),
             )
 
-        # If the datafile's metadata has been changed locally, update the cloud file's metadata.
-        local_metadata = self.metadata()
-        timestamp = local_metadata.pop("timestamp")
+        if update_cloud_metadata:
+            # If the datafile's metadata has been changed locally, update the cloud file's metadata.
+            local_metadata = self.metadata()
+            timestamp = local_metadata.pop("timestamp")
 
-        if self._cloud_metadata.get("custom_metadata") != local_metadata or timestamp != self._cloud_metadata.get(
-            "custom_time"
-        ):
-            self.update_cloud_metadata(project_name, bucket_name, path_in_bucket)
+            if self._cloud_metadata.get("custom_metadata") != local_metadata or timestamp != self._cloud_metadata.get(
+                "custom_time"
+            ):
+                self.update_cloud_metadata(project_name, bucket_name, path_in_bucket)
 
         return storage.path.generate_gs_path(bucket_name, path_in_bucket)
 
@@ -468,11 +481,12 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         class DataFileContextManager:
             MODIFICATION_MODES = {"w", "a", "x", "+", "U"}
 
-            def __init__(obj, mode="r", **kwargs):
+            def __init__(obj, mode="r", update_cloud_metadata=True, **kwargs):
                 obj.mode = mode
-                obj.kwargs = kwargs
                 obj.fp = None
                 obj.path = None
+                obj._update_cloud_metadata = update_cloud_metadata
+                obj.kwargs = kwargs
 
             def __enter__(obj):
                 """Open the datafile, first downloading it from the cloud if necessary.
@@ -497,7 +511,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
                 if datafile.is_in_cloud and any(character in obj.mode for character in obj.MODIFICATION_MODES):
                     datafile.reset_hash()
-                    datafile.to_cloud()
+                    datafile.to_cloud(update_cloud_metadata=obj._update_cloud_metadata)
 
         return DataFileContextManager
 
