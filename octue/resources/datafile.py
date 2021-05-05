@@ -185,7 +185,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             timestamp=kwargs.get("timestamp", metadata.get("customTime")),
             id=kwargs.get("id", custom_metadata.get("id", ID_DEFAULT)),
             path=storage.path.generate_gs_path(bucket_name, datafile_path),
-            hash_value=kwargs.get("hash_value", metadata.get("crc32c", None)),
+            hash_value=metadata.get("crc32c", None),
             cluster=cluster,
             sequence=sequence,
             tags=kwargs.get("tags", custom_metadata.get("tags", TAGS_DEFAULT)),
