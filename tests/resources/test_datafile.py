@@ -9,7 +9,7 @@ from unittest.mock import patch
 from octue import exceptions
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.mixins import MixinBase, Pathable
-from octue.resources import Datafile
+from octue.resources.datafile import TEMPORARY_LOCAL_FILE_CACHE, Datafile
 from octue.resources.tag import TagSet
 from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from ..base import BaseTestCase
@@ -24,6 +24,9 @@ class DatafileTestCase(BaseTestCase):
         super().setUp()
         self.path_from = MyPathable(path=os.path.join(self.data_path, "basic_files", "configuration", "test-dataset"))
         self.path = os.path.join("path-within-dataset", "a_test_file.csv")
+
+    def tearDown(self):
+        TEMPORARY_LOCAL_FILE_CACHE.clear()
 
     def create_valid_datafile(self):
         return Datafile(timestamp=None, path_from=self.path_from, path=self.path, skip_checks=False)
@@ -49,9 +52,7 @@ class DatafileTestCase(BaseTestCase):
 
         timestamp = kwargs.pop("timestamp", None)
         datafile = Datafile(path=temporary_file.name, timestamp=timestamp, **kwargs)
-
         datafile.to_cloud(project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
-
         return datafile, project_name, bucket_name, path_in_bucket, contents
 
     def test_instantiates(self):
