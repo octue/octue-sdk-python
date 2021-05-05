@@ -1,7 +1,7 @@
+import datetime
 import logging
 import os
 import tempfile
-from datetime import datetime
 from google_crc32c import Checksum
 
 from octue.cloud import storage
@@ -10,6 +10,7 @@ from octue.cloud.storage.path import CLOUD_STORAGE_PROTOCOL
 from octue.exceptions import AttributeConflict, FileNotFoundException, InvalidInputException
 from octue.mixins import Filterable, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
 from octue.utils import isfile
+from octue.utils.time import convert_from_posix_time, convert_to_posix_time
 
 
 module_logger = logging.getLogger(__name__)
@@ -35,13 +36,13 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
           "sequence": 0,
           "extension": "csv",
           "tags": "",
-          "timestamp": 0,
+          "timestamp": datetime.datetime(2021, 5, 3, 18, 15, 58, 298086),
           "id": "abff07bc-7c19-4ed5-be6d-a6546eae8e86",
           "size_bytes": 59684813,
           "sha-512/256": "somesha"
         },
 
-    :parameter float|None timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when
+    :parameter datetime.datetime|int|float|None timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when
         it was created but could relate to a relevant time point for the data
     :param str id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
     :param logging.Logger logger: A logger instance to which operations with this datafile will be logged. Defaults to
@@ -182,7 +183,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             sequence = int(sequence)
 
         datafile = cls(
-            timestamp=kwargs.get("timestamp", custom_metadata.get("timestamp")),
+            timestamp=kwargs.get("timestamp", metadata.get("customTime")),
             id=kwargs.get("id", custom_metadata.get("id", ID_DEFAULT)),
             path=storage.path.generate_gs_path(bucket_name, datafile_path),
             hash_value=kwargs.get("hash_value", custom_metadata.get("hash_value", metadata.get("crc32c", None))),
@@ -217,16 +218,46 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         return self._name or str(os.path.split(self.path)[-1])
 
     @property
-    def _last_modified(self):
-        """Get the date/time the file was last modified in units of seconds since epoch (posix time)."""
-        if self._path_is_in_google_cloud_storage:
-            unparsed_datetime = self._cloud_metadata.get("updated")
+    def timestamp(self):
+        return self._timestamp
 
-            if unparsed_datetime is None:
+    @timestamp.setter
+    def timestamp(self, value):
+        """Set the datafile's timestamp.
+
+        :param datetime.datetime|int|float|None value:
+        :raise TypeError: if value is of an incorrect type
+        :return None:
+        """
+        if isinstance(value, datetime.datetime) or value is None:
+            self._timestamp = value
+        elif isinstance(value, (int, float)):
+            self._timestamp = convert_from_posix_time(value)
+        else:
+            raise TypeError(
+                f"timestamp should be a datetime.datetime instance, an int, a float, or None; received {value!r}"
+            )
+
+    @property
+    def posix_timestamp(self):
+        if self.timestamp is None:
+            return None
+
+        return convert_to_posix_time(self.timestamp)
+
+    @property
+    def _last_modified(self):
+        """Get the date/time the file was last modified in units of seconds since epoch (posix time).
+
+        :return float:
+        """
+        if self._path_is_in_google_cloud_storage:
+            last_modified = self._cloud_metadata.get("updated")
+
+            if last_modified is None:
                 return None
 
-            parsed_datetime = datetime.strptime(unparsed_datetime, "%Y-%m-%dT%H:%M:%S.%fZ")
-            return (parsed_datetime - datetime(1970, 1, 1)).total_seconds()
+            return convert_to_posix_time(last_modified)
 
         return os.path.getmtime(self.absolute_path)
 

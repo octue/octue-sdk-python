@@ -117,7 +117,14 @@ class GoogleCloudStorageClient:
         :return dict:
         """
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
-        metadata = bucket.get_blob(blob_name=self._strip_leading_slash(path_in_bucket), timeout=timeout)._properties
+        blob = bucket.get_blob(blob_name=self._strip_leading_slash(path_in_bucket), timeout=timeout)
+        metadata = blob._properties
+
+        # Get timestamps from blob rather than properties so they are datetime.datetime objects rather than strings.
+        metadata["updated"] = blob.updated
+        metadata["timeCreated"] = blob.time_created
+        metadata["timeDeleted"] = blob.time_deleted
+        metadata["customTime"] = blob.custom_time
         return metadata
 
     def delete(self, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
@@ -185,5 +192,6 @@ class GoogleCloudStorageClient:
         :return None:
         """
         if metadata is not None:
+            blob.custom_time = metadata.pop("timestamp", None)
             blob.metadata = metadata
             blob.patch()
