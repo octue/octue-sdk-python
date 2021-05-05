@@ -260,6 +260,16 @@ class DatafileTestCase(BaseTestCase):
 
         self.assertEqual(Datafile.from_cloud(project_name, bucket_name, path_in_bucket).cluster, 3)
 
+    def test_to_cloud_does_not_try_to_update_metadata_if_no_metadata_change_has_been_made(self):
+        """Test that Datafile.to_cloud does not try to update cloud metadata if no metadata change has been made."""
+        _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud(cluster=0)
+
+        datafile = Datafile.from_cloud(project_name, bucket_name, path_in_bucket)
+
+        with patch("octue.resources.datafile.Datafile.update_cloud_metadata") as mock:
+            datafile.to_cloud()
+            self.assertFalse(mock.called)
+
     def test_to_cloud_raises_error_if_no_cloud_location_provided_and_datafile_not_from_cloud(self):
         """Test that trying to send a datafile to the cloud with no cloud location provided when the datafile was not
         constructed from a cloud file results in cloud location error.
@@ -276,6 +286,14 @@ class DatafileTestCase(BaseTestCase):
         _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud()
         datafile = Datafile.from_cloud(project_name, bucket_name, path_in_bucket)
         datafile.to_cloud()
+
+    def test_to_cloud_does_not_try_to_update_file_if_no_change_has_been_made_locally(self):
+        """Test that Datafile.to_cloud does not try to update cloud file if no change has been made locally."""
+        datafile, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud(cluster=0)
+
+        with patch("octue.cloud.storage.client.GoogleCloudStorageClient.upload_file") as mock:
+            datafile.to_cloud()
+            self.assertFalse(mock.called)
 
     def test_update_cloud_metadata(self):
         """Test that a cloud datafile's metadata can be updated."""

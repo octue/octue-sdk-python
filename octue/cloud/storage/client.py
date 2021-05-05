@@ -129,9 +129,14 @@ class GoogleCloudStorageClient:
         """
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         blob = bucket.get_blob(blob_name=self._strip_leading_slash(path_in_bucket), timeout=timeout)
+
+        if blob is None:
+            return None
+
         metadata = blob._properties
 
-        # Get timestamps from blob rather than properties so they are datetime.datetime objects rather than strings.
+        # Get these attributes from blob rather than properties so they are not incorrectly strings.
+        metadata["size"] = blob.size
         metadata["updated"] = blob.updated
         metadata["timeCreated"] = blob.time_created
         metadata["timeDeleted"] = blob.time_deleted

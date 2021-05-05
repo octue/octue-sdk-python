@@ -87,7 +87,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         super().__init__(
             id=id,
             name=kwargs.get("name"),
-            hash_value=kwargs.get("hash_value"),
+            immutable_hash_value=kwargs.get("immutable_hash_value"),
             logger=logger,
             tags=tags,
             path=path,
@@ -157,41 +157,23 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             kwargs
         :return Datafile:
         """
-        metadata = GoogleCloudStorageClient(project_name).get_metadata(bucket_name, datafile_path)
-        custom_metadata = metadata.get("metadata") or {}
+        datafile = cls(timestamp=None, path=storage.path.generate_gs_path(bucket_name, datafile_path))
+
+        cloud_metadata = datafile.get_cloud_metadata(project_name, bucket_name, datafile_path)
+        custom_metadata = cloud_metadata.get("metadata") or {}
 
         if not allow_overwrite:
-            for attribute_name, attribute_value in kwargs.items():
+            cls._check_for_attribute_conflict(custom_metadata, **kwargs)
 
-                if custom_metadata.get(attribute_name) == attribute_value:
-                    continue
+        datafile._set_id(kwargs.get("id", custom_metadata.get("id", ID_DEFAULT)))
+        datafile.path = storage.path.generate_gs_path(bucket_name, datafile_path)
+        datafile.timestamp = kwargs.get("timestamp", cloud_metadata.get("customTime"))
+        datafile.immutable_hash_value = cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
+        datafile.cluster = kwargs.get("cluster", custom_metadata.get("cluster", CLUSTER_DEFAULT))
+        datafile.sequence = kwargs.get("sequence", custom_metadata.get("sequence", SEQUENCE_DEFAULT))
+        datafile.tags = kwargs.get("tags", custom_metadata.get("tags", TAGS_DEFAULT))
 
-                raise AttributeConflict(
-                    f"The value {custom_metadata.get(attribute_name)!r} of the {cls.__name__} attribute "
-                    f"{attribute_name!r} conflicts with the value given in kwargs {attribute_value!r}. If you wish to "
-                    f"overwrite the attribute value, set `allow_overwrite` to `True`."
-                )
-
-        cluster = kwargs.get("cluster", custom_metadata.get("cluster", CLUSTER_DEFAULT))
-        sequence = kwargs.get("sequence", custom_metadata.get("sequence", SEQUENCE_DEFAULT))
-
-        if isinstance(cluster, str):
-            cluster = int(cluster)
-
-        if isinstance(sequence, str):
-            sequence = int(sequence)
-
-        datafile = cls(
-            timestamp=kwargs.get("timestamp", metadata.get("customTime")),
-            id=kwargs.get("id", custom_metadata.get("id", ID_DEFAULT)),
-            path=storage.path.generate_gs_path(bucket_name, datafile_path),
-            hash_value=metadata.get("crc32c", EMPTY_STRING_HASH_VALUE),
-            cluster=cluster,
-            sequence=sequence,
-            tags=kwargs.get("tags", custom_metadata.get("tags", TAGS_DEFAULT)),
-        )
-
-        datafile._cloud_metadata = metadata
+        datafile._cloud_metadata = cloud_metadata
         datafile._store_cloud_location(project_name, bucket_name, datafile_path)
         return datafile
 
@@ -204,19 +186,54 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         :return str: gs:// path for datafile
         """
         project_name, bucket_name, path_in_bucket = self._get_cloud_location(project_name, bucket_name, path_in_bucket)
+        storage_client = GoogleCloudStorageClient(project_name=project_name)
 
-        GoogleCloudStorageClient(project_name=project_name).upload_file(
-            local_path=self.get_local_path(),
-            bucket_name=bucket_name,
-            path_in_bucket=path_in_bucket,
-            metadata=self.metadata(),
-        )
+        cloud_metadata = self.get_cloud_metadata(project_name, bucket_name, path_in_bucket) or {}
+
+        # If the datafile's file has been changed locally, overwrite its cloud copy.
+        if cloud_metadata.get("crc32c") != self.hash_value:
+            storage_client.upload_file(
+                local_path=self.get_local_path(),
+                bucket_name=bucket_name,
+                path_in_bucket=path_in_bucket,
+                metadata=self.metadata(),
+            )
+
+        # If the datafile's metadata has been changed locally, update the cloud file's metadata.
+        local_metadata = self.metadata()
+        timestamp = local_metadata.pop("timestamp")
+
+        if cloud_metadata.get("metadata") != local_metadata or timestamp != cloud_metadata.get("customTime"):
+            self.update_cloud_metadata(project_name, bucket_name, path_in_bucket)
 
         self._store_cloud_location(project_name, bucket_name, path_in_bucket)
         return storage.path.generate_gs_path(bucket_name, path_in_bucket)
 
+    def get_cloud_metadata(self, project_name=None, bucket_name=None, path_in_bucket=None):
+        """Get the cloud metadata for the datafile, casting the types of the cluster and sequence fields to integer.
+
+        :param str|None project_name:
+        :param str|None bucket_name:
+        :param str|None path_in_bucket:
+        :return dict:
+        """
+        project_name, bucket_name, path_in_bucket = self._get_cloud_location(project_name, bucket_name, path_in_bucket)
+        cloud_metadata = GoogleCloudStorageClient(project_name).get_metadata(bucket_name, path_in_bucket)
+
+        if cloud_metadata is None:
+            return None
+
+        if "metadata" in cloud_metadata:
+            if cloud_metadata["metadata"]["cluster"] is not None:
+                cloud_metadata["metadata"]["cluster"] = int(cloud_metadata["metadata"]["cluster"])
+
+            if cloud_metadata["metadata"]["sequence"] is not None:
+                cloud_metadata["metadata"]["sequence"] = int(cloud_metadata["metadata"]["sequence"])
+
+        return cloud_metadata
+
     def update_cloud_metadata(self, project_name=None, bucket_name=None, path_in_bucket=None):
-        """Update the metadata for the datafile in the cloud.
+        """Update the cloud metadata for the datafile.
 
         :param str|None project_name:
         :param str|None bucket_name:
@@ -284,12 +301,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     @property
     def size_bytes(self):
         if self._path_is_in_google_cloud_storage:
-            size = self._cloud_metadata.get("size")
-
-            if size is None:
-                return None
-
-            return int(size)
+            return self._cloud_metadata.get("size")
 
         return os.path.getsize(self.absolute_path)
 
@@ -332,7 +344,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         """Calculate the hash of the file."""
         hash = Checksum()
 
-        with open(self.absolute_path, "rb") as f:
+        with open(self.get_local_path(), "rb") as f:
             # Read and update hash value in blocks of 4K.
             for byte_block in iter(lambda: f.read(4096), b""):
                 hash.update(byte_block)
@@ -372,6 +384,25 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         self._cloud_metadata["project_name"] = project_name
         self._cloud_metadata["bucket_name"] = bucket_name
         self._cloud_metadata["path_in_bucket"] = path_in_bucket
+
+    @classmethod
+    def _check_for_attribute_conflict(cls, custom_metadata, **kwargs):
+        """Raise an error if there is a conflict between the custom metadata and the kwargs.
+
+        :param dict custom_metadata:
+        :raise octue.exceptions.AttributeConflict: if any of the custom metadata conflicts with kwargs
+        :return None:
+        """
+        for attribute_name, attribute_value in kwargs.items():
+
+            if custom_metadata.get(attribute_name) == attribute_value:
+                continue
+
+            raise AttributeConflict(
+                f"The value {custom_metadata.get(attribute_name)!r} of the {cls.__name__} attribute "
+                f"{attribute_name!r} conflicts with the value given in kwargs {attribute_value!r}. If you wish to "
+                f"overwrite the attribute value, set `allow_overwrite` to `True`."
+            )
 
     def check(self, size_bytes=None, sha=None, last_modified=None, extension=None):
         """Check file presence and integrity"""
@@ -416,6 +447,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         datafile = self
 
         class DataFileContextManager:
+            MODIFICATION_MODES = {"w", "a", "x", "+", "U"}
+
             def __init__(obj, mode="r", **kwargs):
                 obj.mode = mode
                 obj.kwargs = kwargs
@@ -443,7 +476,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
                 if obj.fp is not None:
                     obj.fp.close()
 
-                if datafile.is_in_cloud and any(character in obj.mode for character in {"w", "a", "x", "+", "U"}):
+                if datafile.is_in_cloud and any(character in obj.mode for character in obj.MODIFICATION_MODES):
+                    datafile.reset_hash()
                     datafile.to_cloud()
 
         return DataFileContextManager
