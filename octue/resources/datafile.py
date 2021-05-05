@@ -173,13 +173,22 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
                     f"overwrite the attribute value, set `allow_overwrite` to `True`."
                 )
 
+        cluster = kwargs.get("cluster", custom_metadata.get("cluster", CLUSTER_DEFAULT))
+        sequence = kwargs.get("sequence", custom_metadata.get("sequence", SEQUENCE_DEFAULT))
+
+        if isinstance(cluster, str):
+            cluster = int(cluster)
+
+        if isinstance(sequence, str):
+            sequence = int(sequence)
+
         datafile = cls(
             timestamp=kwargs.get("timestamp", metadata.get("customTime")),
             id=kwargs.get("id", custom_metadata.get("id", ID_DEFAULT)),
             path=storage.path.generate_gs_path(bucket_name, datafile_path),
             hash_value=kwargs.get("hash_value", custom_metadata.get("hash_value", metadata.get("crc32c", None))),
-            cluster=kwargs.get("cluster", custom_metadata.get("cluster", CLUSTER_DEFAULT)),
-            sequence=kwargs.get("sequence", custom_metadata.get("sequence", SEQUENCE_DEFAULT)),
+            cluster=cluster,
+            sequence=sequence,
             tags=kwargs.get("tags", custom_metadata.get("tags", TAGS_DEFAULT)),
         )
 
@@ -402,5 +411,5 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             "hash_value": self.hash_value,
             "cluster": self.cluster,
             "sequence": self.sequence,
-            "tags": self.tags.serialise(),
+            "tags": self.tags.serialise(to_string=True),
         }

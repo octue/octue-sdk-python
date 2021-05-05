@@ -1,5 +1,4 @@
 import base64
-import json
 import logging
 from google.cloud import storage
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
@@ -126,11 +125,6 @@ class GoogleCloudStorageClient:
         metadata["timeCreated"] = blob.time_created
         metadata["timeDeleted"] = blob.time_deleted
         metadata["customTime"] = blob.custom_time
-
-        # Decode custom metadata from JSON.
-        if metadata.get("metadata") is not None:
-            metadata["metadata"] = {key: json.loads(value) for key, value in metadata["metadata"].items()}
-
         return metadata
 
     def delete(self, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
@@ -199,16 +193,5 @@ class GoogleCloudStorageClient:
         """
         if metadata is not None:
             blob.custom_time = metadata.pop("timestamp", None)
-            blob.metadata = self._encode_metadata(metadata)
+            blob.metadata = metadata
             blob.patch()
-
-    def _encode_metadata(self, metadata):
-        """Encode metadata as a dictionary of JSON strings.
-
-        :param dict metadata:
-        :return dict:
-        """
-        if not isinstance(metadata, dict):
-            raise TypeError(f"Metadata for Google Cloud storage should be a dictionary; received {metadata!r}")
-
-        return {key: json.dumps(value) for key, value in metadata.items()}
