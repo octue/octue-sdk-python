@@ -168,7 +168,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         """
         datafile = cls(timestamp=None, path=storage.path.generate_gs_path(bucket_name, datafile_path))
         datafile.get_cloud_metadata(project_name, bucket_name, datafile_path)
-        custom_metadata = datafile._cloud_metadata.get("custom_metadata")
+        custom_metadata = datafile._cloud_metadata.get("custom_metadata", {})
 
         if not allow_overwrite:
             cls._check_for_attribute_conflict(custom_metadata, **kwargs)
