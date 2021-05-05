@@ -469,3 +469,24 @@ class DatafileTestCase(BaseTestCase):
 
         datafile.timestamp = datetime(1970, 1, 1)
         self.assertEqual(datafile.posix_timestamp, 0)
+
+    def test_from_datafile_context_manager(self):
+        """Test that Datafile.from_cloud can be used as a context manager to manage cloud changes."""
+        _, project_name, bucket_name, path_in_bucket, original_content = self.create_datafile_in_cloud()
+        new_contents = "Here is the new content."
+        self.assertNotEqual(original_content, new_contents)
+
+        with Datafile.from_cloud(project_name, bucket_name, path_in_bucket, mode="w") as (datafile, f):
+            datafile.add_tags("blue")
+            f.write(new_contents)
+
+        # Check that the cloud metadata has been updated.
+        re_downloaded_datafile = Datafile.from_cloud(project_name, bucket_name, path_in_bucket)
+        self.assertTrue("blue" in re_downloaded_datafile.tags)
+
+        # The file cache must be cleared so the modified cloud file is downloaded.
+        re_downloaded_datafile.clear_from_file_cache()
+
+        # Check that the cloud file has been updated.
+        with re_downloaded_datafile.open() as f:
+            self.assertEqual(f.read(), new_contents)

@@ -82,12 +82,13 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         sequence=SEQUENCE_DEFAULT,
         tags=TAGS_DEFAULT,
         skip_checks=True,
+        mode="r",
         **kwargs,
     ):
         super().__init__(
             id=id,
-            name=kwargs.get("name"),
-            immutable_hash_value=kwargs.get("immutable_hash_value"),
+            name=kwargs.pop("name", None),
+            immutable_hash_value=kwargs.pop("immutable_hash_value", None),
             logger=logger,
             tags=tags,
             path=path,
@@ -106,6 +107,14 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             self.check(**kwargs)
 
         self._cloud_metadata = {}
+        self._open_attributes = {"mode": mode, **kwargs}
+
+    def __enter__(self):
+        self._open_context_manager = self.open(**self._open_attributes)
+        return self, self._open_context_manager.__enter__()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._open_context_manager.__exit__()
 
     def __lt__(self, other):
         if not isinstance(other, Datafile):
@@ -142,7 +151,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         return datafile
 
     @classmethod
-    def from_cloud(cls, project_name, bucket_name, datafile_path, allow_overwrite=False, **kwargs):
+    def from_cloud(cls, project_name, bucket_name, datafile_path, allow_overwrite=False, mode="r", **kwargs):
         """Instantiate a Datafile from a previously-persisted Datafile in Google Cloud storage. To instantiate a
         Datafile from a regular file on Google Cloud storage, the usage is the same, but a meaningful value for each of
         the instantiated Datafile's attributes can be included in the kwargs (a "regular" file is a file that has been
@@ -164,13 +173,14 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         if not allow_overwrite:
             cls._check_for_attribute_conflict(custom_metadata, **kwargs)
 
-        datafile._set_id(kwargs.get("id", custom_metadata.get("id", ID_DEFAULT)))
+        datafile._set_id(kwargs.pop("id", custom_metadata.get("id", ID_DEFAULT)))
         datafile.path = storage.path.generate_gs_path(bucket_name, datafile_path)
-        datafile.timestamp = kwargs.get("timestamp", datafile._cloud_metadata.get("custom_time"))
+        datafile.timestamp = kwargs.pop("timestamp", datafile._cloud_metadata.get("custom_time"))
         datafile.immutable_hash_value = datafile._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
-        datafile.cluster = kwargs.get("cluster", custom_metadata.get("cluster", CLUSTER_DEFAULT))
-        datafile.sequence = kwargs.get("sequence", custom_metadata.get("sequence", SEQUENCE_DEFAULT))
-        datafile.tags = kwargs.get("tags", custom_metadata.get("tags", TAGS_DEFAULT))
+        datafile.cluster = kwargs.pop("cluster", custom_metadata.get("cluster", CLUSTER_DEFAULT))
+        datafile.sequence = kwargs.pop("sequence", custom_metadata.get("sequence", SEQUENCE_DEFAULT))
+        datafile.tags = kwargs.pop("tags", custom_metadata.get("tags", TAGS_DEFAULT))
+        datafile._open_attributes = {"mode": mode, **kwargs}
 
         return datafile
 
@@ -333,6 +343,16 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
         TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path] = temporary_local_path
         return temporary_local_path
+
+    def clear_from_file_cache(self):
+        """Clear the datafile from the temporary local file cache, if it is in there. If datafile.get_local_path is
+        called again and the datafile is a cloud datafile, the file will be re-downloaded to a new temporary local path,
+        allowing any independent cloud updates to be synced locally.
+
+        :return None:
+        """
+        if self.absolute_path in TEMPORARY_LOCAL_FILE_CACHE:
+            del TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path]
 
     def _get_extension_from_path(self, path=None):
         """Gets extension of a file, either from a provided file path or from self.path field"""
