@@ -192,9 +192,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         )
 
         datafile._cloud_metadata = metadata
-        datafile._cloud_metadata["project_name"] = project_name
-        datafile._cloud_metadata["bucket_name"] = bucket_name
-        datafile._cloud_metadata["path_in_bucket"] = datafile_path
+        datafile._store_cloud_location(project_name, bucket_name, datafile_path)
         return datafile
 
     def to_cloud(self, project_name=None, bucket_name=None, path_in_bucket=None):
@@ -214,9 +212,10 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             metadata=self.metadata(),
         )
 
+        self._store_cloud_location(project_name, bucket_name, path_in_bucket)
         return storage.path.generate_gs_path(bucket_name, path_in_bucket)
 
-    def update_metadata(self, project_name=None, bucket_name=None, path_in_bucket=None):
+    def update_cloud_metadata(self, project_name=None, bucket_name=None, path_in_bucket=None):
         """Update the metadata for the datafile in the cloud.
 
         :param str|None project_name:
@@ -231,6 +230,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             path_in_bucket=path_in_bucket,
             metadata=self.metadata(),
         )
+
+        self._store_cloud_location(project_name, bucket_name, path_in_bucket)
 
     @property
     def name(self):
@@ -359,6 +360,18 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             )
 
         return project_name, bucket_name, path_in_bucket
+
+    def _store_cloud_location(self, project_name, bucket_name, path_in_bucket):
+        """Store the cloud location of the datafile.
+
+        :param str project_name:
+        :param str bucket_name:
+        :param str path_in_bucket:
+        :return None:
+        """
+        self._cloud_metadata["project_name"] = project_name
+        self._cloud_metadata["bucket_name"] = bucket_name
+        self._cloud_metadata["path_in_bucket"] = path_in_bucket
 
     def check(self, size_bytes=None, sha=None, last_modified=None, extension=None):
         """Check file presence and integrity"""
