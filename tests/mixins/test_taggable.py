@@ -24,9 +24,6 @@ class TaggableTestCase(BaseTestCase):
         taggable = MyTaggable(tags="a b c")
         self.assertEqual(set(taggable.tags), {Tag("a"), Tag("b"), Tag("c")})
 
-        with self.assertRaises(exceptions.InvalidTagException):
-            MyTaggable(tags=":a b c")
-
     def test_instantiates_with_tag_set(self):
         """Ensures datafile inherits correctly from the Taggable class and passes arguments through"""
         taggable_1 = MyTaggable(tags="")
@@ -75,14 +72,6 @@ class TaggableTestCase(BaseTestCase):
                 Tag("multiple:discriminators:used"),
             },
         )
-
-    def test_invalid_tags(self):
-        """Ensures invalid tags raise an error"""
-        taggable = MyTaggable()
-
-        for tag in "-bah", "humbug:", "SHOUTY", r"back\slashy", {"not-a": "string"}:
-            with self.assertRaises(exceptions.InvalidTagException):
-                taggable.add_tags(tag)
 
     def test_mixture_valid_invalid(self):
         """Ensures that adding a variety of tags, some of which are invalid, doesn't partially add them to the object"""
