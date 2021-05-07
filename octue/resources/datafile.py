@@ -184,15 +184,19 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         if not allow_overwrite:
             cls._check_for_attribute_conflict(custom_metadata, **kwargs)
 
+        timestamp = kwargs.get("timestamp", custom_metadata.get("timestamp"))
+
+        if isinstance(timestamp, str):
+            timestamp = datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S.%f%z")
+
         datafile._set_id(kwargs.pop("id", custom_metadata.get("id", ID_DEFAULT)))
         datafile.path = storage.path.generate_gs_path(bucket_name, datafile_path)
-        datafile.timestamp = kwargs.pop("timestamp", datafile._cloud_metadata.get("custom_time"))
+        datafile.timestamp = timestamp
         datafile.immutable_hash_value = datafile._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
         datafile.cluster = kwargs.pop("cluster", custom_metadata.get("cluster", CLUSTER_DEFAULT))
         datafile.sequence = kwargs.pop("sequence", custom_metadata.get("sequence", SEQUENCE_DEFAULT))
         datafile.tags = kwargs.pop("tags", custom_metadata.get("tags", TAGS_DEFAULT))
         datafile._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
-
         return datafile
 
     def to_cloud(self, project_name=None, bucket_name=None, path_in_bucket=None, update_cloud_metadata=True):
@@ -221,11 +225,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         if update_cloud_metadata:
             # If the datafile's metadata has been changed locally, update the cloud file's metadata.
             local_metadata = self.metadata()
-            timestamp = local_metadata.pop("timestamp")
 
-            if self._cloud_metadata.get("custom_metadata") != local_metadata or timestamp != self._cloud_metadata.get(
-                "custom_time"
-            ):
+            if self._cloud_metadata.get("custom_metadata") != local_metadata:
                 self.update_cloud_metadata(project_name, bucket_name, path_in_bucket)
 
         return storage.path.generate_gs_path(bucket_name, path_in_bucket)
