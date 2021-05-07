@@ -357,6 +357,9 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         )
 
         TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path] = temporary_local_path
+
+        # Now use hash value of local file instead of cloud file.
+        self.reset_hash()
         return temporary_local_path
 
     def clear_from_file_cache(self):
@@ -537,5 +540,4 @@ class _DatafileContextManager:
             self.fp.close()
 
         if self.datafile.is_in_cloud and any(character in self.mode for character in self.MODIFICATION_MODES):
-            self.datafile.reset_hash()
             self.datafile.to_cloud(update_cloud_metadata=self._update_cloud_metadata)
