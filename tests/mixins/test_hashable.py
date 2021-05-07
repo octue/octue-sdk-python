@@ -1,4 +1,5 @@
 from octue.mixins import Hashable
+from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from ..base import BaseTestCase
 
 
@@ -20,9 +21,9 @@ class TypeWithIterable(Hashable):
 
 
 class HashableTestCase(BaseTestCase):
-    def test_no_attributes_to_hash_results_if_no_hash(self):
-        """ Assert classes with Hashable mixed in but no attributes to hash give None for their hash. """
-        self.assertIsNone(TypeWithNoAttributesToHash().hash_value)
+    def test_no_attributes_to_hash_results_in_trivial_hash_value(self):
+        """Assert classes with Hashable mixed in but no attributes to hash have a trivial hash value."""
+        self.assertEqual(TypeWithNoAttributesToHash().hash_value, EMPTY_STRING_HASH_VALUE)
 
     def test_non_hashable_type_results_in_type_error(self):
         """ Ensure trying to hash unhashable attributes results in a TypeError. """
@@ -78,3 +79,10 @@ class HashableTestCase(BaseTestCase):
 
         type_with_hash.reset_hash()
         self.assertEqual(type_with_hash.hash_value, original_calculated_hash)
+
+    def test_hash_value_cannot_be_set_if_hashable_has_immutable_hash_value(self):
+        """Test that the hash value of a hashable instance with an immutable hash value cannot be set."""
+        hashable = Hashable(immutable_hash_value="blue")
+
+        with self.assertRaises(ValueError):
+            hashable.hash_value = "red"

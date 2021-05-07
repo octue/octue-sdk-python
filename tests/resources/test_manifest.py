@@ -48,14 +48,12 @@ class TestManifest(BaseTestCase):
         self.assertEqual(manifest.name, deserialised_manifest.name)
         self.assertEqual(manifest.id, deserialised_manifest.id)
         self.assertEqual(manifest.absolute_path, deserialised_manifest.absolute_path)
-        self.assertEqual(manifest.hash_value, deserialised_manifest.hash_value)
         self.assertEqual(manifest.keys, deserialised_manifest.keys)
 
         for original_dataset, deserialised_dataset in zip(manifest.datasets, deserialised_manifest.datasets):
             self.assertEqual(original_dataset.name, deserialised_dataset.name)
             self.assertEqual(original_dataset.id, deserialised_dataset.id)
             self.assertEqual(original_dataset.absolute_path, deserialised_dataset.absolute_path)
-            self.assertEqual(original_dataset.hash_value, deserialised_dataset.hash_value)
 
     def test_to_cloud(self):
         """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance. """
@@ -162,21 +160,22 @@ class TestManifest(BaseTestCase):
                 path_to_manifest_file=storage.path.join("my-directory", "manifest.json"),
             )
 
-        persisted_manifest = Manifest.from_cloud(
-            project_name=self.TEST_PROJECT_NAME,
-            bucket_name=TEST_BUCKET_NAME,
-            path_to_manifest_file=storage.path.join("my-directory", "manifest.json"),
-        )
+            persisted_manifest = Manifest.from_cloud(
+                project_name=self.TEST_PROJECT_NAME,
+                bucket_name=TEST_BUCKET_NAME,
+                path_to_manifest_file=storage.path.join("my-directory", "manifest.json"),
+            )
 
-        self.assertEqual(persisted_manifest.path, f"gs://{TEST_BUCKET_NAME}/my-directory/manifest.json")
-        self.assertEqual(persisted_manifest.id, manifest.id)
-        self.assertEqual(persisted_manifest.hash_value, manifest.hash_value)
-        self.assertEqual(persisted_manifest.keys, manifest.keys)
-        self.assertEqual(
-            {dataset.name for dataset in persisted_manifest.datasets}, {dataset.name for dataset in manifest.datasets}
-        )
+            self.assertEqual(persisted_manifest.path, f"gs://{TEST_BUCKET_NAME}/my-directory/manifest.json")
+            self.assertEqual(persisted_manifest.id, manifest.id)
+            self.assertEqual(persisted_manifest.hash_value, manifest.hash_value)
+            self.assertEqual(persisted_manifest.keys, manifest.keys)
+            self.assertEqual(
+                {dataset.name for dataset in persisted_manifest.datasets},
+                {dataset.name for dataset in manifest.datasets},
+            )
 
-        for dataset in persisted_manifest.datasets:
-            self.assertEqual(dataset.path, f"gs://{TEST_BUCKET_NAME}/my-directory/{dataset.name}")
-            self.assertTrue(len(dataset.files), 2)
-            self.assertTrue(all(isinstance(file, Datafile) for file in dataset.files))
+            for dataset in persisted_manifest.datasets:
+                self.assertEqual(dataset.path, f"gs://{TEST_BUCKET_NAME}/my-directory/{dataset.name}")
+                self.assertTrue(len(dataset.files), 2)
+                self.assertTrue(all(isinstance(file, Datafile) for file in dataset.files))

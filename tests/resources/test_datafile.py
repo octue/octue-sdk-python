@@ -3,12 +3,13 @@ import json
 import os
 import tempfile
 import uuid
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 from octue import exceptions
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.mixins import MixinBase, Pathable
-from octue.resources import Datafile
+from octue.resources.datafile import TEMPORARY_LOCAL_FILE_CACHE, Datafile
 from octue.resources.tag import TagSet
 from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from ..base import BaseTestCase
@@ -24,8 +25,35 @@ class DatafileTestCase(BaseTestCase):
         self.path_from = MyPathable(path=os.path.join(self.data_path, "basic_files", "configuration", "test-dataset"))
         self.path = os.path.join("path-within-dataset", "a_test_file.csv")
 
+    def tearDown(self):
+        TEMPORARY_LOCAL_FILE_CACHE.clear()
+
     def create_valid_datafile(self):
         return Datafile(timestamp=None, path_from=self.path_from, path=self.path, skip_checks=False)
+
+    def create_datafile_in_cloud(
+        self,
+        project_name=TEST_PROJECT_NAME,
+        bucket_name=TEST_BUCKET_NAME,
+        path_in_bucket="cloud_file.txt",
+        contents="some text",
+        **kwargs,
+    ):
+        """Create a datafile in the cloud. Any metadata attributes can be set via kwargs.
+
+        :param str project_name:
+        :param str bucket_name:
+        :param str path_in_bucket:
+        :param str contents:
+        :return (str, str, str, str):
+        """
+        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
+            temporary_file.write(contents)
+
+        timestamp = kwargs.pop("timestamp", None)
+        datafile = Datafile(path=temporary_file.name, timestamp=timestamp, **kwargs)
+        datafile.to_cloud(project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
+        return datafile, project_name, bucket_name, path_in_bucket, contents
 
     def test_instantiates(self):
         """Ensures a Datafile instantiates using only a path and generates a uuid ID"""
@@ -41,6 +69,16 @@ class DatafileTestCase(BaseTestCase):
             Datafile(timestamp=None)
 
         self.assertIn("__init__() missing 1 required positional argument: 'path'", error.exception.args[0])
+
+    def test_setting_timestamp(self):
+        """Test that both datetime and posix timestamps can be used for a Datafile, that the timestamp attribute is
+        always converted to a datetime instance, and that invalid timestamps raise an error.
+        """
+        self.assertTrue(isinstance(Datafile(timestamp=datetime.now(), path="a_path").timestamp, datetime))
+        self.assertTrue(isinstance(Datafile(timestamp=50, path="a_path").timestamp, datetime))
+
+        with self.assertRaises(TypeError):
+            Datafile(timestamp="50", path="a_path")
 
     def test_gt(self):
         """Test that datafiles can be ordered using the greater-than operator."""
@@ -113,7 +151,6 @@ class DatafileTestCase(BaseTestCase):
             "timestamp",
             "sequence",
             "tags",
-            "hash_value",
             "_cloud_metadata",
         }
 
@@ -147,7 +184,7 @@ class DatafileTestCase(BaseTestCase):
         )
 
         datafile = Datafile.from_cloud(
-            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path=path_in_bucket, timestamp=None
+            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path=path_in_bucket
         )
 
         self.assertEqual(datafile.path, f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}")
@@ -160,128 +197,158 @@ class DatafileTestCase(BaseTestCase):
 
     def test_from_cloud_with_datafile(self):
         """Test that a Datafile can be constructed from a file on Google Cloud storage with custom metadata."""
-        path_in_bucket = "file_to_upload.txt"
-
-        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
-            temporary_file.write("[1, 2, 3]")
-
-        datafile = Datafile(
-            timestamp=None, path=temporary_file.name, cluster=0, sequence=1, tags={"blah:shah:nah", "blib", "glib"}
-        )
-        datafile.to_cloud(project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket=path_in_bucket)
-
-        persisted_datafile = Datafile.from_cloud(
-            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path=path_in_bucket
+        datafile, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud(
+            timestamp=datetime.now(tz=timezone.utc),
+            cluster=0,
+            sequence=1,
+            tags={"blah:shah:nah", "blib", "glib"},
         )
 
-        self.assertEqual(persisted_datafile.path, f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}")
-        self.assertEqual(persisted_datafile.id, datafile.id)
-        self.assertEqual(persisted_datafile.hash_value, datafile.hash_value)
-        self.assertEqual(persisted_datafile.cluster, datafile.cluster)
-        self.assertEqual(persisted_datafile.sequence, datafile.sequence)
-        self.assertEqual(persisted_datafile.tags, datafile.tags)
-        self.assertEqual(persisted_datafile.size_bytes, datafile.size_bytes)
-        self.assertTrue(isinstance(persisted_datafile._last_modified, float))
+        downloaded_datafile = Datafile.from_cloud(project_name, bucket_name, path_in_bucket)
+
+        self.assertEqual(downloaded_datafile.path, f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}")
+        self.assertEqual(downloaded_datafile.id, datafile.id)
+        self.assertEqual(downloaded_datafile.timestamp, datafile.timestamp)
+        self.assertEqual(downloaded_datafile.hash_value, datafile.hash_value)
+        self.assertEqual(downloaded_datafile.cluster, datafile.cluster)
+        self.assertEqual(downloaded_datafile.sequence, datafile.sequence)
+        self.assertEqual(downloaded_datafile.tags, datafile.tags)
+        self.assertEqual(downloaded_datafile.size_bytes, datafile.size_bytes)
+        self.assertTrue(isinstance(downloaded_datafile._last_modified, float))
 
     def test_from_cloud_with_overwrite(self):
         """Test that a datafile can be instantiated from the cloud and have its attributes overwritten if new values
         are given in kwargs.
         """
-        path_in_bucket = "file_to_upload.txt"
-
-        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
-            temporary_file.write("[1, 2, 3]")
-
-        Datafile(timestamp=None, path=temporary_file.name).to_cloud(
-            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket=path_in_bucket
-        )
+        datafile, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud()
 
         new_id = str(uuid.uuid4())
 
-        new_datafile = Datafile.from_cloud(
-            project_name=TEST_PROJECT_NAME,
-            bucket_name=TEST_BUCKET_NAME,
+        downloaded_datafile = Datafile.from_cloud(
+            project_name=project_name,
+            bucket_name=bucket_name,
             datafile_path=path_in_bucket,
             allow_overwrite=True,
             id=new_id,
         )
 
-        self.assertEqual(new_datafile.id, new_id)
+        self.assertEqual(downloaded_datafile.id, new_id)
+        self.assertNotEqual(datafile.id, downloaded_datafile.id)
 
     def test_from_cloud_with_overwrite_when_disallowed_results_in_error(self):
         """Test that attempting to overwrite the attributes of a datafile instantiated from the cloud when not allowed
         results in an error.
         """
-        path_in_bucket = "my-file.txt"
-
-        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
-            temporary_file.write("[1, 2, 3]")
-
-        Datafile(timestamp=None, path=temporary_file.name).to_cloud(
-            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket=path_in_bucket
-        )
+        _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud()
 
         with self.assertRaises(exceptions.AttributeConflict):
             Datafile.from_cloud(
-                project_name=TEST_PROJECT_NAME,
-                bucket_name=TEST_BUCKET_NAME,
+                project_name=project_name,
+                bucket_name=bucket_name,
                 datafile_path=path_in_bucket,
                 allow_overwrite=False,
                 id=str(uuid.uuid4()),
             )
 
-    def test_to_cloud_updates_cloud_files(self):
-        """Test that calling Datafile.to_cloud on a datafile that is already cloud-based updates it in the cloud."""
-        path_in_bucket = "file_to_upload.txt"
-
-        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
-            temporary_file.write("[1, 2, 3]")
-
-        datafile = Datafile(timestamp=None, path=temporary_file.name, cluster=0)
-
-        datafile.to_cloud(project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket=path_in_bucket)
+    def test_to_cloud_updates_cloud_metadata(self):
+        """Test that calling Datafile.to_cloud on a datafile that is already cloud-based updates its metadata in the
+        cloud.
+        """
+        datafile, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud(cluster=0)
 
         datafile.cluster = 3
+        datafile.to_cloud(project_name, bucket_name, path_in_bucket)
 
-        datafile.to_cloud(project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket=path_in_bucket)
+        self.assertEqual(Datafile.from_cloud(project_name, bucket_name, path_in_bucket).cluster, 3)
 
-        self.assertEqual(
-            Datafile.from_cloud(
-                project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path=path_in_bucket
-            ).cluster,
-            3,
-        )
+    def test_to_cloud_does_not_update_cloud_metadata_if_update_cloud_metadata_is_false(self):
+        """Test that calling Datafile.to_cloud with `update_cloud_metadata=False` doesn't update the cloud metadata."""
+        datafile, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud(cluster=0)
+        datafile.cluster = 3
+
+        with patch("octue.resources.datafile.Datafile.update_cloud_metadata") as mock:
+            datafile.to_cloud(project_name, bucket_name, path_in_bucket, update_cloud_metadata=False)
+            self.assertFalse(mock.called)
+
+        self.assertEqual(Datafile.from_cloud(project_name, bucket_name, path_in_bucket).cluster, 0)
+
+    def test_to_cloud_does_not_update_metadata_if_no_metadata_change_has_been_made(self):
+        """Test that Datafile.to_cloud does not try to update cloud metadata if no metadata change has been made."""
+        _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud(cluster=0)
+
+        datafile = Datafile.from_cloud(project_name, bucket_name, path_in_bucket)
+
+        with patch("octue.resources.datafile.Datafile.update_cloud_metadata") as mock:
+            datafile.to_cloud()
+            self.assertFalse(mock.called)
+
+    def test_to_cloud_raises_error_if_no_cloud_location_provided_and_datafile_not_from_cloud(self):
+        """Test that trying to send a datafile to the cloud with no cloud location provided when the datafile was not
+        constructed from a cloud file results in cloud location error.
+        """
+        datafile = Datafile(path="hello.txt", timestamp=None)
+
+        with self.assertRaises(exceptions.CloudLocationNotSpecified):
+            datafile.to_cloud()
+
+    def test_to_cloud_works_with_implicit_cloud_location_if_cloud_location_previously_provided(self):
+        """Test datafile.to_cloud works with an implicit cloud location if the cloud location has previously been
+        provided.
+        """
+        _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud()
+        datafile = Datafile.from_cloud(project_name, bucket_name, path_in_bucket)
+        datafile.to_cloud()
+
+    def test_to_cloud_does_not_try_to_update_file_if_no_change_has_been_made_locally(self):
+        """Test that Datafile.to_cloud does not try to update cloud file if no change has been made locally."""
+        datafile, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud(cluster=0)
+
+        with patch("octue.cloud.storage.client.GoogleCloudStorageClient.upload_file") as mock:
+            datafile.to_cloud()
+            self.assertFalse(mock.called)
+
+    def test_update_cloud_metadata(self):
+        """Test that a cloud datafile's metadata can be updated."""
+        _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud()
+
+        new_datafile = Datafile(path="glib.txt", timestamp=None, cluster=32)
+        new_datafile.update_cloud_metadata(project_name, bucket_name, path_in_bucket)
+
+        self.assertEqual(Datafile.from_cloud(project_name, bucket_name, path_in_bucket).cluster, 32)
+
+    def test_update_cloud_metadata_works_with_implicit_cloud_location_if_cloud_location_previously_provided(self):
+        """Test that datafile.update_metadata works with an implicit cloud location if the cloud location has been
+        previously provided.
+        """
+        _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud()
+
+        datafile = Datafile.from_cloud(project_name, bucket_name, path_in_bucket)
+        datafile.cluster = 32
+        datafile.update_cloud_metadata()
+
+        self.assertEqual(Datafile.from_cloud(project_name, bucket_name, path_in_bucket).cluster, 32)
+
+    def test_update_cloud_metadata_raises_error_if_no_cloud_location_provided_and_datafile_not_from_cloud(self):
+        """Test that trying to update a cloud datafile's metadata with no cloud location provided when the datafile was
+        not constructed from a cloud file results in cloud location error.
+        """
+        datafile = Datafile(path="hello.txt", timestamp=None)
+
+        with self.assertRaises(exceptions.CloudLocationNotSpecified):
+            datafile.update_cloud_metadata()
 
     def test_get_local_path(self):
         """Test that a file in the cloud can be temporarily downloaded and its local path returned."""
-        file_contents = "[1, 2, 3]"
-
-        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
-            temporary_file.write(file_contents)
-
-        Datafile(timestamp=None, path=temporary_file.name).to_cloud(
-            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket="nope.txt"
-        )
-
-        datafile = Datafile.from_cloud(
-            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path="nope.txt"
-        )
+        _, project_name, bucket_name, path_in_bucket, contents = self.create_datafile_in_cloud()
+        datafile = Datafile.from_cloud(project_name, bucket_name, path_in_bucket)
 
         with open(datafile.get_local_path()) as f:
-            self.assertEqual(f.read(), file_contents)
+            self.assertEqual(f.read(), contents)
 
     def test_get_local_path_with_cached_file_avoids_downloading_again(self):
         """Test that attempting to download a cached file avoids downloading it again."""
-        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
-            temporary_file.write("[1, 2, 3]")
-
-        Datafile(timestamp=None, path=temporary_file.name).to_cloud(
-            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket="nope.txt"
-        )
-
-        datafile = Datafile.from_cloud(
-            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path="nope.txt"
-        )
+        _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud()
+        datafile = Datafile.from_cloud(project_name, bucket_name, path_in_bucket)
 
         # Download for first time.
         datafile.get_local_path()
@@ -320,37 +387,16 @@ class DatafileTestCase(BaseTestCase):
 
     def test_open_with_reading_cloud_file(self):
         """Test that a cloud datafile can be opened for reading."""
-        file_contents = "[1, 2, 3]"
-
-        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
-            temporary_file.write(file_contents)
-
-        Datafile(timestamp=None, path=temporary_file.name).to_cloud(
-            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket="nope.txt"
-        )
-
-        datafile = Datafile.from_cloud(
-            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path="nope.txt"
-        )
+        _, project_name, bucket_name, path_in_bucket, contents = self.create_datafile_in_cloud()
+        datafile = Datafile.from_cloud(project_name, bucket_name, path_in_bucket)
 
         with datafile.open() as f:
-            self.assertEqual(f.read(), file_contents)
+            self.assertEqual(f.read(), contents)
 
     def test_open_with_writing_to_cloud_file(self):
         """Test that a cloud datafile can be opened for writing and that both the remote and local copies are updated."""
-        original_file_contents = "[1, 2, 3]"
-        filename = "nope.txt"
-
-        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
-            temporary_file.write(original_file_contents)
-
-        Datafile(timestamp=None, path=temporary_file.name).to_cloud(
-            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, path_in_bucket=filename
-        )
-
-        datafile = Datafile.from_cloud(
-            project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, datafile_path=filename
-        )
+        _, project_name, bucket_name, path_in_bucket, original_contents = self.create_datafile_in_cloud()
+        datafile = Datafile.from_cloud(project_name, bucket_name, path_in_bucket)
 
         new_file_contents = "nanana"
 
@@ -359,16 +405,16 @@ class DatafileTestCase(BaseTestCase):
 
             # Check that the cloud file isn't updated until the context manager is closed.
             self.assertEqual(
-                GoogleCloudStorageClient(project_name=TEST_PROJECT_NAME).download_as_string(
-                    bucket_name=TEST_BUCKET_NAME, path_in_bucket=filename
+                GoogleCloudStorageClient(project_name=project_name).download_as_string(
+                    bucket_name=bucket_name, path_in_bucket=path_in_bucket
                 ),
-                original_file_contents,
+                original_contents,
             )
 
         # Check that the cloud file has now been updated.
         self.assertEqual(
-            GoogleCloudStorageClient(project_name=TEST_PROJECT_NAME).download_as_string(
-                bucket_name=TEST_BUCKET_NAME, path_in_bucket=filename
+            GoogleCloudStorageClient(project_name=project_name).download_as_string(
+                bucket_name=bucket_name, path_in_bucket=path_in_bucket
             ),
             new_file_contents,
         )
@@ -426,3 +472,44 @@ class DatafileTestCase(BaseTestCase):
         self.assertEqual(datafile.id, deserialised_datafile.id)
         self.assertFalse(pathable.path in deserialised_datafile.path)
         self.assertEqual(deserialised_datafile.path, temporary_file.name)
+
+    def test_posix_timestamp(self):
+        """Test that the posix timestamp property works properly."""
+        datafile = Datafile(path="hello.txt", timestamp=None)
+        self.assertIsNone(datafile.posix_timestamp)
+
+        datafile.timestamp = datetime(1970, 1, 1)
+        self.assertEqual(datafile.posix_timestamp, 0)
+
+    def test_datafile_as_context_manager(self):
+        """Test that Datafile can be used as a context manager to manage local changes."""
+        temporary_file = tempfile.NamedTemporaryFile("w", delete=False)
+        contents = "Here is the content."
+
+        with Datafile(path=temporary_file.name, timestamp=None, mode="w") as (datafile, f):
+            f.write(contents)
+
+        # Check that the cloud file has been updated.
+        with datafile.open() as f:
+            self.assertEqual(f.read(), contents)
+
+    def test_from_datafile_as_context_manager(self):
+        """Test that Datafile.from_cloud can be used as a context manager to manage cloud changes."""
+        _, project_name, bucket_name, path_in_bucket, original_content = self.create_datafile_in_cloud()
+        new_contents = "Here is the new content."
+        self.assertNotEqual(original_content, new_contents)
+
+        with Datafile.from_cloud(project_name, bucket_name, path_in_bucket, mode="w") as (datafile, f):
+            datafile.add_tags("blue")
+            f.write(new_contents)
+
+        # Check that the cloud metadata has been updated.
+        re_downloaded_datafile = Datafile.from_cloud(project_name, bucket_name, path_in_bucket)
+        self.assertTrue("blue" in re_downloaded_datafile.tags)
+
+        # The file cache must be cleared so the modified cloud file is downloaded.
+        re_downloaded_datafile.clear_from_file_cache()
+
+        # Check that the cloud file has been updated.
+        with re_downloaded_datafile.open() as f:
+            self.assertEqual(f.read(), new_contents)

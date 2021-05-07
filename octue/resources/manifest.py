@@ -16,8 +16,8 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
     """A representation of a manifest, which can contain multiple datasets This is used to manage all files coming into
     (or leaving), a data service for an analysis at the configuration, input or output stage."""
 
-    _ATTRIBUTES_TO_HASH = "datasets", "keys"
-    _SERIALISE_FIELDS = "datasets", "keys", "hash_value", "id", "name", "path"
+    _ATTRIBUTES_TO_HASH = ("datasets",)
+    _SERIALISE_FIELDS = "datasets", "keys", "id", "name", "path"
 
     def __init__(self, id=None, logger=None, path=None, datasets=None, keys=None, **kwargs):
         super().__init__(id=id, logger=logger, path=path)
@@ -73,7 +73,6 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         return Manifest(
             id=serialised_manifest["id"],
             path=storage.path.generate_gs_path(bucket_name, path_to_manifest_file),
-            hash_value=serialised_manifest["hash_value"],
             datasets=datasets,
             keys=serialised_manifest["keys"],
         )
