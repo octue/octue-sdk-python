@@ -495,6 +495,15 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
 
 class _DatafileContextManager:
+    """A context manager for opening datafiles for reading and writing locally or from the cloud. It is analogous to the
+    open context manager, but with greater scope.
+
+    :param octue.resources.datafile.Datafile datafile:
+    :param str mode:
+    :param bool update_cloud_metadata:
+    :return None:
+    """
+
     MODIFICATION_MODES = {"w", "a", "x", "+", "U"}
 
     def __init__(self, datafile, mode="r", update_cloud_metadata=True, **kwargs):
