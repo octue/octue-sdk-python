@@ -57,7 +57,10 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     :param int sequence: A sequence number of this file within its cluster (if sequences are appropriate)
     :param str tags: Space-separated string of tags relevant to this file
     :param bool skip_checks:
-
+    :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode
+        options are the same as for the builtin open function)
+    :param bool update_cloud_metadata: if using as a context manager and this is True, update the cloud metadata of
+        the datafile when the context is exited
     :return None:
     """
 
@@ -84,6 +87,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         tags=TAGS_DEFAULT,
         skip_checks=True,
         mode="r",
+        update_cloud_metadata=True,
         **kwargs,
     ):
         super().__init__(
@@ -108,7 +112,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             self.check(**kwargs)
 
         self._cloud_metadata = {}
-        self._open_attributes = {"mode": mode, **kwargs}
+        self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
 
     def __enter__(self):
         self._open_context_manager = self.open(**self._open_attributes)
@@ -174,8 +178,10 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         :param str datafile_path: path to file represented by datafile
         :param bool allow_overwrite: if `True`, allow attributes of the datafile to be overwritten by values given in
             kwargs
-        :param str mode:
-        :param bool update_cloud_metadata:
+        :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode
+            options are the same as for the builtin open function)
+        :param bool update_cloud_metadata: if using as a context manager and this is True, update the cloud metadata of
+            the datafile when the context is exited
         :return Datafile:
         """
         datafile = cls(timestamp=None, path=storage.path.generate_gs_path(bucket_name, datafile_path))
@@ -301,6 +307,10 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     @property
     def posix_timestamp(self):
+        """Get the timestamp of the datafile in posix format.
+
+        :return float:
+        """
         if self.timestamp is None:
             return None
 
@@ -462,24 +472,9 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     @property
     def open(self):
-        """Context manager to handle the opening and closing of a Datafile.
+        """Get a context manager for handling the opening and closing of the datafile for reading/editing.
 
-        If opened in write mode, the manager will attempt to determine if the folder path exists and, if not, will
-        create the folder structure required to write the file.
-
-        Use it like:
-        ```
-        my_datafile = Datafile(timestamp=None, path='subfolder/subsubfolder/my_datafile.json)
-        with my_datafile.open('w') as fp:
-            fp.write("{}")
-        ```
-        This is equivalent to the standard python:
-        ```
-        my_datafile = Datafile(timestamp=None, path='subfolder/subsubfolder/my_datafile.json)
-        os.makedirs(os.path.split(my_datafile.absolute_path)[0], exist_ok=True)
-        with open(my_datafile.absolute_path, 'w') as fp:
-            fp.write("{}")
-        ```
+        :return type: the class octue.resources.datafile._DatafileContextManager
         """
         return functools.partial(_DatafileContextManager, self)
 
@@ -498,12 +493,30 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
 
 class _DatafileContextManager:
-    """A context manager for opening datafiles for reading and writing locally or from the cloud. It is analogous to the
-    open context manager, but with greater scope.
+    """A context manager for opening datafiles for reading and writing locally or from the cloud. Its usage is analogous
+    to the builtin open context manager. If opening a local datafile in write mode, the manager will attempt to
+    determine if the folder path exists and, if not, will create the folder structure required to write the file.
+
+    Usage:
+    ```
+    my_datafile = Datafile(timestamp=None, path='subfolder/subsubfolder/my_datafile.json)
+    with my_datafile.open('w') as fp:
+        fp.write("{}")
+    ```
+
+    This is equivalent to the standard python:
+    ```
+    my_datafile = Datafile(timestamp=None, path='subfolder/subsubfolder/my_datafile.json)
+    os.makedirs(os.path.split(my_datafile.absolute_path)[0], exist_ok=True)
+    with open(my_datafile.absolute_path, 'w') as fp:
+        fp.write("{}")
+    ```
 
     :param octue.resources.datafile.Datafile datafile:
-    :param str mode:
-    :param bool update_cloud_metadata:
+    :param str mode: open the datafile for reading/editing in this mode (the mode options are the same as for the
+        builtin open function)
+    :param bool update_cloud_metadata: this is True, update the cloud metadata of
+        the datafile when the context is exited
     :return None:
     """
 
@@ -514,7 +527,7 @@ class _DatafileContextManager:
         self.mode = mode
         self._update_cloud_metadata = update_cloud_metadata
         self.kwargs = kwargs
-        self.fp = None
+        self._fp = None
         self.path = None
 
     def __enter__(self):
@@ -527,17 +540,17 @@ class _DatafileContextManager:
         if "w" in self.mode:
             os.makedirs(os.path.split(self.path)[0], exist_ok=True)
 
-        self.fp = open(self.path, self.mode, **self.kwargs)
-        return self.fp
+        self._fp = open(self.path, self.mode, **self.kwargs)
+        return self._fp
 
     def __exit__(self, *args):
         """Close the datafile, updating the corresponding file in the cloud if necessary and its metadata if
-        required.
+        self._update_cloud_metadata is True.
 
         :return None:
         """
-        if self.fp is not None:
-            self.fp.close()
+        if self._fp is not None:
+            self._fp.close()
 
         if self.datafile.is_in_cloud and any(character in self.mode for character in self.MODIFICATION_MODES):
             self.datafile.to_cloud(update_cloud_metadata=self._update_cloud_metadata)
