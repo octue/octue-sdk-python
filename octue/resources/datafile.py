@@ -479,7 +479,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         """
         datafile = self
 
-        class DataFileContextManager:
+        class DatafileContextManager:
             MODIFICATION_MODES = {"w", "a", "x", "+", "U"}
 
             def __init__(obj, mode="r", update_cloud_metadata=True, **kwargs):
@@ -514,7 +514,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
                     datafile.reset_hash()
                     datafile.to_cloud(update_cloud_metadata=obj._update_cloud_metadata)
 
-        return DataFileContextManager
+        return DatafileContextManager
 
     def metadata(self):
         """Get the datafile's metadata in a serialised form.
