@@ -12,3 +12,131 @@ the following main attributes:
 - ``sequence`` - a sequence number of this file within its cluster (if sequences are appropriate)
 - ``tags`` - a space-separated string or iterable of tags relevant to this file
 - ``timestamp`` - a posix timestamp associated with the file, in seconds since epoch, typically when it was created but could relate to a relevant time point for the data
+
+
+-----
+Usage
+-----
+
+``Datafile`` can be used functionally or as a context manager. When used as a context manager, it is analogous to the
+builtin ``open`` function context manager. On exiting the context (``with`` block), it closes the datafile locally and,
+if it is a cloud datafile, updates the cloud object with any data or metadata changes.
+
+
+Example A
+---------
+**Scenario:** Download a cloud object, calculate Octue metadata from its contents, and add the new metadata to the cloud object
+
+**Starting point:** Object in cloud with or without Octue metadata
+
+**Goal:** Object in cloud with updated metadata
+
+.. code-block:: python
+
+    from octue.resources import Datafile
+
+
+    project_name = "my-project"
+    bucket_name = "my-bucket",
+    datafile_path = "path/to/data.csv"
+
+    with Datafile.from_cloud(project_name, bucket_name, datafile_path, mode="r") as datafile, f:
+        data = f.read()
+        new_metadata = metadata_calculating_function(data)
+
+        datafile.timestamp = new_metadata["timestamp"]
+        datafile.cluster = new_metadata["cluster"]
+        datafile.sequence = new_metadata["sequence"]
+        datafile.tags = new_metadata["tags"]
+
+
+Example B
+---------
+**Scenario:** Add or update Octue metadata on an existing cloud object *without downloading its content*
+
+**Starting point:** A cloud object with or without Octue metadata
+
+**Goal:** Object in cloud with updated metadata
+
+.. code-block:: python
+
+    from datetime import datetime
+    from octue.resources import Datafile
+
+
+    project_name = "my-project"
+    bucket_name = "my-bucket"
+    datafile_path = "path/to/data.csv"
+
+    datafile = Datafile.from_cloud(project_name, bucket_name, datafile_path):
+
+    datafile.timestamp = datetime.now()
+    datafile.cluster = 0
+    datafile.sequence = 3
+    datafile.tags = {"manufacturer:Vestas", "output:1MW"}
+
+    datafile.to_cloud()  # Or, datafile.update_cloud_metadata()
+
+
+Example C
+---------
+**Scenario:** Read in the contents and Octue metadata of an existing cloud object without intent to update it in the cloud
+
+**Starting point:** A cloud object with or without Octue metadata
+
+**Goal:** Cloud object data (contents) and metadata held locally in local variables
+
+.. code-block:: python
+
+    from octue.resources import Datafile
+
+
+    project_name = "my-project"
+    bucket_name = "my-bucket"
+    datafile_path = "path/to/data.csv"
+
+    datafile = Datafile.from_cloud(project_name, bucket_name, datafile_path)
+
+    with datafile.open("r") as f:
+        data = f.read()
+
+    metadata = datafile.metadata()
+
+
+Example D
+---------
+**Scenario:** Create a new cloud object from local data, adding Octue metadata
+
+**Starting point:** A file-like locally (or content data in local variable) with Octue metadata stored in local variables
+
+**Goal:** A new object in the cloud with data and Octue metadata
+
+For creating new data in a new local file:
+
+.. code-block:: python
+
+    from octue.resources import Datafile
+
+
+    sequence = 2
+    tags = {"cleaned:True", "type:linear"}
+
+
+    with Datafile(path="path/to/local/file.dat", timestamp=None, sequence=sequence, tags=tags, mode="w") as datafile, f:
+        f.write("This is some cleaned data.")
+
+    datafile.to_cloud(project_name="my-project", bucket_name="my-bucket", path_in_bucket="path/to/data.dat")
+
+
+For existing data in an existing local file:
+
+.. code-block:: python
+
+    from octue.resources import Datafile
+
+
+    sequence = 2
+    tags = {"cleaned:True", "type:linear"}
+
+    datafile = Datafile(path="path/to/local/file.dat", timestamp=None, sequence=sequence, tags=tags)
+    datafile.to_cloud(project_name="my-project", bucket_name="my-bucket", path_in_bucket="path/to/data.dat")
