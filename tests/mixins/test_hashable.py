@@ -79,3 +79,10 @@ class HashableTestCase(BaseTestCase):
 
         type_with_hash.reset_hash()
         self.assertEqual(type_with_hash.hash_value, original_calculated_hash)
+
+    def test_hash_value_cannot_be_set_if_hashable_has_immutable_hash_value(self):
+        """Test that the hash value of a hashable instance with an immutable hash value cannot be set."""
+        hashable = Hashable(immutable_hash_value="blue")
+
+        with self.assertRaises(ValueError):
+            hashable.hash_value = "red"

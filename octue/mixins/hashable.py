@@ -21,8 +21,8 @@ class Hashable:
     _ATTRIBUTES_TO_HASH = None
     _HASH_TYPE = "CRC32C"
 
-    def __init__(self, hash_value=None, *args, **kwargs):
-        self._hash_value = hash_value
+    def __init__(self, immutable_hash_value=None, *args, **kwargs):
+        self._immutable_hash_value = immutable_hash_value
         self._ATTRIBUTES_TO_HASH = self._ATTRIBUTES_TO_HASH or []
         super().__init__(*args, **kwargs)
 
@@ -40,11 +40,10 @@ class Hashable:
     @property
     def hash_value(self):
         """Get the hash of the instance."""
-        if self._hash_value:
-            return self._hash_value
+        if self._immutable_hash_value is None:
+            return self._calculate_hash()
 
-        self._hash_value = self._calculate_hash()
-        return self._hash_value
+        return self._immutable_hash_value
 
     @hash_value.setter
     def hash_value(self, value):
@@ -53,14 +52,17 @@ class Hashable:
         :param str value:
         :return None:
         """
-        self._hash_value = value
+        if self._immutable_hash_value is not None:
+            raise ValueError(f"The hash of {self!r} is immutable - hash_value cannot be set.")
+
+        self._immutable_hash_value = value
 
     def reset_hash(self):
         """Reset the hash value to the calculated hash (rather than whatever value has been set).
 
         :return None:
         """
-        self._hash_value = self._calculate_hash()
+        self._immutable_hash_value = None
 
     def _calculate_hash(self, hash_=None):
         """Calculate the hash of the sorted attributes in self._ATTRIBUTES_TO_HASH. If hash_ is not None and is

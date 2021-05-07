@@ -27,6 +27,7 @@ class GoogleCloudStorageClient:
             credentials = credentials
 
         self.client = storage.Client(project=project_name, credentials=credentials)
+        self.project_name = project_name
 
     def create_bucket(self, name, location=None, allow_existing=False, timeout=_DEFAULT_TIMEOUT):
         """Create a new bucket. If the bucket already exists, and `allow_existing` is `True`, do nothing; if it is
@@ -82,6 +83,17 @@ class GoogleCloudStorageClient:
         self._update_metadata(blob, metadata)
         logger.info("Uploaded data to Google Cloud at %r.", blob.public_url)
 
+    def update_metadata(self, bucket_name, path_in_bucket, metadata):
+        """Update the metadata for the given cloud file.
+
+        :param str bucket_name:
+        :param str path_in_bucket:
+        :param dict metadata:
+        :return None:
+        """
+        blob = self._blob(bucket_name, path_in_bucket)
+        self._update_metadata(blob, metadata)
+
     def download_to_file(self, bucket_name, path_in_bucket, local_path, timeout=_DEFAULT_TIMEOUT):
         """Download a file to a file from a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>.
 
@@ -118,14 +130,22 @@ class GoogleCloudStorageClient:
         """
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         blob = bucket.get_blob(blob_name=self._strip_leading_slash(path_in_bucket), timeout=timeout)
-        metadata = blob._properties
 
-        # Get timestamps from blob rather than properties so they are datetime.datetime objects rather than strings.
-        metadata["updated"] = blob.updated
-        metadata["timeCreated"] = blob.time_created
-        metadata["timeDeleted"] = blob.time_deleted
-        metadata["customTime"] = blob.custom_time
-        return metadata
+        if blob is None:
+            return None
+
+        return {
+            "custom_metadata": blob.metadata or {},
+            "crc32c": blob.crc32c,
+            "size": blob.size,
+            "updated": blob.updated,
+            "time_created": blob.time_created,
+            "time_deleted": blob.time_deleted,
+            "custom_time": blob.custom_time,
+            "project_name": self.project_name,
+            "bucket_name": bucket_name,
+            "path_in_bucket": path_in_bucket,
+        }
 
     def delete(self, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
         """Delete the given file from the given bucket.
