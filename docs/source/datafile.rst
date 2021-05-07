@@ -23,6 +23,9 @@ builtin ``open`` function context manager. On exiting the context (``with`` bloc
 if it is a cloud datafile, updates the cloud object with any data or metadata changes.
 
 
+.. image:: images/datafile_use_cases.png
+
+
 Example A
 ---------
 **Scenario:** Download a cloud object, calculate Octue metadata from its contents, and add the new metadata to the cloud object
@@ -82,7 +85,7 @@ Example C
 ---------
 **Scenario:** Read in the contents and Octue metadata of an existing cloud object without intent to update it in the cloud
 
-**Starting point:** A cloud object with or without Octue metadata
+**Starting point:** A cloud object with Octue metadata
 
 **Goal:** Cloud object data (contents) and metadata held locally in local variables
 
