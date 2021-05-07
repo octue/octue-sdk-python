@@ -1,4 +1,5 @@
 import datetime
+import functools
 import logging
 import os
 import tempfile
@@ -477,44 +478,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             fp.write("{}")
         ```
         """
-        datafile = self
-
-        class DatafileContextManager:
-            MODIFICATION_MODES = {"w", "a", "x", "+", "U"}
-
-            def __init__(obj, mode="r", update_cloud_metadata=True, **kwargs):
-                obj.mode = mode
-                obj.fp = None
-                obj.path = None
-                obj._update_cloud_metadata = update_cloud_metadata
-                obj.kwargs = kwargs
-
-            def __enter__(obj):
-                """Open the datafile, first downloading it from the cloud if necessary.
-
-                :return io.TextIOWrapper:
-                """
-                obj.path = datafile.get_local_path()
-
-                if "w" in obj.mode:
-                    os.makedirs(os.path.split(obj.path)[0], exist_ok=True)
-
-                obj.fp = open(obj.path, obj.mode, **obj.kwargs)
-                return obj.fp
-
-            def __exit__(obj, *args):
-                """Close the datafile, updating the corresponding file in the cloud if necessary.
-
-                :return None:
-                """
-                if obj.fp is not None:
-                    obj.fp.close()
-
-                if datafile.is_in_cloud and any(character in obj.mode for character in obj.MODIFICATION_MODES):
-                    datafile.reset_hash()
-                    datafile.to_cloud(update_cloud_metadata=obj._update_cloud_metadata)
-
-        return DatafileContextManager
+        return functools.partial(_DatafileContextManager, self)
 
     def metadata(self):
         """Get the datafile's metadata in a serialised form.
@@ -528,3 +492,41 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             "sequence": self.sequence,
             "tags": self.tags.serialise(to_string=True),
         }
+
+
+class _DatafileContextManager:
+    MODIFICATION_MODES = {"w", "a", "x", "+", "U"}
+
+    def __init__(self, datafile, mode="r", update_cloud_metadata=True, **kwargs):
+        self.datafile = datafile
+        self.mode = mode
+        self._update_cloud_metadata = update_cloud_metadata
+        self.kwargs = kwargs
+        self.fp = None
+        self.path = None
+
+    def __enter__(self):
+        """Open the datafile, first downloading it from the cloud if necessary.
+
+        :return io.TextIOWrapper:
+        """
+        self.path = self.datafile.get_local_path()
+
+        if "w" in self.mode:
+            os.makedirs(os.path.split(self.path)[0], exist_ok=True)
+
+        self.fp = open(self.path, self.mode, **self.kwargs)
+        return self.fp
+
+    def __exit__(self, *args):
+        """Close the datafile, updating the corresponding file in the cloud if necessary and its metadata if
+        required.
+
+        :return None:
+        """
+        if self.fp is not None:
+            self.fp.close()
+
+        if self.datafile.is_in_cloud and any(character in self.mode for character in self.MODIFICATION_MODES):
+            self.datafile.reset_hash()
+            self.datafile.to_cloud(update_cloud_metadata=self._update_cloud_metadata)
