@@ -174,6 +174,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
         cluster = kwargs.get("cluster", custom_metadata.get("cluster", CLUSTER_DEFAULT))
         sequence = kwargs.get("sequence", custom_metadata.get("sequence", SEQUENCE_DEFAULT))
+        timestamp = kwargs.get("timestamp", custom_metadata.get("timestamp"))
 
         if isinstance(cluster, str):
             cluster = int(cluster)
@@ -181,8 +182,11 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         if isinstance(sequence, str):
             sequence = int(sequence)
 
+        if isinstance(timestamp, str):
+            timestamp = datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S.%f%z")
+
         datafile = cls(
-            timestamp=kwargs.get("timestamp", metadata.get("customTime")),
+            timestamp=timestamp,
             id=kwargs.get("id", custom_metadata.get("id", ID_DEFAULT)),
             path=storage.path.generate_gs_path(bucket_name, datafile_path),
             hash_value=metadata.get("crc32c", EMPTY_STRING_HASH_VALUE),
