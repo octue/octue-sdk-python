@@ -63,8 +63,7 @@
 	"output_manifest": [
 		{
 			"key": "fractal_figure_files",
-			"purpose": "A dataset containing .json files containing the output figures",
-			"filters": "tags:(fractal AND figure) files:(extension:json)"
+			"purpose": "A dataset containing .json files containing the output figures"
 		}
 	]
 }
