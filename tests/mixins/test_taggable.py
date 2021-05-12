@@ -59,7 +59,6 @@ class TaggableTestCase(BaseTestCase):
         taggable.add_tags("a1829tag")
         taggable.add_tags("1829")
         taggable.add_tags("number:1829")
-        taggable.add_tags("multiple:discriminators:used")
         self.assertEqual(
             set(taggable.tags),
             {
@@ -69,7 +68,6 @@ class TaggableTestCase(BaseTestCase):
                 Tag("a1829tag"),
                 Tag("1829"),
                 Tag("number:1829"),
-                Tag("multiple:discriminators:used"),
             },
         )
 

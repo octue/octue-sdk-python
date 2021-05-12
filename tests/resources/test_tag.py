@@ -7,7 +7,7 @@ from tests.base import BaseTestCase
 class TestTag(BaseTestCase):
     def test_invalid_tags_cause_error(self):
         """Test that invalid tags cause an error to be raised."""
-        for tag in ":a", "@", "a_b", "-bah", "humbug:", r"back\slashy", {"not-a": "string"}, "/a", "a/":
+        for tag in ":a", "@", "a_b", "-bah", "humbug:", r"back\slashy", {"not-a": "string"}, "/a", "a/", "a:b:c":
             with self.assertRaises(exceptions.InvalidTagException):
                 Tag(tag)
 
@@ -18,7 +18,7 @@ class TestTag(BaseTestCase):
 
     def test_subtags(self):
         """ Test that subtags are correctly parsed from tags. """
-        self.assertEqual(Tag("a:b:c").subtags, FilterList([Tag("a"), Tag("b"), Tag("c")]))
+        self.assertEqual(Tag("a:b").subtags, FilterList([Tag("a"), Tag("b")]))
 
     def test_tag_comparison(self):
         """ Test that tags can be alphabetically compared. """
@@ -69,32 +69,32 @@ class TestTag(BaseTestCase):
 
 
 class TestTagSet(BaseTestCase):
-    TAG_SET = TagSet(tags="a b:c d:e:f")
+    TAG_SET = TagSet(tags="a b:c d:e")
 
     def test_instantiation_from_space_delimited_string(self):
         """ Test that a TagSet can be instantiated from a space-delimited string of tag names."""
-        tag_set = TagSet(tags="a b:c d:e:f")
-        self.assertEqual(tag_set.tags, FilterSet({Tag("a"), Tag("b:c"), Tag("d:e:f")}))
+        tag_set = TagSet(tags="a b:c d:e")
+        self.assertEqual(tag_set.tags, FilterSet({Tag("a"), Tag("b:c"), Tag("d:e")}))
 
     def test_instantiation_from_iterable_of_strings(self):
         """ Test that a TagSet can be instantiated from an iterable of strings."""
-        tag_set = TagSet(tags=["a", "b:c", "d:e:f"])
-        self.assertEqual(tag_set.tags, FilterSet({Tag("a"), Tag("b:c"), Tag("d:e:f")}))
+        tag_set = TagSet(tags=["a", "b:c", "d:e"])
+        self.assertEqual(tag_set.tags, FilterSet({Tag("a"), Tag("b:c"), Tag("d:e")}))
 
     def test_instantiation_from_iterable_of_tags(self):
         """ Test that a TagSet can be instantiated from an iterable of Tags."""
-        tag_set = TagSet(tags=[Tag("a"), Tag("b:c"), Tag("d:e:f")])
-        self.assertEqual(tag_set.tags, FilterSet({Tag("a"), Tag("b:c"), Tag("d:e:f")}))
+        tag_set = TagSet(tags=[Tag("a"), Tag("b:c"), Tag("d:e")])
+        self.assertEqual(tag_set.tags, FilterSet({Tag("a"), Tag("b:c"), Tag("d:e")}))
 
     def test_instantiation_from_filter_set_of_strings(self):
         """ Test that a TagSet can be instantiated from a FilterSet of strings."""
-        tag_set = TagSet(tags=FilterSet({"a", "b:c", "d:e:f"}))
-        self.assertEqual(tag_set.tags, FilterSet({Tag("a"), Tag("b:c"), Tag("d:e:f")}))
+        tag_set = TagSet(tags=FilterSet({"a", "b:c", "d:e"}))
+        self.assertEqual(tag_set.tags, FilterSet({Tag("a"), Tag("b:c"), Tag("d:e")}))
 
     def test_instantiation_from_filter_set_of_tags(self):
         """ Test that a TagSet can be instantiated from a FilterSet of Tags."""
-        tag_set = TagSet(tags=FilterSet({Tag("a"), Tag("b:c"), Tag("d:e:f")}))
-        self.assertEqual(tag_set.tags, FilterSet({Tag("a"), Tag("b:c"), Tag("d:e:f")}))
+        tag_set = TagSet(tags=FilterSet({Tag("a"), Tag("b:c"), Tag("d:e")}))
+        self.assertEqual(tag_set.tags, FilterSet({Tag("a"), Tag("b:c"), Tag("d:e")}))
 
     def test_instantiation_from_tag_set(self):
         """ Test that a TagSet can be instantiated from another TagSet. """
@@ -102,7 +102,7 @@ class TestTagSet(BaseTestCase):
 
     def test_equality(self):
         """ Ensure two TagSets with the same tags compare equal. """
-        self.assertTrue(self.TAG_SET == TagSet(tags="a b:c d:e:f"))
+        self.assertTrue(self.TAG_SET == TagSet(tags="a b:c d:e"))
 
     def test_inequality(self):
         """ Ensure two TagSets with different tags compare unequal. """
@@ -115,29 +115,29 @@ class TestTagSet(BaseTestCase):
 
     def test_iterating_over(self):
         """ Ensure a TagSet can be iterated over. """
-        self.assertEqual(set(self.TAG_SET), {Tag("a"), Tag("b:c"), Tag("d:e:f")})
+        self.assertEqual(set(self.TAG_SET), {Tag("a"), Tag("b:c"), Tag("d:e")})
 
     def test_contains_with_string(self):
         """ Ensure we can check that a TagSet has a certain tag using a string form. """
-        self.assertTrue("d:e:f" in self.TAG_SET)
+        self.assertTrue("d:e" in self.TAG_SET)
         self.assertFalse("hello" in self.TAG_SET)
 
     def test_contains_with_tag(self):
         """ Ensure we can check that a TagSet has a certain tag. """
-        self.assertTrue(Tag("d:e:f") in self.TAG_SET)
+        self.assertTrue(Tag("d:e") in self.TAG_SET)
         self.assertFalse(Tag("hello") in self.TAG_SET)
 
     def test_contains_only_matches_full_tags(self):
         """ Test that the has_tag method only matches full tags (i.e. that it doesn't match subtags or parts of tags."""
-        for tag in "a", "b:c", "d:e:f":
+        for tag in "a", "b:c", "d:e":
             self.assertTrue(tag in self.TAG_SET)
 
-        for tag in "b", "c", "d", "e", "f":
+        for tag in "b", "c", "d", "e":
             self.assertFalse(tag in self.TAG_SET)
 
     def test_get_subtags(self):
         """ Test subtags can be accessed as a new TagSet. """
-        self.assertEqual(TagSet("meta:sys2:3456 blah").get_subtags(), TagSet("meta sys2 3456 blah"))
+        self.assertEqual(TagSet("meta:sys2 blah").get_subtags(), TagSet("meta sys2 blah"))
 
     def test_any_tag_starts_with(self):
         """ Ensure starts_with only checks the starts of tags, and doesn't check the starts of subtags. """
@@ -149,10 +149,10 @@ class TestTagSet(BaseTestCase):
 
     def test_any_tag_ends_swith(self):
         """ Ensure ends_with doesn't check ends of subtags. """
-        for tag in "a", "c", "f":
+        for tag in "a", "c", "e":
             self.assertTrue(self.TAG_SET.any_tag_ends_with(tag))
 
-        for tag in "b", "d", "e":
+        for tag in "b", "d":
             self.assertFalse(self.TAG_SET.any_tag_ends_with(tag))
 
     def test_any_tag_contains_searches_for_tags_and_subtags(self):
@@ -160,33 +160,33 @@ class TestTagSet(BaseTestCase):
         for tag in "a", "b", "d":
             self.assertTrue(self.TAG_SET.any_tag_contains(tag))
 
-        for subtag in "c", "e", "f":
+        for subtag in "c", "e":
             self.assertTrue(self.TAG_SET.any_tag_contains(subtag))
 
     def test_filter(self):
         """ Test that tag sets can be filtered. """
-        tag_set = TagSet(tags="tag1 tag2 meta:sys1:1234 meta:sys2:3456 meta:sys2:55")
+        tag_set = TagSet(tags="tag1 tag2 meta:sys1 meta:sys2")
         self.assertEqual(
             tag_set.tags.filter("name__starts_with", "meta"),
-            FilterSet({Tag("meta:sys1:1234"), Tag("meta:sys2:3456"), Tag("meta:sys2:55")}),
+            FilterSet({Tag("meta:sys1"), Tag("meta:sys2")}),
         )
 
     def test_filter_chaining(self):
         """ Test that filters can be chained. """
-        tag_set = TagSet(tags="tag1 tag2 meta:sys1:1234 meta:sys2:3456 meta:sys2:55")
+        tag_set = TagSet(tags="tag1 tag2 meta:sys1 meta:sys2 meta:sys23")
 
         filtered_tags_1 = tag_set.tags.filter("name__starts_with", "meta")
-        self.assertEqual(filtered_tags_1, TagSet("meta:sys1:1234 meta:sys2:3456 meta:sys2:55").tags)
+        self.assertEqual(filtered_tags_1, TagSet("meta:sys1 meta:sys2 meta:sys23").tags)
 
         filtered_tags_2 = filtered_tags_1.filter("name__contains", "sys2")
-        self.assertEqual(filtered_tags_2, TagSet("meta:sys2:3456 meta:sys2:55").tags)
+        self.assertEqual(filtered_tags_2, TagSet("meta:sys2 meta:sys23").tags)
 
-        filtered_tags_3 = filtered_tags_1.filter("name__equals", "meta:sys2:55")
-        self.assertEqual(filtered_tags_3, TagSet("meta:sys2:55").tags)
+        filtered_tags_3 = filtered_tags_1.filter("name__ends_with", "3")
+        self.assertEqual(filtered_tags_3, TagSet("meta:sys23").tags)
 
     def test_serialise(self):
         """ Ensure that TagSets are serialised to the string form of a list. """
-        self.assertEqual(self.TAG_SET.serialise(), ["a", "b:c", "d:e:f"])
+        self.assertEqual(self.TAG_SET.serialise(), ["a", "b:c", "d:e"])
 
     def test_serialise_orders_tags(self):
         """Ensure that TagSets serialise to a list."""
