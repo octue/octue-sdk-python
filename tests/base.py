@@ -47,8 +47,8 @@ class BaseTestCase(unittest.TestCase):
         path = os.path.join("path-within-dataset", "a_test_file.csv")
 
         files = [
-            Datafile(timestamp=None, path_from=path_from, path=path, skip_checks=False),
-            Datafile(timestamp=None, path_from=path_from, path=path, skip_checks=False),
+            Datafile(path_from=path_from, path=path, skip_checks=False),
+            Datafile(path_from=path_from, path=path, skip_checks=False),
         ]
 
         return Dataset(files=files)

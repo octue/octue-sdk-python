@@ -29,7 +29,7 @@ class DatafileTestCase(BaseTestCase):
         TEMPORARY_LOCAL_FILE_CACHE.clear()
 
     def create_valid_datafile(self):
-        return Datafile(timestamp=None, path_from=self.path_from, path=self.path, skip_checks=False)
+        return Datafile(path_from=self.path_from, path=self.path, skip_checks=False)
 
     def create_datafile_in_cloud(
         self,
@@ -57,7 +57,7 @@ class DatafileTestCase(BaseTestCase):
 
     def test_instantiates(self):
         """Ensures a Datafile instantiates using only a path and generates a uuid ID"""
-        df = Datafile(timestamp=None, path="a_path")
+        df = Datafile(path="a_path")
         self.assertTrue(isinstance(df.id, str))
         self.assertEqual(type(uuid.UUID(df.id)), uuid.UUID)
         self.assertIsNone(df.sequence)
@@ -82,35 +82,35 @@ class DatafileTestCase(BaseTestCase):
 
     def test_gt(self):
         """Test that datafiles can be ordered using the greater-than operator."""
-        a = Datafile(timestamp=None, path="a_path")
-        b = Datafile(timestamp=None, path="b_path")
+        a = Datafile(path="a_path")
+        b = Datafile(path="b_path")
         self.assertTrue(a < b)
 
     def test_gt_with_wrong_type(self):
         """Test that datafiles cannot be ordered compared to other types."""
         with self.assertRaises(TypeError):
-            Datafile(timestamp=None, path="a_path") < "hello"
+            Datafile(path="a_path") < "hello"
 
     def test_lt(self):
         """Test that datafiles can be ordered using the less-than operator."""
-        a = Datafile(timestamp=None, path="a_path")
-        b = Datafile(timestamp=None, path="b_path")
+        a = Datafile(path="a_path")
+        b = Datafile(path="b_path")
         self.assertTrue(b > a)
 
     def test_lt_with_wrong_type(self):
         """Test that datafiles cannot be ordered compared to other types."""
         with self.assertRaises(TypeError):
-            Datafile(timestamp=None, path="a_path") > "hello"
+            Datafile(path="a_path") > "hello"
 
     def test_checks_fail_when_file_doesnt_exist(self):
         path = "not_a_real_file.csv"
         with self.assertRaises(exceptions.FileNotFoundException) as error:
-            Datafile(timestamp=None, path=path, skip_checks=False)
+            Datafile(path=path, skip_checks=False)
         self.assertIn("No file found at", error.exception.args[0])
 
     def test_conflicting_extension_fails_check(self):
         with self.assertRaises(exceptions.InvalidInputException) as error:
-            Datafile(timestamp=None, path_from=self.path_from, path=self.path, skip_checks=False, extension="notcsv")
+            Datafile(path_from=self.path_from, path=self.path, skip_checks=False, extension="notcsv")
 
         self.assertIn("Extension provided (notcsv) does not match file extension", error.exception.args[0])
 
@@ -171,7 +171,7 @@ class DatafileTestCase(BaseTestCase):
     def test_is_in_cloud(self):
         """Test whether a file is in the cloud or not can be determined."""
         self.assertFalse(self.create_valid_datafile().is_in_cloud)
-        self.assertTrue(Datafile(timestamp=None, path="gs://hello/file.txt").is_in_cloud)
+        self.assertTrue(Datafile(path="gs://hello/file.txt").is_in_cloud)
 
     def test_from_cloud_with_bare_file(self):
         """Test that a Datafile can be constructed from a file on Google Cloud storage with no custom metadata."""
@@ -311,7 +311,7 @@ class DatafileTestCase(BaseTestCase):
         """Test that a cloud datafile's metadata can be updated."""
         _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud()
 
-        new_datafile = Datafile(path="glib.txt", timestamp=None, cluster=32)
+        new_datafile = Datafile(path="glib.txt", cluster=32)
         new_datafile.update_cloud_metadata(project_name, bucket_name, path_in_bucket)
 
         self.assertEqual(Datafile.from_cloud(project_name, bucket_name, path_in_bucket).cluster, 32)
@@ -365,7 +365,7 @@ class DatafileTestCase(BaseTestCase):
         with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
             temporary_file.write(file_contents)
 
-        datafile = Datafile(timestamp=None, path=temporary_file.name)
+        datafile = Datafile(path=temporary_file.name)
 
         with datafile.open() as f:
             self.assertEqual(f.read(), file_contents)
@@ -377,7 +377,7 @@ class DatafileTestCase(BaseTestCase):
         with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
             temporary_file.write(file_contents)
 
-        datafile = Datafile(timestamp=None, path=temporary_file.name)
+        datafile = Datafile(path=temporary_file.name)
 
         with datafile.open("w") as f:
             f.write("hello")
@@ -486,7 +486,7 @@ class DatafileTestCase(BaseTestCase):
         temporary_file = tempfile.NamedTemporaryFile("w", delete=False)
         contents = "Here is the content."
 
-        with Datafile(path=temporary_file.name, timestamp=None, mode="w") as (datafile, f):
+        with Datafile(path=temporary_file.name, mode="w") as (datafile, f):
             f.write(contents)
 
         # Check that the cloud file has been updated.

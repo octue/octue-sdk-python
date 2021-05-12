@@ -32,8 +32,8 @@ class TestManifest(BaseTestCase):
         self.assertFalse(self.create_valid_manifest().all_datasets_are_in_cloud)
 
         files = [
-            Datafile(timestamp=None, path="gs://hello/file.txt"),
-            Datafile(timestamp=None, path="gs://goodbye/file.csv"),
+            Datafile(path="gs://hello/file.txt"),
+            Datafile(path="gs://goodbye/file.csv"),
         ]
 
         manifest = Manifest(datasets=[Dataset(files=files)], keys={"my_dataset": 0})
@@ -70,8 +70,8 @@ class TestManifest(BaseTestCase):
             dataset = Dataset(
                 name="my-dataset",
                 files={
-                    Datafile(timestamp=None, path=file_0_path, sequence=0, tags={"hello"}),
-                    Datafile(timestamp=None, path=file_1_path, sequence=1, tags={"goodbye"}),
+                    Datafile(path=file_0_path, sequence=0, tags={"hello"}),
+                    Datafile(path=file_1_path, sequence=1, tags={"goodbye"}),
                 },
             )
 
@@ -109,8 +109,8 @@ class TestManifest(BaseTestCase):
                 name="my-dataset",
                 path=temporary_directory,
                 files={
-                    Datafile(timestamp=None, path=file_0_path, sequence=0, tags={"hello"}),
-                    Datafile(timestamp=None, path=file_1_path, sequence=1, tags={"goodbye"}),
+                    Datafile(path=file_0_path, sequence=0, tags={"hello"}),
+                    Datafile(path=file_1_path, sequence=1, tags={"goodbye"}),
                 },
             )
 
@@ -148,8 +148,8 @@ class TestManifest(BaseTestCase):
             dataset = Dataset(
                 name="my-dataset",
                 files={
-                    Datafile(timestamp=None, path=file_0_path, sequence=0, tags={"hello"}),
-                    Datafile(timestamp=None, path=file_1_path, sequence=1, tags={"goodbye"}),
+                    Datafile(path=file_0_path, sequence=0, tags={"hello"}),
+                    Datafile(path=file_1_path, sequence=1, tags={"goodbye"}),
                 },
             )
 

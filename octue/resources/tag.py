@@ -8,7 +8,7 @@ from octue.resources.filter_containers import FilterList, FilterSet
 from octue.utils.encoders import OctueJSONEncoder
 
 
-TAG_PATTERN = re.compile(r"^$|^[A-Za-z0-9][A-Za-z0-9:\-/]*(?<![/:-])$")
+TAG_PATTERN = re.compile(r"^$|^[A-Za-z0-9][A-Za-z0-9:.\-/]*(?<![./:-])$")
 
 
 class Tag(Filterable):
@@ -82,8 +82,8 @@ class Tag(Filterable):
 
         if not re.match(TAG_PATTERN, cleaned_name):
             raise InvalidTagException(
-                f"Invalid tag '{cleaned_name}'. Tags must contain only characters 'a-z', '0-9', ':' and '-'. They must "
-                f"not start with '-' or ':'."
+                f"Invalid tag '{cleaned_name}'. Tags must contain only characters 'a-z', 'A-Z', '0-9', ':', '.', '/' "
+                f"and '-'. They must not start with '-', ':', '/' or '.'"
             )
 
         return cleaned_name
