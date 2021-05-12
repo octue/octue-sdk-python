@@ -13,7 +13,7 @@ class TestTag(BaseTestCase):
 
     def test_valid_tags(self):
         """Test that valid tags instantiate as expected."""
-        for tag in "hello", "hello:world", "hello-world:goodbye", "HELLO-WORLD", "Asia/Pacific":
+        for tag in "hello", "hello:world", "hello-world:goodbye", "HELLO-WORLD", "Asia/Pacific", "blah:3.5":
             Tag(tag)
 
     def test_subtags(self):
