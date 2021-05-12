@@ -50,7 +50,7 @@ def fractal(analysis):
     # hyphens and underscores (which can be used literally in search and are also
     # used to separate words in natural language search). Other special characters
     # will be stripped.
-    tags = "contents:fractal type:figure"
+    tags = "contents:fractal:mandelbrot type:figure:surface"
 
     # Get the output dataset which will be used for storing the figure file(s)
     output_dataset = analysis.output_manifest.get_dataset("fractal_figure_files")
