@@ -78,7 +78,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     def __init__(
         self,
         path,
-        timestamp,
+        timestamp=None,
         id=ID_DEFAULT,
         logger=None,
         path_from=None,
@@ -184,7 +184,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             the datafile when the context is exited
         :return Datafile:
         """
-        datafile = cls(timestamp=None, path=storage.path.generate_gs_path(bucket_name, datafile_path))
+        datafile = cls(path=storage.path.generate_gs_path(bucket_name, datafile_path))
         datafile.get_cloud_metadata(project_name, bucket_name, datafile_path)
         custom_metadata = datafile._cloud_metadata.get("custom_metadata", {})
 
@@ -499,14 +499,14 @@ class _DatafileContextManager:
 
     Usage:
     ```
-    my_datafile = Datafile(timestamp=None, path='subfolder/subsubfolder/my_datafile.json)
+    my_datafile = Datafile(path='subfolder/subsubfolder/my_datafile.json)
     with my_datafile.open('w') as fp:
         fp.write("{}")
     ```
 
     This is equivalent to the standard python:
     ```
-    my_datafile = Datafile(timestamp=None, path='subfolder/subsubfolder/my_datafile.json)
+    my_datafile = Datafile(path='subfolder/subsubfolder/my_datafile.json)
     os.makedirs(os.path.split(my_datafile.absolute_path)[0], exist_ok=True)
     with open(my_datafile.absolute_path, 'w') as fp:
         fp.write("{}")

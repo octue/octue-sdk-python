@@ -119,8 +119,8 @@ class TestService(BaseTestCase):
         asking_service = MockService(backend=self.BACKEND, children={responding_service.id: responding_service})
 
         files = [
-            Datafile(timestamp=None, path="gs://my-dataset/hello.txt"),
-            Datafile(timestamp=None, path="gs://my-dataset/goodbye.csv"),
+            Datafile(path="gs://my-dataset/hello.txt"),
+            Datafile(path="gs://my-dataset/goodbye.csv"),
         ]
 
         input_manifest = Manifest(datasets=[Dataset(files=files)], path="gs://my-dataset", keys={"my_dataset": 0})

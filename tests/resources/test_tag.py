@@ -7,13 +7,13 @@ from tests.base import BaseTestCase
 class TestTag(BaseTestCase):
     def test_invalid_tags_cause_error(self):
         """Test that invalid tags cause an error to be raised."""
-        for tag in ":a", "@", "a_b", "-bah", "humbug:", r"back\slashy", {"not-a": "string"}, "/a", "a/":
+        for tag in ":a", "@", "a_b", "-bah", "humbug:", r"back\slashy", {"not-a": "string"}, "/a", "a/", "blah:3.5.":
             with self.assertRaises(exceptions.InvalidTagException):
                 Tag(tag)
 
     def test_valid_tags(self):
         """Test that valid tags instantiate as expected."""
-        for tag in "hello", "hello:world", "hello-world:goodbye", "HELLO-WORLD", "Asia/Pacific":
+        for tag in "hello", "hello:world", "hello-world:goodbye", "HELLO-WORLD", "Asia/Pacific", "blah:3.5":
             Tag(tag)
 
     def test_subtags(self):
