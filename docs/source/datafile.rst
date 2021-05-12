@@ -125,7 +125,7 @@ For creating new data in a new local file:
     tags = {"cleaned:True", "type:linear"}
 
 
-    with Datafile(path="path/to/local/file.dat", timestamp=None, sequence=sequence, tags=tags, mode="w") as datafile, f:
+    with Datafile(path="path/to/local/file.dat", sequence=sequence, tags=tags, mode="w") as datafile, f:
         f.write("This is some cleaned data.")
 
     datafile.to_cloud(project_name="my-project", bucket_name="my-bucket", path_in_bucket="path/to/data.dat")
@@ -141,5 +141,5 @@ For existing data in an existing local file:
     sequence = 2
     tags = {"cleaned:True", "type:linear"}
 
-    datafile = Datafile(path="path/to/local/file.dat", timestamp=None, sequence=sequence, tags=tags)
+    datafile = Datafile(path="path/to/local/file.dat", sequence=sequence, tags=tags)
     datafile.to_cloud(project_name="my-project", bucket_name="my-bucket", path_in_bucket="path/to/data.dat")
