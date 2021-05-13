@@ -75,8 +75,18 @@ INTERFACE_FILTERS = {
 
 
 class Filterable:
-    def satisfies(self, filter_name, filter_value):
-        """ Check that the instance satisfies the given filter for the given filter value. """
+    def satisfies(self, **kwargs):
+        """Check that the instance satisfies the given filter for the given filter value.
+
+        :param {str: any} kwargs: a single keyword argument whose key is the name of the filter and whos value is the
+            value to filter for
+        :return mixed:
+        """
+        if len(kwargs) != 1:
+            raise ValueError(f"The satisfies method only takes one keyword argument; received {kwargs!r}.")
+
+        filter_name, filter_value = list(kwargs.items())[0]
+
         attribute_name, filter_action = self._split_filter_name(filter_name)
 
         try:

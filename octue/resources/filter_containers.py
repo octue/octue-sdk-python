@@ -1,14 +1,14 @@
 from octue import exceptions
 
 
-def _filter(self, filter_name=None, filter_value=None):
+def _filter(self, **kwargs):
     """Returns a new instance containing only the Filterables to which the given filter criteria apply.
 
-    :param str filter_name:
-    :param any filter_value:
+    :param {str: any} kwargs: a single keyword argument whose key is the name of the filter and whos value is the value
+        to filter for
     :return octue.resources.filter_containers.FilterSet:
     """
-    return self.__class__((item for item in self if item.satisfies(filter_name, filter_value)))
+    return self.__class__((item for item in self if item.satisfies(**kwargs)))
 
 
 def _order_by(self, attribute_name, reverse=False):

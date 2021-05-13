@@ -168,7 +168,7 @@ class Dataset(Labelable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         )
         self.files.add(*args, **kwargs)
 
-    def get_files(self, field_lookup, filter_value=None):
+    def get_files(self, **kwargs):
         warnings.warn(
             "The `Dataset.get_files` method has been deprecated and replaced with `Dataset.files.filter`, which has "
             "the same interface but with the `field_lookup` argument renamed to `filter_name`. Calls to "
@@ -176,9 +176,9 @@ class Dataset(Labelable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             "in future.",
             DeprecationWarning,
         )
-        return self.files.filter(filter_name=field_lookup, filter_value=filter_value)
+        return self.files.filter(**kwargs)
 
-    def get_file_sequence(self, filter_name=None, filter_value=None, strict=True):
+    def get_file_sequence(self, strict=True, **kwargs):
         """Get an ordered sequence of files matching a criterion
 
         Accepts the same search arguments as `get_files`.
@@ -192,10 +192,10 @@ class Dataset(Labelable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         """
         results = self.files
 
-        if filter_name is not None:
-            results = results.filter(filter_name=filter_name, filter_value=filter_value)
+        if kwargs:
+            results = results.filter(**kwargs)
 
-        results = results.filter("sequence__is_not", None)
+        results = results.filter(sequence__is_not=None)
 
         def get_sequence_number(file):
             return file.sequence
@@ -221,7 +221,7 @@ class Dataset(Labelable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         :param tag_string: if this string appears as an exact match in the labels
         :return: DataFile object
         """
-        results = self.files.filter(filter_name="labels__contains", filter_value=tag_string)
+        results = self.files.filter(labels__contains=tag_string)
         if len(results) > 1:
             raise UnexpectedNumberOfResultsException("More than one result found when searching for a file by label")
         elif len(results) == 0:

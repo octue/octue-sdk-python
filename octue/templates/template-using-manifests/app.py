@@ -36,7 +36,7 @@ def run(analysis, *args, **kwargs):
     #
     # See the Dataset class help for more.
     metadata_file = input_dataset.get_file_by_label("meta")
-    timeseries_files = input_dataset.get_file_sequence("labels__contains", filter_value="timeseries")
+    timeseries_files = input_dataset.get_file_sequence(labels__contains="timeseries")
     #
     # We used these because they're special helpers - in this case ensuring that there's only one metadata file and
     # ensuring that the timeseries files come in a strictly ordered sequence.

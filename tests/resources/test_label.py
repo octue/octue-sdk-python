@@ -167,7 +167,7 @@ class TestLabelSet(BaseTestCase):
         """ Test that label sets can be filtered. """
         label_set = LabelSet(labels="label1 label2 meta:sys1:1234 meta:sys2:3456 meta:sys2:55")
         self.assertEqual(
-            label_set.labels.filter("name__starts_with", "meta"),
+            label_set.labels.filter(name__starts_with="meta"),
             FilterSet({Label("meta:sys1:1234"), Label("meta:sys2:3456"), Label("meta:sys2:55")}),
         )
 
@@ -175,13 +175,13 @@ class TestLabelSet(BaseTestCase):
         """ Test that filters can be chained. """
         label_set = LabelSet(labels="label1 label2 meta:sys1:1234 meta:sys2:3456 meta:sys2:55")
 
-        filtered_labels_1 = label_set.labels.filter("name__starts_with", "meta")
+        filtered_labels_1 = label_set.labels.filter(name__starts_with="meta")
         self.assertEqual(filtered_labels_1, LabelSet("meta:sys1:1234 meta:sys2:3456 meta:sys2:55").labels)
 
-        filtered_labels_2 = filtered_labels_1.filter("name__contains", "sys2")
+        filtered_labels_2 = filtered_labels_1.filter(name__contains="sys2")
         self.assertEqual(filtered_labels_2, LabelSet("meta:sys2:3456 meta:sys2:55").labels)
 
-        filtered_labels_3 = filtered_labels_1.filter("name__equals", "meta:sys2:55")
+        filtered_labels_3 = filtered_labels_1.filter(name__equals="meta:sys2:55")
         self.assertEqual(filtered_labels_3, LabelSet("meta:sys2:55").labels)
 
     def test_serialise(self):
