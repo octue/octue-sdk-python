@@ -37,8 +37,8 @@ the hash:
     - ``cluster``
     - ``sequence``
     - ``timestamp``
-    - ``tags``
+    - ``labels``
 
-- For a ``Dataset``, the hashes of its ``Datafiles`` are included, along with its ``tags``.
+- For a ``Dataset``, the hashes of its ``Datafiles`` are included, along with its ``labels``.
 
 - For a ``Manifest``, the hashes of its ``Datasets`` are included, along with its ``keys``.

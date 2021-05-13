@@ -19,7 +19,7 @@ There are two types of filter containers currently implemented:
 ``FilterSets`` are currently used in:
 
 - ``Dataset.files`` to store ``Datafiles``
-- ``TagSet.tags`` to store ``Tags``
+- ``Labelset.labels`` to store ``Labels``
 
 You can see filtering in action on the files of a ``Dataset`` :doc:`here <dataset>`.
 
@@ -73,18 +73,18 @@ The following filters are implemented for the following types:
     * ``is``
     * ``is_not``
 
-- ``TagSet``:
+- ``Labelset``:
 
     * ``is``
     * ``is_not``
     * ``equals``
     * ``not_equals``
-    * ``any_tag_contains``
-    * ``not_any_tag_contains``
-    * ``any_tag_starts_with``
-    * ``not_any_tag_starts_with``
-    * ``any_tag_ends_with``
-    * ``not_any_tag_ends_with``
+    * ``any_label_contains``
+    * ``not_any_label_contains``
+    * ``any_label_starts_with``
+    * ``not_any_label_starts_with``
+    * ``any_label_ends_with``
+    * ``not_any_label_ends_with``
 
 
 

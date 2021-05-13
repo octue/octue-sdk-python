@@ -10,7 +10,7 @@ from octue import exceptions
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.mixins import MixinBase, Pathable
 from octue.resources.datafile import TEMPORARY_LOCAL_FILE_CACHE, Datafile
-from octue.resources.tag import TagSet
+from octue.resources.label import LabelSet
 from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from ..base import BaseTestCase
 
@@ -150,7 +150,7 @@ class DatafileTestCase(BaseTestCase):
             "path",
             "timestamp",
             "sequence",
-            "tags",
+            "labels",
             "_cloud_metadata",
         }
 
@@ -190,7 +190,7 @@ class DatafileTestCase(BaseTestCase):
         self.assertEqual(datafile.path, f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}")
         self.assertEqual(datafile.cluster, 0)
         self.assertEqual(datafile.sequence, None)
-        self.assertEqual(datafile.tags, TagSet())
+        self.assertEqual(datafile.labels, LabelSet())
         self.assertTrue(isinstance(datafile.size_bytes, int))
         self.assertTrue(isinstance(datafile._last_modified, float))
         self.assertTrue(isinstance(datafile.hash_value, str))
@@ -201,7 +201,7 @@ class DatafileTestCase(BaseTestCase):
             timestamp=datetime.now(tz=timezone.utc),
             cluster=0,
             sequence=1,
-            tags={"blah:shah:nah", "blib", "glib"},
+            labels={"blah:shah:nah", "blib", "glib"},
         )
 
         downloaded_datafile = Datafile.from_cloud(project_name, bucket_name, path_in_bucket)
@@ -212,7 +212,7 @@ class DatafileTestCase(BaseTestCase):
         self.assertEqual(downloaded_datafile.hash_value, datafile.hash_value)
         self.assertEqual(downloaded_datafile.cluster, datafile.cluster)
         self.assertEqual(downloaded_datafile.sequence, datafile.sequence)
-        self.assertEqual(downloaded_datafile.tags, datafile.tags)
+        self.assertEqual(downloaded_datafile.labels, datafile.labels)
         self.assertEqual(downloaded_datafile.size_bytes, datafile.size_bytes)
         self.assertTrue(isinstance(downloaded_datafile._last_modified, float))
 
@@ -500,12 +500,12 @@ class DatafileTestCase(BaseTestCase):
         self.assertNotEqual(original_content, new_contents)
 
         with Datafile.from_cloud(project_name, bucket_name, path_in_bucket, mode="w") as (datafile, f):
-            datafile.add_tags("blue")
+            datafile.add_labels("blue")
             f.write(new_contents)
 
         # Check that the cloud metadata has been updated.
         re_downloaded_datafile = Datafile.from_cloud(project_name, bucket_name, path_in_bucket)
-        self.assertTrue("blue" in re_downloaded_datafile.tags)
+        self.assertTrue("blue" in re_downloaded_datafile.labels)
 
         # The file cache must be cleared so the modified cloud file is downloaded.
         re_downloaded_datafile.clear_from_file_cache()

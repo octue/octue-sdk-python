@@ -21,7 +21,7 @@ class DatasetTestCase(BaseTestCase):
     def test_instantiates_with_kwargs(self):
         """Ensures that keyword arguments can be used to construct the dataset initially"""
         files = [Datafile(path="path-within-dataset/a_test_file.csv")]
-        resource = Dataset(files=files, tags="one two")
+        resource = Dataset(files=files, labels="one two")
         self.assertEqual(len(resource.files), 1)
 
     def test_len(self):
@@ -55,7 +55,7 @@ class DatasetTestCase(BaseTestCase):
     def test_add_single_file_to_existing_dataset(self):
         """Ensures that when a dataset is not empty, it can be added to"""
         files = [Datafile(path="path-within-dataset/a_test_file.csv")]
-        resource = Dataset(files=files, tags="one two")
+        resource = Dataset(files=files, labels="one two")
         resource.add(Datafile(path="path-within-dataset/a_test_file.csv"))
         self.assertEqual(len(resource.files), 2)
 
@@ -149,53 +149,53 @@ class DatasetTestCase(BaseTestCase):
         files = resource.files.filter("name__ends_with", filter_value="other.csv")
         self.assertEqual(0, len(files))
 
-    def test_filter_by_tag(self):
-        """Ensures that filter works with tag lookups"""
+    def test_filter_by_label(self):
+        """Ensures that filter works with label lookups"""
         resource = Dataset(
             files=[
-                Datafile(path="path-within-dataset/a_my_file.csv", tags="one a:2 b:3 all"),
-                Datafile(path="path-within-dataset/a_your_file.csv", tags="two a:2 b:3 all"),
-                Datafile(path="path-within-dataset/a_your_file.csv", tags="three all"),
+                Datafile(path="path-within-dataset/a_my_file.csv", labels="one a:2 b:3 all"),
+                Datafile(path="path-within-dataset/a_your_file.csv", labels="two a:2 b:3 all"),
+                Datafile(path="path-within-dataset/a_your_file.csv", labels="three all"),
             ]
         )
 
-        files = resource.files.filter("tags__contains", filter_value="a")
+        files = resource.files.filter("labels__contains", filter_value="a")
         self.assertEqual(0, len(files))
-        files = resource.files.filter("tags__contains", filter_value="one")
+        files = resource.files.filter("labels__contains", filter_value="one")
         self.assertEqual(1, len(files))
-        files = resource.files.filter("tags__contains", filter_value="all")
+        files = resource.files.filter("labels__contains", filter_value="all")
         self.assertEqual(3, len(files))
-        files = resource.files.filter("tags__any_tag_starts_with", filter_value="b")
+        files = resource.files.filter("labels__any_label_starts_with", filter_value="b")
         self.assertEqual(2, len(files))
-        files = resource.files.filter("tags__any_tag_ends_with", filter_value="3")
+        files = resource.files.filter("labels__any_label_ends_with", filter_value="3")
         self.assertEqual(2, len(files))
-        # files = resource.files.filter("tags__contains", filter_value="hre")
+        # files = resource.files.filter("labels__contains", filter_value="hre")
         # self.assertEqual(1, len(files))
 
-    def test_get_file_by_tag(self):
-        """Ensures that get_files works with tag lookups"""
+    def test_get_file_by_label(self):
+        """Ensures that get_files works with label lookups"""
         files = [
-            Datafile(path="path-within-dataset/a_my_file.csv", tags="one a:2 b:3 all"),
-            Datafile(path="path-within-dataset/a_your_file.csv", tags="two a:2 b:3 all"),
-            Datafile(path="path-within-dataset/a_your_file.csv", tags="three all"),
+            Datafile(path="path-within-dataset/a_my_file.csv", labels="one a:2 b:3 all"),
+            Datafile(path="path-within-dataset/a_your_file.csv", labels="two a:2 b:3 all"),
+            Datafile(path="path-within-dataset/a_your_file.csv", labels="three all"),
         ]
 
         resource = Dataset(files=files)
 
         # Check working for single result
-        self.assertIs(resource.get_file_by_tag("three"), files[2])
+        self.assertIs(resource.get_file_by_label("three"), files[2])
 
         # Check raises for too many results
         with self.assertRaises(exceptions.UnexpectedNumberOfResultsException) as e:
-            resource.get_file_by_tag("all")
+            resource.get_file_by_label("all")
 
         self.assertIn("More than one result found", e.exception.args[0])
 
         # Check raises for no result
         with self.assertRaises(exceptions.UnexpectedNumberOfResultsException) as e:
-            resource.get_file_by_tag("billyjeanisnotmylover")
+            resource.get_file_by_label("billyjeanisnotmylover")
 
-        self.assertIn("No files found with this tag", e.exception.args[0])
+        self.assertIn("No files found with this label", e.exception.args[0])
 
     def test_filter_by_sequence_not_none(self):
         """Ensures that filter works with sequence lookups"""
@@ -316,8 +316,8 @@ class DatasetTestCase(BaseTestCase):
             dataset = Dataset(
                 name="dataset_0",
                 files={
-                    Datafile(path=file_0_path, sequence=0, tags={"hello"}),
-                    Datafile(path=file_1_path, sequence=1, tags={"goodbye"}),
+                    Datafile(path=file_0_path, sequence=0, labels={"hello"}),
+                    Datafile(path=file_1_path, sequence=1, labels={"goodbye"}),
                 },
             )
 
@@ -333,7 +333,7 @@ class DatasetTestCase(BaseTestCase):
             self.assertEqual(persisted_dataset.id, dataset.id)
             self.assertEqual(persisted_dataset.name, dataset.name)
             self.assertEqual(persisted_dataset.hash_value, dataset.hash_value)
-            self.assertEqual(persisted_dataset.tags, dataset.tags)
+            self.assertEqual(persisted_dataset.labels, dataset.labels)
             self.assertEqual({file.name for file in persisted_dataset.files}, {file.name for file in dataset.files})
 
             for file in persisted_dataset:
@@ -358,8 +358,8 @@ class DatasetTestCase(BaseTestCase):
 
             dataset = Dataset(
                 files={
-                    Datafile(path=file_0_path, sequence=0, tags={"hello"}),
-                    Datafile(path=file_1_path, sequence=1, tags={"goodbye"}),
+                    Datafile(path=file_0_path, sequence=0, labels={"hello"}),
+                    Datafile(path=file_1_path, sequence=1, labels={"goodbye"}),
                 }
             )
 

@@ -141,7 +141,7 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         for idx, dataset_spec in enumerate(data):
 
             self.keys[dataset_spec["key"]] = idx
-            # TODO generate a unique name based on the filter key, tag datasets so that the tag filters in the spec
+            # TODO generate a unique name based on the filter key, label datasets so that the label filters in the spec
             #  apply automatically and generate a description of the dataset
             self.datasets.append(Dataset(logger=self.logger, path_from=self, path=dataset_spec["key"]))
 
