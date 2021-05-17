@@ -59,7 +59,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
     :param int cluster: The cluster of files, within a dataset, to which this belongs (default 0)
     :param int sequence: A sequence number of this file within its cluster (if sequences are appropriate)
     :param dict|TagDict tags: key-value pairs with string keys conforming to the Octue tag format (see TagDict)
-    :param str labels: Space-separated string of labels relevant to this file
+    :param iter(str) labels: Space-separated string of labels relevant to this file
     :param bool skip_checks:
     :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode
         options are the same as for the builtin open function)

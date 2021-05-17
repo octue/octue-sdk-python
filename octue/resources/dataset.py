@@ -32,8 +32,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
     _SERIALISE_FIELDS = "files", "name", "labels", "tags", "id", "path"
 
     def __init__(self, name=None, id=None, logger=None, path=None, path_from=None, tags=None, labels=None, **kwargs):
-        """Construct a Dataset"""
-        super().__init__(name=name, id=id, logger=logger, tags=None, labels=labels, path=path, path_from=path_from)
+        super().__init__(name=name, id=id, logger=logger, tags=tags, labels=labels, path=path, path_from=path_from)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.

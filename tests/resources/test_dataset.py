@@ -55,7 +55,7 @@ class DatasetTestCase(BaseTestCase):
     def test_add_single_file_to_existing_dataset(self):
         """Ensures that when a dataset is not empty, it can be added to"""
         files = [Datafile(path="path-within-dataset/a_test_file.csv")]
-        resource = Dataset(files=files, labels="one two")
+        resource = Dataset(files=files, labels="one two", tags={"a": "b"})
         resource.add(Datafile(path="path-within-dataset/a_test_file.csv"))
         self.assertEqual(len(resource.files), 2)
 
@@ -296,9 +296,10 @@ class DatasetTestCase(BaseTestCase):
             dataset = Dataset(
                 name="dataset_0",
                 files={
-                    Datafile(path=file_0_path, sequence=0, labels={"hello"}),
-                    Datafile(path=file_1_path, sequence=1, labels={"goodbye"}),
+                    Datafile(path=file_0_path, sequence=0, labels={"hello"}, tags={"a": "b"}),
+                    Datafile(path=file_1_path, sequence=1, labels={"goodbye"}, tags={"a": "b"}),
                 },
+                tags={"a": "b", "c": 1},
             )
 
             dataset.to_cloud(project_name=project_name, bucket_name=TEST_BUCKET_NAME, output_directory="a_directory")
@@ -313,6 +314,7 @@ class DatasetTestCase(BaseTestCase):
             self.assertEqual(persisted_dataset.id, dataset.id)
             self.assertEqual(persisted_dataset.name, dataset.name)
             self.assertEqual(persisted_dataset.hash_value, dataset.hash_value)
+            self.assertEqual(persisted_dataset.tags, dataset.tags)
             self.assertEqual(persisted_dataset.labels, dataset.labels)
             self.assertEqual({file.name for file in persisted_dataset.files}, {file.name for file in dataset.files})
 
@@ -340,7 +342,8 @@ class DatasetTestCase(BaseTestCase):
                 files={
                     Datafile(path=file_0_path, sequence=0, labels={"hello"}),
                     Datafile(path=file_1_path, sequence=1, labels={"goodbye"}),
-                }
+                },
+                tags={"a": "b", "c": 1},
             )
 
             dataset.to_cloud(project_name, TEST_BUCKET_NAME, output_directory)
@@ -374,3 +377,5 @@ class DatasetTestCase(BaseTestCase):
                     "gs://octue-test-bucket/my_datasets/octue-sdk-python/file_1.txt",
                 ],
             )
+
+            self.assertEqual(persisted_dataset["tags"], dataset.tags.serialise())
