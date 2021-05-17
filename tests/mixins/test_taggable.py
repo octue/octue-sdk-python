@@ -29,7 +29,7 @@ class TaggableTestCase(BaseTestCase):
     def test_instantiates_with_dict(self):
         """Test instantiation with a dictionary."""
         tags = {"height": 9, "width": 8.7, "depth": 100}
-        taggable = MyTaggable(tags)
+        taggable = MyTaggable(tags=tags)
         self.assertEqual(taggable.tags, tags)
 
     def test_instantiates_with_tag_dict(self):
