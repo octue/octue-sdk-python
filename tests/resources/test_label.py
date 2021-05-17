@@ -49,8 +49,8 @@ class TestLabel(BaseTestCase):
 
     def test_starts_with(self):
         """ Test that the start of a label can be checked. """
-        self.assertTrue(Label("hello").starts_with("h"))
-        self.assertFalse(Label("hello").starts_with("e"))
+        self.assertTrue(Label("hello").startswith("h"))
+        self.assertFalse(Label("hello").startswith("e"))
 
     def test_sublabels_starts_with(self):
         """ Test that the start of sublabels can be checked. """
@@ -59,8 +59,8 @@ class TestLabel(BaseTestCase):
 
     def test_ends_with(self):
         """ Test that the end of a label can be checked. """
-        self.assertTrue(Label("hello").ends_with("o"))
-        self.assertFalse(Label("hello").ends_with("e"))
+        self.assertTrue(Label("hello").endswith("o"))
+        self.assertFalse(Label("hello").endswith("e"))
 
     def test_sublabels_ends_with(self):
         """ Test that the end of sublabels can be checked. """

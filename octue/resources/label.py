@@ -1,5 +1,6 @@
 import json
 import re
+from collections import UserString
 from collections.abc import Iterable
 from functools import lru_cache
 
@@ -12,7 +13,7 @@ from octue.utils.encoders import OctueJSONEncoder
 LABEL_PATTERN = re.compile(r"^$|^[A-Za-z0-9][A-Za-z0-9:.\-/]*(?<![./:-])$")
 
 
-class Label(Filterable):
+class Label(Filterable, UserString):
     """A label starts and ends with a character in [A-Za-z0-9]. It can contain the colon discriminator, forward slashes
     or hyphens. Empty strings are also valid. More valid examples:
        system:32
@@ -21,11 +22,8 @@ class Label(Filterable):
     """
 
     def __init__(self, name):
-        self._name = self._clean(name)
-
-    @property
-    def name(self):
-        return self._name
+        super().__init__(self._clean(name))
+        self.name = self.data
 
     @property
     @lru_cache(maxsize=1)
@@ -34,44 +32,7 @@ class Label(Filterable):
 
         :return FilterList(Label):
         """
-        return FilterList(Label(sublabel_name) for sublabel_name in self.name.split(":"))
-
-    def __eq__(self, other):
-        if isinstance(other, str):
-            return self.name == other
-        elif isinstance(other, Label):
-            return self.name == other.name
-        return False
-
-    def __lt__(self, other):
-        if isinstance(other, str):
-            return self.name < other
-        elif isinstance(other, Label):
-            return self.name < other.name
-
-    def __gt__(self, other):
-        if isinstance(other, str):
-            return self.name > other
-        elif isinstance(other, Label):
-            return self.name > other.name
-
-    def __hash__(self):
-        """ Allow Labels to be contained in a set. """
-        return hash(f"{type(self).__name__}{self.name}")
-
-    def __contains__(self, item):
-        return item in self.name
-
-    def __repr__(self):
-        return repr(self.name)
-
-    def starts_with(self, value):
-        """ Does the label start with the given value? """
-        return self.name.startswith(value)
-
-    def ends_with(self, value):
-        """ Does the label end with the given value? """
-        return self.name.endswith(value)
+        return FilterList(Label(sublabel_name) for sublabel_name in self.split(":"))
 
     def serialise(self):
         return self.name
@@ -149,11 +110,11 @@ class LabelSet(FilterSet):
 
     def any_label_starts_with(self, value):
         """ Implement a startswith method that returns true if any of the labels starts with value """
-        return any(label.starts_with(value) for label in self)
+        return any(label.startswith(value) for label in self)
 
     def any_label_ends_with(self, value):
         """ Implement an endswith method that returns true if any of the labels endswith value. """
-        return any(label.ends_with(value) for label in self)
+        return any(label.endswith(value) for label in self)
 
     def any_label_contains(self, value):
         """ Return True if any of the labels contains value. """
@@ -165,9 +126,7 @@ class LabelSet(FilterSet):
         :param bool to_string:
         :return list|str:
         """
-        string = json.dumps(
-            sorted(label.name for label in self), cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs
-        )
+        string = json.dumps(sorted(self), cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
 
         if to_string:
             return string
