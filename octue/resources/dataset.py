@@ -197,11 +197,8 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
 
         results = results.filter(sequence__is_not=None)
 
-        def get_sequence_number(file):
-            return file.sequence
-
         # Sort the results on ascending sequence number
-        results = sorted(results, key=get_sequence_number)
+        results = sorted(results, key=lambda file: file.sequence)
 
         # Check sequence is unique and sequential
         if strict:
