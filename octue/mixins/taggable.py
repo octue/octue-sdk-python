@@ -4,13 +4,12 @@ from octue.resources.tag import TagDict
 class Taggable:
     """A mixin class allowing objects to be tagged."""
 
-    def __init__(self, *args, tags=None, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, tags=None):
         self.tags = tags
 
-    def add_tags(self, tags):
+    def add_tags(self, tags=None, **kwargs):
         """ Adds one or more new tag strings to the object tags. New tags will be cleaned and validated. """
-        self.tags.update(tags)
+        self.tags.update({**(tags or {}), **kwargs})
 
     @property
     def tags(self):
