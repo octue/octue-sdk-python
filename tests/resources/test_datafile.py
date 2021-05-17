@@ -50,8 +50,7 @@ class DatafileTestCase(BaseTestCase):
         with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
             temporary_file.write(contents)
 
-        timestamp = kwargs.pop("timestamp", None)
-        datafile = Datafile(path=temporary_file.name, timestamp=timestamp, **kwargs)
+        datafile = Datafile(path=temporary_file.name, **kwargs)
         datafile.to_cloud(project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
         return datafile, project_name, bucket_name, path_in_bucket, contents
 
