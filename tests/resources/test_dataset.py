@@ -155,7 +155,7 @@ class DatasetTestCase(BaseTestCase):
         # self.assertEqual(1, len(files))
 
     def test_get_file_by_label(self):
-        """Ensures that get_files works with label lookups"""
+        """Ensure files can be accessed by label from the dataset."""
         files = [
             Datafile(path="path-within-dataset/a_my_file.csv", labels="one a:2 b:3 all"),
             Datafile(path="path-within-dataset/a_your_file.csv", labels="two a:2 b:3 all"),
@@ -177,7 +177,32 @@ class DatasetTestCase(BaseTestCase):
         with self.assertRaises(exceptions.UnexpectedNumberOfResultsException) as e:
             resource.get_file_by_label("billyjeanisnotmylover")
 
-        self.assertIn("No files found with this label", e.exception.args[0])
+        self.assertIn("No files found with label", e.exception.args[0])
+
+    def test_get_file_by_tag(self):
+        """Ensure files can be accessed by tag from the dataset."""
+        files = [
+            Datafile(path="path-within-dataset/my_file.csv", tags={"one": False, "a": 2, "b": 3, "all": True}),
+            Datafile(path="path-within-dataset/your_file.csv", tags={"two": True, "a": 2, "b": 3, "all": True}),
+            Datafile(path="path-within-dataset/our_file.csv", tags={"three": False, "all": True}),
+        ]
+
+        dataset = Dataset(files=files)
+
+        # Check working for single result.
+        self.assertIs(dataset.get_file_by_tag("three"), files[2])
+
+        # Check raises for too many results.
+        with self.assertRaises(exceptions.UnexpectedNumberOfResultsException) as e:
+            dataset.get_file_by_tag("all")
+
+        self.assertIn("More than one result found", e.exception.args[0])
+
+        # Check raises for no result.
+        with self.assertRaises(exceptions.UnexpectedNumberOfResultsException) as e:
+            dataset.get_file_by_tag("billyjeanisnotmylover")
+
+        self.assertIn("No files found with tag", e.exception.args[0])
 
     def test_filter_by_sequence_not_none(self):
         """Ensures that filter works with sequence lookups"""

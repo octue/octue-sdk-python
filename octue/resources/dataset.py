@@ -210,18 +210,40 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
 
         return results
 
-    def get_file_by_label(self, tag_string):
-        """Gets a data file from a manifest by searching for files with the provided label(s)
+    def get_file_by_label(self, label_string):
+        """Get a single datafile from a dataset by searching for files with the provided label(s).
 
         Gets exclusively one file; if no file or more than one file is found this results in an error.
 
-        :param tag_string: if this string appears as an exact match in the labels
-        :return: DataFile object
+        :param str label_string:
+        :return octue.resources.datafile.DataFile:
         """
-        results = self.files.filter(labels__contains=tag_string)
+        results = self.files.filter(labels__contains=label_string)
+
         if len(results) > 1:
-            raise UnexpectedNumberOfResultsException("More than one result found when searching for a file by label")
+            raise UnexpectedNumberOfResultsException(
+                f"More than one result found when searching for a file by label {label_string!r}."
+            )
         elif len(results) == 0:
-            raise UnexpectedNumberOfResultsException("No files found with this label")
+            raise UnexpectedNumberOfResultsException(f"No files found with label {label_string!r}.")
+
+        return results.pop()
+
+    def get_file_by_tag(self, tag_name):
+        """Get a single datafile from a dataset by searching for files with the provided tag name.
+
+        Gets exclusively one file; if no file or more than one file is found, an error is raised.
+
+        :param str tag_name:
+        :return octue.resources.datafile.DataFile:
+        """
+        results = self.files.filter(tags__contains=tag_name)
+
+        if len(results) > 1:
+            raise UnexpectedNumberOfResultsException(
+                f"More than one result found when searching for a file by tag {tag_name!r}."
+            )
+        elif len(results) == 0:
+            raise UnexpectedNumberOfResultsException(f"No files found with tag {tag_name!r}.")
 
         return results.pop()
