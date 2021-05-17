@@ -27,7 +27,6 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
     list of output files (results) and their properties that will be sent back to the octue system.
     """
 
-    _FILTERSET_ATTRIBUTE = "files"
     _ATTRIBUTES_TO_HASH = ("files",)
     _SERIALISE_FIELDS = "files", "name", "labels", "tags", "id", "path"
 

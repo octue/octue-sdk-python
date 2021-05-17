@@ -92,8 +92,6 @@ class Label(Filterable):
 class LabelSet:
     """ Class to handle a set of labels as a string. """
 
-    _FILTERSET_ATTRIBUTE = "labels"
-
     def __init__(self, labels=None):
         """ Construct a LabelSet. """
         # TODO Call the superclass with *args and **kwargs, then update everything to using ResourceBase
