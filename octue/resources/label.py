@@ -3,7 +3,7 @@ import re
 from functools import lru_cache
 
 from octue.exceptions import InvalidLabelException
-from octue.mixins import Filterable, Serialisable
+from octue.mixins import Filterable
 from octue.resources.filter_containers import FilterList, FilterSet
 from octue.utils.encoders import OctueJSONEncoder
 
@@ -89,7 +89,7 @@ class Label(Filterable):
         return cleaned_name
 
 
-class LabelSet(Serialisable):
+class LabelSet:
     """ Class to handle a set of labels as a string. """
 
     _FILTERSET_ATTRIBUTE = "labels"
