@@ -11,6 +11,7 @@ from octue.mixins import Hashable, Identifiable, Labelable, Loggable, Pathable, 
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.resources.label import LabelSet
+from octue.resources.tag import TagDict
 
 
 module_logger = logging.getLogger(__name__)
@@ -30,9 +31,9 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
     _ATTRIBUTES_TO_HASH = ("files",)
     _SERIALISE_FIELDS = "files", "name", "labels", "tags", "id", "path"
 
-    def __init__(self, name=None, id=None, logger=None, path=None, path_from=None, labels=None, **kwargs):
+    def __init__(self, name=None, id=None, logger=None, path=None, path_from=None, tags=None, labels=None, **kwargs):
         """Construct a Dataset"""
-        super().__init__(name=name, id=id, logger=logger, labels=labels, path=path, path_from=path_from)
+        super().__init__(name=name, id=id, logger=logger, tags=None, labels=labels, path=path, path_from=path_from)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
@@ -85,6 +86,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
             id=serialised_dataset["id"],
             name=serialised_dataset["name"],
             path=storage.path.generate_gs_path(bucket_name, path_to_dataset_directory),
+            tags=TagDict(serialised_dataset["tags"]),
             labels=LabelSet(serialised_dataset["labels"]),
             files=datafiles,
         )

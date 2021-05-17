@@ -24,6 +24,7 @@ TEMPORARY_LOCAL_FILE_CACHE = {}
 ID_DEFAULT = None
 CLUSTER_DEFAULT = 0
 SEQUENCE_DEFAULT = None
+TAGS_DEFAULT = None
 LABELS_DEFAULT = None
 
 
@@ -56,6 +57,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
     :param Pathable path_from: The root Pathable object (typically a Dataset) that this Datafile's path is relative to.
     :param int cluster: The cluster of files, within a dataset, to which this belongs (default 0)
     :param int sequence: A sequence number of this file within its cluster (if sequences are appropriate)
+    :param dict|TagDict tags: key-value pairs with string keys conforming to the Octue tag format (see TagDict)
     :param str labels: Space-separated string of labels relevant to this file
     :param bool skip_checks:
     :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode
@@ -71,8 +73,8 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         "name",
         "path",
         "sequence",
-        "labels",
         "tags",
+        "labels",
         "timestamp",
         "_cloud_metadata",
     )
@@ -86,6 +88,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         path_from=None,
         cluster=CLUSTER_DEFAULT,
         sequence=SEQUENCE_DEFAULT,
+        tags=TAGS_DEFAULT,
         labels=LABELS_DEFAULT,
         skip_checks=True,
         mode="r",
@@ -97,6 +100,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             name=kwargs.pop("name", None),
             immutable_hash_value=kwargs.pop("immutable_hash_value", None),
             logger=logger,
+            tags=tags,
             labels=labels,
             path=path,
             path_from=path_from,
@@ -204,6 +208,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         datafile.immutable_hash_value = datafile._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
         datafile.cluster = kwargs.pop("cluster", custom_metadata.get("cluster", CLUSTER_DEFAULT))
         datafile.sequence = kwargs.pop("sequence", custom_metadata.get("sequence", SEQUENCE_DEFAULT))
+        datafile.tags = kwargs.pop("tags", custom_metadata.get("tags", TAGS_DEFAULT))
         datafile.labels = kwargs.pop("labels", custom_metadata.get("labels", LABELS_DEFAULT))
         datafile._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
         return datafile
@@ -490,6 +495,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             "timestamp": self.timestamp,
             "cluster": self.cluster,
             "sequence": self.sequence,
+            "tags": self.tags.serialise(to_string=True),
             "labels": self.labels.serialise(to_string=True),
         }
 
