@@ -1,17 +1,16 @@
-from octue.resources.tag import TagSet
+from octue.resources.tag import TagDict
 
 
 class Taggable:
-    """ A mixin class allowing objects to be tagged. """
+    """A mixin class allowing objects to be tagged."""
 
     def __init__(self, *args, tags=None, **kwargs):
-        """Constructor for Taggable mixins"""
         super().__init__(*args, **kwargs)
-        self._tags = TagSet(tags)
+        self.tags = tags
 
-    def add_tags(self, *args):
+    def add_tags(self, tags):
         """ Adds one or more new tag strings to the object tags. New tags will be cleaned and validated. """
-        self._tags.add_tags(*args)
+        self.tags.update(tags)
 
     @property
     def tags(self):
@@ -19,5 +18,5 @@ class Taggable:
 
     @tags.setter
     def tags(self, tags):
-        """ Overwrite any existing tag set and assign new tags. """
-        self._tags = TagSet(tags)
+        """ Overwrite any existing tag set and assign new tag. """
+        self._tags = TagDict(tags)

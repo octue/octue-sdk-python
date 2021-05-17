@@ -7,6 +7,7 @@ from .labelable import Labelable
 from .loggable import Loggable
 from .pathable import Pathable
 from .serialisable import Serialisable
+from .taggable import Taggable
 
 
 __all__ = (
@@ -19,5 +20,5 @@ __all__ = (
     "MixinBase",
     "Pathable",
     "Serialisable",
-    "Labelable",
+    "Taggable",
 )
