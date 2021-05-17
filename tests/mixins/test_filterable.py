@@ -3,16 +3,14 @@ from unittest.mock import Mock
 from octue import exceptions
 from octue.mixins.filterable import Filterable
 from octue.resources.label import LabelSet
+from octue.resources.tag import TagDict
 from tests.base import BaseTestCase
 
 
 class FilterableSubclass(Filterable):
-    def __init__(self, name=None, is_alive=None, iterable=None, age=None, owner=None):
-        self.name = name
-        self.is_alive = is_alive
-        self.iterable = iterable
-        self.age = age
-        self.owner = owner
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
 
 class TestFilterable(BaseTestCase):
@@ -29,7 +27,7 @@ class TestFilterable(BaseTestCase):
     def test_error_raised_when_valid_but_non_existent_filter_name_received(self):
         """ Ensure an error is raised when a valid but non-existent filter name is received. """
         with self.assertRaises(exceptions.InvalidInputException):
-            FilterableSubclass().satisfies(age__is_secret=True)
+            FilterableSubclass(age=23).satisfies(age__is_secret=True)
 
     def test_error_raised_when_attribute_type_has_no_filters_defined(self):
         """Ensure an error is raised when a filter for an attribute whose type doesn't have any filters defined is
@@ -190,3 +188,9 @@ class TestFilterable(BaseTestCase):
         filterable_thing = FilterableSubclass(name={"first": "Joe", "last": "Bloggs"})
         self.assertTrue(filterable_thing.satisfies(name__first__equals="Joe"))
         self.assertTrue(filterable_thing.satisfies(name__last__equals="Bloggs"))
+
+    def test_tag_dict_filters(self):
+        """Test some filters that apply to a TagDict. These should behave just the same as for a dictionary."""
+        filterable_thing = FilterableSubclass(tags=TagDict({"first": "Joe", "middle": "Horatio", "last": "Bloggs"}))
+        self.assertTrue(filterable_thing.satisfies(tags__last__lt="Kevin"))
+        self.assertFalse(filterable_thing.satisfies(tags__middle__is="Boratio"))
