@@ -11,6 +11,7 @@ from octue.cloud.storage.path import CLOUD_STORAGE_PROTOCOL
 from octue.exceptions import AttributeConflict, CloudLocationNotSpecified, FileNotFoundException, InvalidInputException
 from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Loggable, Pathable, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
+from octue.resources.tag import TagDict
 from octue.utils import isfile
 from octue.utils.time import convert_from_posix_time, convert_to_posix_time
 
@@ -202,15 +203,21 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         if isinstance(timestamp, str):
             timestamp = datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S.%f%z")
 
+        tags = kwargs.pop("tags", custom_metadata.get("tags", TAGS_DEFAULT))
+
+        if isinstance(tags, str):
+            tags = TagDict.deserialise(tags, from_string=True)
+
         datafile._set_id(kwargs.pop("id", custom_metadata.get("id", ID_DEFAULT)))
         datafile.path = storage.path.generate_gs_path(bucket_name, datafile_path)
         datafile.timestamp = timestamp
         datafile.immutable_hash_value = datafile._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
         datafile.cluster = kwargs.pop("cluster", custom_metadata.get("cluster", CLUSTER_DEFAULT))
         datafile.sequence = kwargs.pop("sequence", custom_metadata.get("sequence", SEQUENCE_DEFAULT))
-        datafile.tags = kwargs.pop("tags", custom_metadata.get("tags", TAGS_DEFAULT))
+        datafile.tags = tags
         datafile.labels = kwargs.pop("labels", custom_metadata.get("labels", LABELS_DEFAULT))
         datafile._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
+
         return datafile
 
     def to_cloud(self, project_name=None, bucket_name=None, path_in_bucket=None, update_cloud_metadata=True):
