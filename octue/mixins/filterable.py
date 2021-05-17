@@ -76,10 +76,11 @@ INTERFACE_FILTERS = {
 
 
 class Filterable:
-    def satisfies(self, **kwargs):
+    def satisfies(self, raise_error_if_filter_is_invalid=True, **kwargs):
         """Check that the instance satisfies the given filter for the given filter value. The filter should be provided
         as a single keyword argument such as `name__first__equals="Joe"`
 
+        :param bool raise_error_if_filter_is_invalid:
         :param {str: any} kwargs: a single keyword argument whose key is the name of the filter and whose value is the
             value to filter for
         :return mixed:
@@ -90,9 +91,17 @@ class Filterable:
         filter_name, filter_value = list(kwargs.items())[0]
 
         attribute_name, filter_action = self._split_filter_name(filter_name)
-        attribute = get_nested_attribute(self, attribute_name)
+
+        try:
+            attribute = get_nested_attribute(self, attribute_name)
+
+        except AttributeError as error:
+            if raise_error_if_filter_is_invalid:
+                raise error
+            return False
 
         filter_ = self._get_filter(attribute, filter_action)
+
         return filter_(attribute, filter_value)
 
     def _split_filter_name(self, filter_name):

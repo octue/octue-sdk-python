@@ -4,14 +4,21 @@ from octue import exceptions
 from octue.utils.objects import get_nested_attribute
 
 
-def _filter(self, **kwargs):
+def _filter(self, ignore_items_without_attribute=True, **kwargs):
     """Return a new instance containing only the Filterables to which the given filter criteria apply.
 
+    :param bool ignore_items_without_attribute:
     :param {str: any} kwargs: a single keyword argument whose key is the name of the filter and whos value is the value
         to filter for
     :return octue.resources.filter_containers.FilterSet:
     """
-    return self.__class__((item for item in self if item.satisfies(**kwargs)))
+    return self.__class__(
+        (
+            item
+            for item in self
+            if item.satisfies(raise_error_if_filter_is_invalid=not ignore_items_without_attribute, **kwargs)
+        )
+    )
 
 
 def _order_by(self, attribute_name, reverse=False):
@@ -37,15 +44,22 @@ class FilterList(list):
 
 
 class FilterDict(UserDict):
-    def filter(self, **kwargs):
+    def filter(self, ignore_items_without_attribute=True, **kwargs):
         """Return a new instance containing only the Filterables for which the given filter criteria apply are
         satisfied.
 
+        :param bool ignore_items_without_attribute:
         :param {str: any} kwargs: a single keyword argument whose key is the name of the filter and whose value is the
             value to filter for
         :return FilterDict:
         """
-        return self.__class__({key: value for key, value in self.items() if value.satisfies(**kwargs)})
+        return self.__class__(
+            {
+                key: value
+                for key, value in self.items()
+                if value.satisfies(raise_error_if_filter_is_invalid=not ignore_items_without_attribute, **kwargs)
+            }
+        )
 
     def order_by(self, attribute_name, reverse=False):
         """Order the instance by the given attribute_name, returning the instance's elements as a new FilterList (not a

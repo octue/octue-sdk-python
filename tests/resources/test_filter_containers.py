@@ -9,8 +9,25 @@ class FilterableThing(Filterable):
         for key, value in kwargs.items():
             setattr(self, key, value)
 
+    def __eq__(self, other):
+        return vars(self) == vars(other)
+
+    def __hash__(self):
+        return hash(str(vars(self).items()))
+
 
 class TestFilterSet(BaseTestCase):
+    def test_filter_with_filterables_of_differing_attributes(self):
+        """Test filtering with filterables of differing attributes ignores the filterables lacking the filtered-for
+        attribute.
+        """
+        filterables = {FilterableThing(a=3), FilterableThing(b=90), FilterableThing(a=77)}
+
+        filter_dict = FilterSet(filterables)
+        self.assertEqual(set(filter_dict.filter(a__gt=2)), {FilterableThing(a=3), FilterableThing(a=77)})
+        self.assertEqual(set(filter_dict.filter(b__equals=90)), {FilterableThing(b=90)})
+        self.assertEqual(set(filter_dict.filter(b__equals=0)), set())
+
     def test_ordering_by_a_non_existent_attribute(self):
         """ Ensure an error is raised if ordering is attempted by a non-existent attribute. """
         filter_set = FilterSet([FilterableThing(age=5), FilterableThing(age=4), FilterableThing(age=3)])
@@ -81,6 +98,21 @@ class TestFilterDict(BaseTestCase):
         filter_dict = FilterDict(filterables)
         self.assertEqual(filter_dict.filter(my_value__equals=90).keys(), {"second-filterable"})
         self.assertEqual(filter_dict.filter(my_value__gt=2), filterables)
+
+    def test_filter_with_filterables_of_differing_attributes(self):
+        """Test filtering with filterables of differing attributes ignores the filterables lacking the filtered-for
+        attribute.
+        """
+        filterables = {
+            "first-filterable": FilterableThing(a=3),
+            "second-filterable": FilterableThing(b=90),
+            "third-filterable": FilterableThing(a=77),
+        }
+
+        filter_dict = FilterDict(filterables)
+        self.assertEqual(set(filter_dict.filter(a__gt=2).keys()), {"first-filterable", "third-filterable"})
+        self.assertEqual(set(filter_dict.filter(b__equals=90).keys()), {"second-filterable"})
+        self.assertEqual(set(filter_dict.filter(b__equals=0).keys()), set())
 
     def test_filter_chaining(self):
         """Test that filters can be chained to filter a FilterDict multiple times."""
