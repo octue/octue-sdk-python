@@ -9,7 +9,7 @@ from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.cloud.storage.path import CLOUD_STORAGE_PROTOCOL
 from octue.exceptions import AttributeConflict, CloudLocationNotSpecified, FileNotFoundException, InvalidInputException
-from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Loggable, Pathable, Serialisable
+from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Loggable, Pathable, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils import isfile
 from octue.utils.time import convert_from_posix_time, convert_to_posix_time
@@ -27,7 +27,7 @@ SEQUENCE_DEFAULT = None
 LABELS_DEFAULT = None
 
 
-class Datafile(Labelable, Serialisable, Pathable, Loggable, Identifiable, Hashable, Filterable):
+class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable, Filterable):
     """Class for representing data files on the Octue system.
 
     Files in a manifest look like this:
@@ -72,6 +72,7 @@ class Datafile(Labelable, Serialisable, Pathable, Loggable, Identifiable, Hashab
         "path",
         "sequence",
         "labels",
+        "tags",
         "timestamp",
         "_cloud_metadata",
     )

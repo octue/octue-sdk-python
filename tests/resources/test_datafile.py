@@ -150,6 +150,7 @@ class DatafileTestCase(BaseTestCase):
             "path",
             "timestamp",
             "sequence",
+            "tags",
             "labels",
             "_cloud_metadata",
         }

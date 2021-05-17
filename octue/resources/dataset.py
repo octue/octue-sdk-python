@@ -7,7 +7,7 @@ from octue import definitions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import BrokenSequenceException, InvalidInputException, UnexpectedNumberOfResultsException
-from octue.mixins import Hashable, Identifiable, Labelable, Loggable, Pathable, Serialisable
+from octue.mixins import Hashable, Identifiable, Labelable, Loggable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.resources.label import LabelSet
@@ -19,7 +19,7 @@ module_logger = logging.getLogger(__name__)
 DATAFILES_DIRECTORY = "datafiles"
 
 
-class Dataset(Labelable, Serialisable, Pathable, Loggable, Identifiable, Hashable):
+class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable):
     """A representation of a dataset, containing files, labels, etc
 
     This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
@@ -28,7 +28,7 @@ class Dataset(Labelable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     _FILTERSET_ATTRIBUTE = "files"
     _ATTRIBUTES_TO_HASH = ("files",)
-    _SERIALISE_FIELDS = "files", "name", "labels", "id", "path"
+    _SERIALISE_FIELDS = "files", "name", "labels", "tags", "id", "path"
 
     def __init__(self, name=None, id=None, logger=None, path=None, path_from=None, labels=None, **kwargs):
         """Construct a Dataset"""
