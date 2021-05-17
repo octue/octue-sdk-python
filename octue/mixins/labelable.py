@@ -5,8 +5,8 @@ class Labelable:
     """ A mixin class allowing objects to be labelled. """
 
     def __init__(self, *args, labels=None, **kwargs):
-        super().__init__(*args, **kwargs)
         self._labels = LabelSet(labels)
+        super().__init__(*args, **kwargs)
 
     def add_labels(self, *args):
         """ Adds one or more new label strings to the object labels. New labels will be cleaned and validated. """

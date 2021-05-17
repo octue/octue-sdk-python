@@ -94,7 +94,7 @@ class LabelSet:
 
     _FILTERSET_ATTRIBUTE = "labels"
 
-    def __init__(self, labels=None, *args, **kwargs):
+    def __init__(self, labels=None):
         """ Construct a LabelSet. """
         # TODO Call the superclass with *args and **kwargs, then update everything to using ResourceBase
         labels = labels or FilterSet()
