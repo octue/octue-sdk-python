@@ -12,13 +12,22 @@ def _filter(self, ignore_items_without_attribute=True, **kwargs):
         to filter for
     :return octue.resources.filter_containers.FilterSet:
     """
-    return self.__class__(
-        (
-            item
-            for item in self
-            if item.satisfies(raise_error_if_filter_is_invalid=not ignore_items_without_attribute, **kwargs)
+    raise_error_if_filter_is_invalid = not ignore_items_without_attribute
+
+    if len(kwargs) == 1:
+        return type(self)(
+            (
+                item
+                for item in self
+                if item.satisfies(raise_error_if_filter_is_invalid=raise_error_if_filter_is_invalid, **kwargs)
+            )
         )
-    )
+
+    filter_names = list(kwargs)
+
+    for filter_name in filter_names:
+        filter_value = kwargs.pop(filter_name)
+        return _filter(self, raise_error_if_filter_is_invalid, **{filter_name: filter_value}).filter(**kwargs)
 
 
 def _order_by(self, attribute_name, reverse=False):
@@ -53,13 +62,22 @@ class FilterDict(UserDict):
             value to filter for
         :return FilterDict:
         """
-        return self.__class__(
-            {
-                key: value
-                for key, value in self.items()
-                if value.satisfies(raise_error_if_filter_is_invalid=not ignore_items_without_attribute, **kwargs)
-            }
-        )
+        raise_error_if_filter_is_invalid = not ignore_items_without_attribute
+
+        if len(kwargs) == 1:
+            return type(self)(
+                {
+                    key: value
+                    for key, value in self.items()
+                    if value.satisfies(raise_error_if_filter_is_invalid=raise_error_if_filter_is_invalid, **kwargs)
+                }
+            )
+
+        filter_names = list(kwargs)
+
+        for filter_name in filter_names:
+            filter_value = kwargs.pop(filter_name)
+            return self.filter(raise_error_if_filter_is_invalid, **{filter_name: filter_value}).filter(**kwargs)
 
     def order_by(self, attribute_name, reverse=False):
         """Order the instance by the given attribute_name, returning the instance's elements as a new FilterList (not a

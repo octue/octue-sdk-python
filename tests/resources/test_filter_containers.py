@@ -23,10 +23,15 @@ class TestFilterSet(BaseTestCase):
         """
         filterables = {FilterableThing(a=3), FilterableThing(b=90), FilterableThing(a=77)}
 
-        filter_dict = FilterSet(filterables)
-        self.assertEqual(set(filter_dict.filter(a__gt=2)), {FilterableThing(a=3), FilterableThing(a=77)})
-        self.assertEqual(set(filter_dict.filter(b__equals=90)), {FilterableThing(b=90)})
-        self.assertEqual(set(filter_dict.filter(b__equals=0)), set())
+        filter_set = FilterSet(filterables)
+        self.assertEqual(set(filter_set.filter(a__gt=2)), {FilterableThing(a=3), FilterableThing(a=77)})
+        self.assertEqual(set(filter_set.filter(b__equals=90)), {FilterableThing(b=90)})
+        self.assertEqual(set(filter_set.filter(b__equals=0)), set())
+
+    def test_filtering_with_multiple_filters(self):
+        """Test that multiple filters can be specified in FilterSet.filter at once."""
+        filterables = {FilterableThing(a=3, b=2), FilterableThing(a=3, b=99), FilterableThing(a=77)}
+        self.assertEqual(FilterSet(filterables).filter(a__equals=3, b__gt=80), {FilterableThing(a=3, b=99)})
 
     def test_ordering_by_a_non_existent_attribute(self):
         """ Ensure an error is raised if ordering is attempted by a non-existent attribute. """
@@ -121,6 +126,10 @@ class TestFilterDict(BaseTestCase):
 
         animals_with_age_of_at_least_90_and_size_small = animals_with_age_of_at_least_90.filter(size__equals="small")
         self.assertEqual(animals_with_age_of_at_least_90_and_size_small.keys(), {"another_dog"})
+
+    def test_filtering_with_multiple_filters(self):
+        """Test that multiple filters can be specified in FilterDict.filter at once."""
+        self.assertEqual(self.ANIMALS.filter(size__equals="small", age__lt=5), {"cat": self.ANIMALS["cat"]})
 
     def test_ordering_by_a_non_existent_attribute(self):
         """ Ensure an error is raised if ordering is attempted by a non-existent attribute. """
