@@ -1,3 +1,5 @@
+from unittest.mock import Mock
+
 from octue import exceptions
 from octue.mixins.filterable import Filterable
 from octue.resources.label import LabelSet
@@ -150,3 +152,41 @@ class TestFilterable(BaseTestCase):
         self.assertTrue(filterable_thing.satisfies(age__equals=5.2))
         self.assertTrue(filterable_thing.satisfies(age__not_equals=5))
         self.assertTrue(filterable_thing.satisfies(owner__is=None))
+
+    def test_getattr_or_subscribe_with_dictionary(self):
+        """Test that the Filterable._getattr_or_subscribe method can get values from a dictionary."""
+        filterable = Filterable()
+        self.assertEqual(filterable._getattr_or_subscribe(instance={"hello": "world"}, name="hello"), "world")
+
+    def test_getattr_or_subscribe_with_object(self):
+        """Test that the Filterable._getattr_or_subscribe method can get attribute values from a class instance."""
+        self.assertEqual(Filterable()._getattr_or_subscribe(instance=Mock(a=3), name="a"), 3)
+
+    def test_get_nested_attribute(self):
+        """Test that nested attributes can be accessed."""
+        inner_mock = Mock(b=3)
+        outer_mock = Mock(a=inner_mock)
+        self.assertEqual(Filterable()._get_nested_attribute(instance=outer_mock, nested_attribute_name="a.b"), 3)
+
+    def test_get_nested_dictionary_attribute(self):
+        """Test that nested attributes ending in a dictionary key can be accessed."""
+        inner_mock = Mock(b={"hello": "world"})
+        outer_mock = Mock(a=inner_mock)
+        self.assertEqual(
+            Filterable()._get_nested_attribute(instance=outer_mock, nested_attribute_name="a.b.hello"), "world"
+        )
+
+    def test_filtering_with_nested_attributes(self):
+        """Test that Filterable subclasses can be checked for satisfaction of a filter of nested attributes."""
+        inner_mock = Mock(b=3)
+        outer_mock = Mock(a=inner_mock)
+        filterable_thing = FilterableSubclass(name=outer_mock)
+        self.assertTrue(filterable_thing.satisfies(name__a__b__equals=3))
+
+    def test_filtering_with_nested_attributes_ending_in_dictionary_key(self):
+        """Test that Filterable subclasses can be checked for satisfaction of a filter of nested attributes that ends
+        with a dictionary key.
+        """
+        filterable_thing = FilterableSubclass(name={"first": "Joe", "last": "Bloggs"})
+        self.assertTrue(filterable_thing.satisfies(name__first__equals="Joe"))
+        self.assertTrue(filterable_thing.satisfies(name__last__equals="Bloggs"))

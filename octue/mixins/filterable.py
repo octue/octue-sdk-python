@@ -1,4 +1,5 @@
 import collections.abc
+import functools
 import numbers
 
 from octue import exceptions
@@ -76,9 +77,10 @@ INTERFACE_FILTERS = {
 
 class Filterable:
     def satisfies(self, **kwargs):
-        """Check that the instance satisfies the given filter for the given filter value.
+        """Check that the instance satisfies the given filter for the given filter value. The filter should be provided
+        as a single keyword argument such as `name__first__equals="Joe"`
 
-        :param {str: any} kwargs: a single keyword argument whose key is the name of the filter and whos value is the
+        :param {str: any} kwargs: a single keyword argument whose key is the name of the filter and whose value is the
             value to filter for
         :return mixed:
         """
@@ -88,11 +90,7 @@ class Filterable:
         filter_name, filter_value = list(kwargs.items())[0]
 
         attribute_name, filter_action = self._split_filter_name(filter_name)
-
-        try:
-            attribute = getattr(self, attribute_name)
-        except AttributeError:
-            raise AttributeError(f"An attribute named {attribute_name!r} does not exist on {self!r}.")
+        attribute = self._get_nested_attribute(self, attribute_name)
 
         filter_ = self._get_filter(attribute, filter_action)
         return filter_(attribute, filter_value)
@@ -101,15 +99,42 @@ class Filterable:
         """Split the filter name into the attribute name and filter action, raising an error if it the attribute name
         and filter action aren't delimited by a double underscore i.e. "__".
         """
-        try:
-            attribute_name, filter_action = filter_name.split("__", 1)
-        except ValueError:
+        *attribute_names, filter_action = filter_name.split("__")
+
+        if not attribute_names:
             raise exceptions.InvalidInputException(
                 f"Invalid filter name {filter_name!r}. Filter names should be in the form "
-                f"'<attribute_name>__<filter_kind>'."
+                f"'<attribute_name_0>__<attribute_name_1>__<...>__<filter_kind>' with at least one attribute name"
+                f"included."
             )
 
-        return attribute_name, filter_action
+        return ".".join(attribute_names), filter_action
+
+    def _get_nested_attribute(self, instance, nested_attribute_name):
+        """Get the value of a nested attribute from a class instance or dictionary, with each level of nesting being
+        another dictionary or class instance.
+
+        :param dict|object instance:
+        :param str nested_attribute_names: dot-separated nested attribute name e.g. "a.b.c", "a.b", or "a"
+        :return any:
+        """
+        nested_attribute_names = nested_attribute_name.split(".")
+        return functools.reduce(self._getattr_or_subscribe, nested_attribute_names, instance)
+
+    def _getattr_or_subscribe(self, instance, name):
+        """Get an attribute from a class instance or a value from a dictionary.
+
+        :param dict|object instance:
+        :param str name: name of attribute or dictionary key
+        :return any:
+        """
+        try:
+            return getattr(instance, name)
+        except AttributeError:
+            try:
+                return instance[name]
+            except TypeError:
+                raise AttributeError(f"{instance!r} does not have an attribute or key named {name!r}.")
 
     def _get_filter(self, attribute, filter_action):
         """Get the filter for the attribute and filter action, raising an error if there is no filter action of that
@@ -119,9 +144,8 @@ class Filterable:
             return self._get_filter_actions_for_attribute(attribute)[filter_action]
 
         except KeyError as error:
-            attribute_type = type(attribute)
             raise exceptions.InvalidInputException(
-                f"There is no filter called {error.args[0]!r} for attributes of type {attribute_type}. The options "
+                f"There is no filter called {error.args[0]!r} for attributes of type {type(attribute)}. The options "
                 f"are {self._get_filter_actions_for_attribute(attribute).keys()!r}"
             )
 
