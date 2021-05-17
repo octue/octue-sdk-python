@@ -1,5 +1,6 @@
 import json
 import re
+from collections.abc import Iterable
 from functools import lru_cache
 
 from octue.exceptions import InvalidLabelException
@@ -72,6 +73,9 @@ class Label(Filterable):
         """ Does the label end with the given value? """
         return self.name.endswith(value)
 
+    def serialise(self):
+        return self.name
+
     @staticmethod
     def _clean(name):
         """ Ensure the label name is a string and conforms to the label regex pattern. """
@@ -89,7 +93,7 @@ class Label(Filterable):
         return cleaned_name
 
 
-class LabelSet:
+class LabelSet(FilterSet):
     """ Class to handle a set of labels as a string. """
 
     def __init__(self, labels=None):
@@ -100,48 +104,44 @@ class LabelSet:
         # JSON-encoded list of label names, or space-delimited string of label names.
         if isinstance(labels, str):
             try:
-                self.labels = FilterSet(Label(label) for label in json.loads(labels))
+                labels = FilterSet(Label(label) for label in json.loads(labels))
             except json.decoder.JSONDecodeError:
-                self.labels = FilterSet(Label(label) for label in labels.strip().split())
+                labels = FilterSet(Label(label) for label in labels.strip().split())
 
         elif isinstance(labels, LabelSet):
-            self.labels = FilterSet(labels.labels)
+            labels = FilterSet(labels)
 
         # Labels can be some other iterable than a list, but each label must be a Label or string.
         elif hasattr(labels, "__iter__"):
-            self.labels = FilterSet(label if isinstance(label, Label) else Label(label) for label in labels)
+            labels = FilterSet(label if isinstance(label, Label) else Label(label) for label in labels)
 
         else:
             raise InvalidLabelException(
                 "Labels must be expressed as a whitespace-delimited string or an iterable of strings or Label instances."
             )
 
+        super().__init__(labels)
+
     def __eq__(self, other):
-        """ Does this LabelSet have the same labels as another LabelSet? """
-        if not isinstance(other, LabelSet):
+        """Does this LabelSet have the same labels as another LabelSet?"""
+        if not isinstance(other, Iterable):
             return False
-        return self.labels == other.labels
 
-    def __iter__(self):
-        """ Iterate over the labels in the LabelSet. """
-        yield from self.labels
+        if not all(isinstance(item, Label) for item in other):
+            other = {Label(item) for item in other}
 
-    def __len__(self):
-        return len(self.labels)
+        return set(self) == set(other)
 
     def __contains__(self, label):
         """ Return True if any of the labels exactly matches value, allowing test like `if 'a' in LabelSet('a b')`. """
         if isinstance(label, str):
-            return Label(label) in self.labels
+            return Label(label) in set(self)
         if isinstance(label, Label):
-            return label in self.labels
-
-    def __repr__(self):
-        return f"<{type(self).__name__}({self.labels})>"
+            return label in set(self)
 
     def add_labels(self, *args):
         """Adds one or more new label strings to the object labels. New labels will be cleaned and validated."""
-        self.labels |= {Label(arg) for arg in args}
+        self.update({Label(arg) for arg in args})
 
     def get_sublabels(self):
         """ Return a new LabelSet instance with all the sublabels. """
@@ -159,15 +159,6 @@ class LabelSet:
         """ Return True if any of the labels contains value. """
         return any(value in label for label in self)
 
-    def filter(self, filter_name=None, filter_value=None):
-        """Filter the labels with the given filter for the given value.
-
-        :param str filter_name:
-        :param any filter_value:
-        :return octue.resources.filter_containers.FilterSet:
-        """
-        return self.labels.filter(filter_name=filter_name, filter_value=filter_value)
-
     def serialise(self, to_string=False, **kwargs):
         """Serialise to a sorted list of label names.
 
@@ -175,7 +166,7 @@ class LabelSet:
         :return list|str:
         """
         string = json.dumps(
-            sorted(label.name for label in self.labels), cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs
+            sorted(label.name for label in self), cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs
         )
 
         if to_string:

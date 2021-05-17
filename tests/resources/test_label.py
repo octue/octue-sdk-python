@@ -74,27 +74,27 @@ class TestLabelSet(BaseTestCase):
     def test_instantiation_from_space_delimited_string(self):
         """ Test that a LabelSet can be instantiated from a space-delimited string of label names."""
         label_set = LabelSet(labels="a b:c d:e:f")
-        self.assertEqual(label_set.labels, FilterSet({Label("a"), Label("b:c"), Label("d:e:f")}))
+        self.assertEqual(label_set, FilterSet({Label("a"), Label("b:c"), Label("d:e:f")}))
 
     def test_instantiation_from_iterable_of_strings(self):
         """ Test that a LabelSet can be instantiated from an iterable of strings."""
         label_set = LabelSet(labels=["a", "b:c", "d:e:f"])
-        self.assertEqual(label_set.labels, FilterSet({Label("a"), Label("b:c"), Label("d:e:f")}))
+        self.assertEqual(label_set, FilterSet({Label("a"), Label("b:c"), Label("d:e:f")}))
 
     def test_instantiation_from_iterable_of_labels(self):
         """ Test that a LabelSet can be instantiated from an iterable of labels."""
         label_set = LabelSet(labels=[Label("a"), Label("b:c"), Label("d:e:f")])
-        self.assertEqual(label_set.labels, FilterSet({Label("a"), Label("b:c"), Label("d:e:f")}))
+        self.assertEqual(label_set, FilterSet({Label("a"), Label("b:c"), Label("d:e:f")}))
 
     def test_instantiation_from_filter_set_of_strings(self):
         """ Test that a LabelSet can be instantiated from a FilterSet of strings."""
         label_set = LabelSet(labels=FilterSet({"a", "b:c", "d:e:f"}))
-        self.assertEqual(label_set.labels, FilterSet({Label("a"), Label("b:c"), Label("d:e:f")}))
+        self.assertEqual(label_set, FilterSet({Label("a"), Label("b:c"), Label("d:e:f")}))
 
     def test_instantiation_from_filter_set_of_labels(self):
         """ Test that a LabelSet can be instantiated from a FilterSet of labels."""
         label_set = LabelSet(labels=FilterSet({Label("a"), Label("b:c"), Label("d:e:f")}))
-        self.assertEqual(label_set.labels, FilterSet({Label("a"), Label("b:c"), Label("d:e:f")}))
+        self.assertEqual(label_set, FilterSet({Label("a"), Label("b:c"), Label("d:e:f")}))
 
     def test_instantiation_from_label_set(self):
         """ Test that a LabelSet can be instantiated from another LabelSet. """
@@ -167,7 +167,7 @@ class TestLabelSet(BaseTestCase):
         """ Test that label sets can be filtered. """
         label_set = LabelSet(labels="label1 label2 meta:sys1:1234 meta:sys2:3456 meta:sys2:55")
         self.assertEqual(
-            label_set.labels.filter(name__starts_with="meta"),
+            label_set.filter(name__starts_with="meta"),
             FilterSet({Label("meta:sys1:1234"), Label("meta:sys2:3456"), Label("meta:sys2:55")}),
         )
 
@@ -175,14 +175,14 @@ class TestLabelSet(BaseTestCase):
         """ Test that filters can be chained. """
         label_set = LabelSet(labels="label1 label2 meta:sys1:1234 meta:sys2:3456 meta:sys2:55")
 
-        filtered_labels_1 = label_set.labels.filter(name__starts_with="meta")
-        self.assertEqual(filtered_labels_1, LabelSet("meta:sys1:1234 meta:sys2:3456 meta:sys2:55").labels)
+        filtered_labels_1 = label_set.filter(name__starts_with="meta")
+        self.assertEqual(filtered_labels_1, LabelSet("meta:sys1:1234 meta:sys2:3456 meta:sys2:55"))
 
         filtered_labels_2 = filtered_labels_1.filter(name__contains="sys2")
-        self.assertEqual(filtered_labels_2, LabelSet("meta:sys2:3456 meta:sys2:55").labels)
+        self.assertEqual(filtered_labels_2, LabelSet("meta:sys2:3456 meta:sys2:55"))
 
         filtered_labels_3 = filtered_labels_1.filter(name__equals="meta:sys2:55")
-        self.assertEqual(filtered_labels_3, LabelSet("meta:sys2:55").labels)
+        self.assertEqual(filtered_labels_3, LabelSet("meta:sys2:55"))
 
     def test_serialise(self):
         """ Ensure that LabelSets are serialised to the string form of a list. """
@@ -201,4 +201,4 @@ class TestLabelSet(BaseTestCase):
 
     def test_repr(self):
         """Test the representation of a LabelSet appears as expected."""
-        self.assertEqual(repr(self.LABEL_SET), f"<LabelSet({repr(self.LABEL_SET.labels)})>")
+        self.assertEqual(repr(self.LABEL_SET), f"LabelSet({set(self.LABEL_SET)})")
