@@ -80,12 +80,9 @@ TAG_NAME_PATTERN = re.compile(r"^$|^[A-Za-z0-9][A-Za-z0-9:.\-/]*(?<![./:-])$")
 
 
 class TagDict(Serialisable, FilterDict):
-
-    _FILTERABLE_ATTRIBUTE = "data"
-
     def __setitem__(self, tag, value):
         self._check_tag_format(tag)
-        self.data[tag] = value
+        super().__setitem__(tag, value)
 
     def update(self, tags, **kwargs):
         self._check_tag_format(*tags)
