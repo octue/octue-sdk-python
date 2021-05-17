@@ -1,3 +1,5 @@
+from collections import UserDict
+
 from octue import exceptions
 
 
@@ -31,3 +33,10 @@ class FilterSet(set):
 class FilterList(list):
     filter = _filter
     order_by = _order_by
+
+
+class FilterDict(UserDict):
+    order_by = _order_by
+
+    def filter(self, **kwargs):
+        return self.__class__({key: value for key, value in self.items() if value.satisfies(**kwargs)})

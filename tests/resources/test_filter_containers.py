@@ -1,6 +1,6 @@
 from octue import exceptions
 from octue.mixins import Filterable
-from octue.resources.filter_containers import FilterList, FilterSet
+from octue.resources.filter_containers import FilterDict, FilterList, FilterSet
 from tests.base import BaseTestCase
 
 
@@ -41,3 +41,29 @@ class TestFilterSet(BaseTestCase):
         cats = [Cat(age=5), Cat(age=3), Cat(age=4)]
         sorted_filter_set = FilterSet(cats).order_by("age", reverse=True)
         self.assertEqual(sorted_filter_set, FilterList([cats[0], cats[2], cats[1]]))
+
+
+class TestFilterDict(BaseTestCase):
+    def test_instantiate(self):
+        """Test that a FilterDict can be instantiated like a dictionary."""
+        filter_dict = FilterDict(a=1, b=3)
+        self.assertEqual(filter_dict["a"], 1)
+        self.assertEqual(filter_dict["b"], 3)
+
+        filter_dict = FilterDict({"a": 1, "b": 3})
+        self.assertEqual(filter_dict["a"], 1)
+        self.assertEqual(filter_dict["b"], 3)
+
+        filter_dict = FilterDict(**{"a": 1, "b": 3})
+        self.assertEqual(filter_dict["a"], 1)
+        self.assertEqual(filter_dict["b"], 3)
+
+    def test_filter(self):
+        """Test that a FilterDict can be filtered on its values when they are all filterables."""
+        filterables = {"first-filterable": Filterable(), "second-filterable": Filterable()}
+        filterables["first-filterable"].value = 3
+        filterables["second-filterable"].value = 90
+
+        filter_dict = FilterDict(filterables)
+        self.assertEqual(filter_dict.filter(value__equals=90).keys(), {"second-filterable"})
+        self.assertEqual(filter_dict.filter(value__gt=2), filterables)
