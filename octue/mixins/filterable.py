@@ -1,8 +1,8 @@
 import collections.abc
-import functools
 import numbers
 
 from octue import exceptions
+from octue.utils.objects import get_nested_attribute
 
 
 IS_FILTER_ACTIONS = {
@@ -90,7 +90,7 @@ class Filterable:
         filter_name, filter_value = list(kwargs.items())[0]
 
         attribute_name, filter_action = self._split_filter_name(filter_name)
-        attribute = self._get_nested_attribute(self, attribute_name)
+        attribute = get_nested_attribute(self, attribute_name)
 
         filter_ = self._get_filter(attribute, filter_action)
         return filter_(attribute, filter_value)
@@ -109,32 +109,6 @@ class Filterable:
             )
 
         return ".".join(attribute_names), filter_action
-
-    def _get_nested_attribute(self, instance, nested_attribute_name):
-        """Get the value of a nested attribute from a class instance or dictionary, with each level of nesting being
-        another dictionary or class instance.
-
-        :param dict|object instance:
-        :param str nested_attribute_names: dot-separated nested attribute name e.g. "a.b.c", "a.b", or "a"
-        :return any:
-        """
-        nested_attribute_names = nested_attribute_name.split(".")
-        return functools.reduce(self._getattr_or_subscribe, nested_attribute_names, instance)
-
-    def _getattr_or_subscribe(self, instance, name):
-        """Get an attribute from a class instance or a value from a dictionary.
-
-        :param dict|object instance:
-        :param str name: name of attribute or dictionary key
-        :return any:
-        """
-        try:
-            return getattr(instance, name)
-        except AttributeError:
-            try:
-                return instance[name]
-            except TypeError:
-                raise AttributeError(f"{instance!r} does not have an attribute or key named {name!r}.")
 
     def _get_filter(self, attribute, filter_action):
         """Get the filter for the attribute and filter action, raising an error if there is no filter action of that

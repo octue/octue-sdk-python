@@ -47,6 +47,16 @@ class TestFilterSet(BaseTestCase):
 
 
 class TestFilterDict(BaseTestCase):
+    ANIMALS = FilterDict(
+        {
+            "cat": FilterableThing(name="Princess Carolyn", age=3, size="small", previous_names=["scatta", "catta"]),
+            "dog": FilterableThing(name="Spot", age=90, size="big", previous_names=[]),
+            "another_dog": FilterableThing(
+                name="Ranger", age=91, size="small", previous_names=["doggo", "oggo", "loggo"]
+            ),
+        }
+    )
+
     def test_instantiate(self):
         """Test that a FilterDict can be instantiated like a dictionary."""
         filter_dict = FilterDict(a=1, b=3)
@@ -74,16 +84,41 @@ class TestFilterDict(BaseTestCase):
 
     def test_filter_chaining(self):
         """Test that filters can be chained to filter a FilterDict multiple times."""
-        animals = FilterDict(
-            {
-                "cat": FilterableThing(age=3, size="small"),
-                "dog": FilterableThing(age=90, size="big"),
-                "another_dog": FilterableThing(age=90, size="small"),
-            }
+        animals_with_age_of_at_least_90 = self.ANIMALS.filter(age__gte=90)
+        self.assertEqual({"dog", "another_dog"}, animals_with_age_of_at_least_90.keys())
+
+        animals_with_age_of_at_least_90_and_size_small = animals_with_age_of_at_least_90.filter(size__equals="small")
+        self.assertEqual(animals_with_age_of_at_least_90_and_size_small.keys(), {"another_dog"})
+
+    def test_ordering_by_a_non_existent_attribute(self):
+        """ Ensure an error is raised if ordering is attempted by a non-existent attribute. """
+        with self.assertRaises(exceptions.InvalidInputException):
+            self.ANIMALS.order_by("dog-likeness")
+
+    def test_order_by_with_string_attribute(self):
+        """ Test ordering a FilterSet by a string attribute returns an appropriately ordered FilterList. """
+        self.assertEqual(
+            self.ANIMALS.order_by("name"),
+            FilterList((self.ANIMALS["cat"], self.ANIMALS["another_dog"], self.ANIMALS["dog"])),
         )
 
-        animals_with_age_90 = animals.filter(age__equals=90)
-        self.assertEqual({"dog", "another_dog"}, animals_with_age_90.keys())
+    def test_order_by_with_int_attribute(self):
+        """ Test ordering a FilterSet by an integer attribute returns an appropriately ordered FilterList. """
+        self.assertEqual(
+            self.ANIMALS.order_by("age"),
+            FilterList((self.ANIMALS["cat"], self.ANIMALS["dog"], self.ANIMALS["another_dog"])),
+        )
 
-        animals_with_age_90_and_size_small = animals_with_age_90.filter(size__equals="small")
-        self.assertEqual(animals_with_age_90_and_size_small.keys(), {"another_dog"})
+    def test_order_by_list_attribute(self):
+        """ Test that ordering by list attributes orders alphabetically by the first element of each list. """
+        self.assertEqual(
+            self.ANIMALS.order_by("previous_names"),
+            FilterList((self.ANIMALS["dog"], self.ANIMALS["another_dog"], self.ANIMALS["cat"])),
+        )
+
+    def test_order_by_in_reverse(self):
+        """ Test ordering in reverse works correctly. """
+        self.assertEqual(
+            self.ANIMALS.order_by("age", reverse=True),
+            FilterList((self.ANIMALS["another_dog"], self.ANIMALS["dog"], self.ANIMALS["cat"])),
+        )
