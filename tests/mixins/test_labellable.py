@@ -55,22 +55,16 @@ class LabelableTestCase(BaseTestCase):
         """Ensures valid labels do not raise an error"""
         labelable = MyLabelable()
         labelable.add_labels("a-valid-label")
-        labelable.add_labels("a:label")
-        labelable.add_labels("a:-label")  # <--- yes, this is valid deliberately as it allows people to do negation
+        labelable.add_labels("label")
         labelable.add_labels("a1829tag")
         labelable.add_labels("1829")
-        labelable.add_labels("number:1829")
-        labelable.add_labels("multiple:discriminators:used")
         self.assertEqual(
             set(labelable.labels),
             {
                 Label("a-valid-label"),
-                Label("a:label"),
-                Label("a:-label"),
+                Label("label"),
                 Label("a1829tag"),
                 Label("1829"),
-                Label("number:1829"),
-                Label("multiple:discriminators:used"),
             },
         )
 

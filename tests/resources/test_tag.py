@@ -59,9 +59,9 @@ class TestTagDict(TestCase):
 
     def test_filter(self):
         """Test that TagDicts can be filtered for their values."""
-        filterables = {"first-filterable": Filterable(), "second-filterable": Filterable()}
-        filterables["first-filterable"].my_data = 3
-        filterables["second-filterable"].my_data = 90
+        filterables = {"first_filterable": Filterable(), "second_filterable": Filterable()}
+        filterables["first_filterable"].my_data = 3
+        filterables["second_filterable"].my_data = 90
 
         tag_dict = TagDict(filterables)
-        self.assertEqual(tag_dict.filter(my_data__equals=3).keys(), {"first-filterable"})
+        self.assertEqual(tag_dict.filter(my_data__equals=3).keys(), {"first_filterable"})

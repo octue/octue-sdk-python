@@ -7,8 +7,8 @@
     {
       "id": "7ead4669-8162-4f64-8cd5-4abe92509e17",
       "name": "meteorological mast dataset",
-      "tags": {},
-      "labels": ["met", "mast", "wind", "location:108346"],
+      "tags": {"location": 108346},
+      "labels": ["met", "mast", "wind"],
       "files": [
         {
           "path": "08DEC/High Res Meteorological Mast Data - 8 Dec_1.csv",

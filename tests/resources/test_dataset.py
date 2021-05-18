@@ -135,8 +135,8 @@ class DatasetTestCase(BaseTestCase):
         """Ensures that filter works with label lookups"""
         resource = Dataset(
             files=[
-                Datafile(path="path-within-dataset/a_my_file.csv", labels="one a:2 b:3 all"),
-                Datafile(path="path-within-dataset/a_your_file.csv", labels="two a:2 b:3 all"),
+                Datafile(path="path-within-dataset/a_my_file.csv", labels="one a2 b3 all"),
+                Datafile(path="path-within-dataset/a_your_file.csv", labels="two a2 b3 all"),
                 Datafile(path="path-within-dataset/a_your_file.csv", labels="three all"),
             ]
         )
@@ -157,8 +157,8 @@ class DatasetTestCase(BaseTestCase):
     def test_get_file_by_label(self):
         """Ensure files can be accessed by label from the dataset."""
         files = [
-            Datafile(path="path-within-dataset/a_my_file.csv", labels="one a:2 b:3 all"),
-            Datafile(path="path-within-dataset/a_your_file.csv", labels="two a:2 b:3 all"),
+            Datafile(path="path-within-dataset/a_my_file.csv", labels="one a b3 all"),
+            Datafile(path="path-within-dataset/a_your_file.csv", labels="two a2 b3 all"),
             Datafile(path="path-within-dataset/a_your_file.csv", labels="three all"),
         ]
 

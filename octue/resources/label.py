@@ -2,15 +2,14 @@ import json
 import re
 from collections import UserString
 from collections.abc import Iterable
-from functools import lru_cache
 
 from octue.exceptions import InvalidLabelException
 from octue.mixins import Filterable
-from octue.resources.filter_containers import FilterList, FilterSet
+from octue.resources.filter_containers import FilterSet
 from octue.utils.encoders import OctueJSONEncoder
 
 
-LABEL_PATTERN = re.compile(r"^$|^[A-Za-z0-9][A-Za-z0-9:.\-/]*(?<![./:-])$")
+LABEL_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*(?<!-)$")
 
 
 class Label(Filterable, UserString):
@@ -24,15 +23,6 @@ class Label(Filterable, UserString):
     def __init__(self, name):
         super().__init__(self._clean(name))
         self.name = self.data
-
-    @property
-    @lru_cache(maxsize=1)
-    def sublabels(self):
-        """Return the sublabels of the label in order as a FilterList (e.g. FilterList(['a', 'b', 'c']) for Label('a:b:c').
-
-        :return FilterList(Label):
-        """
-        return FilterList(Label(sublabel_name) for sublabel_name in self.split(":"))
 
     def serialise(self):
         return self.name
@@ -103,10 +93,6 @@ class LabelSet(FilterSet):
     def add_labels(self, *args):
         """Adds one or more new label strings to the object labels. New labels will be cleaned and validated."""
         self.update({Label(arg) for arg in args})
-
-    def get_sublabels(self):
-        """ Return a new LabelSet instance with all the sublabels. """
-        return LabelSet(sublabel for label in self for sublabel in label.sublabels)
 
     def any_label_starts_with(self, value):
         """ Implement a startswith method that returns true if any of the labels starts with value """

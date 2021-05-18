@@ -50,7 +50,7 @@ def fractal(analysis):
     # hyphens and underscores (which can be used literally in search and are also
     # used to separate words in natural language search). Other special characters
     # will be stripped.
-    labels = "contents:fractal:mandelbrot type:figure:surface"
+    tags = {"contents": "fractal:mandelbrot", "type": "figure:surface"}
 
     # Get the output dataset which will be used for storing the figure file(s)
     output_dataset = analysis.output_manifest.get_dataset("fractal_figure_files")
@@ -64,7 +64,7 @@ def fractal(analysis):
         path="my_mandelbrot_file.json",  # File name including extension (and can include subfolders within the dataset)
         local_path_prefix=output_dataset.path,  # TODO set up for the right paths Destination (root of the output dataset folder on the present machine)
         skip_checks=True,  # We haven't created the actual file yet, so it'll definitely fail checks!
-        labels=labels,
+        tags=tags,
     )
 
     # Actually write the contents to the file specified by the Datafile

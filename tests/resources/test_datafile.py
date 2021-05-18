@@ -201,7 +201,7 @@ class DatafileTestCase(BaseTestCase):
             timestamp=datetime.now(tz=timezone.utc),
             cluster=0,
             sequence=1,
-            labels={"blah:shah:nah", "blib", "glib"},
+            labels={"blah-shah-nah", "blib", "glib"},
         )
 
         downloaded_datafile = Datafile.from_cloud(project_name, bucket_name, path_in_bucket)

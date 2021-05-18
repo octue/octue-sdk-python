@@ -49,24 +49,13 @@ class TaggableTestCase(BaseTestCase):
         """Ensures adding valid tags works."""
         taggable = MyTaggable()
 
-        taggable.add_tags({"a-valid-tag": "blah"})
-        taggable.add_tags({"a:tag": "blah"})
-        taggable.add_tags({"a:-tag": "blah"})  # <--- yes, this is valid deliberately as it allows people to do negation
+        taggable.add_tags({"a_valid_tag": "blah"})
         taggable.add_tags({"a1829tag": "blah"})
-        taggable.add_tags({"multiple:discriminators:used": "blah"})
-        taggable.add_tags({"1829": "blah", "number:1829": "blah"})  # Add multiple tags at once.
+        taggable.add_tags({"1829": "blah", "number_1829": "blah"})  # Add multiple tags at once.
 
         self.assertEqual(
             taggable.tags,
-            {
-                "a-valid-tag": "blah",
-                "a:tag": "blah",
-                "a:-tag": "blah",
-                "a1829tag": "blah",
-                "1829": "blah",
-                "number:1829": "blah",
-                "multiple:discriminators:used": "blah",
-            },
+            {"a_valid_tag": "blah", "a1829tag": "blah", "1829": "blah", "number_1829": "blah"},
         )
 
     def test_add_tags_via_kwargs(self):
@@ -80,9 +69,9 @@ class TaggableTestCase(BaseTestCase):
         invalid tags to the object.
         """
         taggable = MyTaggable()
-        taggable.add_tags({"first-valid-should-be-added": "hello"})
+        taggable.add_tags({"first_valid_should_be_added": "hello"})
 
         with self.assertRaises(exceptions.InvalidTagException):
-            taggable.add_tags({"second-valid-should-not-be-added-because": 1, "-the-third-is-invalid:": 2})
+            taggable.add_tags({"second_valid_should_not_be_added_because": 1, "_the_third_is_invalid:": 2})
 
-        self.assertEqual(taggable.tags, {"first-valid-should-be-added": "hello"})
+        self.assertEqual(taggable.tags, {"first_valid_should_be_added": "hello"})
