@@ -201,7 +201,10 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         timestamp = kwargs.get("timestamp", custom_metadata.get("timestamp"))
 
         if isinstance(timestamp, str):
-            timestamp = datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S.%f%z")
+            try:
+                timestamp = datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S.%f")
+            except ValueError:
+                timestamp = datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S.%f%z")
 
         tags = kwargs.pop("tags", custom_metadata.get("tags", TAGS_DEFAULT))
 
