@@ -26,14 +26,14 @@ to any of these methods.
         local_path=<path/to/file>,
         bucket_name=<bucket-name>,
         path_in_bucket=<path/to/file/in/bucket>,
-        metadata={"labels": ["blah", "glah", "jah"], "cleaned": True, "id": 3}
+        metadata={"id": 3, "labels": ["blah", "glah", "jah"], "cleaned": True, "colour": "blue"}
     )
 
     storage_client.upload_from_string(
         string='[{"height": 99, "width": 72}, {"height": 12, "width": 103}]',
         bucket_name=<bucket-name>,
         path_in_bucket=<path/to/file/in/bucket>,
-        metadata={"labels": ["dimensions"], "cleaned": True, "id": 96}
+        metadata={"id": 96, "labels": ["dimensions"], "cleaned": True, "colour": "red", "size": "small"}
     )
 
 **Downloading**
@@ -61,7 +61,7 @@ to any of these methods.
         bucket_name=<bucket-name>,
         path_in_bucket=<path/to/file/in/bucket>,
     )
-    >>> {"labels": ["dimensions"], "cleaned": True, "id": 96}
+    >>> {"id": 96, "labels": ["dimensions"], "cleaned": True, "colour": "red", "size": "small"}
 
 
 **Deleting**
