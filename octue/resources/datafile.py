@@ -21,12 +21,13 @@ module_logger = logging.getLogger(__name__)
 
 TEMPORARY_LOCAL_FILE_CACHE = {}
 
-
 ID_DEFAULT = None
 CLUSTER_DEFAULT = 0
 SEQUENCE_DEFAULT = None
 TAGS_DEFAULT = None
 LABELS_DEFAULT = None
+
+NON_TAG_METADATA = {"id", "timestamp", "cluster", "sequence", "labels"}
 
 
 class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable, Filterable):
@@ -206,10 +207,11 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             except ValueError:
                 timestamp = datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S.%f%z")
 
-        tags = kwargs.pop("tags", custom_metadata.get("tags", TAGS_DEFAULT))
-
-        if isinstance(tags, str):
-            tags = TagDict.deserialise(tags, from_string=True)
+        tags = (
+            kwargs.pop("tags", None)
+            or TagDict({tag_name: custom_metadata[tag_name] for tag_name in custom_metadata.keys() - NON_TAG_METADATA})
+            or TAGS_DEFAULT
+        )
 
         datafile._set_id(kwargs.pop("id", custom_metadata.get("id", ID_DEFAULT)))
         datafile.path = storage.path.generate_gs_path(bucket_name, datafile_path)
@@ -505,8 +507,8 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             "timestamp": self.timestamp,
             "cluster": self.cluster,
             "sequence": self.sequence,
-            "tags": self.tags.serialise(to_string=True),
             "labels": self.labels.serialise(to_string=True),
+            **{tag_name: tag_value for tag_name, tag_value in self.tags.items()},
         }
 
 
