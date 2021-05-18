@@ -9,7 +9,7 @@ class Taggable:
         super().__init__(*args, **kwargs)
 
     def add_tags(self, tags=None, **kwargs):
-        """ Adds one or more new tag strings to the object tags. New tags will be cleaned and validated. """
+        """Add one or more new tags to the object. New tags will be cleaned and validated."""
         self.tags.update({**(tags or {}), **kwargs})
 
     @property
@@ -18,5 +18,5 @@ class Taggable:
 
     @tags.setter
     def tags(self, tags):
-        """ Overwrite any existing tag set and assign new tag. """
+        """Overwrite any existing tags and assign the new ones."""
         self._tags = TagDict(tags)
