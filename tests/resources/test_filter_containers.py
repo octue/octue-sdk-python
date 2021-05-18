@@ -17,6 +17,13 @@ class FilterableThing(Filterable):
 
 
 class TestFilterSet(BaseTestCase):
+    def test_error_raised_if_any_items_are_not_filterable(self):
+        """Test that an error is raised if any items in the FilterSet are not of type Filterable."""
+        filter_set = FilterSet([1, 2, 3])
+
+        with self.assertRaises(TypeError):
+            filter_set.filter(a__equals=2)
+
     def test_filter_with_filterables_of_differing_attributes(self):
         """Test filtering with filterables of differing attributes ignores the filterables lacking the filtered-for
         attribute.
@@ -92,6 +99,13 @@ class TestFilterDict(BaseTestCase):
         filter_dict = FilterDict(**{"a": 1, "b": 3})
         self.assertEqual(filter_dict["a"], 1)
         self.assertEqual(filter_dict["b"], 3)
+
+    def test_error_raised_if_any_items_are_not_filterable(self):
+        """Test that an error is raised if any values in the FilterDict are not of type Filterable."""
+        filter_dict = FilterDict({"a": 1, "b": 2, "c": 3})
+
+        with self.assertRaises(TypeError):
+            filter_dict.filter(a__equals=2)
 
     def test_filter(self):
         """Test that a FilterDict can be filtered on its values when they are all filterables."""

@@ -1,6 +1,7 @@
 from collections import UserDict
 
 from octue import exceptions
+from octue.mixins import Filterable
 from octue.utils.objects import get_nested_attribute
 
 
@@ -12,6 +13,9 @@ def _filter(self, ignore_items_without_attribute=True, **kwargs):
         to filter for
     :return octue.resources.filter_containers.FilterSet:
     """
+    if any(not isinstance(item, Filterable) for item in self):
+        raise TypeError(f"All items in a {type(self).__name__} must be of type {Filterable.__name__}.")
+
     raise_error_if_filter_is_invalid = not ignore_items_without_attribute
 
     if len(kwargs) == 1:
@@ -62,6 +66,9 @@ class FilterDict(UserDict):
             value to filter for
         :return FilterDict:
         """
+        if any(not isinstance(item, Filterable) for item in self.values()):
+            raise TypeError(f"All values in a {type(self).__name__} must be of type {Filterable.__name__}.")
+
         raise_error_if_filter_is_invalid = not ignore_items_without_attribute
 
         if len(kwargs) == 1:
