@@ -2,7 +2,7 @@ import json
 import logging
 
 from octue.definitions import OUTPUT_STRANDS
-from octue.mixins import Hashable, Identifiable, Labelable, Loggable, Serialisable
+from octue.mixins import Hashable, Identifiable, Labelable, Loggable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.folders import get_file_name_from_strand
@@ -23,7 +23,7 @@ _HASH_FUNCTIONS = {
 CLASS_MAP = {"configuration_manifest": Manifest, "input_manifest": Manifest, "output_manifest": Manifest}
 
 
-class Analysis(Identifiable, Loggable, Serialisable, Labelable):
+class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
     """Analysis class, holding references to all input and output data
 
     ## The Analysis Instance
