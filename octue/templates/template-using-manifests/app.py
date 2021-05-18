@@ -63,15 +63,12 @@ def run(analysis, *args, **kwargs):
     # course, because we haven't done the processing yet)...
     output_dataset = analysis.output_manifest.get_dataset("cleaned_met_mast_data")
 
-    # We'll add labels to the output dataset, which will help to improve searchability and allow
-    # other apps, reports, users and analyses to automatically find figures and
-    # use them.
+    # We'll add some labels, which will help to improve searchability and allow other apps, reports, users and
+    # analyses to automatically find figures and use them.
     #
-    # Get descriptive with labels... they are whitespace-delimited and colons can be
-    # used to provide sublabels. Labels are case insensitive, and accept a-z, 0-9,
-    # hyphens and underscores (which can be used literally in search and are also
-    # used to separate words in natural language search). Other special characters
-    # will be stripped.
+    # Get descriptive with labels... they are whitespace-delimited. Labels are case insensitive, and accept a-z, 0-9,
+    # and hyphens which can be used literally in search and are also used to separate words in natural language search).
+    # Other special characters will be stripped.
     output_dataset.labels = "met mast cleaned"
 
     # Create a Datafile to hold the concatenated, cleaned output data. We could put it in the current directory

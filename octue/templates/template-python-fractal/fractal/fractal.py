@@ -41,16 +41,15 @@ def fractal(analysis):
         "height": analysis.configuration_values["height"],
     }
 
-    # We'll add some labels, which will help to improve searchability and allow
-    # other apps, reports, users and analyses to automatically find figures and
-    # use them.
+    # We'll add some labels and tags, which will help to improve searchability and allow other apps, reports, users and
+    # analyses to automatically find figures and use them.
     #
-    # Get descriptive with labels... they are whitespace-delimited and colons can be
-    # used to provide sublabels. Labels are case insensitive, and accept a-z, 0-9,
-    # hyphens and underscores (which can be used literally in search and are also
-    # used to separate words in natural language search). Other special characters
-    # will be stripped.
-    tags = {"contents": "fractal:mandelbrot", "type": "figure:surface"}
+    # Get descriptive with labels... they are whitespace-delimited. Labels are case insensitive, and accept a-z, 0-9,
+    # and hyphens which can be used literally in search and are also used to separate words in natural language search).
+    # Other special characters will be stripped. Tags are key value pairs where the values can be anything but the keys
+    # only accept a-z, 0-9, and underscores.
+    labels = {"complex-figure"}
+    tags = {"contents": "fractal:mandelbrot"}
 
     # Get the output dataset which will be used for storing the figure file(s)
     output_dataset = analysis.output_manifest.get_dataset("fractal_figure_files")
@@ -65,6 +64,7 @@ def fractal(analysis):
         local_path_prefix=output_dataset.path,  # TODO set up for the right paths Destination (root of the output dataset folder on the present machine)
         skip_checks=True,  # We haven't created the actual file yet, so it'll definitely fail checks!
         tags=tags,
+        labels=labels,
     )
 
     # Actually write the contents to the file specified by the Datafile
