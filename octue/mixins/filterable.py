@@ -113,7 +113,7 @@ class Filterable:
         if not attribute_names:
             raise exceptions.InvalidInputException(
                 f"Invalid filter name {filter_name!r}. Filter names should be in the form "
-                f"'<attribute_name_0>__<attribute_name_1>__<...>__<filter_kind>' with at least one attribute name"
+                f"'<attribute_name_0>__<attribute_name_1>__<...>__<filter_kind>' with at least one attribute name "
                 f"included."
             )
 
