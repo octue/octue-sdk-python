@@ -13,11 +13,10 @@ LABEL_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*(?<!-)$")
 
 
 class Label(Filterable, UserString):
-    """A label starts and ends with a character in [A-Za-z0-9]. It can contain the colon discriminator, forward slashes
-    or hyphens. Empty strings are also valid. More valid examples:
-       system:32
-       angry-marmaduke
-       mega-man:torso:component:12
+    """A label starts and ends with a character in [A-Za-z0-9] and can contain hyphens e.g. angry-marmaduke
+
+    :param str name:
+    :return None:
     """
 
     def __init__(self, name):
@@ -29,7 +28,7 @@ class Label(Filterable, UserString):
 
     @staticmethod
     def _clean(name):
-        """ Ensure the label name is a string and conforms to the label regex pattern. """
+        """Ensure the label name is a string and conforms to the label regex pattern."""
         if not isinstance(name, str):
             raise InvalidLabelException("Labels must be expressed as a string.")
 
@@ -37,18 +36,17 @@ class Label(Filterable, UserString):
 
         if not re.match(LABEL_PATTERN, cleaned_name):
             raise InvalidLabelException(
-                f"Invalid label '{cleaned_name}'. Labels must contain only characters 'a-z', 'A-Z', '0-9', ':', '.', '/' "
-                f"and '-'. They must not start with '-', ':', '/' or '.'"
+                f"Invalid label '{cleaned_name}'. Labels must contain only characters 'a-z', 'A-Z', '0-9', and '-'. "
+                f"They must not start with '-'."
             )
 
         return cleaned_name
 
 
 class LabelSet(FilterSet):
-    """ Class to handle a set of labels as a string. """
+    """Class to handle a set of labels as a string."""
 
     def __init__(self, labels=None):
-        """ Construct a LabelSet. """
         # TODO Call the superclass with *args and **kwargs, then update everything to using ResourceBase
         labels = labels or FilterSet()
 
@@ -112,7 +110,7 @@ class LabelSet(FilterSet):
         :param bool to_string:
         :return list|str:
         """
-        string = json.dumps(sorted(self), cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
+        string = json.dumps(sorted(self), cls=OctueJSONEncoder, indent=4, **kwargs)
 
         if to_string:
             return string

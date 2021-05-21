@@ -9,7 +9,7 @@ def _filter(self, ignore_items_without_attribute=True, **kwargs):
     """Return a new instance containing only the Filterables to which the given filter criteria apply.
 
     :param bool ignore_items_without_attribute:
-    :param {str: any} kwargs: a single keyword argument whose key is the name of the filter and whos value is the value
+    :param {str: any} kwargs: a single keyword argument whose key is the name of the filter and whose value is the value
         to filter for
     :return octue.resources.filter_containers.FilterSet:
     """
