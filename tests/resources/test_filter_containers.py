@@ -29,11 +29,21 @@ class TestFilterSet(BaseTestCase):
         attribute.
         """
         filterables = {FilterableThing(a=3), FilterableThing(b=90), FilterableThing(a=77)}
-
         filter_set = FilterSet(filterables)
-        self.assertEqual(set(filter_set.filter(a__gt=2)), {FilterableThing(a=3), FilterableThing(a=77)})
-        self.assertEqual(set(filter_set.filter(b__equals=90)), {FilterableThing(b=90)})
-        self.assertEqual(set(filter_set.filter(b__equals=0)), set())
+
+        self.assertEqual(filter_set.filter(a__gt=2), {FilterableThing(a=3), FilterableThing(a=77)})
+        self.assertEqual(filter_set.filter(b__equals=90), {FilterableThing(b=90)})
+        self.assertEqual(filter_set.filter(b__equals=0), set())
+
+    def test_filter_with_filterables_of_differing_attributes_fails_if_setting_enabled(self):
+        """Test filtering with filterables of differing attributes raises an error if any filterables lack the
+        filtered-for attribute when `ignore_items_without_attribute` is False.
+        """
+        filter_set = FilterSet({FilterableThing(a=3), FilterableThing(b=90), FilterableThing(a=77)})
+
+        for kwarg in {"a__gt": 2}, {"b__equals": 90}, {"b__equals": 0}:
+            with self.assertRaises(AttributeError):
+                filter_set.filter(**kwarg, ignore_items_without_attribute=False)
 
     def test_filtering_with_multiple_filters(self):
         """Test that multiple filters can be specified in FilterSet.filter at once."""
@@ -89,26 +99,23 @@ class TestFilterDict(BaseTestCase):
     def test_instantiate(self):
         """Test that a FilterDict can be instantiated like a dictionary."""
         filter_dict = FilterDict(a=1, b=3)
-        self.assertEqual(filter_dict["a"], 1)
-        self.assertEqual(filter_dict["b"], 3)
+        self.assertEqual(filter_dict, {"a": 1, "b": 3})
 
         filter_dict = FilterDict({"a": 1, "b": 3})
-        self.assertEqual(filter_dict["a"], 1)
-        self.assertEqual(filter_dict["b"], 3)
+        self.assertEqual(filter_dict, {"a": 1, "b": 3})
 
         filter_dict = FilterDict(**{"a": 1, "b": 3})
-        self.assertEqual(filter_dict["a"], 1)
-        self.assertEqual(filter_dict["b"], 3)
+        self.assertEqual(filter_dict, {"a": 1, "b": 3})
 
-    def test_error_raised_if_any_items_are_not_filterable(self):
+    def test_error_raised_when_filtering_if_any_items_are_not_filterable(self):
         """Test that an error is raised if any values in the FilterDict are not of type Filterable."""
         filter_dict = FilterDict({"a": 1, "b": 2, "c": 3})
 
         with self.assertRaises(TypeError):
-            filter_dict.filter(a__equals=2)
+            filter_dict.filter(my_attribute__equals=2)
 
     def test_filter(self):
-        """Test that a FilterDict can be filtered on its values when they are all filterables."""
+        """Test that a FilterDict can be filtered on its values when they are all Filterables."""
         filterables = {
             "first-filterable": FilterableThing(my_value=3),
             "second-filterable": FilterableThing(my_value=90),
@@ -129,9 +136,25 @@ class TestFilterDict(BaseTestCase):
         }
 
         filter_dict = FilterDict(filterables)
-        self.assertEqual(set(filter_dict.filter(a__gt=2).keys()), {"first-filterable", "third-filterable"})
-        self.assertEqual(set(filter_dict.filter(b__equals=90).keys()), {"second-filterable"})
-        self.assertEqual(set(filter_dict.filter(b__equals=0).keys()), set())
+        self.assertEqual(filter_dict.filter(a__gt=2).keys(), {"first-filterable", "third-filterable"})
+        self.assertEqual(filter_dict.filter(b__equals=90).keys(), {"second-filterable"})
+        self.assertEqual(filter_dict.filter(b__equals=0).keys(), set())
+
+    def test_filter_with_filterables_of_differing_attributes_fails_if_setting_enabled(self):
+        """Test filtering with filterables of differing attributes raises an error if any filterables lack the
+        filtered-for attribute when `ignore_items_without_attribute` is False.
+        """
+        filterables = {
+            "first-filterable": FilterableThing(a=3),
+            "second-filterable": FilterableThing(b=90),
+            "third-filterable": FilterableThing(a=77),
+        }
+
+        filter_dict = FilterDict(filterables)
+
+        for kwarg in {"a__gt": 2}, {"b__equals": 90}, {"b__equals": 0}:
+            with self.assertRaises(AttributeError):
+                filter_dict.filter(**kwarg, ignore_items_without_attribute=False)
 
     def test_filter_chaining(self):
         """Test that filters can be chained to filter a FilterDict multiple times."""
@@ -146,26 +169,26 @@ class TestFilterDict(BaseTestCase):
         self.assertEqual(self.ANIMALS.filter(size__equals="small", age__lt=5), {"cat": self.ANIMALS["cat"]})
 
     def test_ordering_by_a_non_existent_attribute(self):
-        """ Ensure an error is raised if ordering is attempted by a non-existent attribute. """
+        """Ensure an error is raised if ordering is attempted by a non-existent attribute."""
         with self.assertRaises(exceptions.InvalidInputException):
             self.ANIMALS.order_by("dog-likeness")
 
     def test_order_by_with_string_attribute(self):
-        """ Test ordering a FilterSet by a string attribute returns an appropriately ordered FilterList. """
+        """Test that ordering a FilterDict by a string attribute returns an appropriately ordered FilterList."""
         self.assertEqual(
             self.ANIMALS.order_by("name"),
             FilterList((self.ANIMALS["cat"], self.ANIMALS["another_dog"], self.ANIMALS["dog"])),
         )
 
     def test_order_by_with_int_attribute(self):
-        """ Test ordering a FilterSet by an integer attribute returns an appropriately ordered FilterList. """
+        """ Test ordering a FilterDict by an integer attribute returns an appropriately ordered FilterList. """
         self.assertEqual(
             self.ANIMALS.order_by("age"),
             FilterList((self.ANIMALS["cat"], self.ANIMALS["dog"], self.ANIMALS["another_dog"])),
         )
 
     def test_order_by_list_attribute(self):
-        """ Test that ordering by list attributes orders alphabetically by the first element of each list. """
+        """Test that ordering by list attributes orders members alphabetically by the first element of each list."""
         self.assertEqual(
             self.ANIMALS.order_by("previous_names"),
             FilterList((self.ANIMALS["dog"], self.ANIMALS["another_dog"], self.ANIMALS["cat"])),
