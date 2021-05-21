@@ -228,22 +228,3 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
             raise UnexpectedNumberOfResultsException(f"No files found with label {label_string!r}.")
 
         return results.pop()
-
-    def get_file_by_tag(self, tag_name):
-        """Get a single datafile from a dataset by searching for files with the provided tag name.
-
-        Gets exclusively one file; if no file or more than one file is found, an error is raised.
-
-        :param str tag_name:
-        :return octue.resources.datafile.DataFile:
-        """
-        results = self.files.filter(tags__contains=tag_name)
-
-        if len(results) > 1:
-            raise UnexpectedNumberOfResultsException(
-                f"More than one result found when searching for a file by tag {tag_name!r}."
-            )
-        elif len(results) == 0:
-            raise UnexpectedNumberOfResultsException(f"No files found with tag {tag_name!r}.")
-
-        return results.pop()
