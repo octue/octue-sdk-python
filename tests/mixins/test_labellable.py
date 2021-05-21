@@ -1,10 +1,10 @@
 from octue import exceptions
-from octue.mixins import Labelable, MixinBase
+from octue.mixins import Labelable
 from octue.resources.label import Label, LabelSet
 from ..base import BaseTestCase
 
 
-class MyLabelable(Labelable, MixinBase):
+class MyLabelable(Labelable):
     pass
 
 
