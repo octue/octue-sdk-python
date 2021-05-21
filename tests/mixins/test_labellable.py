@@ -22,7 +22,7 @@ class LabelableTestCase(BaseTestCase):
         self.assertEqual(len(labelable.labels), 0)
 
         labelable = MyLabelable(labels="a b c")
-        self.assertEqual(set(labelable.labels), {Label("a"), Label("b"), Label("c")})
+        self.assertEqual(labelable.labels, {Label("a"), Label("b"), Label("c")})
 
     def test_instantiates_with_label_set(self):
         """Ensures datafile inherits correctly from the Labelable class and passes arguments through"""
@@ -49,7 +49,7 @@ class LabelableTestCase(BaseTestCase):
         """Ensures datafile inherits correctly from the Labelable class and passes arguments through"""
         labelable = MyLabelable(labels="a b")
         labelable.labels = "b c"
-        self.assertEqual(set(labelable.labels), {Label("b"), Label("c")})
+        self.assertEqual(labelable.labels, {Label("b"), Label("c")})
 
     def test_valid_labels(self):
         """Ensures valid labels do not raise an error"""
@@ -59,7 +59,7 @@ class LabelableTestCase(BaseTestCase):
         labelable.add_labels("a1829tag")
         labelable.add_labels("1829")
         self.assertEqual(
-            set(labelable.labels),
+            labelable.labels,
             {
                 Label("a-valid-label"),
                 Label("label"),
@@ -78,4 +78,4 @@ class LabelableTestCase(BaseTestCase):
         except exceptions.InvalidLabelException:
             pass
 
-        self.assertEqual({Label("first-valid-should-be-added")}, set(labelable.labels))
+        self.assertEqual({Label("first-valid-should-be-added")}, labelable.labels)
