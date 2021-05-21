@@ -11,6 +11,7 @@ from octue.cloud.storage import GoogleCloudStorageClient
 from octue.mixins import MixinBase, Pathable
 from octue.resources.datafile import TEMPORARY_LOCAL_FILE_CACHE, Datafile
 from octue.resources.label import LabelSet
+from octue.resources.tag import TagDict
 from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from ..base import BaseTestCase
 
@@ -190,6 +191,7 @@ class DatafileTestCase(BaseTestCase):
         self.assertEqual(datafile.path, f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}")
         self.assertEqual(datafile.cluster, 0)
         self.assertEqual(datafile.sequence, None)
+        self.assertEqual(datafile.tags, TagDict())
         self.assertEqual(datafile.labels, LabelSet())
         self.assertTrue(isinstance(datafile.size_bytes, int))
         self.assertTrue(isinstance(datafile._last_modified, float))

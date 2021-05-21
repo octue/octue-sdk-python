@@ -11,7 +11,7 @@ class TestObjects(TestCase):
 
     def test_getattr_or_subscribe_with_object(self):
         """Test that the getattr_or_subscribe function can get attribute values from a class instance."""
-        self.assertEqual(getattr_or_subscribe(instance=Mock(a=3), name="a"), 3)
+        self.assertEqual(getattr_or_subscribe(instance=Mock(hello="world"), name="hello"), "world")
 
     def test_get_nested_attribute(self):
         """Test that nested attributes can be accessed."""

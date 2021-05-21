@@ -15,6 +15,7 @@ class TaggableTestCase(BaseTestCase):
         self.assertEqual(taggable.tags, {})
 
     def test_instantiating_with_no_tags(self):
+        """Test that instantiating a Taggable with no tags results in an empty TagDict on the tags attribute."""
         self.assertEqual(MyTaggable().tags, TagDict())
 
     def test_fails_to_instantiates_with_non_iterable(self):
@@ -27,7 +28,7 @@ class TaggableTestCase(BaseTestCase):
             MyTaggable(tags=NoIter())
 
     def test_instantiates_with_dict(self):
-        """Test instantiation with a dictionary."""
+        """Test instantiation with a dictionary works."""
         tags = {"height": 9, "width": 8.7, "depth": 100}
         taggable = MyTaggable(tags=tags)
         self.assertEqual(taggable.tags, tags)
