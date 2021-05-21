@@ -73,27 +73,27 @@ class TestLabelSet(BaseTestCase):
     def test_instantiation_from_space_delimited_string(self):
         """ Test that a LabelSet can be instantiated from a space-delimited string of label names."""
         label_set = LabelSet(labels="a b-c d-e-f")
-        self.assertEqual(label_set, FilterSet({Label("a"), Label("b-c"), Label("d-e-f")}))
+        self.assertEqual(label_set, self.LABEL_SET)
 
     def test_instantiation_from_iterable_of_strings(self):
         """ Test that a LabelSet can be instantiated from an iterable of strings."""
         label_set = LabelSet(labels=["a", "b-c", "d-e-f"])
-        self.assertEqual(label_set, FilterSet({Label("a"), Label("b-c"), Label("d-e-f")}))
+        self.assertEqual(label_set, self.LABEL_SET)
 
     def test_instantiation_from_iterable_of_labels(self):
         """ Test that a LabelSet can be instantiated from an iterable of labels."""
         label_set = LabelSet(labels=[Label("a"), Label("b-c"), Label("d-e-f")])
-        self.assertEqual(label_set, FilterSet({Label("a"), Label("b-c"), Label("d-e-f")}))
+        self.assertEqual(label_set, self.LABEL_SET)
 
     def test_instantiation_from_filter_set_of_strings(self):
         """ Test that a LabelSet can be instantiated from a FilterSet of strings."""
         label_set = LabelSet(labels=FilterSet({"a", "b-c", "d-e-f"}))
-        self.assertEqual(label_set, FilterSet({Label("a"), Label("b-c"), Label("d-e-f")}))
+        self.assertEqual(label_set, self.LABEL_SET)
 
     def test_instantiation_from_filter_set_of_labels(self):
         """ Test that a LabelSet can be instantiated from a FilterSet of labels."""
         label_set = LabelSet(labels=FilterSet({Label("a"), Label("b-c"), Label("d-e-f")}))
-        self.assertEqual(label_set, FilterSet({Label("a"), Label("b-c"), Label("d-e-f")}))
+        self.assertEqual(label_set, self.LABEL_SET)
 
     def test_instantiation_from_label_set(self):
         """ Test that a LabelSet can be instantiated from another LabelSet. """
@@ -150,20 +150,12 @@ class TestLabelSet(BaseTestCase):
         for label in "b", "d", "e":
             self.assertFalse(self.LABEL_SET.any_label_ends_with(label))
 
-    def test_any_label_contains_searches_for_labels_and_sublabels(self):
-        """ Ensure labels and sublabels can be searched for. """
-        for label in "a", "b", "d":
-            self.assertTrue(self.LABEL_SET.any_label_contains(label))
-
-        for sublabel in "c", "e", "f":
-            self.assertTrue(self.LABEL_SET.any_label_contains(sublabel))
-
     def test_serialise(self):
-        """ Ensure that LabelSets are serialised to the string form of a list. """
+        """Ensure that LabelSets serialise to a list."""
         self.assertEqual(self.LABEL_SET.serialise(), ["a", "b-c", "d-e-f"])
 
     def test_serialise_orders_labels(self):
-        """Ensure that LabelSets serialise to a list."""
+        """Ensure that serialising a LabelSet results in a sorted list."""
         label_set = LabelSet("z hello a c-no")
         self.assertEqual(label_set.serialise(), ["a", "c-no", "hello", "z"])
 
