@@ -4,7 +4,6 @@ from collections import UserString
 from collections.abc import Iterable
 
 from octue.exceptions import InvalidLabelException
-from octue.mixins import Filterable
 from octue.resources.filter_containers import FilterSet
 from octue.utils.encoders import OctueJSONEncoder
 
@@ -12,7 +11,7 @@ from octue.utils.encoders import OctueJSONEncoder
 LABEL_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*(?<!-)$")
 
 
-class Label(Filterable, UserString):
+class Label(UserString):
     """A label starts and ends with a character in [A-Za-z0-9] and can contain hyphens e.g. angry-marmaduke
 
     :param str name:
@@ -43,7 +42,7 @@ class Label(Filterable, UserString):
         return cleaned_name
 
 
-class LabelSet(FilterSet):
+class LabelSet(set):
     """Class to handle a set of labels as a string."""
 
     def __init__(self, labels=None):
