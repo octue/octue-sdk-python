@@ -87,6 +87,20 @@ class DatasetTestCase(BaseTestCase):
 
         self.assertIn("must be of class Datafile to add it to a Dataset", e.exception.args[0])
 
+    def test_filter_catches_single_underscore_mistake(self):
+        """Ensure that if the filter name contains only single underscores, an error is raised."""
+        resource = Dataset(
+            files=[
+                Datafile(path="path-within-dataset/A_Test_file.csv"),
+                Datafile(path="path-within-dataset/a_test_file.txt"),
+            ]
+        )
+
+        with self.assertRaises(exceptions.InvalidInputException) as e:
+            resource.files.filter(name_icontains="Test")
+
+        self.assertIn("Invalid filter name 'name_icontains'. Filter names should be in the form", e.exception.args[0])
+
     def test_filter_name_contains(self):
         """Ensures that filter works with the name_contains and name_icontains lookups"""
         resource = Dataset(
