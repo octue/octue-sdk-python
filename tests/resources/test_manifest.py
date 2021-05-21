@@ -70,8 +70,8 @@ class TestManifest(BaseTestCase):
             dataset = Dataset(
                 name="my-dataset",
                 files={
-                    Datafile(path=file_0_path, sequence=0, labels={"hello"}),
-                    Datafile(path=file_1_path, sequence=1, labels={"goodbye"}),
+                    Datafile(path=file_0_path, sequence=0, tags={"a": 1, "b": 2}, labels={"hello"}),
+                    Datafile(path=file_1_path, sequence=1, tags={"a": 1, "b": 2}, labels={"goodbye"}),
                 },
             )
 
@@ -109,8 +109,8 @@ class TestManifest(BaseTestCase):
                 name="my-dataset",
                 path=temporary_directory,
                 files={
-                    Datafile(path=file_0_path, sequence=0, labels={"hello"}),
-                    Datafile(path=file_1_path, sequence=1, labels={"goodbye"}),
+                    Datafile(path=file_0_path, sequence=0, tags={"a": 1, "b": 2}, labels={"hello"}),
+                    Datafile(path=file_1_path, sequence=1, tags={"a": 1, "b": 2}, labels={"goodbye"}),
                 },
             )
 
@@ -148,8 +148,8 @@ class TestManifest(BaseTestCase):
             dataset = Dataset(
                 name="my-dataset",
                 files={
-                    Datafile(path=file_0_path, sequence=0, labels={"hello"}),
-                    Datafile(path=file_1_path, sequence=1, labels={"goodbye"}),
+                    Datafile(path=file_0_path, sequence=0, tags={"a": 1, "b": 2}, labels={"hello"}),
+                    Datafile(path=file_1_path, sequence=1, tags={"a": 1, "b": 2}, labels={"goodbye"}),
                 },
             )
 
