@@ -1,7 +1,6 @@
 from unittest import TestCase
 
 from octue import exceptions
-from octue.mixins import Filterable
 from octue.resources.tag import TagDict
 
 
@@ -56,12 +55,3 @@ class TestTagDict(TestCase):
         """Test that TagDicts compare equal to dictionaries with the same contents."""
         tag_dict = TagDict({"a": 1, "b": 2})
         self.assertEqual(tag_dict, {"a": 1, "b": 2})
-
-    def test_filter(self):
-        """Test that TagDicts can be filtered for their values."""
-        filterables = {"first_filterable": Filterable(), "second_filterable": Filterable()}
-        filterables["first_filterable"].my_data = 3
-        filterables["second_filterable"].my_data = 90
-
-        tag_dict = TagDict(filterables)
-        self.assertEqual(tag_dict.filter(my_data__equals=3).keys(), {"first_filterable"})

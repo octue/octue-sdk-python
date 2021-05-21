@@ -1,16 +1,16 @@
 import json
 import re
+from collections import UserDict
 
 from octue.exceptions import InvalidTagException
 from octue.mixins import Serialisable
-from octue.resources.filter_containers import FilterDict
 from octue.utils.encoders import OctueJSONEncoder
 
 
 TAG_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_]*(?<!_)$")
 
 
-class TagDict(Serialisable, FilterDict):
+class TagDict(Serialisable, UserDict):
     def __setitem__(self, tag, value):
         """Add a tag to the TagDict via subscription.
 
