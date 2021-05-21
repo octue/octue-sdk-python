@@ -36,6 +36,11 @@ class TestFilterable(BaseTestCase):
         with self.assertRaises(exceptions.InvalidInputException):
             FilterableSubclass(age=lambda: None).satisfies(age__equals=True)
 
+    def test_error_raised_if_more_than_one_filter_is_provided(self):
+        """Test that an error is raised if more than one filter is provided to the satisfies method."""
+        with self.assertRaises(ValueError):
+            FilterableSubclass(age=23).satisfies(age__equals=23, age__equals__gt=20)
+
     def test_bool_filters(self):
         """ Test that the boolean filters work as expected. """
         filterable_thing = FilterableSubclass(is_alive=True)
