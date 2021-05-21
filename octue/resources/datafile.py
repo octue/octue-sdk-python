@@ -508,7 +508,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             "cluster": self.cluster,
             "sequence": self.sequence,
             "labels": self.labels.serialise(to_string=True),
-            **{tag_name: tag_value for tag_name, tag_value in self.tags.items()},
+            **self.tags,
         }
 
 
