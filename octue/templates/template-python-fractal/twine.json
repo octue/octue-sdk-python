@@ -60,10 +60,12 @@
 			}
 		}
 	},
-	"output_manifest": [
-		{
-			"key": "fractal_figure_files",
-			"purpose": "A dataset containing .json files containing the output figures"
-		}
-	]
+	"output_manifest": {
+		"datasets": [
+			{
+				"key": "fractal_figure_files",
+				"purpose": "A dataset containing .json files containing the output figures"
+			}
+		]
+	}
 }

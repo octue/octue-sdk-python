@@ -12,16 +12,20 @@
 			}
 		}
 	},
-	"input_manifest": [
-		{
-			"key": "raw_met_mast_data",
-			"purpose": "A dataset containing .csv files of raw meteorological mast data which we need to clean up"
-		}
-	],
-	"output_manifest": [
-		{
-			"key": "cleaned_met_mast_data",
-			"purpose": "A dataset containing .csv files of cleaned meteorological mast data"
-		}
-	]
+	"input_manifest": {
+		"datasets": [
+			{
+				"key": "raw_met_mast_data",
+				"purpose": "A dataset containing .csv files of raw meteorological mast data which we need to clean up"
+			}
+		]
+	},
+	"output_manifest": {
+		"datasets": [
+			{
+				"key": "cleaned_met_mast_data",
+				"purpose": "A dataset containing .csv files of cleaned meteorological mast data"
+			}
+		]
+	}
 }

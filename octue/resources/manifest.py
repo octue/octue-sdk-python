@@ -138,12 +138,12 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         if len(self.datasets) > 0:
             raise InvalidInputException("You cannot `prepare()` a manifest already instantiated with datasets")
 
-        for idx, dataset_spec in enumerate(data):
+        for index, dataset_specification in enumerate(data["datasets"]):
 
-            self.keys[dataset_spec["key"]] = idx
+            self.keys[dataset_specification["key"]] = index
             # TODO generate a unique name based on the filter key, label datasets so that the label filters in the spec
             #  apply automatically and generate a description of the dataset
-            self.datasets.append(Dataset(logger=self.logger, path_from=self, path=dataset_spec["key"]))
+            self.datasets.append(Dataset(logger=self.logger, path_from=self, path=dataset_specification["key"]))
 
         return self
 
