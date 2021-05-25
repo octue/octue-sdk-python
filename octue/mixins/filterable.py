@@ -28,8 +28,8 @@ CONTAINS_FILTER_ACTIONS = {
 }
 
 ICONTAINS_FILTER_ACTIONS = {
-    "icontains": lambda item, filter_value: filter_value.lower() in item.lower(),
-    "not_icontains": lambda item, filter_value: filter_value.lower() not in item.lower(),
+    "icontains": lambda item, filter_value: filter_value.casefold() in item.casefold(),
+    "not_icontains": lambda item, filter_value: filter_value.casefold() not in item.casefold(),
 }
 
 
@@ -37,8 +37,8 @@ ICONTAINS_FILTER_ACTIONS = {
 TYPE_FILTERS = {
     "bool": IS_FILTER_ACTIONS,
     "str": {
-        "iequals": lambda item, filter_value: filter_value.lower() == item.lower(),
-        "not_iequals": lambda item, filter_value: filter_value.lower() != item.lower(),
+        "iequals": lambda item, filter_value: filter_value.casefold() == item.casefold(),
+        "not_iequals": lambda item, filter_value: filter_value.casefold() != item.casefold(),
         "starts_with": lambda item, filter_value: item.startswith(filter_value),
         "not_starts_with": lambda item, filter_value: not item.startswith(filter_value),
         "ends_with": lambda item, filter_value: item.endswith(filter_value),
