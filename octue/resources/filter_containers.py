@@ -16,7 +16,6 @@ class FilterContainer(ABC):
             values to filter for
         :return octue.resources.filter_containers.FilterContainer:
         """
-        pass
 
     def order_by(self, attribute_name, reverse=False):
         """Order the `Filterable`s in the container by an attribute with the given name, returning them as a new
@@ -28,7 +27,6 @@ class FilterContainer(ABC):
             container's members
         :return FilterList:
         """
-        pass
 
 
 def _filter(self, ignore_items_without_attribute=True, **kwargs):
