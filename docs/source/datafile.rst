@@ -44,7 +44,7 @@ Example A
     bucket_name = "my-bucket",
     datafile_path = "path/to/data.csv"
 
-    with Datafile.from_cloud(project_name, bucket_name, datafile_path, mode="r") as datafile, f:
+    with Datafile.from_cloud(project_name, bucket_name, datafile_path, mode="r") as (datafile, f):
         data = f.read()
         new_metadata = metadata_calculating_function(data)
 
@@ -129,7 +129,7 @@ For creating new data in a new local file:
     labels = {"Vestas"}
 
 
-    with Datafile(path="path/to/local/file.dat", sequence=sequence, tags=tags, labels=labels, mode="w") as datafile, f:
+    with Datafile(path="path/to/local/file.dat", sequence=sequence, tags=tags, labels=labels, mode="w") as (datafile, f):
         f.write("This is some cleaned data.")
 
     datafile.to_cloud(project_name="my-project", bucket_name="my-bucket", path_in_bucket="path/to/data.dat")

@@ -153,9 +153,9 @@ The ordering can also be carried out in reverse (i.e. descending order) by passi
 to the ``order_by`` method.
 
 
------------
-FilterDicts
------------
+--------------
+``FilterDict``
+--------------
 The keys of a ``FilterDict`` can be anything, but each value must be a ``Filterable``. Hence, a ``FilterDict`` is
 filtered and ordered by its values' attributes; when ordering, its items (key-value tuples) are returned in a
 ``FilterList``.
