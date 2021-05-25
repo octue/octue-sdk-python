@@ -129,7 +129,7 @@ class FilterDict(FilterContainer, UserDict):
         """
         try:
             return FilterList(
-                sorted(self.values(), key=lambda item: get_nested_attribute(item, attribute_name), reverse=reverse)
+                sorted(self.items(), key=lambda item: get_nested_attribute(item[1], attribute_name), reverse=reverse)
             )
 
         except AttributeError:

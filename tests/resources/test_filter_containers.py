@@ -177,26 +177,50 @@ class TestFilterDict(BaseTestCase):
         """Test that ordering a FilterDict by a string attribute returns an appropriately ordered FilterList."""
         self.assertEqual(
             self.ANIMALS.order_by("name"),
-            FilterList((self.ANIMALS["cat"], self.ANIMALS["another_dog"], self.ANIMALS["dog"])),
+            FilterList(
+                (
+                    ("cat", self.ANIMALS["cat"]),
+                    ("another_dog", self.ANIMALS["another_dog"]),
+                    ("dog", self.ANIMALS["dog"]),
+                )
+            ),
         )
 
     def test_order_by_with_int_attribute(self):
         """ Test ordering a FilterDict by an integer attribute returns an appropriately ordered FilterList. """
         self.assertEqual(
             self.ANIMALS.order_by("age"),
-            FilterList((self.ANIMALS["cat"], self.ANIMALS["dog"], self.ANIMALS["another_dog"])),
+            FilterList(
+                (
+                    ("cat", self.ANIMALS["cat"]),
+                    ("dog", self.ANIMALS["dog"]),
+                    ("another_dog", self.ANIMALS["another_dog"]),
+                )
+            ),
         )
 
     def test_order_by_list_attribute(self):
         """Test that ordering by list attributes orders members alphabetically by the first element of each list."""
         self.assertEqual(
             self.ANIMALS.order_by("previous_names"),
-            FilterList((self.ANIMALS["dog"], self.ANIMALS["another_dog"], self.ANIMALS["cat"])),
+            FilterList(
+                (
+                    ("dog", self.ANIMALS["dog"]),
+                    ("another_dog", self.ANIMALS["another_dog"]),
+                    ("cat", self.ANIMALS["cat"]),
+                )
+            ),
         )
 
     def test_order_by_in_reverse(self):
         """ Test ordering in reverse works correctly. """
         self.assertEqual(
             self.ANIMALS.order_by("age", reverse=True),
-            FilterList((self.ANIMALS["another_dog"], self.ANIMALS["dog"], self.ANIMALS["cat"])),
+            FilterList(
+                (
+                    ("another_dog", self.ANIMALS["another_dog"]),
+                    ("dog", self.ANIMALS["dog"]),
+                    ("cat", self.ANIMALS["cat"]),
+                )
+            ),
         )
