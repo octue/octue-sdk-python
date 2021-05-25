@@ -300,9 +300,9 @@ class DatasetTestCase(BaseTestCase):
         self.assertTrue(Dataset(files=files).all_files_are_in_cloud)
 
     def test_from_cloud(self):
-        """Test that a Dataset in cloud storage can be accessed."""
-        project_name = "test-project"
-
+        """Test that a Dataset in cloud storage can be accessed via (`bucket_name`, `output_directory`) and via
+        `gs_path`.
+        """
         with tempfile.TemporaryDirectory() as temporary_directory:
             file_0_path = os.path.join(temporary_directory, "file_0.txt")
             file_1_path = os.path.join(temporary_directory, "file_1.txt")
@@ -321,31 +321,37 @@ class DatasetTestCase(BaseTestCase):
                 },
             )
 
+            project_name = "test-project"
             dataset.to_cloud(project_name=project_name, bucket_name=TEST_BUCKET_NAME, output_directory="a_directory")
 
-            persisted_dataset = Dataset.from_cloud(
-                project_name=project_name,
-                bucket_name=TEST_BUCKET_NAME,
-                path_to_dataset_directory=storage.path.join("a_directory", dataset.name),
-            )
+            bucket_name = TEST_BUCKET_NAME
+            path_to_dataset_directory = storage.path.join("a_directory", dataset.name)
+            gs_path = f"gs://{bucket_name}/{path_to_dataset_directory}"
 
-            self.assertEqual(persisted_dataset.path, f"gs://{TEST_BUCKET_NAME}/a_directory/{dataset.name}")
-            self.assertEqual(persisted_dataset.id, dataset.id)
-            self.assertEqual(persisted_dataset.name, dataset.name)
-            self.assertEqual(persisted_dataset.hash_value, dataset.hash_value)
-            self.assertEqual(persisted_dataset.tags, dataset.tags)
-            self.assertEqual({file.name for file in persisted_dataset.files}, {file.name for file in dataset.files})
+            for location_parameters in (
+                {"bucket_name": bucket_name, "path_to_dataset_directory": path_to_dataset_directory, "gs_path": None},
+                {"bucket_name": None, "path_to_dataset_directory": None, "gs_path": gs_path},
+            ):
 
-            for file in persisted_dataset:
-                self.assertEqual(file.path, f"gs://{TEST_BUCKET_NAME}/a_directory/{dataset.name}/{file.name}")
+                persisted_dataset = Dataset.from_cloud(
+                    project_name=project_name,
+                    **location_parameters,
+                )
+
+                self.assertEqual(persisted_dataset.path, f"gs://{TEST_BUCKET_NAME}/a_directory/{dataset.name}")
+                self.assertEqual(persisted_dataset.id, dataset.id)
+                self.assertEqual(persisted_dataset.name, dataset.name)
+                self.assertEqual(persisted_dataset.hash_value, dataset.hash_value)
+                self.assertEqual(persisted_dataset.tags, dataset.tags)
+                self.assertEqual({file.name for file in persisted_dataset.files}, {file.name for file in dataset.files})
+
+                for file in persisted_dataset:
+                    self.assertEqual(file.path, f"gs://{TEST_BUCKET_NAME}/a_directory/{dataset.name}/{file.name}")
 
     def test_to_cloud(self):
-        """Test that a dataset can be uploaded to the cloud, including all its files and a serialised JSON file of the
-        Datafile instance.
+        """Test that a dataset can be uploaded to the cloud via (`bucket_name`, `output_directory`) and via `gs_path`,
+        including all its files and a serialised JSON file of the Datafile instance.
         """
-        project_name = "test-project"
-        output_directory = "my_datasets"
-
         with tempfile.TemporaryDirectory() as temporary_directory:
             file_0_path = os.path.join(temporary_directory, "file_0.txt")
             file_1_path = os.path.join(temporary_directory, "file_1.txt")
@@ -363,34 +369,43 @@ class DatasetTestCase(BaseTestCase):
                 }
             )
 
-            dataset.to_cloud(project_name, bucket_name=TEST_BUCKET_NAME, output_directory=output_directory)
+            project_name = "test-project"
+            bucket_name = TEST_BUCKET_NAME
+            output_directory = "my_datasets"
+            gs_path = storage.path.generate_gs_path(bucket_name, output_directory)
 
-            storage_client = GoogleCloudStorageClient(project_name)
+            for location_parameters in (
+                {"bucket_name": bucket_name, "output_directory": output_directory, "gs_path": None},
+                {"bucket_name": None, "output_directory": None, "gs_path": gs_path},
+            ):
+                dataset.to_cloud(project_name, **location_parameters)
 
-            persisted_file_0 = storage_client.download_as_string(
-                bucket_name=TEST_BUCKET_NAME,
-                path_in_bucket=storage.path.join(output_directory, dataset.name, "file_0.txt"),
-            )
+                storage_client = GoogleCloudStorageClient(project_name)
 
-            self.assertEqual(persisted_file_0, "[1, 2, 3]")
-
-            persisted_file_1 = storage_client.download_as_string(
-                bucket_name=TEST_BUCKET_NAME,
-                path_in_bucket=storage.path.join(output_directory, dataset.name, "file_1.txt"),
-            )
-            self.assertEqual(persisted_file_1, "[4, 5, 6]")
-
-            persisted_dataset = json.loads(
-                storage_client.download_as_string(
+                persisted_file_0 = storage_client.download_as_string(
                     bucket_name=TEST_BUCKET_NAME,
-                    path_in_bucket=storage.path.join(output_directory, dataset.name, "dataset.json"),
+                    path_in_bucket=storage.path.join(output_directory, dataset.name, "file_0.txt"),
                 )
-            )
 
-            self.assertEqual(
-                persisted_dataset["files"],
-                [
-                    "gs://octue-test-bucket/my_datasets/octue-sdk-python/file_0.txt",
-                    "gs://octue-test-bucket/my_datasets/octue-sdk-python/file_1.txt",
-                ],
-            )
+                self.assertEqual(persisted_file_0, "[1, 2, 3]")
+
+                persisted_file_1 = storage_client.download_as_string(
+                    bucket_name=TEST_BUCKET_NAME,
+                    path_in_bucket=storage.path.join(output_directory, dataset.name, "file_1.txt"),
+                )
+                self.assertEqual(persisted_file_1, "[4, 5, 6]")
+
+                persisted_dataset = json.loads(
+                    storage_client.download_as_string(
+                        bucket_name=TEST_BUCKET_NAME,
+                        path_in_bucket=storage.path.join(output_directory, dataset.name, "dataset.json"),
+                    )
+                )
+
+                self.assertEqual(
+                    persisted_dataset["files"],
+                    [
+                        "gs://octue-test-bucket/my_datasets/octue-sdk-python/file_0.txt",
+                        "gs://octue-test-bucket/my_datasets/octue-sdk-python/file_1.txt",
+                    ],
+                )

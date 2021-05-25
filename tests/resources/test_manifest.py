@@ -56,7 +56,9 @@ class TestManifest(BaseTestCase):
             self.assertEqual(original_dataset.absolute_path, deserialised_dataset.absolute_path)
 
     def test_to_cloud(self):
-        """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance. """
+        """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance via
+        (`bucket_name`, `output_directory`) and via `gs_path`.
+        """
         with tempfile.TemporaryDirectory() as temporary_directory:
             file_0_path = os.path.join(temporary_directory, "file_0.txt")
             file_1_path = os.path.join(temporary_directory, "file_1.txt")
@@ -77,11 +79,15 @@ class TestManifest(BaseTestCase):
 
             manifest = Manifest(datasets=[dataset], keys={"my-dataset": 0})
 
-            manifest.to_cloud(
-                self.TEST_PROJECT_NAME,
-                bucket_name=TEST_BUCKET_NAME,
-                path_to_manifest_file=storage.path.join("blah", "manifest.json"),
-            )
+            bucket_name = TEST_BUCKET_NAME
+            path_to_manifest_file = storage.path.join("blah", "manifest.json")
+            gs_path = storage.path.generate_gs_path(bucket_name, path_to_manifest_file)
+
+            for location_parameters in (
+                {"bucket_name": bucket_name, "path_to_manifest_file": path_to_manifest_file, "gs_path": None},
+                {"bucket_name": None, "path_to_manifest_file": None, "gs_path": gs_path},
+            ):
+                manifest.to_cloud(self.TEST_PROJECT_NAME, **location_parameters)
 
         persisted_manifest = json.loads(
             GoogleCloudStorageClient(self.TEST_PROJECT_NAME).download_as_string(
@@ -134,7 +140,9 @@ class TestManifest(BaseTestCase):
         self.assertEqual(persisted_manifest["keys"], {"my-dataset": 0})
 
     def test_from_cloud(self):
-        """Test that a Manifest can be instantiated from the cloud."""
+        """Test that a Manifest can be instantiated from the cloud via (`bucket_name`, `output_directory`) and via
+        `gs_path`.
+        """
         with tempfile.TemporaryDirectory() as temporary_directory:
             file_0_path = os.path.join(temporary_directory, "file_0.txt")
             file_1_path = os.path.join(temporary_directory, "file_1.txt")
@@ -160,22 +168,26 @@ class TestManifest(BaseTestCase):
                 path_to_manifest_file=storage.path.join("my-directory", "manifest.json"),
             )
 
-            persisted_manifest = Manifest.from_cloud(
-                project_name=self.TEST_PROJECT_NAME,
-                bucket_name=TEST_BUCKET_NAME,
-                path_to_manifest_file=storage.path.join("my-directory", "manifest.json"),
-            )
+            bucket_name = TEST_BUCKET_NAME
+            path_to_manifest_file = storage.path.join("my-directory", "manifest.json")
+            gs_path = storage.path.generate_gs_path(bucket_name, path_to_manifest_file)
 
-            self.assertEqual(persisted_manifest.path, f"gs://{TEST_BUCKET_NAME}/my-directory/manifest.json")
-            self.assertEqual(persisted_manifest.id, manifest.id)
-            self.assertEqual(persisted_manifest.hash_value, manifest.hash_value)
-            self.assertEqual(persisted_manifest.keys, manifest.keys)
-            self.assertEqual(
-                {dataset.name for dataset in persisted_manifest.datasets},
-                {dataset.name for dataset in manifest.datasets},
-            )
+            for location_parameters in (
+                {"bucket_name": bucket_name, "path_to_manifest_file": path_to_manifest_file, "gs_path": None},
+                {"bucket_name": None, "path_to_manifest_file": None, "gs_path": gs_path},
+            ):
+                persisted_manifest = Manifest.from_cloud(project_name=self.TEST_PROJECT_NAME, **location_parameters)
 
-            for dataset in persisted_manifest.datasets:
-                self.assertEqual(dataset.path, f"gs://{TEST_BUCKET_NAME}/my-directory/{dataset.name}")
-                self.assertTrue(len(dataset.files), 2)
-                self.assertTrue(all(isinstance(file, Datafile) for file in dataset.files))
+                self.assertEqual(persisted_manifest.path, f"gs://{TEST_BUCKET_NAME}/my-directory/manifest.json")
+                self.assertEqual(persisted_manifest.id, manifest.id)
+                self.assertEqual(persisted_manifest.hash_value, manifest.hash_value)
+                self.assertEqual(persisted_manifest.keys, manifest.keys)
+                self.assertEqual(
+                    {dataset.name for dataset in persisted_manifest.datasets},
+                    {dataset.name for dataset in manifest.datasets},
+                )
+
+                for dataset in persisted_manifest.datasets:
+                    self.assertEqual(dataset.path, f"gs://{TEST_BUCKET_NAME}/my-directory/{dataset.name}")
+                    self.assertTrue(len(dataset.files), 2)
+                    self.assertTrue(all(isinstance(file, Datafile) for file in dataset.files))
