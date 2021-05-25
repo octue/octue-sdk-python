@@ -56,7 +56,8 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
 
     @classmethod
     def from_cloud(cls, project_name, gs_path=None, bucket_name=None, path_to_dataset_directory=None):
-        """Instantiate a Dataset from Google Cloud storage.
+        """Instantiate a Dataset from Google Cloud storage. Either (`bucket_name` and `path_to_dataset_directory`) or
+        `gs_path` must be provided.
 
         :param str project_name:
         :param str|None gs_path:
@@ -92,7 +93,8 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         )
 
     def to_cloud(self, project_name, gs_path=None, bucket_name=None, output_directory=None):
-        """Upload a dataset to a cloud location.
+        """Upload a dataset to a cloud location. Either (`bucket_name` and `output_directory`) or `gs_path` must be
+        provided.
 
         :param str project_name:
         :param str|None gs_path:

@@ -175,6 +175,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
         Note that a value provided for an attribute in kwargs will override any existing value for the attribute.
 
+        Either (`bucket_name` and `datafile_path`) or `gs_path` must be provided.
+
         :param str project_name:
         :param str|None gs_path:
         :param str|None bucket_name:
@@ -218,7 +220,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     def to_cloud(
         self, project_name=None, gs_path=None, bucket_name=None, path_in_bucket=None, update_cloud_metadata=True
     ):
-        """Upload a datafile to Google Cloud Storage.
+        """Upload a datafile to Google Cloud Storage. Either (`bucket_name` and `path_in_bucket`) or `gs_path` must be
+        provided.
 
         :param str|None project_name:
         :param str|None gs_path:
@@ -253,6 +256,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     def get_cloud_metadata(self, project_name=None, gs_path=None, bucket_name=None, path_in_bucket=None):
         """Get the cloud metadata for the datafile, casting the types of the cluster and sequence fields to integer.
+        Either (`bucket_name` and `path_in_bucket`) or `gs_path` must be provided.
 
         :param str|None project_name:
         :param str|None gs_path:
@@ -286,7 +290,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         self._cloud_metadata = cloud_metadata
 
     def update_cloud_metadata(self, project_name=None, gs_path=None, bucket_name=None, path_in_bucket=None):
-        """Update the cloud metadata for the datafile.
+        """Update the cloud metadata for the datafile. Either (`bucket_name` and `path_in_bucket`) or `gs_path` must be
+        provided.
 
         :param str|None project_name:
         :param str|None gs_path:
@@ -426,6 +431,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
     def _get_cloud_location(self, project_name=None, gs_path=None, bucket_name=None, path_in_bucket=None):
         """Get the cloud location details for the bucket, allowing the keyword arguments to override any stored values.
+        Either (`bucket_name` and `path_in_bucket`) or `gs_path` must be provided.
 
         :param str|None project_name:
         :param str|None gs_path:

@@ -50,7 +50,8 @@ class GoogleCloudStorageClient:
     def upload_file(
         self, local_path, gs_path=None, bucket_name=None, path_in_bucket=None, metadata=None, timeout=_DEFAULT_TIMEOUT
     ):
-        """Upload a local file to a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>.
+        """Upload a local file to a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>. Either (`bucket_name`
+        and `path_in_bucket`) or `gs_path` must be provided.
 
         :param str local_path:
         :param str|None gs_path:
@@ -73,7 +74,7 @@ class GoogleCloudStorageClient:
         self, string, gs_path=None, bucket_name=None, path_in_bucket=None, metadata=None, timeout=_DEFAULT_TIMEOUT
     ):
         """Upload serialised data in string form to a file in a Google Cloud bucket at
-        gs://<bucket_name>/<path_in_bucket>.
+        gs://<bucket_name>/<path_in_bucket>. Either (`bucket_name` and `path_in_bucket`) or `gs_path` must be provided.
 
         :param str string:
         :param str|None gs_path:
@@ -91,7 +92,8 @@ class GoogleCloudStorageClient:
         logger.info("Uploaded data to Google Cloud at %r.", blob.public_url)
 
     def update_metadata(self, metadata, gs_path=None, bucket_name=None, path_in_bucket=None):
-        """Update the metadata for the given cloud file.
+        """Update the metadata for the given cloud file. Either (`bucket_name` and `path_in_bucket`) or `gs_path` must
+        be provided.
 
         :param dict metadata:
         :param str|None gs_path:
@@ -105,7 +107,8 @@ class GoogleCloudStorageClient:
     def download_to_file(
         self, local_path, gs_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT
     ):
-        """Download a file to a file from a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>.
+        """Download a file to a file from a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>. Either
+        (`bucket_name` and `path_in_bucket`) or `gs_path` must be provided.
 
         :param str local_path:
         :param str|None gs_path:
@@ -119,7 +122,8 @@ class GoogleCloudStorageClient:
         logger.info("Downloaded %r from Google Cloud to %r.", blob.public_url, local_path)
 
     def download_as_string(self, gs_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT):
-        """Download a file to a string from a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>.
+        """Download a file to a string from a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>. Either
+        (`bucket_name` and `path_in_bucket`) or `gs_path` must be provided.
 
         :param str|None gs_path:
         :param str|None bucket_name:
@@ -133,7 +137,8 @@ class GoogleCloudStorageClient:
         return data.decode()
 
     def get_metadata(self, gs_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT):
-        """Get the metadata of the given file in the given bucket.
+        """Get the metadata of the given file in the given bucket. Either (`bucket_name` and `path_in_bucket`) or
+        `gs_path` must be provided.
 
         :param str|None gs_path:
         :param str|None bucket_name:
@@ -164,7 +169,8 @@ class GoogleCloudStorageClient:
         }
 
     def delete(self, gs_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT):
-        """Delete the given file from the given bucket.
+        """Delete the given file from the given bucket. Either (`bucket_name` and `path_in_bucket`) or `gs_path` must
+        be provided.
 
         :param str|None gs_path:
         :param str|None bucket_name:
@@ -177,7 +183,8 @@ class GoogleCloudStorageClient:
         logger.info("Deleted %r from Google Cloud.", blob.public_url)
 
     def scandir(self, gs_path=None, bucket_name=None, directory_path=None, filter=None, timeout=_DEFAULT_TIMEOUT):
-        """Yield the blobs belonging to the given "directory" in the given bucket.
+        """Yield the blobs belonging to the given "directory" in the given bucket. Either (`bucket_name` and
+        `path_in_bucket`) or `gs_path` must be provided.
 
         :param str|None gs_path:
         :param str|None bucket_name:
@@ -208,6 +215,7 @@ class GoogleCloudStorageClient:
 
     def _blob(self, gs_path=None, bucket_name=None, path_in_bucket=None):
         """Instantiate a blob for the given bucket at the given path. Note that this is not synced up with Google Cloud.
+        Either (`bucket_name` and `path_in_bucket`) or `gs_path` must be provided.
 
         :param str|None gs_path:
         :param str|None bucket_name:

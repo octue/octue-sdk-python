@@ -46,7 +46,8 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
 
     @classmethod
     def from_cloud(cls, project_name, gs_path=None, bucket_name=None, path_to_manifest_file=None):
-        """Instantiate a Manifest from Google Cloud storage.
+        """Instantiate a Manifest from Google Cloud storage. Either (`bucket_name` and `path_to_manifest_file`) or
+        `gs_path` must be provided.
 
         :param str project_name:
         :param str|None gs_path:
@@ -82,7 +83,8 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         )
 
     def to_cloud(self, project_name, gs_path=None, bucket_name=None, path_to_manifest_file=None, store_datasets=True):
-        """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory.
+        """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory. Either
+        (`bucket_name` and `path_to_manifest_file`) or `gs_path` must be provided.
 
         :param str project_name:
         :param str|None gs_path:
