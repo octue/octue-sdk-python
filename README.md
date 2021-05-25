@@ -6,9 +6,9 @@
 
 # octue-sdk-python <span><img src="http://slurmed.com/fanart/javier/213_purple-fruit-snake.gif" alt="Purple Fruit Snake" width="100"/></span>
 
-Utilities for running python based data services, digital twins and applications. [Documentation is here!](https://readthedocs.org/projects/octue-python-sdk/badge/?version=latest)
+Utilities for running python based data services, digital twins and applications. [Documentation is here!](https://octue-python-sdk.readthedocs.io/en/latest/)
 
-Based on the [twined](https://twined.readthedocs.io/en/latest/?badge=latest) library for data validation.
+Based on the [twined](https://twined.readthedocs.io/en/latest/) library for data validation.
 
 ## Installation and usage
 For usage as a scientist or engineer, run the following command in your environment:
