@@ -194,7 +194,7 @@ class GoogleCloudStorageClient:
         :yield google.cloud.storage.blob.Blob:
         """
         if gs_path:
-            bucket_name, path_in_bucket = split_bucket_name_from_gs_path(gs_path)
+            bucket_name, directory_path = split_bucket_name_from_gs_path(gs_path)
 
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         blobs = bucket.list_blobs(timeout=timeout)
