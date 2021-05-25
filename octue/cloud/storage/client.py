@@ -5,6 +5,7 @@ from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google_crc32c import Checksum
 
 from octue.cloud.credentials import GCPCredentialsManager
+from octue.cloud.storage.path import split_bucket_name_from_gs_path
 
 
 logger = logging.getLogger(__name__)
@@ -46,17 +47,20 @@ class GoogleCloudStorageClient:
 
         self.client.create_bucket(bucket_or_name=name, location=location, timeout=timeout)
 
-    def upload_file(self, local_path, bucket_name, path_in_bucket, metadata=None, timeout=_DEFAULT_TIMEOUT):
+    def upload_file(
+        self, local_path, gs_path=None, bucket_name=None, path_in_bucket=None, metadata=None, timeout=_DEFAULT_TIMEOUT
+    ):
         """Upload a local file to a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>.
 
         :param str local_path:
-        :param str bucket_name:
-        :param str path_in_bucket:
+        :param str|None gs_path:
+        :param str|None bucket_name:
+        :param str|None path_in_bucket:
         :param dict metadata:
         :param float timeout:
         :return None:
         """
-        blob = self._blob(bucket_name, path_in_bucket)
+        blob = self._blob(gs_path, bucket_name, path_in_bucket)
 
         with open(local_path) as f:
             blob.crc32c = self._compute_crc32c_checksum(f.read())
@@ -65,69 +69,81 @@ class GoogleCloudStorageClient:
         self._update_metadata(blob, metadata)
         logger.info("Uploaded %r to Google Cloud at %r.", local_path, blob.public_url)
 
-    def upload_from_string(self, string, bucket_name, path_in_bucket, metadata=None, timeout=_DEFAULT_TIMEOUT):
+    def upload_from_string(
+        self, string, gs_path=None, bucket_name=None, path_in_bucket=None, metadata=None, timeout=_DEFAULT_TIMEOUT
+    ):
         """Upload serialised data in string form to a file in a Google Cloud bucket at
         gs://<bucket_name>/<path_in_bucket>.
 
         :param str string:
-        :param str bucket_name:
-        :param str path_in_bucket:
+        :param str|None gs_path:
+        :param str|None bucket_name:
+        :param str|None path_in_bucket:
         :param dict metadata:
         :param float timeout:
         :return None:
         """
-        blob = self._blob(bucket_name, path_in_bucket)
+        blob = self._blob(gs_path, bucket_name, path_in_bucket)
         blob.crc32c = self._compute_crc32c_checksum(string)
 
         blob.upload_from_string(data=string, timeout=timeout)
         self._update_metadata(blob, metadata)
         logger.info("Uploaded data to Google Cloud at %r.", blob.public_url)
 
-    def update_metadata(self, bucket_name, path_in_bucket, metadata):
+    def update_metadata(self, metadata, gs_path=None, bucket_name=None, path_in_bucket=None):
         """Update the metadata for the given cloud file.
 
-        :param str bucket_name:
-        :param str path_in_bucket:
         :param dict metadata:
+        :param str|None gs_path:
+        :param str|None bucket_name:
+        :param str|None path_in_bucket:
         :return None:
         """
-        blob = self._blob(bucket_name, path_in_bucket)
+        blob = self._blob(gs_path, bucket_name, path_in_bucket)
         self._update_metadata(blob, metadata)
 
-    def download_to_file(self, bucket_name, path_in_bucket, local_path, timeout=_DEFAULT_TIMEOUT):
+    def download_to_file(
+        self, local_path, gs_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT
+    ):
         """Download a file to a file from a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>.
 
-        :param str bucket_name:
-        :param str path_in_bucket:
         :param str local_path:
+        :param str|None gs_path:
+        :param str|None bucket_name:
+        :param str|None path_in_bucket:
         :param float timeout:
         :return None:
         """
-        blob = self._blob(bucket_name, path_in_bucket)
+        blob = self._blob(gs_path, bucket_name, path_in_bucket)
         blob.download_to_filename(local_path, timeout=timeout)
         logger.info("Downloaded %r from Google Cloud to %r.", blob.public_url, local_path)
 
-    def download_as_string(self, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
+    def download_as_string(self, gs_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT):
         """Download a file to a string from a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>.
 
-        :param str bucket_name:
-        :param str path_in_bucket:
+        :param str|None gs_path:
+        :param str|None bucket_name:
+        :param str|None path_in_bucket:
         :param float timeout:
         :return str:
         """
-        blob = self._blob(bucket_name, path_in_bucket)
+        blob = self._blob(gs_path, bucket_name, path_in_bucket)
         data = blob.download_as_bytes(timeout=timeout)
         logger.info("Downloaded %r from Google Cloud to as string.", blob.public_url)
         return data.decode()
 
-    def get_metadata(self, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
+    def get_metadata(self, gs_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT):
         """Get the metadata of the given file in the given bucket.
 
-        :param str bucket_name:
-        :param str path_in_bucket:
+        :param str|None gs_path:
+        :param str|None bucket_name:
+        :param str|None path_in_bucket:
         :param float timeout:
         :return dict:
         """
+        if gs_path:
+            bucket_name, path_in_bucket = split_bucket_name_from_gs_path(gs_path)
+
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         blob = bucket.get_blob(blob_name=self._strip_leading_slash(path_in_bucket), timeout=timeout)
 
@@ -147,27 +163,32 @@ class GoogleCloudStorageClient:
             "path_in_bucket": path_in_bucket,
         }
 
-    def delete(self, bucket_name, path_in_bucket, timeout=_DEFAULT_TIMEOUT):
+    def delete(self, gs_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT):
         """Delete the given file from the given bucket.
 
-        :param str bucket_name:
-        :param str path_in_bucket:
+        :param str|None gs_path:
+        :param str|None bucket_name:
+        :param str|None path_in_bucket:
         :param float timeout:
         :return None:
         """
-        blob = self._blob(bucket_name, path_in_bucket)
+        blob = self._blob(gs_path, bucket_name, path_in_bucket)
         blob.delete(timeout=timeout)
         logger.info("Deleted %r from Google Cloud.", blob.public_url)
 
-    def scandir(self, bucket_name, directory_path, filter=None, timeout=_DEFAULT_TIMEOUT):
+    def scandir(self, gs_path=None, bucket_name=None, directory_path=None, filter=None, timeout=_DEFAULT_TIMEOUT):
         """Yield the blobs belonging to the given "directory" in the given bucket.
 
-        :param str bucket_name:
-        :param str directory_path:
+        :param str|None gs_path:
+        :param str|None bucket_name:
+        :param str|None directory_path:
         :param callable filter:
         :param float timeout:
         :yield google.cloud.storage.blob.Blob:
         """
+        if gs_path:
+            bucket_name, path_in_bucket = split_bucket_name_from_gs_path(gs_path)
+
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         blobs = bucket.list_blobs(timeout=timeout)
         directory_path = self._strip_leading_slash(directory_path)
@@ -185,13 +206,17 @@ class GoogleCloudStorageClient:
         """
         return path.lstrip("/")
 
-    def _blob(self, bucket_name, path_in_bucket):
+    def _blob(self, gs_path=None, bucket_name=None, path_in_bucket=None):
         """Instantiate a blob for the given bucket at the given path. Note that this is not synced up with Google Cloud.
 
-        :param str bucket_name:
-        :param str path_in_bucket:
+        :param str|None gs_path:
+        :param str|None bucket_name:
+        :param str|None path_in_bucket:
         :return google.cloud.storage.blob.Blob:
         """
+        if gs_path:
+            bucket_name, path_in_bucket = split_bucket_name_from_gs_path(gs_path)
+
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         return bucket.blob(blob_name=self._strip_leading_slash(path_in_bucket))
 

@@ -45,18 +45,22 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         vars(self).update(**kwargs)
 
     @classmethod
-    def from_cloud(cls, project_name, bucket_name, path_to_manifest_file):
+    def from_cloud(cls, project_name, gs_path=None, bucket_name=None, path_to_manifest_file=None):
         """Instantiate a Manifest from Google Cloud storage.
 
         :param str project_name:
-        :param str bucket_name:
-        :param str path_to_manifest_file:
+        :param str|None gs_path:
+        :param str|None bucket_name:
+        :param str|None path_to_manifest_file:
         :return Dataset:
         """
-        storage_client = GoogleCloudStorageClient(project_name=project_name)
+        if gs_path:
+            bucket_name, path_to_manifest_file = storage.path.split_bucket_name_from_gs_path(gs_path)
 
         serialised_manifest = json.loads(
-            storage_client.download_as_string(bucket_name=bucket_name, path_in_bucket=path_to_manifest_file)
+            GoogleCloudStorageClient(project_name=project_name).download_as_string(
+                bucket_name=bucket_name, path_in_bucket=path_to_manifest_file
+            )
         )
 
         datasets = []
@@ -77,23 +81,31 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
             keys=serialised_manifest["keys"],
         )
 
-    def to_cloud(self, project_name, bucket_name, path_to_manifest_file, store_datasets=True):
+    def to_cloud(self, project_name, gs_path=None, bucket_name=None, path_to_manifest_file=None, store_datasets=True):
         """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory.
 
         :param str project_name:
-        :param str bucket_name:
-        :param str path_to_manifest_file:
+        :param str|None gs_path:
+        :param str|None bucket_name:
+        :param str|None path_to_manifest_file:
         :param bool store_datasets: if True, upload datasets to same directory as manifest file
         :return str: gs:// path for manifest file
         """
+        if gs_path:
+            bucket_name, path_to_manifest_file = storage.path.split_bucket_name_from_gs_path(gs_path)
+
         datasets = []
         output_directory = storage.path.dirname(path_to_manifest_file)
 
         for dataset in self.datasets:
 
             if store_datasets:
-                dataset_path = dataset.to_cloud(project_name, bucket_name, output_directory=output_directory)
+                dataset_path = dataset.to_cloud(
+                    project_name, bucket_name=bucket_name, output_directory=output_directory
+                )
+
                 datasets.append(dataset_path)
+
             else:
                 datasets.append(dataset.absolute_path)
 
@@ -107,7 +119,7 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
             path_in_bucket=path_to_manifest_file,
         )
 
-        return storage.path.generate_gs_path(bucket_name, path_to_manifest_file)
+        return gs_path or storage.path.generate_gs_path(bucket_name, path_to_manifest_file)
 
     @property
     def all_datasets_are_in_cloud(self):

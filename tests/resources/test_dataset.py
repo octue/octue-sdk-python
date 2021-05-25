@@ -363,7 +363,7 @@ class DatasetTestCase(BaseTestCase):
                 }
             )
 
-            dataset.to_cloud(project_name, TEST_BUCKET_NAME, output_directory)
+            dataset.to_cloud(project_name, bucket_name=TEST_BUCKET_NAME, output_directory=output_directory)
 
             storage_client = GoogleCloudStorageClient(project_name)
 

@@ -79,7 +79,7 @@ class TestManifest(BaseTestCase):
 
             manifest.to_cloud(
                 self.TEST_PROJECT_NAME,
-                TEST_BUCKET_NAME,
+                bucket_name=TEST_BUCKET_NAME,
                 path_to_manifest_file=storage.path.join("blah", "manifest.json"),
             )
 
@@ -118,7 +118,7 @@ class TestManifest(BaseTestCase):
 
             manifest.to_cloud(
                 self.TEST_PROJECT_NAME,
-                TEST_BUCKET_NAME,
+                bucket_name=TEST_BUCKET_NAME,
                 path_to_manifest_file=storage.path.join("my-manifests", "manifest.json"),
                 store_datasets=False,
             )
@@ -156,7 +156,7 @@ class TestManifest(BaseTestCase):
             manifest = Manifest(datasets=[dataset], keys={"my-dataset": 0})
             manifest.to_cloud(
                 self.TEST_PROJECT_NAME,
-                TEST_BUCKET_NAME,
+                bucket_name=TEST_BUCKET_NAME,
                 path_to_manifest_file=storage.path.join("my-directory", "manifest.json"),
             )
 
