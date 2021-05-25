@@ -513,3 +513,16 @@ class DatafileTestCase(BaseTestCase):
         # Check that the cloud file has been updated.
         with re_downloaded_datafile.open() as f:
             self.assertEqual(f.read(), new_contents)
+
+    def test_metadata(self):
+        """Test that the metadata method namespaces the metadata names when required."""
+        datafile = self.create_valid_datafile()
+
+        self.assertEqual(
+            datafile.metadata().keys(),
+            {"octue__id", "octue__timestamp", "octue__cluster", "octue__sequence", "octue__tags"},
+        )
+
+        self.assertEqual(
+            datafile.metadata(use_octue_namespace=False).keys(), {"id", "timestamp", "cluster", "sequence", "tags"}
+        )
