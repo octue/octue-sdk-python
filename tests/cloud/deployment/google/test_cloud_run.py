@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import unittest
 import uuid
 from unittest import TestCase, mock
 
@@ -64,9 +65,13 @@ class TestCloudRun(TestCase):
                     project_name="a-project-name", data={}, question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29"
                 )
 
-    def test_cloud_run_integration(self):
-        """Test that the Google Cloud Run integration works, providing a service that can be asked questions and send
-        responses.
+    @unittest.skipUnless(
+        condition=os.getenv("RUN_DEPLOYMENT_TESTS", "").lower() == "true",
+        reason="'RUN_DEPLOYMENT_TESTS' environment variable is False or not present.",
+    )
+    def test_cloud_run_deployment(self):
+        """Test that the Google Cloud Run example deployment works, providing a service that can be asked questions and
+        send responses.
         """
         service_to_ask = "octue.services.009ea106-dc37-4521-a8cc-3e0836064334"
         asker = Service(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))

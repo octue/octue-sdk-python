@@ -3,11 +3,12 @@
 [![Documentation Status](https://readthedocs.org/projects/octue-python-sdk/badge/?version=latest)](https://octue-python-sdk.readthedocs.io/en/latest/?badge=latest)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
-[![black-girls-code](https://img.shields.io/badge/black%20girls-code-f64279.svg)](https://www.blackgirlscode.com/)
 
 # octue-sdk-python <span><img src="http://slurmed.com/fanart/javier/213_purple-fruit-snake.gif" alt="Purple Fruit Snake" width="100"/></span>
 
-Utilities for running python based data services, digital twins and applications with the Octue toolkit and [twined](https://twined.readthedocs.io/en/latest/?badge=latest) SDK for python based apps running within octue.
+Utilities for running python based data services, digital twins and applications. [Documentation is here!](https://octue-python-sdk.readthedocs.io/en/latest/)
+
+Based on the [twined](https://twined.readthedocs.io/en/latest/) library for data validation.
 
 ## Installation and usage
 For usage as a scientist or engineer, run the following command in your environment:

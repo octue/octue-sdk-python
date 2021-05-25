@@ -247,8 +247,8 @@ class DatafileTestCase(BaseTestCase):
         )
 
         datafile.get_cloud_metadata()
-        self.assertEqual(datafile._cloud_metadata["custom_metadata"]["good"], "True")
-        self.assertEqual(datafile._cloud_metadata["custom_metadata"]["how_good"], "very")
+        self.assertEqual(datafile._cloud_metadata["custom_metadata"]["octue__good"], "True")
+        self.assertEqual(datafile._cloud_metadata["custom_metadata"]["octue__how_good"], "very")
 
     def test_from_cloud_with_overwrite_when_disallowed_results_in_error(self):
         """Test that attempting to overwrite the attributes of a datafile instantiated from the cloud when not allowed
@@ -528,3 +528,16 @@ class DatafileTestCase(BaseTestCase):
         # Check that the cloud file has been updated.
         with re_downloaded_datafile.open() as f:
             self.assertEqual(f.read(), new_contents)
+
+    def test_metadata(self):
+        """Test that the metadata method namespaces the metadata names when required."""
+        datafile = self.create_valid_datafile()
+
+        self.assertEqual(
+            datafile.metadata().keys(),
+            {"octue__id", "octue__timestamp", "octue__cluster", "octue__sequence", "octue__labels"},
+        )
+
+        self.assertEqual(
+            datafile.metadata(use_octue_namespace=False).keys(), {"id", "timestamp", "cluster", "sequence", "labels"}
+        )
