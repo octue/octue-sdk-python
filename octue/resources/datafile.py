@@ -19,6 +19,7 @@ module_logger = logging.getLogger(__name__)
 
 
 TEMPORARY_LOCAL_FILE_CACHE = {}
+OCTUE_METADATA_NAMESPACE = "octue"
 
 
 ID_DEFAULT = None
@@ -191,18 +192,22 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         if not allow_overwrite:
             cls._check_for_attribute_conflict(custom_metadata, **kwargs)
 
-        timestamp = kwargs.get("timestamp", custom_metadata.get("timestamp"))
+        timestamp = kwargs.get("timestamp", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__timestamp"))
 
         if isinstance(timestamp, str):
             timestamp = datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S.%f%z")
 
-        datafile._set_id(kwargs.pop("id", custom_metadata.get("id", ID_DEFAULT)))
+        datafile._set_id(kwargs.pop("id", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__id", ID_DEFAULT)))
         datafile.path = storage.path.generate_gs_path(bucket_name, datafile_path)
         datafile.timestamp = timestamp
         datafile.immutable_hash_value = datafile._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
-        datafile.cluster = kwargs.pop("cluster", custom_metadata.get("cluster", CLUSTER_DEFAULT))
-        datafile.sequence = kwargs.pop("sequence", custom_metadata.get("sequence", SEQUENCE_DEFAULT))
-        datafile.tags = kwargs.pop("tags", custom_metadata.get("tags", TAGS_DEFAULT))
+        datafile.cluster = kwargs.pop(
+            "cluster", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__cluster", CLUSTER_DEFAULT)
+        )
+        datafile.sequence = kwargs.pop(
+            "sequence", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__sequence", SEQUENCE_DEFAULT)
+        )
+        datafile.tags = kwargs.pop("tags", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__tags", TAGS_DEFAULT))
         datafile._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
         return datafile
 
@@ -254,11 +259,15 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
         custom_metadata = cloud_metadata["custom_metadata"]
 
-        if custom_metadata.get("cluster") is not None:
-            custom_metadata["cluster"] = int(custom_metadata["cluster"])
+        if custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__cluster") is not None:
+            custom_metadata[f"{OCTUE_METADATA_NAMESPACE}__cluster"] = int(
+                custom_metadata[f"{OCTUE_METADATA_NAMESPACE}__cluster"]
+            )
 
-        if custom_metadata.get("sequence") is not None:
-            custom_metadata["sequence"] = int(custom_metadata["sequence"])
+        if custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__sequence") is not None:
+            custom_metadata[f"{OCTUE_METADATA_NAMESPACE}__sequence"] = int(
+                custom_metadata[f"{OCTUE_METADATA_NAMESPACE}__sequence"]
+            )
 
         self._cloud_metadata = cloud_metadata
 
@@ -478,18 +487,24 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         """
         return functools.partial(_DatafileContextManager, self)
 
-    def metadata(self):
+    def metadata(self, use_octue_namespace=True):
         """Get the datafile's metadata in a serialised form.
 
+        :param bool use_octue_namespace: if True, prefix metadata names with "octue__"
         :return dict:
         """
-        return {
+        metadata = {
             "id": self.id,
             "timestamp": self.timestamp,
             "cluster": self.cluster,
             "sequence": self.sequence,
             "tags": self.tags.serialise(to_string=True),
         }
+
+        if not use_octue_namespace:
+            return metadata
+
+        return {f"{OCTUE_METADATA_NAMESPACE}__{key}": value for key, value in metadata.items()}
 
 
 class _DatafileContextManager:
