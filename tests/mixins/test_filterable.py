@@ -81,6 +81,10 @@ class TestFilterable(BaseTestCase):
         self.assertFalse(filterable_thing.satisfies("name__gt", "Noel"))
         self.assertTrue(filterable_thing.satisfies("name__gte", "Michael"))
         self.assertFalse(filterable_thing.satisfies("name__gte", "Noel"))
+        self.assertTrue(filterable_thing.satisfies("name__in_range", ("Amy", "Zoe")))
+        self.assertFalse(filterable_thing.satisfies("name__in_range", ("Noel", "Peter")))
+        self.assertTrue(filterable_thing.satisfies("name__not_in_range", ("Noel", "Peter")))
+        self.assertFalse(filterable_thing.satisfies("name__not_in_range", ("Amy", "Zoe")))
 
     def test_none_filters(self):
         """ Test that the None filters work as expected. """
@@ -110,6 +114,10 @@ class TestFilterable(BaseTestCase):
             self.assertFalse(filterable_thing.satisfies("age__is", 63))
             self.assertTrue(filterable_thing.satisfies("age__is_not", 63))
             self.assertFalse(filterable_thing.satisfies("age__is_not", age))
+            self.assertTrue(filterable_thing.satisfies("age__in_range", (0, 10)))
+            self.assertFalse(filterable_thing.satisfies("age__in_range", (0, 3)))
+            self.assertTrue(filterable_thing.satisfies("age__not_in_range", (0, 3)))
+            self.assertFalse(filterable_thing.satisfies("age__not_in_range", (0, 10)))
 
     def test_iterable_filters(self):
         """ Test that the iterable filters work as expected with lists, sets, and tuples. """
