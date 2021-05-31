@@ -31,6 +31,11 @@ ICONTAINS_FILTER_ACTIONS = {
     "not_icontains": lambda item, filter_value: filter_value.lower() not in item.lower(),
 }
 
+IN_RANGE_FILTER_ACTIONS = {
+    "in_range": lambda item, filter_value: filter_value[0] <= item <= filter_value[1],
+    "not_in_range": lambda item, filter_value: item < filter_value[0] or item > filter_value[1],
+}
+
 
 # Filters for specific types e.g. list or int.
 TYPE_FILTERS = {
@@ -43,12 +48,39 @@ TYPE_FILTERS = {
         "ends_with": lambda item, filter_value: item.endswith(filter_value),
         "not_ends_with": lambda item, filter_value: not item.endswith(filter_value),
         **EQUALS_FILTER_ACTIONS,
-        **COMPARISON_FILTER_ACTIONS,
         **IS_FILTER_ACTIONS,
+        **COMPARISON_FILTER_ACTIONS,
         **CONTAINS_FILTER_ACTIONS,
         **ICONTAINS_FILTER_ACTIONS,
+        **IN_RANGE_FILTER_ACTIONS,
     },
     "NoneType": IS_FILTER_ACTIONS,
+    "datetime": {
+        **EQUALS_FILTER_ACTIONS,
+        **IS_FILTER_ACTIONS,
+        **COMPARISON_FILTER_ACTIONS,
+        **IN_RANGE_FILTER_ACTIONS,
+        "year_equals": lambda item, filter_value: item.year == filter_value,
+        "year_in": lambda item, filter_value: item.year in filter_value,
+        "month_equals": lambda item, filter_value: item.month == filter_value,
+        "month_in": lambda item, filter_value: item.month in filter_value,
+        "day_equals": lambda item, filter_value: item.day == filter_value,
+        "day_in": lambda item, filter_value: item.day in filter_value,
+        "weekday_equals": lambda item, filter_value: item.weekday() == filter_value,
+        "weekday_in": lambda item, filter_value: item.weekday() in filter_value,
+        "iso_weekday_equals": lambda item, filter_value: item.isoweekday() == filter_value,
+        "iso_weekday_in": lambda item, filter_value: item.isoweekday() in filter_value,
+        "time_equals": lambda item, filter_value: item.time() == filter_value,
+        "time_in": lambda item, filter_value: item.time() in filter_value,
+        "hour_equals": lambda item, filter_value: item.hour == filter_value,
+        "hour_in": lambda item, filter_value: item.hour in filter_value,
+        "minute_equals": lambda item, filter_value: item.minute == filter_value,
+        "minute_in": lambda item, filter_value: item.minute in filter_value,
+        "second_equals": lambda item, filter_value: item.second == filter_value,
+        "second_in": lambda item, filter_value: item.second in filter_value,
+        "in_date_range": lambda item, filter_value: filter_value[0] <= item.date() <= filter_value[1],
+        "in_time_range": lambda item, filter_value: filter_value[0] <= item.time() <= filter_value[1],
+    },
     "TagSet": {
         "any_tag_contains": lambda item, filter_value: item.any_tag_contains(filter_value),
         "not_any_tag_contains": lambda item, filter_value: not item.any_tag_contains(filter_value),
@@ -64,7 +96,12 @@ TYPE_FILTERS = {
 
 # Filters for interfaces e.g. iterables or numbers.
 INTERFACE_FILTERS = {
-    numbers.Number: {**EQUALS_FILTER_ACTIONS, **COMPARISON_FILTER_ACTIONS, **IS_FILTER_ACTIONS},
+    numbers.Number: {
+        **EQUALS_FILTER_ACTIONS,
+        **COMPARISON_FILTER_ACTIONS,
+        **IS_FILTER_ACTIONS,
+        **IN_RANGE_FILTER_ACTIONS,
+    },
     collections.abc.Iterable: {
         **EQUALS_FILTER_ACTIONS,
         **CONTAINS_FILTER_ACTIONS,
