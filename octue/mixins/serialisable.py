@@ -1,5 +1,6 @@
 import json
 
+from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 
 
@@ -27,7 +28,7 @@ class Serialisable:
         :return any:
         """
         if from_string:
-            serialised_object = json.loads(serialised_object)
+            serialised_object = json.loads(serialised_object, cls=OctueJSONDecoder)
 
         return cls(**serialised_object)
 
@@ -94,4 +95,4 @@ class Serialisable:
         if to_string:
             return string
 
-        return json.loads(string)
+        return json.loads(string, cls=OctueJSONDecoder)

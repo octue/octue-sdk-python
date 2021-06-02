@@ -13,7 +13,7 @@ class OctueJSONEncoder(TwinedEncoder):
             return obj.serialise()
 
         if isinstance(obj, datetime.datetime):
-            return obj.isoformat()
+            return {"_type": "datetime", "value": obj.isoformat()}
 
         # Otherwise let the base class default method raise the TypeError
         return TwinedEncoder.default(self, obj)

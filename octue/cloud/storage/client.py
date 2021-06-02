@@ -1,4 +1,5 @@
 import base64
+import json
 import logging
 from google.cloud import storage
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
@@ -6,6 +7,8 @@ from google_crc32c import Checksum
 
 from octue.cloud.credentials import GCPCredentialsManager
 from octue.cloud.storage.path import split_bucket_name_from_gs_path
+from octue.utils.decoders import OctueJSONDecoder
+from octue.utils.encoders import OctueJSONEncoder
 
 
 logger = logging.getLogger(__name__)
@@ -97,6 +100,40 @@ class GoogleCloudStorageClient:
         self._update_metadata(blob, metadata)
         logger.info("Uploaded data to Google Cloud at %r.", blob.public_url)
 
+    def get_metadata(self, cloud_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT):
+        """Get the metadata of the given file in the given bucket. Either (`bucket_name` and `path_in_bucket`) or
+        `cloud_path` must be provided.
+
+        :param str|None cloud_path:
+        :param str|None bucket_name:
+        :param str|None path_in_bucket:
+        :param float timeout:
+        :return dict:
+        """
+        if cloud_path:
+            bucket_name, path_in_bucket = split_bucket_name_from_gs_path(cloud_path)
+
+        bucket = self.client.get_bucket(bucket_or_name=bucket_name)
+        blob = bucket.get_blob(blob_name=self._strip_leading_slash(path_in_bucket), timeout=timeout)
+
+        if blob is None:
+            return None
+
+        custom_metadata = blob.metadata or {}
+
+        return {
+            "custom_metadata": {key: json.loads(value, cls=OctueJSONDecoder) for key, value in custom_metadata.items()},
+            "crc32c": blob.crc32c,
+            "size": blob.size,
+            "updated": blob.updated,
+            "time_created": blob.time_created,
+            "time_deleted": blob.time_deleted,
+            "custom_time": blob.custom_time,
+            "project_name": self.project_name,
+            "bucket_name": bucket_name,
+            "path_in_bucket": path_in_bucket,
+        }
+
     def update_metadata(self, metadata, cloud_path=None, bucket_name=None, path_in_bucket=None):
         """Update the metadata for the given cloud file. Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must
         be provided.
@@ -141,38 +178,6 @@ class GoogleCloudStorageClient:
         data = blob.download_as_bytes(timeout=timeout)
         logger.info("Downloaded %r from Google Cloud to as string.", blob.public_url)
         return data.decode()
-
-    def get_metadata(self, cloud_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT):
-        """Get the metadata of the given file in the given bucket. Either (`bucket_name` and `path_in_bucket`) or
-        `cloud_path` must be provided.
-
-        :param str|None cloud_path:
-        :param str|None bucket_name:
-        :param str|None path_in_bucket:
-        :param float timeout:
-        :return dict:
-        """
-        if cloud_path:
-            bucket_name, path_in_bucket = split_bucket_name_from_gs_path(cloud_path)
-
-        bucket = self.client.get_bucket(bucket_or_name=bucket_name)
-        blob = bucket.get_blob(blob_name=self._strip_leading_slash(path_in_bucket), timeout=timeout)
-
-        if blob is None:
-            return None
-
-        return {
-            "custom_metadata": blob.metadata or {},
-            "crc32c": blob.crc32c,
-            "size": blob.size,
-            "updated": blob.updated,
-            "time_created": blob.time_created,
-            "time_deleted": blob.time_deleted,
-            "custom_time": blob.custom_time,
-            "project_name": self.project_name,
-            "bucket_name": bucket_name,
-            "path_in_bucket": path_in_bucket,
-        }
 
     def delete(self, cloud_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT):
         """Delete the given file from the given bucket. Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must
@@ -250,6 +255,19 @@ class GoogleCloudStorageClient:
         :param dict metadata:
         :return None:
         """
-        if metadata is not None:
-            blob.metadata = metadata
-            blob.patch()
+        if not metadata:
+            return None
+
+        blob.metadata = self._encode_metadata(metadata)
+        blob.patch()
+
+    def _encode_metadata(self, metadata):
+        """Encode metadata as a dictionary of JSON strings.
+
+        :param dict metadata:
+        :return dict:
+        """
+        if not isinstance(metadata, dict):
+            raise TypeError(f"Metadata for Google Cloud storage should be a dictionary; received {metadata!r}")
+
+        return {key: json.dumps(value, cls=OctueJSONEncoder) for key, value in metadata.items()}

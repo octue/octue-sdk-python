@@ -215,7 +215,7 @@ class DatafileTestCase(BaseTestCase):
         self.assertEqual(downloaded_datafile.hash_value, datafile.hash_value)
         self.assertEqual(downloaded_datafile.cluster, datafile.cluster)
         self.assertEqual(downloaded_datafile.sequence, datafile.sequence)
-        self.assertEqual(downloaded_datafile.tags, {"sdk_version": "0.1.18", "good": "True", "how_good": "very"})
+        self.assertEqual(downloaded_datafile.tags, {"sdk_version": "0.1.18", "good": True, "how_good": "very"})
         self.assertEqual(downloaded_datafile.labels, datafile.labels)
         self.assertEqual(downloaded_datafile.size_bytes, datafile.size_bytes)
         self.assertTrue(isinstance(downloaded_datafile._last_modified, float))
@@ -247,7 +247,7 @@ class DatafileTestCase(BaseTestCase):
         )
 
         datafile.get_cloud_metadata()
-        self.assertEqual(datafile._cloud_metadata["custom_metadata"]["octue__good"], "True")
+        self.assertEqual(datafile._cloud_metadata["custom_metadata"]["octue__good"], True)
         self.assertEqual(datafile._cloud_metadata["custom_metadata"]["octue__how_good"], "very")
 
     def test_from_cloud_with_overwrite_when_disallowed_results_in_error(self):

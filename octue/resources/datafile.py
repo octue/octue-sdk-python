@@ -207,14 +207,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         if not allow_overwrite:
             cls._check_for_attribute_conflict(custom_metadata, **kwargs)
 
-        timestamp = kwargs.get("timestamp", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__timestamp"))
-
-        if isinstance(timestamp, str):
-            try:
-                timestamp = datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S.%f")
-            except ValueError:
-                timestamp = datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S.%f%z")
-
         datafile.tags = (
             kwargs.pop("tags", None)
             or TagDict(
@@ -227,8 +219,8 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         )
 
         datafile._set_id(kwargs.pop("id", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__id", ID_DEFAULT)))
-        datafile.timestamp = timestamp
         datafile.immutable_hash_value = datafile._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
+        datafile.timestamp = kwargs.get("timestamp", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__timestamp"))
 
         datafile.cluster = kwargs.pop(
             "cluster", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__cluster", CLUSTER_DEFAULT)
