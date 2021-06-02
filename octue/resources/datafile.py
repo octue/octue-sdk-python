@@ -308,7 +308,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             project_name, cloud_path, bucket_name, path_in_bucket
         )
 
-        GoogleCloudStorageClient(project_name=project_name).update_metadata(
+        GoogleCloudStorageClient(project_name=project_name).overwrite_custom_metadata(
             metadata=self.metadata(),
             bucket_name=bucket_name,
             path_in_bucket=path_in_bucket,
