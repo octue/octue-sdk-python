@@ -4,31 +4,42 @@ import numbers
 from octue import exceptions
 
 
-IS_FILTER_ACTIONS = {
-    "is": lambda item, filter_value: item is filter_value,
-    "is_not": lambda item, filter_value: item is not filter_value,
-}
+def generate_complementary_filters(name, func):
+    """Use a filter to generate its complementary filter, then return them together mapped to their names in a
+    dictionary. The complementary filter is named f"not_{name}" or, if the name is "is", "is_not".
 
-EQUALS_FILTER_ACTIONS = {
-    "equals": lambda item, filter_value: filter_value == item,
-    "not_equals": lambda item, filter_value: filter_value != item,
-}
+    :param str name:
+    :param callable func:
+    :return dict:
+    """
+    filter_action = {name: func}
+
+    if name == "is":
+        not_filter_name = "is_not"
+    else:
+        not_filter_name = f"not_{name}"
+
+    not_filter_action = {
+        not_filter_name: lambda item, value: not action(item, value) for name, action in filter_action.items()
+    }
+
+    return {**filter_action, **not_filter_action}
+
+
+IS_FILTER_ACTIONS = generate_complementary_filters("is", lambda item, value: item is value)
+EQUALS_FILTER_ACTIONS = generate_complementary_filters("equals", lambda item, value: value == item)
+CONTAINS_FILTER_ACTIONS = generate_complementary_filters("contains", lambda item, value: value in item)
+IN_RANGE_FILTER_ACTIONS = generate_complementary_filters("in_range", lambda item, value: value[0] <= item <= value[1])
+
+ICONTAINS_FILTER_ACTIONS = generate_complementary_filters(
+    "icontains", lambda item, value: value.lower() in item.lower()
+)
 
 COMPARISON_FILTER_ACTIONS = {
-    "lt": lambda item, filter_value: item < filter_value,
-    "lte": lambda item, filter_value: item <= filter_value,
-    "gt": lambda item, filter_value: item > filter_value,
-    "gte": lambda item, filter_value: item >= filter_value,
-}
-
-CONTAINS_FILTER_ACTIONS = {
-    "contains": lambda item, filter_value: filter_value in item,
-    "not_contains": lambda item, filter_value: filter_value not in item,
-}
-
-ICONTAINS_FILTER_ACTIONS = {
-    "icontains": lambda item, filter_value: filter_value.lower() in item.lower(),
-    "not_icontains": lambda item, filter_value: filter_value.lower() not in item.lower(),
+    "lt": lambda item, value: item < value,
+    "lte": lambda item, value: item <= value,
+    "gt": lambda item, value: item > value,
+    "gte": lambda item, value: item >= value,
 }
 
 
@@ -36,26 +47,47 @@ ICONTAINS_FILTER_ACTIONS = {
 TYPE_FILTERS = {
     "bool": IS_FILTER_ACTIONS,
     "str": {
-        "iequals": lambda item, filter_value: filter_value.lower() == item.lower(),
-        "not_iequals": lambda item, filter_value: filter_value.lower() != item.lower(),
-        "starts_with": lambda item, filter_value: item.startswith(filter_value),
-        "not_starts_with": lambda item, filter_value: not item.startswith(filter_value),
-        "ends_with": lambda item, filter_value: item.endswith(filter_value),
-        "not_ends_with": lambda item, filter_value: not item.endswith(filter_value),
+        **generate_complementary_filters("iequals", lambda item, value: value.lower() == item.lower()),
+        **generate_complementary_filters("starts_with", lambda item, value: item.startswith(value)),
+        **generate_complementary_filters("ends_with", lambda item, value: item.endswith(value)),
         **EQUALS_FILTER_ACTIONS,
-        **COMPARISON_FILTER_ACTIONS,
         **IS_FILTER_ACTIONS,
+        **COMPARISON_FILTER_ACTIONS,
         **CONTAINS_FILTER_ACTIONS,
         **ICONTAINS_FILTER_ACTIONS,
+        **IN_RANGE_FILTER_ACTIONS,
     },
     "NoneType": IS_FILTER_ACTIONS,
+    "datetime": {
+        **EQUALS_FILTER_ACTIONS,
+        **IS_FILTER_ACTIONS,
+        **COMPARISON_FILTER_ACTIONS,
+        **IN_RANGE_FILTER_ACTIONS,
+        "year_equals": lambda item, value: item.year == value,
+        "year_in": lambda item, value: item.year in value,
+        "month_equals": lambda item, value: item.month == value,
+        "month_in": lambda item, value: item.month in value,
+        "day_equals": lambda item, value: item.day == value,
+        "day_in": lambda item, value: item.day in value,
+        "weekday_equals": lambda item, value: item.weekday() == value,
+        "weekday_in": lambda item, value: item.weekday() in value,
+        "iso_weekday_equals": lambda item, value: item.isoweekday() == value,
+        "iso_weekday_in": lambda item, value: item.isoweekday() in value,
+        "time_equals": lambda item, value: item.time() == value,
+        "time_in": lambda item, value: item.time() in value,
+        "hour_equals": lambda item, value: item.hour == value,
+        "hour_in": lambda item, value: item.hour in value,
+        "minute_equals": lambda item, value: item.minute == value,
+        "minute_in": lambda item, value: item.minute in value,
+        "second_equals": lambda item, value: item.second == value,
+        "second_in": lambda item, value: item.second in value,
+        "in_date_range": lambda item, value: value[0] <= item.date() <= value[1],
+        "in_time_range": lambda item, value: value[0] <= item.time() <= value[1],
+    },
     "TagSet": {
-        "any_tag_contains": lambda item, filter_value: item.any_tag_contains(filter_value),
-        "not_any_tag_contains": lambda item, filter_value: not item.any_tag_contains(filter_value),
-        "any_tag_starts_with": lambda item, filter_value: item.any_tag_starts_with(filter_value),
-        "not_any_tag_starts_with": lambda item, filter_value: not item.any_tag_starts_with(filter_value),
-        "any_tag_ends_with": lambda item, filter_value: item.any_tag_ends_with(filter_value),
-        "not_any_tag_ends_with": lambda item, filter_value: not item.any_tag_ends_with(filter_value),
+        **generate_complementary_filters("any_tag_contains", lambda item, value: item.any_tag_contains(value)),
+        **generate_complementary_filters("any_tag_starts_with", lambda item, value: item.any_tag_starts_with(value)),
+        **generate_complementary_filters("any_tag_ends_with", lambda item, value: item.any_tag_ends_with(value)),
         **EQUALS_FILTER_ACTIONS,
         **CONTAINS_FILTER_ACTIONS,
         **IS_FILTER_ACTIONS,
@@ -64,7 +96,12 @@ TYPE_FILTERS = {
 
 # Filters for interfaces e.g. iterables or numbers.
 INTERFACE_FILTERS = {
-    numbers.Number: {**EQUALS_FILTER_ACTIONS, **COMPARISON_FILTER_ACTIONS, **IS_FILTER_ACTIONS},
+    numbers.Number: {
+        **EQUALS_FILTER_ACTIONS,
+        **COMPARISON_FILTER_ACTIONS,
+        **IS_FILTER_ACTIONS,
+        **IN_RANGE_FILTER_ACTIONS,
+    },
     collections.abc.Iterable: {
         **EQUALS_FILTER_ACTIONS,
         **CONTAINS_FILTER_ACTIONS,

@@ -1,3 +1,5 @@
+from datetime import date, datetime, time
+
 from octue import exceptions
 from octue.mixins.filterable import Filterable
 from octue.resources.tag import TagSet
@@ -5,12 +7,13 @@ from tests.base import BaseTestCase
 
 
 class FilterableSubclass(Filterable):
-    def __init__(self, name=None, is_alive=None, iterable=None, age=None, owner=None):
+    def __init__(self, name=None, is_alive=None, iterable=None, age=None, owner=None, timestamp=None):
         self.name = name
         self.is_alive = is_alive
         self.iterable = iterable
         self.age = age
         self.owner = owner
+        self.timestamp = timestamp
 
 
 class TestFilterable(BaseTestCase):
@@ -81,6 +84,10 @@ class TestFilterable(BaseTestCase):
         self.assertFalse(filterable_thing.satisfies("name__gt", "Noel"))
         self.assertTrue(filterable_thing.satisfies("name__gte", "Michael"))
         self.assertFalse(filterable_thing.satisfies("name__gte", "Noel"))
+        self.assertTrue(filterable_thing.satisfies("name__in_range", ("Amy", "Zoe")))
+        self.assertFalse(filterable_thing.satisfies("name__in_range", ("Noel", "Peter")))
+        self.assertTrue(filterable_thing.satisfies("name__not_in_range", ("Noel", "Peter")))
+        self.assertFalse(filterable_thing.satisfies("name__not_in_range", ("Amy", "Zoe")))
 
     def test_none_filters(self):
         """ Test that the None filters work as expected. """
@@ -110,6 +117,10 @@ class TestFilterable(BaseTestCase):
             self.assertFalse(filterable_thing.satisfies("age__is", 63))
             self.assertTrue(filterable_thing.satisfies("age__is_not", 63))
             self.assertFalse(filterable_thing.satisfies("age__is_not", age))
+            self.assertTrue(filterable_thing.satisfies("age__in_range", (0, 10)))
+            self.assertFalse(filterable_thing.satisfies("age__in_range", (0, 3)))
+            self.assertTrue(filterable_thing.satisfies("age__not_in_range", (0, 3)))
+            self.assertFalse(filterable_thing.satisfies("age__not_in_range", (0, 10)))
 
     def test_iterable_filters(self):
         """ Test that the iterable filters work as expected with lists, sets, and tuples. """
@@ -123,6 +134,74 @@ class TestFilterable(BaseTestCase):
             self.assertFalse(filterable_thing.satisfies("iterable__is", None))
             self.assertTrue(filterable_thing.satisfies("iterable__is_not", None))
             self.assertFalse(filterable_thing.satisfies("iterable__is_not", iterable))
+
+    def test_datetime_filters(self):
+        my_datetime = datetime(2000, 1, 1)
+        filterable_thing = FilterableSubclass(timestamp=my_datetime)
+        self.assertTrue(filterable_thing.satisfies("timestamp__equals", my_datetime))
+        self.assertFalse(filterable_thing.satisfies("timestamp__equals", datetime(2, 2, 2)))
+        self.assertTrue(filterable_thing.satisfies("timestamp__not_equals", datetime(2, 2, 2)))
+        self.assertFalse(filterable_thing.satisfies("timestamp__not_equals", my_datetime))
+        self.assertTrue(filterable_thing.satisfies("timestamp__is", my_datetime))
+        self.assertFalse(filterable_thing.satisfies("timestamp__is", datetime(2, 2, 2)))
+        self.assertTrue(filterable_thing.satisfies("timestamp__is_not", datetime(2, 2, 2)))
+        self.assertFalse(filterable_thing.satisfies("timestamp__is_not", my_datetime))
+        self.assertTrue(filterable_thing.satisfies("timestamp__gt", datetime(1900, 1, 2)))
+        self.assertFalse(filterable_thing.satisfies("timestamp__gt", datetime(3000, 1, 2)))
+        self.assertTrue(filterable_thing.satisfies("timestamp__gte", my_datetime))
+        self.assertFalse(filterable_thing.satisfies("timestamp__gte", datetime(3000, 1, 2)))
+        self.assertTrue(filterable_thing.satisfies("timestamp__lt", datetime(3000, 1, 2)))
+        self.assertFalse(filterable_thing.satisfies("timestamp__lt", datetime(1990, 1, 2)))
+        self.assertTrue(filterable_thing.satisfies("timestamp__lte", my_datetime))
+        self.assertFalse(filterable_thing.satisfies("timestamp__lte", datetime(1900, 1, 2)))
+        self.assertTrue(filterable_thing.satisfies("timestamp__in_range", (datetime(1900, 1, 2), datetime(3000, 1, 2))))
+        self.assertFalse(
+            filterable_thing.satisfies("timestamp__in_range", (datetime(2100, 1, 2), datetime(3000, 1, 2)))
+        )
+        self.assertTrue(
+            filterable_thing.satisfies("timestamp__not_in_range", (datetime(2100, 1, 2), datetime(3000, 1, 2)))
+        )
+        self.assertFalse(
+            filterable_thing.satisfies("timestamp__not_in_range", (datetime(1900, 1, 2), datetime(3000, 1, 2)))
+        )
+        self.assertTrue(filterable_thing.satisfies("timestamp__year_equals", 2000))
+        self.assertFalse(filterable_thing.satisfies("timestamp__year_equals", 3000))
+        self.assertTrue(filterable_thing.satisfies("timestamp__year_in", {2000, 3000, 4000}))
+        self.assertFalse(filterable_thing.satisfies("timestamp__year_in", {3000, 4000}))
+        self.assertTrue(filterable_thing.satisfies("timestamp__month_equals", 1))
+        self.assertFalse(filterable_thing.satisfies("timestamp__month_equals", 9))
+        self.assertTrue(filterable_thing.satisfies("timestamp__month_in", {1, 2, 3}))
+        self.assertFalse(filterable_thing.satisfies("timestamp__month_in", {2, 3}))
+        self.assertTrue(filterable_thing.satisfies("timestamp__day_equals", 1))
+        self.assertFalse(filterable_thing.satisfies("timestamp__day_equals", 2))
+        self.assertTrue(filterable_thing.satisfies("timestamp__day_in", {1, 2, 3}))
+        self.assertFalse(filterable_thing.satisfies("timestamp__day_in", {2, 3}))
+        self.assertTrue(filterable_thing.satisfies("timestamp__weekday_equals", 5))
+        self.assertFalse(filterable_thing.satisfies("timestamp__weekday_equals", 3))
+        self.assertTrue(filterable_thing.satisfies("timestamp__weekday_in", {5, 6, 7}))
+        self.assertFalse(filterable_thing.satisfies("timestamp__weekday_in", {6, 7}))
+        self.assertTrue(filterable_thing.satisfies("timestamp__iso_weekday_equals", 6))
+        self.assertFalse(filterable_thing.satisfies("timestamp__iso_weekday_equals", 4))
+        self.assertTrue(filterable_thing.satisfies("timestamp__iso_weekday_in", {5, 6, 7}))
+        self.assertFalse(filterable_thing.satisfies("timestamp__iso_weekday_in", {7, 8}))
+        self.assertTrue(filterable_thing.satisfies("timestamp__time_equals", time(0, 0, 0)))
+        self.assertFalse(filterable_thing.satisfies("timestamp__time_equals", time(1, 2, 3)))
+        self.assertTrue(filterable_thing.satisfies("timestamp__hour_equals", 0))
+        self.assertFalse(filterable_thing.satisfies("timestamp__hour_equals", 1))
+        self.assertTrue(filterable_thing.satisfies("timestamp__hour_in", {0, 1, 2}))
+        self.assertFalse(filterable_thing.satisfies("timestamp__hour_in", {1, 2}))
+        self.assertTrue(filterable_thing.satisfies("timestamp__minute_equals", 0))
+        self.assertFalse(filterable_thing.satisfies("timestamp__minute_equals", 1))
+        self.assertTrue(filterable_thing.satisfies("timestamp__minute_in", {0, 1, 2}))
+        self.assertFalse(filterable_thing.satisfies("timestamp__minute_in", {1, 2}))
+        self.assertTrue(filterable_thing.satisfies("timestamp__second_equals", 0))
+        self.assertFalse(filterable_thing.satisfies("timestamp__second_equals", 1))
+        self.assertTrue(filterable_thing.satisfies("timestamp__second_in", {0, 1, 2}))
+        self.assertFalse(filterable_thing.satisfies("timestamp__second_in", {1, 2}))
+        self.assertTrue(filterable_thing.satisfies("timestamp__in_date_range", (date(1000, 1, 4), date(3000, 7, 10))))
+        self.assertFalse(filterable_thing.satisfies("timestamp__in_date_range", (date(2000, 1, 4), date(3000, 7, 10))))
+        self.assertTrue(filterable_thing.satisfies("timestamp__in_time_range", (time(0, 0, 0), time(13, 2, 22))))
+        self.assertFalse(filterable_thing.satisfies("timestamp__in_time_range", (time(0, 0, 1), time(13, 2, 22))))
 
     def test_tag_set_filters(self):
         """ Test the filters for TagSet. """
