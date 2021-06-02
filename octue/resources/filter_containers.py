@@ -10,7 +10,7 @@ class FilterContainer(ABC):
     def filter(self, ignore_items_without_attribute=True, **kwargs):
         """Return a new instance containing only the `Filterable`s to which the given filter criteria are `True`.
 
-        :param bool ignore_items_without_attribute:
+        :param bool ignore_items_without_attribute: if True, just ignore any members of the container without a filtered-for attribute rather than raising an error
         :param {str: any} kwargs: keyword arguments whose keys are the name of the filter and whose values are the values to filter for
         :return octue.resources.filter_containers.FilterContainer:
         """
@@ -38,8 +38,8 @@ class FilterContainer(ABC):
         """Order the `Filterable`s in the container by an attribute with the given name, returning them as a new
         `FilterList` regardless of the type of filter container begun with.
 
-        :param str attribute_name:
-        :param bool reverse:
+        :param str attribute_name: name of attribute (optionally nested) to order by e.g. "a", "a.b", "a.b.c"
+        :param bool reverse: if True, reverse the ordering
         :raise octue.exceptions.InvalidInputException: if an attribute with the given name doesn't exist on any of the container's members
         :return FilterList:
         """
@@ -54,7 +54,7 @@ class FilterContainer(ABC):
         """If a single result exists for the given filters, return it. Otherwise, raise an error.
 
         :param {str: any} kwargs: keyword arguments whose keys are the name of the filter and whose values are the values to filter for
-        :raise UnexpectedNumberOfResultsException: if zero or more than one results satisfy the filters
+        :raise octue.exceptions.UnexpectedNumberOfResultsException: if zero or more than one results satisfy the filters
         :return octue.resources.mixins.filterable.Filterable:
         """
         results = self.filter(**kwargs)
@@ -84,7 +84,7 @@ class FilterDict(FilterContainer, UserDict):
         """Return a new instance containing only the Filterables for which the given filter criteria apply are
         satisfied.
 
-        :param bool ignore_items_without_attribute:
+        :param bool ignore_items_without_attribute: if True, just ignore any members of the container without a filtered-for attribute rather than raising an error
         :param {str: any} kwargs: keyword arguments whose keys are the name of the filter and whose values are the values to filter for
         :return FilterDict:
         """
@@ -111,8 +111,8 @@ class FilterDict(FilterContainer, UserDict):
     def order_by(self, attribute_name, reverse=False):
         """Order the instance by the given attribute_name, returning the instance's elements as a new FilterList.
 
-        :param str attribute_name: a dot-separated (optionally nested) attribute name e.g. "a", "a.b", "a.b.c"
-        :param bool reverse:
+        :param str attribute_name: name of attribute (optionally nested) to order by e.g. "a", "a.b", "a.b.c"
+        :param bool reverse: if True, reverse the ordering
         :raise octue.exceptions.InvalidInputException: if an attribute with the given name doesn't exist on any of the FilterDict's values
         :return FilterList:
         """
