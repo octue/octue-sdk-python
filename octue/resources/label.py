@@ -72,13 +72,21 @@ class LabelSet(set):
 
         super().__init__(labels)
 
-    def add_labels(self, *args):
+    def add(self, label):
+        """Add a label string to the set.
+
+        :param str label: the label to add
+        :return None:
+        """
+        super().add(Label(label))
+
+    def update(self, *labels):
         """Add one or more new label strings to the object labels. New labels will be cleaned and validated.
 
         :param str *labels: a variable number of string labels
         :return None:
         """
-        self.update({Label(arg) for arg in args})
+        super().update({Label(label) for label in labels})
 
     def any_label_starts_with(self, value):
         """Return `True` if any of the labels starts with the value.

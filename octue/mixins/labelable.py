@@ -10,7 +10,7 @@ class Labelable:
 
     def add_labels(self, *args):
         """Add one or more new labels to the object. New labels will be cleaned and validated."""
-        self.labels.add_labels(*args)
+        self.labels.update(*args)
 
     @property
     def labels(self):

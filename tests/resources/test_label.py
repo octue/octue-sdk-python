@@ -139,6 +139,24 @@ class TestLabelSet(BaseTestCase):
         for label in "b", "c", "d", "e", "f":
             self.assertFalse(label in self.LABEL_SET)
 
+    def test_add(self):
+        """Test that the add method adds a valid label but raises an error for an invalid label."""
+        label_set = LabelSet({"a", "b"})
+        label_set.add("c")
+        self.assertEqual(label_set, {"a", "b", "c"})
+
+        with self.assertRaises(exceptions.InvalidLabelException):
+            label_set.add("d_")
+
+    def test_update(self):
+        """Test that the update method adds valid labels but raises an error for invalid labels."""
+        label_set = LabelSet({"a", "b"})
+        label_set.update("c", "d")
+        self.assertEqual(label_set, {"a", "b", "c", "d"})
+
+        with self.assertRaises(exceptions.InvalidLabelException):
+            label_set.update("e", "f_")
+
     def test_any_label_starts_with(self):
         """ Ensure starts_with only checks the starts of labels, and doesn't check the starts of sublabels. """
         for label in "a", "b", "d":
