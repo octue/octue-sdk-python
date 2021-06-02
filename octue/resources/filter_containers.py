@@ -44,7 +44,10 @@ class FilterContainer(ABC):
         :return FilterList:
         """
         try:
-            return FilterList(sorted(self, key=lambda item: getattr(item, attribute_name), reverse=reverse))
+            return FilterList(
+                sorted(self, key=lambda item: get_nested_attribute(item, attribute_name), reverse=reverse)
+            )
+
         except AttributeError:
             raise exceptions.InvalidInputException(
                 f"An attribute named {attribute_name!r} does not exist on one or more members of {self!r}."
