@@ -12,7 +12,6 @@ from octue.cloud.storage.path import CLOUD_STORAGE_PROTOCOL
 from octue.exceptions import AttributeConflict, CloudLocationNotSpecified, FileNotFoundException, InvalidInputException
 from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Loggable, Pathable, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
-from octue.resources.tag import TagDict
 from octue.utils import isfile
 from octue.utils.time import convert_from_posix_time, convert_to_posix_time
 
@@ -28,10 +27,6 @@ CLUSTER_DEFAULT = 0
 SEQUENCE_DEFAULT = None
 TAGS_DEFAULT = None
 LABELS_DEFAULT = None
-
-NON_TAG_METADATA = {
-    f"{OCTUE_METADATA_NAMESPACE}__{name}" for name in ("id", "timestamp", "cluster", "sequence", "labels")
-}
 
 
 class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable, Filterable):
@@ -207,20 +202,10 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         if not allow_overwrite:
             cls._check_for_attribute_conflict(custom_metadata, **kwargs)
 
-        datafile.tags = (
-            kwargs.pop("tags", None)
-            or TagDict(
-                {
-                    tag_name.replace(f"{OCTUE_METADATA_NAMESPACE}__", ""): custom_metadata[tag_name]
-                    for tag_name in custom_metadata.keys() - NON_TAG_METADATA
-                }
-            )
-            or TAGS_DEFAULT
-        )
-
         datafile._set_id(kwargs.pop("id", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__id", ID_DEFAULT)))
         datafile.immutable_hash_value = datafile._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
         datafile.timestamp = kwargs.get("timestamp", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__timestamp"))
+        datafile.tags = kwargs.pop("tags", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__tags", TAGS_DEFAULT))
 
         datafile.cluster = kwargs.pop(
             "cluster", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__cluster", CLUSTER_DEFAULT)
@@ -545,8 +530,8 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             "timestamp": self.timestamp,
             "cluster": self.cluster,
             "sequence": self.sequence,
-            "labels": self.labels.serialise(to_string=True),
-            **self.tags,
+            "labels": self.labels,
+            "tags": self.tags,
             "sdk_version": pkg_resources.get_distribution("octue").version,
         }
 

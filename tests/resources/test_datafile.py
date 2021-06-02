@@ -215,7 +215,7 @@ class DatafileTestCase(BaseTestCase):
         self.assertEqual(downloaded_datafile.hash_value, datafile.hash_value)
         self.assertEqual(downloaded_datafile.cluster, datafile.cluster)
         self.assertEqual(downloaded_datafile.sequence, datafile.sequence)
-        self.assertEqual(downloaded_datafile.tags, {"sdk_version": "0.1.18", "good": True, "how_good": "very"})
+        self.assertEqual(downloaded_datafile.tags, datafile.tags)
         self.assertEqual(downloaded_datafile.labels, datafile.labels)
         self.assertEqual(downloaded_datafile.size_bytes, datafile.size_bytes)
         self.assertTrue(isinstance(downloaded_datafile._last_modified, float))
@@ -238,17 +238,6 @@ class DatafileTestCase(BaseTestCase):
 
         self.assertEqual(downloaded_datafile.id, new_id)
         self.assertNotEqual(datafile.id, downloaded_datafile.id)
-
-    def test_each_tag_is_stored_as_custom_metadata_entry_in_cloud(self):
-        """Test that each tag on a datafile is stored as a separate piece of custom metadata on the Google Cloud
-        Storage file."""
-        datafile, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud(
-            tags={"good": True, "how_good": "very"},
-        )
-
-        datafile.get_cloud_metadata()
-        self.assertEqual(datafile._cloud_metadata["custom_metadata"]["octue__good"], True)
-        self.assertEqual(datafile._cloud_metadata["custom_metadata"]["octue__how_good"], "very")
 
     def test_from_cloud_with_overwrite_when_disallowed_results_in_error(self):
         """Test that attempting to overwrite the attributes of a datafile instantiated from the cloud when not allowed
@@ -555,6 +544,7 @@ class DatafileTestCase(BaseTestCase):
                 "octue__timestamp",
                 "octue__cluster",
                 "octue__sequence",
+                "octue__tags",
                 "octue__labels",
                 "octue__sdk_version",
             },
@@ -562,5 +552,5 @@ class DatafileTestCase(BaseTestCase):
 
         self.assertEqual(
             datafile.metadata(use_octue_namespace=False).keys(),
-            {"id", "timestamp", "cluster", "sequence", "labels", "sdk_version"},
+            {"id", "timestamp", "cluster", "sequence", "tags", "labels", "sdk_version"},
         )
