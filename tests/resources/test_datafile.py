@@ -215,7 +215,7 @@ class DatafileTestCase(BaseTestCase):
         self.assertEqual(downloaded_datafile.hash_value, datafile.hash_value)
         self.assertEqual(downloaded_datafile.cluster, datafile.cluster)
         self.assertEqual(downloaded_datafile.sequence, datafile.sequence)
-        self.assertEqual(downloaded_datafile.tags, {"good": "True", "how_good": "very"})
+        self.assertEqual(downloaded_datafile.tags, {"sdk_version": "0.1.18", "good": "True", "how_good": "very"})
         self.assertEqual(downloaded_datafile.labels, datafile.labels)
         self.assertEqual(downloaded_datafile.size_bytes, datafile.size_bytes)
         self.assertTrue(isinstance(downloaded_datafile._last_modified, float))
@@ -535,9 +535,17 @@ class DatafileTestCase(BaseTestCase):
 
         self.assertEqual(
             datafile.metadata().keys(),
-            {"octue__id", "octue__timestamp", "octue__cluster", "octue__sequence", "octue__labels"},
+            {
+                "octue__id",
+                "octue__timestamp",
+                "octue__cluster",
+                "octue__sequence",
+                "octue__labels",
+                "octue__sdk_version",
+            },
         )
 
         self.assertEqual(
-            datafile.metadata(use_octue_namespace=False).keys(), {"id", "timestamp", "cluster", "sequence", "labels"}
+            datafile.metadata(use_octue_namespace=False).keys(),
+            {"id", "timestamp", "cluster", "sequence", "labels", "sdk_version"},
         )
