@@ -6,7 +6,7 @@ import warnings
 from octue import definitions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.exceptions import BrokenSequenceException, InvalidInputException, UnexpectedNumberOfResultsException
+from octue.exceptions import BrokenSequenceException, InvalidInputException
 from octue.mixins import Hashable, Identifiable, Labelable, Loggable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
@@ -218,13 +218,4 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
         :param str label_string:
         :return octue.resources.datafile.DataFile:
         """
-        results = self.files.filter(labels__contains=label_string)
-
-        if len(results) > 1:
-            raise UnexpectedNumberOfResultsException(
-                f"More than one result found when searching for a file by label {label_string!r}."
-            )
-        elif len(results) == 0:
-            raise UnexpectedNumberOfResultsException(f"No files found with label {label_string!r}.")
-
-        return results.pop()
+        return self.files.one(labels__contains=label_string)

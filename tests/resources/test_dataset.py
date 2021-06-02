@@ -191,7 +191,7 @@ class DatasetTestCase(BaseTestCase):
         with self.assertRaises(exceptions.UnexpectedNumberOfResultsException) as e:
             resource.get_file_by_label("billyjeanisnotmylover")
 
-        self.assertIn("No files found with label", e.exception.args[0])
+        self.assertIn("No results found for filters {'labels__contains': 'billyjeanisnotmylover'}", e.exception.args[0])
 
     def test_filter_by_sequence_not_none(self):
         """Ensures that filter works with sequence lookups"""

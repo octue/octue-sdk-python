@@ -50,6 +50,25 @@ class TestFilterSet(BaseTestCase):
         filterables = {FilterableThing(a=3, b=2), FilterableThing(a=3, b=99), FilterableThing(a=77)}
         self.assertEqual(FilterSet(filterables).filter(a__equals=3, b__gt=80), {FilterableThing(a=3, b=99)})
 
+    def test_one_fails_if_no_results(self):
+        """Test that the `one` method raises an error if there are no results."""
+        filterables = FilterSet({FilterableThing(a=3, b=2), FilterableThing(a=3, b=99), FilterableThing(a=77)})
+
+        with self.assertRaises(exceptions.UnexpectedNumberOfResultsException):
+            filterables.one(a__equals=10)
+
+    def test_one_fails_if_more_than_one_result(self):
+        """Test that the `one` method raises an error if there is more than one result."""
+        filterables = FilterSet({FilterableThing(a=3, b=2), FilterableThing(a=3, b=99), FilterableThing(a=77)})
+
+        with self.assertRaises(exceptions.UnexpectedNumberOfResultsException):
+            filterables.one(a__equals=3)
+
+    def test_one(self):
+        """Test that the `one` method works and returns one result."""
+        filterables = FilterSet({FilterableThing(a=3, b=2), FilterableThing(a=3, b=99), FilterableThing(a=77)})
+        self.assertEqual(filterables.one(a__equals=77), FilterableThing(a=77))
+
     def test_ordering_by_a_non_existent_attribute(self):
         """ Ensure an error is raised if ordering is attempted by a non-existent attribute. """
         filter_set = FilterSet([FilterableThing(age=5), FilterableThing(age=4), FilterableThing(age=3)])
@@ -167,6 +186,20 @@ class TestFilterDict(BaseTestCase):
     def test_filtering_with_multiple_filters(self):
         """Test that multiple filters can be specified in FilterDict.filter at once."""
         self.assertEqual(self.ANIMALS.filter(size__equals="small", age__lt=5), {"cat": self.ANIMALS["cat"]})
+
+    def test_one_fails_if_no_results(self):
+        """Test that the `one` method raises an error if there are no results."""
+        with self.assertRaises(exceptions.UnexpectedNumberOfResultsException):
+            self.ANIMALS.one(age__equals=10)
+
+    def test_one_fails_if_more_than_one_result(self):
+        """Test that the `one` method raises an error if there is more than one result."""
+        with self.assertRaises(exceptions.UnexpectedNumberOfResultsException):
+            self.ANIMALS.one(size__equals="small")
+
+    def test_one(self):
+        """Test that the `one` method works and returns one result."""
+        self.assertEqual(self.ANIMALS.one(age__equals=91), ("another_dog", self.ANIMALS["another_dog"]))
 
     def test_ordering_by_a_non_existent_attribute(self):
         """Ensure an error is raised if ordering is attempted by a non-existent attribute."""

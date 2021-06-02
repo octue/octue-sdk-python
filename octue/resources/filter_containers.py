@@ -28,6 +28,26 @@ class FilterContainer(ABC):
         :return FilterList:
         """
 
+    def one(self, **kwargs):
+        """If a single result exists for the given filters, return it. Otherwise, raise an error.
+
+        :param {str: any} kwargs: keyword arguments whose keys are the name of the filter and whose values are the values to filter for
+        :raise UnexpectedNumberOfResultsException: if zero or more than one results satisfy the filters
+        :return octue.resources.mixins.filterable.Filterable:
+        """
+        results = self.filter(**kwargs)
+
+        if len(results) > 1:
+            raise exceptions.UnexpectedNumberOfResultsException(f"More than one result found for filters {kwargs}.")
+
+        if len(results) == 0:
+            raise exceptions.UnexpectedNumberOfResultsException(f"No results found for filters {kwargs}.")
+
+        if isinstance(self, UserDict):
+            return results.popitem()
+
+        return results.pop()
+
 
 def _filter(self, ignore_items_without_attribute=True, **kwargs):
     """Return a new instance containing only the Filterables to which the given filter criteria apply.
