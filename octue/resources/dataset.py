@@ -6,11 +6,12 @@ import warnings
 from octue import definitions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.exceptions import BrokenSequenceException, InvalidInputException, UnexpectedNumberOfResultsException
-from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
+from octue.exceptions import BrokenSequenceException, InvalidInputException
+from octue.mixins import Hashable, Identifiable, Labelable, Loggable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
-from octue.resources.tag import TagSet
+from octue.resources.label import LabelSet
+from octue.resources.tag import TagDict
 
 
 module_logger = logging.getLogger(__name__)
@@ -19,20 +20,18 @@ module_logger = logging.getLogger(__name__)
 DATAFILES_DIRECTORY = "datafiles"
 
 
-class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable):
-    """A representation of a dataset, containing files, tags, etc
+class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable):
+    """A representation of a dataset, containing files, labels, etc
 
     This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
     list of output files (results) and their properties that will be sent back to the octue system.
     """
 
-    _FILTERSET_ATTRIBUTE = "files"
     _ATTRIBUTES_TO_HASH = ("files",)
-    _SERIALISE_FIELDS = "files", "name", "tags", "id", "path"
+    _SERIALISE_FIELDS = "files", "name", "labels", "tags", "id", "path"
 
-    def __init__(self, name=None, id=None, logger=None, path=None, path_from=None, tags=None, **kwargs):
-        """Construct a Dataset"""
-        super().__init__(name=name, id=id, logger=logger, tags=tags, path=path, path_from=path_from)
+    def __init__(self, name=None, id=None, logger=None, path=None, path_from=None, tags=None, labels=None, **kwargs):
+        super().__init__(name=name, id=id, logger=logger, tags=tags, labels=labels, path=path, path_from=path_from)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
@@ -55,18 +54,21 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         return len(self.files)
 
     @classmethod
-    def from_cloud(cls, project_name, bucket_name, path_to_dataset_directory):
-        """Instantiate a Dataset from Google Cloud storage.
+    def from_cloud(cls, project_name, cloud_path=None, bucket_name=None, path_to_dataset_directory=None):
+        """Instantiate a Dataset from Google Cloud storage. Either (`bucket_name` and `path_to_dataset_directory`) or
+        `cloud_path` must be provided.
 
-        :param str project_name:
-        :param str bucket_name:
-        :param str path_to_dataset_directory: path to dataset directory (directory containing dataset's files)
+        :param str project_name: name of Google Cloud project dataset is stored in
+        :param str|None cloud_path: full path to dataset in cloud storage (e.g. `gs://bucket_name/path/to/dataset`)
+        :param str|None bucket_name: name of bucket dataset is stored in
+        :param str|None path_to_dataset_directory: path to dataset directory (containing dataset's files) in cloud (e.g. `path/to/dataset`)
         :return Dataset:
         """
-        storage_client = GoogleCloudStorageClient(project_name=project_name)
+        if cloud_path:
+            bucket_name, path_to_dataset_directory = storage.path.split_bucket_name_from_gs_path(cloud_path)
 
         serialised_dataset = json.loads(
-            storage_client.download_as_string(
+            GoogleCloudStorageClient(project_name=project_name).download_as_string(
                 bucket_name=bucket_name,
                 path_in_bucket=storage.path.join(path_to_dataset_directory, definitions.DATASET_FILENAME),
             )
@@ -85,23 +87,31 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             id=serialised_dataset["id"],
             name=serialised_dataset["name"],
             path=storage.path.generate_gs_path(bucket_name, path_to_dataset_directory),
-            tags=TagSet(serialised_dataset["tags"]),
+            tags=TagDict(serialised_dataset["tags"]),
+            labels=LabelSet(serialised_dataset["labels"]),
             files=datafiles,
         )
 
-    def to_cloud(self, project_name, bucket_name, output_directory):
-        """Upload a dataset to a cloud location.
+    def to_cloud(self, project_name, cloud_path=None, bucket_name=None, output_directory=None):
+        """Upload a dataset to a cloud location. Either (`bucket_name` and `output_directory`) or `cloud_path` must be
+        provided.
 
-        :param str project_name:
-        :param str bucket_name:
-        :param str output_directory:
-        :return str: gs:// path for dataset
+        :param str project_name: name of Google Cloud project to store dataset in
+        :param str|None cloud_path: full cloud storage path to store dataset at (e.g. `gs://bucket_name/path/to/dataset`)
+        :param str|None bucket_name: name of bucket to store dataset in
+        :param str|None output_directory: path to output directory in cloud storage (e.g. `path/to/dataset`)
+        :return str: cloud path for dataset
         """
+        if cloud_path:
+            bucket_name, output_directory = storage.path.split_bucket_name_from_gs_path(cloud_path)
+
         files = []
 
         for datafile in self.files:
             datafile_path = datafile.to_cloud(
-                project_name, bucket_name, path_in_bucket=storage.path.join(output_directory, self.name, datafile.name)
+                project_name,
+                bucket_name=bucket_name,
+                path_in_bucket=storage.path.join(output_directory, self.name, datafile.name),
             )
 
             files.append(datafile_path)
@@ -116,7 +126,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             path_in_bucket=storage.path.join(output_directory, self.name, definitions.DATASET_FILENAME),
         )
 
-        return storage.path.generate_gs_path(bucket_name, output_directory, self.name)
+        return cloud_path or storage.path.generate_gs_path(bucket_name, output_directory, self.name)
 
     @property
     def name(self):
@@ -168,7 +178,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         )
         self.files.add(*args, **kwargs)
 
-    def get_files(self, field_lookup, filter_value=None):
+    def get_files(self, **kwargs):
         warnings.warn(
             "The `Dataset.get_files` method has been deprecated and replaced with `Dataset.files.filter`, which has "
             "the same interface but with the `field_lookup` argument renamed to `filter_name`. Calls to "
@@ -176,9 +186,9 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             "in future.",
             DeprecationWarning,
         )
-        return self.files.filter(filter_name=field_lookup, filter_value=filter_value)
+        return self.files.filter(**kwargs)
 
-    def get_file_sequence(self, filter_name=None, filter_value=None, strict=True):
+    def get_file_sequence(self, strict=True, **kwargs):
         """Get an ordered sequence of files matching a criterion
 
         Accepts the same search arguments as `get_files`.
@@ -192,16 +202,13 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         """
         results = self.files
 
-        if filter_name is not None:
-            results = results.filter(filter_name=filter_name, filter_value=filter_value)
+        if kwargs:
+            results = results.filter(**kwargs)
 
-        results = results.filter("sequence__is_not", None)
-
-        def get_sequence_number(file):
-            return file.sequence
+        results = results.filter(sequence__is_not=None)
 
         # Sort the results on ascending sequence number
-        results = sorted(results, key=get_sequence_number)
+        results = sorted(results, key=lambda file: file.sequence)
 
         # Check sequence is unique and sequential
         if strict:
@@ -213,18 +220,11 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
 
         return results
 
-    def get_file_by_tag(self, tag_string):
-        """Gets a data file from a manifest by searching for files with the provided tag(s)
+    def get_file_by_label(self, label):
+        """Get a single datafile from a dataset by filtering for files with the provided label.
 
-        Gets exclusively one file; if no file or more than one file is found this results in an error.
-
-        :param tag_string: if this string appears as an exact match in the tags
-        :return: DataFile object
+        :param str label: the label to filter for
+        :raise octue.exceptions.UnexpectedNumberOfResultsException: if zero or more than one results satisfy the filters
+        :return octue.resources.datafile.DataFile:
         """
-        results = self.files.filter(filter_name="tags__contains", filter_value=tag_string)
-        if len(results) > 1:
-            raise UnexpectedNumberOfResultsException("More than one result found when searching for a file by tag")
-        elif len(results) == 0:
-            raise UnexpectedNumberOfResultsException("No files found with this tag")
-
-        return results.pop()
+        return self.files.one(labels__contains=label)

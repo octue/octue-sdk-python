@@ -1,86 +1,78 @@
 from octue import exceptions
-from octue.mixins import MixinBase, Taggable
-from octue.resources.tag import Tag, TagSet
+from octue.mixins import Taggable
+from octue.resources.tag import TagDict
 from ..base import BaseTestCase
 
 
-class MyTaggable(Taggable, MixinBase):
+class MyTaggable(Taggable):
     pass
 
 
 class TaggableTestCase(BaseTestCase):
     def test_instantiates(self):
-        """Ensures the class instantiates without arguments"""
-        Taggable()
+        """Ensures the class instantiates without arguments."""
+        taggable = Taggable()
+        self.assertEqual(taggable.tags, {})
 
-    def test_instantiates_with_tags(self):
-        """Ensures datafile inherits correctly from the Taggable class and passes arguments through"""
-        taggable = MyTaggable(tags="")
-        self.assertEqual(len(taggable.tags), 0)
-
-        taggable = MyTaggable(tags=None)
-        self.assertEqual(len(taggable.tags), 0)
-
-        taggable = MyTaggable(tags="a b c")
-        self.assertEqual(set(taggable.tags), {Tag("a"), Tag("b"), Tag("c")})
-
-    def test_instantiates_with_tag_set(self):
-        """Ensures datafile inherits correctly from the Taggable class and passes arguments through"""
-        taggable_1 = MyTaggable(tags="")
-        self.assertIsInstance(taggable_1.tags, TagSet)
-        taggable_2 = MyTaggable(tags=taggable_1.tags)
-        self.assertFalse(taggable_1 is taggable_2)
+    def test_instantiating_with_no_tags(self):
+        """Test that instantiating a Taggable with no tags results in an empty TagDict on the tags attribute."""
+        self.assertEqual(MyTaggable().tags, TagDict())
 
     def test_fails_to_instantiates_with_non_iterable(self):
-        """Ensures datafile inherits correctly from the Taggable class and passes arguments through"""
+        """Test that instantiation with a non-iterable fails."""
 
         class NoIter:
             pass
 
-        with self.assertRaises(exceptions.InvalidTagException) as error:
+        with self.assertRaises(TypeError):
             MyTaggable(tags=NoIter())
 
-        self.assertIn(
-            "Tags must be expressed as a whitespace-delimited string or an iterable of strings", error.exception.args[0]
-        )
+    def test_instantiates_with_dict(self):
+        """Test instantiation with a dictionary works."""
+        tags = {"height": 9, "width": 8.7, "depth": 100}
+        taggable = MyTaggable(tags=tags)
+        self.assertEqual(taggable.tags, tags)
 
-    def test_reset_tags(self):
-        """Ensures datafile inherits correctly from the Taggable class and passes arguments through"""
-        taggable = MyTaggable(tags="a b")
-        taggable.tags = "b c"
-        self.assertEqual(set(taggable.tags), {Tag("b"), Tag("c")})
+    def test_instantiates_with_tag_dict(self):
+        """Test instantiation with a TagDict."""
+        taggable_1 = MyTaggable(tags={"a": 2})
+        self.assertIsInstance(taggable_1.tags, TagDict)
+        taggable_2 = MyTaggable(tags=taggable_1.tags)
+        self.assertFalse(taggable_1 is taggable_2)
 
-    def test_valid_tags(self):
-        """Ensures valid tags do not raise an error"""
+    def test_setting_tags_overwrites_previous_tags(self):
+        """Ensure tags can be overwritten with new ones."""
+        taggable = MyTaggable(tags={"a": 1, "b": 2})
+        taggable.tags = {"c": 3, "d": 4}
+        self.assertEqual(taggable.tags, {"c": 3, "d": 4})
+
+    def test_add_valid_tags(self):
+        """Ensures adding valid tags works."""
         taggable = MyTaggable()
-        taggable.add_tags("a-valid-tag")
-        taggable.add_tags("a:tag")
-        taggable.add_tags("a:-tag")  # <--- yes, this is valid deliberately as it allows people to do negation
-        taggable.add_tags("a1829tag")
-        taggable.add_tags("1829")
-        taggable.add_tags("number:1829")
-        taggable.add_tags("multiple:discriminators:used")
+
+        taggable.add_tags({"a_valid_tag": "blah"})
+        taggable.add_tags({"a1829tag": "blah"})
+        taggable.add_tags({"1829": "blah", "number_1829": "blah"})  # Add multiple tags at once.
+
         self.assertEqual(
-            set(taggable.tags),
-            {
-                Tag("a-valid-tag"),
-                Tag("a:tag"),
-                Tag("a:-tag"),
-                Tag("a1829tag"),
-                Tag("1829"),
-                Tag("number:1829"),
-                Tag("multiple:discriminators:used"),
-            },
+            taggable.tags,
+            {"a_valid_tag": "blah", "a1829tag": "blah", "1829": "blah", "number_1829": "blah"},
         )
 
-    def test_mixture_valid_invalid(self):
-        """Ensures that adding a variety of tags, some of which are invalid, doesn't partially add them to the object"""
+    def test_add_tags_via_kwargs(self):
+        """Test tags can be added via kwargs."""
         taggable = MyTaggable()
-        taggable.add_tags("first-valid-should-be-added")
-        try:
-            taggable.add_tags("second-valid-should-not-be-added-because", "-the-third-is-invalid:")
+        taggable.add_tags(hello="blib", hi="glib")
+        self.assertEqual(taggable.tags, {"hello": "blib", "hi": "glib"})
 
-        except exceptions.InvalidTagException:
-            pass
+    def test_adding_mixture_of_valid_and_invalid_tags_fails_completely(self):
+        """Ensure that adding a variety of tags, some of which are invalid, doesn't partially add the set including the
+        invalid tags to the object.
+        """
+        taggable = MyTaggable()
+        taggable.add_tags({"first_valid_should_be_added": "hello"})
 
-        self.assertEqual({Tag("first-valid-should-be-added")}, set(taggable.tags))
+        with self.assertRaises(exceptions.InvalidTagException):
+            taggable.add_tags({"second_valid_should_not_be_added_because": 1, "_the_third_is_invalid:": 2})
+
+        self.assertEqual(taggable.tags, {"first_valid_should_be_added": "hello"})

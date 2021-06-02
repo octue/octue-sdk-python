@@ -170,6 +170,18 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         self.assertEqual(len(contents), 1)
         self.assertEqual(contents[0].name, storage.path.join(directory_path, self.FILENAME))
 
+    def test_scandir_with_gs_path(self):
+        """Test that Google Cloud storage "directories"' contents can be listed when a GS path is used."""
+        directory_path = storage.path.join("my", "path")
+        path_in_bucket = storage.path.join(directory_path, self.FILENAME)
+        gs_path = f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}"
+
+        self.storage_client.upload_from_string(string=json.dumps({"height": 32}), cloud_path=gs_path)
+        contents = list(self.storage_client.scandir(gs_path))
+
+        self.assertEqual(len(contents), 1)
+        self.assertEqual(contents[0].name, storage.path.join(directory_path, self.FILENAME))
+
     def test_scandir_with_empty_directory(self):
         """Test that an empty directory shows as such."""
         directory_path = storage.path.join("another", "path")
@@ -189,4 +201,12 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
             path_in_bucket=self.FILENAME,
         )
 
+        self.assertTrue(len(metadata) > 0)
+
+    def test_get_metadata_with_gs_path(self):
+        """Test that file metadata can be retrieved when a GS path is used."""
+        gs_path = f"gs://{TEST_BUCKET_NAME}/{self.FILENAME}"
+        self.storage_client.upload_from_string(string=json.dumps({"height": 32}), cloud_path=gs_path)
+
+        metadata = self.storage_client.get_metadata(gs_path)
         self.assertTrue(len(metadata) > 0)

@@ -127,16 +127,18 @@ class RunnerTestCase(BaseTestCase):
             app_src=mock_app,
             twine="""
                 {
-                    "output_manifest": [
-                        {
-                            "key": "open_foam_result",
-                            "purpose": "A dataset containing solution fields of an openfoam case."
-                        },
-                        {
-                            "key": "airfoil_cp_values",
-                            "purpose": "A file containing cp values"
-                        }
-                    ]
+                    "output_manifest": {
+                        "datasets": [
+                            {
+                                "key": "open_foam_result",
+                                "purpose": "A dataset containing solution fields of an openfoam case."
+                            },
+                            {
+                                "key": "airfoil_cp_values",
+                                "purpose": "A file containing cp values"
+                            }
+                        ]
+                    }
                 }
             """,
         )
