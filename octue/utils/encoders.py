@@ -1,3 +1,5 @@
+import datetime
+
 from twined.utils import TwinedEncoder
 
 
@@ -9,6 +11,9 @@ class OctueJSONEncoder(TwinedEncoder):
         # If the class defines a serialise() method then use it
         if hasattr(obj, "serialise"):
             return obj.serialise()
+
+        if isinstance(obj, datetime.datetime):
+            return obj.isoformat()
 
         # Otherwise let the base class default method raise the TypeError
         return TwinedEncoder.default(self, obj)
