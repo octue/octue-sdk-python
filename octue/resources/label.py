@@ -1,11 +1,9 @@
 import json
 import re
 from collections import UserString
-from collections.abc import Iterable
 
 from octue.exceptions import InvalidLabelException
 from octue.resources.filter_containers import FilterSet
-from octue.utils.encoders import OctueJSONEncoder
 
 
 LABEL_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*(?<!-)$")
@@ -66,23 +64,6 @@ class LabelSet(set):
 
         super().__init__(labels)
 
-    def __eq__(self, other):
-        """Does this LabelSet have the same labels as another LabelSet?"""
-        if not isinstance(other, Iterable):
-            return False
-
-        if not all(isinstance(item, Label) for item in other):
-            other = {Label(item) for item in other}
-
-        return set(self) == set(other)
-
-    def __contains__(self, label):
-        """ Return True if any of the labels exactly matches value, allowing test like `if 'a' in LabelSet('a b')`. """
-        if isinstance(label, str):
-            return Label(label) in set(self)
-        if isinstance(label, Label):
-            return label in set(self)
-
     def add_labels(self, *args):
         """Adds one or more new label strings to the object labels. New labels will be cleaned and validated."""
         self.update({Label(arg) for arg in args})
@@ -98,25 +79,3 @@ class LabelSet(set):
     def any_label_contains(self, value):
         """ Return True if any of the labels contains value. """
         return any(value in label for label in self)
-
-    def serialise(self, to_string=False, **kwargs):
-        """Serialise to a sorted list of label names.
-
-        :param bool to_string:
-        :return list|str:
-        """
-        string = json.dumps(sorted(self), cls=OctueJSONEncoder, indent=4, **kwargs)
-
-        if to_string:
-            return string
-
-        return json.loads(string)
-
-    @classmethod
-    def deserialise(cls, serialised_labelset):
-        """Deserialise from a sorted list of label names.
-
-        :param list serialised_labelset:
-        :return LabelSet:
-        """
-        return cls(labels=serialised_labelset)
