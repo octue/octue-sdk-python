@@ -21,7 +21,11 @@ class Label(UserString):
 
     @staticmethod
     def _clean(name):
-        """Ensure the label name is a string and conforms to the label regex pattern."""
+        """Clean the label name, making sure it is a string and conforms to the label regex pattern.
+
+        :param str name: name of the label to check and clean
+        :return str:
+        """
         if not isinstance(name, str):
             raise InvalidLabelException("Labels must be expressed as a string.")
 
@@ -37,7 +41,11 @@ class Label(UserString):
 
 
 class LabelSet(set):
-    """Class to handle a set of labels as a string."""
+    """Class to handle a set of labels.
+
+    :param iter(str|Label)|LabelSet labels: labels to add to the set
+    :return None:
+    """
 
     def __init__(self, labels=None):
         # TODO Call the superclass with *args and **kwargs, then update everything to using ResourceBase
@@ -65,17 +73,33 @@ class LabelSet(set):
         super().__init__(labels)
 
     def add_labels(self, *args):
-        """Adds one or more new label strings to the object labels. New labels will be cleaned and validated."""
+        """Add one or more new label strings to the object labels. New labels will be cleaned and validated.
+
+        :param str *labels: a variable number of string labels
+        :return None:
+        """
         self.update({Label(arg) for arg in args})
 
     def any_label_starts_with(self, value):
-        """ Implement a startswith method that returns true if any of the labels starts with value """
+        """Return `True` if any of the labels starts with the value.
+
+        :param str value: value to check
+        :return bool:
+        """
         return any(label.startswith(value) for label in self)
 
     def any_label_ends_with(self, value):
-        """ Implement an endswith method that returns true if any of the labels endswith value. """
+        """Return `True` if any of the labels ends with the value.
+
+        :param str value: value to check
+        :return bool:
+        """
         return any(label.endswith(value) for label in self)
 
     def any_label_contains(self, value):
-        """ Return True if any of the labels contains value. """
+        """Return `True` if any of the labels contains the value.
+
+        :param str value: value to check
+        :return bool:
+        """
         return any(value in label for label in self)
