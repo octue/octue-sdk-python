@@ -329,8 +329,12 @@ class DatasetTestCase(BaseTestCase):
             gs_path = f"gs://{bucket_name}/{path_to_dataset_directory}"
 
             for location_parameters in (
-                {"bucket_name": bucket_name, "path_to_dataset_directory": path_to_dataset_directory, "gs_path": None},
-                {"bucket_name": None, "path_to_dataset_directory": None, "gs_path": gs_path},
+                {
+                    "bucket_name": bucket_name,
+                    "path_to_dataset_directory": path_to_dataset_directory,
+                    "cloud_path": None,
+                },
+                {"bucket_name": None, "path_to_dataset_directory": None, "cloud_path": gs_path},
             ):
 
                 persisted_dataset = Dataset.from_cloud(
@@ -375,8 +379,8 @@ class DatasetTestCase(BaseTestCase):
             gs_path = storage.path.generate_gs_path(bucket_name, output_directory)
 
             for location_parameters in (
-                {"bucket_name": bucket_name, "output_directory": output_directory, "gs_path": None},
-                {"bucket_name": None, "output_directory": None, "gs_path": gs_path},
+                {"bucket_name": bucket_name, "output_directory": output_directory, "cloud_path": None},
+                {"bucket_name": None, "output_directory": None, "cloud_path": gs_path},
             ):
                 dataset.to_cloud(project_name, **location_parameters)
 

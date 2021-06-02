@@ -204,7 +204,7 @@ class DatafileTestCase(BaseTestCase):
             tags={"blah:shah:nah", "blib", "glib"},
         )
         gs_path = f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}"
-        downloaded_datafile = Datafile.from_cloud(project_name, gs_path=gs_path)
+        downloaded_datafile = Datafile.from_cloud(project_name, cloud_path=gs_path)
 
         self.assertEqual(downloaded_datafile.path, gs_path)
         self.assertEqual(downloaded_datafile.id, datafile.id)

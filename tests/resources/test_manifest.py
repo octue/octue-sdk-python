@@ -84,8 +84,8 @@ class TestManifest(BaseTestCase):
             gs_path = storage.path.generate_gs_path(bucket_name, path_to_manifest_file)
 
             for location_parameters in (
-                {"bucket_name": bucket_name, "path_to_manifest_file": path_to_manifest_file, "gs_path": None},
-                {"bucket_name": None, "path_to_manifest_file": None, "gs_path": gs_path},
+                {"bucket_name": bucket_name, "path_to_manifest_file": path_to_manifest_file, "cloud_path": None},
+                {"bucket_name": None, "path_to_manifest_file": None, "cloud_path": gs_path},
             ):
                 manifest.to_cloud(self.TEST_PROJECT_NAME, **location_parameters)
 
@@ -173,8 +173,8 @@ class TestManifest(BaseTestCase):
             gs_path = storage.path.generate_gs_path(bucket_name, path_to_manifest_file)
 
             for location_parameters in (
-                {"bucket_name": bucket_name, "path_to_manifest_file": path_to_manifest_file, "gs_path": None},
-                {"bucket_name": None, "path_to_manifest_file": None, "gs_path": gs_path},
+                {"bucket_name": bucket_name, "path_to_manifest_file": path_to_manifest_file, "cloud_path": None},
+                {"bucket_name": None, "path_to_manifest_file": None, "cloud_path": gs_path},
             ):
                 persisted_manifest = Manifest.from_cloud(project_name=self.TEST_PROJECT_NAME, **location_parameters)
 

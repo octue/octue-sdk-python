@@ -176,7 +176,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         path_in_bucket = storage.path.join(directory_path, self.FILENAME)
         gs_path = f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}"
 
-        self.storage_client.upload_from_string(string=json.dumps({"height": 32}), gs_path=gs_path)
+        self.storage_client.upload_from_string(string=json.dumps({"height": 32}), cloud_path=gs_path)
         contents = list(self.storage_client.scandir(gs_path))
 
         self.assertEqual(len(contents), 1)
@@ -206,7 +206,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
     def test_get_metadata_with_gs_path(self):
         """Test that file metadata can be retrieved when a GS path is used."""
         gs_path = f"gs://{TEST_BUCKET_NAME}/{self.FILENAME}"
-        self.storage_client.upload_from_string(string=json.dumps({"height": 32}), gs_path=gs_path)
+        self.storage_client.upload_from_string(string=json.dumps({"height": 32}), cloud_path=gs_path)
 
         metadata = self.storage_client.get_metadata(gs_path)
         self.assertTrue(len(metadata) > 0)

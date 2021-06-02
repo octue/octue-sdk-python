@@ -55,18 +55,18 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         return len(self.files)
 
     @classmethod
-    def from_cloud(cls, project_name, gs_path=None, bucket_name=None, path_to_dataset_directory=None):
+    def from_cloud(cls, project_name, cloud_path=None, bucket_name=None, path_to_dataset_directory=None):
         """Instantiate a Dataset from Google Cloud storage. Either (`bucket_name` and `path_to_dataset_directory`) or
-        `gs_path` must be provided.
+        `cloud_path` must be provided.
 
         :param str project_name:
-        :param str|None gs_path:
+        :param str|None cloud_path:
         :param str|None bucket_name:
         :param str|None path_to_dataset_directory: path to dataset directory (directory containing dataset's files)
         :return Dataset:
         """
-        if gs_path:
-            bucket_name, path_to_dataset_directory = storage.path.split_bucket_name_from_gs_path(gs_path)
+        if cloud_path:
+            bucket_name, path_to_dataset_directory = storage.path.split_bucket_name_from_gs_path(cloud_path)
 
         serialised_dataset = json.loads(
             GoogleCloudStorageClient(project_name=project_name).download_as_string(
@@ -92,18 +92,18 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             files=datafiles,
         )
 
-    def to_cloud(self, project_name, gs_path=None, bucket_name=None, output_directory=None):
-        """Upload a dataset to a cloud location. Either (`bucket_name` and `output_directory`) or `gs_path` must be
+    def to_cloud(self, project_name, cloud_path=None, bucket_name=None, output_directory=None):
+        """Upload a dataset to a cloud location. Either (`bucket_name` and `output_directory`) or `cloud_path` must be
         provided.
 
         :param str project_name:
-        :param str|None gs_path:
+        :param str|None cloud_path:
         :param str|None bucket_name:
         :param str|None output_directory:
         :return str: gs:// path for dataset
         """
-        if gs_path:
-            bucket_name, output_directory = storage.path.split_bucket_name_from_gs_path(gs_path)
+        if cloud_path:
+            bucket_name, output_directory = storage.path.split_bucket_name_from_gs_path(cloud_path)
 
         files = []
 
@@ -126,7 +126,7 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
             path_in_bucket=storage.path.join(output_directory, self.name, definitions.DATASET_FILENAME),
         )
 
-        return gs_path or storage.path.generate_gs_path(bucket_name, output_directory, self.name)
+        return cloud_path or storage.path.generate_gs_path(bucket_name, output_directory, self.name)
 
     @property
     def name(self):
