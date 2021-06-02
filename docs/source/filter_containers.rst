@@ -85,6 +85,8 @@ These filters are currently available for the following types:
     * ``not_starts_with``
     * ``ends_with``
     * ``not_ends_with``
+    * ``in_range``
+    * ``not_in_range``
 
 - ``NoneType``:
 
@@ -106,6 +108,38 @@ These filters are currently available for the following types:
     * ``any_label_ends_with``
     * ``not_any_label_ends_with``
 
+- ``datetime.datetime``:
+    * ``is``
+    * ``is_not``
+    * ``equals``
+    * ``not_equals``
+    * ``lt`` (less than)
+    * ``lte`` (less than or equal)
+    * ``gt`` (greater than)
+    * ``gte`` (greater than or equal)
+    * ``in_range``
+    * ``not_in_range``
+    * ``year_equals``
+    * ``year_in``
+    * ``month_equals``
+    * ``month_in``
+    * ``day_equals``
+    * ``day_in``
+    * ``weekday_equals``
+    * ``weekday_in``
+    * ``iso_weekday_equals``
+    * ``iso_weekday_in``
+    * ``time_equals``
+    * ``time_in``
+    * ``hour_equals``
+    * ``hour_in``
+    * ``minute_equals``
+    * ``minute_in``
+    * ``second_equals``
+    * ``second_in``
+    * ``in_date_range``
+    * ``in_time_range``
+
 
 Additionally, these filters are defined for the following *interfaces* (duck-types). :
 
@@ -119,6 +153,8 @@ Additionally, these filters are defined for the following *interfaces* (duck-typ
     * ``lte``
     * ``gt``
     * ``gte``
+    * ``in_range``
+    * ``not_in_range``
 
 - Iterables:
 
