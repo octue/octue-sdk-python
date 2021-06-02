@@ -49,10 +49,10 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         """Instantiate a Manifest from Google Cloud storage. Either (`bucket_name` and `path_to_manifest_file`) or
         `cloud_path` must be provided.
 
-        :param str project_name:
-        :param str|None cloud_path:
-        :param str|None bucket_name:
-        :param str|None path_to_manifest_file:
+        :param str project_name: name of Google Cloud project manifest is stored in
+        :param str|None cloud_path: full path to manifest in cloud storage (e.g. `gs://bucket_name/path/to/manifest.json`)
+        :param str|None bucket_name: name of bucket manifest is stored in
+        :param str|None path_to_manifest_file: path to manifest in cloud storage e.g. `path/to/manifest.json`
         :return Dataset:
         """
         if cloud_path:
@@ -88,10 +88,10 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory. Either
         (`bucket_name` and `path_to_manifest_file`) or `cloud_path` must be provided.
 
-        :param str project_name:
-        :param str|None cloud_path:
-        :param str|None bucket_name:
-        :param str|None path_to_manifest_file:
+        :param str project_name: name of Google Cloud project to store manifest in
+        :param str|None cloud_path: full path to cloud storage location to store manifest at (e.g. `gs://bucket_name/path/to/manifest.json`)
+        :param str|None bucket_name: name of bucket to store manifest in
+        :param str|None path_to_manifest_file: cloud storage path to store manifest at e.g. `path/to/manifest.json`
         :param bool store_datasets: if True, upload datasets to same directory as manifest file
         :return str: gs:// path for manifest file
         """

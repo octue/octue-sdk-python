@@ -59,10 +59,10 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         """Instantiate a Dataset from Google Cloud storage. Either (`bucket_name` and `path_to_dataset_directory`) or
         `cloud_path` must be provided.
 
-        :param str project_name:
-        :param str|None cloud_path:
-        :param str|None bucket_name:
-        :param str|None path_to_dataset_directory: path to dataset directory (directory containing dataset's files)
+        :param str project_name: name of Google Cloud project dataset is stored in
+        :param str|None cloud_path: full path to dataset in cloud storage (e.g. `gs://bucket_name/path/to/dataset`)
+        :param str|None bucket_name: name of bucket dataset is stored in
+        :param str|None path_to_dataset_directory: path to dataset directory (containing dataset's files) in cloud (e.g. `path/to/dataset`)
         :return Dataset:
         """
         if cloud_path:
@@ -96,11 +96,11 @@ class Dataset(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable
         """Upload a dataset to a cloud location. Either (`bucket_name` and `output_directory`) or `cloud_path` must be
         provided.
 
-        :param str project_name:
-        :param str|None cloud_path:
-        :param str|None bucket_name:
-        :param str|None output_directory:
-        :return str: gs:// path for dataset
+        :param str project_name: name of Google Cloud project to store dataset in
+        :param str|None cloud_path: full cloud storage path to store dataset at (e.g. `gs://bucket_name/path/to/dataset`)
+        :param str|None bucket_name: name of bucket to store dataset in
+        :param str|None output_directory: path to output directory in cloud storage (e.g. `path/to/dataset`)
+        :return str: cloud path for dataset
         """
         if cloud_path:
             bucket_name, output_directory = storage.path.split_bucket_name_from_gs_path(cloud_path)

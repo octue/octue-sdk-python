@@ -177,16 +177,13 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
 
         Either (`bucket_name` and `datafile_path`) or `cloud_path` must be provided.
 
-        :param str project_name:
-        :param str|None cloud_path:
-        :param str|None bucket_name:
-        :param str|None datafile_path: path to file represented by datafile
-        :param bool allow_overwrite: if `True`, allow attributes of the datafile to be overwritten by values given in
-            kwargs
-        :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode
-            options are the same as for the builtin open function)
-        :param bool update_cloud_metadata: if using as a context manager and this is True, update the cloud metadata of
-            the datafile when the context is exited
+        :param str project_name: name of Google Cloud project datafile is stored in
+        :param str|None cloud_path: full path to datafile in cloud storage (e.g. `gs://bucket_name/path/to/file.csv`)
+        :param str|None bucket_name: name of bucket datafile is stored in
+        :param str|None datafile_path: cloud storage path of datafile (e.g. `path/to/file.csv`)
+        :param bool allow_overwrite: if `True`, allow attributes of the datafile to be overwritten by values given in kwargs
+        :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode options are the same as for the builtin open function)
+        :param bool update_cloud_metadata: if using as a context manager and this is True, update the cloud metadata of the datafile when the context is exited
         :return Datafile:
         """
         if not cloud_path:
@@ -223,11 +220,11 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         """Upload a datafile to Google Cloud Storage. Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must be
         provided.
 
-        :param str|None project_name:
-        :param str|None cloud_path:
-        :param str|None bucket_name:
-        :param str|None path_in_bucket:
-        :param bool update_cloud_metadata:
+        :param str|None project_name: name of Google Cloud project to store datafile in
+        :param str|None cloud_path: full path to cloud storage location to store datafile at (e.g. `gs://bucket_name/path/to/file.csv`)
+        :param str|None bucket_name: name of bucket to store datafile in
+        :param str|None path_in_bucket: cloud storage path to store datafile at (e.g. `path/to/file.csv`)
+        :param bool update_cloud_metadata: if `True`, update the metadata of the datafile in the cloud at upload time
         :return str: gs:// path for datafile
         """
         project_name, bucket_name, path_in_bucket = self._get_cloud_location(
