@@ -104,13 +104,13 @@ The children field must also be present in the ``twine.json`` file:
                 "key": "wind_speed",
                 "purpose": "A service that returns the average wind speed for a given latitude and longitude.",
                 "notes": "Some notes.",
-                "filters": "tags:wind_speed"
+                "filters": "labels:wind_speed"
             },
             {
                 "key": "elevation",
                 "purpose": "A service that returns the elevation for a given latitude and longitude.",
                 "notes": "Some notes.",
-                "filters": "tags:elevation"
+                "filters": "labels:elevation"
             }
         ],
         ...

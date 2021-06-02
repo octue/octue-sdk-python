@@ -21,7 +21,7 @@ class DatasetTestCase(BaseTestCase):
     def test_instantiates_with_kwargs(self):
         """Ensures that keyword arguments can be used to construct the dataset initially"""
         files = [Datafile(path="path-within-dataset/a_test_file.csv")]
-        resource = Dataset(files=files, tags="one two")
+        resource = Dataset(files=files, labels="one two")
         self.assertEqual(len(resource.files), 1)
 
     def test_len(self):
@@ -55,7 +55,7 @@ class DatasetTestCase(BaseTestCase):
     def test_add_single_file_to_existing_dataset(self):
         """Ensures that when a dataset is not empty, it can be added to"""
         files = [Datafile(path="path-within-dataset/a_test_file.csv")]
-        resource = Dataset(files=files, tags="one two")
+        resource = Dataset(files=files, labels="one two", tags={"a": "b"})
         resource.add(Datafile(path="path-within-dataset/a_test_file.csv"))
         self.assertEqual(len(resource.files), 2)
 
@@ -88,7 +88,7 @@ class DatasetTestCase(BaseTestCase):
         self.assertIn("must be of class Datafile to add it to a Dataset", e.exception.args[0])
 
     def test_filter_catches_single_underscore_mistake(self):
-        """Ensures that if the field name is a single underscore, that gets caught as an error"""
+        """Ensure that if the filter name contains only single underscores, an error is raised."""
         resource = Dataset(
             files=[
                 Datafile(path="path-within-dataset/A_Test_file.csv"),
@@ -97,13 +97,9 @@ class DatasetTestCase(BaseTestCase):
         )
 
         with self.assertRaises(exceptions.InvalidInputException) as e:
-            resource.files.filter("name_icontains", filter_value="Test")
+            resource.files.filter(name_icontains="Test")
 
-        self.assertIn(
-            "Invalid filter name 'name_icontains'. Filter names should be in the form "
-            "'<attribute_name>__<filter_kind>'.",
-            e.exception.args[0],
-        )
+        self.assertIn("Invalid filter name 'name_icontains'. Filter names should be in the form", e.exception.args[0])
 
     def test_filter_name_contains(self):
         """Ensures that filter works with the name_contains and name_icontains lookups"""
@@ -113,15 +109,15 @@ class DatasetTestCase(BaseTestCase):
                 Datafile(path="path-within-dataset/a_test_file.txt"),
             ]
         )
-        files = resource.files.filter("name__icontains", filter_value="Test")
+        files = resource.files.filter(name__icontains="Test")
         self.assertEqual(2, len(files))
-        files = resource.files.filter("name__icontains", filter_value="A")
+        files = resource.files.filter(name__icontains="A")
         self.assertEqual(2, len(files))
-        files = resource.files.filter("name__contains", filter_value="Test")
+        files = resource.files.filter(name__contains="Test")
         self.assertEqual(1, len(files))
-        files = resource.files.filter("name__icontains", filter_value="test")
+        files = resource.files.filter(name__icontains="test")
         self.assertEqual(2, len(files))
-        files = resource.files.filter("name__icontains", filter_value="file")
+        files = resource.files.filter(name__icontains="file")
         self.assertEqual(2, len(files))
 
     def test_filter_name_with(self):
@@ -132,70 +128,70 @@ class DatasetTestCase(BaseTestCase):
                 Datafile(path="path-within-dataset/a_your_file.csv"),
             ]
         )
-        files = resource.files.filter("name__starts_with", filter_value="a_my")
+        files = resource.files.filter(name__starts_with="a_my")
         self.assertEqual(1, len(files))
-        files = resource.files.filter("name__starts_with", filter_value="a_your")
+        files = resource.files.filter(name__starts_with="a_your")
         self.assertEqual(1, len(files))
-        files = resource.files.filter("name__starts_with", filter_value="a_")
+        files = resource.files.filter(name__starts_with="a_")
         self.assertEqual(2, len(files))
-        files = resource.files.filter("name__starts_with", filter_value="b")
+        files = resource.files.filter(name__starts_with="b")
         self.assertEqual(0, len(files))
-        files = resource.files.filter("name__ends_with", filter_value="_file.csv")
+        files = resource.files.filter(name__ends_with="_file.csv")
         self.assertEqual(2, len(files))
-        files = resource.files.filter("name__ends_with", filter_value="r_file.csv")
+        files = resource.files.filter(name__ends_with="r_file.csv")
         self.assertEqual(1, len(files))
-        files = resource.files.filter("name__ends_with", filter_value="y_file.csv")
+        files = resource.files.filter(name__ends_with="y_file.csv")
         self.assertEqual(1, len(files))
-        files = resource.files.filter("name__ends_with", filter_value="other.csv")
+        files = resource.files.filter(name__ends_with="other.csv")
         self.assertEqual(0, len(files))
 
-    def test_filter_by_tag(self):
-        """Ensures that filter works with tag lookups"""
+    def test_filter_by_label(self):
+        """Ensures that filter works with label lookups"""
         resource = Dataset(
             files=[
-                Datafile(path="path-within-dataset/a_my_file.csv", tags="one a:2 b:3 all"),
-                Datafile(path="path-within-dataset/a_your_file.csv", tags="two a:2 b:3 all"),
-                Datafile(path="path-within-dataset/a_your_file.csv", tags="three all"),
+                Datafile(path="path-within-dataset/a_my_file.csv", labels="one a2 b3 all"),
+                Datafile(path="path-within-dataset/a_your_file.csv", labels="two a2 b3 all"),
+                Datafile(path="path-within-dataset/a_your_file.csv", labels="three all"),
             ]
         )
 
-        files = resource.files.filter("tags__contains", filter_value="a")
+        files = resource.files.filter(labels__contains="a")
         self.assertEqual(0, len(files))
-        files = resource.files.filter("tags__contains", filter_value="one")
+        files = resource.files.filter(labels__contains="one")
         self.assertEqual(1, len(files))
-        files = resource.files.filter("tags__contains", filter_value="all")
+        files = resource.files.filter(labels__contains="all")
         self.assertEqual(3, len(files))
-        files = resource.files.filter("tags__any_tag_starts_with", filter_value="b")
+        files = resource.files.filter(labels__any_label_starts_with="b")
         self.assertEqual(2, len(files))
-        files = resource.files.filter("tags__any_tag_ends_with", filter_value="3")
+        files = resource.files.filter(labels__any_label_ends_with="3")
         self.assertEqual(2, len(files))
-        # files = resource.files.filter("tags__contains", filter_value="hre")
+        # files = resource.files.filter(labels__contains="hre")
         # self.assertEqual(1, len(files))
 
-    def test_get_file_by_tag(self):
-        """Ensures that get_files works with tag lookups"""
+    def test_get_file_by_label(self):
+        """Ensure files can be accessed by label from the dataset."""
         files = [
-            Datafile(path="path-within-dataset/a_my_file.csv", tags="one a:2 b:3 all"),
-            Datafile(path="path-within-dataset/a_your_file.csv", tags="two a:2 b:3 all"),
-            Datafile(path="path-within-dataset/a_your_file.csv", tags="three all"),
+            Datafile(path="path-within-dataset/a_my_file.csv", labels="one a b3 all"),
+            Datafile(path="path-within-dataset/a_your_file.csv", labels="two a2 b3 all"),
+            Datafile(path="path-within-dataset/a_your_file.csv", labels="three all"),
         ]
 
         resource = Dataset(files=files)
 
         # Check working for single result
-        self.assertIs(resource.get_file_by_tag("three"), files[2])
+        self.assertIs(resource.get_file_by_label("three"), files[2])
 
         # Check raises for too many results
         with self.assertRaises(exceptions.UnexpectedNumberOfResultsException) as e:
-            resource.get_file_by_tag("all")
+            resource.get_file_by_label("all")
 
         self.assertIn("More than one result found", e.exception.args[0])
 
         # Check raises for no result
         with self.assertRaises(exceptions.UnexpectedNumberOfResultsException) as e:
-            resource.get_file_by_tag("billyjeanisnotmylover")
+            resource.get_file_by_label("billyjeanisnotmylover")
 
-        self.assertIn("No files found with this tag", e.exception.args[0])
+        self.assertIn("No results found for filters {'labels__contains': 'billyjeanisnotmylover'}", e.exception.args[0])
 
     def test_filter_by_sequence_not_none(self):
         """Ensures that filter works with sequence lookups"""
@@ -206,7 +202,7 @@ class DatasetTestCase(BaseTestCase):
                 Datafile(path="path-within-dataset/a_your_file.csv", sequence=None),
             ]
         )
-        files = resource.files.filter("sequence__is_not", None)
+        files = resource.files.filter(sequence__is_not=None)
         self.assertEqual(2, len(files))
 
     def test_get_file_sequence(self):
@@ -217,7 +213,7 @@ class DatasetTestCase(BaseTestCase):
             Datafile(path="path-within-dataset/a_your_file.csv", sequence=None),
         ]
 
-        got_files = Dataset(files=files).get_file_sequence("name__ends_with", filter_value=".csv", strict=True)
+        got_files = Dataset(files=files).get_file_sequence(name__ends_with=".csv", strict=True)
         self.assertEqual(got_files, files[:2])
 
     def test_get_broken_file_sequence(self):
@@ -230,7 +226,7 @@ class DatasetTestCase(BaseTestCase):
             ]
         )
         with self.assertRaises(exceptions.BrokenSequenceException):
-            resource.get_file_sequence("name__ends_with", filter_value=".csv", strict=True)
+            resource.get_file_sequence(name__ends_with=".csv", strict=True)
 
     def test_filter_name_filters_include_extension(self):
         """Ensures that filters applied to the name will catch terms in the extension"""
@@ -239,9 +235,7 @@ class DatasetTestCase(BaseTestCase):
             Datafile(path="path-within-dataset/a_test_file.txt"),
         ]
 
-        self.assertEqual(
-            Dataset(files=files).files.filter("name__icontains", filter_value="txt"), FilterSet({files[1]})
-        )
+        self.assertEqual(Dataset(files=files).files.filter(name__icontains="txt"), FilterSet({files[1]}))
 
     def test_filter_name_filters_exclude_path(self):
         """Ensures that filters applied to the name will not catch terms in the extension"""
@@ -251,7 +245,7 @@ class DatasetTestCase(BaseTestCase):
                 Datafile(path="second-path-within-dataset/a_test_file.txt"),
             ]
         )
-        files = resource.files.filter("name__icontains", filter_value="second")
+        files = resource.files.filter(name__icontains="second")
         self.assertEqual(0, len(files))
 
     def test_using_get_files_raises_deprecation_warning(self):
@@ -264,7 +258,7 @@ class DatasetTestCase(BaseTestCase):
         )
 
         with warnings.catch_warnings(record=True) as warning:
-            filtered_files = resource.get_files("name__icontains", filter_value="second")
+            filtered_files = resource.get_files(name__icontains="second")
             self.assertEqual(len(warning), 1)
             self.assertTrue(issubclass(warning[-1].category, DeprecationWarning))
             self.assertIn("deprecated", str(warning[-1].message))
@@ -316,9 +310,10 @@ class DatasetTestCase(BaseTestCase):
             dataset = Dataset(
                 name="dataset_0",
                 files={
-                    Datafile(path=file_0_path, sequence=0, tags={"hello"}),
-                    Datafile(path=file_1_path, sequence=1, tags={"goodbye"}),
+                    Datafile(path=file_0_path, sequence=0, labels={"hello"}, tags={"a": "b"}),
+                    Datafile(path=file_1_path, sequence=1, labels={"goodbye"}, tags={"a": "b"}),
                 },
+                tags={"a": "b", "c": 1},
             )
 
             project_name = "test-project"
@@ -347,6 +342,7 @@ class DatasetTestCase(BaseTestCase):
                 self.assertEqual(persisted_dataset.name, dataset.name)
                 self.assertEqual(persisted_dataset.hash_value, dataset.hash_value)
                 self.assertEqual(persisted_dataset.tags, dataset.tags)
+                self.assertEqual(persisted_dataset.labels, dataset.labels)
                 self.assertEqual({file.name for file in persisted_dataset.files}, {file.name for file in dataset.files})
 
                 for file in persisted_dataset:
@@ -368,9 +364,10 @@ class DatasetTestCase(BaseTestCase):
 
             dataset = Dataset(
                 files={
-                    Datafile(path=file_0_path, sequence=0, tags={"hello"}),
-                    Datafile(path=file_1_path, sequence=1, tags={"goodbye"}),
-                }
+                    Datafile(path=file_0_path, sequence=0, labels={"hello"}),
+                    Datafile(path=file_1_path, sequence=1, labels={"goodbye"}),
+                },
+                tags={"a": "b", "c": 1},
             )
 
             project_name = "test-project"
@@ -413,3 +410,5 @@ class DatasetTestCase(BaseTestCase):
                         "gs://octue-test-bucket/my_datasets/octue-sdk-python/file_1.txt",
                     ],
                 )
+
+                self.assertEqual(persisted_dataset["tags"], dataset.tags.serialise())

@@ -12,7 +12,7 @@ in Octue SDK, please join the discussion `in this issue. <https://github.com/oct
 Data container classes
 ----------------------
 All of the data container classes in the SDK have a ``to_cloud`` and a ``from_cloud`` method, which handles their
-upload/download to/from the cloud, including all relevant metadata from the instance (e.g. tags, ID). Data integrity is
+upload/download to/from the cloud, including all relevant metadata from the instance (e.g. labels, ID). Data integrity is
 checked before and after upload and download to ensure any data corruption is avoided.
 
 Datafile

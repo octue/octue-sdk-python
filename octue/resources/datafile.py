@@ -3,13 +3,14 @@ import functools
 import logging
 import os
 import tempfile
+import pkg_resources
 from google_crc32c import Checksum
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.cloud.storage.path import CLOUD_STORAGE_PROTOCOL
 from octue.exceptions import AttributeConflict, CloudLocationNotSpecified, FileNotFoundException, InvalidInputException
-from octue.mixins import Filterable, Hashable, Identifiable, Loggable, Pathable, Serialisable, Taggable
+from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Loggable, Pathable, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils import isfile
 from octue.utils.time import convert_from_posix_time, convert_to_posix_time
@@ -21,14 +22,14 @@ module_logger = logging.getLogger(__name__)
 TEMPORARY_LOCAL_FILE_CACHE = {}
 OCTUE_METADATA_NAMESPACE = "octue"
 
-
 ID_DEFAULT = None
 CLUSTER_DEFAULT = 0
 SEQUENCE_DEFAULT = None
 TAGS_DEFAULT = None
+LABELS_DEFAULT = None
 
 
-class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable, Filterable):
+class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable, Filterable):
     """Class for representing data files on the Octue system.
 
     Files in a manifest look like this:
@@ -38,7 +39,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
           "cluster": 0,
           "sequence": 0,
           "extension": "csv",
-          "tags": "",
+          "tags": {},
+          "labels": [],
           "timestamp": datetime.datetime(2021, 5, 3, 18, 15, 58, 298086),
           "id": "abff07bc-7c19-4ed5-be6d-a6546eae8e86",
           "size_bytes": 59684813,
@@ -56,7 +58,8 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
     :param Pathable path_from: The root Pathable object (typically a Dataset) that this Datafile's path is relative to.
     :param int cluster: The cluster of files, within a dataset, to which this belongs (default 0)
     :param int sequence: A sequence number of this file within its cluster (if sequences are appropriate)
-    :param str tags: Space-separated string of tags relevant to this file
+    :param dict|TagDict tags: key-value pairs with string keys conforming to the Octue tag format (see TagDict)
+    :param iter(str) labels: Space-separated string of labels relevant to this file
     :param bool skip_checks:
     :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode
         options are the same as for the builtin open function)
@@ -72,6 +75,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         "path",
         "sequence",
         "tags",
+        "labels",
         "timestamp",
         "_cloud_metadata",
     )
@@ -86,6 +90,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         cluster=CLUSTER_DEFAULT,
         sequence=SEQUENCE_DEFAULT,
         tags=TAGS_DEFAULT,
+        labels=LABELS_DEFAULT,
         skip_checks=True,
         mode="r",
         update_cloud_metadata=True,
@@ -97,6 +102,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             immutable_hash_value=kwargs.pop("immutable_hash_value", None),
             logger=logger,
             tags=tags,
+            labels=labels,
             path=path,
             path_from=path_from,
         )
@@ -196,21 +202,23 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
         if not allow_overwrite:
             cls._check_for_attribute_conflict(custom_metadata, **kwargs)
 
-        timestamp = kwargs.get("timestamp", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__timestamp"))
-
-        if isinstance(timestamp, str):
-            timestamp = datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S.%f%z")
-
         datafile._set_id(kwargs.pop("id", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__id", ID_DEFAULT)))
-        datafile.timestamp = timestamp
         datafile.immutable_hash_value = datafile._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
+        datafile.timestamp = kwargs.get("timestamp", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__timestamp"))
+        datafile.tags = kwargs.pop("tags", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__tags", TAGS_DEFAULT))
+
         datafile.cluster = kwargs.pop(
             "cluster", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__cluster", CLUSTER_DEFAULT)
         )
+
         datafile.sequence = kwargs.pop(
             "sequence", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__sequence", SEQUENCE_DEFAULT)
         )
-        datafile.tags = kwargs.pop("tags", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__tags", TAGS_DEFAULT))
+
+        datafile.labels = kwargs.pop(
+            "labels", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__labels", LABELS_DEFAULT)
+        )
+
         datafile._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
         return datafile
 
@@ -300,7 +308,7 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             project_name, cloud_path, bucket_name, path_in_bucket
         )
 
-        GoogleCloudStorageClient(project_name=project_name).update_metadata(
+        GoogleCloudStorageClient(project_name=project_name).overwrite_custom_metadata(
             metadata=self.metadata(),
             bucket_name=bucket_name,
             path_in_bucket=path_in_bucket,
@@ -522,7 +530,9 @@ class Datafile(Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashabl
             "timestamp": self.timestamp,
             "cluster": self.cluster,
             "sequence": self.sequence,
-            "tags": self.tags.serialise(to_string=True),
+            "labels": self.labels,
+            "tags": self.tags,
+            "sdk_version": pkg_resources.get_distribution("octue").version,
         }
 
         if not use_octue_namespace:

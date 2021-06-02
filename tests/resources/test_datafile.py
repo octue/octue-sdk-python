@@ -10,7 +10,8 @@ from octue import exceptions
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.mixins import MixinBase, Pathable
 from octue.resources.datafile import TEMPORARY_LOCAL_FILE_CACHE, Datafile
-from octue.resources.tag import TagSet
+from octue.resources.label import LabelSet
+from octue.resources.tag import TagDict
 from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from ..base import BaseTestCase
 
@@ -50,8 +51,7 @@ class DatafileTestCase(BaseTestCase):
         with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
             temporary_file.write(contents)
 
-        timestamp = kwargs.pop("timestamp", None)
-        datafile = Datafile(path=temporary_file.name, timestamp=timestamp, **kwargs)
+        datafile = Datafile(path=temporary_file.name, **kwargs)
         datafile.to_cloud(project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
         return datafile, project_name, bucket_name, path_in_bucket, contents
 
@@ -151,6 +151,7 @@ class DatafileTestCase(BaseTestCase):
             "timestamp",
             "sequence",
             "tags",
+            "labels",
             "_cloud_metadata",
         }
 
@@ -190,7 +191,8 @@ class DatafileTestCase(BaseTestCase):
         self.assertEqual(datafile.path, f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}")
         self.assertEqual(datafile.cluster, 0)
         self.assertEqual(datafile.sequence, None)
-        self.assertEqual(datafile.tags, TagSet())
+        self.assertEqual(datafile.tags, TagDict())
+        self.assertEqual(datafile.labels, LabelSet())
         self.assertTrue(isinstance(datafile.size_bytes, int))
         self.assertTrue(isinstance(datafile._last_modified, float))
         self.assertTrue(isinstance(datafile.hash_value, str))
@@ -201,7 +203,8 @@ class DatafileTestCase(BaseTestCase):
             timestamp=datetime.now(tz=timezone.utc),
             cluster=0,
             sequence=1,
-            tags={"blah:shah:nah", "blib", "glib"},
+            labels={"blah-shah-nah", "blib", "glib"},
+            tags={"good": True, "how_good": "very"},
         )
         gs_path = f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}"
         downloaded_datafile = Datafile.from_cloud(project_name, cloud_path=gs_path)
@@ -213,6 +216,7 @@ class DatafileTestCase(BaseTestCase):
         self.assertEqual(downloaded_datafile.cluster, datafile.cluster)
         self.assertEqual(downloaded_datafile.sequence, datafile.sequence)
         self.assertEqual(downloaded_datafile.tags, datafile.tags)
+        self.assertEqual(downloaded_datafile.labels, datafile.labels)
         self.assertEqual(downloaded_datafile.size_bytes, datafile.size_bytes)
         self.assertTrue(isinstance(downloaded_datafile._last_modified, float))
 
@@ -513,14 +517,14 @@ class DatafileTestCase(BaseTestCase):
             datafile,
             f,
         ):
-            datafile.add_tags("blue")
+            datafile.add_labels("blue")
             f.write(new_contents)
 
         # Check that the cloud metadata has been updated.
         re_downloaded_datafile = Datafile.from_cloud(
             project_name, bucket_name=bucket_name, datafile_path=path_in_bucket
         )
-        self.assertTrue("blue" in re_downloaded_datafile.tags)
+        self.assertTrue("blue" in re_downloaded_datafile.labels)
 
         # The file cache must be cleared so the modified cloud file is downloaded.
         re_downloaded_datafile.clear_from_file_cache()
@@ -535,9 +539,18 @@ class DatafileTestCase(BaseTestCase):
 
         self.assertEqual(
             datafile.metadata().keys(),
-            {"octue__id", "octue__timestamp", "octue__cluster", "octue__sequence", "octue__tags"},
+            {
+                "octue__id",
+                "octue__timestamp",
+                "octue__cluster",
+                "octue__sequence",
+                "octue__tags",
+                "octue__labels",
+                "octue__sdk_version",
+            },
         )
 
         self.assertEqual(
-            datafile.metadata(use_octue_namespace=False).keys(), {"id", "timestamp", "cluster", "sequence", "tags"}
+            datafile.metadata(use_octue_namespace=False).keys(),
+            {"id", "timestamp", "cluster", "sequence", "tags", "labels", "sdk_version"},
         )

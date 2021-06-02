@@ -1,4 +1,5 @@
 import base64
+import json
 import logging
 from google.cloud import storage
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
@@ -6,6 +7,8 @@ from google_crc32c import Checksum
 
 from octue.cloud.credentials import GCPCredentialsManager
 from octue.cloud.storage.path import split_bucket_name_from_gs_path
+from octue.utils.decoders import OctueJSONDecoder
+from octue.utils.encoders import OctueJSONEncoder
 
 
 logger = logging.getLogger(__name__)
@@ -59,12 +62,12 @@ class GoogleCloudStorageClient:
         """Upload a local file to a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>. Either (`bucket_name`
         and `path_in_bucket`) or `cloud_path` must be provided.
 
-        :param str local_path:
-        :param str|None cloud_path:
-        :param str|None bucket_name:
-        :param str|None path_in_bucket:
-        :param dict metadata:
-        :param float timeout:
+        :param str local_path: path to local file
+        :param str|None cloud_path: full cloud path to upload file to (e.g. `gs://bucket_name/path/to/file.csv`)
+        :param str|None bucket_name: name of bucket to store file in
+        :param str|None path_in_bucket: path to upload file to (e.g. `path/to/file.csv`)
+        :param dict metadata: key-value pairs to associate with the cloud file as metadata
+        :param float timeout: time in seconds to allow for the upload to complete
         :return None:
         """
         blob = self._blob(cloud_path, bucket_name, path_in_bucket)
@@ -73,7 +76,7 @@ class GoogleCloudStorageClient:
             blob.crc32c = self._compute_crc32c_checksum(f.read())
 
         blob.upload_from_filename(filename=local_path, timeout=timeout)
-        self._update_metadata(blob, metadata)
+        self._overwrite_blob_custom_metadata(blob, metadata)
         logger.info("Uploaded %r to Google Cloud at %r.", local_path, blob.public_url)
 
     def upload_from_string(
@@ -82,74 +85,29 @@ class GoogleCloudStorageClient:
         """Upload serialised data in string form to a file in a Google Cloud bucket at
         gs://<bucket_name>/<path_in_bucket>. Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must be provided.
 
-        :param str string:
-        :param str|None cloud_path:
-        :param str|None bucket_name:
-        :param str|None path_in_bucket:
-        :param dict metadata:
-        :param float timeout:
+        :param str string: string to upload as file
+        :param str|None cloud_path: full cloud path to upload as file to (e.g. `gs://bucket_name/path/to/file.csv`)
+        :param str|None bucket_name: name of bucket to store as file in
+        :param str|None path_in_bucket: path to upload as file to (e.g. `path/to/file.csv`)
+        :param dict metadata: key-value pairs to associate with the cloud file as metadata
+        :param float timeout: time in seconds to allow for the upload to complete
         :return None:
         """
         blob = self._blob(cloud_path, bucket_name, path_in_bucket)
         blob.crc32c = self._compute_crc32c_checksum(string)
 
         blob.upload_from_string(data=string, timeout=timeout)
-        self._update_metadata(blob, metadata)
+        self._overwrite_blob_custom_metadata(blob, metadata)
         logger.info("Uploaded data to Google Cloud at %r.", blob.public_url)
-
-    def update_metadata(self, metadata, cloud_path=None, bucket_name=None, path_in_bucket=None):
-        """Update the metadata for the given cloud file. Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must
-        be provided.
-
-        :param dict metadata:
-        :param str|None cloud_path:
-        :param str|None bucket_name:
-        :param str|None path_in_bucket:
-        :return None:
-        """
-        blob = self._blob(cloud_path, bucket_name, path_in_bucket)
-        self._update_metadata(blob, metadata)
-
-    def download_to_file(
-        self, local_path, cloud_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT
-    ):
-        """Download a file to a file from a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>. Either
-        (`bucket_name` and `path_in_bucket`) or `cloud_path` must be provided.
-
-        :param str local_path:
-        :param str|None cloud_path:
-        :param str|None bucket_name:
-        :param str|None path_in_bucket:
-        :param float timeout:
-        :return None:
-        """
-        blob = self._blob(cloud_path, bucket_name, path_in_bucket)
-        blob.download_to_filename(local_path, timeout=timeout)
-        logger.info("Downloaded %r from Google Cloud to %r.", blob.public_url, local_path)
-
-    def download_as_string(self, cloud_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT):
-        """Download a file to a string from a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>. Either
-        (`bucket_name` and `path_in_bucket`) or `cloud_path` must be provided.
-
-        :param str|None cloud_path:
-        :param str|None bucket_name:
-        :param str|None path_in_bucket:
-        :param float timeout:
-        :return str:
-        """
-        blob = self._blob(cloud_path, bucket_name, path_in_bucket)
-        data = blob.download_as_bytes(timeout=timeout)
-        logger.info("Downloaded %r from Google Cloud to as string.", blob.public_url)
-        return data.decode()
 
     def get_metadata(self, cloud_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT):
         """Get the metadata of the given file in the given bucket. Either (`bucket_name` and `path_in_bucket`) or
         `cloud_path` must be provided.
 
-        :param str|None cloud_path:
-        :param str|None bucket_name:
-        :param str|None path_in_bucket:
-        :param float timeout:
+        :param str|None cloud_path: full cloud path to file (e.g. `gs://bucket_name/path/to/file.csv`)
+        :param str|None bucket_name: name of bucket where cloud file is located
+        :param str|None path_in_bucket: path to cloud file (e.g. `path/to/file.csv`)
+        :param float timeout: time in seconds to allow for the request to complete
         :return dict:
         """
         if cloud_path:
@@ -161,8 +119,10 @@ class GoogleCloudStorageClient:
         if blob is None:
             return None
 
+        custom_metadata = blob.metadata or {}
+
         return {
-            "custom_metadata": blob.metadata or {},
+            "custom_metadata": {key: json.loads(value, cls=OctueJSONDecoder) for key, value in custom_metadata.items()},
             "crc32c": blob.crc32c,
             "size": blob.size,
             "updated": blob.updated,
@@ -174,14 +134,59 @@ class GoogleCloudStorageClient:
             "path_in_bucket": path_in_bucket,
         }
 
+    def overwrite_custom_metadata(self, metadata, cloud_path=None, bucket_name=None, path_in_bucket=None):
+        """Overwrite the custom metadata for the given cloud file. Either (`bucket_name` and `path_in_bucket`) or
+        `cloud_path` must be provided.
+
+        :param dict metadata: key-value pairs to set as the new custom metadata
+        :param str|None cloud_path: full cloud path to file (e.g. `gs://bucket_name/path/to/file.csv`)
+        :param str|None bucket_name: name of bucket where cloud file is located
+        :param str|None path_in_bucket: path to cloud file (e.g. `path/to/file.csv`)
+        :return None:
+        """
+        blob = self._blob(cloud_path, bucket_name, path_in_bucket)
+        self._overwrite_blob_custom_metadata(blob, metadata)
+
+    def download_to_file(
+        self, local_path, cloud_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT
+    ):
+        """Download a file to a file from a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>. Either
+        (`bucket_name` and `path_in_bucket`) or `cloud_path` must be provided.
+
+        :param str local_path: path to download to
+        :param str|None cloud_path: full cloud path to download from (e.g. `gs://bucket_name/path/to/file.csv`)
+        :param str|None bucket_name: name of bucket cloud file is stored in
+        :param str|None path_in_bucket: path to download from (e.g. `path/to/file.csv`)
+        :param float timeout: time in seconds to allow for the download to complete
+        :return None:
+        """
+        blob = self._blob(cloud_path, bucket_name, path_in_bucket)
+        blob.download_to_filename(local_path, timeout=timeout)
+        logger.info("Downloaded %r from Google Cloud to %r.", blob.public_url, local_path)
+
+    def download_as_string(self, cloud_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT):
+        """Download a file to a string from a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>. Either
+        (`bucket_name` and `path_in_bucket`) or `cloud_path` must be provided.
+
+        :param str|None cloud_path: full cloud path to download from (e.g. `gs://bucket_name/path/to/file.csv`)
+        :param str|None bucket_name: name of bucket cloud file is stored in
+        :param str|None path_in_bucket: path to download from (e.g. `path/to/file.csv`)
+        :param float timeout: time in seconds to allow for the download to complete
+        :return str:
+        """
+        blob = self._blob(cloud_path, bucket_name, path_in_bucket)
+        data = blob.download_as_bytes(timeout=timeout)
+        logger.info("Downloaded %r from Google Cloud to as string.", blob.public_url)
+        return data.decode()
+
     def delete(self, cloud_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT):
         """Delete the given file from the given bucket. Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must
         be provided.
 
-        :param str|None cloud_path:
-        :param str|None bucket_name:
-        :param str|None path_in_bucket:
-        :param float timeout:
+        :param str|None cloud_path: full cloud path to file to delete (e.g. `gs://bucket_name/path/to/file.csv`)
+        :param str|None bucket_name: name of bucket cloud file is stored in
+        :param str|None path_in_bucket: path to file to delete (e.g. `path/to/file.csv`)
+        :param float timeout: time in seconds to allow for the request to complete
         :return None:
         """
         blob = self._blob(cloud_path, bucket_name, path_in_bucket)
@@ -192,11 +197,11 @@ class GoogleCloudStorageClient:
         """Yield the blobs belonging to the given "directory" in the given bucket. Either (`bucket_name` and
         `path_in_bucket`) or `cloud_path` must be provided.
 
-        :param str|None cloud_path:
-        :param str|None bucket_name:
-        :param str|None directory_path:
-        :param callable filter:
-        :param float timeout:
+        :param str|None cloud_path: full cloud path of directory to scan (e.g. `gs://bucket_name/path/to/file.csv`)
+        :param str|None bucket_name: name of bucket cloud directory is located in
+        :param str|None directory_path: path of cloud directory to scan (e.g. `path/to/file.csv`)
+        :param callable filter: blob filter to constrain the yielded results
+        :param float timeout: time in seconds to allow for the request to complete
         :yield google.cloud.storage.blob.Blob:
         """
         if cloud_path:
@@ -243,13 +248,26 @@ class GoogleCloudStorageClient:
         checksum = Checksum(string.encode())
         return base64.b64encode(checksum.digest()).decode("utf-8")
 
-    def _update_metadata(self, blob, metadata):
-        """Update the metadata for the given blob. Note that this is synced up with Google Cloud.
+    def _overwrite_blob_custom_metadata(self, blob, metadata):
+        """Overwrite the custom metadata for the given blob. Note that this is synced up with Google Cloud.
 
-        :param google.cloud.storage.blob.Blob blob:
-        :param dict metadata:
+        :param google.cloud.storage.blob.Blob blob: Google Cloud Storage blob to update
+        :param dict metadata: key-value pairs of metadata to overwrite the blob's metadata with
         :return None:
         """
-        if metadata is not None:
-            blob.metadata = metadata
-            blob.patch()
+        if not metadata:
+            return None
+
+        blob.metadata = self._encode_metadata(metadata)
+        blob.patch()
+
+    def _encode_metadata(self, metadata):
+        """Encode metadata as a dictionary of JSON strings.
+
+        :param dict metadata:
+        :return dict:
+        """
+        if not isinstance(metadata, dict):
+            raise TypeError(f"Metadata for Google Cloud storage should be a dictionary; received {metadata!r}")
+
+        return {key: json.dumps(value, cls=OctueJSONEncoder) for key, value in metadata.items()}

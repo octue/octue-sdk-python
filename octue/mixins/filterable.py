@@ -2,6 +2,7 @@ import collections.abc
 import numbers
 
 from octue import exceptions
+from octue.utils.objects import get_nested_attribute
 
 
 def generate_complementary_filters(name, func):
@@ -32,7 +33,7 @@ CONTAINS_FILTER_ACTIONS = generate_complementary_filters("contains", lambda item
 IN_RANGE_FILTER_ACTIONS = generate_complementary_filters("in_range", lambda item, value: value[0] <= item <= value[1])
 
 ICONTAINS_FILTER_ACTIONS = generate_complementary_filters(
-    "icontains", lambda item, value: value.lower() in item.lower()
+    "icontains", lambda item, value: value.casefold() in item.casefold()
 )
 
 COMPARISON_FILTER_ACTIONS = {
@@ -47,7 +48,7 @@ COMPARISON_FILTER_ACTIONS = {
 TYPE_FILTERS = {
     "bool": IS_FILTER_ACTIONS,
     "str": {
-        **generate_complementary_filters("iequals", lambda item, value: value.lower() == item.lower()),
+        **generate_complementary_filters("iequals", lambda item, value: value.casefold() == item.casefold()),
         **generate_complementary_filters("starts_with", lambda item, value: item.startswith(value)),
         **generate_complementary_filters("ends_with", lambda item, value: item.endswith(value)),
         **EQUALS_FILTER_ACTIONS,
@@ -58,6 +59,16 @@ TYPE_FILTERS = {
         **IN_RANGE_FILTER_ACTIONS,
     },
     "NoneType": IS_FILTER_ACTIONS,
+    "LabelSet": {
+        **EQUALS_FILTER_ACTIONS,
+        **CONTAINS_FILTER_ACTIONS,
+        **IS_FILTER_ACTIONS,
+        **generate_complementary_filters("any_label_contains", lambda item, value: item.any_label_contains(value)),
+        **generate_complementary_filters(
+            "any_label_starts_with", lambda item, value: item.any_label_starts_with(value)
+        ),
+        **generate_complementary_filters("any_label_ends_with", lambda item, value: item.any_label_ends_with(value)),
+    },
     "datetime": {
         **EQUALS_FILTER_ACTIONS,
         **IS_FILTER_ACTIONS,
@@ -84,14 +95,6 @@ TYPE_FILTERS = {
         "in_date_range": lambda item, value: value[0] <= item.date() <= value[1],
         "in_time_range": lambda item, value: value[0] <= item.time() <= value[1],
     },
-    "TagSet": {
-        **generate_complementary_filters("any_tag_contains", lambda item, value: item.any_tag_contains(value)),
-        **generate_complementary_filters("any_tag_starts_with", lambda item, value: item.any_tag_starts_with(value)),
-        **generate_complementary_filters("any_tag_ends_with", lambda item, value: item.any_tag_ends_with(value)),
-        **EQUALS_FILTER_ACTIONS,
-        **CONTAINS_FILTER_ACTIONS,
-        **IS_FILTER_ACTIONS,
-    },
 }
 
 # Filters for interfaces e.g. iterables or numbers.
@@ -112,31 +115,48 @@ INTERFACE_FILTERS = {
 
 
 class Filterable:
-    def satisfies(self, filter_name, filter_value):
-        """ Check that the instance satisfies the given filter for the given filter value. """
+    def satisfies(self, raise_error_if_filter_is_invalid=True, **kwargs):
+        """Check that the instance satisfies the given filter for the given filter value. The filter should be provided
+        as a single keyword argument such as `name__first__equals="Joe"`
+
+        :param bool raise_error_if_filter_is_invalid:
+        :param {str: any} kwargs: a single keyword argument whose key is the name of the filter and whose value is the
+            value to filter for
+        :return mixed:
+        """
+        if len(kwargs) != 1:
+            raise ValueError(f"The satisfies method only takes one keyword argument; received {kwargs!r}.")
+
+        filter_name, filter_value = list(kwargs.items())[0]
+
         attribute_name, filter_action = self._split_filter_name(filter_name)
 
         try:
-            attribute = getattr(self, attribute_name)
-        except AttributeError:
-            raise AttributeError(f"An attribute named {attribute_name!r} does not exist on {self!r}.")
+            attribute = get_nested_attribute(self, attribute_name)
+
+        except AttributeError as error:
+            if raise_error_if_filter_is_invalid:
+                raise error
+            return False
 
         filter_ = self._get_filter(attribute, filter_action)
+
         return filter_(attribute, filter_value)
 
     def _split_filter_name(self, filter_name):
         """Split the filter name into the attribute name and filter action, raising an error if it the attribute name
         and filter action aren't delimited by a double underscore i.e. "__".
         """
-        try:
-            attribute_name, filter_action = filter_name.split("__", 1)
-        except ValueError:
+        *attribute_names, filter_action = filter_name.split("__")
+
+        if not attribute_names:
             raise exceptions.InvalidInputException(
                 f"Invalid filter name {filter_name!r}. Filter names should be in the form "
-                f"'<attribute_name>__<filter_kind>'."
+                f"'<attribute_name_0>__<attribute_name_1>__<...>__<filter_kind>' with at least one attribute name "
+                f"included."
             )
 
-        return attribute_name, filter_action
+        return ".".join(attribute_names), filter_action
 
     def _get_filter(self, attribute, filter_action):
         """Get the filter for the attribute and filter action, raising an error if there is no filter action of that
@@ -146,9 +166,8 @@ class Filterable:
             return self._get_filter_actions_for_attribute(attribute)[filter_action]
 
         except KeyError as error:
-            attribute_type = type(attribute)
             raise exceptions.InvalidInputException(
-                f"There is no filter called {error.args[0]!r} for attributes of type {attribute_type}. The options "
+                f"There is no filter called {error.args[0]!r} for attributes of type {type(attribute)}. The options "
                 f"are {self._get_filter_actions_for_attribute(attribute).keys()!r}"
             )
 

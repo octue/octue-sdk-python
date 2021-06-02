@@ -35,8 +35,8 @@ def run(analysis, *args, **kwargs):
     # capabilities. Let's get the metadata and the timeseries files, whilst showing off a couple of the filters.
     #
     # See the Dataset class help for more.
-    metadata_file = input_dataset.get_file_by_tag("meta")
-    timeseries_files = input_dataset.get_file_sequence("tags__contains", filter_value="timeseries")
+    metadata_file = input_dataset.get_file_by_label("meta")
+    timeseries_files = input_dataset.get_file_sequence(labels__contains="timeseries")
     #
     # We used these because they're special helpers - in this case ensuring that there's only one metadata file and
     # ensuring that the timeseries files come in a strictly ordered sequence.
@@ -45,7 +45,7 @@ def run(analysis, *args, **kwargs):
     #    metadata_files = input_dataset.get_files("name__icontains", filter_value="meta")
     #
     # There's generally a few ways to do it. Choose one which is likely to be most consistent - for example if your
-    # filenames might be subject to change, but you have better control over the tags, rely on those.
+    # filenames might be subject to change, but you have better control over the labels, rely on those.
 
     # At this point it's over to you, to do whatever you want with the contents of these files.
     # For this example app, we will:
@@ -63,16 +63,13 @@ def run(analysis, *args, **kwargs):
     # course, because we haven't done the processing yet)...
     output_dataset = analysis.output_manifest.get_dataset("cleaned_met_mast_data")
 
-    # We'll add tags to the output dataset, which will help to improve searchability and allow
-    # other apps, reports, users and analyses to automatically find figures and
-    # use them.
+    # We'll add some labels, which will help to improve searchability and allow other apps, reports, users and
+    # analyses to automatically find figures and use them.
     #
-    # Get descriptive with tags... they are whitespace-delimited and colons can be
-    # used to provide subtags. Tags are case insensitive, and accept a-z, 0-9,
-    # hyphens and underscores (which can be used literally in search and are also
-    # used to separate words in natural language search). Other special characters
-    # will be stripped.
-    output_dataset.tags = "met mast cleaned"
+    # Get descriptive with labels... they are whitespace-delimited. Labels are case insensitive, and accept a-z, 0-9,
+    # and hyphens which can be used literally in search and are also used to separate words in natural language search).
+    # Other special characters will be stripped.
+    output_dataset.labels = "met mast cleaned"
 
     # Create a Datafile to hold the concatenated, cleaned output data. We could put it in the current directory
     # (by leaving local_path_prefix unspecified) but it makes sense to put it in a folder specific to this output
@@ -83,7 +80,7 @@ def run(analysis, *args, **kwargs):
         path="cleaned.csv",
         path_from=output_dataset,  # Tells it where it should be stored, in this case the output dataset folder
         skip_checks=True,  # We haven't created the actual file yet, so checks would definitely fail!
-        tags="timeseries",
+        labels="timeseries",
     )
 
     # Write the file (now we know where to write it)
@@ -97,5 +94,5 @@ def run(analysis, *args, **kwargs):
     # all :)
     #
     # If you're running this on your local machine, that's it - but when this code runs as an analysis in the cloud,
-    # The files in the output manifest are copied into the cloud store. Their names and tags are registered in a search
+    # The files in the output manifest are copied into the cloud store. Their names and labels are registered in a search
     # index so your colleagues can find the dataset you've produced.

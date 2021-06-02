@@ -25,13 +25,15 @@ class SerialisableTestCase(BaseTestCase):
         """Ensures the class instantiates without arguments"""
         Serialisable()
 
-    def test_raises_attribute_error_with_missing_logger(self):
-        """Ensures class instantiates with a string uuid"""
-        resource = Serialisable()
-        with self.assertRaises(AttributeError) as error:
-            resource.serialise()
+    def test_logger_attribute_excluded_even_when_not_explicitly_excluded(self):
+        """Test that a Serialisable with "logger" not explicitly included in the `_EXCLUDE_SERIALISE_FIELDS` class
+        variable still excludes the `logger` attribute.
+        """
 
-        self.assertIn("'Serialisable' object has no attribute 'logger'", error.exception.args[0])
+        class SerialisableWithLoggerNotExplicitlyExcluded(Serialisable):
+            _EXCLUDE_SERIALISE_FIELDS = []
+
+        self.assertTrue("logger" in SerialisableWithLoggerNotExplicitlyExcluded()._EXCLUDE_SERIALISE_FIELDS)
 
     def test_returns_primitive_without_logger_or_protected_fields(self):
         """Ensures class instantiates with a UUID()"""

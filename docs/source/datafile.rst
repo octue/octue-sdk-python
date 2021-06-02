@@ -10,7 +10,8 @@ the following main attributes:
 - ``path`` - the path of this file, which may include folders or subfolders, within the dataset.
 - ``cluster`` - the integer cluster of files, within a dataset, to which this belongs (default 0)
 - ``sequence`` - a sequence number of this file within its cluster (if sequences are appropriate)
-- ``tags`` - a space-separated string or iterable of tags relevant to this file
+- ``tags`` - key-value pairs of metadata relevant to this file
+- ``labels`` - a space-separated string or iterable of labels relevant to this file
 - ``timestamp`` - a posix timestamp associated with the file, in seconds since epoch, typically when it was created but could relate to a relevant time point for the data
 
 
@@ -43,7 +44,7 @@ Example A
     bucket_name = "my-bucket",
     datafile_path = "path/to/data.csv"
 
-    with Datafile.from_cloud(project_name, bucket_name, datafile_path, mode="r") as datafile, f:
+    with Datafile.from_cloud(project_name, bucket_name, datafile_path, mode="r") as (datafile, f):
         data = f.read()
         new_metadata = metadata_calculating_function(data)
 
@@ -51,6 +52,7 @@ Example A
         datafile.cluster = new_metadata["cluster"]
         datafile.sequence = new_metadata["sequence"]
         datafile.tags = new_metadata["tags"]
+        datafile.labels = new_metadata["labels"]
 
 
 Example B
@@ -76,7 +78,8 @@ Example B
     datafile.timestamp = datetime.now()
     datafile.cluster = 0
     datafile.sequence = 3
-    datafile.tags = {"manufacturer:Vestas", "output:1MW"}
+    datafile.tags = {"manufacturer": "Vestas", "output": "1MW"}
+    datafile.labels = {"new"}
 
     datafile.to_cloud()  # Or, datafile.update_cloud_metadata()
 
@@ -122,10 +125,11 @@ For creating new data in a new local file:
 
 
     sequence = 2
-    tags = {"cleaned:True", "type:linear"}
+    tags = {"cleaned": True, "type": "linear"}
+    labels = {"Vestas"}
 
 
-    with Datafile(path="path/to/local/file.dat", sequence=sequence, tags=tags, mode="w") as datafile, f:
+    with Datafile(path="path/to/local/file.dat", sequence=sequence, tags=tags, labels=labels, mode="w") as (datafile, f):
         f.write("This is some cleaned data.")
 
     datafile.to_cloud(project_name="my-project", bucket_name="my-bucket", path_in_bucket="path/to/data.dat")
@@ -139,7 +143,8 @@ For existing data in an existing local file:
 
 
     sequence = 2
-    tags = {"cleaned:True", "type:linear"}
+    tags = {"cleaned": True, "type": "linear"}
+    labels = {"Vestas"}
 
-    datafile = Datafile(path="path/to/local/file.dat", sequence=sequence, tags=tags)
+    datafile = Datafile(path="path/to/local/file.dat", sequence=sequence, tags=tags, labels=labels)
     datafile.to_cloud(project_name="my-project", bucket_name="my-bucket", path_in_bucket="path/to/data.dat")
