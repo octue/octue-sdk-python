@@ -220,12 +220,11 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
 
         return results
 
-    def get_file_by_label(self, label_string):
-        """Get a single datafile from a dataset by searching for files with the provided label(s).
+    def get_file_by_label(self, label):
+        """Get a single datafile from a dataset by filtering for files with the provided label.
 
-        Gets exclusively one file; if no file or more than one file is found this results in an error.
-
-        :param str label_string:
+        :param str label: the label to filter for
+        :raise octue.exceptions.UnexpectedNumberOfResultsException: if zero or more than one results satisfy the filters
         :return octue.resources.datafile.DataFile:
         """
-        return self.files.one(labels__contains=label_string)
+        return self.files.one(labels__contains=label)
