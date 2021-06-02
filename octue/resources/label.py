@@ -14,16 +14,12 @@ LABEL_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*(?<!-)$")
 class Label(UserString):
     """A label starts and ends with a character in [A-Za-z0-9] and can contain hyphens e.g. angry-marmaduke
 
-    :param str name:
+    :param str name: the text of the label
     :return None:
     """
 
     def __init__(self, name):
         super().__init__(self._clean(name))
-        self.name = self.data
-
-    def serialise(self):
-        return self.name
 
     @staticmethod
     def _clean(name):
