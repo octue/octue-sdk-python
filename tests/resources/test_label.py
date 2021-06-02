@@ -1,6 +1,10 @@
+import json
+
 from octue import exceptions
 from octue.resources.filter_containers import FilterSet
 from octue.resources.label import Label, LabelSet
+from octue.utils.decoders import OctueJSONDecoder
+from octue.utils.encoders import OctueJSONEncoder
 from tests.base import BaseTestCase
 
 
@@ -102,6 +106,7 @@ class TestLabelSet(BaseTestCase):
     def test_equality(self):
         """ Ensure two LabelSets with the same labels compare equal. """
         self.assertTrue(self.LABEL_SET == LabelSet(labels="a b-c d-e-f"))
+        self.assertTrue(self.LABEL_SET == {"a", "b-c", "d-e-f"})
 
     def test_inequality(self):
         """ Ensure two LabelSets with different labels compare unequal. """
@@ -152,17 +157,23 @@ class TestLabelSet(BaseTestCase):
 
     def test_serialise(self):
         """Ensure that LabelSets serialise to a list."""
-        self.assertEqual(self.LABEL_SET.serialise(), ["a", "b-c", "d-e-f"])
+        self.assertEqual(
+            json.dumps(self.LABEL_SET, cls=OctueJSONEncoder),
+            json.dumps({"_type": "set", "items": ["a", "b-c", "d-e-f"]}),
+        )
 
     def test_serialise_orders_labels(self):
         """Ensure that serialising a LabelSet results in a sorted list."""
         label_set = LabelSet("z hello a c-no")
-        self.assertEqual(label_set.serialise(), ["a", "c-no", "hello", "z"])
+        self.assertEqual(
+            json.dumps(label_set, cls=OctueJSONEncoder),
+            json.dumps({"_type": "set", "items": ["a", "c-no", "hello", "z"]}),
+        )
 
     def test_deserialise(self):
         """Test that serialisation is reversible."""
-        serialised_label_set = self.LABEL_SET.serialise()
-        deserialised_label_set = LabelSet.deserialise(serialised_label_set)
+        serialised_label_set = json.dumps(self.LABEL_SET, cls=OctueJSONEncoder)
+        deserialised_label_set = LabelSet(json.loads(serialised_label_set, cls=OctueJSONDecoder))
         self.assertEqual(deserialised_label_set, self.LABEL_SET)
 
     def test_repr(self):

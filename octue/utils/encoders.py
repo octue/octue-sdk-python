@@ -13,6 +13,10 @@ class OctueJSONEncoder(TwinedEncoder):
         if hasattr(obj, "serialise"):
             return obj.serialise()
 
+        # Serialise sets as sorted list (JSON doesn't support sets).
+        if isinstance(obj, set):
+            return {"_type": "set", "items": sorted(obj)}
+
         if isinstance(obj, UserString):
             return str(obj)
 

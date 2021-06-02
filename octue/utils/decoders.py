@@ -13,6 +13,9 @@ class OctueJSONDecoder(JSONDecoder):
         if "_type" not in obj:
             return obj
 
+        if obj["_type"] == "set":
+            return set(obj["items"])
+
         if obj["_type"] == "datetime":
             return dateutil.parser.parse(obj["value"])
 
