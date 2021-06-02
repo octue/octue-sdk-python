@@ -77,8 +77,12 @@ class Serialisable:
         self_as_primitive = {}
         for name in names_of_attributes_to_serialise:
             attribute = getattr(self, name, None)
+
             # Serialise sets as sorted list (JSON doesn't support sets).
-            self_as_primitive[name] = sorted(attribute) if isinstance(attribute, set) else attribute
+            if isinstance(attribute, set):
+                self_as_primitive[name] = sorted(attribute)
+            else:
+                self_as_primitive[name] = attribute
 
         # TODO this conversion backward-and-forward is very inefficient but allows us to use the same encoder for
         #  converting the object to a dict as to strings, which ensures that nested attributes are also cast to

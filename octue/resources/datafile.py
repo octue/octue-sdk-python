@@ -171,8 +171,9 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
     def from_cloud(
         cls,
         project_name,
-        bucket_name,
-        datafile_path,
+        cloud_path=None,
+        bucket_name=None,
+        datafile_path=None,
         allow_overwrite=False,
         mode="r",
         update_cloud_metadata=True,
@@ -185,19 +186,22 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
         Note that a value provided for an attribute in kwargs will override any existing value for the attribute.
 
-        :param str project_name:
-        :param str bucket_name:
-        :param str datafile_path: path to file represented by datafile
-        :param bool allow_overwrite: if `True`, allow attributes of the datafile to be overwritten by values given in
-            kwargs
-        :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode
-            options are the same as for the builtin open function)
-        :param bool update_cloud_metadata: if using as a context manager and this is True, update the cloud metadata of
-            the datafile when the context is exited
+        Either (`bucket_name` and `datafile_path`) or `cloud_path` must be provided.
+
+        :param str project_name: name of Google Cloud project datafile is stored in
+        :param str|None cloud_path: full path to datafile in cloud storage (e.g. `gs://bucket_name/path/to/file.csv`)
+        :param str|None bucket_name: name of bucket datafile is stored in
+        :param str|None datafile_path: cloud storage path of datafile (e.g. `path/to/file.csv`)
+        :param bool allow_overwrite: if `True`, allow attributes of the datafile to be overwritten by values given in kwargs
+        :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode options are the same as for the builtin open function)
+        :param bool update_cloud_metadata: if using as a context manager and this is True, update the cloud metadata of the datafile when the context is exited
         :return Datafile:
         """
-        datafile = cls(path=storage.path.generate_gs_path(bucket_name, datafile_path))
-        datafile.get_cloud_metadata(project_name, bucket_name, datafile_path)
+        if not cloud_path:
+            cloud_path = storage.path.generate_gs_path(bucket_name, datafile_path)
+
+        datafile = cls(path=cloud_path)
+        datafile.get_cloud_metadata(project_name, cloud_path=cloud_path)
         custom_metadata = datafile._cloud_metadata.get("custom_metadata", {})
 
         if not allow_overwrite:
@@ -223,7 +227,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         )
 
         datafile._set_id(kwargs.pop("id", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__id", ID_DEFAULT)))
-        datafile.path = storage.path.generate_gs_path(bucket_name, datafile_path)
         datafile.timestamp = timestamp
         datafile.immutable_hash_value = datafile._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
 
@@ -242,23 +245,28 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         datafile._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
         return datafile
 
-    def to_cloud(self, project_name=None, bucket_name=None, path_in_bucket=None, update_cloud_metadata=True):
-        """Upload a datafile to Google Cloud Storage.
+    def to_cloud(
+        self, project_name=None, cloud_path=None, bucket_name=None, path_in_bucket=None, update_cloud_metadata=True
+    ):
+        """Upload a datafile to Google Cloud Storage. Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must be
+        provided.
 
-        :param str|None project_name:
-        :param str|None bucket_name:
-        :param str|None path_in_bucket:
-        :param bool update_cloud_metadata:
+        :param str|None project_name: name of Google Cloud project to store datafile in
+        :param str|None cloud_path: full path to cloud storage location to store datafile at (e.g. `gs://bucket_name/path/to/file.csv`)
+        :param str|None bucket_name: name of bucket to store datafile in
+        :param str|None path_in_bucket: cloud storage path to store datafile at (e.g. `path/to/file.csv`)
+        :param bool update_cloud_metadata: if `True`, update the metadata of the datafile in the cloud at upload time
         :return str: gs:// path for datafile
         """
-        project_name, bucket_name, path_in_bucket = self._get_cloud_location(project_name, bucket_name, path_in_bucket)
-        self.get_cloud_metadata(project_name, bucket_name, path_in_bucket)
+        project_name, bucket_name, path_in_bucket = self._get_cloud_location(
+            project_name, cloud_path, bucket_name, path_in_bucket
+        )
 
-        storage_client = GoogleCloudStorageClient(project_name=project_name)
+        self.get_cloud_metadata(project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
 
         # If the datafile's file has been changed locally, overwrite its cloud copy.
         if self._cloud_metadata.get("crc32c") != self.hash_value:
-            storage_client.upload_file(
+            GoogleCloudStorageClient(project_name=project_name).upload_file(
                 local_path=self.get_local_path(),
                 bucket_name=bucket_name,
                 path_in_bucket=path_in_bucket,
@@ -270,20 +278,27 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             local_metadata = self.metadata()
 
             if self._cloud_metadata.get("custom_metadata") != local_metadata:
-                self.update_cloud_metadata(project_name, bucket_name, path_in_bucket)
+                self.update_cloud_metadata(project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
 
-        return storage.path.generate_gs_path(bucket_name, path_in_bucket)
+        return cloud_path or storage.path.generate_gs_path(bucket_name, path_in_bucket)
 
-    def get_cloud_metadata(self, project_name=None, bucket_name=None, path_in_bucket=None):
+    def get_cloud_metadata(self, project_name=None, cloud_path=None, bucket_name=None, path_in_bucket=None):
         """Get the cloud metadata for the datafile, casting the types of the cluster and sequence fields to integer.
+        Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must be provided.
 
         :param str|None project_name:
+        :param str|None cloud_path:
         :param str|None bucket_name:
         :param str|None path_in_bucket:
         :return dict:
         """
-        project_name, bucket_name, path_in_bucket = self._get_cloud_location(project_name, bucket_name, path_in_bucket)
-        cloud_metadata = GoogleCloudStorageClient(project_name).get_metadata(bucket_name, path_in_bucket)
+        project_name, bucket_name, path_in_bucket = self._get_cloud_location(
+            project_name, cloud_path, bucket_name, path_in_bucket
+        )
+
+        cloud_metadata = GoogleCloudStorageClient(project_name).get_metadata(
+            bucket_name=bucket_name, path_in_bucket=path_in_bucket
+        )
 
         if cloud_metadata is None:
             return None
@@ -302,20 +317,24 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
         self._cloud_metadata = cloud_metadata
 
-    def update_cloud_metadata(self, project_name=None, bucket_name=None, path_in_bucket=None):
-        """Update the cloud metadata for the datafile.
+    def update_cloud_metadata(self, project_name=None, cloud_path=None, bucket_name=None, path_in_bucket=None):
+        """Update the cloud metadata for the datafile. Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must be
+        provided.
 
         :param str|None project_name:
+        :param str|None cloud_path:
         :param str|None bucket_name:
         :param str|None path_in_bucket:
         :return None:
         """
-        project_name, bucket_name, path_in_bucket = self._get_cloud_location(project_name, bucket_name, path_in_bucket)
+        project_name, bucket_name, path_in_bucket = self._get_cloud_location(
+            project_name, cloud_path, bucket_name, path_in_bucket
+        )
 
         GoogleCloudStorageClient(project_name=project_name).update_metadata(
+            metadata=self.metadata(),
             bucket_name=bucket_name,
             path_in_bucket=path_in_bucket,
-            metadata=self.metadata(),
         )
 
         self._store_cloud_location(project_name, bucket_name, path_in_bucket)
@@ -403,7 +422,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         temporary_local_path = tempfile.NamedTemporaryFile(delete=False).name
 
         GoogleCloudStorageClient(project_name=self._cloud_metadata["project_name"]).download_to_file(
-            *storage.path.split_bucket_name_from_gs_path(self.absolute_path), local_path=temporary_local_path
+            local_path=temporary_local_path, cloud_path=self.absolute_path
         )
 
         TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path] = temporary_local_path
@@ -438,16 +457,21 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
         return super()._calculate_hash(hash)
 
-    def _get_cloud_location(self, project_name=None, bucket_name=None, path_in_bucket=None):
+    def _get_cloud_location(self, project_name=None, cloud_path=None, bucket_name=None, path_in_bucket=None):
         """Get the cloud location details for the bucket, allowing the keyword arguments to override any stored values.
+        Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must be provided.
 
         :param str|None project_name:
+        :param str|None cloud_path:
         :param str|None bucket_name:
         :param str|None path_in_bucket:
         :raise octue.exceptions.CloudLocationNotSpecified: if an exact cloud location isn't provided and isn't available
             implicitly (i.e. the Datafile wasn't loaded from the cloud previously)
         :return (str, str, str):
         """
+        if cloud_path:
+            bucket_name, path_in_bucket = storage.path.split_bucket_name_from_gs_path(cloud_path)
+
         try:
             project_name = project_name or self._cloud_metadata["project_name"]
             bucket_name = bucket_name or self._cloud_metadata["bucket_name"]
