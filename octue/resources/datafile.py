@@ -3,6 +3,7 @@ import functools
 import logging
 import os
 import tempfile
+import pkg_resources
 from google_crc32c import Checksum
 
 from octue.cloud import storage
@@ -530,6 +531,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             "sequence": self.sequence,
             "labels": self.labels.serialise(to_string=True),
             **self.tags,
+            "sdk_version": pkg_resources.get_distribution("octue").version,
         }
 
         if not use_octue_namespace:
