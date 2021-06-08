@@ -8,6 +8,23 @@ on:
       - main
 
 jobs:
+  update-version:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install git-mkver
+      run: curl -L https://github.com/idc101/git-mkver/releases/download/v1.2.1/git-mkver-linux-amd64-1.2.1.tar.gz | tar xvz && sudo mv git-mkver /usr/local/bin
+    - name: Update version in setup.py
+      run: git-mkver patch
+    - name: Commit and push changes
+      uses: EndBug/add-and-commit@v7
+      with:
+        add: "setup.py"
+        message: "OPS: Update version number"
+        push: "true"
+        tags: ${{ git-mkver next }}
+
   release:
     # This job will only run if the PR has been merged (and not closed without merging).
     if: github.event.pull_request.merged == true
