@@ -24,7 +24,6 @@ jobs:
       with:
         add: "setup.py"
         message: "OPS: Update version number"
-        branch: "test-branch"
         push: "true"
         tag: ${{ env.NEW_PACKAGE_VERSION }}
 
