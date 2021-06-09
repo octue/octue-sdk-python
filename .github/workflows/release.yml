@@ -22,7 +22,7 @@ jobs:
     - name: Compile release notes
       run: |
         echo 'RELEASE_NOTES<<EOF' >> $GITHUB_ENV
-        echo "$(python .github/workflows/scripts/compile-release-notes.py LAST_RELEASE)" >> $GITHUB_ENV
+        echo "$(python .github/workflows/scripts/compile-release-notes.py LAST_RELEASE "${{ github.event.pull_request.body" }} )" >> $GITHUB_ENV
         echo 'EOF' >> $GITHUB_ENV
     - name: Create Release
       uses: actions/create-release@v1

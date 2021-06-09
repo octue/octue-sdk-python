@@ -64,11 +64,28 @@ jobs:
         with:
           # Set fetch-depth to 0 to fetch all commit history (necessary for compiling pull request description).
           fetch-depth: 0
-      - name: Compile pull request description
+
+      - name: Get commit's pull request
+        uses: 8BitJonny/gh-get-current-pr@1.1.0
+        id: get_pull_request
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          filterOutClosed: false
+
+      - name: Get current pull request description
+        run: |
+          echo 'CURRENT_PULL_REQUEST_NOTES<<EOF' >> $GITHUB_ENV
+          echo "'${{ steps.get_pull_request.outputs.pr }}'" >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
+      - name: Compile new pull request description
         run: |
           echo 'PULL_REQUEST_NOTES<<EOF' >> $GITHUB_ENV
-          echo "$(python .github/workflows/scripts/compile-release-notes.py LAST_PULL_REQUEST)" >> $GITHUB_ENV
+          echo "$(python .github/workflows/scripts/compile-release-notes.py LAST_PULL_REQUEST "${{ env.CURRENT_PULL_REQUEST_NOTES }}")" >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
+#        env:
+#          pr_json: "${{ steps.get_pull_request.outputs.pr }}"
+
       - name: Update pull request body
         uses: kt3k/update-pr-description@v1.0.1
         with:
