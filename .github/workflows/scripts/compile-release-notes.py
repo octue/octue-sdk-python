@@ -3,7 +3,7 @@ import subprocess
 import sys
 
 
-RELEASE = "RELEASE"
+LAST_RELEASE = "LAST_RELEASE"
 LAST_PULL_REQUEST = "LAST_PULL_REQUEST"
 
 SEMANTIC_VERSION_PATTERN = r"tag: (\d+\.\d+\.\d+)"
@@ -40,18 +40,18 @@ class ReleaseNoteCompiler:
 
     def __init__(
         self,
+        stop_point,
         header="## Contents",
         list_item_symbol="- [x] ",
         commit_codes_to_headings_mapping=None,
-        stop_point=RELEASE,
     ):
-        if stop_point not in {RELEASE, LAST_PULL_REQUEST}:
-            raise ValueError(f"`stop_point` must be one of {RELEASE, LAST_PULL_REQUEST!r}; received {stop_point!r}.")
+        if stop_point.upper() not in {LAST_RELEASE, LAST_PULL_REQUEST}:
+            raise ValueError(f"`stop_point` must be one of {LAST_RELEASE, LAST_PULL_REQUEST!r}; received {stop_point!r}.")
 
+        self.stop_point = stop_point.upper()
         self.header = header
         self.list_item_symbol = list_item_symbol
         self.commit_codes_to_headings_mapping = commit_codes_to_headings_mapping or COMMIT_CODES_TO_HEADINGS_MAPPING
-        self.stop_point = stop_point
 
     def compile_release_notes(self):
         """Compile the release or pull request notes into a multiline string, sorting the commit messages into headed
@@ -86,7 +86,7 @@ class ReleaseNoteCompiler:
                     unparsed_commits.append(message.strip())
                     continue
 
-                if self.stop_point == RELEASE:
+                if self.stop_point == LAST_RELEASE:
                     if "tag" in decoration:
                         if re.compile(SEMANTIC_VERSION_PATTERN).search(decoration):
                             break
@@ -139,10 +139,5 @@ class ReleaseNoteCompiler:
 
 
 if __name__ == "__main__":
-    try:
-        stop_point = sys.argv[1]
-    except IndexError:
-        stop_point = RELEASE
-
-    release_notes = ReleaseNoteCompiler(stop_point=stop_point).compile_release_notes()
+    release_notes = ReleaseNoteCompiler(*sys.argv[1:]).compile_release_notes()
     print(release_notes)
