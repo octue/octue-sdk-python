@@ -27,6 +27,16 @@ COMMIT_CODES_TO_HEADINGS_MAPPING = {
 
 
 class ReleaseNoteCompiler:
+    """A release/pull request notes compiler. The notes are pulled together from Conventional Commit messages, stopping
+    at the specified stop point. The stop point can either be the last merged pull request in the branch or the last
+    semantically-versioned release tagged in the branch.
+
+    :param str header:
+    :param str list_item_symbol:
+    :param dict|None commit_codes_to_headings_mapping:
+    :param str stop_point:
+    :return None:
+    """
 
     def __init__(self, header="## Contents", list_item_symbol="- [x] ", commit_codes_to_headings_mapping=None, stop_point=RELEASE):
         if stop_point not in {RELEASE, LAST_PULL_REQUEST}:
@@ -38,16 +48,27 @@ class ReleaseNoteCompiler:
         self.stop_point = stop_point
 
     def compile_release_notes(self):
-        git_log = subprocess.run(["git", "log", "--pretty=format:%s|%d"], capture_output=True).stdout.strip().decode()
-        parsed_commits, unparsed_commits = self._parse_commits(git_log)
-        release_notes = self._build_release_notes(parsed_commits, unparsed_commits)
-        return self._format_release_notes(release_notes)
+        """Compile the release or pull request notes into a multiline string, sorting the commit messages into headed
+        sections according to their commit codes and the commit-codes-to-headings mapping.
 
-    def _parse_commits(self, oneline_git_log):
+        :return str:
+        """
+        git_log = subprocess.run(["git", "log", "--pretty=format:%s|%d"], capture_output=True).stdout.strip().decode()
+        parsed_commits, unparsed_commits = self._parse_commit_messages(git_log)
+        categorised_commit_messages = self._categorise_commit_messages(parsed_commits, unparsed_commits)
+        return self._build_release_notes(categorised_commit_messages)
+
+    def _parse_commit_messages(self, formatted_oneline_git_log):
+        """Parse commit messages from the git log (formatted using `--pretty=format:%s|%d`) until the stop point is
+        reached. The parsed commit messages are returned separately to any that fail to parse.
+
+        :param str formatted_oneline_git_log:
+        :return list(tuple), list(str):
+        """
         parsed_commits = []
         unparsed_commits = []
 
-        for commit in oneline_git_log.splitlines():
+        for commit in formatted_oneline_git_log.splitlines():
             split_commit = commit.split("|")
 
             if len(split_commit) == 2:
@@ -72,7 +93,14 @@ class ReleaseNoteCompiler:
 
         return parsed_commits, unparsed_commits
 
-    def _build_release_notes(self, parsed_commits, unparsed_commits):
+    def _categorise_commit_messages(self, parsed_commits, unparsed_commits):
+        """Categorise the commit messages into headed sections. Unparsed commits are put under an "uncategorised"
+        header.
+
+        :param iter(tuple)) parsed_commits:
+        :param iter(str) unparsed_commits:
+        :return dict:
+        """
         release_notes = {heading: [] for heading in self.commit_codes_to_headings_mapping.values()}
 
         for code, message, _ in parsed_commits:
@@ -84,10 +112,16 @@ class ReleaseNoteCompiler:
         release_notes["### Uncategorised!"] = unparsed_commits
         return release_notes
 
-    def _format_release_notes(self, release_notes):
+    def _build_release_notes(self, categorised_commit_messages):
+        """Build the the categorised commit messages into a single multi-line string ready to be used as formatted
+        release notes.
+
+        :param dict categorised_commit_messages:
+        :return str:
+        """
         release_notes_for_printing = f"{self.header}\n\n"
 
-        for heading, notes in release_notes.items():
+        for heading, notes in categorised_commit_messages.items():
 
             if len(notes) == 0:
                 continue
