@@ -81,7 +81,7 @@ class ReleaseNoteCompiler:
             except KeyError:
                 release_notes["### Other"].append(message)
 
-        release_notes["### Uncategorised"] = unparsed_commits
+        release_notes["### Uncategorised!"] = unparsed_commits
         return release_notes
 
     def _format_release_notes(self, release_notes):
