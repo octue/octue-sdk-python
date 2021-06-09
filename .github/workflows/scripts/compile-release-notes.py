@@ -3,9 +3,11 @@ import re
 import subprocess
 
 
-SEMANTIC_VERSION_PATTERN = r"tag: (\d+\.\d+\.\d+)"
+RELEASE = "RELEASE"
+LAST_PULL_REQUEST = "LAST_PULL_REQUEST"
 
-TAG = "tag"
+SEMANTIC_VERSION_PATTERN = r"tag: (\d+\.\d+\.\d+)"
+PULL_REQUEST_INDICATOR = "Merge pull request #"
 
 COMMIT_CODES_TO_HEADINGS_MAPPING = {
     "FEA": "### New features",
@@ -26,7 +28,10 @@ COMMIT_CODES_TO_HEADINGS_MAPPING = {
 
 class ReleaseNoteCompiler:
 
-    def __init__(self, header="## Contents", list_item_symbol="- [x] ", commit_codes_to_headings_mapping=None, stop_point=TAG):
+    def __init__(self, header="## Contents", list_item_symbol="- [x] ", commit_codes_to_headings_mapping=None, stop_point=RELEASE):
+        if stop_point not in {RELEASE, LAST_PULL_REQUEST}:
+            raise ValueError(f"`stop_point` must be one of {RELEASE, LAST_PULL_REQUEST!r}; received {stop_point!r}.")
+
         self.header = header
         self.list_item_symbol = list_item_symbol
         self.commit_codes_to_headings_mapping = commit_codes_to_headings_mapping or COMMIT_CODES_TO_HEADINGS_MAPPING
@@ -54,13 +59,14 @@ class ReleaseNoteCompiler:
                     unparsed_commits.append(message.strip())
                     continue
 
-                if self.stop_point == TAG:
-                    if TAG in decoration:
+                if self.stop_point == RELEASE:
+                    if "tag" in decoration:
                         if re.compile(SEMANTIC_VERSION_PATTERN).search(decoration):
                             break
 
-                if code == self.stop_point:
-                    break
+                if self.stop_point == LAST_PULL_REQUEST:
+                    if PULL_REQUEST_INDICATOR in message:
+                        break
 
                 parsed_commits.append((code.strip(), message.strip(), decoration.strip()))
 
@@ -96,7 +102,7 @@ if __name__ == '__main__':
     try:
         stop_point = sys.argv[1]
     except IndexError:
-        stop_point = TAG
+        stop_point = RELEASE
 
     release_notes = ReleaseNoteCompiler(stop_point=stop_point).compile_release_notes()
     print(release_notes)

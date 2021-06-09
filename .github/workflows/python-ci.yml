@@ -62,12 +62,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          # Set fetch-depth to 0 to fetch all commit history (necessary for git-mkver to determine the correct semantic version).
+          # Set fetch-depth to 0 to fetch all commit history (necessary for compiling pull request description).
           fetch-depth: 0
-      - name: Compile release notes
+      - name: Compile pull request description
         run: |
           echo 'PULL_REQUEST_NOTES<<EOF' >> $GITHUB_ENV
-          echo "$(python .github/workflows/scripts/compile-release-notes.py)" >> $GITHUB_ENV
+          echo "$(python .github/workflows/scripts/compile-release-notes.py LAST_PULL_REQUEST)" >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
       - name: Ensure pull request exists
         uses: repo-sync/pull-request@v2
