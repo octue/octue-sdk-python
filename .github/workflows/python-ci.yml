@@ -69,9 +69,15 @@ jobs:
           echo 'PULL_REQUEST_NOTES<<EOF' >> $GITHUB_ENV
           echo "$(python .github/workflows/scripts/compile-release-notes.py)" >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
+      - name: Ensure pull request exists
+        uses: repo-sync/pull-request@v2
+        with:
+          destination_branch: "main"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Update pull request body
         uses: kt3k/update-pr-description@v1.0.1
         with:
+          destination_branch: "main"
           pr_body: ${{ env.PULL_REQUEST_NOTES }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
