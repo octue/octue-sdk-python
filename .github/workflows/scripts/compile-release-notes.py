@@ -8,6 +8,8 @@ NO_COLOUR = '\033[0m'
 
 
 SEMANTIC_VERSION_PATTERN = r"tag: (\d+\.\d+\.\d+)"
+RELEASE_NOTES_HEADER = "## Contents"
+LIST_ITEM_SYMBOL = "- [x] "
 
 
 COMMIT_CODES_TO_HEADINGS_MAPPING = {
@@ -28,9 +30,13 @@ COMMIT_CODES_TO_HEADINGS_MAPPING = {
 
 
 def compile_release_notes():
-    process = subprocess.run(["git", "log", "--pretty=format:%s|%d"], capture_output=True)
-    oneline_git_log = process.stdout.strip().decode()
+    git_log = subprocess.run(["git", "log", "--pretty=format:%s|%d"], capture_output=True).stdout.strip().decode()
+    parsed_commits = _parse_commits(git_log)
+    release_notes = _build_release_notes(parsed_commits)
+    return _format_release_notes(release_notes)
 
+
+def _parse_commits(oneline_git_log):
     parsed_commits = []
 
     for commit in oneline_git_log.splitlines():
@@ -50,6 +56,10 @@ def compile_release_notes():
 
             parsed_commits.append((code.strip(), message.strip(), decoration.strip()))
 
+    return parsed_commits
+
+
+def _build_release_notes(parsed_commits):
     release_notes = {heading: [] for heading in COMMIT_CODES_TO_HEADINGS_MAPPING.values()}
 
     for code, message, _ in parsed_commits:
@@ -58,14 +68,18 @@ def compile_release_notes():
         except KeyError:
             release_notes["### Other"].append(message)
 
-    release_notes_for_printing = "## Contents\n\n"
+    return release_notes
+
+
+def _format_release_notes(release_notes):
+    release_notes_for_printing = f"{RELEASE_NOTES_HEADER}\n\n"
 
     for heading, notes in release_notes.items():
 
         if len(notes) == 0:
             continue
 
-        note_lines = "\n".join("- [x] " + note for note in notes)
+        note_lines = "\n".join(LIST_ITEM_SYMBOL + note for note in notes)
         release_notes_for_printing += f"{heading}\n{note_lines}\n\n"
 
     return release_notes_for_printing.strip()
