@@ -83,3 +83,8 @@ def _format_release_notes(release_notes):
         release_notes_for_printing += f"{heading}\n{note_lines}\n\n"
 
     return release_notes_for_printing.strip()
+
+
+if __name__ == '__main__':
+    release_notes = compile_release_notes()
+    print(release_notes)

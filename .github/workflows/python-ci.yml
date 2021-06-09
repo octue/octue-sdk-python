@@ -56,6 +56,22 @@ jobs:
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  create-pull-request-notes:
+    if: "!contains(github.ref, 'main')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # Set fetch-depth to 0 to fetch all commit history (necessary for git-mkver to determine the correct semantic version).
+          fetch-depth: 0
+      - name: Compile release notes
+        run: echo "PULL_REQUEST_NOTES=$(python .github/workflows/scripts/compile-release-notes.py)" >> $GITHUB_ENV
+      - name: Update pull request body
+        uses: kt3k/update-pr-description@v1.0.1
+        with:
+          pr_body: ${{ env.PULL_REQUEST_NOTES }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
   publish:
     if: "!contains(github.event.head_commit.message, 'skip_ci_publish')"
     runs-on: ubuntu-latest
