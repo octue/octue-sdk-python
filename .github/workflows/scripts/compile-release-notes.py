@@ -1,6 +1,6 @@
-import sys
 import re
 import subprocess
+import sys
 
 
 RELEASE = "RELEASE"
@@ -38,7 +38,13 @@ class ReleaseNoteCompiler:
     :return None:
     """
 
-    def __init__(self, header="## Contents", list_item_symbol="- [x] ", commit_codes_to_headings_mapping=None, stop_point=RELEASE):
+    def __init__(
+        self,
+        header="## Contents",
+        list_item_symbol="- [x] ",
+        commit_codes_to_headings_mapping=None,
+        stop_point=RELEASE,
+    ):
         if stop_point not in {RELEASE, LAST_PULL_REQUEST}:
             raise ValueError(f"`stop_point` must be one of {RELEASE, LAST_PULL_REQUEST!r}; received {stop_point!r}.")
 
@@ -132,7 +138,7 @@ class ReleaseNoteCompiler:
         return release_notes_for_printing.strip()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         stop_point = sys.argv[1]
     except IndexError:
