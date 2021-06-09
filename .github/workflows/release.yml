@@ -1,4 +1,4 @@
-name: Update the version and release the package on merge into main
+name: Release the package on merge into main
 
 # Only trigger when a pull request into main branch is closed.
 on:
@@ -8,43 +8,21 @@ on:
       - main
 
 jobs:
-  update-version:
-    if: github.event.pull_request.merged == true
+  release:
+    # This job will only run if the PR has been merged (and not closed without merging).
+    if: github.event.pull_request.merged == true && "!contains(github.event.pull_request.head.message, 'skip_ci_release')"
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Get package version
+      run: echo "PACKAGE_VERSION=$(python setup.py --version)" >> $GITHUB_ENV
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, no need to create your own.
       with:
-        ref: main
-    - name: Install git-mkver
-      run: curl -L https://github.com/idc101/git-mkver/releases/download/v1.2.1/git-mkver-linux-amd64-1.2.1.tar.gz | tar xvz && sudo mv git-mkver /usr/local/bin
-    - name: Update version in setup.py
-      run: git-mkver patch
-    - name: Get new version
-      run: echo "NEW_PACKAGE_VERSION=$( git-mkver next )" >> $GITHUB_ENV
-    - name: Commit and push change
-      uses: EndBug/add-and-commit@v7
-      with:
-        add: "setup.py"
-        message: "OPS: Update version number"
-        branch: main
-        push: "true"
-        tag: ${{ env.NEW_PACKAGE_VERSION }}
-
-#  release:
-#    # This job will only run if the PR has been merged (and not closed without merging).
-#    if: github.event.pull_request.merged == true
-#    runs-on: ubuntu-latest
-#    steps:
-#    - uses: actions/checkout@v2
-#    - name: Get package version
-#      run: echo "PACKAGE_VERSION=$(python setup.py --version)" >> $GITHUB_ENV
-#    - name: Create Release
-#      uses: actions/create-release@v1
-#      env:
-#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, no need to create your own.
-#      with:
-#        tag_name: ${{ env.PACKAGE_VERSION }}
-#        release_name: ${{ github.event.pull_request.title }}
-#        body: ${{ github.event.pull_request.body }}
-#        draft: false
-#        prerelease: false
+        tag_name: ${{ env.PACKAGE_VERSION }}
+        release_name: ${{ github.event.pull_request.title }}
+        body: ${{ github.event.pull_request.body }}
+        draft: false
+        prerelease: false
