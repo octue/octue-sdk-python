@@ -2,14 +2,7 @@ import re
 import subprocess
 
 
-RED = '\033[0;31m'
-GREEN = "\033[0;32m"
-NO_COLOUR = '\033[0m'
-
-
 SEMANTIC_VERSION_PATTERN = r"tag: (\d+\.\d+\.\d+)"
-RELEASE_NOTES_HEADER = "## Contents"
-LIST_ITEM_SYMBOL = "- [x] "
 
 
 COMMIT_CODES_TO_HEADINGS_MAPPING = {
@@ -29,65 +22,69 @@ COMMIT_CODES_TO_HEADINGS_MAPPING = {
 }
 
 
-def compile_release_notes():
-    git_log = subprocess.run(["git", "log", "--pretty=format:%s|%d"], capture_output=True).stdout.strip().decode()
-    parsed_commits, unparsed_commits = _parse_commits(git_log)
-    release_notes = _build_release_notes(parsed_commits, unparsed_commits)
-    return _format_release_notes(release_notes)
+class ReleaseNoteCompiler:
 
+    def __init__(self, header="## Contents", list_item_symbol="- [x] ", commit_codes_to_headings_mapping=None):
+        self.header = header
+        self.list_item_symbol = list_item_symbol
+        self.commit_codes_to_headings_mapping = commit_codes_to_headings_mapping or COMMIT_CODES_TO_HEADINGS_MAPPING
 
-def _parse_commits(oneline_git_log):
-    parsed_commits = []
-    unparsed_commits = []
+    def compile_release_notes(self):
+        git_log = subprocess.run(["git", "log", "--pretty=format:%s|%d"], capture_output=True).stdout.strip().decode()
+        parsed_commits, unparsed_commits = self._parse_commits(git_log)
+        release_notes = self._build_release_notes(parsed_commits, unparsed_commits)
+        return self._format_release_notes(release_notes)
 
-    for commit in oneline_git_log.splitlines():
-        split_commit = commit.split("|")
+    def _parse_commits(self, oneline_git_log):
+        parsed_commits = []
+        unparsed_commits = []
 
-        if len(split_commit) == 2:
-            message, decoration = split_commit
+        for commit in oneline_git_log.splitlines():
+            split_commit = commit.split("|")
 
+            if len(split_commit) == 2:
+                message, decoration = split_commit
+
+                try:
+                    code, message = message.split(":")
+                except ValueError:
+                    unparsed_commits.append(message.strip())
+                    continue
+
+                if "tag" in decoration:
+                    if re.compile(SEMANTIC_VERSION_PATTERN).search(decoration):
+                        break
+
+                parsed_commits.append((code.strip(), message.strip(), decoration.strip()))
+
+        return parsed_commits, unparsed_commits
+
+    def _build_release_notes(self, parsed_commits, unparsed_commits):
+        release_notes = {heading: [] for heading in self.commit_codes_to_headings_mapping.values()}
+
+        for code, message, _ in parsed_commits:
             try:
-                code, message = message.split(":")
-            except ValueError:
-                unparsed_commits.append(message.strip())
+                release_notes[self.commit_codes_to_headings_mapping[code]].append(message)
+            except KeyError:
+                release_notes["### Other"].append(message)
+
+        release_notes["### Uncategorised"] = unparsed_commits
+        return release_notes
+
+    def _format_release_notes(self, release_notes):
+        release_notes_for_printing = f"{self.header}\n\n"
+
+        for heading, notes in release_notes.items():
+
+            if len(notes) == 0:
                 continue
 
-            if "tag" in decoration:
-                if re.compile(SEMANTIC_VERSION_PATTERN).search(decoration):
-                    break
+            note_lines = "\n".join(self.list_item_symbol + note for note in notes)
+            release_notes_for_printing += f"{heading}\n{note_lines}\n\n"
 
-            parsed_commits.append((code.strip(), message.strip(), decoration.strip()))
-
-    return parsed_commits, unparsed_commits
-
-
-def _build_release_notes(parsed_commits, unparsed_commits):
-    release_notes = {heading: [] for heading in COMMIT_CODES_TO_HEADINGS_MAPPING.values()}
-
-    for code, message, _ in parsed_commits:
-        try:
-            release_notes[COMMIT_CODES_TO_HEADINGS_MAPPING[code]].append(message)
-        except KeyError:
-            release_notes["### Other"].append(message)
-
-    release_notes["### Uncategorised"] = unparsed_commits
-    return release_notes
-
-
-def _format_release_notes(release_notes):
-    release_notes_for_printing = f"{RELEASE_NOTES_HEADER}\n\n"
-
-    for heading, notes in release_notes.items():
-
-        if len(notes) == 0:
-            continue
-
-        note_lines = "\n".join(LIST_ITEM_SYMBOL + note for note in notes)
-        release_notes_for_printing += f"{heading}\n{note_lines}\n\n"
-
-    return release_notes_for_printing.strip()
+        return release_notes_for_printing.strip()
 
 
 if __name__ == '__main__':
-    release_notes = compile_release_notes()
+    release_notes = ReleaseNoteCompiler().compile_release_notes()
     print(release_notes)
