@@ -31,13 +31,14 @@ COMMIT_CODES_TO_HEADINGS_MAPPING = {
 
 def compile_release_notes():
     git_log = subprocess.run(["git", "log", "--pretty=format:%s|%d"], capture_output=True).stdout.strip().decode()
-    parsed_commits = _parse_commits(git_log)
-    release_notes = _build_release_notes(parsed_commits)
+    parsed_commits, unparsed_commits = _parse_commits(git_log)
+    release_notes = _build_release_notes(parsed_commits, unparsed_commits)
     return _format_release_notes(release_notes)
 
 
 def _parse_commits(oneline_git_log):
     parsed_commits = []
+    unparsed_commits = []
 
     for commit in oneline_git_log.splitlines():
         split_commit = commit.split("|")
@@ -46,8 +47,9 @@ def _parse_commits(oneline_git_log):
             message, decoration = split_commit
 
             try:
-                code, message, decoration = (*message.split(":"), decoration)
+                code, message = message.split(":")
             except ValueError:
+                unparsed_commits.append(message.strip())
                 continue
 
             if "tag" in decoration:
@@ -56,10 +58,10 @@ def _parse_commits(oneline_git_log):
 
             parsed_commits.append((code.strip(), message.strip(), decoration.strip()))
 
-    return parsed_commits
+    return parsed_commits, unparsed_commits
 
 
-def _build_release_notes(parsed_commits):
+def _build_release_notes(parsed_commits, unparsed_commits):
     release_notes = {heading: [] for heading in COMMIT_CODES_TO_HEADINGS_MAPPING.values()}
 
     for code, message, _ in parsed_commits:
@@ -68,6 +70,7 @@ def _build_release_notes(parsed_commits):
         except KeyError:
             release_notes["### Other"].append(message)
 
+    release_notes["### Uncategorised"] = unparsed_commits
     return release_notes
 
 
