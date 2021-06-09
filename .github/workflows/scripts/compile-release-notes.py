@@ -87,4 +87,4 @@ def _format_release_notes(release_notes):
 
 if __name__ == '__main__':
     release_notes = compile_release_notes()
-    print(f'"{release_notes}"')
+    print(release_notes)
