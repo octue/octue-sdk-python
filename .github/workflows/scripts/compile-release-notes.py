@@ -72,15 +72,15 @@ def _build_release_notes(parsed_commits):
 
 
 def _format_release_notes(release_notes):
-    release_notes_for_printing = f"{RELEASE_NOTES_HEADER}\\\n\\\n"
+    release_notes_for_printing = f"{RELEASE_NOTES_HEADER}\n\n"
 
     for heading, notes in release_notes.items():
 
         if len(notes) == 0:
             continue
 
-        note_lines = "\\\n".join(LIST_ITEM_SYMBOL + note for note in notes)
-        release_notes_for_printing += f"{heading}\\\n{note_lines}\\\n\\\n"
+        note_lines = "\n".join(LIST_ITEM_SYMBOL + note for note in notes)
+        release_notes_for_printing += f"{heading}\n{note_lines}\n\n"
 
     return release_notes_for_printing.strip()
 
