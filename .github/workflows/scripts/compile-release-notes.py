@@ -48,7 +48,7 @@ def _parse_commits(oneline_git_log):
             try:
                 code, message, decoration = (*message.split(":"), decoration)
             except ValueError:
-                print(f"{RED}Warning:{NO_COLOUR} {commit} not in correct format; ignoring.")
+                continue
 
             if "tag" in decoration:
                 if re.compile(SEMANTIC_VERSION_PATTERN).search(decoration):
