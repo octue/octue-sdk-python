@@ -1,9 +1,11 @@
+import sys
 import re
 import subprocess
 
 
 SEMANTIC_VERSION_PATTERN = r"tag: (\d+\.\d+\.\d+)"
 
+TAG = "tag"
 
 COMMIT_CODES_TO_HEADINGS_MAPPING = {
     "FEA": "### New features",
@@ -24,10 +26,11 @@ COMMIT_CODES_TO_HEADINGS_MAPPING = {
 
 class ReleaseNoteCompiler:
 
-    def __init__(self, header="## Contents", list_item_symbol="- [x] ", commit_codes_to_headings_mapping=None):
+    def __init__(self, header="## Contents", list_item_symbol="- [x] ", commit_codes_to_headings_mapping=None, stop_point=TAG):
         self.header = header
         self.list_item_symbol = list_item_symbol
         self.commit_codes_to_headings_mapping = commit_codes_to_headings_mapping or COMMIT_CODES_TO_HEADINGS_MAPPING
+        self.stop_point = stop_point
 
     def compile_release_notes(self):
         git_log = subprocess.run(["git", "log", "--pretty=format:%s|%d"], capture_output=True).stdout.strip().decode()
@@ -51,9 +54,13 @@ class ReleaseNoteCompiler:
                     unparsed_commits.append(message.strip())
                     continue
 
-                if "tag" in decoration:
-                    if re.compile(SEMANTIC_VERSION_PATTERN).search(decoration):
-                        break
+                if self.stop_point == TAG:
+                    if TAG in decoration:
+                        if re.compile(SEMANTIC_VERSION_PATTERN).search(decoration):
+                            break
+
+                if code == self.stop_point:
+                    break
 
                 parsed_commits.append((code.strip(), message.strip(), decoration.strip()))
 
@@ -86,5 +93,10 @@ class ReleaseNoteCompiler:
 
 
 if __name__ == '__main__':
-    release_notes = ReleaseNoteCompiler().compile_release_notes()
+    try:
+        stop_point = sys.argv[1]
+    except IndexError:
+        stop_point = TAG
+
+    release_notes = ReleaseNoteCompiler(stop_point=stop_point).compile_release_notes()
     print(release_notes)
