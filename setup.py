@@ -28,6 +28,7 @@ setup(
         "google-cloud-storage>=1.35.1",
         "google-crc32c>=1.1.2",
         "gunicorn",
+        "python-dateutil>=2.8.1",
         "twined>=0.0.20",
     ],
     url="https://www.github.com/octue/octue-sdk-python",
