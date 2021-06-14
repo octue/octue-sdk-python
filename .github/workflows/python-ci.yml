@@ -72,11 +72,23 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           filterOutClosed: false
 
-      - name: Get current pull request description
+      - name: Save PR info to file
+        run: echo $pr_json > pull_request.json
+#          sudo apt-get update && sudo apt-get install jq
+#          echo ${{ steps.get_pull_request.outputs.pr }} | jq '.["body"]'
+        env:
+          pr_json: ${{ steps.get_pull_request.outputs.pr }}
+
+      - name: Extract PR body from file
         run: |
-          echo 'CURRENT_PULL_REQUEST_NOTES<<EOF' >> $GITHUB_ENV
-          echo "'${{ steps.get_pull_request.outputs.pr }}'" >> $GITHUB_ENV
-          echo 'EOF' >> $GITHUB_ENV
+          sudo apt-get update && sudo apt-get install jq
+          echo "CURRENT_PULL_REQUEST_NOTES=$(cat pull_request.json | jq '.["body"]')" >> $GITHUB_ENV
+
+#      - name: Get current pull request description
+#        run: |
+#          echo 'CURRENT_PULL_REQUEST_NOTES<<EOF' >> $GITHUB_ENV
+#          echo "'${{ steps.get_pull_request.outputs.pr }}'" >> $GITHUB_ENV
+#          echo 'EOF' >> $GITHUB_ENV
 
       - name: Compile new pull request description
         run: |
