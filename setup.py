@@ -17,7 +17,7 @@ with open("LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.1.21",  # Ensure all requirements files containing octue are updated, too (e.g. docs build).
+    version="0.1.22",  # Ensure all requirements files containing octue are updated, too (e.g. docs build).
     py_modules=["cli"],
     install_requires=[
         "click>=7.1.2",
@@ -28,6 +28,7 @@ setup(
         "google-cloud-storage>=1.35.1",
         "google-crc32c>=1.1.2",
         "gunicorn",
+        "python-dateutil>=2.8.1",
         "twined>=0.0.20",
     ],
     url="https://www.github.com/octue/octue-sdk-python",
