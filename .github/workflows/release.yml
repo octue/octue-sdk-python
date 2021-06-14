@@ -14,16 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-      with:
-        # Set fetch-depth to 0 to fetch all commit history (necessary for compiling release notes).
-        fetch-depth: 0
     - name: Get package version
       run: echo "PACKAGE_VERSION=$(python setup.py --version)" >> $GITHUB_ENV
-    - name: Compile release notes
-      run: |
-        echo 'RELEASE_NOTES<<EOF' >> $GITHUB_ENV
-        echo "$(python .github/workflows/scripts/compile-release-notes.py LAST_RELEASE "${{ github.event.pull_request.body" }} )" >> $GITHUB_ENV
-        echo 'EOF' >> $GITHUB_ENV
     - name: Create Release
       uses: actions/create-release@v1
       env:
@@ -31,6 +23,6 @@ jobs:
       with:
         tag_name: ${{ env.PACKAGE_VERSION }}
         release_name: ${{ github.event.pull_request.title }}
-        body: ${{ env.RELEASE_NOTES }}
+        body: ${{ github.event.pull_request.body }}
         draft: false
         prerelease: false
