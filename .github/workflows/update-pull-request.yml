@@ -8,6 +8,7 @@ on:
 
 jobs:
   description:
+    if: "!contains(github.event.pull_request.head.message, 'skip_ci_update_description')"
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
