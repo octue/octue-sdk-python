@@ -88,7 +88,7 @@ class TestService(BaseTestCase):
 
         with patch("octue.cloud.pub_sub.service.pubsub_v1.SubscriberClient.pull", return_value=MockPullResponse()):
             with self.assertRaises(concurrent.futures.TimeoutError):
-                service.wait_for_answer(subscription=mock_subscription)
+                service.wait_for_answer(subscription=mock_subscription, timeout=0.01)
 
     def test_ask(self):
         """ Test that a service can ask a question to another service that is serving and receive an answer. """
