@@ -1,3 +1,5 @@
+name: update-pull-request
+
 # Only trigger for pull requests into main branch.
 on:
   pull_request:
@@ -5,7 +7,7 @@ on:
       - main
 
 jobs:
-  update-pull-request-description:
+  description:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
