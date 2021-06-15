@@ -199,32 +199,38 @@ class Service(CoolNameable):
         attempt = 1
 
         with self.subscriber:
-            while no_message:
-                logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
 
-                pull_response = self.subscriber.pull(
-                    request={"subscription": subscription.path, "max_messages": 1},
-                    retry=create_custom_retry(timeout),
-                )
+            try:
+                while no_message:
+                    logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
 
+                    pull_response = self.subscriber.pull(
+                        request={"subscription": subscription.path, "max_messages": 1},
+                        retry=create_custom_retry(timeout),
+                    )
+
+                    try:
+                        answer = pull_response.received_messages[0]
+                        no_message = False
+
+                    except IndexError:
+                        logger.debug("Google Pub/Sub pull response timed out early.")
+                        attempt += 1
+
+                        if (time.perf_counter() - start_time) > timeout:
+                            raise TimeoutError(
+                                f"No answer received from topic {subscription.topic.path!r} after {timeout} seconds.",
+                            )
+
+            finally:
                 try:
-                    answer = pull_response.received_messages[0]
-                    no_message = False
+                    self.subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
+                    logger.debug("%r received a response to question on topic %r.", self, subscription.topic.path)
+                except UnboundLocalError:
+                    pass
 
-                except IndexError:
-                    logger.debug("Google Pub/Sub pull response timed out early.")
-                    attempt += 1
-
-                    if (time.perf_counter() - start_time) > timeout:
-                        raise TimeoutError(
-                            f"No answer received from topic {subscription.topic.path!r} after {timeout} seconds.",
-                        )
-
-            self.subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
-            logger.debug("%r received a response to question on topic %r.", self, subscription.topic.path)
-
-            subscription.delete()
-            subscription.topic.delete()
+                subscription.delete()
+                subscription.topic.delete()
 
         data = json.loads(answer.message.data.decode())
 
