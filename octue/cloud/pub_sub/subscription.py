@@ -65,9 +65,9 @@ class Subscription:
             mapping=None,
             name=self.path,
             topic=self.topic.path,
-            ack_deadline_seconds=self.ack_deadline,
-            message_retention_duration=self.message_retention_duration,
-            expiration_policy=self.expiration_policy,
+            ack_deadline_seconds=self.ack_deadline,  # noqa
+            message_retention_duration=self.message_retention_duration,  # noqa
+            expiration_policy=self.expiration_policy,  # noqa
         )
 
         if not allow_existing:
