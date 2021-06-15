@@ -59,7 +59,7 @@ class Subscription:
         """Create a Google Pub/Sub subscription that can be subscribed to.
 
         :param bool allow_existing: if `False`, raise an error if the subscription already exists; if `True`, do nothing (the existing subscription is not overwritten)
-        :return None:
+        :return google.pubsub_v1.types.pubsub.Subscription:
         """
         subscription = _Subscription(
             mapping=None,
@@ -79,7 +79,9 @@ class Subscription:
             self.service.subscriber.create_subscription(request=subscription)
         except google.api_core.exceptions.AlreadyExists:
             pass
+
         self._log_creation()
+        return subscription
 
     def delete(self):
         """ Delete the subscription from Google Pub/Sub. """
