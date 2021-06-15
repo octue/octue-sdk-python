@@ -92,7 +92,9 @@ class Service(CoolNameable):
         topic = Topic(name=self.id, namespace=OCTUE_NAMESPACE, service=self)
         topic.create(allow_existing=True)
 
-        subscription = Subscription(name=self.id, topic=topic, namespace=OCTUE_NAMESPACE, service=self)
+        subscription = Subscription(
+            name=self.id, topic=topic, namespace=OCTUE_NAMESPACE, service=self, expiration_time=None
+        )
         subscription.create(allow_existing=True)
 
         future = self.subscriber.subscribe(subscription=subscription.path, callback=self.receive_question_then_answer)
