@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 import uuid
 from concurrent.futures import TimeoutError
 import google.api_core
@@ -91,7 +92,9 @@ class Service(CoolNameable):
         topic = Topic(name=self.id, namespace=OCTUE_NAMESPACE, service=self)
         topic.create(allow_existing=True)
 
-        subscription = Subscription(name=self.id, topic=topic, namespace=OCTUE_NAMESPACE, service=self)
+        subscription = Subscription(
+            name=self.id, topic=topic, namespace=OCTUE_NAMESPACE, service=self, expiration_time=None
+        )
         subscription.create(allow_existing=True)
 
         future = self.subscriber.subscribe(subscription=subscription.path, callback=self.receive_question_then_answer)
@@ -187,23 +190,49 @@ class Service(CoolNameable):
     def wait_for_answer(self, subscription, timeout=30):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
+
+        :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
+        :param float timeout: how long to wait for an answer before raising a TimeoutError
+        :raise TimeoutError: if the timeout is exceeded
+        :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
-        pull_response = self.subscriber.pull(
-            request={"subscription": subscription.path, "max_messages": 1},
-            timeout=timeout,
-            retry=create_custom_retry(timeout),
-        )
+        start_time = time.perf_counter()
+        no_message = True
+        attempt = 1
 
-        try:
-            answer = pull_response.received_messages[0]
-        except IndexError:
-            raise TimeoutError("No answer received from topic %r", subscription.topic.path)
+        with self.subscriber:
 
-        self.subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
-        logger.debug("%r received a response to question on topic %r", self, subscription.topic.path)
+            try:
+                while no_message:
+                    logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
 
-        subscription.delete()
-        subscription.topic.delete()
+                    pull_response = self.subscriber.pull(
+                        request={"subscription": subscription.path, "max_messages": 1},
+                        retry=create_custom_retry(timeout),
+                    )
+
+                    try:
+                        answer = pull_response.received_messages[0]
+                        no_message = False
+
+                    except IndexError:
+                        logger.debug("Google Pub/Sub pull response timed out early.")
+                        attempt += 1
+
+                        if (time.perf_counter() - start_time) > timeout:
+                            raise TimeoutError(
+                                f"No answer received from topic {subscription.topic.path!r} after {timeout} seconds.",
+                            )
+
+            finally:
+                try:
+                    self.subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
+                    logger.debug("%r received a response to question on topic %r.", self, subscription.topic.path)
+                except UnboundLocalError:
+                    pass
+
+                subscription.delete()
+                subscription.topic.delete()
 
         data = json.loads(answer.message.data.decode())
 

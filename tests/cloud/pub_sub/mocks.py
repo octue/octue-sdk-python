@@ -39,7 +39,10 @@ class MockTopic(Topic):
 
         :return None:
         """
-        del MESSAGES[get_service_id(self.path)]
+        try:
+            del MESSAGES[get_service_id(self.path)]
+        except KeyError:
+            pass
 
     def exists(self):
         """Check if the topic exists in the global messages dictionary.
