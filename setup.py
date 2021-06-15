@@ -23,7 +23,7 @@ setup(
         "click>=7.1.2",
         "coolname>=1.1.0",
         "Flask>=1.1",
-        "google-cloud-pubsub>=2.2.0",
+        "google-cloud-pubsub>=2.5.0",
         "google-cloud-secret-manager>=2.3.0",
         "google-cloud-storage>=1.35.1",
         "google-crc32c>=1.1.2",
