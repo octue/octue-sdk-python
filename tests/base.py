@@ -5,9 +5,11 @@ import unittest
 import uuid
 from tempfile import TemporaryDirectory, gettempdir
 
+from octue.cloud.emulators import GoogleCloudStorageEmulatorTestResultModifier
 from octue.logging_handlers import apply_log_handler
 from octue.mixins import MixinBase, Pathable
 from octue.resources import Datafile, Dataset, Manifest
+from tests import TEST_BUCKET_NAME
 
 
 logger = logging.getLogger(__name__)
@@ -22,6 +24,10 @@ class BaseTestCase(unittest.TestCase):
     """Base test case for twined:
     - sets a path to the test data directory
     """
+
+    test_result_modifier = GoogleCloudStorageEmulatorTestResultModifier(default_bucket_name=TEST_BUCKET_NAME)
+    setattr(unittest.TestResult, "startTestRun", test_result_modifier.startTestRun)
+    setattr(unittest.TestResult, "stopTestRun", test_result_modifier.stopTestRun)
 
     def setUp(self):
         # Set up paths to the test data directory and to the app templates directory
