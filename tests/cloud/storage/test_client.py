@@ -210,3 +210,23 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
         metadata = self.storage_client.get_metadata(gs_path)
         self.assertTrue(len(metadata) > 0)
+
+    def test_get_metadata_does_not_fail_on_non_json_encoded_metadata(self):
+        """Test that non-JSON-encoded metadata does not cause getting of metadata to fail."""
+        self.storage_client.upload_from_string(
+            string=json.dumps({"height": 32}),
+            bucket_name=TEST_BUCKET_NAME,
+            path_in_bucket=self.FILENAME,
+        )
+
+        bucket = self.storage_client.client.get_bucket(TEST_BUCKET_NAME)
+        blob = bucket.get_blob(self.FILENAME)
+        blob.metadata = {"this": "is-not-json-encoded"}
+        blob.patch()
+
+        metadata = self.storage_client.get_metadata(
+            bucket_name=TEST_BUCKET_NAME,
+            path_in_bucket=self.FILENAME,
+        )
+
+        self.assertEqual(metadata["custom_metadata"], {"this": "is-not-json-encoded"})
