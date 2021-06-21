@@ -23,7 +23,7 @@ def has_nested_attribute(instance, nested_attribute_name):
     """
     try:
         get_nested_attribute(instance, nested_attribute_name)
-    except (AttributeError, KeyError):
+    except AttributeError:
         return False
     return True
 
@@ -40,5 +40,5 @@ def getattr_or_subscribe(instance, name):
     except AttributeError:
         try:
             return instance[name]
-        except TypeError:
+        except (TypeError, KeyError):
             raise AttributeError(f"{instance!r} does not have an attribute or key named {name!r}.")
