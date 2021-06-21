@@ -150,6 +150,11 @@ class Filterable:
         *attribute_names, filter_action = filter_name.split("__")
 
         if not attribute_names:
+
+            # Allow a shortcut for simple equals filters e.g. `a=7` instead of `a__equals=7`.
+            if hasattr(self, filter_name):
+                return filter_name, "equals"
+
             raise exceptions.InvalidInputException(
                 f"Invalid filter name {filter_name!r}. Filter names should be in the form "
                 f"'<attribute_name_0>__<attribute_name_1>__<...>__<filter_kind>' with at least one attribute name "

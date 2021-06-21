@@ -42,6 +42,11 @@ class TestFilterable(BaseTestCase):
         with self.assertRaises(ValueError):
             FilterableSubclass(age=23).satisfies(age__equals=23, age__equals__gt=20)
 
+    def test_equals_filter_shortcut(self):
+        """Test that the shortcut for simple equals filters works (e.g. `a=7` instead of `a__equals=7`)."""
+        self.assertTrue(FilterableSubclass(age=23).satisfies(age=23))
+        self.assertFalse(FilterableSubclass(age=23).satisfies(age=32))
+
     def test_bool_filters(self):
         """ Test that the boolean filters work as expected. """
         filterable_thing = FilterableSubclass(is_alive=True)
