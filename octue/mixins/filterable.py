@@ -129,18 +129,18 @@ class Filterable:
 
         filter_name, filter_value = list(kwargs.items())[0]
 
-        attribute_name, filter_action = self._split_filter_name(filter_name)
-
         try:
-            attribute = get_nested_attribute(self, attribute_name)
+            attribute_name, filter_action = self._split_filter_name(filter_name)
 
-        except AttributeError as error:
-            if raise_error_if_filter_is_invalid:
-                raise error
+            try:
+                attribute = get_nested_attribute(self, attribute_name)
 
-            return False
+            except AttributeError as error:
+                if raise_error_if_filter_is_invalid:
+                    raise error
 
-        try:
+                return False
+
             filter_ = self._get_filter(attribute, filter_action)
             return filter_(attribute, filter_value)
 
@@ -162,10 +162,6 @@ class Filterable:
         *attribute_names, filter_action = filter_name.split("__")
 
         if not attribute_names:
-
-            # Allow a shortcut for simple equals filters e.g. `a=7` instead of `a__equals=7`.
-            if hasattr(self, filter_name):
-                return filter_name, "equals"
 
             raise exceptions.InvalidInputException(
                 f"Invalid filter name {filter_name!r}. Filter names should be in the form "
