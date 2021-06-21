@@ -47,6 +47,15 @@ class TestFilterable(BaseTestCase):
         self.assertTrue(FilterableSubclass(age=23).satisfies(age=23))
         self.assertFalse(FilterableSubclass(age=23).satisfies(age=32))
 
+    def test_equals_filter_shortcut_with_nested_attributes(self):
+        """Test that the shortcut for simple equals filters works for nested attributes e.g. `a__b=7` instead of
+        `a__b__equals=7`.
+        """
+        inner_mock = FilterableSubclass(b=3)
+        outer_mock = FilterableSubclass(a=inner_mock)
+        filterable_thing = FilterableSubclass(name=outer_mock)
+        self.assertTrue(filterable_thing.satisfies(name__a__b=3))
+
     def test_bool_filters(self):
         """ Test that the boolean filters work as expected. """
         filterable_thing = FilterableSubclass(is_alive=True)

@@ -13,6 +13,21 @@ def get_nested_attribute(instance, nested_attribute_name):
     return functools.reduce(getattr_or_subscribe, nested_attribute_names, instance)
 
 
+def has_nested_attribute(instance, nested_attribute_name):
+    """Check if a class instance or dictionary has a nested attribute with the given name (each level of nesting being
+    another dictionary or class instance).
+
+    :param dict|object instance:
+    :param str nested_attribute_names: dot-separated nested attribute name e.g. "a.b.c", "a.b", or "a"
+    :return bool:
+    """
+    try:
+        get_nested_attribute(instance, nested_attribute_name)
+    except (AttributeError, KeyError):
+        return False
+    return True
+
+
 def getattr_or_subscribe(instance, name):
     """Get an attribute from a class instance or a value from a dictionary.
 

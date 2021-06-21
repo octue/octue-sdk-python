@@ -2,7 +2,7 @@ import collections.abc
 import numbers
 
 from octue import exceptions
-from octue.utils.objects import get_nested_attribute
+from octue.utils.objects import get_nested_attribute, has_nested_attribute
 
 
 def generate_complementary_filters(name, func):
@@ -137,11 +137,23 @@ class Filterable:
         except AttributeError as error:
             if raise_error_if_filter_is_invalid:
                 raise error
+
             return False
 
-        filter_ = self._get_filter(attribute, filter_action)
+        try:
+            filter_ = self._get_filter(attribute, filter_action)
+            return filter_(attribute, filter_value)
 
-        return filter_(attribute, filter_value)
+        except exceptions.InvalidInputException as error:
+            # Allow a shortcut for simple equals filters for nested attributes e.g. `a__b=7` instead of `a__b__equals=7`.
+            possible_attribute_name = ".".join(filter_name.split("__"))
+
+            if has_nested_attribute(self, possible_attribute_name):
+                attribute = get_nested_attribute(self, possible_attribute_name)
+                filter_ = self._get_filter(attribute, "equals")
+                return filter_(attribute, filter_value)
+
+            raise error
 
     def _split_filter_name(self, filter_name):
         """Split the filter name into the attribute name and filter action, raising an error if it the attribute name
