@@ -54,6 +54,10 @@ class TestFilterable(BaseTestCase):
         self.assertFalse(filterable_thing.satisfies(is_alive__is=False))
         self.assertTrue(filterable_thing.satisfies(is_alive__is_not=False))
         self.assertFalse(filterable_thing.satisfies(is_alive__is_not=True))
+        self.assertTrue(filterable_thing.satisfies(is_alive__equals=True))
+        self.assertFalse(filterable_thing.satisfies(is_alive__equals=False))
+        self.assertTrue(filterable_thing.satisfies(is_alive__not_equals=False))
+        self.assertFalse(filterable_thing.satisfies(is_alive__not_equals=True))
 
     def test_str_filters(self):
         """ Test that the string filters work as expected. """
@@ -104,6 +108,10 @@ class TestFilterable(BaseTestCase):
         self.assertFalse(filterable_thing.satisfies(owner__is=True))
         self.assertTrue(filterable_thing.satisfies(owner__is_not=True))
         self.assertFalse(filterable_thing.satisfies(owner__is_not=None))
+        self.assertTrue(filterable_thing.satisfies(owner__equals=None))
+        self.assertFalse(filterable_thing.satisfies(owner__equals=True))
+        self.assertTrue(filterable_thing.satisfies(owner__not_equals=True))
+        self.assertFalse(filterable_thing.satisfies(owner__not_equals=None))
 
     def test_number_filters_with_integers_and_floats(self):
         """ Test that the number filters work as expected for integers and floats. """

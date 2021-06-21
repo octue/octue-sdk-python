@@ -46,7 +46,7 @@ COMPARISON_FILTER_ACTIONS = {
 
 # Filters for specific types e.g. list or int.
 TYPE_FILTERS = {
-    "bool": IS_FILTER_ACTIONS,
+    "bool": {**EQUALS_FILTER_ACTIONS, **IS_FILTER_ACTIONS},
     "str": {
         **generate_complementary_filters("iequals", lambda item, value: value.casefold() == item.casefold()),
         **generate_complementary_filters("starts_with", lambda item, value: item.startswith(value)),
@@ -58,7 +58,7 @@ TYPE_FILTERS = {
         **ICONTAINS_FILTER_ACTIONS,
         **IN_RANGE_FILTER_ACTIONS,
     },
-    "NoneType": IS_FILTER_ACTIONS,
+    "NoneType": {**EQUALS_FILTER_ACTIONS, **IS_FILTER_ACTIONS},
     "LabelSet": {
         **EQUALS_FILTER_ACTIONS,
         **CONTAINS_FILTER_ACTIONS,
