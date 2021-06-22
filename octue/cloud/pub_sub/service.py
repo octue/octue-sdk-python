@@ -168,7 +168,9 @@ class Service(CoolNameable):
             )
             logger.info("%r responded on topic %r.", self, topic.path)
 
-        except BaseException:  # noqa
+        except BaseException as error:  # noqa
+            logger.exception(error)
+
             exception_info = sys.exc_info()
             exception = exception_info[1]
             exception_message = f"Error in {self!r}: " + exception.args[0]
