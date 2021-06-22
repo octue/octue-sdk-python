@@ -46,7 +46,6 @@ def index():
     logger.info("Received question %r.", question_uuid)
 
     answer_question(project_name, data, question_uuid)
-    logger.info("Analysis run and response sent for question %r.", question_uuid)
     return ("", 204)
 
 
@@ -106,4 +105,8 @@ def answer_question(project_name, data, question_uuid):
         run_function=runner.run,
     )
 
-    service.answer(data=data, question_uuid=question_uuid)
+    try:
+        service.answer(data=data, question_uuid=question_uuid)
+        logger.info("Analysis successfully run and response sent for question %r.", question_uuid)
+    except BaseException as error:  # noqa
+        logger.exception(error)

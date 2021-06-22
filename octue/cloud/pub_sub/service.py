@@ -145,6 +145,12 @@ class Service(CoolNameable):
         """Answer a question (i.e. run the Service's app to analyse the given data, and return the output values to the
         asker). Answers are published to a topic whose name is generated from the UUID sent with the question, and are
         in the format specified in the Service's Twine file.
+
+        :param dict data:
+        :param int question_uuid:
+        :param float timeout:
+        :raise Exception: if any exception arises during running analysis and sending its results
+        :return None:
         """
         topic = Topic(
             name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)), namespace=OCTUE_NAMESPACE, service=self
@@ -169,8 +175,6 @@ class Service(CoolNameable):
             logger.info("%r responded on topic %r.", self, topic.path)
 
         except BaseException as error:  # noqa
-            logger.exception(error)
-
             exception_info = sys.exc_info()
             exception = exception_info[1]
             exception_message = f"Error in {self!r}: " + exception.args[0]
@@ -187,6 +191,8 @@ class Service(CoolNameable):
                 ).encode(),
                 retry=create_custom_retry(timeout),
             )
+
+            raise error
 
     def ask(self, service_id, input_values, input_manifest=None):
         """Ask a serving Service a question (i.e. send it input values for it to run its app on). The input values must
