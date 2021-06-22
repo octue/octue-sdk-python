@@ -6,6 +6,7 @@ import uuid
 from concurrent.futures import TimeoutError
 import google.api_core
 import google.api_core.exceptions
+import tblib
 from google.api_core import retry
 from google.cloud import pubsub_v1
 
@@ -25,10 +26,15 @@ OCTUE_NAMESPACE = "octue.services"
 ANSWERS_NAMESPACE = "answers"
 ERROR_INDICATOR = "ERROR"
 
-
 # Switch message batching off by setting max_messages to 1. This minimises latency and is recommended for
 # microservices publishing single messages in a request-response sequence.
 BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_latency=0.01, max_messages=1)
+
+EXCEPTIONS_MAPPING = {
+    name: object
+    for name, object in globals()["__builtins__"].items()
+    if name.endswith("Error") or name.endswith("Exception")
+}
 
 
 def create_custom_retry(timeout):
@@ -149,12 +155,20 @@ class Service(CoolNameable):
 
         except BaseException:  # noqa
             exception_info = sys.exc_info()
-            exception_info[1].args = (f"Error in {self!r}: " + exception_info[1].args[0], *exception_info[1].args[1:])
+            exception = exception_info[1]
+            traceback = tblib.Traceback(exception_info[2])
+
+            exception_args = (f"Error in {self!r}: " + exception.args[0], *exception.args[1:])
 
             self.publisher.publish(
                 topic=topic.path,
-                data=json.dumps(ERROR_INDICATOR).encode(),
-                error=exception_info,
+                data=json.dumps(
+                    {
+                        "exception_type": type(exception).__name__,
+                        "exception_args": exception_args,
+                        "traceback": traceback.to_dict(),
+                    }
+                ).encode(),
                 retry=create_custom_retry(timeout),
             )
 
@@ -251,8 +265,11 @@ class Service(CoolNameable):
 
         data = json.loads(answer.message.data.decode())
 
-        if data == ERROR_INDICATOR:
-            raise answer.message.error[1]
+        if "exception_type" in data:
+            traceback = tblib.Traceback.from_dict(data["traceback"]).as_traceback()
+            exception = EXCEPTIONS_MAPPING[data["exception_type"]]().with_traceback(traceback)
+            exception.args = data["exception_args"]
+            raise exception
 
         if data["output_manifest"] is None:
             output_manifest = None
