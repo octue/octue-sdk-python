@@ -29,6 +29,7 @@ setup(
         "google-crc32c>=1.1.2",
         "gunicorn",
         "python-dateutil>=2.8.1",
+        "tblib>=1.7.0",
         "twined>=0.0.20",
     ],
     url="https://www.github.com/octue/octue-sdk-python",
