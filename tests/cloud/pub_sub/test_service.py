@@ -90,6 +90,31 @@ class TestService(BaseTestCase):
             with self.assertRaises(concurrent.futures.TimeoutError):
                 service.wait_for_answer(subscription=mock_subscription, timeout=0.01)
 
+    def test_exceptions_in_responder_are_handled_and_sent_to_asker(self):
+        """Test that exceptions raised in the responding service are handled and sent back to the asker."""
+        responding_service = self.make_new_server(self.BACKEND, run_function_returnee=None, use_mock=True)
+
+        def error_run_function(input_values, input_manifest):
+            raise ValueError("Oh no")
+
+        responding_service.run_function = error_run_function
+
+        asking_service = MockService(backend=self.BACKEND, children={responding_service.id: responding_service})
+
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                responding_service.serve()
+
+                with self.assertRaises(ValueError) as context:
+                    self.ask_question_and_wait_for_answer(
+                        asking_service=asking_service,
+                        responding_service=responding_service,
+                        input_values={},
+                        input_manifest=None,
+                    )
+
+                self.assertIn("Oh no", context.exception.args[0])
+
     def test_ask(self):
         """ Test that a service can ask a question to another service that is serving and receive an answer. """
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)

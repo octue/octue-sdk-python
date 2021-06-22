@@ -1,5 +1,6 @@
 import json
 import logging
+import sys
 import time
 import uuid
 from concurrent.futures import TimeoutError
@@ -22,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 OCTUE_NAMESPACE = "octue.services"
 ANSWERS_NAMESPACE = "answers"
+ERROR_INDICATOR = "ERROR"
 
 
 # Switch message batching off by setting max_messages to 1. This minimises latency and is recommended for
@@ -126,22 +128,35 @@ class Service(CoolNameable):
         topic = Topic(
             name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)), namespace=OCTUE_NAMESPACE, service=self
         )
-        analysis = self.run_function(input_values=data["input_values"], input_manifest=data["input_manifest"])
 
-        if analysis.output_manifest is None:
-            serialised_output_manifest = None
-        else:
-            serialised_output_manifest = analysis.output_manifest.serialise(to_string=True)
+        try:
+            analysis = self.run_function(input_values=data["input_values"], input_manifest=data["input_manifest"])
 
-        self.publisher.publish(
-            topic=topic.path,
-            data=json.dumps(
-                {"output_values": analysis.output_values, "output_manifest": serialised_output_manifest},
-                cls=OctueJSONEncoder,
-            ).encode(),
-            retry=create_custom_retry(timeout),
-        )
-        logger.info("%r responded on topic %r.", self, topic.path)
+            if analysis.output_manifest is None:
+                serialised_output_manifest = None
+            else:
+                serialised_output_manifest = analysis.output_manifest.serialise(to_string=True)
+
+            self.publisher.publish(
+                topic=topic.path,
+                data=json.dumps(
+                    {"output_values": analysis.output_values, "output_manifest": serialised_output_manifest},
+                    cls=OctueJSONEncoder,
+                ).encode(),
+                retry=create_custom_retry(timeout),
+            )
+            logger.info("%r responded on topic %r.", self, topic.path)
+
+        except BaseException:  # noqa
+            exception_info = sys.exc_info()
+            exception_info[1].args = (f"Error in {self!r}: " + exception_info[1].args[0], *exception_info[1].args[1:])
+
+            self.publisher.publish(
+                topic=topic.path,
+                data=json.dumps(ERROR_INDICATOR).encode(),
+                error=exception_info,
+                retry=create_custom_retry(timeout),
+            )
 
     def ask(self, service_id, input_values, input_manifest=None):
         """Ask a serving Service a question (i.e. send it input values for it to run its app on). The input values must
@@ -235,6 +250,9 @@ class Service(CoolNameable):
                 subscription.topic.delete()
 
         data = json.loads(answer.message.data.decode())
+
+        if data == ERROR_INDICATOR:
+            raise answer.message.error[1]
 
         if data["output_manifest"] is None:
             output_manifest = None
