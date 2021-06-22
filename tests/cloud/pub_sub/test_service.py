@@ -2,6 +2,7 @@ import concurrent.futures
 import uuid
 from unittest.mock import patch
 
+import twined.exceptions
 from octue import exceptions
 from octue.cloud.pub_sub.service import Service
 from octue.resources import Datafile, Dataset, Manifest
@@ -95,7 +96,7 @@ class TestService(BaseTestCase):
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=None, use_mock=True)
 
         def error_run_function(input_values, input_manifest):
-            raise ValueError("Oh no")
+            raise twined.exceptions.InvalidManifestContents("'met_mast_id' is a required property")
 
         responding_service.run_function = error_run_function
 
@@ -105,7 +106,7 @@ class TestService(BaseTestCase):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                 responding_service.serve()
 
-                with self.assertRaises(ValueError) as context:
+                with self.assertRaises(twined.exceptions.InvalidManifestContents) as context:
                     self.ask_question_and_wait_for_answer(
                         asking_service=asking_service,
                         responding_service=responding_service,
@@ -113,7 +114,7 @@ class TestService(BaseTestCase):
                         input_manifest=None,
                     )
 
-                self.assertIn("Oh no", context.exception.args[0])
+                self.assertIn("'met_mast_id' is a required property", context.exception.args[0])
 
     def test_ask(self):
         """ Test that a service can ask a question to another service that is serving and receive an answer. """

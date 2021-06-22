@@ -10,7 +10,8 @@ import tblib
 from google.api_core import retry
 from google.cloud import pubsub_v1
 
-from octue import exceptions
+import octue.exceptions
+import twined.exceptions
 from octue.cloud.credentials import GCPCredentialsManager
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.exceptions import FileLocationError
@@ -24,17 +25,31 @@ logger = logging.getLogger(__name__)
 
 OCTUE_NAMESPACE = "octue.services"
 ANSWERS_NAMESPACE = "answers"
-ERROR_INDICATOR = "ERROR"
 
 # Switch message batching off by setting max_messages to 1. This minimises latency and is recommended for
 # microservices publishing single messages in a request-response sequence.
 BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_latency=0.01, max_messages=1)
 
-EXCEPTIONS_MAPPING = {
-    name: object
-    for name, object in globals()["__builtins__"].items()
-    if name.endswith("Error") or name.endswith("Exception")
-}
+
+def create_exceptions_mapping(*sources):
+    candidates = {key: value for source in sources for key, value in source.items()}
+
+    exceptions_mapping = {}
+
+    for name, object in candidates.items():
+        try:
+            if issubclass(object, BaseException):
+                exceptions_mapping[name] = object
+
+        except TypeError:
+            continue
+
+    return exceptions_mapping
+
+
+EXCEPTIONS_MAPPING = create_exceptions_mapping(
+    globals()["__builtins__"], vars(twined.exceptions), vars(octue.exceptions)
+)
 
 
 def create_custom_retry(timeout):
@@ -156,16 +171,15 @@ class Service(CoolNameable):
         except BaseException:  # noqa
             exception_info = sys.exc_info()
             exception = exception_info[1]
+            exception_message = f"Error in {self!r}: " + exception.args[0]
             traceback = tblib.Traceback(exception_info[2])
-
-            exception_args = (f"Error in {self!r}: " + exception.args[0], *exception.args[1:])
 
             self.publisher.publish(
                 topic=topic.path,
                 data=json.dumps(
                     {
                         "exception_type": type(exception).__name__,
-                        "exception_args": exception_args,
+                        "exception_message": exception_message,
                         "traceback": traceback.to_dict(),
                     }
                 ).encode(),
@@ -187,7 +201,7 @@ class Service(CoolNameable):
 
         question_topic = Topic(name=service_id, namespace=OCTUE_NAMESPACE, service=self)
         if not question_topic.exists():
-            raise exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
+            raise octue.exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
 
         question_uuid = str(int(uuid.uuid4()))
 
@@ -267,8 +281,7 @@ class Service(CoolNameable):
 
         if "exception_type" in data:
             traceback = tblib.Traceback.from_dict(data["traceback"]).as_traceback()
-            exception = EXCEPTIONS_MAPPING[data["exception_type"]]().with_traceback(traceback)
-            exception.args = data["exception_args"]
+            exception = EXCEPTIONS_MAPPING[data["exception_type"]](data["exception_message"]).with_traceback(traceback)
             raise exception
 
         if data["output_manifest"] is None:
