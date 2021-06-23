@@ -108,19 +108,19 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             path_from=path_from,
         )
 
-        # Set up the file extension or get it from the file path if none passed
-        self.extension = self._get_extension_from_path()
-        self.hypothetical = hypothetical
-        self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
-        self._cloud_metadata = {"project_name": project_name}
-
-        if self.is_in_cloud and not self.hypothetical:
-            self._from_cloud()
-            return
-
         self.cluster = cluster
         self.sequence = sequence
         self.timestamp = timestamp
+
+        # Set up the file extension or get it from the file path if none passed
+        self.extension = self._get_extension_from_path()
+        self._hypothetical = hypothetical
+        self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
+        self._cloud_metadata = {"project_name": project_name}
+
+        if self.is_in_cloud and not self._hypothetical:
+            self._from_cloud(id=id, timestamp=timestamp, cluster=cluster, sequence=sequence, tags=tags, labels=labels)
+            return
 
         # Run integrity checks on the file
         if not skip_checks:
@@ -361,22 +361,46 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         if self.absolute_path in TEMPORARY_LOCAL_FILE_CACHE:
             del TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path]
 
-    def _from_cloud(self):
+    def _from_cloud(self, **initialisation_parameters):
         """Populate the datafile's attributes from the cloud location defined by its path (by necessity a cloud path)
         and project name.
 
         :return None:
         """
         self.get_cloud_metadata(project_name=self._cloud_metadata["project_name"], cloud_path=self.path)
-        custom_metadata = self._cloud_metadata.get("custom_metadata", {})
+        cloud_custom_metadata = self._cloud_metadata.get("custom_metadata", {})
+        self._check_for_attribute_conflict(cloud_custom_metadata, **initialisation_parameters)
 
-        self._set_id(custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__id", ID_DEFAULT))
+        self._set_id(cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__id", ID_DEFAULT))
         self.immutable_hash_value = self._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
-        self.timestamp = custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__timestamp")
-        self.cluster = custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__cluster", CLUSTER_DEFAULT)
-        self.sequence = custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__sequence", SEQUENCE_DEFAULT)
-        self.tags = custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__tags", TAGS_DEFAULT)
-        self.labels = custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__labels", LABELS_DEFAULT)
+        self.timestamp = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__timestamp")
+        self.cluster = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__cluster", CLUSTER_DEFAULT)
+        self.sequence = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__sequence", SEQUENCE_DEFAULT)
+        self.tags = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__tags", TAGS_DEFAULT)
+        self.labels = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__labels", LABELS_DEFAULT)
+
+    def _check_for_attribute_conflict(self, cloud_custom_metadata, **initialisation_parameters):
+        """Raise a warning if there is a conflict between the cloud custom metadata and the given initialisation
+        parameters if the initialisation parameters are not `None`.
+
+        :param dict cloud_custom_metadata:
+        :return None:
+        """
+        for attribute_name, attribute_value in initialisation_parameters.items():
+
+            if attribute_value is None:
+                continue
+
+            cloud_metadata_value = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__{attribute_name}")
+
+            if cloud_metadata_value == attribute_value:
+                continue
+
+            module_logger.warning(
+                f"The value {cloud_metadata_value!r} of the {type(self).__name__} attribute {attribute_name!r} from "
+                f"the cloud conflicts with the value given locally at instantiation {attribute_value!r}. This may not "
+                f"be a problem, but note that cloud datafile metadata cannot be changed at instantiation."
+            )
 
     def _get_extension_from_path(self, path=None):
         """Gets extension of a file, either from a provided file path or from self.path field"""
