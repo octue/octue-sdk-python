@@ -50,7 +50,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
           "sha-512/256": "somesha"
         },
 
-    :parameter datetime.datetime|int|float|None timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when it was created but could relate to a relevant time point for the data
+    :param datetime.datetime|int|float|None timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when it was created but could relate to a relevant time point for the data
     :param str id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
     :param logging.Logger logger: A logger instance to which operations with this datafile will be logged. Defaults to the module logger.
     :param Union[str, path-like] path: The path of this file, which may include folders or subfolders, within the dataset. If no path_from parameter is set, then absolute paths are acceptable, otherwise relative paths are required.
@@ -119,7 +119,9 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         self._cloud_metadata = {"project_name": project_name}
 
         if self.is_in_cloud and not self._hypothetical:
-            self._from_cloud(id=id, timestamp=timestamp, cluster=cluster, sequence=sequence, tags=tags, labels=labels)
+            self._use_cloud_metadata(
+                id=id, timestamp=timestamp, cluster=cluster, sequence=sequence, tags=tags, labels=labels
+            )
             return
 
         # Run integrity checks on the file
@@ -361,10 +363,11 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         if self.absolute_path in TEMPORARY_LOCAL_FILE_CACHE:
             del TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path]
 
-    def _from_cloud(self, **initialisation_parameters):
+    def _use_cloud_metadata(self, **initialisation_parameters):
         """Populate the datafile's attributes from the cloud location defined by its path (by necessity a cloud path)
         and project name.
 
+        :param initialisation_parameters: key-value pairs of initialisation parameter names and values (provide to check for conflicts with cloud metadata)
         :return None:
         """
         self.get_cloud_metadata(project_name=self._cloud_metadata["project_name"], cloud_path=self.path)
@@ -399,7 +402,8 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             module_logger.warning(
                 f"The value {cloud_metadata_value!r} of the {type(self).__name__} attribute {attribute_name!r} from "
                 f"the cloud conflicts with the value given locally at instantiation {attribute_value!r}. This may not "
-                f"be a problem, but note that cloud datafile metadata cannot be changed at instantiation."
+                f"be a problem, but note that cloud datafile metadata cannot be changed at instantiation. The cloud "
+                f"value has been used."
             )
 
     def _get_extension_from_path(self, path=None):
