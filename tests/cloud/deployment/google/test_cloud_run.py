@@ -85,7 +85,10 @@ class TestCloudRun(TestCase):
             with mock.patch("octue.cloud.deployment.google.cloud_run.Runner") as mock_runner:
                 with mock.patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
                     cloud_run.answer_question(
-                        project_name="a-project-name", data={}, question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29"
+                        project_name="a-project-name",
+                        data={},
+                        question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29",
+                        credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS",
                     )
 
         mock_runner.assert_called_with(
@@ -115,13 +118,18 @@ class TestCloudRun(TestCase):
                 "SERVICE_ID": self.EXAMPLE_SERVICE_ID,
             },
         ):
-            mock_open = mock.mock_open(read_data=json.dumps({"app_dir": "/path/to/app_dir"}))
 
-            with mock.patch("builtins.open", mock_open):
+            with mock.patch(
+                "octue.cloud.deployment.google.cloud_run._get_deployment_configuration",
+                return_value={"app_dir": "/path/to/app_dir"},
+            ):
                 with mock.patch("octue.cloud.deployment.google.cloud_run.Runner") as mock_runner:
                     with mock.patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
                         cloud_run.answer_question(
-                            project_name="a-project-name", data={}, question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29"
+                            project_name="a-project-name",
+                            data={},
+                            question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29",
+                            credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS",
                         )
 
         mock_runner.assert_called_with(
