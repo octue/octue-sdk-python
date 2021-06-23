@@ -5,6 +5,7 @@ import unittest
 import uuid
 from unittest import TestCase, mock
 
+import twined.exceptions
 from octue.cloud.deployment.google import cloud_run
 from octue.cloud.pub_sub.service import Service
 from octue.exceptions import MissingServiceID
@@ -16,6 +17,9 @@ cloud_run.app.testing = True
 
 
 class TestCloudRun(TestCase):
+    # This is the service ID of the example service deployed to Google Cloud Run.
+    EXAMPLE_SERVICE_ID = "octue.services.009ea106-dc37-4521-a8cc-3e0836064334"
+
     def test_post_to_index_with_no_payload_results_in_400_error(self):
         """Test that a 400 (bad request) error code is returned if no payload is sent to the Flask endpoint."""
         with cloud_run.app.test_client() as client:
@@ -73,8 +77,19 @@ class TestCloudRun(TestCase):
         """Test that the Google Cloud Run example deployment works, providing a service that can be asked questions and
         send responses.
         """
-        service_to_ask = "octue.services.009ea106-dc37-4521-a8cc-3e0836064334"
         asker = Service(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
-        subscription, _ = asker.ask(service_id=service_to_ask, input_values={"n_iterations": 3})
+        subscription, _ = asker.ask(service_id=self.EXAMPLE_SERVICE_ID, input_values={"n_iterations": 3})
         answer = asker.wait_for_answer(subscription)
         self.assertEqual(answer, {"output_values": [1, 2, 3, 4, 5], "output_manifest": None})
+
+    @unittest.skipUnless(
+        condition=os.getenv("RUN_DEPLOYMENT_TESTS", "").lower() == "true",
+        reason="'RUN_DEPLOYMENT_TESTS' environment variable is False or not present.",
+    )
+    def test_cloud_run_deployment_forwards_exceptions_to_asking_service(self):
+        """Test that exceptions raised in the (remote) responding service are forwarded to and raised by the asker."""
+        asker = Service(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        subscription, _ = asker.ask(service_id=self.EXAMPLE_SERVICE_ID, input_values={"invalid_input_data": "hello"})
+
+        with self.assertRaises(twined.exceptions.InvalidValuesContents):
+            asker.wait_for_answer(subscription)
