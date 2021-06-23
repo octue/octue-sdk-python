@@ -13,7 +13,7 @@
         {
           "path": "08DEC/High Res Meteorological Mast Data - 8 Dec_1.csv",
           "extension": "csv",
-          "tags": {},
+          "tags": {"sequence": 0},
           "labels": ["timeseries"],
           "timestamp": 1605783547.0,
           "id": "acff07bc-7c19-4ed5-be6d-a6546eae8e86",
@@ -24,7 +24,7 @@
         {
           "path": "08DEC/High Res Meteorological Mast Data - 8 Dec_2.csv",
           "extension": "csv",
-          "tags": {},
+          "tags": {"sequence": 1},
           "labels": ["timeseries"],
           "timestamp": 1605783547.0,
           "id": "bdff07bc-7c19-4ed5-be6d-a6546eae8e45",
@@ -35,7 +35,7 @@
         {
           "path": "08DEC/meta - 8 Dec.dat",
           "extension": "dat",
-          "tags": {},
+          "tags": {"sequence": 0},
           "labels": ["meta"],
           "timestamp": 1605783547.0,
           "id": "ceff07bc-7c19-4ed5-be6d-a6546eae8e86",
