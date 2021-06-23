@@ -59,7 +59,10 @@ class FilterContainer(ABC):
 
         if check_start_value is not None:
             if get_nested_attribute(results[0], attribute_name) != check_start_value:
-                raise exceptions.BrokenSequenceException(f"{results!r} does not start with {check_start_value!r}.")
+                raise exceptions.BrokenSequenceException(
+                    f"The attributes {attribute_name!r} of the items of {results!r} do not start with "
+                    f"{check_start_value!r}."
+                )
 
         if check_constant_increment is not None:
             required_increment = check_constant_increment
@@ -71,7 +74,8 @@ class FilterContainer(ABC):
 
                 if actual_increment != required_increment:
                     raise exceptions.BrokenSequenceException(
-                        f"{results!r} does not increase by a constant increment of {required_increment}."
+                        f"The attributes {attribute_name!r} of the items of {results!r} do not increase by a constant "
+                        f"increment of {required_increment}."
                     )
 
         return results
