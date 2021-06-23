@@ -13,7 +13,6 @@ from octue.exceptions import AttributeConflict, CloudLocationNotSpecified, FileN
 from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Loggable, Pathable, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils import isfile
-from octue.utils.time import convert_from_posix_time, convert_to_posix_time
 
 
 module_logger = logging.getLogger(__name__)
@@ -335,7 +334,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         if isinstance(value, datetime.datetime) or value is None:
             self._timestamp = value
         elif isinstance(value, (int, float)):
-            self._timestamp = convert_from_posix_time(value)
+            self._timestamp = datetime.datetime.fromtimestamp(value)
         else:
             raise TypeError(
                 f"timestamp should be a datetime.datetime instance, an int, a float, or None; received {value!r}"
@@ -350,7 +349,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         if self.timestamp is None:
             return None
 
-        return convert_to_posix_time(self.timestamp)
+        return self.timestamp.timestamp()
 
     @property
     def _last_modified(self):
@@ -364,7 +363,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             if last_modified is None:
                 return None
 
-            return convert_to_posix_time(last_modified)
+            return last_modified.timestamp()
 
         return os.path.getmtime(self.absolute_path)
 

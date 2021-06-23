@@ -492,7 +492,7 @@ class DatafileTestCase(BaseTestCase):
         datafile = Datafile(path="hello.txt", timestamp=None)
         self.assertIsNone(datafile.posix_timestamp)
 
-        datafile.timestamp = datetime(1970, 1, 1)
+        datafile.timestamp = datetime(1970, 1, 1, tzinfo=timezone.utc)
         self.assertEqual(datafile.posix_timestamp, 0)
 
     def test_datafile_as_context_manager(self):
