@@ -23,8 +23,6 @@ TEMPORARY_LOCAL_FILE_CACHE = {}
 OCTUE_METADATA_NAMESPACE = "octue"
 
 ID_DEFAULT = None
-CLUSTER_DEFAULT = 0
-SEQUENCE_DEFAULT = None
 TAGS_DEFAULT = None
 LABELS_DEFAULT = None
 
@@ -36,8 +34,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
         {
           "path": "folder/subfolder/file_1.csv",
-          "cluster": 0,
-          "sequence": 0,
           "extension": "csv",
           "tags": {},
           "labels": [],
@@ -47,33 +43,23 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
           "sha-512/256": "somesha"
         },
 
-    :parameter datetime.datetime|int|float|None timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when
-        it was created but could relate to a relevant time point for the data
+    :parameter datetime.datetime|int|float|None timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when it was created but could relate to a relevant time point for the data
     :param str id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
-    :param logging.Logger logger: A logger instance to which operations with this datafile will be logged. Defaults to
-        the module logger.
-    :param Union[str, path-like] path: The path of this file, which may include folders or subfolders, within the
-        dataset. If no path_from parameter is set, then absolute paths are acceptable, otherwise relative paths are
-        required.
+    :param logging.Logger logger: A logger instance to which operations with this datafile will be logged. Defaults to the module logger.
+    :param Union[str, path-like] path: The path of this file, which may include folders or subfolders, within the dataset. If no path_from parameter is set, then absolute paths are acceptable, otherwise relative paths are required.
     :param Pathable path_from: The root Pathable object (typically a Dataset) that this Datafile's path is relative to.
-    :param int cluster: The cluster of files, within a dataset, to which this belongs (default 0)
-    :param int sequence: A sequence number of this file within its cluster (if sequences are appropriate)
     :param dict|TagDict tags: key-value pairs with string keys conforming to the Octue tag format (see TagDict)
     :param iter(str) labels: Space-separated string of labels relevant to this file
     :param bool skip_checks:
-    :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode
-        options are the same as for the builtin open function)
-    :param bool update_cloud_metadata: if using as a context manager and this is True, update the cloud metadata of
-        the datafile when the context is exited
+    :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode options are the same as for the builtin open function)
+    :param bool update_cloud_metadata: if using as a context manager and this is True, update the cloud metadata of the datafile when the context is exited
     :return None:
     """
 
     _SERIALISE_FIELDS = (
-        "cluster",
         "id",
         "name",
         "path",
-        "sequence",
         "tags",
         "labels",
         "timestamp",
@@ -87,8 +73,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         id=ID_DEFAULT,
         logger=None,
         path_from=None,
-        cluster=CLUSTER_DEFAULT,
-        sequence=SEQUENCE_DEFAULT,
         tags=TAGS_DEFAULT,
         labels=LABELS_DEFAULT,
         skip_checks=True,
@@ -107,11 +91,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             path_from=path_from,
         )
 
-        self.cluster = cluster
-        self.sequence = sequence
         self.timestamp = timestamp
-
-        # Set up the file extension or get it from the file path if none passed
         self.extension = self._get_extension_from_path()
 
         # Run integrity checks on the file
@@ -207,14 +187,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         datafile.timestamp = kwargs.get("timestamp", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__timestamp"))
         datafile.tags = kwargs.pop("tags", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__tags", TAGS_DEFAULT))
 
-        datafile.cluster = kwargs.pop(
-            "cluster", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__cluster", CLUSTER_DEFAULT)
-        )
-
-        datafile.sequence = kwargs.pop(
-            "sequence", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__sequence", SEQUENCE_DEFAULT)
-        )
-
         datafile.labels = kwargs.pop(
             "labels", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__labels", LABELS_DEFAULT)
         )
@@ -260,8 +232,8 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         return cloud_path or storage.path.generate_gs_path(bucket_name, path_in_bucket)
 
     def get_cloud_metadata(self, project_name=None, cloud_path=None, bucket_name=None, path_in_bucket=None):
-        """Get the cloud metadata for the datafile, casting the types of the cluster and sequence fields to integer.
-        Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must be provided.
+        """Get the cloud metadata for the datafile. Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must be
+        provided.
 
         :param str|None project_name:
         :param str|None cloud_path:
@@ -279,18 +251,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
         if cloud_metadata is None:
             return None
-
-        custom_metadata = cloud_metadata["custom_metadata"]
-
-        if custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__cluster") is not None:
-            custom_metadata[f"{OCTUE_METADATA_NAMESPACE}__cluster"] = int(
-                custom_metadata[f"{OCTUE_METADATA_NAMESPACE}__cluster"]
-            )
-
-        if custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__sequence") is not None:
-            custom_metadata[f"{OCTUE_METADATA_NAMESPACE}__sequence"] = int(
-                custom_metadata[f"{OCTUE_METADATA_NAMESPACE}__sequence"]
-            )
 
         self._cloud_metadata = cloud_metadata
 
@@ -528,8 +488,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         metadata = {
             "id": self.id,
             "timestamp": self.timestamp,
-            "cluster": self.cluster,
-            "sequence": self.sequence,
             "labels": self.labels,
             "tags": self.tags,
             "sdk_version": pkg_resources.get_distribution("octue").version,

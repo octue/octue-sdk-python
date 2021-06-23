@@ -60,8 +60,6 @@ class DatafileTestCase(BaseTestCase):
         df = Datafile(path="a_path")
         self.assertTrue(isinstance(df.id, str))
         self.assertEqual(type(uuid.UUID(df.id)), uuid.UUID)
-        self.assertIsNone(df.sequence)
-        self.assertEqual(0, df.cluster)
 
     def test_path_argument_required(self):
         """Ensures instantiation without a path will fail"""
@@ -115,14 +113,12 @@ class DatafileTestCase(BaseTestCase):
         self.assertIn("Extension provided (notcsv) does not match file extension", error.exception.args[0])
 
     def test_file_attributes_accessible(self):
-        """Ensures that its possible to set the sequence, cluster and timestamp"""
+        """Ensures that its possible to set the timestamp"""
         df = self.create_valid_datafile()
         self.assertIsInstance(df.size_bytes, int)
         self.assertGreaterEqual(df._last_modified, 1598200190.5771205)
         self.assertEqual("a_test_file.csv", df.name)
 
-        df.sequence = 2
-        df.cluster = 0
         df.timestamp = 0
 
     def test_cannot_set_calculated_file_attributes(self):
@@ -144,12 +140,10 @@ class DatafileTestCase(BaseTestCase):
         serialised_datafile = self.create_valid_datafile().serialise()
 
         expected_fields = {
-            "cluster",
             "id",
             "name",
             "path",
             "timestamp",
-            "sequence",
             "tags",
             "labels",
             "_cloud_metadata",
@@ -189,8 +183,6 @@ class DatafileTestCase(BaseTestCase):
         )
 
         self.assertEqual(datafile.path, f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}")
-        self.assertEqual(datafile.cluster, 0)
-        self.assertEqual(datafile.sequence, None)
         self.assertEqual(datafile.tags, TagDict())
         self.assertEqual(datafile.labels, LabelSet())
         self.assertTrue(isinstance(datafile.size_bytes, int))
@@ -201,8 +193,6 @@ class DatafileTestCase(BaseTestCase):
         """Test that a Datafile can be constructed from a file on Google Cloud storage with custom metadata."""
         datafile, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud(
             timestamp=datetime.now(tz=timezone.utc),
-            cluster=0,
-            sequence=1,
             labels={"blah-shah-nah", "blib", "glib"},
             tags={"good": True, "how_good": "very"},
         )
@@ -213,8 +203,6 @@ class DatafileTestCase(BaseTestCase):
         self.assertEqual(downloaded_datafile.id, datafile.id)
         self.assertEqual(downloaded_datafile.timestamp, datafile.timestamp)
         self.assertEqual(downloaded_datafile.hash_value, datafile.hash_value)
-        self.assertEqual(downloaded_datafile.cluster, datafile.cluster)
-        self.assertEqual(downloaded_datafile.sequence, datafile.sequence)
         self.assertEqual(downloaded_datafile.tags, datafile.tags)
         self.assertEqual(downloaded_datafile.labels, datafile.labels)
         self.assertEqual(downloaded_datafile.size_bytes, datafile.size_bytes)
@@ -258,19 +246,19 @@ class DatafileTestCase(BaseTestCase):
         """Test that calling Datafile.to_cloud on a datafile that is already cloud-based updates its metadata in the
         cloud.
         """
-        datafile, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud(cluster=0)
+        datafile, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud(labels={"start"})
 
-        datafile.cluster = 3
+        datafile.labels = {"finish"}
         datafile.to_cloud(project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
 
         self.assertEqual(
-            Datafile.from_cloud(project_name, bucket_name=bucket_name, datafile_path=path_in_bucket).cluster, 3
+            Datafile.from_cloud(project_name, bucket_name=bucket_name, datafile_path=path_in_bucket).labels, {"finish"}
         )
 
     def test_to_cloud_does_not_update_cloud_metadata_if_update_cloud_metadata_is_false(self):
         """Test that calling Datafile.to_cloud with `update_cloud_metadata=False` doesn't update the cloud metadata."""
-        datafile, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud(cluster=0)
-        datafile.cluster = 3
+        datafile, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud(labels={"start"})
+        datafile.labels = {"finish"}
 
         with patch("octue.resources.datafile.Datafile.update_cloud_metadata") as mock:
             datafile.to_cloud(
@@ -279,12 +267,12 @@ class DatafileTestCase(BaseTestCase):
             self.assertFalse(mock.called)
 
         self.assertEqual(
-            Datafile.from_cloud(project_name, bucket_name=bucket_name, datafile_path=path_in_bucket).cluster, 0
+            Datafile.from_cloud(project_name, bucket_name=bucket_name, datafile_path=path_in_bucket).labels, {"start"}
         )
 
     def test_to_cloud_does_not_update_metadata_if_no_metadata_change_has_been_made(self):
         """Test that Datafile.to_cloud does not try to update cloud metadata if no metadata change has been made."""
-        _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud(cluster=0)
+        _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud(labels={"start"})
 
         datafile = Datafile.from_cloud(project_name, bucket_name=bucket_name, datafile_path=path_in_bucket)
 
@@ -311,7 +299,7 @@ class DatafileTestCase(BaseTestCase):
 
     def test_to_cloud_does_not_try_to_update_file_if_no_change_has_been_made_locally(self):
         """Test that Datafile.to_cloud does not try to update cloud file if no change has been made locally."""
-        datafile, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud(cluster=0)
+        datafile, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud(labels={"start"})
 
         with patch("octue.cloud.storage.client.GoogleCloudStorageClient.upload_file") as mock:
             datafile.to_cloud()
@@ -321,11 +309,11 @@ class DatafileTestCase(BaseTestCase):
         """Test that a cloud datafile's metadata can be updated."""
         _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud()
 
-        new_datafile = Datafile(path="glib.txt", cluster=32)
+        new_datafile = Datafile(path="glib.txt", labels={"new"})
         new_datafile.update_cloud_metadata(project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
 
         self.assertEqual(
-            Datafile.from_cloud(project_name, bucket_name=bucket_name, datafile_path=path_in_bucket).cluster, 32
+            Datafile.from_cloud(project_name, bucket_name=bucket_name, datafile_path=path_in_bucket).labels, {"new"}
         )
 
     def test_update_cloud_metadata_works_with_implicit_cloud_location_if_cloud_location_previously_provided(self):
@@ -335,11 +323,11 @@ class DatafileTestCase(BaseTestCase):
         _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud()
 
         datafile = Datafile.from_cloud(project_name, bucket_name=bucket_name, datafile_path=path_in_bucket)
-        datafile.cluster = 32
+        datafile.labels = {"new"}
         datafile.update_cloud_metadata()
 
         self.assertEqual(
-            Datafile.from_cloud(project_name, bucket_name=bucket_name, datafile_path=path_in_bucket).cluster, 32
+            Datafile.from_cloud(project_name, bucket_name=bucket_name, datafile_path=path_in_bucket).labels, {"new"}
         )
 
     def test_update_cloud_metadata_raises_error_if_no_cloud_location_provided_and_datafile_not_from_cloud(self):
@@ -452,8 +440,6 @@ class DatafileTestCase(BaseTestCase):
         self.assertEqual(datafile.absolute_path, deserialised_datafile.absolute_path)
         self.assertEqual(datafile.hash_value, deserialised_datafile.hash_value)
         self.assertEqual(datafile.size_bytes, deserialised_datafile.size_bytes)
-        self.assertEqual(datafile.cluster, deserialised_datafile.cluster)
-        self.assertEqual(datafile.sequence, deserialised_datafile.sequence)
 
     def test_deserialise_uses_path_from_if_path_is_relative(self):
         """Test that Datafile.deserialise uses the path_from parameter if the datafile's path is relative."""
@@ -542,8 +528,6 @@ class DatafileTestCase(BaseTestCase):
             {
                 "octue__id",
                 "octue__timestamp",
-                "octue__cluster",
-                "octue__sequence",
                 "octue__tags",
                 "octue__labels",
                 "octue__sdk_version",
@@ -552,5 +536,5 @@ class DatafileTestCase(BaseTestCase):
 
         self.assertEqual(
             datafile.metadata(use_octue_namespace=False).keys(),
-            {"id", "timestamp", "cluster", "sequence", "tags", "labels", "sdk_version"},
+            {"id", "timestamp", "tags", "labels", "sdk_version"},
         )

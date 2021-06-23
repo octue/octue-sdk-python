@@ -12,8 +12,6 @@
       "files": [
         {
           "path": "08DEC/High Res Meteorological Mast Data - 8 Dec_1.csv",
-          "cluster": 0,
-          "sequence": 0,
           "extension": "csv",
           "tags": {},
           "labels": ["timeseries"],
@@ -25,8 +23,6 @@
         },
         {
           "path": "08DEC/High Res Meteorological Mast Data - 8 Dec_2.csv",
-          "cluster": 0,
-          "sequence": 1,
           "extension": "csv",
           "tags": {},
           "labels": ["timeseries"],
@@ -38,8 +34,6 @@
         },
         {
           "path": "08DEC/meta - 8 Dec.dat",
-          "cluster": 1,
-          "sequence": 0,
           "extension": "dat",
           "tags": {},
           "labels": ["meta"],

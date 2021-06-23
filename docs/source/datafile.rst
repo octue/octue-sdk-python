@@ -8,8 +8,6 @@ A ``Datafile`` is an Octue type that corresponds to a file, which may exist on y
 the following main attributes:
 
 - ``path`` - the path of this file, which may include folders or subfolders, within the dataset.
-- ``cluster`` - the integer cluster of files, within a dataset, to which this belongs (default 0)
-- ``sequence`` - a sequence number of this file within its cluster (if sequences are appropriate)
 - ``tags`` - key-value pairs of metadata relevant to this file
 - ``labels`` - a space-separated string or iterable of labels relevant to this file
 - ``timestamp`` - a posix timestamp associated with the file, in seconds since epoch, typically when it was created but could relate to a relevant time point for the data
@@ -49,8 +47,6 @@ Example A
         new_metadata = metadata_calculating_function(data)
 
         datafile.timestamp = new_metadata["timestamp"]
-        datafile.cluster = new_metadata["cluster"]
-        datafile.sequence = new_metadata["sequence"]
         datafile.tags = new_metadata["tags"]
         datafile.labels = new_metadata["labels"]
 
@@ -76,8 +72,6 @@ Example B
     datafile = Datafile.from_cloud(project_name, bucket_name, datafile_path):
 
     datafile.timestamp = datetime.now()
-    datafile.cluster = 0
-    datafile.sequence = 3
     datafile.tags = {"manufacturer": "Vestas", "output": "1MW"}
     datafile.labels = {"new"}
 
@@ -124,12 +118,11 @@ For creating new data in a new local file:
     from octue.resources import Datafile
 
 
-    sequence = 2
     tags = {"cleaned": True, "type": "linear"}
     labels = {"Vestas"}
 
 
-    with Datafile(path="path/to/local/file.dat", sequence=sequence, tags=tags, labels=labels, mode="w") as (datafile, f):
+    with Datafile(path="path/to/local/file.dat", tags=tags, labels=labels, mode="w") as (datafile, f):
         f.write("This is some cleaned data.")
 
     datafile.to_cloud(project_name="my-project", bucket_name="my-bucket", path_in_bucket="path/to/data.dat")
@@ -142,9 +135,8 @@ For existing data in an existing local file:
     from octue.resources import Datafile
 
 
-    sequence = 2
     tags = {"cleaned": True, "type": "linear"}
     labels = {"Vestas"}
 
-    datafile = Datafile(path="path/to/local/file.dat", sequence=sequence, tags=tags, labels=labels)
+    datafile = Datafile(path="path/to/local/file.dat", tags=tags, labels=labels)
     datafile.to_cloud(project_name="my-project", bucket_name="my-bucket", path_in_bucket="path/to/data.dat")

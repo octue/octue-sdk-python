@@ -6,7 +6,7 @@ import warnings
 from octue import definitions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.exceptions import BrokenSequenceException, InvalidInputException
+from octue.exceptions import InvalidInputException
 from octue.mixins import Hashable, Identifiable, Labelable, Loggable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
@@ -187,38 +187,6 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
             DeprecationWarning,
         )
         return self.files.filter(**kwargs)
-
-    def get_file_sequence(self, strict=True, **kwargs):
-        """Get an ordered sequence of files matching a criterion
-
-        Accepts the same search arguments as `get_files`.
-
-        :parameter strict: If True, applies a check that the resulting file sequence begins at 0 and ascends uniformly
-        by 1
-        :type strict: bool
-
-        :returns: Sorted list of Datafiles
-        :rtype: list(Datafile)
-        """
-        results = self.files
-
-        if kwargs:
-            results = results.filter(**kwargs)
-
-        results = results.filter(sequence__is_not=None)
-
-        # Sort the results on ascending sequence number
-        results = sorted(results, key=lambda file: file.sequence)
-
-        # Check sequence is unique and sequential
-        if strict:
-            index = -1
-            for result in results:
-                index += 1
-                if result.sequence != index:
-                    raise BrokenSequenceException("Filtered file sequence numbers do not monotonically increase from 0")
-
-        return results
 
     def get_file_by_label(self, label):
         """Get a single datafile from a dataset by filtering for files with the provided label.
