@@ -476,7 +476,7 @@ class DatafileTestCase(BaseTestCase):
             self.assertEqual(f.read(), contents)
 
     def test_from_datafile_as_context_manager(self):
-        """Test that Datafile.from_cloud can be used as a context manager to manage cloud changes."""
+        """Test that Datafile can be used as a context manager to manage cloud changes."""
         _, project_name, bucket_name, path_in_bucket, original_content = self.create_datafile_in_cloud()
         new_contents = "Here is the new content."
         self.assertNotEqual(original_content, new_contents)
