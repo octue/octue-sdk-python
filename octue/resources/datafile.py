@@ -9,7 +9,7 @@ from google_crc32c import Checksum
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.cloud.storage.path import CLOUD_STORAGE_PROTOCOL
-from octue.exceptions import AttributeConflict, CloudLocationNotSpecified, FileNotFoundException, InvalidInputException
+from octue.exceptions import CloudLocationNotSpecified, FileNotFoundException, InvalidInputException
 from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Loggable, Pathable, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils import isfile
@@ -28,7 +28,10 @@ LABELS_DEFAULT = None
 
 
 class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable, Filterable):
-    """Class for representing data files on the Octue system.
+    """A representation of a data file on the Octue system. If the given path is a cloud path and `hypothetical` is not
+    `True`, the datafile's metadata is pulled from the given cloud location, and any conflicting parameters (see the
+    `Datafile.metadata` method description for the parameter names concerned) are ignored. The metadata of cloud
+    datafiles can be changed using the `Datafile.update_metadata` method, but not during instantiation.
 
     Files in a manifest look like this:
 
@@ -43,16 +46,18 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
           "sha-512/256": "somesha"
         },
 
-    :parameter datetime.datetime|int|float|None timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when it was created but could relate to a relevant time point for the data
+    :param datetime.datetime|int|float|None timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when it was created but could relate to a relevant time point for the data
     :param str id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
     :param logging.Logger logger: A logger instance to which operations with this datafile will be logged. Defaults to the module logger.
     :param Union[str, path-like] path: The path of this file, which may include folders or subfolders, within the dataset. If no path_from parameter is set, then absolute paths are acceptable, otherwise relative paths are required.
     :param Pathable path_from: The root Pathable object (typically a Dataset) that this Datafile's path is relative to.
+    :param str|None project_name: The name of the cloud project if the datafile is located in the cloud
     :param dict|TagDict tags: key-value pairs with string keys conforming to the Octue tag format (see TagDict)
     :param iter(str) labels: Space-separated string of labels relevant to this file
     :param bool skip_checks:
     :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode options are the same as for the builtin open function)
     :param bool update_cloud_metadata: if using as a context manager and this is True, update the cloud metadata of the datafile when the context is exited
+    :param bool hypothetical: True if the file does not actually exist or access is not available at instantiation
     :return None:
     """
 
@@ -73,11 +78,13 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         id=ID_DEFAULT,
         logger=None,
         path_from=None,
+        project_name=None,
         tags=TAGS_DEFAULT,
         labels=LABELS_DEFAULT,
         skip_checks=True,
         mode="r",
         update_cloud_metadata=True,
+        hypothetical=False,
         **kwargs,
     ):
         super().__init__(
@@ -93,13 +100,17 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
         self.timestamp = timestamp
         self.extension = self._get_extension_from_path()
+        self._hypothetical = hypothetical
+        self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
+        self._cloud_metadata = {"project_name": project_name}
+
+        if self.is_in_cloud and not self._hypothetical:
+            self._use_cloud_metadata(id=id, timestamp=timestamp, tags=tags, labels=labels)
+            return
 
         # Run integrity checks on the file
         if not skip_checks:
             self.check(**kwargs)
-
-        self._cloud_metadata = {}
-        self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
 
     def __enter__(self):
         self._open_context_manager = self.open(**self._open_attributes)
@@ -140,58 +151,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             datafile = Datafile(**serialised_datafile)
 
         datafile._cloud_metadata = cloud_metadata
-        return datafile
-
-    @classmethod
-    def from_cloud(
-        cls,
-        project_name,
-        cloud_path=None,
-        bucket_name=None,
-        datafile_path=None,
-        allow_overwrite=False,
-        mode="r",
-        update_cloud_metadata=True,
-        **kwargs,
-    ):
-        """Instantiate a Datafile from a previously-persisted Datafile in Google Cloud storage. To instantiate a
-        Datafile from a regular file on Google Cloud storage, the usage is the same, but a meaningful value for each of
-        the instantiated Datafile's attributes can be included in the kwargs (a "regular" file is a file that has been
-        uploaded to storage without being wrapped in a Datafile instance - i.e. a normal file).
-
-        Note that a value provided for an attribute in kwargs will override any existing value for the attribute.
-
-        Either (`bucket_name` and `datafile_path`) or `cloud_path` must be provided.
-
-        :param str project_name: name of Google Cloud project datafile is stored in
-        :param str|None cloud_path: full path to datafile in cloud storage (e.g. `gs://bucket_name/path/to/file.csv`)
-        :param str|None bucket_name: name of bucket datafile is stored in
-        :param str|None datafile_path: cloud storage path of datafile (e.g. `path/to/file.csv`)
-        :param bool allow_overwrite: if `True`, allow attributes of the datafile to be overwritten by values given in kwargs
-        :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode options are the same as for the builtin open function)
-        :param bool update_cloud_metadata: if using as a context manager and this is True, update the cloud metadata of the datafile when the context is exited
-        :return Datafile:
-        """
-        if not cloud_path:
-            cloud_path = storage.path.generate_gs_path(bucket_name, datafile_path)
-
-        datafile = cls(path=cloud_path)
-        datafile.get_cloud_metadata(project_name, cloud_path=cloud_path)
-        custom_metadata = datafile._cloud_metadata.get("custom_metadata", {})
-
-        if not allow_overwrite:
-            cls._check_for_attribute_conflict(custom_metadata, **kwargs)
-
-        datafile._set_id(kwargs.pop("id", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__id", ID_DEFAULT)))
-        datafile.immutable_hash_value = datafile._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
-        datafile.timestamp = kwargs.get("timestamp", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__timestamp"))
-        datafile.tags = kwargs.pop("tags", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__tags", TAGS_DEFAULT))
-
-        datafile.labels = kwargs.pop(
-            "labels", custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__labels", LABELS_DEFAULT)
-        )
-
-        datafile._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
         return datafile
 
     def to_cloud(
@@ -273,8 +232,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             bucket_name=bucket_name,
             path_in_bucket=path_in_bucket,
         )
-
-        self._store_cloud_location(project_name, bucket_name, path_in_bucket)
 
     @property
     def name(self):
@@ -378,6 +335,47 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         if self.absolute_path in TEMPORARY_LOCAL_FILE_CACHE:
             del TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path]
 
+    def _use_cloud_metadata(self, **initialisation_parameters):
+        """Populate the datafile's attributes from the cloud location defined by its path (by necessity a cloud path)
+        and project name.
+
+        :param initialisation_parameters: key-value pairs of initialisation parameter names and values (provide to check for conflicts with cloud metadata)
+        :return None:
+        """
+        self.get_cloud_metadata(project_name=self._cloud_metadata["project_name"], cloud_path=self.path)
+        cloud_custom_metadata = self._cloud_metadata.get("custom_metadata", {})
+        self._check_for_attribute_conflict(cloud_custom_metadata, **initialisation_parameters)
+
+        self._set_id(cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__id", ID_DEFAULT))
+        self.immutable_hash_value = self._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
+        self.timestamp = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__timestamp")
+        self.tags = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__tags", TAGS_DEFAULT)
+        self.labels = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__labels", LABELS_DEFAULT)
+
+    def _check_for_attribute_conflict(self, cloud_custom_metadata, **initialisation_parameters):
+        """Raise a warning if there is a conflict between the cloud custom metadata and the given initialisation
+        parameters if the initialisation parameters are not `None`.
+
+        :param dict cloud_custom_metadata:
+        :return None:
+        """
+        for attribute_name, attribute_value in initialisation_parameters.items():
+
+            if attribute_value is None:
+                continue
+
+            cloud_metadata_value = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__{attribute_name}")
+
+            if cloud_metadata_value == attribute_value:
+                continue
+
+            module_logger.warning(
+                f"The value {cloud_metadata_value!r} of the {type(self).__name__} attribute {attribute_name!r} from "
+                f"the cloud conflicts with the value given locally at instantiation {attribute_value!r}. This may not "
+                f"be a problem, but note that cloud datafile metadata cannot be changed at instantiation. The cloud "
+                f"value has been used."
+            )
+
     def _get_extension_from_path(self, path=None):
         """Gets extension of a file, either from a provided file path or from self.path field"""
         path = path or self.path
@@ -396,7 +394,8 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
     def _get_cloud_location(self, project_name=None, cloud_path=None, bucket_name=None, path_in_bucket=None):
         """Get the cloud location details for the bucket, allowing the keyword arguments to override any stored values.
-        Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must be provided.
+        Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must be provided. Once the cloud location details
+        have been determined, update the stored cloud location details.
 
         :param str|None project_name:
         :param str|None cloud_path:
@@ -419,6 +418,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
                 f"specify its exact location (its project_name, bucket_name, and path_in_bucket)."
             )
 
+        self._store_cloud_location(project_name, bucket_name, path_in_bucket)
         return project_name, bucket_name, path_in_bucket
 
     def _store_cloud_location(self, project_name, bucket_name, path_in_bucket):
@@ -432,25 +432,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         self._cloud_metadata["project_name"] = project_name
         self._cloud_metadata["bucket_name"] = bucket_name
         self._cloud_metadata["path_in_bucket"] = path_in_bucket
-
-    @classmethod
-    def _check_for_attribute_conflict(cls, custom_metadata, **kwargs):
-        """Raise an error if there is a conflict between the custom metadata and the kwargs.
-
-        :param dict custom_metadata:
-        :raise octue.exceptions.AttributeConflict: if any of the custom metadata conflicts with kwargs
-        :return None:
-        """
-        for attribute_name, attribute_value in kwargs.items():
-
-            if custom_metadata.get(attribute_name) == attribute_value:
-                continue
-
-            raise AttributeConflict(
-                f"The value {custom_metadata.get(attribute_name)!r} of the {cls.__name__} attribute "
-                f"{attribute_name!r} conflicts with the value given in kwargs {attribute_value!r}. If you wish to "
-                f"overwrite the attribute value, set `allow_overwrite` to `True`."
-            )
 
     def check(self, size_bytes=None, sha=None, last_modified=None, extension=None):
         """Check file presence and integrity"""
@@ -480,7 +461,8 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         return functools.partial(_DatafileContextManager, self)
 
     def metadata(self, use_octue_namespace=True):
-        """Get the datafile's metadata in a serialised form.
+        """Get the datafile's metadata in a serialised form (i.e. the attributes `id`, `timestamp`, `labels`, `tags`,
+        and `sdk_version`).
 
         :param bool use_octue_namespace: if True, prefix metadata names with "octue__"
         :return dict:
@@ -488,8 +470,8 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         metadata = {
             "id": self.id,
             "timestamp": self.timestamp,
-            "labels": self.labels,
             "tags": self.tags,
+            "labels": self.labels,
             "sdk_version": pkg_resources.get_distribution("octue").version,
         }
 
