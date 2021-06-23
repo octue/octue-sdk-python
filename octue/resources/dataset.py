@@ -78,10 +78,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
 
         for file in serialised_dataset["files"]:
             file_bucket_name, path = storage.path.split_bucket_name_from_gs_path(file)
-
-            datafiles.add(
-                Datafile.from_cloud(project_name=project_name, bucket_name=file_bucket_name, datafile_path=path)
-            )
+            datafiles.add(Datafile(storage.path.generate_gs_path(file_bucket_name, path), project_name=project_name))
 
         return Dataset(
             id=serialised_dataset["id"],
