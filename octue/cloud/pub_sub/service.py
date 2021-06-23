@@ -18,10 +18,10 @@ from octue.exceptions import FileLocationError
 from octue.mixins import CoolNameable
 from octue.resources.manifest import Manifest
 from octue.utils.encoders import OctueJSONEncoder
+from octue.utils.exceptions import create_exceptions_mapping
 
 
 logger = logging.getLogger(__name__)
-
 
 OCTUE_NAMESPACE = "octue.services"
 ANSWERS_NAMESPACE = "answers"
@@ -29,23 +29,6 @@ ANSWERS_NAMESPACE = "answers"
 # Switch message batching off by setting max_messages to 1. This minimises latency and is recommended for
 # microservices publishing single messages in a request-response sequence.
 BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_latency=0.01, max_messages=1)
-
-
-def create_exceptions_mapping(*sources):
-    candidates = {key: value for source in sources for key, value in source.items()}
-
-    exceptions_mapping = {}
-
-    for name, object in candidates.items():
-        try:
-            if issubclass(object, BaseException):
-                exceptions_mapping[name] = object
-
-        except TypeError:
-            continue
-
-    return exceptions_mapping
-
 
 EXCEPTIONS_MAPPING = create_exceptions_mapping(
     globals()["__builtins__"], vars(twined.exceptions), vars(octue.exceptions)
