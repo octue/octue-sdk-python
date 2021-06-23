@@ -30,7 +30,10 @@ LABELS_DEFAULT = None
 
 
 class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable, Filterable):
-    """Class for representing data files on the Octue system.
+    """A representation of a data file on the Octue system. If the given path is a cloud path and `hypothetical` is not
+    `True`, the datafile's metadata is pulled from the given cloud location, and any conflicting parameters (see the
+    `Datafile.metadata` method description for the parameter names concerned) are ignored. The metadata of cloud
+    datafiles can be changed using the `Datafile.update_metadata` method, but not during instantiation.
 
     Files in a manifest look like this:
 
@@ -370,9 +373,9 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         self._set_id(custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__id", ID_DEFAULT))
         self.immutable_hash_value = self._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
         self.timestamp = custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__timestamp")
-        self.tags = custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__tags", TAGS_DEFAULT)
         self.cluster = custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__cluster", CLUSTER_DEFAULT)
         self.sequence = custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__sequence", SEQUENCE_DEFAULT)
+        self.tags = custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__tags", TAGS_DEFAULT)
         self.labels = custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__labels", LABELS_DEFAULT)
 
     def _get_extension_from_path(self, path=None):
@@ -460,7 +463,8 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         return functools.partial(_DatafileContextManager, self)
 
     def metadata(self, use_octue_namespace=True):
-        """Get the datafile's metadata in a serialised form.
+        """Get the datafile's metadata in a serialised form (i.e. the attributes `id`, `timestamp`, `cluster`,
+        `sequence`, `labels`, `tags`, and `sdk_version`).
 
         :param bool use_octue_namespace: if True, prefix metadata names with "octue__"
         :return dict:
@@ -470,8 +474,8 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             "timestamp": self.timestamp,
             "cluster": self.cluster,
             "sequence": self.sequence,
-            "labels": self.labels,
             "tags": self.tags,
+            "labels": self.labels,
             "sdk_version": pkg_resources.get_distribution("octue").version,
         }
 
