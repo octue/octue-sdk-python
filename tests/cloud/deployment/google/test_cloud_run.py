@@ -75,13 +75,7 @@ class TestCloudRun(TestCase):
         """Test that the Cloud Run `answer_question` function uses the default deployment values when a deployment
         configuration file is not provided.
         """
-        with mock.patch.dict(
-            os.environ,
-            {
-                "DEPLOYMENT_CONFIGURATION_PATH": tempfile.NamedTemporaryFile().name,
-                "SERVICE_ID": self.EXAMPLE_SERVICE_ID,
-            },
-        ):
+        with mock.patch.dict(os.environ, {"SERVICE_ID": self.EXAMPLE_SERVICE_ID}):
             with mock.patch("octue.cloud.deployment.google.cloud_run.Runner") as mock_runner:
                 with mock.patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
                     cloud_run.answer_question(
@@ -118,7 +112,6 @@ class TestCloudRun(TestCase):
                 "SERVICE_ID": self.EXAMPLE_SERVICE_ID,
             },
         ):
-
             with mock.patch(
                 "octue.cloud.deployment.google.cloud_run._get_deployment_configuration",
                 return_value={"app_dir": "/path/to/app_dir"},
