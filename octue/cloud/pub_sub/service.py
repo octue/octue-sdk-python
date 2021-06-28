@@ -279,7 +279,12 @@ class Service(CoolNameable):
                 )
             )
 
-            raise EXCEPTIONS_MAPPING[data["exception_type"]](message)
+            try:
+                raise EXCEPTIONS_MAPPING[data["exception_type"]](message)
+
+            # Allow unknown exception types to still be raised.
+            except KeyError:
+                raise Exception(f"{data['exception_type']}: {message}")
 
         if data["output_manifest"] is None:
             output_manifest = None
