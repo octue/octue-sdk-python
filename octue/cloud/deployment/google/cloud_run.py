@@ -6,13 +6,11 @@ from flask import Flask, request
 
 from octue.cloud.pub_sub.service import Service
 from octue.exceptions import MissingServiceID
-from octue.logging_handlers import apply_log_handler
 from octue.resources.service_backends import GCPPubSubBackend
 from octue.runner import Runner
 
 
 logger = logging.getLogger(__name__)
-apply_log_handler(logger, log_level=logging.INFO)
 
 
 DEPLOYMENT_CONFIGURATION_PATH = "deployment_configuration.json"

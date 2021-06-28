@@ -1,8 +1,6 @@
-import logging
-
-from .logging_handlers import LOG_FORMAT
+from .logging_handlers import LOG_FORMAT, apply_log_handler
 from .runner import Runner
 
 
 __all__ = "LOG_FORMAT", "Runner"
-package_logger = logging.getLogger(__name__)
+apply_log_handler()

@@ -8,7 +8,7 @@ LOGGING_METADATA = " | ".join(("%(name)s", "%(levelname)s", "%(asctime)s", "%(mo
 LOG_FORMAT = "[" + LOGGING_METADATA + "]" + " %(message)s"
 
 
-def apply_log_handler(logger, handler=None, log_level=logging.INFO):
+def apply_log_handler(logger_name=None, handler=None, log_level=logging.INFO):
     """Create a logger specific to the analysis
 
     :parameter analysis_id: The id of the analysis to get the log for. Should be unique to the analysis
@@ -19,10 +19,11 @@ def apply_log_handler(logger, handler=None, log_level=logging.INFO):
     :return: logger named in the pattern `analysis-{analysis_id}`
     :rtype logging.Logger
     """
-    handler = handler or get_default_handler(log_level=log_level)
+    handler = handler or get_default_handler()
+    handler.setLevel(log_level)
+    logger = logging.getLogger(name=logger_name)
     logger.addHandler(handler)
     logger.setLevel(log_level)
-    logger.info("Using local logger.")
 
     # Log locally that a remote logger will be used from now on.
     if type(logger.handlers[0]).__name__ == "SocketHandler":
@@ -32,10 +33,9 @@ def apply_log_handler(logger, handler=None, log_level=logging.INFO):
         local_logger.info("Logs streaming to %s:%s", logger.handlers[0].host, str(logger.handlers[0].port))
 
 
-def get_default_handler(log_level):
+def get_default_handler():
     """ Gets a basic console handler set up for logging analyses. """
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(log_level)
     formatter = logging.Formatter(LOG_FORMAT)
     console_handler.setFormatter(formatter)
     return console_handler
