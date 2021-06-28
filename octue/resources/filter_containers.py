@@ -39,8 +39,8 @@ class FilterContainer(ABC):
         `FilterList` regardless of the type of filter container begun with.
 
         :param str attribute_name: name of attribute (optionally nested) to order by e.g. "a", "a.b", "a.b.c"
-        :param any check_start_value:
-        :param int|float|None check_constant_increment:
+        :param any check_start_value: if provided, check that the first item in the ordered container has the given start value for the attribute ordered by
+        :param int|float|None check_constant_increment: if given, check that the ordered-by attribute of each of the items in the ordered container increases by the given value when progressing along the sequence
         :param bool reverse: if True, reverse the ordering
         :raise octue.exceptions.InvalidInputException: if an attribute with the given name doesn't exist on any of the container's members
         :return FilterList:
@@ -60,8 +60,8 @@ class FilterContainer(ABC):
         if check_start_value is not None:
             if get_nested_attribute(results[0], attribute_name) != check_start_value:
                 raise exceptions.BrokenSequenceException(
-                    f"The attributes {attribute_name!r} of the items of {results!r} do not start with "
-                    f"{check_start_value!r}."
+                    f"The attribute {attribute_name!r} of the first item of {results!r} does equal the given start "
+                    f"value {check_start_value!r}."
                 )
 
         if check_constant_increment is not None:
