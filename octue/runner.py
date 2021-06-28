@@ -13,8 +13,7 @@ from octue.utils import gen_uuid
 from twined import Twine
 
 
-package_logger = logging.getLogger("octue")
-module_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class Runner:
@@ -50,7 +49,6 @@ class Runner:
         skip_checks=False,
         log_level=logging.INFO,
         handler=None,
-        show_twined_logs=False,
         project_name=None,
     ):
         self.app_src = app_src
@@ -60,16 +58,13 @@ class Runner:
         self._log_level = log_level
         self.handler = handler
 
-        if show_twined_logs:
-            apply_log_handler(logger=package_logger, handler=self.handler)
-
         # Ensure the twine is present and instantiate it.
         if isinstance(twine, Twine):
             self.twine = twine
         else:
             self.twine = Twine(source=twine)
 
-        package_logger.debug("Parsed twine with strands %r", self.twine.available_strands)
+        logger.debug("Parsed twine with strands %r", self.twine.available_strands)
 
         # Validate and initialise configuration data
         self.configuration = self.twine.validate(
@@ -77,7 +72,7 @@ class Runner:
             configuration_manifest=configuration_manifest,
             cls=CLASS_MAP,
         )
-        package_logger.debug("Configuration validated.")
+        logger.debug("Configuration validated.")
 
         # Set path for configuration manifest.
         # TODO this is hacky, we need to rearchitect the twined validation so we can do this kind of thing in there
@@ -85,13 +80,6 @@ class Runner:
             self.configuration.get("configuration_manifest", None),
             configuration_manifest,
         )
-
-        if show_twined_logs:
-            apply_log_handler(logger=package_logger, handler=self.handler, log_level=self._log_level)
-            package_logger.info(
-                "Showing package logs as well as analysis logs (the package logs are recommended for software "
-                "engineers but may still be useful to app development by scientists)."
-            )
 
         self._project_name = project_name
 
@@ -148,7 +136,7 @@ class Runner:
             allow_missing=False,
             allow_extra=False,
         )
-        package_logger.debug("Inputs validated.")
+        logger.debug("Inputs validated.")
 
         if inputs["children"] is not None:
             inputs["children"] = {
@@ -171,12 +159,13 @@ class Runner:
         )
 
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
-        analysis_logger = logging.getLogger(f"analysis-{analysis_id}")
-        apply_log_handler(logger=analysis_logger, handler=self.handler, log_level=self._log_level)
+        analysis_logger = logging.getLogger(f"{__name__} | analysis-{analysis_id}")
+        apply_log_handler(logger_name=analysis_logger.name, handler=self.handler, log_level=self._log_level)
 
         analysis = Analysis(
             id=analysis_id,
             logger=analysis_logger,
+            propagate_logger=False,
             twine=self.twine,
             skip_checks=self.skip_checks,
             **self.configuration,
@@ -281,13 +270,13 @@ class AppFrom:
 
     def __init__(self, app_path="."):
         self.app_path = os.path.abspath(os.path.normpath(app_path))
-        module_logger.debug("Initialising AppFrom context at app_path %s", self.app_path)
+        logger.debug("Initialising AppFrom context at app_path %s", self.app_path)
         self.app_module = None
 
     def __enter__(self):
         # Warn on an app present on the system path
         if "app" in sys.modules.keys():
-            module_logger.warning(
+            logger.warning(
                 "Module 'app' already on system path. Using 'AppFrom' context will yield unexpected results. Avoid using 'app' as a python module, except for your main entrypoint"
             )
 
@@ -300,16 +289,14 @@ class AppFrom:
         # Immediately clean up the entry to the system path (don't use "remove" because if the user has it in their
         # path, this'll be an unexpected side effect, and don't do it in cleanup in case the called code inserts a path)
         sys.path.pop(0)
-        module_logger.debug(
-            "Imported app at app_path and cleaned up temporary modification to sys.path %s", self.app_path
-        )
+        logger.debug("Imported app at app_path and cleaned up temporary modification to sys.path %s", self.app_path)
 
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         # Unload the imported module
         del sys.modules["app"]
-        module_logger.debug("Deleted app from sys.modules and cleaned up (app_path %s)", self.app_path)
+        logger.debug("Deleted app from sys.modules and cleaned up (app_path %s)", self.app_path)
 
     @property
     def run(self):

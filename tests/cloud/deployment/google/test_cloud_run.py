@@ -97,7 +97,6 @@ class TestCloudRun(TestCase):
                 "skip_checks": False,
                 "log_level": "INFO",
                 "handler": None,
-                "show_twined_logs": False,
                 "project_name": "a-project-name",
             }
         )
@@ -138,7 +137,6 @@ class TestCloudRun(TestCase):
                 "skip_checks": False,
                 "log_level": "INFO",
                 "handler": None,
-                "show_twined_logs": False,
                 "project_name": "a-project-name",
             }
         )

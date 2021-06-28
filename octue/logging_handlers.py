@@ -28,7 +28,7 @@ def apply_log_handler(logger_name=None, handler=None, log_level=logging.INFO):
     # Log locally that a remote logger will be used from now on.
     if type(logger.handlers[0]).__name__ == "SocketHandler":
         local_logger = logging.getLogger(__name__)
-        local_logger.addHandler(get_default_handler(log_level=log_level))
+        local_logger.addHandler(get_default_handler())
         local_logger.setLevel(log_level)
         local_logger.info("Logs streaming to %s:%s", logger.handlers[0].host, str(logger.handlers[0].port))
 
