@@ -264,6 +264,30 @@ class Service(CoolNameable):
 
         return {"output_values": data["output_values"], "output_manifest": output_manifest}
 
+    def _send_exception_to_asker(self, topic, timeout):
+        """Serialise and send the exception being handled to the asker.
+
+        :param octue.cloud.pub_sub.topic.Topic topic:
+        :param float timeout:
+        :return None:
+        """
+        exception_info = sys.exc_info()
+        exception = exception_info[1]
+        exception_message = f"Error in {self!r}: " + exception.args[0]
+        traceback = tb.format_list(tb.extract_tb(exception_info[2]))
+
+        self.publisher.publish(
+            topic=topic.path,
+            data=json.dumps(
+                {
+                    "exception_type": type(exception).__name__,
+                    "exception_message": exception_message,
+                    "traceback": traceback,
+                }
+            ).encode(),
+            retry=create_custom_retry(timeout),
+        )
+
     def _raise_exception_from_responder(self, data):
         """Raise the exception from the responding service that is serialised in `data`.
 
@@ -285,27 +309,3 @@ class Service(CoolNameable):
         # Allow unknown exception types to still be raised.
         except KeyError:
             raise Exception(f"{data['exception_type']}: {message}")
-
-    def _send_exception_to_asker(self, topic, timeout):
-        """Serialise and send the exception being handled to the asker.
-
-        :param topic:
-        :param float timeout:
-        :return None:
-        """
-        exception_info = sys.exc_info()
-        exception = exception_info[1]
-        exception_message = f"Error in {self!r}: " + exception.args[0]
-        traceback = tb.format_list(tb.extract_tb(exception_info[2]))
-
-        self.publisher.publish(
-            topic=topic.path,
-            data=json.dumps(
-                {
-                    "exception_type": type(exception).__name__,
-                    "exception_message": exception_message,
-                    "traceback": traceback,
-                }
-            ).encode(),
-            retry=create_custom_retry(timeout),
-        )
