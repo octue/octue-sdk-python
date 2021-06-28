@@ -22,8 +22,6 @@ TEMPORARY_LOCAL_FILE_CACHE = {}
 OCTUE_METADATA_NAMESPACE = "octue"
 
 ID_DEFAULT = None
-CLUSTER_DEFAULT = 0
-SEQUENCE_DEFAULT = None
 TAGS_DEFAULT = None
 LABELS_DEFAULT = None
 
@@ -38,8 +36,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
         {
           "path": "folder/subfolder/file_1.csv",
-          "cluster": 0,
-          "sequence": 0,
           "extension": "csv",
           "tags": {},
           "labels": [],
@@ -55,8 +51,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
     :param Union[str, path-like] path: The path of this file, which may include folders or subfolders, within the dataset. If no path_from parameter is set, then absolute paths are acceptable, otherwise relative paths are required.
     :param Pathable path_from: The root Pathable object (typically a Dataset) that this Datafile's path is relative to.
     :param str|None project_name: The name of the cloud project if the datafile is located in the cloud
-    :param int cluster: The cluster of files, within a dataset, to which this belongs (default 0)
-    :param int sequence: A sequence number of this file within its cluster (if sequences are appropriate)
     :param dict|TagDict tags: key-value pairs with string keys conforming to the Octue tag format (see TagDict)
     :param iter(str) labels: Space-separated string of labels relevant to this file
     :param bool skip_checks:
@@ -67,11 +61,9 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
     """
 
     _SERIALISE_FIELDS = (
-        "cluster",
         "id",
         "name",
         "path",
-        "sequence",
         "tags",
         "labels",
         "timestamp",
@@ -86,8 +78,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         logger=None,
         path_from=None,
         project_name=None,
-        cluster=CLUSTER_DEFAULT,
-        sequence=SEQUENCE_DEFAULT,
         tags=TAGS_DEFAULT,
         labels=LABELS_DEFAULT,
         skip_checks=True,
@@ -107,20 +97,14 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             path_from=path_from,
         )
 
-        self.cluster = cluster
-        self.sequence = sequence
         self.timestamp = timestamp
-
-        # Set up the file extension or get it from the file path if none passed
         self.extension = self._get_extension_from_path()
         self._hypothetical = hypothetical
         self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
         self._cloud_metadata = {"project_name": project_name}
 
         if self.is_in_cloud and not self._hypothetical:
-            self._use_cloud_metadata(
-                id=id, timestamp=timestamp, cluster=cluster, sequence=sequence, tags=tags, labels=labels
-            )
+            self._use_cloud_metadata(id=id, timestamp=timestamp, tags=tags, labels=labels)
             return
 
         # Run integrity checks on the file
@@ -206,8 +190,8 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         return cloud_path or storage.path.generate_gs_path(bucket_name, path_in_bucket)
 
     def get_cloud_metadata(self, project_name=None, cloud_path=None, bucket_name=None, path_in_bucket=None):
-        """Get the cloud metadata for the datafile, casting the types of the cluster and sequence fields to integer.
-        Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must be provided.
+        """Get the cloud metadata for the datafile. Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must be
+        provided.
 
         :param str|None project_name:
         :param str|None cloud_path:
@@ -225,18 +209,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
         if cloud_metadata is None:
             return None
-
-        custom_metadata = cloud_metadata["custom_metadata"]
-
-        if custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__cluster") is not None:
-            custom_metadata[f"{OCTUE_METADATA_NAMESPACE}__cluster"] = int(
-                custom_metadata[f"{OCTUE_METADATA_NAMESPACE}__cluster"]
-            )
-
-        if custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__sequence") is not None:
-            custom_metadata[f"{OCTUE_METADATA_NAMESPACE}__sequence"] = int(
-                custom_metadata[f"{OCTUE_METADATA_NAMESPACE}__sequence"]
-            )
 
         self._cloud_metadata = cloud_metadata
 
@@ -376,8 +348,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         self._set_id(cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__id", ID_DEFAULT))
         self.immutable_hash_value = self._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
         self.timestamp = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__timestamp")
-        self.cluster = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__cluster", CLUSTER_DEFAULT)
-        self.sequence = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__sequence", SEQUENCE_DEFAULT)
         self.tags = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__tags", TAGS_DEFAULT)
         self.labels = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__labels", LABELS_DEFAULT)
 
@@ -490,8 +460,8 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         return functools.partial(_DatafileContextManager, self)
 
     def metadata(self, use_octue_namespace=True):
-        """Get the datafile's metadata in a serialised form (i.e. the attributes `id`, `timestamp`, `cluster`,
-        `sequence`, `labels`, `tags`, and `sdk_version`).
+        """Get the datafile's metadata in a serialised form (i.e. the attributes `id`, `timestamp`, `labels`, `tags`,
+        and `sdk_version`).
 
         :param bool use_octue_namespace: if True, prefix metadata names with "octue__"
         :return dict:
@@ -499,8 +469,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         metadata = {
             "id": self.id,
             "timestamp": self.timestamp,
-            "cluster": self.cluster,
-            "sequence": self.sequence,
             "tags": self.tags,
             "labels": self.labels,
             "sdk_version": pkg_resources.get_distribution("octue").version,
