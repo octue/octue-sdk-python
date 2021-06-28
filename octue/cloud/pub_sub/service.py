@@ -130,7 +130,7 @@ class Service(CoolNameable):
         in the format specified in the Service's Twine file.
 
         :param dict data:
-        :param int question_uuid:
+        :param str question_uuid:
         :param float timeout:
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
@@ -140,7 +140,9 @@ class Service(CoolNameable):
         )
 
         try:
-            analysis = self.run_function(input_values=data["input_values"], input_manifest=data["input_manifest"])
+            analysis = self.run_function(
+                input_values=data["input_values"], input_manifest=data["input_manifest"], analysis_id=question_uuid
+            )
 
             if analysis.output_manifest is None:
                 serialised_output_manifest = None
@@ -178,7 +180,7 @@ class Service(CoolNameable):
         if not question_topic.exists():
             raise octue.exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
 
-        question_uuid = str(int(uuid.uuid4()))
+        question_uuid = str(uuid.uuid4())
 
         response_topic_and_subscription_name = ".".join((service_id, ANSWERS_NAMESPACE, question_uuid))
         response_topic = Topic(name=response_topic_and_subscription_name, namespace=OCTUE_NAMESPACE, service=self)

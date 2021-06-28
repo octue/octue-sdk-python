@@ -52,7 +52,7 @@ class TestService(BaseTestCase):
         :param bool use_mock:
         :return tests.cloud.pub_sub.mocks.MockService:
         """
-        run_function = lambda input_values, input_manifest: run_function_returnee  # noqa
+        run_function = lambda input_values, input_manifest, analysis_id: run_function_returnee  # noqa
 
         if use_mock:
             return MockService(backend=backend, run_function=run_function)
@@ -65,7 +65,7 @@ class TestService(BaseTestCase):
         :param tests.cloud.pub_sub.mocks.MockService asking_service:
         :param tests.cloud.pub_sub.mocks.MockService responding_service:
         :param dict input_values:
-        :param octue.resources.manifest.Manifest input_manifest:
+        :param octue.resources.manifest.Manifest|None input_manifest:
         :return dict:
         """
         subscription, _ = asking_service.ask(responding_service.id, input_values, input_manifest)
@@ -79,7 +79,7 @@ class TestService(BaseTestCase):
         """
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=None, use_mock=True)
 
-        def error_run_function(input_values, input_manifest):
+        def error_run_function(input_values, input_manifest, analysis_id):
             raise exception_to_raise
 
         responding_service.run_function = error_run_function
@@ -327,7 +327,7 @@ class TestService(BaseTestCase):
             self.BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True
         )
 
-        def child_run_function(input_values, input_manifest):
+        def child_run_function(input_values, input_manifest, analysis_id):
             subscription, _ = child.ask(service_id=child_of_child.id, input_values=input_values)
             return MockAnalysis(output_values={input_values["question"]: child.wait_for_answer(subscription)})
 
@@ -369,7 +369,7 @@ class TestService(BaseTestCase):
         )
         second_child_of_child = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
 
-        def child_run_function(input_values, input_manifest):
+        def child_run_function(input_values, input_manifest, analysis_id):
             subscription_1, _ = child.ask(service_id=first_child_of_child.id, input_values=input_values)
             subscription_2, _ = child.ask(service_id=second_child_of_child.id, input_values=input_values)
 
