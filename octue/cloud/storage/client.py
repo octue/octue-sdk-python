@@ -119,10 +119,17 @@ class GoogleCloudStorageClient:
         if blob is None:
             return None
 
-        custom_metadata = blob.metadata or {}
+        custom_metadata = {}
+
+        if blob.metadata:
+            for key, value in blob.metadata.items():
+                try:
+                    custom_metadata[key] = json.loads(value, cls=OctueJSONDecoder)
+                except json.decoder.JSONDecodeError:
+                    custom_metadata[key] = value
 
         return {
-            "custom_metadata": {key: json.loads(value, cls=OctueJSONDecoder) for key, value in custom_metadata.items()},
+            "custom_metadata": custom_metadata,
             "crc32c": blob.crc32c,
             "size": blob.size,
             "updated": blob.updated,

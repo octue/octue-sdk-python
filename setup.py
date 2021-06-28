@@ -17,7 +17,7 @@ with open("LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.2.0",  # Ensure all requirements files containing octue are updated, too (e.g. docs build).
+    version="0.2.1",  # Ensure all requirements files containing octue are updated, too (e.g. docs build).
     py_modules=["cli"],
     install_requires=[
         "click>=7.1.2",
