@@ -157,7 +157,7 @@ class Service(CoolNameable):
                 ).encode(),
                 retry=create_custom_retry(timeout),
             )
-            logger.info("%r responded on topic %r.", self, topic.path)
+            logger.info("%r responded to question %r.", self, question_uuid)
 
         except BaseException as error:  # noqa
             self._send_exception_to_asker(topic, timeout)
@@ -204,7 +204,7 @@ class Service(CoolNameable):
         )
         future.result()
 
-        logger.debug("%r asked question to %r service. Question UUID is %r.", self, service_id, question_uuid)
+        logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
         return response_subscription, question_uuid
 
     def wait_for_answer(self, subscription, timeout=30):
@@ -247,7 +247,7 @@ class Service(CoolNameable):
             finally:
                 try:
                     self.subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
-                    logger.debug("%r received a response to question on topic %r.", self, subscription.topic.path)
+                    logger.info("%r received a response to question %r.", self, subscription.topic.path.split(".")[-1])
                 except UnboundLocalError:
                     pass
 
