@@ -207,8 +207,13 @@ class MockService(Service):
         """
         response_subscription, question_uuid = super().ask(service_id, input_values, input_manifest)
 
-        self.children[service_id].answer(
-            data={"input_values": input_values, "input_manifest": input_manifest}, question_uuid=question_uuid
-        )
+        # Ignore any errors from the answering service as they will be raised on the remote service in practice, not
+        # locally as is done in this mock.
+        try:
+            self.children[service_id].answer(
+                data={"input_values": input_values, "input_manifest": input_manifest}, question_uuid=question_uuid
+            )
+        except:  # noqa
+            pass
 
         return response_subscription, question_uuid

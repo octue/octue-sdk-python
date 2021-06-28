@@ -1,21 +1,27 @@
 import base64
 import json
 import os
+import tempfile
 import unittest
 import uuid
 from unittest import TestCase, mock
 
+import twined.exceptions
 from octue.cloud.deployment.google import cloud_run
 from octue.cloud.pub_sub.service import Service
 from octue.exceptions import MissingServiceID
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
+from tests.cloud.pub_sub.mocks import MockTopic
 
 
 cloud_run.app.testing = True
 
 
 class TestCloudRun(TestCase):
+    # This is the service ID of the example service deployed to Google Cloud Run.
+    EXAMPLE_SERVICE_ID = "octue.services.009ea106-dc37-4521-a8cc-3e0836064334"
+
     def test_post_to_index_with_no_payload_results_in_400_error(self):
         """Test that a 400 (bad request) error code is returned if no payload is sent to the Flask endpoint."""
         with cloud_run.app.test_client() as client:
@@ -65,6 +71,88 @@ class TestCloudRun(TestCase):
                     project_name="a-project-name", data={}, question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29"
                 )
 
+    def test_with_no_deployment_configuration_file(self):
+        """Test that the Cloud Run `answer_question` function uses the default deployment values when a deployment
+        configuration file is not provided.
+        """
+        with mock.patch.dict(os.environ, {"SERVICE_ID": self.EXAMPLE_SERVICE_ID}):
+            with mock.patch("octue.cloud.deployment.google.cloud_run.Runner") as mock_runner:
+                with mock.patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+                    cloud_run.answer_question(
+                        project_name="a-project-name",
+                        data={},
+                        question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29",
+                        credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS",
+                    )
+
+        mock_runner.assert_called_with(
+            **{
+                "app_src": ".",
+                "twine": "twine.json",
+                "configuration_values": None,
+                "configuration_manifest": None,
+                "output_manifest_path": None,
+                "children": None,
+                "skip_checks": False,
+                "log_level": "INFO",
+                "handler": None,
+                "show_twined_logs": False,
+                "project_name": "a-project-name",
+            }
+        )
+
+    def test_with_deployment_configuration_file(self):
+        """Test that the Cloud Run `answer_question` function uses the values in the deployment configuration file if it
+        is provided.
+        """
+        with mock.patch.dict(
+            os.environ,
+            {
+                "DEPLOYMENT_CONFIGURATION_PATH": tempfile.NamedTemporaryFile().name,
+                "SERVICE_ID": self.EXAMPLE_SERVICE_ID,
+            },
+        ):
+            with mock.patch(
+                "octue.cloud.deployment.google.cloud_run._get_deployment_configuration",
+                return_value={"app_dir": "/path/to/app_dir"},
+            ):
+                with mock.patch("octue.cloud.deployment.google.cloud_run.Runner") as mock_runner:
+                    with mock.patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+                        cloud_run.answer_question(
+                            project_name="a-project-name",
+                            data={},
+                            question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29",
+                            credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS",
+                        )
+
+        mock_runner.assert_called_with(
+            **{
+                "app_src": "/path/to/app_dir",
+                "twine": "twine.json",
+                "configuration_values": None,
+                "configuration_manifest": None,
+                "output_manifest_path": None,
+                "children": None,
+                "skip_checks": False,
+                "log_level": "INFO",
+                "handler": None,
+                "show_twined_logs": False,
+                "project_name": "a-project-name",
+            }
+        )
+
+    @unittest.skipUnless(
+        condition=os.getenv("RUN_DEPLOYMENT_TESTS", "").lower() == "true",
+        reason="'RUN_DEPLOYMENT_TESTS' environment variable is False or not present.",
+    )
+    def test_cloud_run_deployment_forwards_exceptions_to_asking_service(self):
+        """Test that exceptions raised in the (remote) responding service are forwarded to and raised by the asker."""
+        asker = Service(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        subscription, _ = asker.ask(service_id=self.EXAMPLE_SERVICE_ID, input_values={"invalid_input_data": "hello"})
+
+        with self.assertRaises(twined.exceptions.InvalidValuesContents):
+            asker.wait_for_answer(subscription)
+
     @unittest.skipUnless(
         condition=os.getenv("RUN_DEPLOYMENT_TESTS", "").lower() == "true",
         reason="'RUN_DEPLOYMENT_TESTS' environment variable is False or not present.",
@@ -73,8 +161,7 @@ class TestCloudRun(TestCase):
         """Test that the Google Cloud Run example deployment works, providing a service that can be asked questions and
         send responses.
         """
-        service_to_ask = "octue.services.009ea106-dc37-4521-a8cc-3e0836064334"
         asker = Service(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
-        subscription, _ = asker.ask(service_id=service_to_ask, input_values={"n_iterations": 3})
+        subscription, _ = asker.ask(service_id=self.EXAMPLE_SERVICE_ID, input_values={"n_iterations": 3})
         answer = asker.wait_for_answer(subscription)
         self.assertEqual(answer, {"output_values": [1, 2, 3, 4, 5], "output_manifest": None})
