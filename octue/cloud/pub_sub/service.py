@@ -2,11 +2,11 @@ import json
 import logging
 import sys
 import time
+import traceback as tb
 import uuid
 from concurrent.futures import TimeoutError
 import google.api_core
 import google.api_core.exceptions
-import tblib
 from google.api_core import retry
 from google.cloud import pubsub_v1
 
@@ -161,7 +161,7 @@ class Service(CoolNameable):
             exception_info = sys.exc_info()
             exception = exception_info[1]
             exception_message = f"Error in {self!r}: " + exception.args[0]
-            traceback = tblib.Traceback(exception_info[2])
+            traceback = tb.format_list(tb.extract_tb(exception_info[2]))
 
             self.publisher.publish(
                 topic=topic.path,
@@ -169,7 +169,7 @@ class Service(CoolNameable):
                     {
                         "exception_type": type(exception).__name__,
                         "exception_message": exception_message,
-                        "traceback": traceback.to_dict(),
+                        "traceback": traceback,
                     }
                 ).encode(),
                 retry=create_custom_retry(timeout),
@@ -271,9 +271,15 @@ class Service(CoolNameable):
         data = json.loads(answer.message.data.decode())
 
         if "exception_type" in data:
-            traceback = tblib.Traceback.from_dict(data["traceback"]).as_traceback()
-            exception = EXCEPTIONS_MAPPING[data["exception_type"]](data["exception_message"]).with_traceback(traceback)
-            raise exception
+            message = "\n\n".join(
+                (
+                    data["exception_message"],
+                    "The following traceback was captured from the remote service:",
+                    "".join(data["traceback"]),
+                )
+            )
+
+            raise EXCEPTIONS_MAPPING[data["exception_type"]](message)
 
         if data["output_manifest"] is None:
             output_manifest = None
