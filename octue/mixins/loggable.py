@@ -8,22 +8,32 @@ class Loggable:
     same logger instance; this can be confusing if you overload __init_logger__ in multiple different ways.
 
     ```
-    class MyResource(Logged):
+    class MyResource(Loggable):
         def do_something(self):
             self.logger.info('write to a logger')
 
     MyResource().do_something()  # Log statements go to the default logger for the module in which MyResource is a member
     MyResource(logger=logging.getLogger("specific"))  # Log statements go to the specific logger.
     ```
+
+    :param logging.Logger|None logger:
+    :param bool propagate_logger: if `True`, propagate log statements to the parent logger
+    :return None:
     """
 
-    def __init__(self, *args, logger=None, **kwargs):
+    def __init__(self, *args, logger=None, propagate_logger=True, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__init_logger__(logger)
+        self._logger = logger
+        self.propagate = propagate_logger
+        self.__init_logger__()
 
-    def __init_logger__(self, logger=None):
-        """Overload this in a subclass to initialise your own logger using class attributes"""
-        self._logger = logger or logging.getLogger(self.__class__.__module__)
+    def __init_logger__(self):
+        """Overload this in a subclass to initialise your own logger using class attributes.
+
+        :return None:
+        """
+        self._logger = self._logger or logging.getLogger(self.__class__.__module__)
+        self._logger.propagate = self.propagate
 
     @property
     def logger(self):
