@@ -164,7 +164,7 @@ class TestService(BaseTestCase):
                         input_manifest=None,
                     )
 
-                self.assertIn("AnUnknownException: ", context.exception.args[0])
+                self.assertEqual(type(context.exception).__name__, "AnUnknownException")
                 self.assertIn("This is an exception unknown to the asker.", context.exception.args[0])
 
     def test_ask(self):

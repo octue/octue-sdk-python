@@ -310,4 +310,4 @@ class Service(CoolNameable):
 
         # Allow unknown exception types to still be raised.
         except KeyError:
-            raise Exception(f"{data['exception_type']}: {message}")
+            raise type(data["exception_type"], (Exception,), {})(message)
