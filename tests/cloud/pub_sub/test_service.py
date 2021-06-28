@@ -2,6 +2,7 @@ import concurrent.futures
 import uuid
 from unittest.mock import patch
 
+import twined.exceptions
 from octue import exceptions
 from octue.cloud.pub_sub.service import Service
 from octue.resources import Datafile, Dataset, Manifest
@@ -44,7 +45,13 @@ class TestService(BaseTestCase):
 
     @staticmethod
     def make_new_server(backend, run_function_returnee, use_mock=False):
-        """ Make and return a new service ready to serve analyses from its run function. """
+        """Make and return a new service that returns the given run function returnee when its run function is executed.
+
+        :param octue.resources.service_backends.ServiceBackend backend:
+        :param any run_function_returnee:
+        :param bool use_mock:
+        :return tests.cloud.pub_sub.mocks.MockService:
+        """
         run_function = lambda input_values, input_manifest: run_function_returnee  # noqa
 
         if use_mock:
@@ -53,16 +60,37 @@ class TestService(BaseTestCase):
 
     @staticmethod
     def ask_question_and_wait_for_answer(asking_service, responding_service, input_values, input_manifest):
-        """ Get an asking service to ask a question to a responding service and wait for the answer. """
+        """Get an asking service to ask a question to a responding service and wait for the answer.
+
+        :param tests.cloud.pub_sub.mocks.MockService asking_service:
+        :param tests.cloud.pub_sub.mocks.MockService responding_service:
+        :param dict input_values:
+        :param octue.resources.manifest.Manifest input_manifest:
+        :return dict:
+        """
         subscription, _ = asking_service.ask(responding_service.id, input_values, input_manifest)
         return asking_service.wait_for_answer(subscription)
+
+    def make_responding_service_with_error(self, exception_to_raise):
+        """Make a mock responding service that raises the given exception when its run function is executed.
+
+        :param Exception exception_to_raise:
+        :return tests.cloud.pub_sub.mocks.MockService:
+        """
+        responding_service = self.make_new_server(self.BACKEND, run_function_returnee=None, use_mock=True)
+
+        def error_run_function(input_values, input_manifest):
+            raise exception_to_raise
+
+        responding_service.run_function = error_run_function
+        return responding_service
 
     def test_repr(self):
         """ Test that services are represented as a string correctly. """
         asking_service = Service(backend=self.BACKEND)
         self.assertEqual(repr(asking_service), f"<Service({asking_service.name!r})>")
 
-    def test_service_id_cannot_be_non_none_empty_vaue(self):
+    def test_service_id_cannot_be_non_none_empty_value(self):
         """Ensure that a ValueError is raised if a non-None empty value is provided as the service_id."""
         with self.assertRaises(ValueError):
             Service(backend=self.BACKEND, service_id="")
@@ -89,6 +117,55 @@ class TestService(BaseTestCase):
         with patch("octue.cloud.pub_sub.service.pubsub_v1.SubscriberClient.pull", return_value=MockPullResponse()):
             with self.assertRaises(concurrent.futures.TimeoutError):
                 service.wait_for_answer(subscription=mock_subscription, timeout=0.01)
+
+    def test_exceptions_in_responder_are_handled_and_sent_to_asker(self):
+        """Test that exceptions raised in the responding service are handled and sent back to the asker."""
+        responding_service = self.make_responding_service_with_error(
+            twined.exceptions.InvalidManifestContents("'met_mast_id' is a required property")
+        )
+
+        asking_service = MockService(backend=self.BACKEND, children={responding_service.id: responding_service})
+
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                responding_service.serve()
+
+                with self.assertRaises(twined.exceptions.InvalidManifestContents) as context:
+                    self.ask_question_and_wait_for_answer(
+                        asking_service=asking_service,
+                        responding_service=responding_service,
+                        input_values={},
+                        input_manifest=None,
+                    )
+
+                self.assertIn("'met_mast_id' is a required property", context.exception.args[0])
+
+    def test_unknown_exceptions_in_responder_are_handled_and_sent_to_asker(self):
+        """Test that exceptions not in the exceptions mapping are simply raised as `Exception`s by the asker."""
+
+        class AnUnknownException(Exception):
+            pass
+
+        responding_service = self.make_responding_service_with_error(
+            AnUnknownException("This is an exception unknown to the asker.")
+        )
+
+        asking_service = MockService(backend=self.BACKEND, children={responding_service.id: responding_service})
+
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                responding_service.serve()
+
+                with self.assertRaises(Exception) as context:
+                    self.ask_question_and_wait_for_answer(
+                        asking_service=asking_service,
+                        responding_service=responding_service,
+                        input_values={},
+                        input_manifest=None,
+                    )
+
+                self.assertIn("AnUnknownException: ", context.exception.args[0])
+                self.assertIn("This is an exception unknown to the asker.", context.exception.args[0])
 
     def test_ask(self):
         """ Test that a service can ask a question to another service that is serving and receive an answer. """
@@ -119,8 +196,8 @@ class TestService(BaseTestCase):
         asking_service = MockService(backend=self.BACKEND, children={responding_service.id: responding_service})
 
         files = [
-            Datafile(path="gs://my-dataset/hello.txt"),
-            Datafile(path="gs://my-dataset/goodbye.csv"),
+            Datafile(path="gs://my-dataset/hello.txt", hypothetical=True),
+            Datafile(path="gs://my-dataset/goodbye.csv", hypothetical=True),
         ]
 
         input_manifest = Manifest(datasets=[Dataset(files=files)], path="gs://my-dataset", keys={"my_dataset": 0})

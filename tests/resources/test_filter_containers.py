@@ -103,6 +103,46 @@ class TestFilterSet(BaseTestCase):
         sorted_filter_set = FilterSet(cats).order_by("age", reverse=True)
         self.assertEqual(sorted_filter_set, FilterList([cats[0], cats[2], cats[1]]))
 
+    def test_order_by_nested_attributes(self):
+        """Test ordering by nested attributes."""
+        cats = [
+            FilterableThing(name=FilterableThing(first="Miaow", last="Miaow")),
+            FilterableThing(name=FilterableThing(first="Kitty", last="Miaow")),
+        ]
+
+        sorted_filter_set = FilterSet(cats).order_by("name__first")
+        self.assertEqual(sorted_filter_set, FilterList([cats[1], cats[0]]))
+
+    def test_ordering_and_checking_start_value_raises_error_when_start_value_different(self):
+        """Test ordering by nested attributes while checking the start value results in an error if the start value is
+        not the one given.
+        """
+        things = [FilterableThing(a=1), FilterableThing(a=0)]
+
+        with self.assertRaises(exceptions.BrokenSequenceException):
+            FilterSet(things).order_by("a", check_start_value=3)
+
+    def test_ordering_and_checking_start_value(self):
+        """Test ordering by nested attributes and checking the start value."""
+        things = [FilterableThing(a=1), FilterableThing(a=0)]
+        sorted_filter_set = FilterSet(things).order_by("a", check_start_value=0)
+        self.assertEqual(sorted_filter_set, FilterList([things[1], things[0]]))
+
+    def test_ordering_and_checking_constant_increment_raises_error_if_increment_not_constant(self):
+        """Test ordering by nested attributes while checking for a constant increment results in an error if the
+        increment is not the one given.
+        """
+        things = [FilterableThing(a=1), FilterableThing(a=0), FilterableThing(a=5)]
+
+        with self.assertRaises(exceptions.BrokenSequenceException):
+            FilterSet(things).order_by("a", check_constant_increment=1)
+
+    def test_ordering_and_checking_constant_increment(self):
+        """Test ordering by nested attributes while checking for a constant increment."""
+        things = [FilterableThing(a=1), FilterableThing(a=0), FilterableThing(a=2)]
+        sorted_filter_set = FilterSet(things).order_by("a", check_constant_increment=1)
+        self.assertEqual(sorted_filter_set, FilterList([things[1], things[0], things[2]]))
+
 
 class TestFilterDict(BaseTestCase):
     ANIMALS = FilterDict(

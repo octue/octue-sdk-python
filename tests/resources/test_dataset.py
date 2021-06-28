@@ -193,41 +193,6 @@ class DatasetTestCase(BaseTestCase):
 
         self.assertIn("No results found for filters {'labels__contains': 'billyjeanisnotmylover'}", e.exception.args[0])
 
-    def test_filter_by_sequence_not_none(self):
-        """Ensures that filter works with sequence lookups"""
-        resource = Dataset(
-            files=[
-                Datafile(path="path-within-dataset/a_my_file.csv", sequence=0),
-                Datafile(path="path-within-dataset/a_your_file.csv", sequence=1),
-                Datafile(path="path-within-dataset/a_your_file.csv", sequence=None),
-            ]
-        )
-        files = resource.files.filter(sequence__is_not=None)
-        self.assertEqual(2, len(files))
-
-    def test_get_file_sequence(self):
-        """Ensures that get_files works with sequence lookups"""
-        files = [
-            Datafile(path="path-within-dataset/a_my_file.csv", sequence=0),
-            Datafile(path="path-within-dataset/a_your_file.csv", sequence=1),
-            Datafile(path="path-within-dataset/a_your_file.csv", sequence=None),
-        ]
-
-        got_files = Dataset(files=files).get_file_sequence(name__ends_with=".csv", strict=True)
-        self.assertEqual(got_files, files[:2])
-
-    def test_get_broken_file_sequence(self):
-        """Ensures that get_files works with sequence lookups"""
-        resource = Dataset(
-            files=[
-                Datafile(path="path-within-dataset/a_my_file.csv", sequence=2),
-                Datafile(path="path-within-dataset/a_your_file.csv", sequence=4),
-                Datafile(path="path-within-dataset/a_your_file.csv", sequence=None),
-            ]
-        )
-        with self.assertRaises(exceptions.BrokenSequenceException):
-            resource.get_file_sequence(name__ends_with=".csv", strict=True)
-
     def test_filter_name_filters_include_extension(self):
         """Ensures that filters applied to the name will catch terms in the extension"""
         files = [
@@ -287,8 +252,8 @@ class DatasetTestCase(BaseTestCase):
         self.assertFalse(self.create_valid_dataset().all_files_are_in_cloud)
 
         files = [
-            Datafile(path="gs://hello/file.txt"),
-            Datafile(path="gs://goodbye/file.csv"),
+            Datafile(path="gs://hello/file.txt", hypothetical=True),
+            Datafile(path="gs://goodbye/file.csv", hypothetical=True),
         ]
 
         self.assertTrue(Dataset(files=files).all_files_are_in_cloud)
@@ -310,8 +275,8 @@ class DatasetTestCase(BaseTestCase):
             dataset = Dataset(
                 name="dataset_0",
                 files={
-                    Datafile(path=file_0_path, sequence=0, labels={"hello"}, tags={"a": "b"}),
-                    Datafile(path=file_1_path, sequence=1, labels={"goodbye"}, tags={"a": "b"}),
+                    Datafile(path=file_0_path, labels={"hello"}, tags={"a": "b"}),
+                    Datafile(path=file_1_path, labels={"goodbye"}, tags={"a": "b"}),
                 },
                 tags={"a": "b", "c": 1},
             )
@@ -364,8 +329,8 @@ class DatasetTestCase(BaseTestCase):
 
             dataset = Dataset(
                 files={
-                    Datafile(path=file_0_path, sequence=0, labels={"hello"}),
-                    Datafile(path=file_1_path, sequence=1, labels={"goodbye"}),
+                    Datafile(path=file_0_path, labels={"hello"}),
+                    Datafile(path=file_1_path, labels={"goodbye"}),
                 },
                 tags={"a": "b", "c": 1},
             )
