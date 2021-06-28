@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 
 
 # Logging format for analysis runs. All handlers should use this logging format, to make logs consistently parseable
-LOGGING_METADATA = " | ".join(("%(name)s", "%(levelname)s", "%(asctime)s", "%(module)s", "%(process)d", "%(thread)d"))
+LOGGING_METADATA = " | ".join(("%(asctime)s", "%(levelname)s", "%(name)s", "%(process)d", "%(thread)d"))
 LOG_FORMAT = "[" + LOGGING_METADATA + "]" + " %(message)s"
 
 
