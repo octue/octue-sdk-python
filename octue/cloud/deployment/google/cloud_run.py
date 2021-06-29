@@ -10,10 +10,11 @@ from octue.resources.service_backends import GCPPubSubBackend
 from octue.runner import Runner
 
 
+DEPLOYMENT_CONFIGURATION_PATH = "deployment_configuration.json"
+
+
 logger = logging.getLogger(__name__)
 app = Flask(__name__)
-
-DEPLOYMENT_CONFIGURATION_PATH = "deployment_configuration.json"
 
 
 @app.route("/", methods=["POST"])
