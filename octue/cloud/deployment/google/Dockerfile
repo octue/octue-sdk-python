@@ -18,6 +18,9 @@ RUN if [ -f "setup.py" ]; then pip install --upgrade pip && pip install -e .; fi
 
 EXPOSE $PORT
 
+ARG _PLATFORM=GOOGLE_CLOUD_RUN
+ENV PLATFORM=$_PLATFORM
+
 ARG _SERVICE_ID
 ENV SERVICE_ID=$_SERVICE_ID
 
