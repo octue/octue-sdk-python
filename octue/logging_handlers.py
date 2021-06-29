@@ -22,13 +22,13 @@ FORMATTER_WITHOUT_TIMESTAMP = create_formatter(LOGGING_METADATA_WITH_TIMESTAMP[1
 
 
 def apply_log_handler(logger_name=None, handler=None, log_level=logging.INFO, formatter=None):
-    """Create a logger specific to the analysis
+    """Apply a log handler with the given formatter to the logger with the given name.
 
-    :param str logger_name:
+    :param str logger_name: if this is `None`, the root logger is used
     :param logging.Handler handler: The handler to use. If None, default console handler will be attached.
-    :param int log_level:
-    :param logging.Formatter|None formatter:
-    :return logging.Logger: logger named in the pattern `analysis-{analysis_id}`
+    :param int log_level: ignore log messages below this level
+    :param logging.Formatter|None formatter: if this is `None`, the default `FORMATTER_WITH_TIMESTAMP` is used
+    :return logging.Logger:
     """
     handler = handler or get_default_handler(formatter)
     handler.setLevel(log_level)
@@ -47,9 +47,9 @@ def apply_log_handler(logger_name=None, handler=None, log_level=logging.INFO, fo
 
 
 def get_default_handler(formatter=None):
-    """Get a basic console handler set up for logging analyses.
+    """Get the default log handler (logs to stderr) with the given formatter applied.
 
-    :param logging.Formatter|None formatter:
+    :param logging.Formatter|None formatter: if this is `None`, the `FORMATTER_WITH_TIMESTAMP` formatter is used
     :return logging.Handler:
     """
     console_handler = logging.StreamHandler()
@@ -58,10 +58,10 @@ def get_default_handler(formatter=None):
 
 
 def get_remote_handler(logger_uri, formatter=None):
-    """Get a log handler for streaming logs to a remote URI accessed via HTTP or HTTPS.
+    """Get a log handler for streaming logs to a remote URI accessed via HTTP or HTTPS. The given formatter is applied.
 
-    :param str logger_uri:
-    :param logging.Formatter|None formatter:
+    :param str logger_uri: the URI to stream the logs to
+    :param logging.Formatter|None formatter: if this is `None`, the `FORMATTER_WITH_TIMESTAMP` formatter is used
     :return logging.Handler:
     """
     parsed_uri = urlparse(logger_uri)
