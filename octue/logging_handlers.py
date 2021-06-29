@@ -3,24 +3,34 @@ import logging.handlers
 from urllib.parse import urlparse
 
 
+def create_formatter(logging_metadata):
+    """Create a log formatter from the given logging metadata that delimits the context fields with space-padded
+    pipes and encapsulates the whole context in square brackets before adding the message at the end. e.g. if the
+    logging metadata was `("%(asctime)s", "%(levelname)s", "%(name)s")`, the formatter would format log messages as e.g.
+    `[2021-06-29 11:58:10,985 | INFO | octue.runner] This is a log message.`
+
+    :param iter(str) logging_metadata: an iterable of context fields to use as context for every log message that the formatter is applied to
+    :return logging.Formatter:
+    """
+    return logging.Formatter("[" + " | ".join(logging_metadata) + "]" + " %(message)s")
+
+
 # Logging format for analysis runs. All handlers should use this logging format, to make logs consistently parseable
-LOGGING_METADATA = " | ".join(("%(asctime)s", "%(levelname)s", "%(name)s", "%(process)d", "%(thread)d"))
-LOG_FORMAT = "[" + LOGGING_METADATA + "]" + " %(message)s"
-FORMATTER = logging.Formatter(LOG_FORMAT)
+LOGGING_METADATA_WITH_DATE = ("%(asctime)s", "%(levelname)s", "%(name)s", "%(process)d", "%(thread)d")
+FORMATTER_WITH_DATE = create_formatter(LOGGING_METADATA_WITH_DATE)
+FORMATTER_WITHOUT_DATE = create_formatter(LOGGING_METADATA_WITH_DATE[1:])
 
 
-def apply_log_handler(logger_name=None, handler=None, log_level=logging.INFO):
+def apply_log_handler(logger_name=None, handler=None, log_level=logging.INFO, formatter=None):
     """Create a logger specific to the analysis
 
-    :parameter analysis_id: The id of the analysis to get the log for. Should be unique to the analysis
-    :type analysis_id: str
-
-    :parameter handler: The handler to use. If None, default console handler will be attached.
-
-    :return: logger named in the pattern `analysis-{analysis_id}`
-    :rtype logging.Logger
+    :param str logger_name:
+    :param logging.Handler handler: The handler to use. If None, default console handler will be attached.
+    :param int log_level:
+    :param logging.Formatter|None formatter:
+    :return logging.Logger: logger named in the pattern `analysis-{analysis_id}`
     """
-    handler = handler or get_default_handler()
+    handler = handler or get_default_handler(formatter)
     handler.setLevel(log_level)
     logger = logging.getLogger(name=logger_name)
     logger.addHandler(handler)
@@ -33,16 +43,27 @@ def apply_log_handler(logger_name=None, handler=None, log_level=logging.INFO):
         local_logger.setLevel(log_level)
         local_logger.info("Logs streaming to %s:%s", logger.handlers[0].host, str(logger.handlers[0].port))
 
+    return logger
 
-def get_default_handler():
-    """ Gets a basic console handler set up for logging analyses. """
+
+def get_default_handler(formatter=None):
+    """Get a basic console handler set up for logging analyses.
+
+    :param logging.Formatter|None formatter:
+    :return logging.Handler:
+    """
     console_handler = logging.StreamHandler()
-    console_handler.setFormatter(FORMATTER)
+    console_handler.setFormatter(formatter or FORMATTER_WITH_DATE)
     return console_handler
 
 
-def get_remote_handler(logger_uri):
-    """ Get a log handler for streaming logs to a remote URI accessed via HTTP or HTTPS. """
+def get_remote_handler(logger_uri, formatter=None):
+    """Get a log handler for streaming logs to a remote URI accessed via HTTP or HTTPS.
+
+    :param str logger_uri:
+    :param logging.Formatter|None formatter:
+    :return logging.Handler:
+    """
     parsed_uri = urlparse(logger_uri)
 
     if parsed_uri.scheme not in {"ws", "wss"}:
@@ -51,5 +72,5 @@ def get_remote_handler(logger_uri):
         )
 
     handler = logging.handlers.SocketHandler(host=parsed_uri.hostname, port=parsed_uri.port)
-    handler.setFormatter(FORMATTER)
+    handler.setFormatter(formatter or FORMATTER_WITH_DATE)
     return handler

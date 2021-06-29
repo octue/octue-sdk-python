@@ -1,22 +1,21 @@
 import base64
 import json
-import logging
 import os
 from flask import Flask, request
 
 from octue.cloud.pub_sub.service import Service
 from octue.exceptions import MissingServiceID
+from octue.logging_handlers import FORMATTER_WITHOUT_DATE, apply_log_handler
 from octue.resources.service_backends import GCPPubSubBackend
 from octue.runner import Runner
 
 
-logger = logging.getLogger(__name__)
-
-
-DEPLOYMENT_CONFIGURATION_PATH = "deployment_configuration.json"
-
+logger = apply_log_handler(__name__, formatter=FORMATTER_WITHOUT_DATE)
+logger.propagate = False
 
 app = Flask(__name__)
+
+DEPLOYMENT_CONFIGURATION_PATH = "deployment_configuration.json"
 
 
 @app.route("/", methods=["POST"])
