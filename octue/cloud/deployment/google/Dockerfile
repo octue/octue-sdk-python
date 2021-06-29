@@ -18,17 +18,17 @@ RUN if [ -f "setup.py" ]; then pip install --upgrade pip && pip install -e .; fi
 
 EXPOSE $PORT
 
-ARG _COMPUTE_PROVIDER=GOOGLE_CLOUD_RUN
-ENV COMPUTE_PROVIDER=$_COMPUTE_PROVIDER
+ARG COMPUTE_PROVIDER=GOOGLE_CLOUD_RUN
+ENV COMPUTE_PROVIDER=$COMPUTE_PROVIDER
 
-ARG _SERVICE_ID
-ENV SERVICE_ID=$_SERVICE_ID
+ARG SERVICE_ID
+ENV SERVICE_ID=$SERVICE_ID
 
-ARG _GUNICORN_WORKERS=1
-ENV _GUNICORN_WORKERS=$_GUNICORN_WORKERS
+ARG GUNICORN_WORKERS=1
+ENV GUNICORN_WORKERS=$GUNICORN_WORKERS
 
-ARG _GUNICORN_THREADS=8
-ENV _GUNICORN_THREADS=$_GUNICORN_THREADS
+ARG GUNICORN_THREADS=8
+ENV GUNICORN_THREADS=$GUNICORN_THREADS
 
 # Timeout is set to 0 to disable the timeouts of the workers to allow Cloud Run to handle instance scaling.
-CMD exec gunicorn --bind :$PORT --workers $_GUNICORN_WORKERS --threads $_GUNICORN_THREADS --timeout 0 octue.cloud.deployment.google.cloud_run:app
+CMD exec gunicorn --bind :$PORT --workers $GUNICORN_WORKERS --threads $GUNICORN_THREADS --timeout 0 octue.cloud.deployment.google.cloud_run:app
