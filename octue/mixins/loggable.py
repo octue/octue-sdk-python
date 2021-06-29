@@ -17,14 +17,12 @@ class Loggable:
     ```
 
     :param logging.Logger|None logger:
-    :param bool propagate_logger: if `True`, propagate log statements to the parent logger
     :return None:
     """
 
-    def __init__(self, *args, logger=None, propagate_logger=True, **kwargs):
+    def __init__(self, *args, logger=None, **kwargs):
         super().__init__(*args, **kwargs)
         self._logger = logger
-        self.propagate = propagate_logger
         self.__init_logger__()
 
     def __init_logger__(self):
@@ -33,7 +31,6 @@ class Loggable:
         :return None:
         """
         self._logger = self._logger or logging.getLogger(self.__class__.__module__)
-        self._logger.propagate = self.propagate
 
     @property
     def logger(self):

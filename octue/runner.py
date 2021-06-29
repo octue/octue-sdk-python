@@ -161,11 +161,11 @@ class Runner:
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
         analysis_logger = logging.getLogger(f"{__name__} | analysis-{analysis_id}")
         apply_log_handler(logger_name=analysis_logger.name, handler=self.handler, log_level=self._log_level)
+        analysis_logger.propagate = False
 
         analysis = Analysis(
             id=analysis_id,
             logger=analysis_logger,
-            propagate_logger=False,
             twine=self.twine,
             skip_checks=self.skip_checks,
             **self.configuration,
