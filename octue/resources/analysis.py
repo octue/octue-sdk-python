@@ -96,7 +96,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
         serialised_strands = {}
 
         for output_strand in OUTPUT_STRANDS:
-            self.logger.debug("Serialising %s", output_strand)
+            self.logger.debug("Serialising %r", output_strand)
 
             attribute = getattr(self, output_strand)
             if attribute is not None:

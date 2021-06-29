@@ -154,7 +154,7 @@ See services communicate in real time: running the child services template
 
 .. code-block:: bash
 
-    GOOGLE_APPLICATION_CREDENTIALS=</absolute/path/to/gcp_credentials.json> octue-app --log-level=debug --show-twined-logs
+    GOOGLE_APPLICATION_CREDENTIALS=</absolute/path/to/gcp_credentials.json> octue-app --log-level=debug
         start \
         --app-dir=octue/templates/template-child-services/elevation_service \
         --twine=octue/templates/template-child-services/elevation_service/twine.json \
@@ -166,7 +166,7 @@ See services communicate in real time: running the child services template
 
 .. code-block:: bash
 
-    GOOGLE_APPLICATION_CREDENTIALS=</absolute/path/to/gcp_credentials.json> octue-app --log-level=debug --show-twined-logs \
+    GOOGLE_APPLICATION_CREDENTIALS=</absolute/path/to/gcp_credentials.json> octue-app --log-level=debug \
         start \
         --app-dir=octue/templates/template-child-services/wind_speed_service \
         --twine=octue/templates/template-child-services/wind_speed_service/twine.json \
@@ -178,7 +178,7 @@ See services communicate in real time: running the child services template
 
 .. code-block:: bash
 
-    GOOGLE_APPLICATION_CREDENTIALS=</absolute/path/to/gcp_credentials.json> octue-app --log-level=debug --show-twined-logs \
+    GOOGLE_APPLICATION_CREDENTIALS=</absolute/path/to/gcp_credentials.json> octue-app --log-level=debug \
         run \
         --app-dir=octue/templates/template-child-services/parent_service \
         --twine=octue/templates/template-child-services/parent_service/twine.json \

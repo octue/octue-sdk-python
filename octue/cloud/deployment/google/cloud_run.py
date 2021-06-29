@@ -6,18 +6,14 @@ from flask import Flask, request
 
 from octue.cloud.pub_sub.service import Service
 from octue.exceptions import MissingServiceID
-from octue.logging_handlers import apply_log_handler
 from octue.resources.service_backends import GCPPubSubBackend
 from octue.runner import Runner
-
-
-logger = logging.getLogger(__name__)
-apply_log_handler(logger, log_level=logging.INFO)
 
 
 DEPLOYMENT_CONFIGURATION_PATH = "deployment_configuration.json"
 
 
+logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 
@@ -88,7 +84,6 @@ def answer_question(project_name, data, question_uuid, credentials_environment_v
         skip_checks=deployment_configuration.get("skip_checks", False),
         log_level=deployment_configuration.get("log_level", "INFO"),
         handler=deployment_configuration.get("log_handler", None),
-        show_twined_logs=deployment_configuration.get("show_twined_logs", False),
         project_name=project_name,
     )
 

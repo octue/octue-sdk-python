@@ -38,7 +38,6 @@ JSON object with the following fields (all paths should be relative to the repos
 * ``skip_checks`` (default value: ``False``)
 * ``log_level`` (default value: ``INFO``)
 * ``log_handler`` (default value: ``None``)
-* ``show_twined_logs`` (default value: ``False``)
 
 
 --------------------

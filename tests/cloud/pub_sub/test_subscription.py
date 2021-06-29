@@ -54,14 +54,18 @@ class TestSubscription(BaseTestCase):
         """Test that creating a subscription works properly."""
         service = Service(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
         topic = Topic(name="my-topic", namespace="tests", service=service)
-        topic.create(allow_existing=True)
-
         subscription = Subscription(name="world", topic=topic, namespace="hello", service=service)
-        response = subscription.create(allow_existing=True)
+
+        try:
+            topic.create(allow_existing=True)
+            response = subscription.create(allow_existing=True)
+
+        finally:
+            try:
+                subscription.delete()
+            finally:
+                topic.delete()
 
         self.assertEqual(response._pb.ack_deadline_seconds, 60)
         self.assertEqual(response._pb.expiration_policy.ttl.seconds, THIRTY_ONE_DAYS)
         self.assertEqual(response._pb.message_retention_duration.seconds, SEVEN_DAYS)
-
-        subscription.delete()
-        topic.delete()

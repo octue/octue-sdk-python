@@ -78,12 +78,13 @@ class TestCloudRun(TestCase):
         with mock.patch.dict(os.environ, {"SERVICE_ID": self.EXAMPLE_SERVICE_ID}):
             with mock.patch("octue.cloud.deployment.google.cloud_run.Runner") as mock_runner:
                 with mock.patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-                    cloud_run.answer_question(
-                        project_name="a-project-name",
-                        data={},
-                        question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29",
-                        credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS",
-                    )
+                    with mock.patch("octue.cloud.deployment.google.cloud_run.Service"):
+                        cloud_run.answer_question(
+                            project_name="a-project-name",
+                            data={},
+                            question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29",
+                            credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS",
+                        )
 
         mock_runner.assert_called_with(
             **{
@@ -96,7 +97,6 @@ class TestCloudRun(TestCase):
                 "skip_checks": False,
                 "log_level": "INFO",
                 "handler": None,
-                "show_twined_logs": False,
                 "project_name": "a-project-name",
             }
         )
@@ -118,12 +118,13 @@ class TestCloudRun(TestCase):
             ):
                 with mock.patch("octue.cloud.deployment.google.cloud_run.Runner") as mock_runner:
                     with mock.patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-                        cloud_run.answer_question(
-                            project_name="a-project-name",
-                            data={},
-                            question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29",
-                            credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS",
-                        )
+                        with mock.patch("octue.cloud.deployment.google.cloud_run.Service"):
+                            cloud_run.answer_question(
+                                project_name="a-project-name",
+                                data={},
+                                question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29",
+                                credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS",
+                            )
 
         mock_runner.assert_called_with(
             **{
@@ -136,7 +137,6 @@ class TestCloudRun(TestCase):
                 "skip_checks": False,
                 "log_level": "INFO",
                 "handler": None,
-                "show_twined_logs": False,
                 "project_name": "a-project-name",
             }
         )

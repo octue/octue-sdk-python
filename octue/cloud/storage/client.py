@@ -77,7 +77,7 @@ class GoogleCloudStorageClient:
 
         blob.upload_from_filename(filename=local_path, timeout=timeout)
         self._overwrite_blob_custom_metadata(blob, metadata)
-        logger.info("Uploaded %r to Google Cloud at %r.", local_path, blob.public_url)
+        logger.debug("Uploaded %r to Google Cloud at %r.", local_path, blob.public_url)
 
     def upload_from_string(
         self, string, cloud_path=None, bucket_name=None, path_in_bucket=None, metadata=None, timeout=_DEFAULT_TIMEOUT
@@ -98,7 +98,7 @@ class GoogleCloudStorageClient:
 
         blob.upload_from_string(data=string, timeout=timeout)
         self._overwrite_blob_custom_metadata(blob, metadata)
-        logger.info("Uploaded data to Google Cloud at %r.", blob.public_url)
+        logger.debug("Uploaded data to Google Cloud at %r.", blob.public_url)
 
     def get_metadata(self, cloud_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT):
         """Get the metadata of the given file in the given bucket. Either (`bucket_name` and `path_in_bucket`) or
@@ -169,7 +169,7 @@ class GoogleCloudStorageClient:
         """
         blob = self._blob(cloud_path, bucket_name, path_in_bucket)
         blob.download_to_filename(local_path, timeout=timeout)
-        logger.info("Downloaded %r from Google Cloud to %r.", blob.public_url, local_path)
+        logger.debug("Downloaded %r from Google Cloud to %r.", blob.public_url, local_path)
 
     def download_as_string(self, cloud_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT):
         """Download a file to a string from a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>. Either
@@ -183,7 +183,7 @@ class GoogleCloudStorageClient:
         """
         blob = self._blob(cloud_path, bucket_name, path_in_bucket)
         data = blob.download_as_bytes(timeout=timeout)
-        logger.info("Downloaded %r from Google Cloud to as string.", blob.public_url)
+        logger.debug("Downloaded %r from Google Cloud to as string.", blob.public_url)
         return data.decode()
 
     def delete(self, cloud_path=None, bucket_name=None, path_in_bucket=None, timeout=_DEFAULT_TIMEOUT):
@@ -198,7 +198,7 @@ class GoogleCloudStorageClient:
         """
         blob = self._blob(cloud_path, bucket_name, path_in_bucket)
         blob.delete(timeout=timeout)
-        logger.info("Deleted %r from Google Cloud.", blob.public_url)
+        logger.debug("Deleted %r from Google Cloud.", blob.public_url)
 
     def scandir(self, cloud_path=None, bucket_name=None, directory_path=None, filter=None, timeout=_DEFAULT_TIMEOUT):
         """Yield the blobs belonging to the given "directory" in the given bucket. Either (`bucket_name` and
