@@ -16,9 +16,9 @@ def create_formatter(logging_metadata):
 
 
 # Logging format for analysis runs. All handlers should use this logging format, to make logs consistently parseable
-LOGGING_METADATA_WITH_DATE = ("%(asctime)s", "%(levelname)s", "%(name)s", "%(process)d", "%(thread)d")
-FORMATTER_WITH_DATE = create_formatter(LOGGING_METADATA_WITH_DATE)
-FORMATTER_WITHOUT_DATE = create_formatter(LOGGING_METADATA_WITH_DATE[1:])
+LOGGING_METADATA_WITH_TIMESTAMP = ("%(asctime)s", "%(levelname)s", "%(name)s", "%(process)d", "%(thread)d")
+FORMATTER_WITH_TIMESTAMP = create_formatter(LOGGING_METADATA_WITH_TIMESTAMP)
+FORMATTER_WITHOUT_TIMESTAMP = create_formatter(LOGGING_METADATA_WITH_TIMESTAMP[1:])
 
 
 def apply_log_handler(logger_name=None, handler=None, log_level=logging.INFO, formatter=None):
@@ -53,7 +53,7 @@ def get_default_handler(formatter=None):
     :return logging.Handler:
     """
     console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter or FORMATTER_WITH_DATE)
+    console_handler.setFormatter(formatter or FORMATTER_WITH_TIMESTAMP)
     return console_handler
 
 
@@ -72,5 +72,5 @@ def get_remote_handler(logger_uri, formatter=None):
         )
 
     handler = logging.handlers.SocketHandler(host=parsed_uri.hostname, port=parsed_uri.port)
-    handler.setFormatter(formatter or FORMATTER_WITH_DATE)
+    handler.setFormatter(formatter or FORMATTER_WITH_TIMESTAMP)
     return handler
