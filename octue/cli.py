@@ -61,9 +61,7 @@ def octue_cli(id, skip_checks, logger_uri, log_level, force_reset):
     global_cli_context["force_reset"] = force_reset
 
     if global_cli_context["logger_uri"]:
-        global_cli_context["log_handler"] = get_remote_handler(
-            logger_uri=global_cli_context["logger_uri"], log_level=global_cli_context["log_level"]
-        )
+        global_cli_context["log_handler"] = get_remote_handler(logger_uri=global_cli_context["logger_uri"])
 
 
 @octue_cli.command()

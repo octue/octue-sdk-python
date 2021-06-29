@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 # Logging format for analysis runs. All handlers should use this logging format, to make logs consistently parseable
 LOGGING_METADATA = " | ".join(("%(asctime)s", "%(levelname)s", "%(name)s", "%(process)d", "%(thread)d"))
 LOG_FORMAT = "[" + LOGGING_METADATA + "]" + " %(message)s"
+FORMATTER = logging.Formatter(LOG_FORMAT)
 
 
 def apply_log_handler(logger_name=None, handler=None, log_level=logging.INFO):
@@ -25,8 +26,8 @@ def apply_log_handler(logger_name=None, handler=None, log_level=logging.INFO):
     logger.addHandler(handler)
     logger.setLevel(log_level)
 
-    # Log locally that a remote logger will be used from now on.
     if type(logger.handlers[0]).__name__ == "SocketHandler":
+        # Log locally that a remote logger will be used from now on.
         local_logger = logging.getLogger(__name__)
         local_logger.addHandler(get_default_handler())
         local_logger.setLevel(log_level)
@@ -36,12 +37,11 @@ def apply_log_handler(logger_name=None, handler=None, log_level=logging.INFO):
 def get_default_handler():
     """ Gets a basic console handler set up for logging analyses. """
     console_handler = logging.StreamHandler()
-    formatter = logging.Formatter(LOG_FORMAT)
-    console_handler.setFormatter(formatter)
+    console_handler.setFormatter(FORMATTER)
     return console_handler
 
 
-def get_remote_handler(logger_uri, log_level):
+def get_remote_handler(logger_uri):
     """ Get a log handler for streaming logs to a remote URI accessed via HTTP or HTTPS. """
     parsed_uri = urlparse(logger_uri)
 
@@ -51,6 +51,5 @@ def get_remote_handler(logger_uri, log_level):
         )
 
     handler = logging.handlers.SocketHandler(host=parsed_uri.hostname, port=parsed_uri.port)
-    handler.setLevel(log_level)
-    handler.setFormatter(logging.Formatter(LOG_FORMAT))
+    handler.setFormatter(FORMATTER)
     return handler
