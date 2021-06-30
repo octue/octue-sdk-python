@@ -212,6 +212,10 @@ class Service(CoolNameable):
                         self._raise_exception_from_responder(message)
 
                     if "output_values" in message:
+                        logger.info(
+                            "%r received an answer to question %r.", self, subscription.topic.path.split(".")[-1]
+                        )
+
                         if message["output_manifest"] is None:
                             output_manifest = None
                         else:
@@ -261,7 +265,7 @@ class Service(CoolNameable):
                     continue
 
             self.subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
-            logger.info("%r received a response to question %r.", self, subscription.topic.path.split(".")[-1])
+            logger.debug("%r received a message related to question %r.", self, subscription.topic.path.split(".")[-1])
             return json.loads(answer.message.data.decode())
 
     def _send_exception_to_asker(self, topic, timeout):
