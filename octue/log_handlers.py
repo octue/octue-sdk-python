@@ -16,7 +16,7 @@ def create_formatter(logging_metadata):
 
 
 # Logging format for analysis runs. All handlers should use this logging format, to make logs consistently parseable
-LOGGING_METADATA_WITH_TIMESTAMP = ("%(asctime)s", "%(levelname)s", "%(name)s", "%(process)d", "%(thread)d")
+LOGGING_METADATA_WITH_TIMESTAMP = ("%(asctime)s", "%(levelname)s", "%(name)s")
 FORMATTER_WITH_TIMESTAMP = create_formatter(LOGGING_METADATA_WITH_TIMESTAMP)
 FORMATTER_WITHOUT_TIMESTAMP = create_formatter(LOGGING_METADATA_WITH_TIMESTAMP[1:])
 
