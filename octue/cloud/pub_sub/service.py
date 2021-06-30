@@ -1,3 +1,4 @@
+import functools
 import json
 import logging
 import sys
@@ -203,55 +204,16 @@ class Service(CoolNameable):
         :raise TimeoutError: if the timeout is exceeded
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
-        waiting_messages = {}
-        previous_message_number = -1
-
-        message_handlers = {
-            "log_record": self._handle_log_message,
-            "exception": self._handle_exception,
-            "result": self._handle_result,
-        }
+        message_puller = functools.partial(self._pull_message, timeout=timeout)
+        message_handler = MessageHandler(message_puller=message_puller, subscription=subscription)
 
         with self.subscriber:
             try:
-                while True:
-                    message = self._pull_message(subscription, timeout)
-                    handled, result = self._handle_message(
-                        message, subscription, previous_message_number, waiting_messages, message_handlers
-                    )
-
-                    if handled:
-                        previous_message_number += 1
-
-                        if result is not None:
-                            return result
-
-                    if waiting_messages:
-                        try:
-                            message = waiting_messages[previous_message_number + 1]
-
-                            handled, result = self._handle_message(
-                                message, subscription, previous_message_number, waiting_messages, message_handlers
-                            )
-
-                            previous_message_number += 1
-
-                            if result is not None:
-                                return result
-
-                        except KeyError:
-                            pass
+                return message_handler.handle_messages()
 
             finally:
                 subscription.delete()
                 subscription.topic.delete()
-
-    def _handle_message(self, message, subscription, previous_message_number, waiting_messages, message_handlers):
-        if message["message_number"] - previous_message_number == 1:
-            return True, message_handlers[message["type"]](message, subscription)
-        else:
-            waiting_messages[message["message_number"]] = message
-            return False, None
 
     def _pull_message(self, subscription, timeout):
         """Pull a message from the subscription, raising a `TimeoutError` if the timeout is exceeded before succeeding.
@@ -322,35 +284,78 @@ class Service(CoolNameable):
 
         self.publisher.messages_published += 1
 
-    def _handle_log_message(self, message, subscription):
+
+class MessageHandler:
+    def __init__(self, message_puller, subscription):
+        self.message_puller = message_puller
+        self.subscription = subscription
+        self._waiting_messages = {}
+        self._previous_message_number = -1
+
+        self._message_handlers = {
+            "log_record": self._handle_log_message,
+            "exception": self._handle_exception,
+            "result": self._handle_result,
+        }
+
+    def handle_messages(self):
+        while True:
+            message = self.message_puller(self.subscription)
+            handled, result = self._handle_message(message)
+
+            if handled:
+                if result is not None:
+                    return result
+
+            if self._waiting_messages:
+                try:
+                    while True:
+                        message = self._waiting_messages[self._previous_message_number + 1]
+                        handled, result = self._handle_message(message)
+
+                        if result is not None:
+                            return result
+
+                except KeyError:
+                    pass
+
+    def _handle_message(self, message):
+        if message["message_number"] - self._previous_message_number == 1:
+            self._previous_message_number += 1
+            return True, self._message_handlers[message["type"]](message)
+        else:
+            self._waiting_messages[message["message_number"]] = message
+            return False, None
+
+    def _handle_log_message(self, message):
         record = logging.makeLogRecord(message["log_record"])
         record.msg = f"[REMOTE] {record.message}"
         logger.handle(record)
 
-    def _handle_exception(self, data, subscription):
+    def _handle_exception(self, message):
         """Raise the exception from the responding service that is serialised in `data`.
 
-        :param dict data:
+        :param dict message:
         :raise Exception:
         :return None:
         """
-        message = "\n\n".join(
+        exception_message = "\n\n".join(
             (
-                data["exception_message"],
+                message["exception_message"],
                 "The following traceback was captured from the remote service:",
-                "".join(data["traceback"]),
+                "".join(message["traceback"]),
             )
         )
 
         try:
-            raise EXCEPTIONS_MAPPING[data["exception_type"]](message)
+            raise EXCEPTIONS_MAPPING[message["exception_type"]](exception_message)
 
         # Allow unknown exception types to still be raised.
         except KeyError:
-            raise type(data["exception_type"], (Exception,), {})(message)
+            raise type(message["exception_type"], (Exception,), {})(exception_message)
 
-    def _handle_result(self, message, subscription):
-        logger.info("%r received an answer to question %r.", self, subscription.topic.path.split(".")[-1])
+    def _handle_result(self, message):
+        logger.info("%r received an answer to question %r.", self, self.subscription.topic.path.split(".")[-1])
 
         if message["output_manifest"] is None:
             output_manifest = None
