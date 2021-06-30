@@ -6,7 +6,7 @@ import pkg_resources
 
 from octue.cloud.pub_sub.service import Service
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
-from octue.logging_handlers import get_remote_handler
+from octue.log_handlers import get_remote_handler
 from octue.resources import service_backends
 from octue.runner import Runner
 from twined import Twine

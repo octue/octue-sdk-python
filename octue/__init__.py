@@ -1,6 +1,6 @@
 import os
 
-from .logging_handlers import FORMATTER_WITHOUT_TIMESTAMP, apply_log_handler
+from .log_handlers import FORMATTER_WITHOUT_TIMESTAMP, apply_log_handler
 from .runner import Runner
 
 

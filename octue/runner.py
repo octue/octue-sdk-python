@@ -6,7 +6,7 @@ import google.api_core.exceptions
 from google.cloud import secretmanager
 
 from octue.cloud.credentials import GCPCredentialsManager
-from octue.logging_handlers import apply_log_handler
+from octue.log_handlers import apply_log_handler
 from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.utils import gen_uuid

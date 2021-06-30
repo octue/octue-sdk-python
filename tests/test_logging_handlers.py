@@ -1,7 +1,7 @@
 import logging
 from unittest import mock
 
-from octue.logging_handlers import get_remote_handler
+from octue.log_handlers import get_remote_handler
 from tests.base import BaseTestCase
 
 
