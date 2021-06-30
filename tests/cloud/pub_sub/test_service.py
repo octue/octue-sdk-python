@@ -188,8 +188,10 @@ class TestService(BaseTestCase):
                 self.assertEqual(type(context.exception).__name__, "AnUnknownException")
                 self.assertIn("This is an exception unknown to the asker.", context.exception.args[0])
 
-    def test_ask(self):
-        """ Test that a service can ask a question to another service that is serving and receive an answer. """
+    def test_ask_with_real_run_function(self):
+        """Test that a service can ask a question to another service that is serving and receive an answer. Use a real
+        run function rather than a mock so that the underlying `Runner` instance is used.
+        """
         responding_service = MockService(backend=self.BACKEND, run_function=create_run_function())
         asking_service = MockService(backend=self.BACKEND, children={responding_service.id: responding_service})
 
