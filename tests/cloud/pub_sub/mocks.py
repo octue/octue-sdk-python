@@ -75,6 +75,9 @@ class MockFuture:
 class MockPublisher:
     """A mock publisher that puts messages in a global dictionary instead of Google Pub/Sub."""
 
+    def __init__(self, *args, **kwargs):
+        self.messages_published = 0
+
     def publish(self, topic, data, retry=None, **attributes):
         """Put the data and attributes into a MockMessage and add it to the global messages dictionary before returning
         a MockFuture.

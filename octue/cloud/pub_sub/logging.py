@@ -28,9 +28,17 @@ class GooglePubSubHandler(Handler):
         try:
             self.publisher.publish(
                 topic=self.topic.path,
-                data=json.dumps({"log_record": vars(record)}).encode(),
+                data=json.dumps(
+                    {
+                        "type": "log_record",
+                        "log_record": vars(record),
+                        "message_number": self.publisher.messages_published,
+                    }
+                ).encode(),
                 retry=create_custom_retry(self.timeout),
             )
+
+            self.publisher.messages_published += 1
 
         except Exception:  # noqa
             self.handleError(record)
