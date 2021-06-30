@@ -208,7 +208,7 @@ class Service(CoolNameable):
 
         message_handlers = {
             "log_record": self._handle_log_message,
-            "exception": self._raise_exception_from_responder,
+            "exception": self._handle_exception,
             "result": self._handle_result,
         }
 
@@ -216,13 +216,31 @@ class Service(CoolNameable):
             try:
                 while True:
                     message = self._pull_message(subscription, timeout)
-                    result = self._handle_message(
+                    handled, result = self._handle_message(
                         message, subscription, previous_message_number, waiting_messages, message_handlers
                     )
-                    previous_message_number += 1
 
-                    if result is not None:
-                        return result
+                    if handled:
+                        previous_message_number += 1
+
+                        if result is not None:
+                            return result
+
+                    if waiting_messages:
+                        try:
+                            message = waiting_messages[previous_message_number + 1]
+
+                            handled, result = self._handle_message(
+                                message, subscription, previous_message_number, waiting_messages, message_handlers
+                            )
+
+                            previous_message_number += 1
+
+                            if result is not None:
+                                return result
+
+                        except KeyError:
+                            pass
 
             finally:
                 subscription.delete()
@@ -230,41 +248,10 @@ class Service(CoolNameable):
 
     def _handle_message(self, message, subscription, previous_message_number, waiting_messages, message_handlers):
         if message["message_number"] - previous_message_number == 1:
-            return message_handlers[message["type"]](message, subscription)
+            return True, message_handlers[message["type"]](message, subscription)
         else:
             waiting_messages[message["message_number"]] = message
-
-            sorted_message_numbers = sorted(waiting_messages.keys())
-
-            if sorted_message_numbers[0] == 0:
-                message = waiting_messages[0]
-                message_handlers[message["type"]](message, subscription)
-
-                for i in range(1, len(sorted_message_numbers) - 1):
-                    increment = sorted_message_numbers[i + 1] - sorted_message_numbers[i]
-                    if increment == 1:
-                        message = waiting_messages[i]
-                        message_handlers[message["type"]](message, subscription)
-                    else:
-                        break
-
-                    message = waiting_messages[-1]
-                    message_handlers[message["type"]](message, subscription)
-
-    def _handle_log_message(self, message, subscription):
-        record = logging.makeLogRecord(message["log_record"])
-        record.msg = f"[REMOTE] {record.message}"
-        logger.handle(record)
-
-    def _handle_result(self, message, subscription):
-        logger.info("%r received an answer to question %r.", self, subscription.topic.path.split(".")[-1])
-
-        if message["output_manifest"] is None:
-            output_manifest = None
-        else:
-            output_manifest = Manifest.deserialise(message["output_manifest"], from_string=True)
-
-        return {"output_values": message["output_values"], "output_manifest": output_manifest}
+            return False, None
 
     def _pull_message(self, subscription, timeout):
         """Pull a message from the subscription, raising a `TimeoutError` if the timeout is exceeded before succeeding.
@@ -335,7 +322,12 @@ class Service(CoolNameable):
 
         self.publisher.messages_published += 1
 
-    def _raise_exception_from_responder(self, data, subscription):
+    def _handle_log_message(self, message, subscription):
+        record = logging.makeLogRecord(message["log_record"])
+        record.msg = f"[REMOTE] {record.message}"
+        logger.handle(record)
+
+    def _handle_exception(self, data, subscription):
         """Raise the exception from the responding service that is serialised in `data`.
 
         :param dict data:
@@ -356,3 +348,13 @@ class Service(CoolNameable):
         # Allow unknown exception types to still be raised.
         except KeyError:
             raise type(data["exception_type"], (Exception,), {})(message)
+
+    def _handle_result(self, message, subscription):
+        logger.info("%r received an answer to question %r.", self, subscription.topic.path.split(".")[-1])
+
+        if message["output_manifest"] is None:
+            output_manifest = None
+        else:
+            output_manifest = Manifest.deserialise(message["output_manifest"], from_string=True)
+
+        return {"output_values": message["output_values"], "output_manifest": output_manifest}
