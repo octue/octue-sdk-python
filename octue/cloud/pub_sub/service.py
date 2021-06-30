@@ -196,16 +196,15 @@ class Service(CoolNameable):
         :raise TimeoutError: if the timeout is exceeded
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
-        no_format_logger = logging.Logger("")
-        no_format_logger.addHandler(logging.StreamHandler())
-
         with self.subscriber:
             try:
                 while True:
                     message = self._pull_message(subscription, timeout)
 
-                    if "log_message" in message:
-                        getattr(no_format_logger, message["log_level"])(f"[REMOTE] {message['log_message']}")
+                    if "log_record" in message:
+                        record = logging.makeLogRecord(message["log_record"])
+                        record.msg = f"[REMOTE] {record.message}"
+                        logger.handle(record)
                         continue
 
                     if "exception_type" in message:

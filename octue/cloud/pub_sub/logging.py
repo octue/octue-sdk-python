@@ -13,11 +13,9 @@ class GooglePubSubHandler(Handler):
 
     def emit(self, record):
         try:
-            message = self.format(record)
-
             self.publisher.publish(
                 topic=self.topic.path,
-                data=json.dumps({"log_message": message, "log_level": record.levelname.lower()}).encode(),
+                data=json.dumps({"log_record": vars(record)}).encode(),
                 retry=create_custom_retry(self.timeout),
             )
 
