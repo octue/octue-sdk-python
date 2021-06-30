@@ -196,62 +196,73 @@ class Service(CoolNameable):
         :raise TimeoutError: if the timeout is exceeded
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
-        start_time = time.perf_counter()
         no_format_logger = logging.Logger("")
         no_format_logger.addHandler(logging.StreamHandler())
 
         with self.subscriber:
-
             try:
                 while True:
-                    no_message = True
-                    attempt = 1
+                    message = self._pull_message(subscription, timeout)
 
-                    while no_message:
-                        logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
-
-                        pull_response = self.subscriber.pull(
-                            request={"subscription": subscription.path, "max_messages": 1},
-                            retry=create_custom_retry(timeout),
-                        )
-
-                        try:
-                            answer = pull_response.received_messages[0]
-                            no_message = False
-
-                        except IndexError:
-                            logger.debug("Google Pub/Sub pull response timed out early.")
-                            attempt += 1
-
-                            if (time.perf_counter() - start_time) > timeout:
-                                raise TimeoutError(
-                                    f"No answer received from topic {subscription.topic.path!r} after {timeout} seconds.",
-                                )
-
-                    self.subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
-
-                    logger.info("%r received a response to question %r.", self, subscription.topic.path.split(".")[-1])
-
-                    data = json.loads(answer.message.data.decode())
-
-                    if "log_message" in data:
-                        getattr(no_format_logger, data["log_level"])(f"[REMOTE] {data['log_message']}")
+                    if "log_message" in message:
+                        getattr(no_format_logger, message["log_level"])(f"[REMOTE] {message['log_message']}")
                         continue
 
-                    if "exception_type" in data:
-                        self._raise_exception_from_responder(data)
+                    if "exception_type" in message:
+                        self._raise_exception_from_responder(message)
 
-                    if "output_values" in data:
-                        if data["output_manifest"] is None:
+                    if "output_values" in message:
+                        if message["output_manifest"] is None:
                             output_manifest = None
                         else:
-                            output_manifest = Manifest.deserialise(data["output_manifest"], from_string=True)
+                            output_manifest = Manifest.deserialise(message["output_manifest"], from_string=True)
 
-                        return {"output_values": data["output_values"], "output_manifest": output_manifest}
+                        return {"output_values": message["output_values"], "output_manifest": output_manifest}
 
             finally:
                 subscription.delete()
                 subscription.topic.delete()
+
+    def _pull_message(self, subscription, timeout):
+        """Pull a message from the subscription, raising a `TimeoutError` if the timeout is exceeded before succeeding.
+
+        :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription the message is expected on
+        :param float timeout: how long to wait in seconds for the message before raising a TimeoutError
+        :raise TimeoutError: if the timeout is exceeded
+        :return dict: message containing data
+        """
+        start_time = time.perf_counter()
+
+        while True:
+            no_message = True
+            attempt = 1
+
+            while no_message:
+                logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
+
+                pull_response = self.subscriber.pull(
+                    request={"subscription": subscription.path, "max_messages": 1},
+                    retry=create_custom_retry(timeout),
+                )
+
+                try:
+                    answer = pull_response.received_messages[0]
+                    no_message = False
+
+                except IndexError:
+                    logger.debug("Google Pub/Sub pull response timed out early.")
+                    attempt += 1
+
+                    if (time.perf_counter() - start_time) > timeout:
+                        raise TimeoutError(
+                            f"No answer received from topic {subscription.topic.path!r} after {timeout} seconds.",
+                        )
+
+                    continue
+
+            self.subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
+            logger.info("%r received a response to question %r.", self, subscription.topic.path.split(".")[-1])
+            return json.loads(answer.message.data.decode())
 
     def _send_exception_to_asker(self, topic, timeout):
         """Serialise and send the exception being handled to the asker.
