@@ -37,15 +37,18 @@ def apply_log_handler(logger_name=None, handler=None, log_level=logging.INFO, fo
     logger.addHandler(handler)
     logger.setLevel(log_level)
 
-    if type(logger.handlers[0]).__name__ == "SocketHandler":
-        # Log locally that a remote logger will be used from now on.
-        local_logger = logging.getLogger(__name__)
-        local_handler = logging.StreamHandler()
-        local_handler.setFormatter(formatter or FORMATTER_WITH_TIMESTAMP)
-        local_handler.setLevel(log_level)
-        local_logger.addHandler(local_handler)
-        local_logger.setLevel(log_level)
-        local_logger.info("Logs streaming to %s:%s", logger.handlers[0].host, str(logger.handlers[0].port))
+    for handler in logger.handlers:
+        if type(handler).__name__ == "SocketHandler":
+            # Log locally that a remote logger will be used.
+            local_logger = logging.getLogger(__name__)
+            temporary_handler = logging.StreamHandler()
+            temporary_handler.setFormatter(formatter or FORMATTER_WITH_TIMESTAMP)
+            temporary_handler.setLevel(log_level)
+            local_logger.addHandler(temporary_handler)
+            local_logger.setLevel(log_level)
+            local_logger.info("Logs streaming to %s:%s", handler.host, str(handler.port))
+            local_logger.removeHandler(temporary_handler)
+            break
 
     return logger
 

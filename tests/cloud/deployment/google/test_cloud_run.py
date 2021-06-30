@@ -95,8 +95,6 @@ class TestCloudRun(TestCase):
                 "output_manifest_path": None,
                 "children": None,
                 "skip_checks": False,
-                "log_level": "INFO",
-                "handler": None,
                 "project_name": "a-project-name",
             }
         )
@@ -135,8 +133,6 @@ class TestCloudRun(TestCase):
                 "output_manifest_path": None,
                 "children": None,
                 "skip_checks": False,
-                "log_level": "INFO",
-                "handler": None,
                 "project_name": "a-project-name",
             }
         )

@@ -1,4 +1,5 @@
 import base64
+import functools
 import json
 import logging
 import os
@@ -82,9 +83,13 @@ def answer_question(project_name, data, question_uuid, credentials_environment_v
         output_manifest_path=deployment_configuration.get("output_manifest", None),
         children=deployment_configuration.get("children", None),
         skip_checks=deployment_configuration.get("skip_checks", False),
-        log_level=deployment_configuration.get("log_level", "INFO"),
-        handler=deployment_configuration.get("log_handler", None),
         project_name=project_name,
+    )
+
+    run_function = functools.partial(
+        runner.run,
+        analysis_log_level=deployment_configuration.get("log_level", "INFO"),
+        analysis_log_handler=deployment_configuration.get("log_handler", None),
     )
 
     service = Service(
@@ -92,7 +97,7 @@ def answer_question(project_name, data, question_uuid, credentials_environment_v
         backend=GCPPubSubBackend(
             project_name=project_name, credentials_environment_variable=credentials_environment_variable
         ),
-        run_function=runner.run,
+        run_function=run_function,
     )
 
     try:
