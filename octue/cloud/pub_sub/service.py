@@ -205,7 +205,7 @@ class Service(CoolNameable):
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
         message_puller = functools.partial(self._pull_message, timeout=timeout)
-        message_handler = MessageHandler(message_puller=message_puller, subscription=subscription)
+        message_handler = OrderedMessageHandler(message_puller=message_puller, subscription=subscription)
 
         with self.subscriber:
             try:
@@ -285,7 +285,14 @@ class Service(CoolNameable):
         self.publisher.messages_published += 1
 
 
-class MessageHandler:
+class OrderedMessageHandler:
+    """A handler for Google Pub/Sub messages that ensures messages are handled in the order they were sent.
+
+    :param callable message_puller: function that pulls a message from the subscription
+    :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
+    :return None:
+    """
+
     def __init__(self, message_puller, subscription):
         self.message_puller = message_puller
         self.subscription = subscription
@@ -299,35 +306,50 @@ class MessageHandler:
         }
 
     def handle_messages(self):
+        """Pull messages and handle them in the order they were sent until a result is returned by a message handler,
+        then return that result.
+
+        :return dict:
+        """
         while True:
             message = self.message_puller(self.subscription)
-            handled, result = self._handle_message(message)
+            result = self._handle_message(message)
 
-            if handled:
-                if result is not None:
-                    return result
+            if result is not None:
+                return result
 
-            if self._waiting_messages:
-                try:
-                    while True:
-                        message = self._waiting_messages[self._previous_message_number + 1]
-                        handled, result = self._handle_message(message)
+            try:
+                while self._waiting_messages:
+                    message = self._waiting_messages.pop(self._previous_message_number + 1)
+                    result = self._handle_message(message)
 
-                        if result is not None:
-                            return result
+                    if result is not None:
+                        return result
 
-                except KeyError:
-                    pass
+            except KeyError:
+                pass
 
     def _handle_message(self, message):
+        """Pass a message to its handler if it is its turn to be handled, otherwise put it in the waiting messages
+        store for later handling.
+
+        :param dict message:
+        :return dict|None:
+        """
         if message["message_number"] - self._previous_message_number == 1:
             self._previous_message_number += 1
-            return True, self._message_handlers[message["type"]](message)
+            return self._message_handlers[message["type"]](message)
         else:
             self._waiting_messages[message["message_number"]] = message
-            return False, None
+            return None
 
     def _handle_log_message(self, message):
+        """Deserialise the message into a log record and pass it to the local log handlers, adding `[REMOTE] to the
+        start of the log message.
+
+        :param dict message:
+        :return None:
+        """
         record = logging.makeLogRecord(message["log_record"])
         record.msg = f"[REMOTE] {record.message}"
         logger.handle(record)
@@ -355,6 +377,11 @@ class MessageHandler:
             raise type(message["exception_type"], (Exception,), {})(exception_message)
 
     def _handle_result(self, message):
+        """Convert the result to the correct form, deserialising the output manifest if it is present in the message.
+
+        :param dict message:
+        :return dict:
+        """
         logger.info("%r received an answer to question %r.", self, self.subscription.topic.path.split(".")[-1])
 
         if message["output_manifest"] is None:
