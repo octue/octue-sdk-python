@@ -71,7 +71,6 @@ class RunnerTestCase(BaseTestCase):
                     }
                 }
             }
-
         """
         runner = Runner(app_src=mock_app, twine=twine)
 

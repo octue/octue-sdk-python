@@ -3,7 +3,7 @@ import uuid
 from unittest.mock import patch
 
 import twined.exceptions
-from octue import exceptions
+from octue import Runner, exceptions
 from octue.cloud.pub_sub.service import Service
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
@@ -35,6 +35,25 @@ class MockAnalysisWithOutputManifest:
     output_manifest = Manifest()
 
 
+def create_run_function():
+    def mock_app(analysis):
+        analysis.logger.info("Starting analysis.")
+        analysis.output_values = "Hello! It worked!"
+        analysis.output_manifest = None
+        analysis.logger.info("Finished analysis.")
+
+    twine = """
+        {
+            "input_values_schema": {
+                "type": "object",
+                "required": []
+            }
+        }
+    """
+
+    return Runner(app_src=mock_app, twine=twine).run
+
+
 class TestService(BaseTestCase):
     """Some of these tests require a connection to either a real Google Pub/Sub instance on Google Cloud Platform
     (GCP), or a local emulator."""
@@ -52,7 +71,9 @@ class TestService(BaseTestCase):
         :param bool use_mock:
         :return tests.cloud.pub_sub.mocks.MockService:
         """
-        run_function = lambda input_values, input_manifest, analysis_id: run_function_returnee  # noqa
+        run_function = (
+            lambda analysis_id, input_values, input_manifest, analysis_log_handler: run_function_returnee
+        )  # noqa
 
         if use_mock:
             return MockService(backend=backend, run_function=run_function)
@@ -79,7 +100,7 @@ class TestService(BaseTestCase):
         """
         responding_service = self.make_new_server(self.BACKEND, run_function_returnee=None, use_mock=True)
 
-        def error_run_function(input_values, input_manifest, analysis_id):
+        def error_run_function(analysis_id, input_values, input_manifest, analysis_log_handler):
             raise exception_to_raise
 
         responding_service.run_function = error_run_function
@@ -169,7 +190,7 @@ class TestService(BaseTestCase):
 
     def test_ask(self):
         """ Test that a service can ask a question to another service that is serving and receive an answer. """
-        responding_service = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
+        responding_service = MockService(backend=self.BACKEND, run_function=create_run_function())
         asking_service = MockService(backend=self.BACKEND, children={responding_service.id: responding_service})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
@@ -327,7 +348,7 @@ class TestService(BaseTestCase):
             self.BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True
         )
 
-        def child_run_function(input_values, input_manifest, analysis_id):
+        def child_run_function(analysis_id, input_values, input_manifest, analysis_log_handler):
             subscription, _ = child.ask(service_id=child_of_child.id, input_values=input_values)
             return MockAnalysis(output_values={input_values["question"]: child.wait_for_answer(subscription)})
 
@@ -369,7 +390,7 @@ class TestService(BaseTestCase):
         )
         second_child_of_child = self.make_new_server(self.BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
 
-        def child_run_function(input_values, input_manifest, analysis_id):
+        def child_run_function(analysis_id, input_values, input_manifest, analysis_log_handler):
             subscription_1, _ = child.ask(service_id=first_child_of_child.id, input_values=input_values)
             subscription_2, _ = child.ask(service_id=second_child_of_child.id, input_values=input_values)
 

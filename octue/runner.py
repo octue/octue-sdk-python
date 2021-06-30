@@ -23,19 +23,12 @@ class Runner:
     methods for managing input and output file parsing as well as controlling logging.
 
     :param str|twined.Twine twine: path to the twine file, a string containing valid twine json, or a Twine instance
-    :param str|dict paths: If a string, contains a single path to an existing data directory where
-        (if not already present), subdirectories 'configuration', 'input', 'tmp', 'log' and 'output' will be created. If a
-        dict, it should contain all of those keys, with each of their values being a path to a directory (which will be
-        recursively created if it doesn't exist)
-    :param str|dict|_io.TextIOWrapper configuration_values: The strand data. Can be expressed as a string path of a
-        *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json
-        data or as an already-parsed dict.
-    :param str|dict|_io.TextIOWrapper configuration_manifest: The strand data. Can be expressed as a string path of a
-    *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or
-    as an already-parsed dict.
-    :param bool skip_file_checks: If true, skip the check that all files in the manifest are present on disc - this
-        can be an extremely long process for large datasets.
+    :param str|dict paths: If a string, contains a single path to an existing data directory where (if not already present), subdirectories 'configuration', 'input', 'tmp', 'log' and 'output' will be created. If a dict, it should contain all of those keys, with each of their values being a path to a directory (which will be recursively created if it doesn't exist)
+    :param str|dict|_io.TextIOWrapper configuration_values: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
+    :param str|dict|_io.TextIOWrapper configuration_manifest: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
+    :param bool skip_file_checks: If true, skip the check that all files in the manifest are present on disc - this can be an extremely long process for large datasets.
     :param str project_name: name of Google Cloud project to get credentials from
+    :return None:
     """
 
     def __init__(
@@ -47,16 +40,12 @@ class Runner:
         output_manifest_path=None,
         children=None,
         skip_checks=False,
-        log_level=logging.INFO,
-        handler=None,
         project_name=None,
     ):
         self.app_src = app_src
         self.output_manifest_path = output_manifest_path
         self.children = children
         self.skip_checks = skip_checks
-        self._log_level = log_level
-        self.handler = handler
 
         # Ensure the twine is present and instantiate it.
         if isinstance(twine, Twine):
@@ -83,7 +72,14 @@ class Runner:
 
         self._project_name = project_name
 
-    def run(self, analysis_id=None, input_values=None, input_manifest=None):
+    def run(
+        self,
+        analysis_id=None,
+        input_values=None,
+        input_manifest=None,
+        analysis_log_level=logging.INFO,
+        analysis_log_handler=None,
+    ):
         """Run an analysis
 
         :parameter app_src: Either: an instance of the AppFrom manager class which has a run() method, or
@@ -159,11 +155,18 @@ class Runner:
         )
 
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
+        analysis_logger_name = f"{__name__} | analysis-{analysis_id}"
 
-        analysis_logger = apply_log_handler(
-            logger_name=f"{__name__} | analysis-{analysis_id}", handler=self.handler, log_level=self._log_level
-        )
+        # Apply the default stderr log handler to the analysis logger.
+        analysis_logger = apply_log_handler(logger_name=analysis_logger_name, log_level=analysis_log_level)
 
+        # Also apply the given analysis log handler if given.
+        if analysis_log_handler:
+            apply_log_handler(
+                logger_name=analysis_logger_name, handler=analysis_log_handler, log_level=analysis_log_level
+            )
+
+        # Stop messages logged by the analysis logger being repeated by the root logger.
         analysis_logger.propagate = False
 
         analysis = Analysis(

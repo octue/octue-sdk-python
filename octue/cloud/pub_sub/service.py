@@ -5,15 +5,13 @@ import time
 import traceback as tb
 import uuid
 from concurrent.futures import TimeoutError
-import google.api_core
-import google.api_core.exceptions
-from google.api_core import retry
 from google.cloud import pubsub_v1
 
 import octue.exceptions
 import twined.exceptions
 from octue.cloud.credentials import GCPCredentialsManager
-from octue.cloud.pub_sub import Subscription, Topic
+from octue.cloud.pub_sub import Subscription, Topic, create_custom_retry
+from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.exceptions import FileLocationError
 from octue.mixins import CoolNameable
 from octue.resources.manifest import Manifest
@@ -33,29 +31,6 @@ BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_l
 EXCEPTIONS_MAPPING = create_exceptions_mapping(
     globals()["__builtins__"], vars(twined.exceptions), vars(octue.exceptions)
 )
-
-
-def create_custom_retry(timeout):
-    """Create a custom `Retry` object specifying that the given Google Cloud request should retry for the given amount
-    of time for the given exceptions.
-
-    :param float timeout:
-    :return google.api_core.retry.Retry:
-    """
-    return retry.Retry(
-        maximum=timeout / 4,
-        deadline=timeout,
-        predicate=google.api_core.retry.if_exception_type(
-            google.api_core.exceptions.NotFound,
-            google.api_core.exceptions.Aborted,
-            google.api_core.exceptions.DeadlineExceeded,
-            google.api_core.exceptions.InternalServerError,
-            google.api_core.exceptions.ResourceExhausted,
-            google.api_core.exceptions.ServiceUnavailable,
-            google.api_core.exceptions.Unknown,
-            google.api_core.exceptions.Cancelled,
-        ),
-    )
 
 
 class Service(CoolNameable):
@@ -139,9 +114,14 @@ class Service(CoolNameable):
             name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)), namespace=OCTUE_NAMESPACE, service=self
         )
 
+        analysis_log_handler = GooglePubSubHandler(publisher=self.publisher, topic=topic)
+
         try:
             analysis = self.run_function(
-                input_values=data["input_values"], input_manifest=data["input_manifest"], analysis_id=question_uuid
+                analysis_id=question_uuid,
+                input_values=data["input_values"],
+                input_manifest=data["input_manifest"],
+                analysis_log_handler=analysis_log_handler,
             )
 
             if analysis.output_manifest is None:
@@ -217,47 +197,66 @@ class Service(CoolNameable):
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
         start_time = time.perf_counter()
-        no_message = True
-        attempt = 1
+        final_response_received = False
+        data = {}
+        no_format_logger = logging.Logger("")
+        no_format_logger.addHandler(logging.StreamHandler())
 
         with self.subscriber:
 
             try:
-                while no_message:
-                    logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
-
-                    pull_response = self.subscriber.pull(
-                        request={"subscription": subscription.path, "max_messages": 1},
-                        retry=create_custom_retry(timeout),
-                    )
+                while not final_response_received:
+                    no_message = True
+                    attempt = 1
 
                     try:
-                        answer = pull_response.received_messages[0]
-                        no_message = False
+                        while no_message:
+                            logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
 
-                    except IndexError:
-                        logger.debug("Google Pub/Sub pull response timed out early.")
-                        attempt += 1
-
-                        if (time.perf_counter() - start_time) > timeout:
-                            raise TimeoutError(
-                                f"No answer received from topic {subscription.topic.path!r} after {timeout} seconds.",
+                            pull_response = self.subscriber.pull(
+                                request={"subscription": subscription.path, "max_messages": 1},
+                                retry=create_custom_retry(timeout),
                             )
 
-            finally:
-                try:
-                    self.subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
-                    logger.info("%r received a response to question %r.", self, subscription.topic.path.split(".")[-1])
-                except UnboundLocalError:
-                    pass
+                            try:
+                                answer = pull_response.received_messages[0]
+                                no_message = False
 
+                            except IndexError:
+                                logger.debug("Google Pub/Sub pull response timed out early.")
+                                attempt += 1
+
+                                if (time.perf_counter() - start_time) > timeout:
+                                    raise TimeoutError(
+                                        f"No answer received from topic {subscription.topic.path!r} after {timeout} seconds.",
+                                    )
+
+                    finally:
+                        try:
+                            self.subscriber.acknowledge(
+                                request={"subscription": subscription.path, "ack_ids": [answer.ack_id]}
+                            )
+                            logger.info(
+                                "%r received a response to question %r.", self, subscription.topic.path.split(".")[-1]
+                            )
+                        except UnboundLocalError:
+                            continue
+
+                    data = json.loads(answer.message.data.decode())
+
+                    if "log_message" in data:
+                        getattr(no_format_logger, data["log_level"])(f"[REMOTE] {data['log_message']}")
+                        continue
+
+                    if "exception_type" in data:
+                        self._raise_exception_from_responder(data)
+
+                    if "output_values" in data:
+                        final_response_received = True
+
+            finally:
                 subscription.delete()
                 subscription.topic.delete()
-
-        data = json.loads(answer.message.data.decode())
-
-        if "exception_type" in data:
-            self._raise_exception_from_responder(data)
 
         if data["output_manifest"] is None:
             output_manifest = None

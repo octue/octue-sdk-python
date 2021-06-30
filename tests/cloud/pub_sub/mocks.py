@@ -32,7 +32,7 @@ class MockTopic(Topic):
                 raise google.api_core.exceptions.AlreadyExists(f"Topic {self.path!r} already exists.")
 
         if not self.exists():
-            MESSAGES[get_service_id(self.path)] = None
+            MESSAGES[get_service_id(self.path)] = []
 
     def delete(self):
         """Delete the topic from the global messages dictionary.
@@ -84,7 +84,7 @@ class MockPublisher:
         :param google.api_core.retry.Retry|None retry:
         :return MockFuture:
         """
-        MESSAGES[get_service_id(topic)] = MockMessage(data=data, **attributes)
+        MESSAGES[get_service_id(topic)].append(MockMessage(data=data, **attributes))
         return MockFuture()
 
     @staticmethod
@@ -127,7 +127,7 @@ class MockSubscriber:
         :return MockPullResponse:
         """
         return MockPullResponse(
-            received_messages=[MockMessageWrapper(message=MESSAGES[get_service_id(request["subscription"])])]
+            received_messages=[MockMessageWrapper(message=MESSAGES[get_service_id(request["subscription"])].pop(0))]
         )
 
     def acknowledge(self, request):
