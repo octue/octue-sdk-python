@@ -21,7 +21,7 @@ class GooglePubSubHandler(Handler):
                 retry=create_custom_retry(self.timeout),
             )
 
-        except RecursionError:  # See issue 36272
+        except RecursionError:
             raise
         except Exception:  # noqa
             self.handleError(record)

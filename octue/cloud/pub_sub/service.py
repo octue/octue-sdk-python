@@ -197,50 +197,40 @@ class Service(CoolNameable):
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
         start_time = time.perf_counter()
-        final_response_received = False
-        data = {}
         no_format_logger = logging.Logger("")
         no_format_logger.addHandler(logging.StreamHandler())
 
         with self.subscriber:
 
             try:
-                while not final_response_received:
+                while True:
                     no_message = True
                     attempt = 1
 
-                    try:
-                        while no_message:
-                            logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
+                    while no_message:
+                        logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
 
-                            pull_response = self.subscriber.pull(
-                                request={"subscription": subscription.path, "max_messages": 1},
-                                retry=create_custom_retry(timeout),
-                            )
+                        pull_response = self.subscriber.pull(
+                            request={"subscription": subscription.path, "max_messages": 1},
+                            retry=create_custom_retry(timeout),
+                        )
 
-                            try:
-                                answer = pull_response.received_messages[0]
-                                no_message = False
-
-                            except IndexError:
-                                logger.debug("Google Pub/Sub pull response timed out early.")
-                                attempt += 1
-
-                                if (time.perf_counter() - start_time) > timeout:
-                                    raise TimeoutError(
-                                        f"No answer received from topic {subscription.topic.path!r} after {timeout} seconds.",
-                                    )
-
-                    finally:
                         try:
-                            self.subscriber.acknowledge(
-                                request={"subscription": subscription.path, "ack_ids": [answer.ack_id]}
-                            )
-                            logger.info(
-                                "%r received a response to question %r.", self, subscription.topic.path.split(".")[-1]
-                            )
-                        except UnboundLocalError:
-                            continue
+                            answer = pull_response.received_messages[0]
+                            no_message = False
+
+                        except IndexError:
+                            logger.debug("Google Pub/Sub pull response timed out early.")
+                            attempt += 1
+
+                            if (time.perf_counter() - start_time) > timeout:
+                                raise TimeoutError(
+                                    f"No answer received from topic {subscription.topic.path!r} after {timeout} seconds.",
+                                )
+
+                    self.subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
+
+                    logger.info("%r received a response to question %r.", self, subscription.topic.path.split(".")[-1])
 
                     data = json.loads(answer.message.data.decode())
 
@@ -252,18 +242,16 @@ class Service(CoolNameable):
                         self._raise_exception_from_responder(data)
 
                     if "output_values" in data:
-                        final_response_received = True
+                        if data["output_manifest"] is None:
+                            output_manifest = None
+                        else:
+                            output_manifest = Manifest.deserialise(data["output_manifest"], from_string=True)
+
+                        return {"output_values": data["output_values"], "output_manifest": output_manifest}
 
             finally:
                 subscription.delete()
                 subscription.topic.delete()
-
-        if data["output_manifest"] is None:
-            output_manifest = None
-        else:
-            output_manifest = Manifest.deserialise(data["output_manifest"], from_string=True)
-
-        return {"output_values": data["output_values"], "output_manifest": output_manifest}
 
     def _send_exception_to_asker(self, topic, timeout):
         """Serialise and send the exception being handled to the asker.

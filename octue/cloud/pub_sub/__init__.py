@@ -5,7 +5,7 @@ from .subscription import Subscription
 from .topic import Topic
 
 
-__all__ = ["Subscription", "Topic"]
+__all__ = ["Subscription", "Topic", "create_custom_retry"]
 
 
 def create_custom_retry(timeout):
