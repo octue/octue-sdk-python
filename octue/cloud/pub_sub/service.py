@@ -13,7 +13,6 @@ import twined.exceptions
 from octue.cloud.credentials import GCPCredentialsManager
 from octue.cloud.pub_sub import Subscription, Topic, create_custom_retry
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
-from octue.exceptions import FileLocationError
 from octue.mixins import CoolNameable
 from octue.resources.manifest import Manifest
 from octue.utils.encoders import OctueJSONEncoder
@@ -62,7 +61,6 @@ class Service(CoolNameable):
 
         credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
         self.publisher = pubsub_v1.PublisherClient(credentials=credentials, batch_settings=BATCH_SETTINGS)
-        self.publisher.messages_published = 0
         self.subscriber = pubsub_v1.SubscriberClient(credentials=credentials)
         super().__init__()
 
@@ -138,13 +136,13 @@ class Service(CoolNameable):
                         "type": "result",
                         "output_values": analysis.output_values,
                         "output_manifest": serialised_output_manifest,
-                        "message_number": self.publisher.messages_published,
+                        "message_number": topic.messages_published,
                     },
                     cls=OctueJSONEncoder,
                 ).encode(),
                 retry=create_custom_retry(timeout),
             )
-            self.publisher.messages_published += 1
+            topic.messages_published += 1
             logger.info("%r responded to question %r.", self, question_uuid)
 
         except BaseException as error:  # noqa
@@ -158,7 +156,7 @@ class Service(CoolNameable):
         from the serving Service when it comes, and the subscription is set up to subscribe to this.
         """
         if (input_manifest is not None) and (not input_manifest.all_datasets_are_in_cloud):
-            raise FileLocationError(
+            raise octue.exceptions.FileLocationError(
                 "All datasets of the input manifest and all files of the datasets must be uploaded to the cloud before "
                 "asking a service to perform an analysis upon them. The manifest must then be updated with the new "
                 "cloud locations."
@@ -276,13 +274,13 @@ class Service(CoolNameable):
                     "exception_type": type(exception).__name__,
                     "exception_message": exception_message,
                     "traceback": traceback,
-                    "message_number": self.publisher.messages_published,
+                    "message_number": topic.messages_published,
                 }
             ).encode(),
             retry=create_custom_retry(timeout),
         )
 
-        self.publisher.messages_published += 1
+        topic.messages_published += 1
 
 
 class OrderedMessageHandler:

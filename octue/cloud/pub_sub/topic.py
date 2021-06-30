@@ -18,6 +18,7 @@ class Topic:
 
         self.service = service
         self.path = self.service.publisher.topic_path(service.backend.project_name, self.name)
+        self.messages_published = 0
 
     def __repr__(self):
         return f"<{type(self).__name__}({self.name})>"
