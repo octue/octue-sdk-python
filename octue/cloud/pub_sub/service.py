@@ -311,10 +311,7 @@ class OrderedMessageHandler:
         """
         while True:
             message = self.message_puller(self.subscription)
-            result = self._handle_message(message)
-
-            if result is not None:
-                return result
+            self._waiting_messages[message["message_number"]] = message
 
             try:
                 while self._waiting_messages:
@@ -328,18 +325,13 @@ class OrderedMessageHandler:
                 pass
 
     def _handle_message(self, message):
-        """Pass a message to its handler if it is its turn to be handled, otherwise put it in the waiting messages
-        store for later handling.
+        """Pass a message to its handler and update the previous message number.
 
         :param dict message:
         :return dict|None:
         """
-        if message["message_number"] - self._previous_message_number == 1:
-            self._previous_message_number += 1
-            return self._message_handlers[message["type"]](message)
-        else:
-            self._waiting_messages[message["message_number"]] = message
-            return None
+        self._previous_message_number += 1
+        return self._message_handlers[message["type"]](message)
 
     def _handle_log_message(self, message):
         """Deserialise the message into a log record and pass it to the local log handlers, adding `[REMOTE] to the
