@@ -343,7 +343,11 @@ class OrderedMessageHandler:
         :return dict|None:
         """
         self._previous_message_number += 1
-        return self._message_handlers[message["type"]](message)
+
+        try:
+            return self._message_handlers[message["type"]](message)
+        except KeyError:
+            logger.warning("%r received a message of unknown type %r.", self.subscription.service, message["type"])
 
     def _handle_log_message(self, message):
         """Deserialise the message into a log record and pass it to the local log handlers, adding `[REMOTE] to the
