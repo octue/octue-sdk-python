@@ -481,6 +481,12 @@ class TestService(BaseTestCase):
 
 
 class TestOrderedMessageHandler(BaseTestCase):
+    @classmethod
+    def setUpClass(cls):
+        service = MockService(backend=BACKEND)
+        mock_topic = MockTopic(name="world", namespace="hello", service=service)
+        cls.mock_subscription = MockSubscription(name="world", topic=mock_topic, namespace="hello", service=service)
+
     def _make_order_recording_message_handler(self, message_handling_order):
         """Make a message handler that records the order in which messages were handled to the given list.
 
@@ -493,15 +499,25 @@ class TestOrderedMessageHandler(BaseTestCase):
 
         return message_handler
 
+    def test_timeout(self):
+        """Test that a TimeoutError is raised if message handling takes longer than the given timeout."""
+        message_handler = OrderedMessageHandler(
+            message_puller=MockMessagePuller(messages=[{"type": "test", "message_number": 0}]).pull,
+            subscription=self.mock_subscription,
+            message_handlers={
+                "test": self._make_order_recording_message_handler([]),
+                "finish-test": lambda message: message,
+            },
+        )
+
+        with self.assertRaises(concurrent.futures.TimeoutError):
+            message_handler.handle_messages(timeout=0)
+
     def test_unknown_message_type_raises_warning(self):
         """Test that unknown message types result in a warning being logged."""
-        service = Service(backend=BACKEND)
-        mock_topic = MockTopic(name="world", namespace="hello", service=service)
-        mock_subscription = MockSubscription(name="world", topic=mock_topic, namespace="hello", service=service)
-
         message_handler = OrderedMessageHandler(
             message_puller=None,
-            subscription=mock_subscription,
+            subscription=self.mock_subscription,
             message_handlers={"finish-test": lambda message: message},
         )
 
@@ -523,7 +539,7 @@ class TestOrderedMessageHandler(BaseTestCase):
 
         message_handler = OrderedMessageHandler(
             message_puller=MockMessagePuller(messages=messages).pull,
-            subscription=None,
+            subscription=self.mock_subscription,
             message_handlers={
                 "test": self._make_order_recording_message_handler(message_handling_order),
                 "finish-test": lambda message: message,
@@ -546,7 +562,7 @@ class TestOrderedMessageHandler(BaseTestCase):
 
         message_handler = OrderedMessageHandler(
             message_puller=MockMessagePuller(messages=messages).pull,
-            subscription=None,
+            subscription=self.mock_subscription,
             message_handlers={
                 "test": self._make_order_recording_message_handler(message_handling_order),
                 "finish-test": lambda message: message,
@@ -571,7 +587,7 @@ class TestOrderedMessageHandler(BaseTestCase):
 
         message_handler = OrderedMessageHandler(
             message_puller=MockMessagePuller(messages=messages).pull,
-            subscription=None,
+            subscription=self.mock_subscription,
             message_handlers={
                 "test": self._make_order_recording_message_handler(message_handling_order),
                 "finish-test": lambda message: message,
