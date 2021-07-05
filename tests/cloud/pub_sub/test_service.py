@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import twined.exceptions
 from octue import Runner, exceptions
-from octue.cloud.pub_sub.service import Service
+from octue.cloud.pub_sub.service import OrderedMessageHandler, Service
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
@@ -439,3 +439,110 @@ class TestService(BaseTestCase):
                 "output_manifest": None,
             },
         )
+
+
+class MockMessagePuller:
+    """A mock message puller that returns the messages in the order they were provided on initialisation.
+
+    :param iter(dict) messages:
+    :return None:
+    """
+
+    def __init__(self, messages):
+        self.messages = messages
+        self.message_number = 0
+
+    def pull(self, subscription):
+        """Return the next message from the messages given at initialisation.
+
+        :param any subscription: this isn't used in this mock but is required in the signature of a message pulling function
+        :return dict:
+        """
+        message = self.messages[self.message_number]
+        self.message_number += 1
+        return message
+
+
+class TestOrderedMessageHandler(BaseTestCase):
+    def _make_order_recording_message_handler(self, message_handling_order):
+        """Make a message handler that records the order in which messages were handled to the given list.
+
+        :param list message_handling_order:
+        :return callable:
+        """
+
+        def message_handler(message):
+            message_handling_order.append(message["message_number"])
+
+        return message_handler
+
+    def test_in_order_messages_are_handled_in_order(self):
+        """Test that messages received in order are handled in order."""
+        messages = [
+            {"type": "test", "message_number": 0},
+            {"type": "test", "message_number": 1},
+            {"type": "test", "message_number": 2},
+            {"type": "finish-test", "message_number": 3},
+        ]
+
+        message_handling_order = []
+
+        message_handler = OrderedMessageHandler(
+            message_puller=MockMessagePuller(messages=messages).pull,
+            subscription=None,
+            message_handlers={
+                "test": self._make_order_recording_message_handler(message_handling_order),
+                "finish-test": lambda message: message,
+            },
+        )
+
+        message_handler.handle_messages()
+        self.assertEqual(message_handling_order, [0, 1, 2])
+
+    def test_out_of_order_messages_are_handled_in_order(self):
+        """Test that messages received out of order are handled in order."""
+        messages = [
+            {"type": "test", "message_number": 1},
+            {"type": "test", "message_number": 2},
+            {"type": "test", "message_number": 0},
+            {"type": "finish-test", "message_number": 3},
+        ]
+
+        message_handling_order = []
+
+        message_handler = OrderedMessageHandler(
+            message_puller=MockMessagePuller(messages=messages).pull,
+            subscription=None,
+            message_handlers={
+                "test": self._make_order_recording_message_handler(message_handling_order),
+                "finish-test": lambda message: message,
+            },
+        )
+
+        message_handler.handle_messages()
+        self.assertEqual(message_handling_order, [0, 1, 2])
+
+    def test_out_of_order_messages_with_end_message_first_are_handled_in_order(self):
+        """Test that messages received out of order and with the final message (the message that triggers a value to be
+        returned) are handled in order.
+        """
+        messages = [
+            {"type": "finish-test", "message_number": 3},
+            {"type": "test", "message_number": 1},
+            {"type": "test", "message_number": 2},
+            {"type": "test", "message_number": 0},
+        ]
+
+        message_handling_order = []
+
+        message_handler = OrderedMessageHandler(
+            message_puller=MockMessagePuller(messages=messages).pull,
+            subscription=None,
+            message_handlers={
+                "test": self._make_order_recording_message_handler(message_handling_order),
+                "finish-test": lambda message: message,
+            },
+        )
+
+        message_handler.handle_messages()
+        self.assertEqual(message_handling_order, [0, 1, 2])

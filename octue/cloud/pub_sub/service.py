@@ -291,13 +291,13 @@ class OrderedMessageHandler:
     :return None:
     """
 
-    def __init__(self, message_puller, subscription):
+    def __init__(self, message_puller, subscription, message_handlers=None):
         self.message_puller = message_puller
         self.subscription = subscription
         self._waiting_messages = {}
         self._previous_message_number = -1
 
-        self._message_handlers = {
+        self._message_handlers = message_handlers or {
             "log_record": self._handle_log_message,
             "exception": self._handle_exception,
             "result": self._handle_result,
