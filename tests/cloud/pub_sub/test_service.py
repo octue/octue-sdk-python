@@ -9,30 +9,16 @@ from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
-from tests.cloud.pub_sub.mocks import MockPullResponse, MockService, MockSubscription, MockTopic
-
-
-class MockAnalysis:
-    """A mock Analysis object with just the output strands.
-
-    :param any output_values:
-    :param octue.resources.manifest.Manifest|None output_manifest:
-    :return None:
-    """
-
-    def __init__(self, output_values="Hello! It worked!", output_manifest=None):
-        self.output_values = output_values
-        self.output_manifest = output_manifest
-
-
-class DifferentMockAnalysis:
-    output_values = "This is another successful analysis."
-    output_manifest = None
-
-
-class MockAnalysisWithOutputManifest:
-    output_values = "This is an analysis with an empty output manifest."
-    output_manifest = Manifest()
+from tests.cloud.pub_sub.mocks import (
+    DifferentMockAnalysis,
+    MockAnalysis,
+    MockAnalysisWithOutputManifest,
+    MockMessagePuller,
+    MockPullResponse,
+    MockService,
+    MockSubscription,
+    MockTopic,
+)
 
 
 def create_run_function():
@@ -439,28 +425,6 @@ class TestService(BaseTestCase):
                 "output_manifest": None,
             },
         )
-
-
-class MockMessagePuller:
-    """A mock message puller that returns the messages in the order they were provided on initialisation.
-
-    :param iter(dict) messages:
-    :return None:
-    """
-
-    def __init__(self, messages):
-        self.messages = messages
-        self.message_number = 0
-
-    def pull(self, subscription):
-        """Return the next message from the messages given at initialisation.
-
-        :param any subscription: this isn't used in this mock but is required in the signature of a message pulling function
-        :return dict:
-        """
-        message = self.messages[self.message_number]
-        self.message_number += 1
-        return message
 
 
 class TestOrderedMessageHandler(BaseTestCase):
