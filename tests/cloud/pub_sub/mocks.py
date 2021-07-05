@@ -187,12 +187,13 @@ class MockService(Service):
     :param octue.resources.service_backends.GCPPubSubBackEnd backend:
     :param str service_id:
     :param callable run_function:
+    :param bool subscribe_to_remote_logs:
     :param dict(str, MockService)|None children:
     :return None:
     """
 
-    def __init__(self, backend, service_id=None, run_function=None, children=None):
-        super().__init__(backend, service_id, run_function)
+    def __init__(self, backend, service_id=None, run_function=None, subscribe_to_remote_logs=True, children=None):
+        super().__init__(backend, service_id, run_function, subscribe_to_remote_logs)
         self.children = children or {}
         self.publisher = MockPublisher()
         self.subscriber = MockSubscriber()
@@ -212,7 +213,9 @@ class MockService(Service):
         # locally as is done in this mock.
         try:
             self.children[service_id].answer(
-                data={"input_values": input_values, "input_manifest": input_manifest}, question_uuid=question_uuid
+                data={"input_values": input_values, "input_manifest": input_manifest},
+                question_uuid=question_uuid,
+                forward_logs=self.subscribe_to_remote_logs,
             )
         except:  # noqa
             pass

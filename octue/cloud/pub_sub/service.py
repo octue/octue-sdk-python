@@ -45,10 +45,11 @@ class Service(CoolNameable):
     :param octue.resources.service_backends.ServiceBackend backend:
     :param str|None service_id:
     :param callable|None run_function:
+    :param bool subscribe_to_remote_logs: if `True`, subscribe to logs from the remote service and handle them with the local log handlers
     :return None:
     """
 
-    def __init__(self, backend, service_id=None, run_function=None):
+    def __init__(self, backend, service_id=None, run_function=None, subscribe_to_remote_logs=True):
         if service_id is None:
             self.id = str(uuid.uuid4())
         elif not service_id:
@@ -58,6 +59,7 @@ class Service(CoolNameable):
 
         self.backend = backend
         self.run_function = run_function
+        self.subscribe_to_remote_logs = subscribe_to_remote_logs
 
         credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
         self.publisher = pubsub_v1.PublisherClient(credentials=credentials, batch_settings=BATCH_SETTINGS)
@@ -96,16 +98,18 @@ class Service(CoolNameable):
         logger.info("%r received a question.", self)
         data = json.loads(question.data.decode())
         question_uuid = question.attributes["question_uuid"]
+        forward_logs = bool(int(question.attributes["forward_logs"]))
         question.ack()
-        self.answer(data, question_uuid)
+        self.answer(data, question_uuid, forward_logs=forward_logs)
 
-    def answer(self, data, question_uuid, timeout=30):
+    def answer(self, data, question_uuid, forward_logs, timeout=30):
         """Answer a question (i.e. run the Service's app to analyse the given data, and return the output values to the
         asker). Answers are published to a topic whose name is generated from the UUID sent with the question, and are
         in the format specified in the Service's Twine file.
 
         :param dict data:
         :param str question_uuid:
+        :param bool forward_logs: if `True`, forward any log messages raised during the analysis to the asker
         :param float timeout:
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
@@ -114,7 +118,10 @@ class Service(CoolNameable):
             name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)), namespace=OCTUE_NAMESPACE, service=self
         )
 
-        analysis_log_handler = GooglePubSubHandler(publisher=self.publisher, topic=topic)
+        if forward_logs:
+            analysis_log_handler = GooglePubSubHandler(publisher=self.publisher, topic=topic)
+        else:
+            analysis_log_handler = None
 
         try:
             analysis = self.run_function(
@@ -187,6 +194,7 @@ class Service(CoolNameable):
             topic=question_topic.path,
             data=json.dumps({"input_values": input_values, "input_manifest": input_manifest}).encode(),
             question_uuid=question_uuid,
+            forward_logs=str(int(self.subscribe_to_remote_logs)),
         )
         future.result()
 
@@ -341,7 +349,7 @@ class OrderedMessageHandler:
         :return None:
         """
         record = logging.makeLogRecord(message["log_record"])
-        record.msg = f"[REMOTE] {record.message}"
+        record.msg = f"[REMOTE] {record.msg}"
         logger.handle(record)
 
     def _handle_exception(self, message):
@@ -372,7 +380,11 @@ class OrderedMessageHandler:
         :param dict message:
         :return dict:
         """
-        logger.info("%r received an answer to question %r.", self, self.subscription.topic.path.split(".")[-1])
+        logger.info(
+            "%r received an answer to question %r.",
+            self.subscription.service,
+            self.subscription.topic.path.split(".")[-1],
+        )
 
         if message["output_manifest"] is None:
             output_manifest = None

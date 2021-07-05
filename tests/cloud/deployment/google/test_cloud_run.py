@@ -50,7 +50,7 @@ class TestCloudRun(TestCase):
                             "data": base64.b64encode(
                                 json.dumps({"input_values": [1, 2, 3], "input_manifest": None}).encode()
                             ).decode(),
-                            "attributes": {"question_uuid": str(uuid.uuid4())},
+                            "attributes": {"question_uuid": str(uuid.uuid4()), "forward_logs": "1"},
                         },
                     },
                 )

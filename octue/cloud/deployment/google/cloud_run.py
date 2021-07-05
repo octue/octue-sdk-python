@@ -39,10 +39,12 @@ def index():
 
     project_name = envelope["subscription"].split("/")[1]
     data = json.loads(base64.b64decode(message["data"]).decode("utf-8").strip())
+
     question_uuid = message["attributes"]["question_uuid"]
+    forward_logs = message["attributes"]["forward_logs"]
     logger.info("Received question %r.", question_uuid)
 
-    answer_question(project_name, data, question_uuid)
+    answer_question(project_name, data, question_uuid, forward_logs=forward_logs)
     return ("", 204)
 
 
@@ -56,13 +58,14 @@ def _log_bad_request_and_return_400_response(message):
     return (f"Bad Request: {message}", 400)
 
 
-def answer_question(project_name, data, question_uuid, credentials_environment_variable=None):
+def answer_question(project_name, data, question_uuid, forward_logs=True, credentials_environment_variable=None):
     """Answer a question from a service by running the deployed app with the deployment configuration. Either the
     `deployment_configuration_path` should be specified, or the `deployment_configuration`.
 
     :param str project_name:
     :param dict data:
     :param str question_uuid:
+    :param bool forward_logs: if `True`, forward any log messages raised during the analysis to the asker
     :param str credentials_environment_variable:
     :return None:
     """
@@ -101,7 +104,7 @@ def answer_question(project_name, data, question_uuid, credentials_environment_v
     )
 
     try:
-        service.answer(data=data, question_uuid=question_uuid)
+        service.answer(data=data, question_uuid=question_uuid, forward_logs=forward_logs)
         logger.info("Analysis successfully run and response sent for question %r.", question_uuid)
     except BaseException as error:  # noqa
         logger.exception(error)

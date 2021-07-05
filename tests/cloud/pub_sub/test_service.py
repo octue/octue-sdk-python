@@ -174,28 +174,66 @@ class TestService(BaseTestCase):
                 self.assertEqual(type(context.exception).__name__, "AnUnknownException")
                 self.assertIn("This is an exception unknown to the asker.", context.exception.args[0])
 
-    def test_ask_with_real_run_function(self):
+    def test_ask_with_real_run_function_with_no_log_message_forwarding(self):
         """Test that a service can ask a question to another service that is serving and receive an answer. Use a real
-        run function rather than a mock so that the underlying `Runner` instance is used.
+        run function rather than a mock so that the underlying `Runner` instance is used, and check that remote log
+        messages aren't forwarded to the local logger.
         """
         responding_service = MockService(backend=self.BACKEND, run_function=create_run_function())
-        asking_service = MockService(backend=self.BACKEND, children={responding_service.id: responding_service})
 
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                responding_service.serve()
+        asking_service = MockService(
+            backend=self.BACKEND, children={responding_service.id: responding_service}, subscribe_to_remote_logs=False
+        )
 
-                answer = self.ask_question_and_wait_for_answer(
-                    asking_service=asking_service,
-                    responding_service=responding_service,
-                    input_values={},
-                    input_manifest=None,
-                )
+        with patch("logging.StreamHandler.emit") as mock_emit:
+            with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+                with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                    responding_service.serve()
+
+                    answer = self.ask_question_and_wait_for_answer(
+                        asking_service=asking_service,
+                        responding_service=responding_service,
+                        input_values={},
+                        input_manifest=None,
+                    )
 
         self.assertEqual(
             answer,
             {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
         )
+
+        self.assertTrue(all("[REMOTE]" not in call_arg[0][0].msg for call_arg in mock_emit.call_args_list))
+
+    def test_ask_with_real_run_function_with_log_message_forwarding(self):
+        """Test that a service can ask a question to another service that is serving and receive an answer. Use a real
+        run function rather than a mock so that the underlying `Runner` instance is used, and check that remote log
+        messages are forwarded to the local logger.
+        """
+        responding_service = MockService(backend=self.BACKEND, run_function=create_run_function())
+
+        asking_service = MockService(
+            backend=self.BACKEND, children={responding_service.id: responding_service}, subscribe_to_remote_logs=True
+        )
+
+        with patch("logging.StreamHandler.emit") as mock_emit:
+            with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+                with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                    responding_service.serve()
+
+                    answer = self.ask_question_and_wait_for_answer(
+                        asking_service=asking_service,
+                        responding_service=responding_service,
+                        input_values={},
+                        input_manifest=None,
+                    )
+
+        self.assertEqual(
+            answer,
+            {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
+        )
+
+        self.assertEqual(mock_emit.call_args_list[-3][0][0].msg, "[REMOTE] Starting analysis.")
+        self.assertEqual(mock_emit.call_args_list[-2][0][0].msg, "[REMOTE] Finished analysis.")
 
     def test_ask_with_input_manifest(self):
         """Test that a service can ask a question including an input_manifest to another service that is serving and
