@@ -236,8 +236,21 @@ class TestService(BaseTestCase):
             {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
         )
 
-        self.assertEqual(mock_emit.call_args_list[-3][0][0].msg, "[REMOTE] Starting analysis.")
-        self.assertEqual(mock_emit.call_args_list[-2][0][0].msg, "[REMOTE] Finished analysis.")
+        # Check that the two expected remote log messages were logged consecutively in the right order.
+        start_remote_analysis_message_present = False
+        finish_remote_analysis_message_present = False
+
+        for i, call_arg in enumerate(mock_emit.call_args_list):
+            if call_arg[0][0].msg == "[REMOTE] Starting analysis.":
+                start_remote_analysis_message_present = True
+
+                if mock_emit.call_args_list[i + 1][0][0].msg == "[REMOTE] Finished analysis.":
+                    finish_remote_analysis_message_present = True
+
+                break
+
+        self.assertTrue(start_remote_analysis_message_present)
+        self.assertTrue(finish_remote_analysis_message_present)
 
     def test_ask_with_input_manifest(self):
         """Test that a service can ask a question including an input_manifest to another service that is serving and
