@@ -1,4 +1,3 @@
-import functools
 import json
 import logging
 import sys
@@ -214,12 +213,11 @@ class Service(CoolNameable):
         :raise TimeoutError: if the timeout is exceeded
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
-        message_puller = functools.partial(self._pull_message, timeout=timeout)
-        message_handler = OrderedMessageHandler(message_puller=message_puller, subscription=subscription)
+        message_handler = OrderedMessageHandler(message_puller=self._pull_message, subscription=subscription)
 
         with self.subscriber:
             try:
-                return message_handler.handle_messages()
+                return message_handler.handle_messages(timeout=timeout)
 
             finally:
                 subscription.delete()
@@ -257,7 +255,7 @@ class Service(CoolNameable):
 
                     if (time.perf_counter() - start_time) > timeout:
                         raise TimeoutError(
-                            f"No answer received from topic {subscription.topic.path!r} after {timeout} seconds.",
+                            f"No message received from topic {subscription.topic.path!r} after {timeout} seconds.",
                         )
 
                     continue
@@ -315,14 +313,26 @@ class OrderedMessageHandler:
             "result": self._handle_result,
         }
 
-    def handle_messages(self):
+    def handle_messages(self, timeout=30):
         """Pull messages and handle them in the order they were sent until a result is returned by a message handler,
         then return that result.
 
+        :param float timeout: how long to wait for an answer before raising a `TimeoutError`
+        :raise TimeoutError: if the timeout is exceeded before receiving the final message
         :return dict:
         """
+        start_time = time.perf_counter()
+
         while True:
-            message = self.message_puller(self.subscription)
+            run_time = time.perf_counter() - start_time
+
+            if run_time > timeout:
+                raise TimeoutError(
+                    f"No final answer received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
+                )
+
+            pull_timeout = timeout - run_time
+            message = self.message_puller(self.subscription, timeout=pull_timeout)
             self._waiting_messages[message["message_number"]] = message
 
             try:
