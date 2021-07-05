@@ -17,7 +17,7 @@ class GooglePubSubHandler(Handler):
         super().__init__(*args, **kwargs)
         self.topic = topic
         self.timeout = timeout
-        self.publisher = publisher
+        self._publisher = publisher
 
     def emit(self, record):
         """Serialise the log record as a dictionary and publish it to the topic.
@@ -26,7 +26,7 @@ class GooglePubSubHandler(Handler):
         :return None:
         """
         try:
-            self.publisher.publish(
+            self._publisher.publish(
                 topic=self.topic.path,
                 data=json.dumps(
                     {
