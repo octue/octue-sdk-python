@@ -45,11 +45,10 @@ class Service(CoolNameable):
     :param octue.resources.service_backends.ServiceBackend backend:
     :param str|None service_id:
     :param callable|None run_function:
-    :param bool subscribe_to_remote_logs: if `True`, subscribe to logs from the remote service and handle them with the local log handlers
     :return None:
     """
 
-    def __init__(self, backend, service_id=None, run_function=None, subscribe_to_remote_logs=True):
+    def __init__(self, backend, service_id=None, run_function=None):
         if service_id is None:
             self.id = str(uuid.uuid4())
         elif not service_id:
@@ -59,7 +58,6 @@ class Service(CoolNameable):
 
         self.backend = backend
         self.run_function = run_function
-        self.subscribe_to_remote_logs = subscribe_to_remote_logs
 
         credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
         self.publisher = pubsub_v1.PublisherClient(credentials=credentials, batch_settings=BATCH_SETTINGS)
@@ -156,11 +154,17 @@ class Service(CoolNameable):
             self._send_exception_to_asker(topic, timeout)
             raise error
 
-    def ask(self, service_id, input_values, input_manifest=None):
+    def ask(self, service_id, input_values, input_manifest=None, subscribe_to_remote_logs=True):
         """Ask a serving Service a question (i.e. send it input values for it to run its app on). The input values must
         be in the format specified by the serving Service's Twine file. A single-use topic and subscription are created
         before sending the question to the serving Service - the topic is the expected publishing place for the answer
         from the serving Service when it comes, and the subscription is set up to subscribe to this.
+
+        :param str service_id: the UUID of the service to ask the question to
+        :param any input_values: the input values of the question
+        :param octue.resources.manifest.Manifest|None input_manifest: the input manifest of the question
+        :param bool subscribe_to_remote_logs: if `True`, subscribe to logs from the remote service and handle them with the local log handlers
+        :return (octue.cloud.pub_sub.subscription.Subscription, str): the response subscription and question UUID
         """
         if (input_manifest is not None) and (not input_manifest.all_datasets_are_in_cloud):
             raise octue.exceptions.FileLocationError(
@@ -194,7 +198,7 @@ class Service(CoolNameable):
             topic=question_topic.path,
             data=json.dumps({"input_values": input_values, "input_manifest": input_manifest}).encode(),
             question_uuid=question_uuid,
-            forward_logs=str(int(self.subscribe_to_remote_logs)),
+            forward_logs=str(int(subscribe_to_remote_logs)),
         )
         future.result()
 

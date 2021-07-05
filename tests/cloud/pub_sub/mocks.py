@@ -187,27 +187,29 @@ class MockService(Service):
     :param octue.resources.service_backends.GCPPubSubBackEnd backend:
     :param str service_id:
     :param callable run_function:
-    :param bool subscribe_to_remote_logs:
     :param dict(str, MockService)|None children:
     :return None:
     """
 
-    def __init__(self, backend, service_id=None, run_function=None, subscribe_to_remote_logs=True, children=None):
-        super().__init__(backend, service_id, run_function, subscribe_to_remote_logs)
+    def __init__(self, backend, service_id=None, run_function=None, children=None):
+        super().__init__(backend, service_id, run_function)
         self.children = children or {}
         self.publisher = MockPublisher()
         self.subscriber = MockSubscriber()
 
-    def ask(self, service_id, input_values, input_manifest=None):
+    def ask(self, service_id, input_values, input_manifest=None, subscribe_to_remote_logs=True):
         """Put the question into the messages register, register the existence of the corresponding response topic, add
         the response to the register, and return a MockFuture containing the answer subscription path.
 
         :param str service_id:
         :param dict|list input_values:
         :param octue.resources.manifest.Manifest|None input_manifest:
+        :param bool subscribe_to_remote_logs:
         :return MockFuture, str:
         """
-        response_subscription, question_uuid = super().ask(service_id, input_values, input_manifest)
+        response_subscription, question_uuid = super().ask(
+            service_id, input_values, input_manifest, subscribe_to_remote_logs
+        )
 
         # Ignore any errors from the answering service as they will be raised on the remote service in practice, not
         # locally as is done in this mock.
@@ -215,7 +217,7 @@ class MockService(Service):
             self.children[service_id].answer(
                 data={"input_values": input_values, "input_manifest": input_manifest},
                 question_uuid=question_uuid,
-                forward_logs=self.subscribe_to_remote_logs,
+                forward_logs=subscribe_to_remote_logs,
             )
         except:  # noqa
             pass
