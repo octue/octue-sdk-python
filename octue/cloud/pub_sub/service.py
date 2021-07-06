@@ -1,4 +1,5 @@
 import base64
+import concurrent.futures
 import json
 import logging
 import sys
@@ -69,7 +70,12 @@ class Service(CoolNameable):
 
     def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False):
         """Start the Service as a server, waiting to accept questions from any other Service using Google Pub/Sub on
-        the same Google Cloud Platform project. Questions are responded to asynchronously."""
+        the same Google Cloud Platform project. Questions are responded to asynchronously.
+
+        :param float|None timeout: time in seconds after which to shut down the service
+        :param bool delete_topic_and_subscription_on_exit: if `True`, delete the service's topic and subscription on exit
+        :return None:
+        """
         topic = Topic(name=self.id, namespace=OCTUE_NAMESPACE, service=self)
         topic.create(allow_existing=True)
 
@@ -84,7 +90,7 @@ class Service(CoolNameable):
         with self.subscriber:
             try:
                 future.result(timeout=timeout)
-            except (TimeoutError, KeyboardInterrupt):
+            except (TimeoutError, concurrent.futures.TimeoutError, KeyboardInterrupt):
                 future.cancel()
 
             if delete_topic_and_subscription_on_exit:
