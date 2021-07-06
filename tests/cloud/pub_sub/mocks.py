@@ -1,3 +1,5 @@
+import json
+import logging
 import google.api_core.exceptions
 
 from octue.cloud.pub_sub import Subscription, Topic
@@ -6,6 +8,9 @@ from octue.resources import Manifest
 
 
 MESSAGES = {}
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_service_id(path):
@@ -177,8 +182,12 @@ class MockMessage:
 
     def __init__(self, data, **attributes):
         self.data = data
+        self.attributes = {}
         for key, value in attributes.items():
-            setattr(self, key, value)
+            self.attributes[key] = value
+
+    def ack(self):
+        pass
 
 
 class MockService(Service):
@@ -213,14 +222,19 @@ class MockService(Service):
 
         # Ignore any errors from the answering service as they will be raised on the remote service in practice, not
         # locally as is done in this mock.
+        if input_manifest is not None:
+            input_manifest = input_manifest.serialise(to_string=True)
+
         try:
             self.children[service_id].answer(
-                data={"input_values": input_values, "input_manifest": input_manifest},
-                question_uuid=question_uuid,
-                forward_logs=subscribe_to_remote_logs,
+                MockMessage(
+                    data=json.dumps({"input_values": input_values, "input_manifest": input_manifest}).encode(),
+                    question_uuid=question_uuid,
+                    forward_logs=subscribe_to_remote_logs,
+                )
             )
-        except:  # noqa
-            pass
+        except Exception as e:  # noqa
+            logger.exception(e)
 
         return response_subscription, question_uuid
 

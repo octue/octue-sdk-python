@@ -62,13 +62,15 @@ class TestCloudRun(TestCase):
         with mock.patch.dict(os.environ, clear=True):
             with self.assertRaises(MissingServiceID):
                 cloud_run.answer_question(
-                    project_name="a-project-name", data={}, question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29"
+                    project_name="a-project-name",
+                    question={"data": {}, "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"}},
                 )
 
         with mock.patch.dict(os.environ, {"SERVICE_ID": ""}):
             with self.assertRaises(MissingServiceID):
                 cloud_run.answer_question(
-                    project_name="a-project-name", data={}, question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29"
+                    project_name="a-project-name",
+                    question={"data": {}, "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"}},
                 )
 
     def test_with_no_deployment_configuration_file(self):
@@ -81,8 +83,10 @@ class TestCloudRun(TestCase):
                     with mock.patch("octue.cloud.deployment.google.cloud_run.Service"):
                         cloud_run.answer_question(
                             project_name="a-project-name",
-                            data={},
-                            question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29",
+                            question={
+                                "data": {},
+                                "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"},
+                            },
                             credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS",
                         )
 
@@ -119,8 +123,10 @@ class TestCloudRun(TestCase):
                         with mock.patch("octue.cloud.deployment.google.cloud_run.Service"):
                             cloud_run.answer_question(
                                 project_name="a-project-name",
-                                data={},
-                                question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29",
+                                question={
+                                    "data": {},
+                                    "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"},
+                                },
                                 credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS",
                             )
 

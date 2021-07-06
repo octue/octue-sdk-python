@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 import sys
@@ -15,6 +16,7 @@ from octue.mixins import CoolNameable
 from octue.resources.manifest import Manifest
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import create_exceptions_mapping
+from octue.utils.objects import get_nested_attribute
 
 
 logger = logging.getLogger(__name__)
@@ -76,7 +78,7 @@ class Service(CoolNameable):
         )
         subscription.create(allow_existing=True)
 
-        future = self.subscriber.subscribe(subscription=subscription.path, callback=self.receive_question_then_answer)
+        future = self.subscriber.subscribe(subscription=subscription.path, callback=self.answer)
         logger.debug("%r is waiting for questions.", self)
 
         with self.subscriber:
@@ -89,27 +91,18 @@ class Service(CoolNameable):
                 topic.delete()
                 subscription.delete()
 
-    def receive_question_then_answer(self, question):
-        """Receive a question, acknowledge it, then answer it."""
-        logger.info("%r received a question.", self)
-        data = json.loads(question.data.decode())
-        question_uuid = question.attributes["question_uuid"]
-        forward_logs = bool(int(question.attributes["forward_logs"]))
-        question.ack()
-        self.answer(data, question_uuid, forward_logs=forward_logs)
-
-    def answer(self, data, question_uuid, forward_logs, timeout=30):
+    def answer(self, question, timeout=30):
         """Answer a question (i.e. run the Service's app to analyse the given data, and return the output values to the
         asker). Answers are published to a topic whose name is generated from the UUID sent with the question, and are
         in the format specified in the Service's Twine file.
 
-        :param dict data:
-        :param str question_uuid:
-        :param bool forward_logs: if `True`, forward any log messages raised during the analysis to the asker
+        :param dict|Message question:
         :param float timeout:
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
         """
+        data, question_uuid, forward_logs = self.parse_question(question)
+
         topic = Topic(
             name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)), namespace=OCTUE_NAMESPACE, service=self
         )
@@ -151,6 +144,25 @@ class Service(CoolNameable):
         except BaseException as error:  # noqa
             self._send_exception_to_asker(topic, timeout)
             raise error
+
+    def parse_question(self, question):
+        """Parse a question in the Google Cloud Pub/Sub or Google Cloud Run format.
+
+        :param dict|Message question:
+        :return (dict, str, bool):
+        """
+        try:
+            # Parse Google Cloud Pub/Sub question format.
+            data = json.loads(question.data.decode())
+            question.ack()
+            logger.info("%r received a question.", self)
+        except Exception:
+            # Parse Google Cloud Run question format.
+            data = json.loads(base64.b64decode(question["data"]).decode("utf-8").strip())
+
+        question_uuid = get_nested_attribute(question, "attributes.question_uuid")
+        forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
+        return data, question_uuid, forward_logs
 
     def ask(self, service_id, input_values, input_manifest=None, subscribe_to_remote_logs=True):
         """Ask a serving Service a question (i.e. send it input values for it to run its app on). The input values must
