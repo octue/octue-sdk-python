@@ -4,7 +4,6 @@ import sys
 import time
 import traceback as tb
 import uuid
-from concurrent.futures import TimeoutError
 from google.cloud import pubsub_v1
 
 import octue.exceptions
@@ -228,7 +227,7 @@ class Service(CoolNameable):
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription the message is expected on
         :param float timeout: how long to wait in seconds for the message before raising a TimeoutError
-        :raise TimeoutError: if the timeout is exceeded
+        :raise TimeoutError|concurrent.futures.TimeoutError: if the timeout is exceeded
         :return dict: message containing data
         """
         start_time = time.perf_counter()

@@ -1,4 +1,3 @@
-import concurrent.futures
 import uuid
 from unittest.mock import patch
 
@@ -122,13 +121,13 @@ class TestService(BaseTestCase):
                 MockService(backend=BACKEND).ask(service_id="hello", input_values=[1, 2, 3, 4])
 
     def test_timeout_error_raised_if_no_messages_received_when_waiting(self):
-        """Test that a concurrent.futures.TimeoutError is raised if no messages are received while waiting."""
+        """Test that a TimeoutError is raised if no messages are received while waiting."""
         service = Service(backend=BACKEND)
         mock_topic = MockTopic(name="world", namespace="hello", service=service)
         mock_subscription = MockSubscription(name="world", topic=mock_topic, namespace="hello", service=service)
 
         with patch("octue.cloud.pub_sub.service.pubsub_v1.SubscriberClient.pull", return_value=MockPullResponse()):
-            with self.assertRaises(concurrent.futures.TimeoutError):
+            with self.assertRaises(TimeoutError):
                 service.wait_for_answer(subscription=mock_subscription, timeout=0.01)
 
     def test_exceptions_in_responder_are_handled_and_sent_to_asker(self):
@@ -510,7 +509,7 @@ class TestOrderedMessageHandler(BaseTestCase):
             },
         )
 
-        with self.assertRaises(concurrent.futures.TimeoutError):
+        with self.assertRaises(TimeoutError):
             message_handler.handle_messages(timeout=0)
 
     def test_unknown_message_type_raises_warning(self):
