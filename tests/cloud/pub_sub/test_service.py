@@ -541,11 +541,12 @@ class TestOrderedMessageHandler(BaseTestCase):
             subscription=self.mock_subscription,
             message_handlers={
                 "test": self._make_order_recording_message_handler(message_handling_order),
-                "finish-test": lambda message: message,
+                "finish-test": lambda message: "This is the result.",
             },
         )
 
-        message_handler.handle_messages()
+        result = message_handler.handle_messages()
+        self.assertEqual(result, "This is the result.")
         self.assertEqual(message_handling_order, [0, 1, 2])
 
     def test_out_of_order_messages_are_handled_in_order(self):
@@ -564,11 +565,12 @@ class TestOrderedMessageHandler(BaseTestCase):
             subscription=self.mock_subscription,
             message_handlers={
                 "test": self._make_order_recording_message_handler(message_handling_order),
-                "finish-test": lambda message: message,
+                "finish-test": lambda message: "This is the result.",
             },
         )
 
-        message_handler.handle_messages()
+        result = message_handler.handle_messages()
+        self.assertEqual(result, "This is the result.")
         self.assertEqual(message_handling_order, [0, 1, 2])
 
     def test_out_of_order_messages_with_end_message_first_are_handled_in_order(self):
@@ -589,9 +591,10 @@ class TestOrderedMessageHandler(BaseTestCase):
             subscription=self.mock_subscription,
             message_handlers={
                 "test": self._make_order_recording_message_handler(message_handling_order),
-                "finish-test": lambda message: message,
+                "finish-test": lambda message: "This is the result.",
             },
         )
 
-        message_handler.handle_messages()
+        result = message_handler.handle_messages()
+        self.assertEqual(result, "This is the result.")
         self.assertEqual(message_handling_order, [0, 1, 2])
