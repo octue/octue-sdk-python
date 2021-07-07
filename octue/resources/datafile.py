@@ -3,6 +3,7 @@ import functools
 import logging
 import os
 import tempfile
+import google.api_core.exceptions
 import pkg_resources
 from google_crc32c import Checksum
 
@@ -314,9 +315,15 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
         temporary_local_path = tempfile.NamedTemporaryFile(delete=False).name
 
-        GoogleCloudStorageClient(project_name=self._cloud_metadata["project_name"]).download_to_file(
-            local_path=temporary_local_path, cloud_path=self.absolute_path
-        )
+        try:
+            GoogleCloudStorageClient(project_name=self._cloud_metadata["project_name"]).download_to_file(
+                local_path=temporary_local_path, cloud_path=self.absolute_path
+            )
+
+        except google.api_core.exceptions.NotFound as e:
+            # If in reading mode, raise an error if no file exists at the path; if in a writing mode, create a new file.
+            if self._open_attributes["mode"] == "r":
+                raise e
 
         TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path] = temporary_local_path
 

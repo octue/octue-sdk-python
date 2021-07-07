@@ -507,3 +507,13 @@ class DatafileTestCase(BaseTestCase):
             datafile.metadata(use_octue_namespace=False).keys(),
             {"id", "timestamp", "tags", "labels", "sdk_version"},
         )
+
+    def test_creating_new_cloud_datafile_without_local_file(self):
+        """Test that a new datafile can be created in the cloud without making a local file first."""
+        path = f"gs://{TEST_BUCKET_NAME}/new_cloud_file.txt"
+
+        with Datafile(path=path, project_name=TEST_PROJECT_NAME, mode="w") as (datafile, f):
+            f.write('{"my": "data"}')
+
+        data = GoogleCloudStorageClient(TEST_PROJECT_NAME).download_as_string(path)
+        self.assertEqual(data, '{"my": "data"}')
