@@ -32,8 +32,8 @@ class TestManifest(BaseTestCase):
         self.assertFalse(self.create_valid_manifest().all_datasets_are_in_cloud)
 
         files = [
-            Datafile(path="gs://hello/file.txt"),
-            Datafile(path="gs://goodbye/file.csv"),
+            Datafile(path="gs://hello/file.txt", hypothetical=True),
+            Datafile(path="gs://goodbye/file.csv", hypothetical=True),
         ]
 
         manifest = Manifest(datasets=[Dataset(files=files)], keys={"my_dataset": 0})
@@ -72,8 +72,8 @@ class TestManifest(BaseTestCase):
             dataset = Dataset(
                 name="my-dataset",
                 files={
-                    Datafile(path=file_0_path, sequence=0, tags={"a": 1, "b": 2}, labels={"hello"}),
-                    Datafile(path=file_1_path, sequence=1, tags={"a": 1, "b": 2}, labels={"goodbye"}),
+                    Datafile(path=file_0_path, tags={"a": 1, "b": 2}, labels={"hello"}),
+                    Datafile(path=file_1_path, tags={"a": 1, "b": 2}, labels={"goodbye"}),
                 },
             )
 
@@ -115,8 +115,8 @@ class TestManifest(BaseTestCase):
                 name="my-dataset",
                 path=temporary_directory,
                 files={
-                    Datafile(path=file_0_path, sequence=0, tags={"a": 1, "b": 2}, labels={"hello"}),
-                    Datafile(path=file_1_path, sequence=1, tags={"a": 1, "b": 2}, labels={"goodbye"}),
+                    Datafile(path=file_0_path, tags={"a": 1, "b": 2}, labels={"hello"}),
+                    Datafile(path=file_1_path, tags={"a": 1, "b": 2}, labels={"goodbye"}),
                 },
             )
 
@@ -156,8 +156,8 @@ class TestManifest(BaseTestCase):
             dataset = Dataset(
                 name="my-dataset",
                 files={
-                    Datafile(path=file_0_path, sequence=0, tags={"a": 1, "b": 2}, labels={"hello"}),
-                    Datafile(path=file_1_path, sequence=1, tags={"a": 1, "b": 2}, labels={"goodbye"}),
+                    Datafile(path=file_0_path, tags={"a": 1, "b": 2}, labels={"hello"}),
+                    Datafile(path=file_1_path, tags={"a": 1, "b": 2}, labels={"goodbye"}),
                 },
             )
 

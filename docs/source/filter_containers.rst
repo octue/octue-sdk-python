@@ -39,9 +39,9 @@ Key points:
 
     filter_set = FilterSet(
         {
-            Datafile(path="my_file.csv", cluster=0, tags={"manufacturer": "Vestas"}),
-            Datafile(path="your_file.txt", cluster=1, tags={"manufacturer": "Vergnet"}),
-            Datafile(path="another_file.csv", cluster=2, tags={"manufacturer": "Enercon"})
+            Datafile(path="my_file.csv", tags={"cluster": 0, "manufacturer": "Vestas"}),
+            Datafile(path="your_file.txt", tags={"cluster": 1, "manufacturer": "Vergnet"}),
+            Datafile(path="another_file.csv", tags={"cluster": 2, "manufacturer": "Enercon"})
         }
     )
 
@@ -50,7 +50,7 @@ Key points:
     >>> <FilterSet({<Datafile('my_file.csv')>, <Datafile('another_file.csv')>})>
 
     # Two filters, non-nested attributes.
-    filter_set.filter(name__ends_with=".csv", cluster__gt=1)
+    filter_set.filter(name__ends_with=".csv", tags__cluster__gt=1)
     >>> <FilterSet({<Datafile('another_file.csv')>})>
 
     # Single filter, nested attribute.
@@ -182,7 +182,7 @@ filter container can be ordered by any of the attributes of its members:
     filter_set.order_by("name")
     >>> <FilterList([<Datafile('another_file.csv')>, <Datafile('my_file.csv')>, <Datafile(path="your_file.txt")>])>
 
-    filter_set.order_by("cluster")
+    filter_set.order_by("tags__cluster")
     >>> <FilterList([<Datafile('my_file.csv')>, <Datafile('your_file.csv')>, <Datafile(path="another_file.txt")>])>
 
 The ordering can also be carried out in reverse (i.e. descending order) by passing ``reverse=True`` as a second argument

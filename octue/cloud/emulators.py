@@ -1,7 +1,13 @@
+import logging
 import os
 import socket
 from contextlib import closing
 from gcp_storage_emulator.server import create_server
+
+
+# Silence the GCP storage emulator logger below `ERROR` level messages.
+emulator_logger = logging.getLogger("gcp_storage_emulator.server")
+emulator_logger.setLevel(logging.ERROR)
 
 
 class GoogleCloudStorageEmulator:

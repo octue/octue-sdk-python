@@ -1,6 +1,8 @@
 import json
 import logging
+import sys
 import time
+import traceback as tb
 import uuid
 from concurrent.futures import TimeoutError
 import google.api_core
@@ -8,25 +10,29 @@ import google.api_core.exceptions
 from google.api_core import retry
 from google.cloud import pubsub_v1
 
-from octue import exceptions
+import octue.exceptions
+import twined.exceptions
 from octue.cloud.credentials import GCPCredentialsManager
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.exceptions import FileLocationError
 from octue.mixins import CoolNameable
 from octue.resources.manifest import Manifest
 from octue.utils.encoders import OctueJSONEncoder
+from octue.utils.exceptions import create_exceptions_mapping
 
 
 logger = logging.getLogger(__name__)
 
-
 OCTUE_NAMESPACE = "octue.services"
 ANSWERS_NAMESPACE = "answers"
-
 
 # Switch message batching off by setting max_messages to 1. This minimises latency and is recommended for
 # microservices publishing single messages in a request-response sequence.
 BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_latency=0.01, max_messages=1)
+
+EXCEPTIONS_MAPPING = create_exceptions_mapping(
+    globals()["__builtins__"], vars(twined.exceptions), vars(octue.exceptions)
+)
 
 
 def create_custom_retry(timeout):
@@ -122,26 +128,40 @@ class Service(CoolNameable):
         """Answer a question (i.e. run the Service's app to analyse the given data, and return the output values to the
         asker). Answers are published to a topic whose name is generated from the UUID sent with the question, and are
         in the format specified in the Service's Twine file.
+
+        :param dict data:
+        :param str question_uuid:
+        :param float timeout:
+        :raise Exception: if any exception arises during running analysis and sending its results
+        :return None:
         """
         topic = Topic(
             name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)), namespace=OCTUE_NAMESPACE, service=self
         )
-        analysis = self.run_function(input_values=data["input_values"], input_manifest=data["input_manifest"])
 
-        if analysis.output_manifest is None:
-            serialised_output_manifest = None
-        else:
-            serialised_output_manifest = analysis.output_manifest.serialise(to_string=True)
+        try:
+            analysis = self.run_function(
+                input_values=data["input_values"], input_manifest=data["input_manifest"], analysis_id=question_uuid
+            )
 
-        self.publisher.publish(
-            topic=topic.path,
-            data=json.dumps(
-                {"output_values": analysis.output_values, "output_manifest": serialised_output_manifest},
-                cls=OctueJSONEncoder,
-            ).encode(),
-            retry=create_custom_retry(timeout),
-        )
-        logger.info("%r responded on topic %r.", self, topic.path)
+            if analysis.output_manifest is None:
+                serialised_output_manifest = None
+            else:
+                serialised_output_manifest = analysis.output_manifest.serialise(to_string=True)
+
+            self.publisher.publish(
+                topic=topic.path,
+                data=json.dumps(
+                    {"output_values": analysis.output_values, "output_manifest": serialised_output_manifest},
+                    cls=OctueJSONEncoder,
+                ).encode(),
+                retry=create_custom_retry(timeout),
+            )
+            logger.info("%r responded to question %r.", self, question_uuid)
+
+        except BaseException as error:  # noqa
+            self._send_exception_to_asker(topic, timeout)
+            raise error
 
     def ask(self, service_id, input_values, input_manifest=None):
         """Ask a serving Service a question (i.e. send it input values for it to run its app on). The input values must
@@ -158,9 +178,9 @@ class Service(CoolNameable):
 
         question_topic = Topic(name=service_id, namespace=OCTUE_NAMESPACE, service=self)
         if not question_topic.exists():
-            raise exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
+            raise octue.exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
 
-        question_uuid = str(int(uuid.uuid4()))
+        question_uuid = str(uuid.uuid4())
 
         response_topic_and_subscription_name = ".".join((service_id, ANSWERS_NAMESPACE, question_uuid))
         response_topic = Topic(name=response_topic_and_subscription_name, namespace=OCTUE_NAMESPACE, service=self)
@@ -184,7 +204,7 @@ class Service(CoolNameable):
         )
         future.result()
 
-        logger.debug("%r asked question to %r service. Question UUID is %r.", self, service_id, question_uuid)
+        logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
         return response_subscription, question_uuid
 
     def wait_for_answer(self, subscription, timeout=30):
@@ -227,7 +247,7 @@ class Service(CoolNameable):
             finally:
                 try:
                     self.subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
-                    logger.debug("%r received a response to question on topic %r.", self, subscription.topic.path)
+                    logger.info("%r received a response to question %r.", self, subscription.topic.path.split(".")[-1])
                 except UnboundLocalError:
                     pass
 
@@ -236,9 +256,58 @@ class Service(CoolNameable):
 
         data = json.loads(answer.message.data.decode())
 
+        if "exception_type" in data:
+            self._raise_exception_from_responder(data)
+
         if data["output_manifest"] is None:
             output_manifest = None
         else:
             output_manifest = Manifest.deserialise(data["output_manifest"], from_string=True)
 
         return {"output_values": data["output_values"], "output_manifest": output_manifest}
+
+    def _send_exception_to_asker(self, topic, timeout):
+        """Serialise and send the exception being handled to the asker.
+
+        :param octue.cloud.pub_sub.topic.Topic topic:
+        :param float timeout:
+        :return None:
+        """
+        exception_info = sys.exc_info()
+        exception = exception_info[1]
+        exception_message = f"Error in {self!r}: " + exception.args[0]
+        traceback = tb.format_list(tb.extract_tb(exception_info[2]))
+
+        self.publisher.publish(
+            topic=topic.path,
+            data=json.dumps(
+                {
+                    "exception_type": type(exception).__name__,
+                    "exception_message": exception_message,
+                    "traceback": traceback,
+                }
+            ).encode(),
+            retry=create_custom_retry(timeout),
+        )
+
+    def _raise_exception_from_responder(self, data):
+        """Raise the exception from the responding service that is serialised in `data`.
+
+        :param dict data:
+        :raise Exception:
+        :return None:
+        """
+        message = "\n\n".join(
+            (
+                data["exception_message"],
+                "The following traceback was captured from the remote service:",
+                "".join(data["traceback"]),
+            )
+        )
+
+        try:
+            raise EXCEPTIONS_MAPPING[data["exception_type"]](message)
+
+        # Allow unknown exception types to still be raised.
+        except KeyError:
+            raise type(data["exception_type"], (Exception,), {})(message)

@@ -34,17 +34,21 @@ class FilterContainer(ABC):
             filter_value = kwargs.pop(filter_name)
             return self.filter(raise_error_if_filter_is_invalid, **{filter_name: filter_value}).filter(**kwargs)
 
-    def order_by(self, attribute_name, reverse=False):
+    def order_by(self, attribute_name, check_start_value=None, check_constant_increment=None, reverse=False):
         """Order the `Filterable`s in the container by an attribute with the given name, returning them as a new
         `FilterList` regardless of the type of filter container begun with.
 
         :param str attribute_name: name of attribute (optionally nested) to order by e.g. "a", "a.b", "a.b.c"
+        :param any check_start_value: if provided, check that the first item in the ordered container has the given start value for the attribute ordered by
+        :param int|float|None check_constant_increment: if given, check that the ordered-by attribute of each of the items in the ordered container increases by the given value when progressing along the sequence
         :param bool reverse: if True, reverse the ordering
         :raise octue.exceptions.InvalidInputException: if an attribute with the given name doesn't exist on any of the container's members
         :return FilterList:
         """
+        attribute_name = ".".join(attribute_name.split("__"))
+
         try:
-            return FilterList(
+            results = FilterList(
                 sorted(self, key=lambda item: get_nested_attribute(item, attribute_name), reverse=reverse)
             )
 
@@ -52,6 +56,29 @@ class FilterContainer(ABC):
             raise exceptions.InvalidInputException(
                 f"An attribute named {attribute_name!r} does not exist on one or more members of {self!r}."
             )
+
+        if check_start_value is not None:
+            if get_nested_attribute(results[0], attribute_name) != check_start_value:
+                raise exceptions.BrokenSequenceException(
+                    f"The attribute {attribute_name!r} of the first item of {results!r} does equal the given start "
+                    f"value {check_start_value!r}."
+                )
+
+        if check_constant_increment is not None:
+            required_increment = check_constant_increment
+
+            for i in range(len(results) - 1):
+                actual_increment = get_nested_attribute(results[i + 1], attribute_name) - get_nested_attribute(
+                    results[i], attribute_name
+                )
+
+                if actual_increment != required_increment:
+                    raise exceptions.BrokenSequenceException(
+                        f"The attributes {attribute_name!r} of the items of {results!r} do not increase by a constant "
+                        f"increment of {required_increment}."
+                    )
+
+        return results
 
     def one(self, **kwargs):
         """If a single result exists for the given filters, return it. Otherwise, raise an error.

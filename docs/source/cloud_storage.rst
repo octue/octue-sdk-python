@@ -24,7 +24,7 @@ Assuming you have an instance of ``Datafile`` called ``my_datafile``:
     my_datafile.to_cloud(project_name=<project-name>, bucket_name=<bucket-name>, path_in_bucket=<path/in/bucket>)
     >>> gs://<bucket-name>/<path/in/bucket>
 
-    downloaded_datafile = Datafile.from_cloud(project_name=<project-name>, bucket_name=<bucket-name>, datafile_path=<path/in/bucket>)
+    downloaded_datafile = Datafile(path="gs://<bucket-name>/<path/in/bucket>, project_name=<project-name>)
 
 
 Dataset
