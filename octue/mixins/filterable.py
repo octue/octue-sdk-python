@@ -2,7 +2,7 @@ import collections.abc
 import numbers
 
 from octue import exceptions
-from octue.utils.objects import get_nested_attribute
+from octue.utils.objects import get_nested_attribute, has_nested_attribute
 
 
 def generate_complementary_filters(name, func):
@@ -46,7 +46,7 @@ COMPARISON_FILTER_ACTIONS = {
 
 # Filters for specific types e.g. list or int.
 TYPE_FILTERS = {
-    "bool": IS_FILTER_ACTIONS,
+    "bool": {**EQUALS_FILTER_ACTIONS, **IS_FILTER_ACTIONS},
     "str": {
         **generate_complementary_filters("iequals", lambda item, value: value.casefold() == item.casefold()),
         **generate_complementary_filters("starts_with", lambda item, value: item.startswith(value)),
@@ -58,7 +58,7 @@ TYPE_FILTERS = {
         **ICONTAINS_FILTER_ACTIONS,
         **IN_RANGE_FILTER_ACTIONS,
     },
-    "NoneType": IS_FILTER_ACTIONS,
+    "NoneType": {**EQUALS_FILTER_ACTIONS, **IS_FILTER_ACTIONS},
     "LabelSet": {
         **EQUALS_FILTER_ACTIONS,
         **CONTAINS_FILTER_ACTIONS,
@@ -120,8 +120,10 @@ class Filterable:
         as a single keyword argument such as `name__first__equals="Joe"`
 
         :param bool raise_error_if_filter_is_invalid:
-        :param {str: any} kwargs: a single keyword argument whose key is the name of the filter and whose value is the
-            value to filter for
+        :param {str: any} kwargs: a single keyword argument whose key is the name of the filter and whose value is the value to filter for
+        :raise ValueError: if more than one keyword argument is received
+        :raise AttributeError: if the instance doesn't have the attribute specified in the filter name (only if `raise_error_if_filter_is_invalid` is `True`)
+        :raise octue.exceptions.InvalidInputException: if the filter name is invalid or there are no filters for the type of attribute specified in the filter name
         :return mixed:
         """
         if len(kwargs) != 1:
@@ -129,19 +131,23 @@ class Filterable:
 
         filter_name, filter_value = list(kwargs.items())[0]
 
-        attribute_name, filter_action = self._split_filter_name(filter_name)
-
         try:
-            attribute = get_nested_attribute(self, attribute_name)
+            attribute_name, filter_action = self._split_filter_name(filter_name)
 
-        except AttributeError as error:
-            if raise_error_if_filter_is_invalid:
-                raise error
-            return False
+            try:
+                attribute = get_nested_attribute(self, attribute_name)
 
-        filter_ = self._get_filter(attribute, filter_action)
+            except AttributeError as error:
+                if raise_error_if_filter_is_invalid:
+                    raise error
 
-        return filter_(attribute, filter_value)
+                return False
+
+            filter_ = self._get_filter(attribute, filter_action)
+            return filter_(attribute, filter_value)
+
+        except exceptions.InvalidInputException as error:
+            return self._try_equals_filter_shortcut(filter_name, filter_value, error)
 
     def _split_filter_name(self, filter_name):
         """Split the filter name into the attribute name and filter action, raising an error if it the attribute name
@@ -150,6 +156,7 @@ class Filterable:
         *attribute_names, filter_action = filter_name.split("__")
 
         if not attribute_names:
+
             raise exceptions.InvalidInputException(
                 f"Invalid filter name {filter_name!r}. Filter names should be in the form "
                 f"'<attribute_name_0>__<attribute_name_1>__<...>__<filter_kind>' with at least one attribute name "
@@ -188,3 +195,22 @@ class Filterable:
             raise exceptions.InvalidInputException(
                 f"Attributes of type {error.args[0]} are not currently supported for filtering."
             )
+
+    def _try_equals_filter_shortcut(self, filter_name, filter_value, error):
+        """Try to use the equals filter shortcut e.g. `a=7` instead of `a__equals=7` or `a__b=7` instead of
+        `a__b__equals=7`. Raise the error if this is not applicable (e.g. the filter name is just wrong).
+
+        :param str filter_name:
+        :param mixed filter_value:
+        :param Exception error:  the error to raise if the equals filter shortcut is not applicable
+        :raise Exception: if the equals filter shortcut is not applicable
+        :return mixed:
+        """
+        possible_attribute_name = ".".join(filter_name.split("__"))
+
+        if has_nested_attribute(self, possible_attribute_name):
+            attribute = get_nested_attribute(self, possible_attribute_name)
+            filter_ = self._get_filter(attribute, "equals")
+            return filter_(attribute, filter_value)
+
+        raise error

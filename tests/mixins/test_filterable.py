@@ -42,6 +42,20 @@ class TestFilterable(BaseTestCase):
         with self.assertRaises(ValueError):
             FilterableSubclass(age=23).satisfies(age__equals=23, age__equals__gt=20)
 
+    def test_equals_filter_shortcut(self):
+        """Test that the shortcut for simple equals filters works (e.g. `a=7` instead of `a__equals=7`)."""
+        self.assertTrue(FilterableSubclass(age=23).satisfies(age=23))
+        self.assertFalse(FilterableSubclass(age=23).satisfies(age=32))
+
+    def test_equals_filter_shortcut_with_nested_attributes(self):
+        """Test that the shortcut for simple equals filters works for nested attributes e.g. `a__b=7` instead of
+        `a__b__equals=7`.
+        """
+        inner_mock = FilterableSubclass(b=3)
+        outer_mock = FilterableSubclass(a=inner_mock)
+        filterable_thing = FilterableSubclass(name=outer_mock)
+        self.assertTrue(filterable_thing.satisfies(name__a__b=3))
+
     def test_bool_filters(self):
         """ Test that the boolean filters work as expected. """
         filterable_thing = FilterableSubclass(is_alive=True)
@@ -49,6 +63,10 @@ class TestFilterable(BaseTestCase):
         self.assertFalse(filterable_thing.satisfies(is_alive__is=False))
         self.assertTrue(filterable_thing.satisfies(is_alive__is_not=False))
         self.assertFalse(filterable_thing.satisfies(is_alive__is_not=True))
+        self.assertTrue(filterable_thing.satisfies(is_alive__equals=True))
+        self.assertFalse(filterable_thing.satisfies(is_alive__equals=False))
+        self.assertTrue(filterable_thing.satisfies(is_alive__not_equals=False))
+        self.assertFalse(filterable_thing.satisfies(is_alive__not_equals=True))
 
     def test_str_filters(self):
         """ Test that the string filters work as expected. """
@@ -99,6 +117,10 @@ class TestFilterable(BaseTestCase):
         self.assertFalse(filterable_thing.satisfies(owner__is=True))
         self.assertTrue(filterable_thing.satisfies(owner__is_not=True))
         self.assertFalse(filterable_thing.satisfies(owner__is_not=None))
+        self.assertTrue(filterable_thing.satisfies(owner__equals=None))
+        self.assertFalse(filterable_thing.satisfies(owner__equals=True))
+        self.assertTrue(filterable_thing.satisfies(owner__not_equals=True))
+        self.assertFalse(filterable_thing.satisfies(owner__not_equals=None))
 
     def test_number_filters_with_integers_and_floats(self):
         """ Test that the number filters work as expected for integers and floats. """
