@@ -67,7 +67,7 @@ class TestService(BaseTestCase):
 
     @staticmethod
     def ask_question_and_wait_for_answer(
-        asking_service, responding_service, input_values, input_manifest, subscribe_to_remote_logs=True
+        asking_service, responding_service, input_values, input_manifest, subscribe_to_logs=True
     ):
         """Get an asking service to ask a question to a responding service and wait for the answer.
 
@@ -75,12 +75,10 @@ class TestService(BaseTestCase):
         :param tests.cloud.pub_sub.mocks.MockService responding_service:
         :param dict input_values:
         :param octue.resources.manifest.Manifest|None input_manifest:
-        :param bool subscribe_to_remote_logs:
+        :param bool subscribe_to_logs:
         :return dict:
         """
-        subscription, _ = asking_service.ask(
-            responding_service.id, input_values, input_manifest, subscribe_to_remote_logs
-        )
+        subscription, _ = asking_service.ask(responding_service.id, input_values, input_manifest, subscribe_to_logs)
         return asking_service.wait_for_answer(subscription)
 
     def make_responding_service_with_error(self, exception_to_raise):
@@ -198,7 +196,7 @@ class TestService(BaseTestCase):
                         responding_service=responding_service,
                         input_values={},
                         input_manifest=None,
-                        subscribe_to_remote_logs=False,
+                        subscribe_to_logs=False,
                     )
 
         self.assertEqual(
@@ -227,7 +225,7 @@ class TestService(BaseTestCase):
                         responding_service=responding_service,
                         input_values={},
                         input_manifest=None,
-                        subscribe_to_remote_logs=True,
+                        subscribe_to_logs=True,
                     )
 
         self.assertEqual(

@@ -170,7 +170,7 @@ class Service(CoolNameable):
         forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
         return data, question_uuid, forward_logs
 
-    def ask(self, service_id, input_values, input_manifest=None, subscribe_to_remote_logs=True):
+    def ask(self, service_id, input_values, input_manifest=None, subscribe_to_logs=True):
         """Ask a serving Service a question (i.e. send it input values for it to run its app on). The input values must
         be in the format specified by the serving Service's Twine file. A single-use topic and subscription are created
         before sending the question to the serving Service - the topic is the expected publishing place for the answer
@@ -179,7 +179,7 @@ class Service(CoolNameable):
         :param str service_id: the UUID of the service to ask the question to
         :param any input_values: the input values of the question
         :param octue.resources.manifest.Manifest|None input_manifest: the input manifest of the question
-        :param bool subscribe_to_remote_logs: if `True`, subscribe to logs from the remote service and handle them with the local log handlers
+        :param bool subscribe_to_logs: if `True`, subscribe to logs from the remote service and handle them with the local log handlers
         :return (octue.cloud.pub_sub.subscription.Subscription, str): the response subscription and question UUID
         """
         if (input_manifest is not None) and (not input_manifest.all_datasets_are_in_cloud):
@@ -214,7 +214,7 @@ class Service(CoolNameable):
             topic=question_topic.path,
             data=json.dumps({"input_values": input_values, "input_manifest": input_manifest}).encode(),
             question_uuid=question_uuid,
-            forward_logs=str(int(subscribe_to_remote_logs)),
+            forward_logs=str(int(subscribe_to_logs)),
         )
         future.result()
 
