@@ -5,19 +5,29 @@ Child services
 ==============
 
 When a Twine file is written, there is the option to include children (i.e. child services or child digital twins) so
-the main or parent service can communicate with them to ask them "questions". A question is a set of input
-values and/or an input manifest in the form the child's Twine specifies. When a question is asked, the parent can expect
-an answer, which is a set of output values and/or an output manifest, again in the form specified by the child's Twine.
+the main/parent service can communicate with them to ask "questions". A question is a set of input values and/or an
+input manifest in the form the child's Twine specifies. When a question is asked, the parent can expect an answer,
+which is a set of output values and/or an output manifest produced by the child's analysis of the inputs (again in the
+form specified by the child's Twine).
 
 There can be:
 
 - Any number of children
 - Any number of questions asked to each child
 
-Further, a child can have its own children that it asks questions to. There is no limit to this as long as the tree of
-services forms a directed acyclical graph (DAG) - i.e. there are no loops and no children ask their parents any
-questions.
+Further, a child can have its own children that it asks its own questions to. There is no limit to this as long as the
+tree of services forms a directed acyclical graph (DAG) - i.e. as long as there are no loops and no children ask their
+parents any questions.
 
+To help you debug and keep track of a child's progress in answering your question, its logs can be streamed back to the
+parent and displayed just like local log messages. They are distinguished from local log messages by `[REMOTE]`
+appearing at the start of their messages. Simply set ``subscribe_to_logs`` to ``True`` (see below).
+
+A ``timeout`` (measured in seconds) can be set for how long you are willing to wait for an answer, but bear in mind
+that the question has to reach the child, the child has to run its own analysis on the inputs sent to it (this most
+likely corresponds to the dominant part of the wait time), and the answer has to be sent back to the parent. If you are
+not sure how long a particular analysis might take, it's best to set the timeout to ``None`` or ask the
+owner/maintainer of the child for an estimate.
 
 -------------------------
 Example usage in your app
@@ -28,21 +38,20 @@ you can ask children questions in your ``app.py`` file as follows:
 
 .. code-block:: python
 
-    answer_1 = analysis.children["child_1"].ask(input_values=analysis.input_values, timeout=None)
-    answer_2 = analysis.children["child_2"].ask(input_values=analysis.input_values, timeout=None)
+    answer_1 = analysis.children["wind_speed"].ask(
+        input_values=analysis.input_values,
+        input_manifest=analysis.input_manifest,
+        subscribe_to_logs=True,  # This means logs from the child's analysis will stream to your machine and appear like other logs.
+        timeout=None
+    )
+
+    answer_2 = analysis.children["elevation"].ask(input_values=analysis.input_values, timeout=None)
 
     >>> answer_1
     {
         'output_values': <output values in form specified by child twine.json>,
         'output_manifest': <output manifest in form specified by child twine.json>
     }
-
-
-A timeout (measured in seconds) can be set for how long you are willing to wait for an answer, but bear in mind that the
-question has to reach the child, the child has to run its own analysis on the inputs sent to it (this most likely
-corresponds to the dominant part of the wait time), and the answer has to be send back to the parent. If you are not
-sure how long a particular analysis might take, it's best to set the timeout to ``None`` or ask the owner/maintainer of
-the child for an estimate.
 
 
 --------
