@@ -36,8 +36,6 @@ JSON object with the following fields (all paths should be relative to the repos
 * ``output_manifest`` (default value: ``None``)
 * ``children`` (default value: ``None``)
 * ``skip_checks`` (default value: ``False``)
-* ``log_level`` (default value: ``INFO``)
-* ``log_handler`` (default value: ``None``)
 
 
 --------------------

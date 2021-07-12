@@ -16,7 +16,7 @@ def create_formatter(logging_metadata):
 
 
 # Logging format for analysis runs. All handlers should use this logging format, to make logs consistently parseable
-LOGGING_METADATA_WITH_TIMESTAMP = ("%(asctime)s", "%(levelname)s", "%(name)s", "%(process)d", "%(thread)d")
+LOGGING_METADATA_WITH_TIMESTAMP = ("%(asctime)s", "%(levelname)s", "%(name)s")
 FORMATTER_WITH_TIMESTAMP = create_formatter(LOGGING_METADATA_WITH_TIMESTAMP)
 FORMATTER_WITHOUT_TIMESTAMP = create_formatter(LOGGING_METADATA_WITH_TIMESTAMP[1:])
 
@@ -30,31 +30,27 @@ def apply_log_handler(logger_name=None, handler=None, log_level=logging.INFO, fo
     :param logging.Formatter|None formatter: if this is `None`, the default `FORMATTER_WITH_TIMESTAMP` is used
     :return logging.Logger:
     """
-    handler = handler or get_default_handler(formatter)
+    handler = handler or logging.StreamHandler()
+    handler.setFormatter(formatter or FORMATTER_WITH_TIMESTAMP)
     handler.setLevel(log_level)
     logger = logging.getLogger(name=logger_name)
     logger.addHandler(handler)
     logger.setLevel(log_level)
 
-    if type(logger.handlers[0]).__name__ == "SocketHandler":
-        # Log locally that a remote logger will be used from now on.
-        local_logger = logging.getLogger(__name__)
-        local_logger.addHandler(get_default_handler())
-        local_logger.setLevel(log_level)
-        local_logger.info("Logs streaming to %s:%s", logger.handlers[0].host, str(logger.handlers[0].port))
+    for handler in logger.handlers:
+        if type(handler).__name__ == "SocketHandler":
+            # Log locally that a remote logger will be used.
+            local_logger = logging.getLogger(__name__)
+            temporary_handler = logging.StreamHandler()
+            temporary_handler.setFormatter(formatter or FORMATTER_WITH_TIMESTAMP)
+            temporary_handler.setLevel(log_level)
+            local_logger.addHandler(temporary_handler)
+            local_logger.setLevel(log_level)
+            local_logger.info("Logs streaming to %s:%s", handler.host, str(handler.port))
+            local_logger.removeHandler(temporary_handler)
+            break
 
     return logger
-
-
-def get_default_handler(formatter=None):
-    """Get the default log handler (logs to stderr) with the given formatter applied.
-
-    :param logging.Formatter|None formatter: if this is `None`, the `FORMATTER_WITH_TIMESTAMP` formatter is used
-    :return logging.Handler:
-    """
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter or FORMATTER_WITH_TIMESTAMP)
-    return console_handler
 
 
 def get_remote_handler(logger_uri, formatter=None):

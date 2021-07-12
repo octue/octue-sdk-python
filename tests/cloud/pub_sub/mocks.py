@@ -1,10 +1,16 @@
+import json
+import logging
 import google.api_core.exceptions
 
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import Service
+from octue.resources import Manifest
 
 
 MESSAGES = {}
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_service_id(path):
@@ -32,7 +38,7 @@ class MockTopic(Topic):
                 raise google.api_core.exceptions.AlreadyExists(f"Topic {self.path!r} already exists.")
 
         if not self.exists():
-            MESSAGES[get_service_id(self.path)] = None
+            MESSAGES[get_service_id(self.path)] = []
 
     def delete(self):
         """Delete the topic from the global messages dictionary.
@@ -84,7 +90,7 @@ class MockPublisher:
         :param google.api_core.retry.Retry|None retry:
         :return MockFuture:
         """
-        MESSAGES[get_service_id(topic)] = MockMessage(data=data, **attributes)
+        MESSAGES[get_service_id(topic)].append(MockMessage(data=data, **attributes))
         return MockFuture()
 
     @staticmethod
@@ -127,7 +133,7 @@ class MockSubscriber:
         :return MockPullResponse:
         """
         return MockPullResponse(
-            received_messages=[MockMessageWrapper(message=MESSAGES[get_service_id(request["subscription"])])]
+            received_messages=[MockMessageWrapper(message=MESSAGES[get_service_id(request["subscription"])].pop(0))]
         )
 
     def acknowledge(self, request):
@@ -176,8 +182,12 @@ class MockMessage:
 
     def __init__(self, data, **attributes):
         self.data = data
+        self.attributes = {}
         for key, value in attributes.items():
-            setattr(self, key, value)
+            self.attributes[key] = value
+
+    def ack(self):
+        pass
 
 
 class MockService(Service):
@@ -196,24 +206,77 @@ class MockService(Service):
         self.publisher = MockPublisher()
         self.subscriber = MockSubscriber()
 
-    def ask(self, service_id, input_values, input_manifest=None):
+    def ask(self, service_id, input_values, input_manifest=None, subscribe_to_logs=True):
         """Put the question into the messages register, register the existence of the corresponding response topic, add
         the response to the register, and return a MockFuture containing the answer subscription path.
 
         :param str service_id:
         :param dict|list input_values:
         :param octue.resources.manifest.Manifest|None input_manifest:
+        :param bool subscribe_to_logs:
         :return MockFuture, str:
         """
-        response_subscription, question_uuid = super().ask(service_id, input_values, input_manifest)
+        response_subscription, question_uuid = super().ask(service_id, input_values, input_manifest, subscribe_to_logs)
 
         # Ignore any errors from the answering service as they will be raised on the remote service in practice, not
         # locally as is done in this mock.
+        if input_manifest is not None:
+            input_manifest = input_manifest.serialise(to_string=True)
+
         try:
             self.children[service_id].answer(
-                data={"input_values": input_values, "input_manifest": input_manifest}, question_uuid=question_uuid
+                MockMessage(
+                    data=json.dumps({"input_values": input_values, "input_manifest": input_manifest}).encode(),
+                    question_uuid=question_uuid,
+                    forward_logs=subscribe_to_logs,
+                )
             )
-        except:  # noqa
-            pass
+        except Exception as e:  # noqa
+            logger.exception(e)
 
         return response_subscription, question_uuid
+
+
+class MockMessagePuller:
+    """A mock message puller that returns the messages in the order they were provided on initialisation.
+
+    :param iter(dict) messages:
+    :return None:
+    """
+
+    def __init__(self, messages):
+        self.messages = messages
+        self.message_number = 0
+
+    def pull(self, subscription, timeout):
+        """Return the next message from the messages given at initialisation.
+
+        :param any subscription: this isn't used in this mock but is required in the signature of a message pulling function
+        :return dict:
+        """
+        message = self.messages[self.message_number]
+        self.message_number += 1
+        return message
+
+
+class MockAnalysis:
+    """A mock Analysis object with just the output strands.
+
+    :param any output_values:
+    :param octue.resources.manifest.Manifest|None output_manifest:
+    :return None:
+    """
+
+    def __init__(self, output_values="Hello! It worked!", output_manifest=None):
+        self.output_values = output_values
+        self.output_manifest = output_manifest
+
+
+class DifferentMockAnalysis:
+    output_values = "This is another successful analysis."
+    output_manifest = None
+
+
+class MockAnalysisWithOutputManifest:
+    output_values = "This is an analysis with an empty output manifest."
+    output_manifest = Manifest()

@@ -50,7 +50,7 @@ class TestCloudRun(TestCase):
                             "data": base64.b64encode(
                                 json.dumps({"input_values": [1, 2, 3], "input_manifest": None}).encode()
                             ).decode(),
-                            "attributes": {"question_uuid": str(uuid.uuid4())},
+                            "attributes": {"question_uuid": str(uuid.uuid4()), "forward_logs": "1"},
                         },
                     },
                 )
@@ -62,13 +62,15 @@ class TestCloudRun(TestCase):
         with mock.patch.dict(os.environ, clear=True):
             with self.assertRaises(MissingServiceID):
                 cloud_run.answer_question(
-                    project_name="a-project-name", data={}, question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29"
+                    project_name="a-project-name",
+                    question={"data": {}, "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"}},
                 )
 
         with mock.patch.dict(os.environ, {"SERVICE_ID": ""}):
             with self.assertRaises(MissingServiceID):
                 cloud_run.answer_question(
-                    project_name="a-project-name", data={}, question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29"
+                    project_name="a-project-name",
+                    question={"data": {}, "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"}},
                 )
 
     def test_with_no_deployment_configuration_file(self):
@@ -81,8 +83,10 @@ class TestCloudRun(TestCase):
                     with mock.patch("octue.cloud.deployment.google.cloud_run.Service"):
                         cloud_run.answer_question(
                             project_name="a-project-name",
-                            data={},
-                            question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29",
+                            question={
+                                "data": {},
+                                "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"},
+                            },
                             credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS",
                         )
 
@@ -95,8 +99,6 @@ class TestCloudRun(TestCase):
                 "output_manifest_path": None,
                 "children": None,
                 "skip_checks": False,
-                "log_level": "INFO",
-                "handler": None,
                 "project_name": "a-project-name",
             }
         )
@@ -121,8 +123,10 @@ class TestCloudRun(TestCase):
                         with mock.patch("octue.cloud.deployment.google.cloud_run.Service"):
                             cloud_run.answer_question(
                                 project_name="a-project-name",
-                                data={},
-                                question_uuid="8c859f87-b594-4297-883f-cd1c7718ef29",
+                                question={
+                                    "data": {},
+                                    "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"},
+                                },
                                 credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS",
                             )
 
@@ -135,8 +139,6 @@ class TestCloudRun(TestCase):
                 "output_manifest_path": None,
                 "children": None,
                 "skip_checks": False,
-                "log_level": "INFO",
-                "handler": None,
                 "project_name": "a-project-name",
             }
         )

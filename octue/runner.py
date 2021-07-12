@@ -6,7 +6,7 @@ import google.api_core.exceptions
 from google.cloud import secretmanager
 
 from octue.cloud.credentials import GCPCredentialsManager
-from octue.logging_handlers import apply_log_handler
+from octue.log_handlers import apply_log_handler
 from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.utils import gen_uuid
@@ -22,20 +22,15 @@ class Runner:
     The Runner class provides a set of configuration parameters for use by your application, together with a range of
     methods for managing input and output file parsing as well as controlling logging.
 
+    :param Union[AppFrom, callable, str] app_src: Either an instance of the AppFrom manager class which has a run() method, or a function which accepts a single parameter (the instantiated analysis), or a string pointing to an application folder (which should contain an 'app.py' function like the templates)
     :param str|twined.Twine twine: path to the twine file, a string containing valid twine json, or a Twine instance
-    :param str|dict paths: If a string, contains a single path to an existing data directory where
-        (if not already present), subdirectories 'configuration', 'input', 'tmp', 'log' and 'output' will be created. If a
-        dict, it should contain all of those keys, with each of their values being a path to a directory (which will be
-        recursively created if it doesn't exist)
-    :param str|dict|_io.TextIOWrapper configuration_values: The strand data. Can be expressed as a string path of a
-        *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json
-        data or as an already-parsed dict.
-    :param str|dict|_io.TextIOWrapper configuration_manifest: The strand data. Can be expressed as a string path of a
-    *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or
-    as an already-parsed dict.
-    :param bool skip_file_checks: If true, skip the check that all files in the manifest are present on disc - this
-        can be an extremely long process for large datasets.
-    :param str project_name: name of Google Cloud project to get credentials from
+    :param str|dict|_io.TextIOWrapper|None configuration_values: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
+    :param str|dict|_io.TextIOWrapper|None configuration_manifest: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
+    :param Union[str, path-like, None] output_manifest_path: Path where output data will be written
+    :param Union[str, dict, None] children: The children strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
+    :param bool skip_checks: If true, skip the check that all files in the manifest are present on disc - this can be an extremely long process for large datasets.
+    :param str|None project_name: name of Google Cloud project to get credentials from
+    :return None:
     """
 
     def __init__(
@@ -47,16 +42,12 @@ class Runner:
         output_manifest_path=None,
         children=None,
         skip_checks=False,
-        log_level=logging.INFO,
-        handler=None,
         project_name=None,
     ):
         self.app_src = app_src
         self.output_manifest_path = output_manifest_path
         self.children = children
         self.skip_checks = skip_checks
-        self._log_level = log_level
-        self.handler = handler
 
         # Ensure the twine is present and instantiate it.
         if isinstance(twine, Twine):
@@ -83,42 +74,21 @@ class Runner:
 
         self._project_name = project_name
 
-    def run(self, analysis_id=None, input_values=None, input_manifest=None):
+    def run(
+        self,
+        analysis_id=None,
+        input_values=None,
+        input_manifest=None,
+        analysis_log_level=logging.INFO,
+        analysis_log_handler=None,
+    ):
         """Run an analysis
 
-        :parameter app_src: Either: an instance of the AppFrom manager class which has a run() method, or
-        a function which accepts a single parameter (the instantiated analysis), or a string pointing
-        to an application folder (which should contain an 'app.py' function like the templates).
-        :type app_src: Union[AppFrom, function, str]
-
-        :parameter input_values: The input_values strand data. Can be expressed as a string path of a *.json file
-        (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
-        already-parsed dict.
-        :type input_values: Union[str, dict]
-
-        :parameter input_manifest: The input_manifest strand data. Can be expressed as a string path of a *.json file
-        (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
-        already-parsed dict.
-        :type input_manifest: Union[str, Manifest]
-
-        :parameter credentials: The credentials strand data. Can be expressed as a string path of a *.json file
-        (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
-        already-parsed dict.
-        :type credentials: Union[str, dict]
-
-        :parameter children: The children strand data. Can be expressed as a string path of a *.json file
-        (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an
-        already-parsed dict.
-        :type children: Union[str, dict]
-
-        :parameter output_manifest_path: Path where output data will be written
-        :type output_manifest_path: Union[str, path-like]
-
-        :parameter handler: the logging.Handler instance which will be used to handle logs for this analysis run.
-        handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but
-        should use the format defined above in LOG_FORMAT.
-        :type handler: logging.Handler
-
+        :param str|None analysis_id: UUID of analysis
+        :param Union[str, dict, None] input_values: the input_values strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
+        :param Union[str, octue.resources.manifest.Manifest, None] input_manifest: The input_manifest strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
+        :param str analysis_log_level: the level below which to ignore log messages
+        :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run. Handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but should use the format defined above in LOG_FORMAT.
         :return: None
         """
         if hasattr(self.twine, "credentials"):
@@ -159,11 +129,18 @@ class Runner:
         )
 
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
+        analysis_logger_name = f"{__name__} | analysis-{analysis_id}"
 
-        analysis_logger = apply_log_handler(
-            logger_name=f"{__name__} | analysis-{analysis_id}", handler=self.handler, log_level=self._log_level
-        )
+        # Apply the default stderr log handler to the analysis logger.
+        analysis_logger = apply_log_handler(logger_name=analysis_logger_name, log_level=analysis_log_level)
 
+        # Also apply the given analysis log handler if given.
+        if analysis_log_handler:
+            apply_log_handler(
+                logger_name=analysis_logger_name, handler=analysis_log_handler, log_level=analysis_log_level
+            )
+
+        # Stop messages logged by the analysis logger being repeated by the root logger.
         analysis_logger.propagate = False
 
         analysis = Analysis(

@@ -13,6 +13,7 @@ Not all of Octue's API functionality is implemented in the SDK yet, we're active
    :hidden:
 
    installation
+   logging
    datafile
    dataset
    filter_containers
@@ -24,7 +25,6 @@ Not all of Octue's API functionality is implemented in the SDK yet, we're active
    license
    version_history
    bibliography
-
 
 
 .. rubric:: Footnotes

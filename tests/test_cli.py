@@ -61,7 +61,7 @@ class RunnerTestCase(BaseTestCase):
         assert CUSTOM_APP_RUN_MESSAGE in result.output
 
     def test_remote_logger_uri_can_be_set(self):
-        """ Test that remote logger URI can be set via the CLI and that this is logged locally. """
+        """Test that remote logger URI can be set via the CLI and that this is logged locally."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             with mock.patch("logging.StreamHandler.emit") as mock_local_logger_emit:
                 CliRunner().invoke(
@@ -79,7 +79,7 @@ class RunnerTestCase(BaseTestCase):
             mock_local_logger_emit.assert_called()
 
     def test_start_command(self):
-        """ Test that the start command works without error. """
+        """Test that the start command works without error."""
         elevation_service_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
             "octue",

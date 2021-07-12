@@ -1,3 +1,4 @@
+import functools
 import os
 import sys
 import click
@@ -5,7 +6,7 @@ import pkg_resources
 
 from octue.cloud.pub_sub.service import Service
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
-from octue.logging_handlers import get_remote_handler
+from octue.log_handlers import get_remote_handler
 from octue.resources import service_backends
 from octue.runner import Runner
 from twined import Twine
@@ -134,14 +135,14 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
         output_manifest_path=os.path.join(output_dir, MANIFEST_FILENAME),
         children=children,
         skip_checks=global_cli_context["skip_checks"],
-        log_level=global_cli_context["log_level"],
-        handler=global_cli_context["log_handler"],
     )
 
     analysis = runner.run(
         analysis_id=global_cli_context["analysis_id"],
         input_values=input_values,
         input_manifest=input_manifest,
+        analysis_log_level=global_cli_context["log_level"],
+        analysis_log_handler=global_cli_context["log_handler"],
     )
 
     analysis.finalise(output_dir=output_dir)
@@ -205,14 +206,18 @@ def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topi
         configuration_manifest=configuration_manifest,
         children=children,
         skip_checks=global_cli_context["skip_checks"],
-        log_level=global_cli_context["log_level"],
-        handler=global_cli_context["log_handler"],
+    )
+
+    run_function = functools.partial(
+        runner.run,
+        analysis_log_level=global_cli_context["log_level"],
+        analysis_log_handler=global_cli_context["log_handler"],
     )
 
     backend_configuration_values = runner.configuration["configuration_values"]["backend"]
     backend = service_backends.get_backend(backend_configuration_values.pop("name"))(**backend_configuration_values)
 
-    service = Service(service_id=service_id, backend=backend, run_function=runner.run)
+    service = Service(service_id=service_id, backend=backend, run_function=run_function)
     service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=delete_topic_and_subscription_on_exit)
 
 

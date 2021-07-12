@@ -1,4 +1,4 @@
-import base64
+import functools
 import json
 import logging
 import os
@@ -31,17 +31,13 @@ def index():
     if not isinstance(envelope, dict) or "message" not in envelope:
         return _log_bad_request_and_return_400_response("Invalid Pub/Sub message format.")
 
-    message = envelope["message"]
+    question = envelope["message"]
 
-    if "data" not in message or "attributes" not in message or "question_uuid" not in message["attributes"]:
+    if "data" not in question or "attributes" not in question or "question_uuid" not in question["attributes"]:
         return _log_bad_request_and_return_400_response("Invalid Pub/Sub message format.")
 
     project_name = envelope["subscription"].split("/")[1]
-    data = json.loads(base64.b64decode(message["data"]).decode("utf-8").strip())
-    question_uuid = message["attributes"]["question_uuid"]
-    logger.info("Received question %r.", question_uuid)
-
-    answer_question(project_name, data, question_uuid)
+    answer_question(project_name=project_name, question=question)
     return ("", 204)
 
 
@@ -55,13 +51,11 @@ def _log_bad_request_and_return_400_response(message):
     return (f"Bad Request: {message}", 400)
 
 
-def answer_question(project_name, data, question_uuid, credentials_environment_variable=None):
+def answer_question(project_name, question, credentials_environment_variable=None):
     """Answer a question from a service by running the deployed app with the deployment configuration. Either the
     `deployment_configuration_path` should be specified, or the `deployment_configuration`.
 
     :param str project_name:
-    :param dict data:
-    :param str question_uuid:
     :param str credentials_environment_variable:
     :return None:
     """
@@ -82,9 +76,13 @@ def answer_question(project_name, data, question_uuid, credentials_environment_v
         output_manifest_path=deployment_configuration.get("output_manifest", None),
         children=deployment_configuration.get("children", None),
         skip_checks=deployment_configuration.get("skip_checks", False),
-        log_level=deployment_configuration.get("log_level", "INFO"),
-        handler=deployment_configuration.get("log_handler", None),
         project_name=project_name,
+    )
+
+    run_function = functools.partial(
+        runner.run,
+        analysis_log_level=deployment_configuration.get("log_level", "INFO"),
+        analysis_log_handler=deployment_configuration.get("log_handler", None),
     )
 
     service = Service(
@@ -92,12 +90,14 @@ def answer_question(project_name, data, question_uuid, credentials_environment_v
         backend=GCPPubSubBackend(
             project_name=project_name, credentials_environment_variable=credentials_environment_variable
         ),
-        run_function=runner.run,
+        run_function=run_function,
     )
 
     try:
-        service.answer(data=data, question_uuid=question_uuid)
-        logger.info("Analysis successfully run and response sent for question %r.", question_uuid)
+        service.answer(question)
+        logger.info(
+            "Analysis successfully run and response sent for question %r.", question["attributes"]["question_uuid"]
+        )
     except BaseException as error:  # noqa
         logger.exception(error)
 
