@@ -311,7 +311,22 @@ class DatafileTestCase(BaseTestCase):
         with self.assertRaises(exceptions.CloudLocationNotSpecified):
             datafile.update_cloud_metadata()
 
-    def test_get_local_path(self):
+    def test_cloud_path(self):
+        """Test that the cloud path property gives the right path."""
+        _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud()
+        path = storage.path.generate_gs_path(bucket_name, path_in_bucket)
+        datafile = Datafile(path=path, project_name=project_name)
+        self.assertEqual(datafile.cloud_path, path)
+
+    def test_cloud_path_is_none_for_local_files(self):
+        """Test that the cloud path property is `None` for local datafiles."""
+        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
+            temporary_file.write("[1, 2, 3]")
+
+        datafile = Datafile(path=temporary_file.name)
+        self.assertIsNone(datafile.cloud_path)
+
+    def test_local_path(self):
         """Test that a file in the cloud can be temporarily downloaded and its local path returned."""
         _, project_name, bucket_name, path_in_bucket, contents = self.create_datafile_in_cloud()
         datafile = Datafile(storage.path.generate_gs_path(bucket_name, path_in_bucket), project_name=project_name)
@@ -319,7 +334,7 @@ class DatafileTestCase(BaseTestCase):
         with open(datafile.local_path) as f:
             self.assertEqual(f.read(), contents)
 
-    def test_get_local_path_with_cached_file_avoids_downloading_again(self):
+    def test_local_path_with_cached_file_avoids_downloading_again(self):
         """Test that attempting to download a cached file avoids downloading it again."""
         _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud()
         datafile = Datafile(storage.path.generate_gs_path(bucket_name, path_in_bucket), project_name=project_name)

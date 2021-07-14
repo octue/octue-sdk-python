@@ -301,6 +301,16 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         return self.path.startswith(CLOUD_STORAGE_PROTOCOL)
 
     @property
+    def cloud_path(self):
+        """Get the cloud path for the datafile or return `None` if it isn't in the cloud.
+
+        :return str|None:
+        """
+        if self.is_in_cloud:
+            return self.absolute_path
+        return None
+
+    @property
     def local_path(self):
         """Get the local path for the datafile, downloading it from the cloud to a temporary file if necessary. If
         downloaded, the local path is added to a cache to avoid downloading again in the same runtime.
