@@ -164,10 +164,22 @@ class DatafileTestCase(BaseTestCase):
         second_file = copy.deepcopy(first_file)
         self.assertEqual(first_file.hash_value, second_file.hash_value)
 
-    def test_is_in_cloud(self):
+    def test_exists_in_cloud(self):
         """Test whether a file is in the cloud or not can be determined."""
-        self.assertFalse(self.create_valid_datafile().is_in_cloud)
-        self.assertTrue(Datafile(path="gs://hello/file.txt", hypothetical=True).is_in_cloud)
+        self.assertFalse(self.create_valid_datafile().exists_in_cloud)
+        self.assertTrue(Datafile(path="gs://hello/file.txt", hypothetical=True).exists_in_cloud)
+
+    def test_exists_locally(self):
+        self.assertTrue(self.create_valid_datafile().exists_locally)
+        self.assertFalse(Datafile(path="gs://hello/file.txt", hypothetical=True).exists_locally)
+
+        _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud()
+        datafile = Datafile(path=storage.path.generate_gs_path(bucket_name, path_in_bucket), project_name=project_name)
+
+        # Make the datafile download a copy of the cloud file locally.
+        datafile.local_path
+
+        self.assertTrue(datafile.exists_locally)
 
     def test_from_cloud_with_bare_file(self):
         """Test that a Datafile can be constructed from a file on Google Cloud storage with no custom metadata."""

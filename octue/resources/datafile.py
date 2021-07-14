@@ -104,7 +104,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
         self._cloud_metadata = {"project_name": project_name}
 
-        if self.is_in_cloud and not self._hypothetical:
+        if self.exists_in_cloud and not self._hypothetical:
             self._store_cloud_location(project_name=project_name, cloud_path=path)
             self._use_cloud_metadata(id=id, timestamp=timestamp, tags=tags, labels=labels)
             return
@@ -280,7 +280,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         return os.path.getsize(self.absolute_path)
 
     @property
-    def is_in_cloud(self):
+    def exists_in_cloud(self):
         """Does the file exist in the cloud?
 
         :return bool:
@@ -288,12 +288,23 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         return self.path.startswith(CLOUD_STORAGE_PROTOCOL)
 
     @property
+    def exists_locally(self):
+        """Does the file exist locally?
+
+        :return bool:
+        """
+        if self.exists_in_cloud:
+            return self.absolute_path in TEMPORARY_LOCAL_FILE_CACHE
+
+        return True
+
+    @property
     def cloud_path(self):
         """Get the cloud path for the datafile or return `None` if it isn't in the cloud.
 
         :return str|None:
         """
-        if self.is_in_cloud:
+        if self.exists_in_cloud:
             return self.absolute_path
         return None
 
@@ -305,10 +316,10 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         :raise octue.exceptions.FileLocationError: if the file is not located in the cloud (i.e. it is local)
         :return str:
         """
-        if not self.is_in_cloud:
+        if not self.exists_in_cloud:
             return self.absolute_path
 
-        if self.absolute_path in TEMPORARY_LOCAL_FILE_CACHE:
+        if self.exists_locally:
             return TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path]
 
         temporary_local_path = tempfile.NamedTemporaryFile(delete=False).name
@@ -550,5 +561,5 @@ class _DatafileContextManager:
         if self._fp is not None:
             self._fp.close()
 
-        if self.datafile.is_in_cloud and any(character in self.mode for character in self.MODIFICATION_MODES):
+        if self.datafile.exists_in_cloud and any(character in self.mode for character in self.MODIFICATION_MODES):
             self.datafile.to_cloud(update_cloud_metadata=self._update_cloud_metadata)
