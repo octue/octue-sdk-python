@@ -275,30 +275,19 @@ class DatafileTestCase(BaseTestCase):
             datafile.to_cloud()
             self.assertFalse(mock.called)
 
-    def test_update_cloud_metadata(self):
-        """Test that a cloud datafile's metadata can be updated."""
-        _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud()
-
-        new_datafile = Datafile(path="glib.txt", labels={"new"})
-        new_datafile.update_cloud_metadata(project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
-
-        self.assertEqual(
-            Datafile(storage.path.generate_gs_path(bucket_name, path_in_bucket), project_name=project_name).labels,
-            {"new"},
-        )
-
     def test_update_cloud_metadata_works_with_implicit_cloud_location_if_cloud_location_previously_provided(self):
         """Test that datafile.update_metadata works with an implicit cloud location if the cloud location has been
         previously provided.
         """
         _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud()
+        cloud_path = storage.path.generate_gs_path(bucket_name, path_in_bucket)
 
-        datafile = Datafile(storage.path.generate_gs_path(bucket_name, path_in_bucket), project_name=project_name)
+        datafile = Datafile(cloud_path, project_name=project_name)
         datafile.labels = {"new"}
         datafile.update_cloud_metadata()
 
         self.assertEqual(
-            Datafile(storage.path.generate_gs_path(bucket_name, path_in_bucket), project_name=project_name).labels,
+            Datafile(cloud_path, project_name=project_name).labels,
             {"new"},
         )
 
