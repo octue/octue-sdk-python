@@ -316,7 +316,7 @@ class DatafileTestCase(BaseTestCase):
         _, project_name, bucket_name, path_in_bucket, contents = self.create_datafile_in_cloud()
         datafile = Datafile(storage.path.generate_gs_path(bucket_name, path_in_bucket), project_name=project_name)
 
-        with open(datafile.get_local_path()) as f:
+        with open(datafile.local_path) as f:
             self.assertEqual(f.read(), contents)
 
     def test_get_local_path_with_cached_file_avoids_downloading_again(self):
@@ -325,11 +325,11 @@ class DatafileTestCase(BaseTestCase):
         datafile = Datafile(storage.path.generate_gs_path(bucket_name, path_in_bucket), project_name=project_name)
 
         # Download for first time.
-        datafile.get_local_path()
+        datafile.local_path
 
         # Check that a new file isn't downloaded the second time.
         with patch("tempfile.NamedTemporaryFile") as temporary_file_mock:
-            datafile.get_local_path()
+            datafile.local_path
             self.assertFalse(temporary_file_mock.called)
 
     def test_open_with_reading_local_file(self):

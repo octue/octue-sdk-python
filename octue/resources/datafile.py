@@ -175,7 +175,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         # If the datafile's file has been changed locally, overwrite its cloud copy.
         if self._cloud_metadata.get("crc32c") != self.hash_value:
             GoogleCloudStorageClient(project_name=project_name).upload_file(
-                local_path=self.get_local_path(),
+                local_path=self.local_path,
                 bucket_name=bucket_name,
                 path_in_bucket=path_in_bucket,
                 metadata=self.metadata(),
@@ -300,7 +300,8 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         """
         return self.path.startswith(CLOUD_STORAGE_PROTOCOL)
 
-    def get_local_path(self):
+    @property
+    def local_path(self):
         """Get the local path for the datafile, downloading it from the cloud to a temporary file if necessary. If
         downloaded, the local path is added to a cache to avoid downloading again in the same runtime.
 
@@ -391,7 +392,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         """Calculate the hash of the file."""
         hash = Checksum()
 
-        with open(self.get_local_path(), "rb") as f:
+        with open(self.local_path, "rb") as f:
             # Read and update hash value in blocks of 4K.
             for byte_block in iter(lambda: f.read(4096), b""):
                 hash.update(byte_block)
@@ -530,7 +531,7 @@ class _DatafileContextManager:
 
         :return io.TextIOWrapper:
         """
-        self.path = self.datafile.get_local_path()
+        self.path = self.datafile.local_path
 
         if "w" in self.mode:
             os.makedirs(os.path.split(self.path)[0], exist_ok=True)
