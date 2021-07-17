@@ -416,8 +416,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         :param str|None cloud_path:
         :param str|None bucket_name:
         :param str|None path_in_bucket:
-        :raise octue.exceptions.CloudLocationNotSpecified: if an exact cloud location isn't provided and isn't available
-            implicitly (i.e. the Datafile wasn't loaded from the cloud previously)
+        :raise octue.exceptions.CloudLocationNotSpecified: if an exact cloud location isn't provided and isn't available implicitly (i.e. the Datafile wasn't loaded from the cloud previously)
         :return (str, str, str):
         """
         if cloud_path:
@@ -522,10 +521,8 @@ class _DatafileContextManager:
     ```
 
     :param octue.resources.datafile.Datafile datafile:
-    :param str mode: open the datafile for reading/editing in this mode (the mode options are the same as for the
-        builtin open function)
-    :param bool update_cloud_metadata: this is True, update the cloud metadata of
-        the datafile when the context is exited
+    :param str mode: open the datafile for reading/editing in this mode (the mode options are the same as for the builtin open function)
+    :param bool update_cloud_metadata: this is True, update the cloud metadata of the datafile when the context is exited
     :return None:
     """
 

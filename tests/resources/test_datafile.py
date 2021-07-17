@@ -170,6 +170,7 @@ class DatafileTestCase(BaseTestCase):
         self.assertTrue(Datafile(path="gs://hello/file.txt", hypothetical=True).exists_in_cloud)
 
     def test_exists_locally(self):
+        """Test whether a datafile is local or not can be determined."""
         self.assertTrue(self.create_valid_datafile().exists_locally)
         self.assertFalse(Datafile(path="gs://hello/file.txt", hypothetical=True).exists_locally)
 
