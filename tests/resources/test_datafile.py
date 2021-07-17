@@ -266,7 +266,7 @@ class DatafileTestCase(BaseTestCase):
         """Test that trying to send a datafile to the cloud with no cloud location provided when the datafile was not
         constructed from a cloud file results in cloud location error.
         """
-        datafile = Datafile(path="hello.txt", timestamp=None)
+        datafile = Datafile(path="hello.txt")
 
         with self.assertRaises(exceptions.CloudLocationNotSpecified):
             datafile.to_cloud()
@@ -303,11 +303,11 @@ class DatafileTestCase(BaseTestCase):
             {"new"},
         )
 
-    def test_update_cloud_metadata_raises_error_if_no_cloud_location_provided_and_datafile_not_from_cloud(self):
-        """Test that trying to update a cloud datafile's metadata with no cloud location provided when the datafile was
-        not constructed from a cloud file results in cloud location error.
+    def test_update_cloud_metadata_raises_error_if_datafile_not_from_cloud(self):
+        """Test that trying to update a cloud datafile's metadata when the datafile was not constructed from a cloud
+        file results in cloud location error.
         """
-        datafile = Datafile(path="hello.txt", timestamp=None)
+        datafile = Datafile(path="hello.txt")
 
         with self.assertRaises(exceptions.CloudLocationNotSpecified):
             datafile.update_cloud_metadata()
@@ -418,7 +418,7 @@ class DatafileTestCase(BaseTestCase):
         with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
             temporary_file.write("hello")
 
-        datafile = Datafile(path=temporary_file.name, timestamp=None)
+        datafile = Datafile(path=temporary_file.name)
         serialised_datafile = datafile.serialise()
         deserialised_datafile = Datafile.deserialise(serialised_datafile)
 
@@ -435,7 +435,7 @@ class DatafileTestCase(BaseTestCase):
             temporary_file.write("hello")
 
         filename = os.path.split(temporary_file.name)[-1]
-        datafile = Datafile(path=filename, timestamp=None)
+        datafile = Datafile(path=filename)
         serialised_datafile = datafile.serialise()
 
         pathable = Pathable(path=os.path.join(os.sep, "an", "absolute", "path"))
@@ -451,7 +451,7 @@ class DatafileTestCase(BaseTestCase):
         with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
             temporary_file.write("hello")
 
-        datafile = Datafile(path=temporary_file.name, timestamp=None)
+        datafile = Datafile(path=temporary_file.name)
         serialised_datafile = datafile.serialise()
 
         pathable = Pathable(path=os.path.join(os.sep, "an", "absolute", "path"))
@@ -463,7 +463,7 @@ class DatafileTestCase(BaseTestCase):
 
     def test_posix_timestamp(self):
         """Test that the posix timestamp property works properly."""
-        datafile = Datafile(path="hello.txt", timestamp=None)
+        datafile = Datafile(path="hello.txt")
         self.assertIsNone(datafile.posix_timestamp)
 
         datafile.timestamp = datetime(1970, 1, 1, tzinfo=timezone.utc)

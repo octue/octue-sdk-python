@@ -102,7 +102,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         self.extension = self._get_extension_from_path()
         self._hypothetical = hypothetical
         self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
-        self._cloud_metadata = {"project_name": project_name}
+        self._cloud_metadata = {}
 
         if self.exists_in_cloud and not self._hypothetical:
             self._store_cloud_location(project_name=project_name, cloud_path=path)
@@ -325,7 +325,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         temporary_local_path = tempfile.NamedTemporaryFile(delete=False).name
 
         try:
-            GoogleCloudStorageClient(project_name=self._cloud_metadata["project_name"]).download_to_file(
+            GoogleCloudStorageClient(project_name=self.project_name).download_to_file(
                 local_path=temporary_local_path, cloud_path=self.absolute_path
             )
 
@@ -424,13 +424,13 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             bucket_name, path_in_bucket = storage.path.split_bucket_name_from_gs_path(cloud_path)
 
         try:
-            project_name = project_name or self._cloud_metadata["project_name"]
-            bucket_name = bucket_name or self._cloud_metadata["bucket_name"]
-            path_in_bucket = path_in_bucket or self._cloud_metadata["path_in_bucket"]
-        except KeyError:
+            project_name = project_name or self.project_name
+            bucket_name = bucket_name or self.bucket_name
+            path_in_bucket = path_in_bucket or self.path_in_bucket
+        except AttributeError:
             raise CloudLocationNotSpecified(
-                f"{self!r} wasn't previously loaded from the cloud so doesn't have an implicit cloud location - please"
-                f"specify its exact location (its project_name, bucket_name, and path_in_bucket)."
+                f"{self!r} wasn't previously loaded from the cloud so doesn't have an implicit cloud location - please "
+                f"specify its exact location (its project name and cloud path)."
             )
 
         self._store_cloud_location(project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
@@ -449,9 +449,9 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         if cloud_path:
             bucket_name, path_in_bucket = storage.path.split_bucket_name_from_gs_path(cloud_path)
 
-        self._cloud_metadata["project_name"] = project_name
-        self._cloud_metadata["bucket_name"] = bucket_name
-        self._cloud_metadata["path_in_bucket"] = path_in_bucket
+        self.project_name = project_name
+        self.bucket_name = bucket_name
+        self.path_in_bucket = path_in_bucket
 
     def check(self, size_bytes=None, sha=None, last_modified=None, extension=None):
         """Check file presence and integrity"""
