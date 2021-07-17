@@ -104,10 +104,17 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
         self._cloud_metadata = {}
 
-        if self.exists_in_cloud and not self._hypothetical:
-            self._store_cloud_location(project_name=project_name, cloud_path=path)
-            self._use_cloud_metadata(id=id, timestamp=timestamp, tags=tags, labels=labels)
-            return
+        if self.exists_in_cloud:
+
+            if project_name is None:
+                raise CloudLocationNotSpecified(
+                    "The `project_name` attribute is required for a cloud location to be valid; received None."
+                )
+
+            if not self._hypothetical:
+                self._store_cloud_location(project_name=project_name, cloud_path=path)
+                self._use_cloud_metadata(id=id, timestamp=timestamp, tags=tags, labels=labels)
+                return
 
         # Run integrity checks on the file
         if not skip_checks:
@@ -448,6 +455,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         if cloud_path:
             bucket_name, path_in_bucket = storage.path.split_bucket_name_from_gs_path(cloud_path)
 
+        self.protocol = CLOUD_STORAGE_PROTOCOL
         self.project_name = project_name
         self.bucket_name = bucket_name
         self.path_in_bucket = path_in_bucket

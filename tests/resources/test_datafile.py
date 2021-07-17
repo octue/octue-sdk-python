@@ -167,12 +167,12 @@ class DatafileTestCase(BaseTestCase):
     def test_exists_in_cloud(self):
         """Test whether a file is in the cloud or not can be determined."""
         self.assertFalse(self.create_valid_datafile().exists_in_cloud)
-        self.assertTrue(Datafile(path="gs://hello/file.txt", hypothetical=True).exists_in_cloud)
+        self.assertTrue(Datafile(path="gs://hello/file.txt", project_name="blah", hypothetical=True).exists_in_cloud)
 
     def test_exists_locally(self):
         """Test whether a datafile is local or not can be determined."""
         self.assertTrue(self.create_valid_datafile().exists_locally)
-        self.assertFalse(Datafile(path="gs://hello/file.txt", hypothetical=True).exists_locally)
+        self.assertFalse(Datafile(path="gs://hello/file.txt", project_name="blah", hypothetical=True).exists_locally)
 
         _, project_name, bucket_name, path_in_bucket, _ = self.create_datafile_in_cloud()
         datafile = Datafile(path=storage.path.generate_gs_path(bucket_name, path_in_bucket), project_name=project_name)
@@ -534,3 +534,8 @@ class DatafileTestCase(BaseTestCase):
 
         data = GoogleCloudStorageClient(TEST_PROJECT_NAME).download_as_string(path)
         self.assertEqual(data, '{"my": "data"}')
+
+    def test_instantiating_cloud_datafile_with_no_project_name_results_in_error(self):
+        """Test that an error is raised if a project name is not provided alongside a cloud path during instantiation."""
+        with self.assertRaises(exceptions.CloudLocationNotSpecified):
+            Datafile(path="gs://blah/new_cloud_file.txt")
