@@ -10,7 +10,7 @@ from octue import exceptions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.mixins import MixinBase, Pathable
-from octue.resources.datafile import TEMPORARY_LOCAL_FILE_CACHE, Datafile
+from octue.resources.datafile import Datafile
 from octue.resources.label import LabelSet
 from octue.resources.tag import TagDict
 from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
@@ -26,9 +26,6 @@ class DatafileTestCase(BaseTestCase):
         super().setUp()
         self.path_from = MyPathable(path=os.path.join(self.data_path, "basic_files", "configuration", "test-dataset"))
         self.path = os.path.join("path-within-dataset", "a_test_file.csv")
-
-    def tearDown(self):
-        TEMPORARY_LOCAL_FILE_CACHE.clear()
 
     def create_valid_datafile(self):
         return Datafile(path_from=self.path_from, path=self.path, skip_checks=False)
@@ -499,7 +496,7 @@ class DatafileTestCase(BaseTestCase):
         self.assertTrue("blue" in re_downloaded_datafile.labels)
 
         # The file cache must be cleared so the modified cloud file is downloaded.
-        re_downloaded_datafile.clear_from_file_cache()
+        re_downloaded_datafile.reset_local_path()
 
         # Check that the cloud file has been updated.
         with re_downloaded_datafile.open() as f:
@@ -539,3 +536,71 @@ class DatafileTestCase(BaseTestCase):
         """Test that an error is raised if a project name is not provided alongside a cloud path during instantiation."""
         with self.assertRaises(exceptions.CloudLocationNotSpecified):
             Datafile(path="gs://blah/new_cloud_file.txt")
+
+    def test_reset_local_path_of_local_datafile_results_in_error(self):
+        """Test that resetting the local path of a local-only datafile results in an error."""
+        datafile = Datafile(path="blah.txt")
+
+        with self.assertRaises(exceptions.CloudLocationNotSpecified):
+            datafile.reset_local_path()
+
+    def test_creating_local_datafile_and_then_uploading_to_cloud_does_not_use_temporary_local_file(self):
+        """Test that a local datafile that is then uploaded to the cloud writes data to the same local path when
+        using the `open` method context manager rather than a temporary local path.
+        """
+        try:
+            with Datafile(path="blah.txt", mode="w") as (datafile, f):
+                f.write("blah\n")
+
+            cloud_path = f"gs://{TEST_BUCKET_NAME}/some/folder/blah.txt"
+            datafile.to_cloud(project_name=TEST_PROJECT_NAME, cloud_path=cloud_path)
+
+            self.assertEqual(datafile.local_path, os.path.abspath("blah.txt"))
+            self.assertEqual(datafile.cloud_path, cloud_path)
+
+            with datafile.open("a") as f:
+                f.writelines(["shibiddy"])
+
+            # Check data has been written to the local file specified when the datafile was created.
+            with open("blah.txt") as f:
+                self.assertEqual(f.readlines(), ["blah\n", "shibiddy"])
+
+        finally:
+            os.remove("blah.txt")
+
+    def test_setting_local_path_to_path_corresponding_to_existing_file_fails(self):
+        """Ensure setting a datafile's local path to a path corresponding to an existing file fails."""
+        with tempfile.NamedTemporaryFile(delete=True) as temporary_file:
+            datafile, *_ = self.create_datafile_in_cloud()
+
+            with self.assertRaises(FileExistsError):
+                datafile.local_path = temporary_file.name
+
+    def test_local_path_can_be_set_after_creating_cloud_datafile_and_is_used_instead_of_temporary_local_file(self):
+        """Test that the local path can be set after creating a cloud datafile and that this new local path is used
+        instead of a temporary local file when writing data to the datafile. The local file must be up to date with the
+        cloud file as well as any local changes.
+        """
+        try:
+            datafile, project_name, bucket_name, path_in_bucket, original_contents = self.create_datafile_in_cloud()
+            datafile.local_path = "blib.txt"
+
+            self.assertEqual(datafile.cloud_path, storage.path.generate_gs_path(bucket_name, path_in_bucket))
+            self.assertEqual(datafile.local_path, os.path.abspath("blib.txt"))
+
+            with datafile.open("a") as f:
+                f.write("shibiddy")
+
+            # Check that the original contents of the cloud file has been persisted to the new local path and new data
+            # has gone to both.
+            expected_contents = original_contents + "shibiddy"
+
+            with open("blib.txt") as f:
+                self.assertEqual(f.read(), expected_contents)
+
+            self.assertEqual(
+                GoogleCloudStorageClient(TEST_PROJECT_NAME).download_as_string(datafile.cloud_path), expected_contents
+            )
+
+        finally:
+            os.remove("blib.txt")

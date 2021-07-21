@@ -19,7 +19,6 @@ from octue.utils import isfile
 module_logger = logging.getLogger(__name__)
 
 
-TEMPORARY_LOCAL_FILE_CACHE = {}
 OCTUE_METADATA_NAMESPACE = "octue"
 
 ID_DEFAULT = None
@@ -101,11 +100,12 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         self.timestamp = timestamp
         self.extension = self._get_extension_from_path()
         self.cloud_path = None
+        self._local_path = None
         self._hypothetical = hypothetical
         self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
         self._cloud_metadata = {}
 
-        if self.exists_in_cloud:
+        if self.path.startswith(CLOUD_STORAGE_PROTOCOL):
 
             if project_name is None:
                 raise CloudLocationNotSpecified(
@@ -116,7 +116,10 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
             if not self._hypothetical:
                 self._use_cloud_metadata(id=id, timestamp=timestamp, tags=tags, labels=labels)
-                return
+
+            return
+
+        self._local_path = self.absolute_path
 
         # Run integrity checks on the file
         if not skip_checks:
@@ -294,7 +297,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
         :return bool:
         """
-        return self.path.startswith(CLOUD_STORAGE_PROTOCOL)
+        return self.cloud_path is not None
 
     @property
     def exists_locally(self):
@@ -302,10 +305,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
         :return bool:
         """
-        if self.exists_in_cloud:
-            return self.absolute_path in TEMPORARY_LOCAL_FILE_CACHE
-
-        return True
+        return self._local_path is not None
 
     @property
     def local_path(self):
@@ -315,17 +315,14 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         :raise octue.exceptions.FileLocationError: if the file is not located in the cloud (i.e. it is local)
         :return str:
         """
-        if not self.exists_in_cloud:
-            return self.absolute_path
+        if self._local_path:
+            return self._local_path
 
-        if self.exists_locally:
-            return TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path]
-
-        temporary_local_path = tempfile.NamedTemporaryFile(delete=False).name
+        self._local_path = tempfile.NamedTemporaryFile(delete=False).name
 
         try:
             GoogleCloudStorageClient(project_name=self.project_name).download_to_file(
-                local_path=temporary_local_path, cloud_path=self.absolute_path
+                local_path=self._local_path, cloud_path=self.cloud_path
             )
 
         except google.api_core.exceptions.NotFound as e:
@@ -333,21 +330,44 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             if self._open_attributes["mode"] == "r":
                 raise e
 
-        TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path] = temporary_local_path
-
         # Now use hash value of local file instead of cloud file.
         self.reset_hash()
-        return temporary_local_path
+        return self._local_path
 
-    def clear_from_file_cache(self):
-        """Clear the datafile from the temporary local file cache, if it is in there. If datafile.get_local_path is
-        called again and the datafile is a cloud datafile, the file will be re-downloaded to a new temporary local path,
-        allowing any independent cloud updates to be synced locally.
+    @local_path.setter
+    def local_path(self, path):
+        """Set the local path of the datafile to an empty path (a path not corresponding to an existing file) and
+        download the contents of the corresponding cloud file to the local path.
 
+        :param str path:
+        :raise FileExistsError: if the path corresponds to an existing file
         :return None:
         """
-        if self.absolute_path in TEMPORARY_LOCAL_FILE_CACHE:
-            del TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path]
+        if os.path.exists(path):
+            raise FileExistsError(
+                "Only a path not corresponding to an existing file can be used. This is because the contents of the "
+                "existing cloud file will be downloaded to the new local path and would overwrite any existing file at "
+                "the given path."
+            )
+
+        GoogleCloudStorageClient(project_name=self.project_name).download_to_file(
+            local_path=path, cloud_path=self.cloud_path
+        )
+
+        self._local_path = os.path.abspath(path)
+
+    def reset_local_path(self):
+        """Reset the local path to `None`. If datafile.local_path is called again and the datafile is a cloud datafile,
+        the file will be re-downloaded to a new temporary local path, allowing any independent cloud updates to be
+        synced locally.
+
+        :raise exceptions.CloudLocationNotSpecified: if the datafile only exists locally
+        :return None:
+        """
+        if not self.exists_in_cloud:
+            raise CloudLocationNotSpecified("The local path cannot be reset because this datafile only exists locally.")
+
+        self._local_path = None
 
     def _use_cloud_metadata(self, **initialisation_parameters):
         """Populate the datafile's attributes from the cloud location defined by its path (by necessity a cloud path)
