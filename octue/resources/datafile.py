@@ -100,6 +100,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
         self.timestamp = timestamp
         self.extension = self._get_extension_from_path()
+        self.cloud_path = None
         self._hypothetical = hypothetical
         self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
         self._cloud_metadata = {}
@@ -111,8 +112,9 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
                     "The `project_name` attribute is required for a cloud location to be valid; received None."
                 )
 
+            self._store_cloud_location(project_name=project_name, cloud_path=path)
+
             if not self._hypothetical:
-                self._store_cloud_location(project_name=project_name, cloud_path=path)
                 self._use_cloud_metadata(id=id, timestamp=timestamp, tags=tags, labels=labels)
                 return
 
@@ -306,16 +308,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         return True
 
     @property
-    def cloud_path(self):
-        """Get the cloud path for the datafile or return `None` if it isn't in the cloud.
-
-        :return str|None:
-        """
-        if self.exists_in_cloud:
-            return self.absolute_path
-        return None
-
-    @property
     def local_path(self):
         """Get the local path for the datafile, downloading it from the cloud to a temporary file if necessary. If
         downloaded, the local path is added to a cache to avoid downloading again in the same runtime.
@@ -454,6 +446,9 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         """
         if cloud_path:
             bucket_name, path_in_bucket = storage.path.split_bucket_name_from_gs_path(cloud_path)
+            self.cloud_path = cloud_path
+        else:
+            self.cloud_path = storage.path.generate_gs_path(bucket_name, path_in_bucket)
 
         self.protocol = CLOUD_STORAGE_PROTOCOL
         self.project_name = project_name
