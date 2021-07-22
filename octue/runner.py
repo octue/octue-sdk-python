@@ -65,13 +65,6 @@ class Runner:
         )
         logger.debug("Configuration validated.")
 
-        # Set path for configuration manifest.
-        # TODO this is hacky, we need to rearchitect the twined validation so we can do this kind of thing in there
-        self.configuration["configuration_manifest"] = self._update_manifest_path(
-            self.configuration.get("configuration_manifest", None),
-            configuration_manifest,
-        )
-
         self._project_name = project_name
 
     def run(
@@ -113,12 +106,6 @@ class Runner:
                 child["key"]: Child(name=child["key"], id=child["id"], backend=child["backend"])
                 for child in inputs["children"]
             }
-
-        # TODO this is hacky, we need to rearchitect the twined validation so we can do this kind of thing in there
-        inputs["input_manifest"] = self._update_manifest_path(
-            inputs.get("input_manifest", None),
-            input_manifest,
-        )
 
         outputs_and_monitors = self.twine.prepare("monitors", "output_values", "output_manifest", cls=CLASS_MAP)
 
