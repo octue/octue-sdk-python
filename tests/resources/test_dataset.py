@@ -252,8 +252,8 @@ class DatasetTestCase(BaseTestCase):
         self.assertFalse(self.create_valid_dataset().all_files_are_in_cloud)
 
         files = [
-            Datafile(path="gs://hello/file.txt", hypothetical=True),
-            Datafile(path="gs://goodbye/file.csv", hypothetical=True),
+            Datafile(path="gs://hello/file.txt", project_name="blah", hypothetical=True),
+            Datafile(path="gs://goodbye/file.csv", project_name="blah", hypothetical=True),
         ]
 
         self.assertTrue(Dataset(files=files).all_files_are_in_cloud)
