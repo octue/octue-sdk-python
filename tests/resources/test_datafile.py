@@ -552,7 +552,7 @@ class DatafileTestCase(BaseTestCase):
             with Datafile(path="blah.txt", mode="w") as (datafile, f):
                 f.write("blah\n")
 
-            cloud_path = f"gs://{TEST_BUCKET_NAME}/some/folder/blah.txt"
+            cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "blah.txt")
             datafile.to_cloud(project_name=TEST_PROJECT_NAME, cloud_path=cloud_path)
 
             self.assertEqual(datafile.local_path, os.path.abspath("blah.txt"))
