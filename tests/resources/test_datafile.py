@@ -170,22 +170,48 @@ class DatafileTestCase(BaseTestCase):
         self.assertTrue(Datafile(path="gs://hello/file.txt", hypothetical=True).is_in_cloud)
 
     def test_from_cloud_with_bare_file(self):
-        """Test that a Datafile can be constructed from a file on Google Cloud storage with no custom metadata."""
-        path_in_bucket = "file_to_upload.txt"
+        """Test that a Datafile can be constructed from a bare Google Cloud Storage object with no custom metadata."""
+        path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "file_to_upload.txt")
 
         GoogleCloudStorageClient(project_name=TEST_PROJECT_NAME).upload_from_string(
             string=json.dumps({"height": 32}),
-            bucket_name=TEST_BUCKET_NAME,
-            path_in_bucket=path_in_bucket,
+            cloud_path=path,
         )
 
-        datafile = Datafile(
-            path=storage.path.generate_gs_path(TEST_BUCKET_NAME, path_in_bucket), project_name=TEST_PROJECT_NAME
-        )
+        datafile = Datafile(path=path, project_name=TEST_PROJECT_NAME)
 
-        self.assertEqual(datafile.path, f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}")
+        self.assertEqual(datafile.path, path)
         self.assertEqual(datafile.tags, TagDict())
         self.assertEqual(datafile.labels, LabelSet())
+        self.assertTrue(isinstance(datafile.size_bytes, int))
+        self.assertTrue(isinstance(datafile._last_modified, float))
+        self.assertTrue(isinstance(datafile.hash_value, str))
+
+    def test_from_cloud_with_bare_file_setting_metadata_at_instantiation(self):
+        """Test that a datafile can be constructed from a bare Google Cloud Storage object and have its metadata set to
+        custom values at instantiation.
+        """
+        path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "file_to_upload.txt")
+
+        GoogleCloudStorageClient(project_name=TEST_PROJECT_NAME).upload_from_string(
+            string=json.dumps({"height": 32}),
+            cloud_path=path,
+        )
+
+        datafile_id = str(uuid.uuid4())
+        timestamp = datetime.now()
+        tags = {"a": 1}
+        labels = {"pink"}
+
+        datafile = Datafile(
+            path=path, project_name=TEST_PROJECT_NAME, id=datafile_id, timestamp=timestamp, tags=tags, labels=labels
+        )
+
+        self.assertEqual(datafile.path, path)
+        self.assertEqual(datafile.id, datafile_id)
+        self.assertEqual(datafile.timestamp, timestamp)
+        self.assertEqual(datafile.tags, tags)
+        self.assertEqual(datafile.labels, labels)
         self.assertTrue(isinstance(datafile.size_bytes, int))
         self.assertTrue(isinstance(datafile._last_modified, float))
         self.assertTrue(isinstance(datafile.hash_value, str))
