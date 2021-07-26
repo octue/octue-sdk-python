@@ -381,7 +381,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
     def _check_for_attribute_conflict(self, cloud_custom_metadata, **initialisation_parameters):
         """Raise a warning if there is a conflict between the cloud custom metadata and the given initialisation
-        parameters if the initialisation parameters are not `None`.
+        parameters if the cloud value is not `None` or an empty collection.
 
         :param dict cloud_custom_metadata:
         :return None:
