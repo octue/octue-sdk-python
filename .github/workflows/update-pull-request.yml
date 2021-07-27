@@ -23,11 +23,14 @@ jobs:
         fetch-depth: 0
     - name: Install release note compiler
       run: pip install git+https://github.com/octue/conventional-commits
+    - name: Store current pull request description in a file
+      run: |
+        echo '"${{ github.event.pull_request.body }}"' > current_pull_request_description.txt
     - name: Compile new pull request description
       run: |
         echo 'PULL_REQUEST_NOTES<<EOF' >> $GITHUB_ENV
-        echo "$(compile-release-notes LAST_RELEASE '${{ github.event.pull_request.body }}')" >> $GITHUB_ENV
-        echo 'EOF' >> $GITHUB_ENV
+        echo "$(compile-release-notes LAST_RELEASE current_pull_request_description.txt)" >> $GITHUB_ENV
+        echo EOF >> $GITHUB_ENV
     - name: Update pull request body
       uses: riskledger/update-pr-description@v2
       with:
