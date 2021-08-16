@@ -108,10 +108,7 @@ class Service(CoolNameable):
         :return None:
         """
         data, question_uuid, forward_logs = self.parse_question(question)
-
-        topic = Topic(
-            name=".".join((self.id, ANSWERS_NAMESPACE, question_uuid)), namespace=OCTUE_NAMESPACE, service=self
-        )
+        topic = self.instantiate_answer_topic(question_uuid)
 
         if forward_logs:
             analysis_log_handler = GooglePubSubHandler(publisher=self.publisher, topic=topic)
@@ -148,7 +145,7 @@ class Service(CoolNameable):
             logger.info("%r responded to question %r.", self, question_uuid)
 
         except BaseException as error:  # noqa
-            self._send_exception_to_asker(topic, timeout)
+            self.send_exception_to_asker(topic, timeout)
             raise error
 
     def parse_question(self, question):
@@ -169,6 +166,19 @@ class Service(CoolNameable):
         question_uuid = get_nested_attribute(question, "attributes.question_uuid")
         forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
         return data, question_uuid, forward_logs
+
+    def instantiate_answer_topic(self, question_uuid, service_id=None):
+        """Instantiate the answer topic for the given question UUID for the given service ID.
+
+        :param str question_uuid:
+        :param str|None service_id: the ID of the service to ask the question to
+        :return octue.cloud.pub_sub.topic.Topic:
+        """
+        return Topic(
+            name=".".join((service_id or self.id, ANSWERS_NAMESPACE, question_uuid)),
+            namespace=OCTUE_NAMESPACE,
+            service=self,
+        )
 
     def ask(self, service_id, input_values, input_manifest=None, subscribe_to_logs=True):
         """Ask a serving Service a question (i.e. send it input values for it to run its app on). The input values must
@@ -195,12 +205,11 @@ class Service(CoolNameable):
 
         question_uuid = str(uuid.uuid4())
 
-        response_topic_and_subscription_name = ".".join((service_id, ANSWERS_NAMESPACE, question_uuid))
-        response_topic = Topic(name=response_topic_and_subscription_name, namespace=OCTUE_NAMESPACE, service=self)
+        response_topic = self.instantiate_answer_topic(question_uuid, service_id)
         response_topic.create(allow_existing=False)
 
         response_subscription = Subscription(
-            name=response_topic_and_subscription_name,
+            name=response_topic.name,
             topic=response_topic,
             namespace=OCTUE_NAMESPACE,
             service=self,
@@ -239,6 +248,34 @@ class Service(CoolNameable):
             finally:
                 subscription.delete()
                 subscription.topic.delete()
+
+    def send_exception_to_asker(self, topic, timeout=30):
+        """Serialise and send the exception being handled to the asker.
+
+        :param octue.cloud.pub_sub.topic.Topic topic:
+        :param float timeout:
+        :return None:
+        """
+        exception_info = sys.exc_info()
+        exception = exception_info[1]
+        exception_message = f"Error in {self!r}: " + exception.args[0]
+        traceback = tb.format_list(tb.extract_tb(exception_info[2]))
+
+        self.publisher.publish(
+            topic=topic.path,
+            data=json.dumps(
+                {
+                    "type": "exception",
+                    "exception_type": type(exception).__name__,
+                    "exception_message": exception_message,
+                    "traceback": traceback,
+                    "message_number": topic.messages_published,
+                }
+            ).encode(),
+            retry=create_custom_retry(timeout),
+        )
+
+        topic.messages_published += 1
 
     def _pull_message(self, subscription, timeout):
         """Pull a message from the subscription, raising a `TimeoutError` if the timeout is exceeded before succeeding.
@@ -280,34 +317,6 @@ class Service(CoolNameable):
             self.subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
             logger.debug("%r received a message related to question %r.", self, subscription.topic.path.split(".")[-1])
             return json.loads(answer.message.data.decode())
-
-    def _send_exception_to_asker(self, topic, timeout):
-        """Serialise and send the exception being handled to the asker.
-
-        :param octue.cloud.pub_sub.topic.Topic topic:
-        :param float timeout:
-        :return None:
-        """
-        exception_info = sys.exc_info()
-        exception = exception_info[1]
-        exception_message = f"Error in {self!r}: " + exception.args[0]
-        traceback = tb.format_list(tb.extract_tb(exception_info[2]))
-
-        self.publisher.publish(
-            topic=topic.path,
-            data=json.dumps(
-                {
-                    "type": "exception",
-                    "exception_type": type(exception).__name__,
-                    "exception_message": exception_message,
-                    "traceback": traceback,
-                    "message_number": topic.messages_published,
-                }
-            ).encode(),
-            retry=create_custom_retry(timeout),
-        )
-
-        topic.messages_published += 1
 
 
 class OrderedMessageHandler:
