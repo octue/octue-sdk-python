@@ -258,7 +258,7 @@ class Service(CoolNameable):
         """
         exception_info = sys.exc_info()
         exception = exception_info[1]
-        exception_message = f"Error in {self!r}: " + exception.args[0]
+        exception_message = f"Error in {self!r}: {exception}"
         traceback = tb.format_list(tb.extract_tb(exception_info[2]))
 
         self.publisher.publish(
