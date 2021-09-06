@@ -72,7 +72,7 @@ class GoogleCloudStorageClient:
         """
         blob = self._blob(cloud_path, bucket_name, path_in_bucket)
 
-        with open(local_path) as f:
+        with open(local_path, "rb") as f:
             blob.crc32c = self._compute_crc32c_checksum(f.read())
 
         blob.upload_from_filename(filename=local_path, timeout=timeout)
@@ -246,13 +246,16 @@ class GoogleCloudStorageClient:
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         return bucket.blob(blob_name=self._strip_leading_slash(path_in_bucket))
 
-    def _compute_crc32c_checksum(self, string):
+    def _compute_crc32c_checksum(self, string_or_bytes):
         """Compute the CRC32 checksum of the string.
 
-        :param str string:
+        :param str|bytes string_or_bytes:
         :return str:
         """
-        checksum = Checksum(string.encode())
+        if isinstance(string_or_bytes, str):
+            string_or_bytes = string_or_bytes.encode()
+
+        checksum = Checksum(string_or_bytes)
         return base64.b64encode(checksum.digest()).decode("utf-8")
 
     def _overwrite_blob_custom_metadata(self, blob, metadata):
