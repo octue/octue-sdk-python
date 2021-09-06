@@ -40,8 +40,8 @@ class TagDict(Serialisable, UserDict):
         for tag in tags:
             if not re.match(TAG_NAME_PATTERN, tag):
                 raise InvalidTagException(
-                    f"Invalid tag '{tag}'. Tags must contain only characters 'a-z', 'A-Z', '0-9', and '_'. They must "
-                    f"not start with '_'."
+                    f"Invalid tag '{tag}'. Tags must contain only lowercase characters 'a-z', '0-9', and '_'. They "
+                    f"must not start with '_'."
                 )
 
     def serialise(self, to_string=False, **kwargs):

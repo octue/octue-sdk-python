@@ -61,44 +61,47 @@ def answer_question(project_name, question, credentials_environment_variable=Non
     """
     service_id = os.environ.get("SERVICE_ID")
 
-    if not service_id:
-        raise MissingServiceID(
-            "The ID for the deployed service is missing - ensure SERVICE_ID is available as an environment variable."
-        )
-
-    deployment_configuration = _get_deployment_configuration(DEPLOYMENT_CONFIGURATION_PATH)
-
-    runner = Runner(
-        app_src=deployment_configuration.get("app_dir", "."),
-        twine=deployment_configuration.get("twine", "twine.json"),
-        configuration_values=deployment_configuration.get("configuration_values", None),
-        configuration_manifest=deployment_configuration.get("configuration_manifest", None),
-        output_manifest_path=deployment_configuration.get("output_manifest", None),
-        children=deployment_configuration.get("children", None),
-        skip_checks=deployment_configuration.get("skip_checks", False),
-        project_name=project_name,
-    )
-
-    run_function = functools.partial(
-        runner.run,
-        analysis_log_level=deployment_configuration.get("log_level", "INFO"),
-        analysis_log_handler=deployment_configuration.get("log_handler", None),
-    )
-
     service = Service(
         service_id=service_id,
         backend=GCPPubSubBackend(
             project_name=project_name, credentials_environment_variable=credentials_environment_variable
         ),
-        run_function=run_function,
     )
 
+    question_uuid = question["attributes"]["question_uuid"]
+
     try:
-        service.answer(question)
-        logger.info(
-            "Analysis successfully run and response sent for question %r.", question["attributes"]["question_uuid"]
+        if not service_id:
+            raise MissingServiceID(
+                "The ID for the deployed service is missing - ensure SERVICE_ID is available as an environment "
+                "variable."
+            )
+
+        deployment_configuration = _get_deployment_configuration(DEPLOYMENT_CONFIGURATION_PATH)
+
+        runner = Runner(
+            app_src=deployment_configuration.get("app_dir", "."),
+            twine=deployment_configuration.get("twine", "twine.json"),
+            configuration_values=deployment_configuration.get("configuration_values", None),
+            configuration_manifest=deployment_configuration.get("configuration_manifest", None),
+            output_manifest_path=deployment_configuration.get("output_manifest", None),
+            children=deployment_configuration.get("children", None),
+            skip_checks=deployment_configuration.get("skip_checks", False),
+            project_name=project_name,
         )
+
+        service.run_function = functools.partial(
+            runner.run,
+            analysis_log_level=deployment_configuration.get("log_level", "INFO"),
+            analysis_log_handler=deployment_configuration.get("log_handler", None),
+        )
+
+        service.answer(question)
+        logger.info("Analysis successfully run and response sent for question %r.", question_uuid)
+
+    # Forward any errors in the deployment configuration (errors in the analysis are already forwarded by the service).
     except BaseException as error:  # noqa
+        service.send_exception_to_asker(topic=service.instantiate_answer_topic(question_uuid))
         logger.exception(error)
 
 

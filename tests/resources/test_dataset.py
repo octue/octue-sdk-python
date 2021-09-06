@@ -246,7 +246,7 @@ class DatasetTestCase(BaseTestCase):
         dataset = self.create_valid_dataset()
         self.assertEqual(len(dataset.serialise()["files"]), 2)
 
-    def test_is_in_cloud(self):
+    def test_exists_in_cloud(self):
         """Test whether all files of a dataset are in the cloud or not can be determined."""
         self.assertFalse(Dataset().all_files_are_in_cloud)
         self.assertFalse(self.create_valid_dataset().all_files_are_in_cloud)

@@ -117,6 +117,18 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             if not self._hypothetical:
                 self._use_cloud_metadata(id=id, timestamp=timestamp, tags=tags, labels=labels)
 
+        if self.exists_in_cloud and not self._hypothetical:
+
+            # Collect any non-`None` metadata instantiation parameters so the user can be warned if they conflict with
+            # any metadata already on the cloud object.
+            initialisation_parameters = {}
+
+            for parameter in ("id", "timestamp", "tags", "labels"):
+                value = locals().get(parameter)
+                if value is not None:
+                    initialisation_parameters[parameter] = value
+
+            self._use_cloud_metadata(**initialisation_parameters)
             return
 
         self._local_path = self.absolute_path
@@ -380,34 +392,41 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         cloud_custom_metadata = self._cloud_metadata.get("custom_metadata", {})
         self._check_for_attribute_conflict(cloud_custom_metadata, **initialisation_parameters)
 
-        self._set_id(cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__id", ID_DEFAULT))
+        self._set_id(
+            initialisation_parameters.get(
+                "id", cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__id", ID_DEFAULT)
+            )
+        )
+
         self.immutable_hash_value = self._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
-        self.timestamp = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__timestamp")
-        self.tags = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__tags", TAGS_DEFAULT)
-        self.labels = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__labels", LABELS_DEFAULT)
+
+        for attribute in ("timestamp", "tags", "labels"):
+            setattr(
+                self,
+                attribute,
+                initialisation_parameters.get(
+                    attribute, cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__{attribute}")
+                ),
+            )
 
     def _check_for_attribute_conflict(self, cloud_custom_metadata, **initialisation_parameters):
         """Raise a warning if there is a conflict between the cloud custom metadata and the given initialisation
-        parameters if the initialisation parameters are not `None`.
+        parameters if the cloud value is not `None` or an empty collection.
 
         :param dict cloud_custom_metadata:
         :return None:
         """
         for attribute_name, attribute_value in initialisation_parameters.items():
 
-            if attribute_value is None:
-                continue
-
             cloud_metadata_value = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__{attribute_name}")
 
-            if cloud_metadata_value == attribute_value:
+            if cloud_metadata_value == attribute_value or not cloud_metadata_value:
                 continue
 
             module_logger.warning(
                 f"The value {cloud_metadata_value!r} of the {type(self).__name__} attribute {attribute_name!r} from "
-                f"the cloud conflicts with the value given locally at instantiation {attribute_value!r}. This may not "
-                f"be a problem, but note that cloud datafile metadata cannot be changed at instantiation. The cloud "
-                f"value has been used."
+                f"the cloud conflicts with the value given locally at instantiation {attribute_value!r}. The local "
+                f"value has been used and will overwrite the cloud value if the datafile is saved."
             )
 
     def _get_extension_from_path(self, path=None):

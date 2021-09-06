@@ -150,6 +150,29 @@ class TestService(BaseTestCase):
 
                 self.assertIn("'met_mast_id' is a required property", context.exception.args[0])
 
+    def test_exceptions_with_multiple_arguments_in_responder_are_handled_and_sent_to_asker(self):
+        """Test that exceptions with multiple arguments raised in the responding service are handled and sent back to
+        the asker."""
+        responding_service = self.make_responding_service_with_error(
+            FileNotFoundError(2, "No such file or directory: 'blah'")
+        )
+
+        asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
+
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                responding_service.serve()
+
+                with self.assertRaises(FileNotFoundError) as context:
+                    self.ask_question_and_wait_for_answer(
+                        asking_service=asking_service,
+                        responding_service=responding_service,
+                        input_values={},
+                        input_manifest=None,
+                    )
+
+                self.assertIn("[Errno 2] No such file or directory: 'blah'", format(context.exception))
+
     def test_unknown_exceptions_in_responder_are_handled_and_sent_to_asker(self):
         """Test that exceptions not in the exceptions mapping are simply raised as `Exception`s by the asker."""
 

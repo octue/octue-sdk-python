@@ -33,7 +33,7 @@ class Label(UserString):
 
         if not re.match(LABEL_PATTERN, cleaned_name):
             raise InvalidLabelException(
-                f"Invalid label '{cleaned_name}'. Labels must contain only characters 'a-z', 'A-Z', '0-9', and '-'. "
+                f"Invalid label '{cleaned_name}'. Labels must contain only lowercase characters 'a-z', '0-9', and '-'. "
                 f"They must not start with '-'."
             )
 
