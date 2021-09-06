@@ -22,6 +22,7 @@ Not all of Octue's API functionality is implemented in the SDK yet, we're active
    cloud_storage
    cloud_storage_advanced_usage
    deploying_services
+   deploying_services_advanced
    license
    version_history
    bibliography
