@@ -224,7 +224,6 @@ class DatasetTestCase(BaseTestCase):
 
         with warnings.catch_warnings(record=True) as warning:
             filtered_files = resource.get_files(name__icontains="second")
-            self.assertTrue(issubclass(warning[-1].category, DeprecationWarning))
             self.assertIn("deprecated", str(warning[-1].message))
             self.assertEqual(len(filtered_files), 0)
 
