@@ -207,13 +207,19 @@ class MockService(Service):
         self.subscriber = MockSubscriber()
 
     def ask(
-        self, service_id, input_values, input_manifest=None, subscribe_to_logs=True, allow_local_files=False, timeout=30
+        self,
+        service_id,
+        input_values=None,
+        input_manifest=None,
+        subscribe_to_logs=True,
+        allow_local_files=False,
+        timeout=30,
     ):
         """Put the question into the messages register, register the existence of the corresponding response topic, add
         the response to the register, and return a MockFuture containing the answer subscription path.
 
         :param str service_id:
-        :param dict|list input_values:
+        :param dict|list|None input_values:
         :param octue.resources.manifest.Manifest|None input_manifest:
         :param bool subscribe_to_logs:
         :param bool allow_local_files:
