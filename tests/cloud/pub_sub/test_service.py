@@ -80,7 +80,7 @@ class TestService(BaseTestCase):
 
         :param tests.cloud.pub_sub.mocks.MockService asking_service:
         :param tests.cloud.pub_sub.mocks.MockService responding_service:
-        :param dict input_values:
+        :param dict|None input_values:
         :param octue.resources.manifest.Manifest|None input_manifest:
         :param bool subscribe_to_logs:
         :return dict:
@@ -304,6 +304,36 @@ class TestService(BaseTestCase):
                     asking_service=asking_service,
                     responding_service=responding_service,
                     input_values={},
+                    input_manifest=input_manifest,
+                )
+
+        self.assertEqual(
+            answer,
+            {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
+        )
+
+    def test_ask_with_input_manifest_and_no_input_values(self):
+        """Test that a service can ask a question including an input manifest and no input values to another service
+        that is serving and receive an answer.
+        """
+        responding_service = self.make_new_server(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
+        asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
+
+        files = [
+            Datafile(path="gs://my-dataset/hello.txt", hypothetical=True),
+            Datafile(path="gs://my-dataset/goodbye.csv", hypothetical=True),
+        ]
+
+        input_manifest = Manifest(datasets=[Dataset(files=files)], path="gs://my-dataset", keys={"my_dataset": 0})
+
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                responding_service.serve()
+
+                answer = self.ask_question_and_wait_for_answer(
+                    asking_service=asking_service,
+                    responding_service=responding_service,
+                    input_values=None,
                     input_manifest=input_manifest,
                 )
 

@@ -182,7 +182,13 @@ class Service(CoolNameable):
         )
 
     def ask(
-        self, service_id, input_values, input_manifest=None, subscribe_to_logs=True, allow_local_files=False, timeout=30
+        self,
+        service_id,
+        input_values=None,
+        input_manifest=None,
+        subscribe_to_logs=True,
+        allow_local_files=False,
+        timeout=30,
     ):
         """Ask a serving Service a question (i.e. send it input values for it to run its app on). The input values must
         be in the format specified by the serving Service's Twine file. A single-use topic and subscription are created
