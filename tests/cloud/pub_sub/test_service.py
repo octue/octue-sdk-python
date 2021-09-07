@@ -1,3 +1,4 @@
+import tempfile
 import uuid
 from unittest.mock import patch
 
@@ -67,7 +68,13 @@ class TestService(BaseTestCase):
 
     @staticmethod
     def ask_question_and_wait_for_answer(
-        asking_service, responding_service, input_values, input_manifest, subscribe_to_logs=True
+        asking_service,
+        responding_service,
+        input_values,
+        input_manifest,
+        subscribe_to_logs=True,
+        allow_local_files=False,
+        timeout=30,
     ):
         """Get an asking service to ask a question to a responding service and wait for the answer.
 
@@ -78,7 +85,10 @@ class TestService(BaseTestCase):
         :param bool subscribe_to_logs:
         :return dict:
         """
-        subscription, _ = asking_service.ask(responding_service.id, input_values, input_manifest, subscribe_to_logs)
+        subscription, _ = asking_service.ask(
+            responding_service.id, input_values, input_manifest, subscribe_to_logs, allow_local_files, timeout
+        )
+
         return asking_service.wait_for_answer(subscription)
 
     def make_responding_service_with_error(self, exception_to_raise):
@@ -312,6 +322,42 @@ class TestService(BaseTestCase):
                 input_values={},
                 input_manifest=Manifest(),
             )
+
+    def test_ask_with_input_manifest_with_local_paths_works_if_allowed_and_child_has_access_to_the_local_paths(self):
+        """Test that an input manifest referencing local files can be used if the files can be accessed by the child and
+        the `allow_local_files` parameter is `True`.
+        """
+        temporary_local_path = tempfile.NamedTemporaryFile(delete=False).name
+
+        with open(temporary_local_path, "w") as f:
+            f.write("This is a local file.")
+
+        local_file = Datafile(path=temporary_local_path)
+        self.assertFalse(local_file.is_in_cloud)
+
+        manifest = Manifest(datasets=[Dataset(name="my-local-dataset", file=local_file)], keys={0: "my-local-dataset"})
+
+        # Get the child to open the local file itself and return the contents as output.
+        def run_function(analysis_id, input_values, input_manifest, analysis_log_handler):
+            with open(temporary_local_path) as f:
+                return MockAnalysis(output_values=f.read())
+
+        child = MockService(backend=BACKEND, run_function=run_function)
+        parent = MockService(backend=BACKEND, children={child.id: child})
+
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                child.serve()
+
+                answer = self.ask_question_and_wait_for_answer(
+                    asking_service=parent,
+                    responding_service=child,
+                    input_values={},
+                    input_manifest=manifest,
+                    allow_local_files=True,
+                )
+
+        self.assertEqual(answer["output_values"], "This is a local file.")
 
     def test_ask_with_output_manifest(self):
         """ Test that a service can receive an output manifest as part of the answer to a question. """
