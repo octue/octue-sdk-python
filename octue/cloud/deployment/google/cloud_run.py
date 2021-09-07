@@ -2,6 +2,7 @@ import functools
 import json
 import logging
 import os
+import threading
 from flask import Flask, request
 
 from octue.cloud.pub_sub.service import Service
@@ -37,7 +38,12 @@ def index():
         return _log_bad_request_and_return_400_response("Invalid Pub/Sub message format.")
 
     project_name = envelope["subscription"].split("/")[1]
-    answer_question(project_name=project_name, question=question)
+
+    # Run the analysis in a separate thread so a 204 status code can be returned straight away, indicating
+    # acknowledgement of the Pub/Sub message. This avoids the message being resent multiple times and triggering
+    # multiple identical analyses if each analysis takes a while to run.
+    analysis_thread = threading.Thread(target=answer_question, args=(project_name, question))
+    analysis_thread.start()
     return ("", 204)
 
 
