@@ -181,7 +181,9 @@ class Service(CoolNameable):
             service=self,
         )
 
-    def ask(self, service_id, input_values, input_manifest=None, subscribe_to_logs=True, timeout=30):
+    def ask(
+        self, service_id, input_values, input_manifest=None, subscribe_to_logs=True, allow_local_files=False, timeout=30
+    ):
         """Ask a serving Service a question (i.e. send it input values for it to run its app on). The input values must
         be in the format specified by the serving Service's Twine file. A single-use topic and subscription are created
         before sending the question to the serving Service - the topic is the expected publishing place for the answer
@@ -191,15 +193,17 @@ class Service(CoolNameable):
         :param any input_values: the input values of the question
         :param octue.resources.manifest.Manifest|None input_manifest: the input manifest of the question
         :param bool subscribe_to_logs: if `True`, subscribe to logs from the remote service and handle them with the local log handlers
+        :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the serving service will have access to these local files
         :param float|None timeout: time in seconds to keep retrying sending the question
         :return (octue.cloud.pub_sub.subscription.Subscription, str): the response subscription and question UUID
         """
-        if (input_manifest is not None) and (not input_manifest.all_datasets_are_in_cloud):
-            raise octue.exceptions.FileLocationError(
-                "All datasets of the input manifest and all files of the datasets must be uploaded to the cloud before "
-                "asking a service to perform an analysis upon them. The manifest must then be updated with the new "
-                "cloud locations."
-            )
+        if not allow_local_files:
+            if (input_manifest is not None) and (not input_manifest.all_datasets_are_in_cloud):
+                raise octue.exceptions.FileLocationError(
+                    "All datasets of the input manifest and all files of the datasets must be uploaded to the cloud "
+                    "before asking a service to perform an analysis upon them. The manifest must then be updated with "
+                    "the new cloud locations."
+                )
 
         question_topic = Topic(name=service_id, namespace=OCTUE_NAMESPACE, service=self)
         if not question_topic.exists():
