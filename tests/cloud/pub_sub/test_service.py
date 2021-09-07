@@ -619,3 +619,26 @@ class TestOrderedMessageHandler(BaseTestCase):
         result = message_handler.handle_messages()
         self.assertEqual(result, "This is the result.")
         self.assertEqual(message_handling_order, [0, 1, 2])
+
+    def test_no_timeout(self):
+        """Test that message handling works with no timeout."""
+        messages = [
+            {"type": "finish-test", "message_number": 2},
+            {"type": "test", "message_number": 0},
+            {"type": "test", "message_number": 1},
+        ]
+
+        message_handling_order = []
+
+        message_handler = OrderedMessageHandler(
+            message_puller=MockMessagePuller(messages=messages).pull,
+            subscription=self.mock_subscription,
+            message_handlers={
+                "test": self._make_order_recording_message_handler(message_handling_order),
+                "finish-test": lambda message: "This is the result.",
+            },
+        )
+
+        result = message_handler.handle_messages(timeout=None)
+        self.assertEqual(result, "This is the result.")
+        self.assertEqual(message_handling_order, [0, 1])
