@@ -103,7 +103,7 @@ class Service(CoolNameable):
         in the format specified in the Service's Twine file.
 
         :param dict|Message question:
-        :param float timeout:
+        :param float|None timeout:
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
         """
@@ -235,7 +235,7 @@ class Service(CoolNameable):
         the answer is received.
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
-        :param float timeout: how long to wait for an answer before raising a TimeoutError
+        :param float|None timeout: how long to wait for an answer before raising a TimeoutError
         :raise TimeoutError: if the timeout is exceeded
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
@@ -253,7 +253,7 @@ class Service(CoolNameable):
         """Serialise and send the exception being handled to the asker.
 
         :param octue.cloud.pub_sub.topic.Topic topic:
-        :param float timeout:
+        :param float|None timeout:
         :return None:
         """
         exception_info = sys.exc_info()
@@ -281,7 +281,7 @@ class Service(CoolNameable):
         """Pull a message from the subscription, raising a `TimeoutError` if the timeout is exceeded before succeeding.
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription the message is expected on
-        :param float timeout: how long to wait in seconds for the message before raising a TimeoutError
+        :param float|None timeout: how long to wait in seconds for the message before raising a TimeoutError
         :raise TimeoutError|concurrent.futures.TimeoutError: if the timeout is exceeded
         :return dict: message containing data
         """
@@ -307,7 +307,7 @@ class Service(CoolNameable):
                     logger.debug("Google Pub/Sub pull response timed out early.")
                     attempt += 1
 
-                    if (time.perf_counter() - start_time) > timeout:
+                    if timeout is not None and (time.perf_counter() - start_time) > timeout:
                         raise TimeoutError(
                             f"No message received from topic {subscription.topic.path!r} after {timeout} seconds.",
                         )
@@ -343,21 +343,25 @@ class OrderedMessageHandler:
         """Pull messages and handle them in the order they were sent until a result is returned by a message handler,
         then return that result.
 
-        :param float timeout: how long to wait for an answer before raising a `TimeoutError`
+        :param float|None timeout: how long to wait for an answer before raising a `TimeoutError`
         :raise TimeoutError: if the timeout is exceeded before receiving the final message
         :return dict:
         """
         start_time = time.perf_counter()
+        pull_timeout = None
 
         while True:
-            run_time = time.perf_counter() - start_time
 
-            if run_time > timeout:
-                raise TimeoutError(
-                    f"No final answer received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
-                )
+            if timeout is not None:
+                run_time = time.perf_counter() - start_time
 
-            pull_timeout = timeout - run_time
+                if run_time > timeout:
+                    raise TimeoutError(
+                        f"No final answer received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
+                    )
+
+                pull_timeout = timeout - run_time
+
             message = self.message_puller(self.subscription, timeout=pull_timeout)
             self._waiting_messages[message["message_number"]] = message
 
