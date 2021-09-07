@@ -6,12 +6,13 @@ import sys
 import time
 import traceback as tb
 import uuid
+from google.api_core import retry
 from google.cloud import pubsub_v1
 
 import octue.exceptions
 import twined.exceptions
 from octue.cloud.credentials import GCPCredentialsManager
-from octue.cloud.pub_sub import Subscription, Topic, create_custom_retry
+from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.mixins import CoolNameable
 from octue.resources.manifest import Manifest
@@ -103,7 +104,7 @@ class Service(CoolNameable):
         in the format specified in the Service's Twine file.
 
         :param dict|Message question:
-        :param float timeout:
+        :param float timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
         """
@@ -139,7 +140,7 @@ class Service(CoolNameable):
                     },
                     cls=OctueJSONEncoder,
                 ).encode(),
-                retry=create_custom_retry(timeout),
+                retry=retry.Retry(deadline=timeout),
             )
             topic.messages_published += 1
             logger.info("%r responded to question %r.", self, question_uuid)
@@ -180,7 +181,7 @@ class Service(CoolNameable):
             service=self,
         )
 
-    def ask(self, service_id, input_values, input_manifest=None, subscribe_to_logs=True):
+    def ask(self, service_id, input_values, input_manifest=None, subscribe_to_logs=True, timeout=30):
         """Ask a serving Service a question (i.e. send it input values for it to run its app on). The input values must
         be in the format specified by the serving Service's Twine file. A single-use topic and subscription are created
         before sending the question to the serving Service - the topic is the expected publishing place for the answer
@@ -190,6 +191,7 @@ class Service(CoolNameable):
         :param any input_values: the input values of the question
         :param octue.resources.manifest.Manifest|None input_manifest: the input manifest of the question
         :param bool subscribe_to_logs: if `True`, subscribe to logs from the remote service and handle them with the local log handlers
+        :param float timeout: time in seconds to keep retrying sending the question
         :return (octue.cloud.pub_sub.subscription.Subscription, str): the response subscription and question UUID
         """
         if (input_manifest is not None) and (not input_manifest.all_datasets_are_in_cloud):
@@ -219,13 +221,13 @@ class Service(CoolNameable):
         if input_manifest is not None:
             input_manifest = input_manifest.serialise(to_string=True)
 
-        future = self.publisher.publish(
+        self.publisher.publish(
             topic=question_topic.path,
             data=json.dumps({"input_values": input_values, "input_manifest": input_manifest}).encode(),
             question_uuid=question_uuid,
             forward_logs=str(int(subscribe_to_logs)),
+            retry=retry.Retry(deadline=timeout),
         )
-        future.result()
 
         logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
         return response_subscription, question_uuid
@@ -253,7 +255,7 @@ class Service(CoolNameable):
         """Serialise and send the exception being handled to the asker.
 
         :param octue.cloud.pub_sub.topic.Topic topic:
-        :param float timeout:
+        :param float timeout: time in seconds to keep retrying sending of the exception
         :return None:
         """
         exception_info = sys.exc_info()
@@ -272,7 +274,7 @@ class Service(CoolNameable):
                     "message_number": topic.messages_published,
                 }
             ).encode(),
-            retry=create_custom_retry(timeout),
+            retry=retry.Retry(deadline=timeout),
         )
 
         topic.messages_published += 1
@@ -296,7 +298,7 @@ class Service(CoolNameable):
 
                 pull_response = self.subscriber.pull(
                     request={"subscription": subscription.path, "max_messages": 1},
-                    retry=create_custom_retry(timeout),
+                    retry=retry.Retry(),
                 )
 
                 try:
