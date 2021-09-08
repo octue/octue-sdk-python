@@ -6,11 +6,30 @@ How to deploy a service (developer's guide)
 This is a guide for developers that want to deploy Octue services themselves - it is not needed if Octue manages your
 services for you or if you are only asking questions to existing Octue services.
 
+What deployment enables
+-----------------------
+Deploying an Octue service to Google Cloud Run means it:
+
+* Is deployed as a docker container
+* Is ready to be asked questions by any other Octue service that has the correct permissions (you can control this)
+* Can ask questions to any other Octue service for which it has the correct permissions
+* Will automatically build and redeploy upon the conditions you provide (e.g. pushes or merges into ``main``)
+* Will automatically start and run when Pub/Sub messages are received from the topic you created. The Pub/Sub
+  messages can be sent from anywhere in the world, but the container will only run in the region you chose (you can
+  create multiple Cloud Run services in different regions for the same repository if this is a problem). The Pub/Sub
+  messages must be in the correct format (this is handled for you when ``octue.resources.child.Child`` is used to
+  communicate with your service).
+* Will automatically stop shortly after finishing the analyses asked for in the Pub/Sub message (although
+  you can set a minimum container count so one is always running to minimise cold starts).
+
+How to deploy
+-------------
 1. Ensuring you are in the desired project, go to the `Google Cloud Run <https://console.cloud.google.com/run>`_ page
    and create a new service
 2. Give your service a unique and useful name
-3. Choose a low-carbon region that supports Eventarc triggers and is in a convenient geographic location for you (e.g.
-   physically close to you for low latency or in a region compatible with your data protection requirements)
+3. Choose a `low-carbon region <https://cloud.google.com/sustainability/region-carbon#data>`_ that supports Eventarc
+   triggers and is in a convenient geographic location for you (e.g. physically close to you for low latency or in a
+   region compatible with your data protection requirements)
 3. Click "Next" and select "Continuously deploy new revisions from a source repository", then click "Set up with cloud
    build".
 4. Choose your source code repository provider and the repository containing the code you'd like to deploy. You'll have
@@ -29,20 +48,3 @@ services for you or if you are only asking questions to existing Octue services.
 11. Click "Save" and then "Create".
 12. You can now view your service in the list of `Cloud Run services <https://console.cloud.google.com/run>`_ and view
     its build trigger in the list of `Cloud Build triggers <https://console.cloud.google.com/cloud-build>`_.
-
-=================
-What this enables
-=================
-Setting up a service like this means it:
-
-* Is deployed as a docker container
-* Is ready to be asked questions by any other Octue service that has the correct permissions (you can control this)
-* Can ask questions to any other Octue service for which it has the correct permissions
-* Will automatically build and redeploy upon the conditions you provide (e.g. pushes or merges into ``main``)
-* Will automatically start and run when Pub/Sub messages are received from the topic you created. The Pub/Sub
-  messages can be sent from anywhere in the world, but the container will only run in the region you chose (you can
-  create multiple Cloud Run services in different regions for the same repository if this is a problem). The Pub/Sub
-  messages must be in the correct format (this is handled for you when ``octue.resources.child.Child`` is used to
-  communicate with your service).
-* Will automatically stop shortly after finishing the analyses asked for in the Pub/Sub message (although
-  you can set a minimum container count so one is always running to minimise cold starts).
