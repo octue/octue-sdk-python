@@ -18,7 +18,7 @@ class Subscription:
     :param str name: the name of the subscription excluding "projects/<project_name>/subscriptions/<namespace>"
     :param octue.cloud.pub_sub.topic.Topic topic: the topic the subscription is attached to
     :param str namespace: a namespace to put before the subscription's name in its path
-    :param octue.cloud.pub_sub.service.Service service: the service using this subscription
+    :param octue.cloud.pub_sub.service.Service subscriber: the service using this subscription
     :param int ack_deadline: message acknowledgement deadline in seconds
     :param int message_retention_duration: unacknowledged message retention time in seconds
     :param int|None expiration_time: number of seconds after which the subscription is deleted (infinite time if None)
@@ -30,7 +30,8 @@ class Subscription:
         name,
         topic,
         namespace,
-        service,
+        project_name,
+        subscriber,
         ack_deadline=60,
         message_retention_duration=SEVEN_DAYS,
         expiration_time=THIRTY_ONE_DAYS,
@@ -41,8 +42,8 @@ class Subscription:
             self.name = f"{namespace}.{name}"
 
         self.topic = topic
-        self.service = service
-        self.path = self.service.subscriber.subscription_path(self.service.backend.project_name, self.name)
+        self.subscriber = subscriber
+        self.path = self.subscriber.subscription_path(project_name, self.name)
         self.ack_deadline = ack_deadline
         self.message_retention_duration = Duration(seconds=message_retention_duration)
 
@@ -71,12 +72,12 @@ class Subscription:
         )
 
         if not allow_existing:
-            self.service.subscriber.create_subscription(request=subscription)
+            self.subscriber.create_subscription(request=subscription)
             self._log_creation()
             return
 
         try:
-            self.service.subscriber.create_subscription(request=subscription)
+            self.subscriber.create_subscription(request=subscription)
         except google.api_core.exceptions.AlreadyExists:
             pass
 
@@ -85,9 +86,9 @@ class Subscription:
 
     def delete(self):
         """ Delete the subscription from Google Pub/Sub. """
-        self.service.subscriber.delete_subscription(subscription=self.path)
-        logger.debug("%r deleted subscription %r.", self.service, self.path)
+        self.subscriber.delete_subscription(subscription=self.path)
+        logger.debug("Subscription %r deleted.", self.path)
 
     def _log_creation(self):
         """ Log the creation of the subscription. """
-        logger.debug("%r created subscription %r.", self.service, self.path)
+        logger.debug("Subscription %r created.", self.subscriber, self.path)

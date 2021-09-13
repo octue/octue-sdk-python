@@ -4,7 +4,7 @@ from unittest.mock import patch
 from octue.resources.child import Child
 from octue.resources.service_backends import GCPPubSubBackend
 from tests.base import BaseTestCase
-from tests.cloud.pub_sub.mocks import MockAnalysis, MockService, MockSubscription, MockTopic
+from tests.cloud.pub_sub.mocks import MockAnalysis, MockService, MockSubscriber, MockSubscription, MockTopic
 
 
 class TestChild(BaseTestCase):
@@ -20,19 +20,16 @@ class TestChild(BaseTestCase):
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                 with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
-                    responding_service.serve()
+                    with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                        responding_service.serve()
 
-                    child = Child(
-                        name="wind_speed",
-                        id=responding_service.id,
-                        backend={"name": "GCPPubSubBackend", "project_name": "blah"},
-                    )
+                        child = Child(
+                            name="wind_speed",
+                            id=responding_service.id,
+                            backend={"name": "GCPPubSubBackend", "project_name": "blah"},
+                        )
 
-                    # Make sure the child's underlying mock service knows how to access the mock responding service.
-                    class MockServiceWithChild(MockService):
-                        def __init__(self, *args, **kwargs):
-                            super().__init__(backend=backend, children={responding_service.id: responding_service})
-
-                    with patch("octue.resources.child.Child._create_service", new=MockServiceWithChild):
+                        # Make sure the child's underlying mock service knows how to access the mock responding service.
+                        child._service.children[responding_service.id] = responding_service
                         self.assertEqual(child.ask([1, 2, 3, 4])["output_values"], [1, 2, 3, 4])
                         self.assertEqual(child.ask([5, 6, 7, 8])["output_values"], [5, 6, 7, 8])

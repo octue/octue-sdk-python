@@ -107,7 +107,7 @@ class MockPublisher:
 class MockSubscriber:
     """A mock subscriber that gets messages from a global dictionary instead of Google Pub/Sub."""
 
-    def __init__(self):
+    def __init__(self, credentials=None):
         self.closed = False
 
     def __enter__(self):
@@ -157,6 +157,9 @@ class MockSubscriber:
         :return str:
         """
         return f"projects/{project_name}/subscriptions/{subscription_name}"
+
+    def create_subscription(self, request):
+        pass
 
 
 class MockPullResponse:
@@ -269,7 +272,7 @@ class MockMessagePuller:
         self.messages = messages
         self.message_number = 0
 
-    def pull(self, subscription, timeout):
+    def pull(self, subscriber, subscription, timeout):
         """Return the next message from the messages given at initialisation.
 
         :param any subscription: this isn't used in this mock but is required in the signature of a message pulling function
