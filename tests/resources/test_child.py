@@ -10,13 +10,12 @@ from tests.cloud.pub_sub.mocks import MockAnalysis, MockService, MockSubscriptio
 class TestChild(BaseTestCase):
     def test_child_can_be_asked_multiple_questions(self):
         """Test that a child can be asked multiple questions."""
+        backend = GCPPubSubBackend(project_name="blah")
 
         def run_function(analysis_id, input_values, input_manifest, analysis_log_handler):
             return MockAnalysis(output_values=input_values)
 
-        responding_service = MockService(
-            backend=GCPPubSubBackend(project_name="blah"), service_id=str(uuid.uuid4()), run_function=run_function
-        )
+        responding_service = MockService(backend=backend, service_id=str(uuid.uuid4()), run_function=run_function)
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
@@ -29,8 +28,11 @@ class TestChild(BaseTestCase):
                         backend={"name": "GCPPubSubBackend", "project_name": "blah"},
                     )
 
-                    # Tell the child's underlying MockService where to find the responding service.
-                    child._service.children[responding_service.id] = responding_service
+                    # Make sure the child's underlying mock service knows how to access the mock responding service.
+                    class MockServiceWithChild(MockService):
+                        def __init__(self, *args, **kwargs):
+                            super().__init__(backend=backend, children={responding_service.id: responding_service})
 
-                    self.assertEqual(child.ask(input_values=[1, 2, 3, 4])["output_values"], [1, 2, 3, 4])
-                    self.assertEqual(child.ask(input_values=[5, 6, 7, 8])["output_values"], [5, 6, 7, 8])
+                    with patch("octue.resources.child.Child._create_service", new=MockServiceWithChild):
+                        self.assertEqual(child.ask([1, 2, 3, 4])["output_values"], [1, 2, 3, 4])
+                        self.assertEqual(child.ask([5, 6, 7, 8])["output_values"], [5, 6, 7, 8])

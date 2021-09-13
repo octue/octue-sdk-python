@@ -18,12 +18,8 @@ class Child:
     def __init__(self, name, id, backend):
         self.name = name
         self.id = id
-
-        backend_name = backend.pop("name")
-
-        self._service = BACKEND_TO_SERVICE_MAPPING[backend_name](
-            backend=service_backends.get_backend(backend_name)(**backend)
-        )
+        self.backend_type_name = backend.pop("name")
+        self.backend = service_backends.get_backend(self.backend_type_name)(**backend)
 
     def ask(self, input_values=None, input_manifest=None, subscribe_to_logs=True, timeout=20):
         """Ask the child a question (i.e. send it some input value and/or a manifest and wait for it to run an analysis
@@ -36,5 +32,13 @@ class Child:
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
-        subscription, _ = self._service.ask(self.id, input_values, input_manifest, subscribe_to_logs)
-        return self._service.wait_for_answer(subscription, timeout)
+        service = self._create_service()
+        subscription, _ = service.ask(self.id, input_values, input_manifest, subscribe_to_logs)
+        return service.wait_for_answer(subscription, timeout)
+
+    def _create_service(self):
+        """Create a new Service for the backend given at initialisation.
+
+        :return octue.cloud.pubsub.service.Service:
+        """
+        return BACKEND_TO_SERVICE_MAPPING[self.backend_type_name](backend=self.backend)
