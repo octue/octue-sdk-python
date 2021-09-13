@@ -107,11 +107,14 @@ class MockPublisher:
 class MockSubscriber:
     """A mock subscriber that gets messages from a global dictionary instead of Google Pub/Sub."""
 
+    def __init__(self):
+        self.closed = False
+
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
+        self.closed = True
 
     def subscribe(self, subscription, callback):
         """Simulate subscribing to a topic by returning a mock future.
@@ -120,6 +123,9 @@ class MockSubscriber:
         :param callable callback:
         :return MockFuture:
         """
+        if self.closed:
+            raise ValueError("ValueError: Cannot invoke RPC: Channel closed!")
+
         return MockFuture()
 
     def pull(self, request, timeout=None, retry=None):
@@ -132,6 +138,9 @@ class MockSubscriber:
         :param google.api_core.retry.Retry|None retry:
         :return MockPullResponse:
         """
+        if self.closed:
+            raise ValueError("ValueError: Cannot invoke RPC: Channel closed!")
+
         return MockPullResponse(
             received_messages=[MockMessageWrapper(message=MESSAGES[get_service_id(request["subscription"])].pop(0))]
         )
