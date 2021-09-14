@@ -18,7 +18,7 @@ class Subscription:
     :param str name: the name of the subscription excluding "projects/<project_name>/subscriptions/<namespace>"
     :param octue.cloud.pub_sub.topic.Topic topic: the topic the subscription is attached to
     :param str namespace: a namespace to put before the subscription's name in its path
-    :param octue.cloud.pub_sub.service.Service subscriber: the service using this subscription
+    :param google.pubsub_v1.services.subscriber.client.SubscriberClient subscriber: a Google Pub/Sub subscriber that can be used to create or delete the subscription
     :param int ack_deadline: message acknowledgement deadline in seconds
     :param int message_retention_duration: unacknowledged message retention time in seconds
     :param int|None expiration_time: number of seconds after which the subscription is deleted (infinite time if None)

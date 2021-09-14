@@ -44,9 +44,9 @@ class Service(CoolNameable):
     Services communicate entirely via Google Pub/Sub and can ask and/or respond to questions from any other Service that
     has a corresponding topic on Google Pub/Sub.
 
-    :param octue.resources.service_backends.ServiceBackend backend:
-    :param str|None service_id:
-    :param callable|None run_function:
+    :param octue.resources.service_backends.ServiceBackend backend: the object representing the type of backend the service uses
+    :param str|None service_id: a string UUID optionally preceded by the octue services namespace "octue.services."
+    :param callable|None run_function: the function the service should run when it is called
     :return None:
     """
 
@@ -348,7 +348,9 @@ class OrderedMessageHandler:
     """A handler for Google Pub/Sub messages that ensures messages are handled in the order they were sent.
 
     :param callable message_puller: function that pulls a message from the subscription
+    :param google.pubsub_v1.services.subscriber.client.SubscriberClient subscriber: a Google Pub/Sub subscriber
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
+    :param dict|None message_handlers: a mapping of message handler names to callables that handle each type of message
     :return None:
     """
 
