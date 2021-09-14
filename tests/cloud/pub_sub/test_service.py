@@ -106,6 +106,16 @@ class TestService(BaseTestCase):
         responding_service.run_function = error_run_function
         return responding_service
 
+    def test_namespace_always_appears_in_id(self):
+        """Test that the Octue service namespace always appears at the start of a service's ID whether it's explicitly
+        provided or not.
+        """
+        service_with_no_namespace_in_id = Service(backend=BACKEND, service_id="hello")
+        self.assertEqual(service_with_no_namespace_in_id.id, "octue.services.hello")
+
+        service_with_namespace_in_id = Service(backend=BACKEND, service_id="octue.services.hello")
+        self.assertEqual(service_with_namespace_in_id.id, "octue.services.hello")
+
     def test_repr(self):
         """ Test that services are represented as a string correctly. """
         asking_service = Service(backend=BACKEND)
