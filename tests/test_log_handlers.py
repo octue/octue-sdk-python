@@ -4,20 +4,30 @@ import os
 import sys
 from unittest import mock
 
-from octue.log_handlers import FORMATTER_WITHOUT_TIMESTAMP, get_remote_handler
+from octue.log_handlers import FORMATTER_WITH_TIMESTAMP, FORMATTER_WITHOUT_TIMESTAMP, get_remote_handler
 from tests.base import BaseTestCase
 
 
 class TestLogging(BaseTestCase):
-    def test_compute_platform_environment_variable_triggers_correct_log_handler(self):
+    def test_formatter_without_timestamp_used_if_compute_provider_is_google_cloud_run(self):
         """Test that the formatter without a timestamp is used for logging if the `COMPUTE_PROVIDER` environment
-        variable is present and equal to "GOOGLE_CLOUD_RUN".
+        variable is present and equal to "GOOGLE_CLOUD_RUN", and `USE_OCTUE_LOG_HANDLER` is equal to "1".
         """
-        with mock.patch.dict(os.environ, COMPUTE_PROVIDER="GOOGLE_CLOUD_RUN"):
+        with mock.patch.dict(os.environ, USE_OCTUE_LOG_HANDLER="1", COMPUTE_PROVIDER="GOOGLE_CLOUD_RUN"):
             with mock.patch("octue.log_handlers.apply_log_handler") as mock_apply_log_handler:
                 importlib.reload(sys.modules["octue"])
 
         mock_apply_log_handler.assert_called_with(logger_name=None, formatter=FORMATTER_WITHOUT_TIMESTAMP)
+
+    def test_formatter_with_timestamp_used_if_compute_provider_is_not_google_cloud_run(self):
+        """Test that the formatter without a timestamp is used for logging if the `COMPUTE_PROVIDER` environment
+        variable is present and equal to "GOOGLE_CLOUD_RUN", and `USE_OCTUE_LOG_HANDLER` is equal to "1".
+        """
+        with mock.patch.dict(os.environ, USE_OCTUE_LOG_HANDLER="1", COMPUTE_PROVIDER="BLAH"):
+            with mock.patch("octue.log_handlers.apply_log_handler") as mock_apply_log_handler:
+                importlib.reload(sys.modules["octue"])
+
+        mock_apply_log_handler.assert_called_with(logger_name=None, formatter=FORMATTER_WITH_TIMESTAMP)
 
     def test_octue_log_handler_not_used_if_use_octue_log_handler_environment_variable_not_present_or_0(self):
         """Test that the default octue log handler is not used if the `USE_OCTUE_LOG_HANDLER` environment variable is
@@ -43,7 +53,7 @@ class TestLogging(BaseTestCase):
             with mock.patch("octue.log_handlers.apply_log_handler") as mock_apply_log_handler:
                 importlib.reload(sys.modules["octue"])
 
-        mock_apply_log_handler.assert_called_with(logger_name=None)
+        mock_apply_log_handler.assert_called()
 
 
 class TestGetRemoteHandler(BaseTestCase):
