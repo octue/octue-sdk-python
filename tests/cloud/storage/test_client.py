@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 from unittest.mock import patch
 import google.api_core.exceptions
@@ -231,3 +232,11 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         )
 
         self.assertEqual(metadata["custom_metadata"], {"this": "is-not-json-encoded"})
+
+    def test_create_intermediate_local_directories_with_file(self):
+        """Test that intermediate directories are created for the given path to a file."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            self.storage_client._create_intermediate_local_directories(
+                os.path.join(temporary_directory, "bam", "jam", "wam.csv")
+            )
+            self.assertTrue(os.path.exists(os.path.join(temporary_directory, "bam", "jam")))
