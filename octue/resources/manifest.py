@@ -172,7 +172,7 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         """
         for dataset in self.datasets:
             if local_directory:
-                dataset_directory = os.path.join(local_directory, dataset.name)
+                dataset_directory = os.path.abspath(os.path.join(local_directory, dataset.name))
             else:
                 dataset_directory = None
 

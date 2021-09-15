@@ -339,6 +339,9 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
         # Now use hash value of local file instead of cloud file.
         self.reset_hash()
+
+        print(f"Downloaded to {local_path}")
+
         return local_path
 
     def get_local_path(self):

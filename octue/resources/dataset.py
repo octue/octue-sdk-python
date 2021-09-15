@@ -203,7 +203,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
         """
         for datafile in self.files:
             if local_directory:
-                local_path = os.path.join(local_directory, datafile.name)
+                local_path = os.path.abspath(os.path.join(local_directory, datafile.name))
             else:
                 local_path = None
 
