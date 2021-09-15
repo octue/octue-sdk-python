@@ -13,7 +13,7 @@ class TestRunSubprocessAndLogStdoutAndStderr(BaseTestCase):
         with self.assertRaises(subprocess.CalledProcessError):
             run_subprocess_and_log_stdout_and_stderr(command=["blah blah blah"], logger=mock_logger, shell=True)
 
-        self.assertIn("blah: command not found", mock_logger.method_calls[0][1][0])
+        self.assertIn("not found", mock_logger.method_calls[0][1][0])
 
     def test_stdout_is_logged(self):
         """Test that any output to stdout is logged."""
