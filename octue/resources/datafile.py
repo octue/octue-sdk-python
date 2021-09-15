@@ -310,6 +310,37 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         """
         return self.path.startswith(CLOUD_STORAGE_PROTOCOL)
 
+    def download(self, local_path=None):
+        """Download the file from the cloud to the given local path or a random temporary path.
+
+        :param str|None local_path:
+        :raise CloudLocationNotSpecified: if the datafile does not exist in the cloud
+        :return str: path to local file
+        """
+        if not self.is_in_cloud:
+            raise CloudLocationNotSpecified("Cannot download a file that doesn't exist in the cloud.")
+
+        if self.absolute_path in TEMPORARY_LOCAL_FILE_CACHE:
+            return TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path]
+
+        local_path = local_path or tempfile.NamedTemporaryFile(delete=False).name
+
+        try:
+            GoogleCloudStorageClient(project_name=self._cloud_metadata["project_name"]).download_to_file(
+                local_path=local_path, cloud_path=self.absolute_path
+            )
+
+        except google.api_core.exceptions.NotFound as e:
+            # If in reading mode, raise an error if no file exists at the path; if in a writing mode, create a new file.
+            if self._open_attributes["mode"] == "r":
+                raise e
+
+        TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path] = local_path
+
+        # Now use hash value of local file instead of cloud file.
+        self.reset_hash()
+        return local_path
+
     def get_local_path(self):
         """Get the local path for the datafile, downloading it from the cloud to a temporary file if necessary. If
         downloaded, the local path is added to a cache to avoid downloading again in the same runtime.
@@ -319,26 +350,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         if not self.is_in_cloud:
             return self.absolute_path
 
-        if self.absolute_path in TEMPORARY_LOCAL_FILE_CACHE:
-            return TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path]
-
-        temporary_local_path = tempfile.NamedTemporaryFile(delete=False).name
-
-        try:
-            GoogleCloudStorageClient(project_name=self._cloud_metadata["project_name"]).download_to_file(
-                local_path=temporary_local_path, cloud_path=self.absolute_path
-            )
-
-        except google.api_core.exceptions.NotFound as e:
-            # If in reading mode, raise an error if no file exists at the path; if in a writing mode, create a new file.
-            if self._open_attributes["mode"] == "r":
-                raise e
-
-        TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path] = temporary_local_path
-
-        # Now use hash value of local file instead of cloud file.
-        self.reset_hash()
-        return temporary_local_path
+        return self.download()
 
     def clear_from_file_cache(self):
         """Clear the datafile from the temporary local file cache, if it is in there. If datafile.get_local_path is
