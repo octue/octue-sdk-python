@@ -1,4 +1,6 @@
+import os
 import subprocess
+import unittest
 from unittest.mock import Mock
 
 from octue.utils.processes import run_subprocess_and_log_stdout_and_stderr
@@ -13,8 +15,10 @@ class TestRunSubprocessAndLogStdoutAndStderr(BaseTestCase):
         with self.assertRaises(subprocess.CalledProcessError):
             run_subprocess_and_log_stdout_and_stderr(command=["blah blah blah"], logger=mock_logger, shell=True)
 
-        self.assertIn("not found", mock_logger.method_calls[0][1][0])
+        log_message = mock_logger.method_calls[0][1][0]
+        self.assertTrue("not found" in log_message or "not recognized" in log_message)
 
+    @unittest.skipIf(condition=os.name == "nt", reason="See issue https://github.com/octue/octue-sdk-python/issues/228")
     def test_stdout_is_logged(self):
         """Test that any output to stdout is logged."""
         mock_logger = Mock()
