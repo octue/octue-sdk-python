@@ -233,7 +233,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
         self.assertEqual(metadata["custom_metadata"], {"this": "is-not-json-encoded"})
 
-    def test_create_intermediate_local_directories_with_file(self):
+    def test_create_intermediate_local_directories(self):
         """Test that intermediate directories are created for the given path to a file."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             self.storage_client._create_intermediate_local_directories(
