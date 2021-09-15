@@ -1,6 +1,7 @@
 import copy
 import json
 import os
+import shutil
 import tempfile
 
 from octue.cloud import storage
@@ -221,14 +222,17 @@ class TestManifest(BaseTestCase):
 
         manifest = Manifest(datasets=datasets, keys={"first_dataset": 0, "second_dataset": 1})
 
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            manifest.download_all_datasets(local_directory=temporary_directory)
+        try:
+            manifest.download_all_datasets(local_directory="my-manifest")
 
-            with open(os.path.join(temporary_directory, "first_dataset", "file_0.txt")) as f:
+            with open(os.path.join("my-manifest", "first_dataset", "file_0.txt")) as f:
                 self.assertEqual(f.read(), "[1, 2, 3]")
 
-            with open(os.path.join(temporary_directory, "first_dataset", "file_1.txt")) as f:
+            with open(os.path.join("my-manifest", "first_dataset", "file_1.txt")) as f:
                 self.assertEqual(f.read(), "[4, 5, 6]")
 
-            with open(os.path.join(temporary_directory, "second_dataset", "file_2.txt")) as f:
+            with open(os.path.join("my-manifest", "second_dataset", "file_2.txt")) as f:
                 self.assertEqual(f.read(), '["a", "b", "c"]')
+
+        finally:
+            shutil.rmtree("my-manifest")
