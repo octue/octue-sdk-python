@@ -44,26 +44,28 @@ class Service(CoolNameable):
     Services communicate entirely via Google Pub/Sub and can ask and/or respond to questions from any other Service that
     has a corresponding topic on Google Pub/Sub.
 
-    :param octue.resources.service_backends.ServiceBackend backend:
-    :param str|None service_id:
-    :param callable|None run_function:
+    :param octue.resources.service_backends.ServiceBackend backend: the object representing the type of backend the service uses
+    :param str|None service_id: a string UUID optionally preceded by the octue services namespace "octue.services."
+    :param callable|None run_function: the function the service should run when it is called
     :return None:
     """
 
     def __init__(self, backend, service_id=None, run_function=None):
         if service_id is None:
-            self.id = str(uuid.uuid4())
+            self.id = f"{OCTUE_NAMESPACE}.{str(uuid.uuid4())}"
         elif not service_id:
             raise ValueError(f"service_id should be None or a non-falsey value; received {service_id!r} instead.")
         else:
-            self.id = service_id
+            if service_id.startswith(OCTUE_NAMESPACE):
+                self.id = service_id
+            else:
+                self.id = f"{OCTUE_NAMESPACE}.{service_id}"
 
         self.backend = backend
         self.run_function = run_function
 
-        credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
-        self.publisher = pubsub_v1.PublisherClient(credentials=credentials, batch_settings=BATCH_SETTINGS)
-        self.subscriber = pubsub_v1.SubscriberClient(credentials=credentials)
+        self._credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
+        self.publisher = pubsub_v1.PublisherClient(credentials=self._credentials, batch_settings=BATCH_SETTINGS)
         super().__init__()
 
     def __repr__(self):
@@ -80,15 +82,22 @@ class Service(CoolNameable):
         topic = Topic(name=self.id, namespace=OCTUE_NAMESPACE, service=self)
         topic.create(allow_existing=True)
 
+        subscriber = pubsub_v1.SubscriberClient(credentials=self._credentials)
+
         subscription = Subscription(
-            name=self.id, topic=topic, namespace=OCTUE_NAMESPACE, service=self, expiration_time=None
+            name=self.id,
+            topic=topic,
+            namespace=OCTUE_NAMESPACE,
+            project_name=self.backend.project_name,
+            subscriber=subscriber,
+            expiration_time=None,
         )
         subscription.create(allow_existing=True)
 
-        future = self.subscriber.subscribe(subscription=subscription.path, callback=self.answer)
+        future = subscriber.subscribe(subscription=subscription.path, callback=self.answer)
         logger.debug("%r is waiting for questions.", self)
 
-        with self.subscriber:
+        with subscriber:
             try:
                 future.result(timeout=timeout)
             except (TimeoutError, concurrent.futures.TimeoutError, KeyboardInterrupt):
@@ -224,7 +233,8 @@ class Service(CoolNameable):
             name=response_topic.name,
             topic=response_topic,
             namespace=OCTUE_NAMESPACE,
-            service=self,
+            project_name=self.backend.project_name,
+            subscriber=pubsub_v1.SubscriberClient(credentials=self._credentials),
         )
         response_subscription.create(allow_existing=False)
 
@@ -251,9 +261,12 @@ class Service(CoolNameable):
         :raise TimeoutError: if the timeout is exceeded
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
-        message_handler = OrderedMessageHandler(message_puller=self._pull_message, subscription=subscription)
+        subscriber = pubsub_v1.SubscriberClient(credentials=self._credentials)
+        message_handler = OrderedMessageHandler(
+            message_puller=self._pull_message, subscriber=subscriber, subscription=subscription
+        )
 
-        with self.subscriber:
+        with subscriber:
             try:
                 return message_handler.handle_messages(timeout=timeout)
 
@@ -289,7 +302,7 @@ class Service(CoolNameable):
 
         topic.messages_published += 1
 
-    def _pull_message(self, subscription, timeout):
+    def _pull_message(self, subscriber, subscription, timeout):
         """Pull a message from the subscription, raising a `TimeoutError` if the timeout is exceeded before succeeding.
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription the message is expected on
@@ -306,7 +319,7 @@ class Service(CoolNameable):
             while no_message:
                 logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
 
-                pull_response = self.subscriber.pull(
+                pull_response = subscriber.pull(
                     request={"subscription": subscription.path, "max_messages": 1},
                     retry=retry.Retry(),
                 )
@@ -326,7 +339,7 @@ class Service(CoolNameable):
 
                     continue
 
-            self.subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
+            subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
             logger.debug("%r received a message related to question %r.", self, subscription.topic.path.split(".")[-1])
             return json.loads(answer.message.data.decode())
 
@@ -335,12 +348,15 @@ class OrderedMessageHandler:
     """A handler for Google Pub/Sub messages that ensures messages are handled in the order they were sent.
 
     :param callable message_puller: function that pulls a message from the subscription
+    :param google.pubsub_v1.services.subscriber.client.SubscriberClient subscriber: a Google Pub/Sub subscriber
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
+    :param dict|None message_handlers: a mapping of message handler names to callables that handle each type of message
     :return None:
     """
 
-    def __init__(self, message_puller, subscription, message_handlers=None):
+    def __init__(self, message_puller, subscriber, subscription, message_handlers=None):
         self.message_puller = message_puller
+        self.subscriber = subscriber
         self.subscription = subscription
         self._waiting_messages = {}
         self._previous_message_number = -1
@@ -374,7 +390,7 @@ class OrderedMessageHandler:
 
                 pull_timeout = timeout - run_time
 
-            message = self.message_puller(self.subscription, timeout=pull_timeout)
+            message = self.message_puller(self.subscriber, self.subscription, timeout=pull_timeout)
             self._waiting_messages[message["message_number"]] = message
 
             try:
@@ -399,7 +415,7 @@ class OrderedMessageHandler:
         try:
             return self._message_handlers[message["type"]](message)
         except KeyError:
-            logger.warning("%r received a message of unknown type %r.", self.subscription.service, message["type"])
+            logger.warning("Received a message of unknown type %r.", message["type"])
 
     def _handle_log_message(self, message):
         """Deserialise the message into a log record and pass it to the local log handlers, adding `[REMOTE] to the
@@ -440,11 +456,7 @@ class OrderedMessageHandler:
         :param dict message:
         :return dict:
         """
-        logger.info(
-            "%r received an answer to question %r.",
-            self.subscription.service,
-            self.subscription.topic.path.split(".")[-1],
-        )
+        logger.info("Received an answer to question %r.", self.subscription.topic.path.split(".")[-1])
 
         if message["output_manifest"] is None:
             output_manifest = None
