@@ -6,7 +6,7 @@ import google.api_core.exceptions
 from google.cloud import secretmanager
 
 from octue.cloud.credentials import GCPCredentialsManager
-from octue.log_handlers import apply_log_handler
+from octue.log_handlers import apply_log_handler, get_formatter
 from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.utils import gen_uuid
@@ -130,14 +130,20 @@ class Runner:
 
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
         analysis_logger_name = f"{__name__} | analysis-{analysis_id}"
+        formatter = get_formatter()
 
         # Apply the default stderr log handler to the analysis logger.
-        analysis_logger = apply_log_handler(logger_name=analysis_logger_name, log_level=analysis_log_level)
+        analysis_logger = apply_log_handler(
+            logger_name=analysis_logger_name, log_level=analysis_log_level, formatter=formatter
+        )
 
         # Also apply the given analysis log handler if given.
         if analysis_log_handler:
             apply_log_handler(
-                logger_name=analysis_logger_name, handler=analysis_log_handler, log_level=analysis_log_level
+                logger_name=analysis_logger_name,
+                handler=analysis_log_handler,
+                log_level=analysis_log_level,
+                formatter=formatter,
             )
 
         # Stop messages logged by the analysis logger being repeated by the root logger.
