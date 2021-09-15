@@ -163,21 +163,6 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
 
         return self
 
-    def download_all_datasets(self, local_directory=None):
-        """Download all datasets in the manifest into its own subdirectory in the given local directory.  If no path to
-        a local directory is given, the datasets' files will be downloaded to temporary locations.
-
-        :param str|None local_directory:
-        :return None:
-        """
-        for dataset in self.datasets:
-            if local_directory:
-                dataset_directory = os.path.abspath(os.path.join(local_directory, dataset.name))
-            else:
-                dataset_directory = None
-
-            dataset.download_all_files(local_directory=dataset_directory)
-
     def _instantiate_datasets(self, datasets, key_list):
         """Add the given datasets to the manifest, instantiating them if needed and giving them the correct path.
         There are several possible forms the datasets can come in:
