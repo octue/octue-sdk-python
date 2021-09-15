@@ -1,5 +1,6 @@
 import logging
 import logging.handlers
+import os
 from urllib.parse import urlparse
 
 
@@ -70,3 +71,16 @@ def get_remote_handler(logger_uri, formatter=None):
     handler = logging.handlers.SocketHandler(host=parsed_uri.hostname, port=parsed_uri.port)
     handler.setFormatter(formatter or FORMATTER_WITH_TIMESTAMP)
     return handler
+
+
+def get_formatter():
+    """Get the correct formatter for the environment. If the environment is Google Cloud Run, use a log handler with a
+    formatter that doesn't include the timestamp in the log message context to avoid the date appearing twice in the
+    Google Cloud Run logs (Google adds its own timestamp to log messages).
+
+    :return logging.Formatter:
+    """
+    if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") == "GOOGLE_CLOUD_RUN":
+        return FORMATTER_WITHOUT_TIMESTAMP
+    else:
+        return FORMATTER_WITH_TIMESTAMP
