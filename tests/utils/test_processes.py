@@ -18,7 +18,7 @@ class TestRunSubprocessAndLogStdoutAndStderr(BaseTestCase):
         log_message = mock_logger.method_calls[0][1][0]
         self.assertTrue("not found" in log_message or "not recognized" in log_message)
 
-    @unittest.skipIf(condition=os.name == "nt", reason="See issue https://github.com/octue/octue-sdk-python/issues/228")
+    @unittest.skipIf(condition=os.name == "nt", reason="See issue https://github.com/octue/octue-sdk-python/issues/229")
     def test_stdout_is_logged(self):
         """Test that any output to stdout is logged."""
         mock_logger = Mock()
