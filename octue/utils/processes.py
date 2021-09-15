@@ -3,7 +3,7 @@ from threading import Thread
 
 
 class ProcessesContextManager:
-    """ A context manager that kills any processes given to it on exit from its context. """
+    """A context manager that kills any processes given to it on exit from its context."""
 
     def __init__(self, processes):
         self.processes = processes
