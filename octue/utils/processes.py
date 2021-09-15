@@ -43,6 +43,6 @@ def run_subprocess_and_log_stdout_and_stderr(command, logger, log_level="info", 
     process.wait()
 
     if process.returncode != 0:
-        raise CalledProcessError(returncode=process.returncode, cmd="".join(command))
+        raise CalledProcessError(returncode=process.returncode, cmd=" ".join(command))
 
     return process
