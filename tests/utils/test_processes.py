@@ -1,7 +1,7 @@
 import os
 import subprocess
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 from octue.utils.processes import run_subprocess_and_log_stdout_and_stderr
 from tests.base import BaseTestCase
@@ -28,5 +28,4 @@ class TestRunSubprocessAndLogStdoutAndStderr(BaseTestCase):
         )
 
         self.assertEqual(process.returncode, 0)
-        self.assertEqual(mock_logger.method_calls[0][1][0], "hello")
-        self.assertEqual(mock_logger.method_calls[1][1][0], "goodbye")
+        mock_logger.info.assert_has_calls([call("hello"), call("goodbye")])
