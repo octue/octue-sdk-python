@@ -98,7 +98,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         )
 
         self.timestamp = timestamp
-        self.extension = self._get_extension_from_path()
+        self.extension = os.path.splitext(path)[-1].strip(".")
 
         self.cloud_path = None
         self.cloud_protocol = None
@@ -333,7 +333,10 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         ):
             return self._local_path
 
-        self._local_path = local_path or tempfile.NamedTemporaryFile(delete=False).name
+        if local_path is not None:
+            self._local_path = os.path.abspath(local_path)
+        else:
+            self._local_path = tempfile.NamedTemporaryFile(delete=False).name
 
         try:
             GoogleCloudStorageClient(project_name=self.project_name).download_to_file(
@@ -442,11 +445,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
                 f"the cloud conflicts with the value given locally at instantiation {attribute_value!r}. The local "
                 f"value has been used and will overwrite the cloud value if the datafile is saved."
             )
-
-    def _get_extension_from_path(self, path=None):
-        """Gets extension of a file, either from a provided file path or from self.path field"""
-        path = path or self.path
-        return os.path.splitext(path)[-1].strip(".")
 
     def _calculate_hash(self):
         """Calculate the hash of the file."""
