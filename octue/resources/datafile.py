@@ -46,10 +46,13 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
           "sha-512/256": "somesha"
         },
 
+    :param str|None path: The path of this file locally or in the cloud, which may include folders or subfolders, within the dataset. If no path_from parameter is set, then absolute paths are acceptable, otherwise relative paths are required.
+    :param str|None local_path: If a cloud path is given as the `path` parameter, this is the path to an existing local file that is known to be in sync with the cloud object
+    :param str|None cloud_path: If a local path is given for the `path` parameter, this is a cloud path to keep in sync with the local file
+    :param str|None project_name: The name of the project if the datafile also exists in the cloud
     :param datetime.datetime|int|float|None timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when it was created but could relate to a relevant time point for the data
     :param str id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
     :param logging.Logger logger: A logger instance to which operations with this datafile will be logged. Defaults to the module logger.
-    :param Union[str, path-like] path: The path of this file, which may include folders or subfolders, within the dataset. If no path_from parameter is set, then absolute paths are acceptable, otherwise relative paths are required.
     :param Pathable path_from: The root Pathable object (typically a Dataset) that this Datafile's path is relative to.
     :param str|None project_name: The name of the cloud project if the datafile is located in the cloud
     :param dict|TagDict tags: key-value pairs with string keys conforming to the Octue tag format (see TagDict)
@@ -79,11 +82,13 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
     def __init__(
         self,
         path,
+        local_path=None,
+        cloud_path=None,
+        project_name=None,
         timestamp=None,
         id=ID_DEFAULT,
         logger=None,
         path_from=None,
-        project_name=None,
         tags=TAGS_DEFAULT,
         labels=LABELS_DEFAULT,
         skip_checks=True,
@@ -106,7 +111,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         self.timestamp = timestamp
         self.extension = os.path.splitext(path)[-1].strip(".")
 
-        self.project_name = None
+        self.project_name = project_name
         self.bucket_name = None
         self.path_in_bucket = None
 
@@ -137,12 +142,23 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
                 self._use_cloud_metadata(**initialisation_parameters)
 
+            if local_path:
+                # If there is no file at the given local path or the file is different to the one in the cloud, download
+                # the cloud file locally.
+                if not os.path.exists(local_path) or self._cloud_metadata.get("crc32c") != calculate_hash(local_path):
+                    self.download(local_path)
+                else:
+                    self._local_path = local_path
+
         else:
             self._local_path = self.absolute_path
 
             # Run integrity checks on the file.
             if not skip_checks:
                 self.check(**kwargs)
+
+            if cloud_path:
+                self.cloud_path = cloud_path
 
     def __enter__(self):
         self._open_context_manager = self.open(**self._open_attributes)
@@ -257,7 +273,17 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
     @cloud_path.setter
     def cloud_path(self, path):
-        self.to_cloud(cloud_path=path)
+        if path is None:
+
+            if not self.exists_locally:
+                raise CloudLocationNotSpecified(
+                    "The cloud path cannot be reset because this datafile only exists in the cloud."
+                )
+
+            self._cloud_path = None
+
+        else:
+            self.to_cloud(cloud_path=path)
 
     @property
     def cloud_protocol(self):
@@ -395,6 +421,15 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         :raise FileExistsError: if the path corresponds to an existing file
         :return None:
         """
+        if path is None:
+            if not self.exists_in_cloud:
+                raise CloudLocationNotSpecified(
+                    "The local path cannot be reset because this datafile only exists locally."
+                )
+
+            self._local_path = None
+            return
+
         if os.path.exists(path):
             raise FileExistsError(
                 "Only a path not corresponding to an existing file can be used. This is because the contents of the "
@@ -407,19 +442,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         )
 
         self._local_path = os.path.abspath(path)
-
-    def reset_local_path(self):
-        """Reset the local path to `None`. If datafile.local_path is called again and the datafile is a cloud datafile,
-        the file will be re-downloaded to a new temporary local path, allowing any independent cloud updates to be
-        synced locally.
-
-        :raise exceptions.CloudLocationNotSpecified: if the datafile only exists locally
-        :return None:
-        """
-        if not self.exists_in_cloud:
-            raise CloudLocationNotSpecified("The local path cannot be reset because this datafile only exists locally.")
-
-        self._local_path = None
 
     def _use_cloud_metadata(self, **initialisation_parameters):
         """Populate the datafile's attributes from the metadata of the cloud object located at its path (by necessity a
@@ -472,13 +494,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
     def _calculate_hash(self):
         """Calculate the hash of the file."""
-        hash = Checksum()
-
-        with open(self.local_path, "rb") as f:
-            # Read and update hash value in blocks of 4K.
-            for byte_block in iter(lambda: f.read(4096), b""):
-                hash.update(byte_block)
-
+        hash = calculate_hash(self.local_path)
         return super()._calculate_hash(hash)
 
     def _get_cloud_location(self, project_name=None, cloud_path=None, bucket_name=None, path_in_bucket=None):
@@ -642,3 +658,15 @@ class _DatafileContextManager:
 
         if self.datafile.exists_in_cloud and any(character in self.mode for character in self.MODIFICATION_MODES):
             self.datafile.to_cloud(update_cloud_metadata=self._update_cloud_metadata)
+
+
+def calculate_hash(path):
+    """Calculate the hash of the file at the given path."""
+    hash = Checksum()
+
+    with open(path, "rb") as f:
+        # Read and update hash value in blocks of 4K.
+        for byte_block in iter(lambda: f.read(4096), b""):
+            hash.update(byte_block)
+
+    return hash

@@ -37,7 +37,7 @@ these happen, the cloud object is downloaded to a temporary local file. Any chan
 ``Datafile.open`` method (which can be used analogously to the python built-in ``open`` function) are synced up with
 the cloud object. The temporary file will exist as long as the python session is running. Calling ``download`` again
 will not re-download the file as it will be up to date with any changes made locally. However, external changes to the
-cloud object will not be synced locally unless the ``reset_local_path`` method is called, followed by the ``download``
+cloud object will not be synced locally unless the ``local_path`` is set to ``None``, followed by the ``download``
 method again.
 
 If you want a cloud object to be permanently downloaded, you can either:

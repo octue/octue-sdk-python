@@ -524,7 +524,7 @@ class DatafileTestCase(BaseTestCase):
         self.assertTrue("blue" in re_downloaded_datafile.labels)
 
         # The file cache must be cleared so the modified cloud file is downloaded.
-        re_downloaded_datafile.reset_local_path()
+        re_downloaded_datafile.local_path = None
 
         # Check that the cloud file has been updated.
         with re_downloaded_datafile.open() as f:
@@ -570,7 +570,7 @@ class DatafileTestCase(BaseTestCase):
         datafile = Datafile(path="blah.txt")
 
         with self.assertRaises(exceptions.CloudLocationNotSpecified):
-            datafile.reset_local_path()
+            datafile.local_path = None
 
     def test_creating_local_datafile_and_then_uploading_to_cloud_does_not_use_temporary_local_file(self):
         """Test that a local datafile that is then uploaded to the cloud writes data to the same local path when
@@ -654,3 +654,66 @@ class DatafileTestCase(BaseTestCase):
 
         # Check that the local file's contents have been written to the cloud path.
         self.assertEqual(GoogleCloudStorageClient(TEST_PROJECT_NAME).download_as_string(datafile.cloud_path), "hello")
+
+    def test_instantiating_local_file_with_cloud_path(self):
+        """Test that a local datafile instantiated with a cloud path causes the local file to be uploaded to the cloud."""
+        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
+            temporary_file.write("blah")
+
+        datafile = Datafile(
+            path=temporary_file.name,
+            cloud_path=f"gs://{TEST_BUCKET_NAME}/{temporary_file.name}",
+            project_name=TEST_PROJECT_NAME,
+        )
+
+        self.assertTrue(datafile.exists_locally)
+        self.assertTrue(datafile.exists_in_cloud)
+
+        # Check that the local file's contents have been written to the cloud path.
+        self.assertEqual(GoogleCloudStorageClient(TEST_PROJECT_NAME).download_as_string(datafile.cloud_path), "blah")
+
+    def test_instantiating_cloud_file_with_non_existent_local_path(self):
+        """Test that a cloud datafile instantiated with a non-existent local path is kept in sync with the cloud object."""
+        cloud_path = f"gs://{TEST_BUCKET_NAME}/cake/taste.txt"
+        GoogleCloudStorageClient(TEST_PROJECT_NAME).upload_from_string("yum", cloud_path=cloud_path)
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+
+            datafile = Datafile(
+                path=cloud_path,
+                project_name=TEST_PROJECT_NAME,
+                local_path=os.path.join(temporary_directory, "my-file.txt"),
+            )
+
+            self.assertTrue(datafile.exists_locally)
+            self.assertTrue(datafile.exists_in_cloud)
+
+            with datafile.open("a") as f:
+                f.write("yum")
+
+            with open(datafile.local_path) as f:
+                self.assertEqual(f.read(), "yumyum")
+
+    def test_instantiating_cloud_file_with_existing_local_path(self):
+        """Test that a cloud datafile instantiated with an existent local path is kept in sync with the cloud object and
+        that any previous contents the file at the local path has is overwritten by the contents of the cloud object.
+        """
+        cloud_path = f"gs://{TEST_BUCKET_NAME}/cake/taste.txt"
+        GoogleCloudStorageClient(TEST_PROJECT_NAME).upload_from_string("yum", cloud_path=cloud_path)
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            local_path = os.path.join(temporary_directory, "my-file.txt")
+
+            with open(local_path, "w") as f:
+                f.write("blah")
+
+            datafile = Datafile(path=cloud_path, project_name=TEST_PROJECT_NAME, local_path=local_path)
+
+            self.assertTrue(datafile.exists_locally)
+            self.assertTrue(datafile.exists_in_cloud)
+
+            with datafile.open("a") as f:
+                f.write("yum")
+
+            with open(datafile.local_path) as f:
+                self.assertEqual(f.read(), "yumyum")
