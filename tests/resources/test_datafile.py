@@ -142,7 +142,6 @@ class DatafileTestCase(BaseTestCase):
             "name",
             "path",
             "cloud_path",
-            "local_path",
             "project_name",
             "bucket_name",
             "path_in_bucket",

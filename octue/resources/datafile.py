@@ -68,7 +68,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         "id",
         "name",
         "path",
-        "local_path",
         "cloud_path",
         "project_name",
         "bucket_name",
