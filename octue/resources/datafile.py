@@ -106,7 +106,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         self._cloud_metadata = {}
 
         if self.path.startswith(CLOUD_STORAGE_PROTOCOL):
-
             if project_name is None:
                 raise CloudLocationNotSpecified(
                     "The `project_name` attribute is required for a cloud location to be valid; received None."
@@ -115,27 +114,23 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             self._store_cloud_location(project_name=project_name, cloud_path=path)
 
             if not self._hypothetical:
-                self._use_cloud_metadata(id=id, timestamp=timestamp, tags=tags, labels=labels)
+                # Collect any non-`None` metadata instantiation parameters so the user can be warned if they conflict
+                # with any metadata already on the cloud object.
+                initialisation_parameters = {}
 
-        if self.exists_in_cloud and not self._hypothetical:
+                for parameter in ("id", "timestamp", "tags", "labels"):
+                    value = locals().get(parameter)
+                    if value is not None:
+                        initialisation_parameters[parameter] = value
 
-            # Collect any non-`None` metadata instantiation parameters so the user can be warned if they conflict with
-            # any metadata already on the cloud object.
-            initialisation_parameters = {}
+                self._use_cloud_metadata(**initialisation_parameters)
 
-            for parameter in ("id", "timestamp", "tags", "labels"):
-                value = locals().get(parameter)
-                if value is not None:
-                    initialisation_parameters[parameter] = value
+        else:
+            self._local_path = self.absolute_path
 
-            self._use_cloud_metadata(**initialisation_parameters)
-            return
-
-        self._local_path = self.absolute_path
-
-        # Run integrity checks on the file
-        if not skip_checks:
-            self.check(**kwargs)
+            # Run integrity checks on the file.
+            if not skip_checks:
+                self.check(**kwargs)
 
     def __enter__(self):
         self._open_context_manager = self.open(**self._open_attributes)
