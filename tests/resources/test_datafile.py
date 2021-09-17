@@ -141,6 +141,11 @@ class DatafileTestCase(BaseTestCase):
             "id",
             "name",
             "path",
+            "cloud_path",
+            "local_path",
+            "project_name",
+            "bucket_name",
+            "path_in_bucket",
             "timestamp",
             "tags",
             "labels",
@@ -627,3 +632,25 @@ class DatafileTestCase(BaseTestCase):
 
         finally:
             os.remove("blib.txt")
+
+    def test_cloud_path_property(self):
+        """Test that the cloud path property returns the expected value."""
+        datafile = Datafile(project_name=TEST_PROJECT_NAME, path="gs://blah/no.txt", hypothetical=True)
+        self.assertEqual(datafile.cloud_path, "gs://blah/no.txt")
+
+    def test_setting_cloud_path_property(self):
+        """Test that setting the cloud path property of a local datafile results in the local file's data being written
+        to the cloud.
+        """
+        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
+            temporary_file.write("hello")
+
+        datafile = Datafile(path=temporary_file.name)
+        self.assertIsNone(datafile.cloud_path)
+
+        # The project name must be set before adding a cloud path.
+        datafile.project_name = TEST_PROJECT_NAME
+        datafile.cloud_path = f"gs://{TEST_BUCKET_NAME}/my-file.dat"
+
+        # Check that the local file's contents have been written to the cloud path.
+        self.assertEqual(GoogleCloudStorageClient(TEST_PROJECT_NAME).download_as_string(datafile.cloud_path), "hello")

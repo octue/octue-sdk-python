@@ -3,6 +3,7 @@ import functools
 import logging
 import os
 import tempfile
+from urllib.parse import urlparse
 import google.api_core.exceptions
 import pkg_resources
 from google_crc32c import Checksum
@@ -64,6 +65,11 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         "id",
         "name",
         "path",
+        "local_path",
+        "cloud_path",
+        "project_name",
+        "bucket_name",
+        "path_in_bucket",
         "tags",
         "labels",
         "timestamp",
@@ -100,13 +106,12 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         self.timestamp = timestamp
         self.extension = os.path.splitext(path)[-1].strip(".")
 
-        self.cloud_path = None
-        self.cloud_protocol = None
         self.project_name = None
         self.bucket_name = None
         self.path_in_bucket = None
 
         self._local_path = None
+        self._cloud_path = None
         self._hypothetical = hypothetical
         self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
         self._cloud_metadata = {}
@@ -183,8 +188,8 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
     def to_cloud(
         self, project_name=None, cloud_path=None, bucket_name=None, path_in_bucket=None, update_cloud_metadata=True
     ):
-        """Upload a datafile to Google Cloud Storage. Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must be
-        provided.
+        """Upload a datafile to Google Cloud Storage. Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must
+        be provided.
 
         :param str|None project_name: name of Google Cloud project to store datafile in
         :param str|None cloud_path: full path to cloud storage location to store datafile at (e.g. `gs://bucket_name/path/to/file.csv`)
@@ -245,6 +250,25 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
     @property
     def name(self):
         return self._name or str(os.path.split(self.path)[-1])
+
+    @property
+    def cloud_path(self):
+        return self._cloud_path
+
+    @cloud_path.setter
+    def cloud_path(self, path):
+        self.to_cloud(cloud_path=path)
+
+    @property
+    def cloud_protocol(self):
+        """Get the cloud protocol of the datafile if it exists in the cloud (e.g. "gs" for a cloud path of
+        "gs://my-bucket/my-file.txt").
+
+        :return str|None:
+        """
+        if not self.exists_in_cloud:
+            return None
+        return urlparse(self.cloud_path).scheme
 
     @property
     def timestamp(self):
@@ -494,11 +518,10 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         """
         if cloud_path:
             bucket_name, path_in_bucket = storage.path.split_bucket_name_from_gs_path(cloud_path)
-            self.cloud_path = cloud_path
+            self._cloud_path = cloud_path
         else:
-            self.cloud_path = storage.path.generate_gs_path(bucket_name, path_in_bucket)
+            self._cloud_path = storage.path.generate_gs_path(bucket_name, path_in_bucket)
 
-        self.cloud_protocol = CLOUD_STORAGE_PROTOCOL
         self.project_name = project_name
         self.bucket_name = bucket_name
         self.path_in_bucket = path_in_bucket
