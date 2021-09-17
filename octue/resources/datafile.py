@@ -268,10 +268,19 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
     @property
     def cloud_path(self):
+        """Get the cloud path of the datafile.
+
+        :return str|None:
+        """
         return self._cloud_path
 
     @cloud_path.setter
     def cloud_path(self, path):
+        """Set the cloud path of the datafile.
+
+        :param str|None path:
+        :return None:
+        """
         if path is None:
 
             if not self.exists_locally:
