@@ -215,11 +215,10 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
         :return dict:
         """
-        project_name, bucket_name, path_in_bucket = self._get_cloud_location()
+        if not self.cloud_path:
+            self._raise_cloud_location_error()
 
-        cloud_metadata = GoogleCloudStorageClient(project_name).get_metadata(
-            bucket_name=bucket_name, path_in_bucket=path_in_bucket
-        )
+        cloud_metadata = GoogleCloudStorageClient(self.project_name).get_metadata(cloud_path=self.cloud_path)
 
         if cloud_metadata is None:
             return None
@@ -231,12 +230,11 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
         :return None:
         """
-        project_name, bucket_name, path_in_bucket = self._get_cloud_location()
+        if not self.cloud_path:
+            self._raise_cloud_location_error()
 
-        GoogleCloudStorageClient(project_name=project_name).overwrite_custom_metadata(
-            metadata=self.metadata(),
-            bucket_name=bucket_name,
-            path_in_bucket=path_in_bucket,
+        GoogleCloudStorageClient(project_name=self.project_name).overwrite_custom_metadata(
+            metadata=self.metadata(), cloud_path=self.cloud_path
         )
 
     @property
@@ -469,10 +467,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             bucket_name = bucket_name or self.bucket_name
             path_in_bucket = path_in_bucket or self.path_in_bucket
         except AttributeError:
-            raise CloudLocationNotSpecified(
-                f"{self!r} wasn't previously loaded from the cloud so doesn't have an implicit cloud location - please "
-                f"specify its exact location (its project name and cloud path)."
-            )
+            self._raise_cloud_location_error()
 
         self._store_cloud_location(project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
         return project_name, bucket_name, path_in_bucket
@@ -497,6 +492,17 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         self.project_name = project_name
         self.bucket_name = bucket_name
         self.path_in_bucket = path_in_bucket
+
+    def _raise_cloud_location_error(self):
+        """Raise an error indicating that the cloud location of the datafile has not yet been specified.
+
+        :raise CloudLocationNotSpecified:
+        :return None:
+        """
+        raise CloudLocationNotSpecified(
+            f"{self!r} wasn't previously loaded from the cloud so doesn't have an implicit cloud location - please "
+            f"specify its exact location (its project name and cloud path)."
+        )
 
     def check(self, size_bytes=None, sha=None, last_modified=None, extension=None):
         """Check file presence and integrity"""
