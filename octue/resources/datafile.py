@@ -99,7 +99,13 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
         self.timestamp = timestamp
         self.extension = self._get_extension_from_path()
+
         self.cloud_path = None
+        self.cloud_protocol = None
+        self.project_name = None
+        self.bucket_name = None
+        self.path_in_bucket = None
+
         self._local_path = None
         self._hypothetical = hypothetical
         self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
@@ -108,7 +114,8 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         if self.path.startswith(CLOUD_STORAGE_PROTOCOL):
             if project_name is None:
                 raise CloudLocationNotSpecified(
-                    "The `project_name` attribute is required for a cloud location to be valid; received None."
+                    f"The `project_name` parameter is required to instantiate a Datafile from a cloud object; received "
+                    f"{project_name}."
                 )
 
             self._store_cloud_location(project_name=project_name, cloud_path=path)
@@ -462,11 +469,11 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         if cloud_path:
             bucket_name, path_in_bucket = storage.path.split_bucket_name_from_gs_path(cloud_path)
 
-        try:
-            project_name = project_name or self.project_name
-            bucket_name = bucket_name or self.bucket_name
-            path_in_bucket = path_in_bucket or self.path_in_bucket
-        except AttributeError:
+        project_name = project_name or self.project_name
+        bucket_name = bucket_name or self.bucket_name
+        path_in_bucket = path_in_bucket or self.path_in_bucket
+
+        if project_name is None or bucket_name is None or path_in_bucket is None:
             self._raise_cloud_location_error()
 
         self._store_cloud_location(project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
@@ -488,7 +495,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         else:
             self.cloud_path = storage.path.generate_gs_path(bucket_name, path_in_bucket)
 
-        self.protocol = CLOUD_STORAGE_PROTOCOL
+        self.cloud_protocol = CLOUD_STORAGE_PROTOCOL
         self.project_name = project_name
         self.bucket_name = bucket_name
         self.path_in_bucket = path_in_bucket
