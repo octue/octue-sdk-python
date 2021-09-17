@@ -1,5 +1,6 @@
 import os
 import subprocess
+import time
 import unittest
 from unittest.mock import Mock, call
 
@@ -28,4 +29,5 @@ class TestRunSubprocessAndLogStdoutAndStderr(BaseTestCase):
         )
 
         self.assertEqual(process.returncode, 0)
+        time.sleep(1)
         mock_logger.info.assert_has_calls([call("hello"), call("goodbye")])
