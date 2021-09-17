@@ -585,8 +585,8 @@ class _DatafileContextManager:
     ```
 
     :param octue.resources.datafile.Datafile datafile:
-    :param str mode: open the datafile for reading/editing in this mode (the mode options are the same as for the builtin open function)
-    :param bool update_cloud_metadata: this is True, update the cloud metadata of the datafile when the context is exited
+    :param str mode: open the datafile for reading/editing in this mode (the mode options are the same as for the builtin `open` function)
+    :param bool update_cloud_metadata: if this is True, update the cloud metadata of the datafile when the context is exited
     :return None:
     """
 
@@ -598,19 +598,16 @@ class _DatafileContextManager:
         self._update_cloud_metadata = update_cloud_metadata
         self.kwargs = kwargs
         self._fp = None
-        self.path = None
 
     def __enter__(self):
         """Open the datafile, first downloading it from the cloud if necessary.
 
         :return io.TextIOWrapper:
         """
-        self.path = self.datafile.local_path
-
         if "w" in self.mode:
-            os.makedirs(os.path.split(self.path)[0], exist_ok=True)
+            os.makedirs(os.path.split(self.datafile.local_path)[0], exist_ok=True)
 
-        self._fp = open(self.path, self.mode, **self.kwargs)
+        self._fp = open(self.datafile.local_path, self.mode, **self.kwargs)
         return self._fp
 
     def __exit__(self, *args):
