@@ -1,3 +1,4 @@
+import os
 from unittest.mock import patch
 import google.api_core.exceptions
 from google.pubsub_v1 import SubscriberClient
@@ -60,13 +61,15 @@ class TestSubscription(BaseTestCase):
 
     def test_create(self):
         """Test that creating a subscription works properly."""
-        service = Service(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        project_name = os.environ["TEST_PROJECT_NAME"]
+        service = Service(backend=GCPPubSubBackend(project_name=project_name))
         topic = Topic(name="my-topic", namespace="tests", service=service)
+
         subscription = Subscription(
             name="world",
             topic=topic,
             namespace="hello",
-            project_name=TEST_PROJECT_NAME,
+            project_name=project_name,
             subscriber=SubscriberClient(credentials=service._credentials),
         )
 

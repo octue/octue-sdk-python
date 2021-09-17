@@ -10,7 +10,6 @@ import twined.exceptions
 from octue.cloud.deployment.google import cloud_run
 from octue.cloud.pub_sub.service import Service
 from octue.resources.service_backends import GCPPubSubBackend
-from tests import TEST_PROJECT_NAME
 from tests.cloud.pub_sub.mocks import MockTopic
 
 
@@ -132,7 +131,7 @@ class TestCloudRun(TestCase):
     )
     def test_cloud_run_deployment_forwards_exceptions_to_asking_service(self):
         """Test that exceptions raised in the (remote) responding service are forwarded to and raised by the asker."""
-        asker = Service(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        asker = Service(backend=GCPPubSubBackend(project_name=os.environ["TEST_PROJECT_NAME"]))
         subscription, _ = asker.ask(service_id=self.EXAMPLE_SERVICE_ID, input_values={"invalid_input_data": "hello"})
 
         with self.assertRaises(twined.exceptions.InvalidValuesContents):
@@ -146,7 +145,7 @@ class TestCloudRun(TestCase):
         """Test that the Google Cloud Run example deployment works, providing a service that can be asked questions and
         send responses.
         """
-        asker = Service(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        asker = Service(backend=GCPPubSubBackend(project_name=os.environ["TEST_PROJECT_NAME"]))
         subscription, _ = asker.ask(service_id=self.EXAMPLE_SERVICE_ID, input_values={"n_iterations": 3})
         answer = asker.wait_for_answer(subscription)
         self.assertEqual(answer, {"output_values": [1, 2, 3, 4, 5], "output_manifest": None})
