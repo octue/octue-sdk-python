@@ -327,6 +327,12 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         if not self.exists_in_cloud:
             raise CloudLocationNotSpecified("Cannot download a file that doesn't exist in the cloud.")
 
+        # Avoid downloading to a local path if the datafile has already been downloaded to it.
+        if (local_path is None and self._local_path is not None) or (
+            local_path is not None and local_path == self._local_path
+        ):
+            return self._local_path
+
         self._local_path = local_path or tempfile.NamedTemporaryFile(delete=False).name
 
         try:
