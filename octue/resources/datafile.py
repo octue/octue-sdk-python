@@ -391,15 +391,16 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         self._local_path = None
 
     def _use_cloud_metadata(self, **initialisation_parameters):
-        """Populate the datafile's attributes from the cloud location defined by its path (by necessity a cloud path)
-        and project name.
+        """Populate the datafile's attributes from the metadata of the cloud object located at its path (by necessity a
+        cloud path) and project name. If there is a conflict between the cloud metadata and a given local initialisation
+        parameter, the local value is used.
 
         :param initialisation_parameters: key-value pairs of initialisation parameter names and values (provide to check for conflicts with cloud metadata)
         :return None:
         """
         self.get_cloud_metadata()
         cloud_custom_metadata = self._cloud_metadata.get("custom_metadata", {})
-        self._check_for_attribute_conflict(cloud_custom_metadata, **initialisation_parameters)
+        self._warn_about_attribute_conflicts(cloud_custom_metadata, **initialisation_parameters)
 
         self._set_id(
             initialisation_parameters.get(
@@ -418,7 +419,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
                 ),
             )
 
-    def _check_for_attribute_conflict(self, cloud_custom_metadata, **initialisation_parameters):
+    def _warn_about_attribute_conflicts(self, cloud_custom_metadata, **initialisation_parameters):
         """Raise a warning if there is a conflict between the cloud custom metadata and the given initialisation
         parameters if the cloud value is not `None` or an empty collection.
 
