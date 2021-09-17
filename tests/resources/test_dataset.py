@@ -244,14 +244,14 @@ class DatasetTestCase(BaseTestCase):
         dataset = self.create_valid_dataset()
         self.assertEqual(len(dataset.serialise()["files"]), 2)
 
-    def test_is_in_cloud(self):
+    def test_exists_in_cloud(self):
         """Test whether all files of a dataset are in the cloud or not can be determined."""
         self.assertFalse(Dataset().all_files_are_in_cloud)
         self.assertFalse(self.create_valid_dataset().all_files_are_in_cloud)
 
         files = [
-            Datafile(path="gs://hello/file.txt", hypothetical=True),
-            Datafile(path="gs://goodbye/file.csv", hypothetical=True),
+            Datafile(path="gs://hello/file.txt", project_name="blah", hypothetical=True),
+            Datafile(path="gs://goodbye/file.csv", project_name="blah", hypothetical=True),
         ]
 
         self.assertTrue(Dataset(files=files).all_files_are_in_cloud)
@@ -388,8 +388,8 @@ class DatasetTestCase(BaseTestCase):
 
         dataset = Dataset(
             files={
-                Datafile(path=file_0_path, labels={"hello"}, tags={"a": "b"}),
-                Datafile(path=file_1_path, labels={"goodbye"}, tags={"a": "c"}),
+                Datafile(path=file_0_path, project_name=TEST_PROJECT_NAME, labels={"hello"}, tags={"a": "b"}),
+                Datafile(path=file_1_path, project_name=TEST_PROJECT_NAME, labels={"goodbye"}, tags={"a": "c"}),
             },
         )
 

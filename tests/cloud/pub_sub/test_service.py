@@ -312,8 +312,8 @@ class TestService(BaseTestCase):
         asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
 
         files = [
-            Datafile(path="gs://my-dataset/hello.txt", hypothetical=True),
-            Datafile(path="gs://my-dataset/goodbye.csv", hypothetical=True),
+            Datafile(path="gs://my-dataset/hello.txt", project_name="blah", hypothetical=True),
+            Datafile(path="gs://my-dataset/goodbye.csv", project_name="blah", hypothetical=True),
         ]
 
         input_manifest = Manifest(datasets=[Dataset(files=files)], path="gs://my-dataset", keys={"my_dataset": 0})
@@ -343,8 +343,8 @@ class TestService(BaseTestCase):
         asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
 
         files = [
-            Datafile(path="gs://my-dataset/hello.txt", hypothetical=True),
-            Datafile(path="gs://my-dataset/goodbye.csv", hypothetical=True),
+            Datafile(path="gs://my-dataset/hello.txt", project_name=TEST_PROJECT_NAME, hypothetical=True),
+            Datafile(path="gs://my-dataset/goodbye.csv", project_name=TEST_PROJECT_NAME, hypothetical=True),
         ]
 
         input_manifest = Manifest(datasets=[Dataset(files=files)], path="gs://my-dataset", keys={"my_dataset": 0})
@@ -387,7 +387,7 @@ class TestService(BaseTestCase):
             f.write("This is a local file.")
 
         local_file = Datafile(path=temporary_local_path)
-        self.assertFalse(local_file.is_in_cloud)
+        self.assertFalse(local_file.exists_in_cloud)
 
         manifest = Manifest(datasets=[Dataset(name="my-local-dataset", file=local_file)], keys={0: "my-local-dataset"})
 

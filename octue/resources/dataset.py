@@ -138,7 +138,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
         if not self.files:
             return False
 
-        return all(file.is_in_cloud for file in self.files)
+        return all(file.exists_in_cloud for file in self.files)
 
     def add(self, *args, **kwargs):
         """Add a data/results file to the manifest

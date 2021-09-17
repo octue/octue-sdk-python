@@ -19,7 +19,6 @@ from octue.utils import isfile
 module_logger = logging.getLogger(__name__)
 
 
-TEMPORARY_LOCAL_FILE_CACHE = {}
 OCTUE_METADATA_NAMESPACE = "octue"
 
 ID_DEFAULT = None
@@ -99,28 +98,46 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         )
 
         self.timestamp = timestamp
-        self.extension = self._get_extension_from_path()
+        self.extension = os.path.splitext(path)[-1].strip(".")
+
+        self.cloud_path = None
+        self.cloud_protocol = None
+        self.project_name = None
+        self.bucket_name = None
+        self.path_in_bucket = None
+
+        self._local_path = None
         self._hypothetical = hypothetical
         self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
-        self._cloud_metadata = {"project_name": project_name}
+        self._cloud_metadata = {}
 
-        if self.is_in_cloud and not self._hypothetical:
+        if self.path.startswith(CLOUD_STORAGE_PROTOCOL):
+            if project_name is None:
+                raise CloudLocationNotSpecified(
+                    f"The `project_name` parameter is required to instantiate a Datafile from a cloud object; received "
+                    f"{project_name}."
+                )
 
-            # Collect any non-`None` metadata instantiation parameters so the user can be warned if they conflict with
-            # any metadata already on the cloud object.
-            initialisation_parameters = {}
+            self._store_cloud_location(project_name=project_name, cloud_path=path)
 
-            for parameter in ("id", "timestamp", "tags", "labels"):
-                value = locals().get(parameter)
-                if value is not None:
-                    initialisation_parameters[parameter] = value
+            if not self._hypothetical:
+                # Collect any non-`None` metadata instantiation parameters so the user can be warned if they conflict
+                # with any metadata already on the cloud object.
+                initialisation_parameters = {}
 
-            self._use_cloud_metadata(**initialisation_parameters)
-            return
+                for parameter in ("id", "timestamp", "tags", "labels"):
+                    value = locals().get(parameter)
+                    if value is not None:
+                        initialisation_parameters[parameter] = value
 
-        # Run integrity checks on the file
-        if not skip_checks:
-            self.check(**kwargs)
+                self._use_cloud_metadata(**initialisation_parameters)
+
+        else:
+            self._local_path = self.absolute_path
+
+            # Run integrity checks on the file.
+            if not skip_checks:
+                self.check(**kwargs)
 
     def __enter__(self):
         self._open_context_manager = self.open(**self._open_attributes)
@@ -180,12 +197,12 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             project_name, cloud_path, bucket_name, path_in_bucket
         )
 
-        self.get_cloud_metadata(project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
+        self.get_cloud_metadata()
 
         # If the datafile's file has been changed locally, overwrite its cloud copy.
         if self._cloud_metadata.get("crc32c") != self.hash_value:
             GoogleCloudStorageClient(project_name=project_name).upload_file(
-                local_path=self.get_local_path(),
+                local_path=self.local_path,
                 bucket_name=bucket_name,
                 path_in_bucket=path_in_bucket,
                 metadata=self.metadata(),
@@ -196,51 +213,33 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             local_metadata = self.metadata()
 
             if self._cloud_metadata.get("custom_metadata") != local_metadata:
-                self.update_cloud_metadata(project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
+                self.update_cloud_metadata()
 
         return cloud_path or storage.path.generate_gs_path(bucket_name, path_in_bucket)
 
-    def get_cloud_metadata(self, project_name=None, cloud_path=None, bucket_name=None, path_in_bucket=None):
-        """Get the cloud metadata for the datafile. Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must be
-        provided.
+    def get_cloud_metadata(self):
+        """Get the cloud metadata for the datafile.
 
-        :param str|None project_name:
-        :param str|None cloud_path:
-        :param str|None bucket_name:
-        :param str|None path_in_bucket:
         :return dict:
         """
-        project_name, bucket_name, path_in_bucket = self._get_cloud_location(
-            project_name, cloud_path, bucket_name, path_in_bucket
-        )
+        if not self.cloud_path:
+            self._raise_cloud_location_error()
 
-        cloud_metadata = GoogleCloudStorageClient(project_name).get_metadata(
-            bucket_name=bucket_name, path_in_bucket=path_in_bucket
-        )
+        cloud_metadata = GoogleCloudStorageClient(self.project_name).get_metadata(cloud_path=self.cloud_path)
 
-        if cloud_metadata is None:
-            return None
+        if cloud_metadata:
+            self._cloud_metadata = cloud_metadata
 
-        self._cloud_metadata = cloud_metadata
+    def update_cloud_metadata(self):
+        """Update the cloud metadata for the datafile.
 
-    def update_cloud_metadata(self, project_name=None, cloud_path=None, bucket_name=None, path_in_bucket=None):
-        """Update the cloud metadata for the datafile. Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must be
-        provided.
-
-        :param str|None project_name:
-        :param str|None cloud_path:
-        :param str|None bucket_name:
-        :param str|None path_in_bucket:
         :return None:
         """
-        project_name, bucket_name, path_in_bucket = self._get_cloud_location(
-            project_name, cloud_path, bucket_name, path_in_bucket
-        )
+        if not self.cloud_path:
+            self._raise_cloud_location_error()
 
-        GoogleCloudStorageClient(project_name=project_name).overwrite_custom_metadata(
-            metadata=self.metadata(),
-            bucket_name=bucket_name,
-            path_in_bucket=path_in_bucket,
+        GoogleCloudStorageClient(project_name=self.project_name).overwrite_custom_metadata(
+            metadata=self.metadata(), cloud_path=self.cloud_path
         )
 
     @property
@@ -303,12 +302,20 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         return os.path.getsize(self.absolute_path)
 
     @property
-    def is_in_cloud(self):
+    def exists_in_cloud(self):
         """Does the file exist in the cloud?
 
         :return bool:
         """
-        return self.path.startswith(CLOUD_STORAGE_PROTOCOL)
+        return self.cloud_path is not None
+
+    @property
+    def exists_locally(self):
+        """Does the file exist locally?
+
+        :return bool:
+        """
+        return self._local_path is not None
 
     def download(self, local_path=None):
         """Download the file from the cloud to the given local path or a random temporary path.
@@ -317,17 +324,23 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         :raise CloudLocationNotSpecified: if the datafile does not exist in the cloud
         :return str: path to local file
         """
-        if not self.is_in_cloud:
+        if not self.exists_in_cloud:
             raise CloudLocationNotSpecified("Cannot download a file that doesn't exist in the cloud.")
 
-        if self.absolute_path in TEMPORARY_LOCAL_FILE_CACHE:
-            return TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path]
+        # Avoid downloading to a local path if the datafile has already been downloaded to it.
+        if (local_path is None and self._local_path is not None) or (
+            local_path is not None and local_path == self._local_path
+        ):
+            return self._local_path
 
-        local_path = local_path or tempfile.NamedTemporaryFile(delete=False).name
+        if local_path is not None:
+            self._local_path = os.path.abspath(local_path)
+        else:
+            self._local_path = tempfile.NamedTemporaryFile(delete=False).name
 
         try:
-            GoogleCloudStorageClient(project_name=self._cloud_metadata["project_name"]).download_to_file(
-                local_path=local_path, cloud_path=self.absolute_path
+            GoogleCloudStorageClient(project_name=self.project_name).download_to_file(
+                local_path=self._local_path, cloud_path=self.cloud_path
             )
 
         except google.api_core.exceptions.NotFound as e:
@@ -335,43 +348,66 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             if self._open_attributes["mode"] == "r":
                 raise e
 
-        TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path] = local_path
-
         # Now use hash value of local file instead of cloud file.
         self.reset_hash()
-        return local_path
+        return self._local_path
 
-    def get_local_path(self):
+    @property
+    def local_path(self):
         """Get the local path for the datafile, downloading it from the cloud to a temporary file if necessary. If
         downloaded, the local path is added to a cache to avoid downloading again in the same runtime.
-
-        :return str:
         """
-        if not self.is_in_cloud:
-            return self.absolute_path
+        if self._local_path:
+            return self._local_path
 
         return self.download()
 
-    def clear_from_file_cache(self):
-        """Clear the datafile from the temporary local file cache, if it is in there. If datafile.get_local_path is
-        called again and the datafile is a cloud datafile, the file will be re-downloaded to a new temporary local path,
-        allowing any independent cloud updates to be synced locally.
+    @local_path.setter
+    def local_path(self, path):
+        """Set the local path of the datafile to an empty path (a path not corresponding to an existing file) and
+        download the contents of the corresponding cloud file to the local path.
 
+        :param str path:
+        :raise FileExistsError: if the path corresponds to an existing file
         :return None:
         """
-        if self.absolute_path in TEMPORARY_LOCAL_FILE_CACHE:
-            del TEMPORARY_LOCAL_FILE_CACHE[self.absolute_path]
+        if os.path.exists(path):
+            raise FileExistsError(
+                "Only a path not corresponding to an existing file can be used. This is because the contents of the "
+                "existing cloud file will be downloaded to the new local path and would overwrite any existing file at "
+                "the given path."
+            )
+
+        GoogleCloudStorageClient(project_name=self.project_name).download_to_file(
+            local_path=path, cloud_path=self.cloud_path
+        )
+
+        self._local_path = os.path.abspath(path)
+
+    def reset_local_path(self):
+        """Reset the local path to `None`. If datafile.local_path is called again and the datafile is a cloud datafile,
+        the file will be re-downloaded to a new temporary local path, allowing any independent cloud updates to be
+        synced locally.
+
+        :raise exceptions.CloudLocationNotSpecified: if the datafile only exists locally
+        :return None:
+        """
+        if not self.exists_in_cloud:
+            raise CloudLocationNotSpecified("The local path cannot be reset because this datafile only exists locally.")
+
+        self._local_path = None
 
     def _use_cloud_metadata(self, **initialisation_parameters):
-        """Populate the datafile's attributes from the cloud location defined by its path (by necessity a cloud path)
-        and project name.
+        """Populate the datafile's attributes from the metadata of the cloud object located at its path (by necessity a
+        cloud path) and project name. If there is a conflict between the cloud metadata and a given local initialisation
+        parameter, the local value is used.
 
         :param initialisation_parameters: key-value pairs of initialisation parameter names and values (provide to check for conflicts with cloud metadata)
         :return None:
         """
-        self.get_cloud_metadata(project_name=self._cloud_metadata["project_name"], cloud_path=self.path)
+        self.get_cloud_metadata()
         cloud_custom_metadata = self._cloud_metadata.get("custom_metadata", {})
-        self._check_for_attribute_conflict(cloud_custom_metadata, **initialisation_parameters)
+        self._warn_about_attribute_conflicts(cloud_custom_metadata, **initialisation_parameters)
 
         self._set_id(
             initialisation_parameters.get(
@@ -390,7 +426,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
                 ),
             )
 
-    def _check_for_attribute_conflict(self, cloud_custom_metadata, **initialisation_parameters):
+    def _warn_about_attribute_conflicts(self, cloud_custom_metadata, **initialisation_parameters):
         """Raise a warning if there is a conflict between the cloud custom metadata and the given initialisation
         parameters if the cloud value is not `None` or an empty collection.
 
@@ -410,16 +446,11 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
                 f"value has been used and will overwrite the cloud value if the datafile is saved."
             )
 
-    def _get_extension_from_path(self, path=None):
-        """Gets extension of a file, either from a provided file path or from self.path field"""
-        path = path or self.path
-        return os.path.splitext(path)[-1].strip(".")
-
     def _calculate_hash(self):
         """Calculate the hash of the file."""
         hash = Checksum()
 
-        with open(self.get_local_path(), "rb") as f:
+        with open(self.local_path, "rb") as f:
             # Read and update hash value in blocks of 4K.
             for byte_block in iter(lambda: f.read(4096), b""):
                 hash.update(byte_block)
@@ -435,37 +466,53 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         :param str|None cloud_path:
         :param str|None bucket_name:
         :param str|None path_in_bucket:
-        :raise octue.exceptions.CloudLocationNotSpecified: if an exact cloud location isn't provided and isn't available
-            implicitly (i.e. the Datafile wasn't loaded from the cloud previously)
+        :raise octue.exceptions.CloudLocationNotSpecified: if an exact cloud location isn't provided and isn't available implicitly (i.e. the Datafile wasn't loaded from the cloud previously)
         :return (str, str, str):
         """
         if cloud_path:
             bucket_name, path_in_bucket = storage.path.split_bucket_name_from_gs_path(cloud_path)
 
-        try:
-            project_name = project_name or self._cloud_metadata["project_name"]
-            bucket_name = bucket_name or self._cloud_metadata["bucket_name"]
-            path_in_bucket = path_in_bucket or self._cloud_metadata["path_in_bucket"]
-        except KeyError:
-            raise CloudLocationNotSpecified(
-                f"{self!r} wasn't previously loaded from the cloud so doesn't have an implicit cloud location - please"
-                f"specify its exact location (its project_name, bucket_name, and path_in_bucket)."
-            )
+        project_name = project_name or self.project_name
+        bucket_name = bucket_name or self.bucket_name
+        path_in_bucket = path_in_bucket or self.path_in_bucket
 
-        self._store_cloud_location(project_name, bucket_name, path_in_bucket)
+        if project_name is None or bucket_name is None or path_in_bucket is None:
+            self._raise_cloud_location_error()
+
+        self._store_cloud_location(project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
         return project_name, bucket_name, path_in_bucket
 
-    def _store_cloud_location(self, project_name, bucket_name, path_in_bucket):
-        """Store the cloud location of the datafile.
+    def _store_cloud_location(self, project_name=None, cloud_path=None, bucket_name=None, path_in_bucket=None):
+        """Store the cloud location of the datafile. Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must be
+        provided.
 
-        :param str project_name:
-        :param str bucket_name:
-        :param str path_in_bucket:
+        :param str|None project_name:
+        :param str|None cloud_path:
+        :param str|None bucket_name:
+        :param str|None path_in_bucket:
         :return None:
         """
-        self._cloud_metadata["project_name"] = project_name
-        self._cloud_metadata["bucket_name"] = bucket_name
-        self._cloud_metadata["path_in_bucket"] = path_in_bucket
+        if cloud_path:
+            bucket_name, path_in_bucket = storage.path.split_bucket_name_from_gs_path(cloud_path)
+            self.cloud_path = cloud_path
+        else:
+            self.cloud_path = storage.path.generate_gs_path(bucket_name, path_in_bucket)
+
+        self.cloud_protocol = CLOUD_STORAGE_PROTOCOL
+        self.project_name = project_name
+        self.bucket_name = bucket_name
+        self.path_in_bucket = path_in_bucket
+
+    def _raise_cloud_location_error(self):
+        """Raise an error indicating that the cloud location of the datafile has not yet been specified.
+
+        :raise CloudLocationNotSpecified:
+        :return None:
+        """
+        raise CloudLocationNotSpecified(
+            f"{self!r} wasn't previously loaded from the cloud so doesn't have an implicit cloud location - please "
+            f"specify its exact location (its project name and cloud path)."
+        )
 
     def check(self, size_bytes=None, sha=None, last_modified=None, extension=None):
         """Check file presence and integrity"""
@@ -536,10 +583,8 @@ class _DatafileContextManager:
     ```
 
     :param octue.resources.datafile.Datafile datafile:
-    :param str mode: open the datafile for reading/editing in this mode (the mode options are the same as for the
-        builtin open function)
-    :param bool update_cloud_metadata: this is True, update the cloud metadata of
-        the datafile when the context is exited
+    :param str mode: open the datafile for reading/editing in this mode (the mode options are the same as for the builtin `open` function)
+    :param bool update_cloud_metadata: if this is True, update the cloud metadata of the datafile when the context is exited
     :return None:
     """
 
@@ -551,19 +596,16 @@ class _DatafileContextManager:
         self._update_cloud_metadata = update_cloud_metadata
         self.kwargs = kwargs
         self._fp = None
-        self.path = None
 
     def __enter__(self):
         """Open the datafile, first downloading it from the cloud if necessary.
 
         :return io.TextIOWrapper:
         """
-        self.path = self.datafile.get_local_path()
-
         if "w" in self.mode:
-            os.makedirs(os.path.split(self.path)[0], exist_ok=True)
+            os.makedirs(os.path.split(self.datafile.local_path)[0], exist_ok=True)
 
-        self._fp = open(self.path, self.mode, **self.kwargs)
+        self._fp = open(self.datafile.local_path, self.mode, **self.kwargs)
         return self._fp
 
     def __exit__(self, *args):
@@ -575,5 +617,5 @@ class _DatafileContextManager:
         if self._fp is not None:
             self._fp.close()
 
-        if self.datafile.is_in_cloud and any(character in self.mode for character in self.MODIFICATION_MODES):
+        if self.datafile.exists_in_cloud and any(character in self.mode for character in self.MODIFICATION_MODES):
             self.datafile.to_cloud(update_cloud_metadata=self._update_cloud_metadata)

@@ -66,7 +66,7 @@ class TemplateAppsTestCase(BaseTestCase):
         analysis.finalise(output_dir=os.path.join("data", "output"))
 
     def test_using_manifests(self):
-        """ Ensures using-manifests app works correctly. """
+        """Ensure the using-manifests template app works correctly."""
         self.set_template("template-using-manifests")
         runner = Runner(
             app_src=self.template_path,

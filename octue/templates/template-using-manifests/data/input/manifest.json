@@ -7,6 +7,7 @@
     {
       "id": "7ead4669-8162-4f64-8cd5-4abe92509e17",
       "name": "meteorological mast dataset",
+      "path": "data/input/raw_met_mast_data",
       "tags": {"location": 108346},
       "labels": ["met", "mast", "wind"],
       "files": [
