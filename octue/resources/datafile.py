@@ -319,18 +319,17 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         """
         return self._local_path is not None
 
-    @property
-    def local_path(self):
-        """Get the local path for the datafile, downloading it from the cloud to a temporary file if necessary. If
-        downloaded, the local path is added to a cache to avoid downloading again in the same runtime.
+    def download(self, local_path=None):
+        """Download the file from the cloud to the given local path or a random temporary path.
 
-        :raise octue.exceptions.FileLocationError: if the file is not located in the cloud (i.e. it is local)
-        :return str:
+        :param str|None local_path:
+        :raise CloudLocationNotSpecified: if the datafile does not exist in the cloud
+        :return str: path to local file
         """
-        if self._local_path:
-            return self._local_path
+        if not self.exists_in_cloud:
+            raise CloudLocationNotSpecified("Cannot download a file that doesn't exist in the cloud.")
 
-        self._local_path = tempfile.NamedTemporaryFile(delete=False).name
+        self._local_path = local_path or tempfile.NamedTemporaryFile(delete=False).name
 
         try:
             GoogleCloudStorageClient(project_name=self.project_name).download_to_file(
@@ -345,6 +344,16 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         # Now use hash value of local file instead of cloud file.
         self.reset_hash()
         return self._local_path
+
+    @property
+    def local_path(self):
+        """Get the local path for the datafile, downloading it from the cloud to a temporary file if necessary. If
+        downloaded, the local path is added to a cache to avoid downloading again in the same runtime.
+        """
+        if self._local_path:
+            return self._local_path
+
+        return self.download()
 
     @local_path.setter
     def local_path(self, path):

@@ -175,7 +175,7 @@ class DatafileTestCase(BaseTestCase):
         datafile = Datafile(path=storage.path.generate_gs_path(bucket_name, path_in_bucket), project_name=project_name)
 
         # Make the datafile download a copy of the cloud file locally.
-        datafile.local_path
+        datafile.download()
 
         self.assertTrue(datafile.exists_locally)
 

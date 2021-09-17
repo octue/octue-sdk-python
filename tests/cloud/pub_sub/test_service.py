@@ -1,3 +1,4 @@
+import tempfile
 import uuid
 from unittest.mock import patch
 
@@ -15,6 +16,7 @@ from tests.cloud.pub_sub.mocks import (
     MockMessagePuller,
     MockPullResponse,
     MockService,
+    MockSubscriber,
     MockSubscription,
     MockTopic,
 )
@@ -67,18 +69,27 @@ class TestService(BaseTestCase):
 
     @staticmethod
     def ask_question_and_wait_for_answer(
-        asking_service, responding_service, input_values, input_manifest, subscribe_to_logs=True
+        asking_service,
+        responding_service,
+        input_values,
+        input_manifest,
+        subscribe_to_logs=True,
+        allow_local_files=False,
+        timeout=30,
     ):
         """Get an asking service to ask a question to a responding service and wait for the answer.
 
         :param tests.cloud.pub_sub.mocks.MockService asking_service:
         :param tests.cloud.pub_sub.mocks.MockService responding_service:
-        :param dict input_values:
+        :param dict|None input_values:
         :param octue.resources.manifest.Manifest|None input_manifest:
         :param bool subscribe_to_logs:
         :return dict:
         """
-        subscription, _ = asking_service.ask(responding_service.id, input_values, input_manifest, subscribe_to_logs)
+        subscription, _ = asking_service.ask(
+            responding_service.id, input_values, input_manifest, subscribe_to_logs, allow_local_files, timeout
+        )
+
         return asking_service.wait_for_answer(subscription)
 
     def make_responding_service_with_error(self, exception_to_raise):
@@ -94,6 +105,16 @@ class TestService(BaseTestCase):
 
         responding_service.run_function = error_run_function
         return responding_service
+
+    def test_namespace_always_appears_in_id(self):
+        """Test that the Octue service namespace always appears at the start of a service's ID whether it's explicitly
+        provided or not.
+        """
+        service_with_no_namespace_in_id = Service(backend=BACKEND, service_id="hello")
+        self.assertEqual(service_with_no_namespace_in_id.id, "octue.services.hello")
+
+        service_with_namespace_in_id = Service(backend=BACKEND, service_id="octue.services.hello")
+        self.assertEqual(service_with_namespace_in_id.id, "octue.services.hello")
 
     def test_repr(self):
         """ Test that services are represented as a string correctly. """
@@ -122,7 +143,13 @@ class TestService(BaseTestCase):
         """Test that a TimeoutError is raised if no messages are received while waiting."""
         service = Service(backend=BACKEND)
         mock_topic = MockTopic(name="world", namespace="hello", service=service)
-        mock_subscription = MockSubscription(name="world", topic=mock_topic, namespace="hello", service=service)
+        mock_subscription = MockSubscription(
+            name="world",
+            topic=mock_topic,
+            namespace="hello",
+            project_name=TEST_PROJECT_NAME,
+            subscriber=MockSubscriber(),
+        )
 
         with patch("octue.cloud.pub_sub.service.pubsub_v1.SubscriberClient.pull", return_value=MockPullResponse()):
             with self.assertRaises(TimeoutError):
@@ -138,17 +165,18 @@ class TestService(BaseTestCase):
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                responding_service.serve()
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    responding_service.serve()
 
-                with self.assertRaises(twined.exceptions.InvalidManifestContents) as context:
-                    self.ask_question_and_wait_for_answer(
-                        asking_service=asking_service,
-                        responding_service=responding_service,
-                        input_values={},
-                        input_manifest=None,
-                    )
+                    with self.assertRaises(twined.exceptions.InvalidManifestContents) as context:
+                        self.ask_question_and_wait_for_answer(
+                            asking_service=asking_service,
+                            responding_service=responding_service,
+                            input_values={},
+                            input_manifest=None,
+                        )
 
-                self.assertIn("'met_mast_id' is a required property", context.exception.args[0])
+        self.assertIn("'met_mast_id' is a required property", context.exception.args[0])
 
     def test_exceptions_with_multiple_arguments_in_responder_are_handled_and_sent_to_asker(self):
         """Test that exceptions with multiple arguments raised in the responding service are handled and sent back to
@@ -161,17 +189,18 @@ class TestService(BaseTestCase):
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                responding_service.serve()
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    responding_service.serve()
 
-                with self.assertRaises(FileNotFoundError) as context:
-                    self.ask_question_and_wait_for_answer(
-                        asking_service=asking_service,
-                        responding_service=responding_service,
-                        input_values={},
-                        input_manifest=None,
-                    )
+                    with self.assertRaises(FileNotFoundError) as context:
+                        self.ask_question_and_wait_for_answer(
+                            asking_service=asking_service,
+                            responding_service=responding_service,
+                            input_values={},
+                            input_manifest=None,
+                        )
 
-                self.assertIn("[Errno 2] No such file or directory: 'blah'", format(context.exception))
+        self.assertIn("[Errno 2] No such file or directory: 'blah'", format(context.exception))
 
     def test_unknown_exceptions_in_responder_are_handled_and_sent_to_asker(self):
         """Test that exceptions not in the exceptions mapping are simply raised as `Exception`s by the asker."""
@@ -187,18 +216,19 @@ class TestService(BaseTestCase):
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                responding_service.serve()
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    responding_service.serve()
 
-                with self.assertRaises(Exception) as context:
-                    self.ask_question_and_wait_for_answer(
-                        asking_service=asking_service,
-                        responding_service=responding_service,
-                        input_values={},
-                        input_manifest=None,
-                    )
+                    with self.assertRaises(Exception) as context:
+                        self.ask_question_and_wait_for_answer(
+                            asking_service=asking_service,
+                            responding_service=responding_service,
+                            input_values={},
+                            input_manifest=None,
+                        )
 
-                self.assertEqual(type(context.exception).__name__, "AnUnknownException")
-                self.assertIn("This is an exception unknown to the asker.", context.exception.args[0])
+        self.assertEqual(type(context.exception).__name__, "AnUnknownException")
+        self.assertIn("This is an exception unknown to the asker.", context.exception.args[0])
 
     def test_ask_with_real_run_function_with_no_log_message_forwarding(self):
         """Test that a service can ask a question to another service that is serving and receive an answer. Use a real
@@ -212,15 +242,16 @@ class TestService(BaseTestCase):
         with patch("logging.StreamHandler.emit") as mock_emit:
             with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
                 with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                    responding_service.serve()
+                    with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                        responding_service.serve()
 
-                    answer = self.ask_question_and_wait_for_answer(
-                        asking_service=asking_service,
-                        responding_service=responding_service,
-                        input_values={},
-                        input_manifest=None,
-                        subscribe_to_logs=False,
-                    )
+                        answer = self.ask_question_and_wait_for_answer(
+                            asking_service=asking_service,
+                            responding_service=responding_service,
+                            input_values={},
+                            input_manifest=None,
+                            subscribe_to_logs=False,
+                        )
 
         self.assertEqual(
             answer,
@@ -241,15 +272,16 @@ class TestService(BaseTestCase):
         with patch("logging.StreamHandler.emit") as mock_emit:
             with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
                 with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                    responding_service.serve()
+                    with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                        responding_service.serve()
 
-                    answer = self.ask_question_and_wait_for_answer(
-                        asking_service=asking_service,
-                        responding_service=responding_service,
-                        input_values={},
-                        input_manifest=None,
-                        subscribe_to_logs=True,
-                    )
+                        answer = self.ask_question_and_wait_for_answer(
+                            asking_service=asking_service,
+                            responding_service=responding_service,
+                            input_values={},
+                            input_manifest=None,
+                            subscribe_to_logs=True,
+                        )
 
         self.assertEqual(
             answer,
@@ -288,14 +320,46 @@ class TestService(BaseTestCase):
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                responding_service.serve()
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    responding_service.serve()
 
-                answer = self.ask_question_and_wait_for_answer(
-                    asking_service=asking_service,
-                    responding_service=responding_service,
-                    input_values={},
-                    input_manifest=input_manifest,
-                )
+                    answer = self.ask_question_and_wait_for_answer(
+                        asking_service=asking_service,
+                        responding_service=responding_service,
+                        input_values={},
+                        input_manifest=input_manifest,
+                    )
+
+        self.assertEqual(
+            answer,
+            {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
+        )
+
+    def test_ask_with_input_manifest_and_no_input_values(self):
+        """Test that a service can ask a question including an input manifest and no input values to another service
+        that is serving and receive an answer.
+        """
+        responding_service = self.make_new_server(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
+        asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
+
+        files = [
+            Datafile(path="gs://my-dataset/hello.txt", project_name=TEST_PROJECT_NAME, hypothetical=True),
+            Datafile(path="gs://my-dataset/goodbye.csv", project_name=TEST_PROJECT_NAME, hypothetical=True),
+        ]
+
+        input_manifest = Manifest(datasets=[Dataset(files=files)], path="gs://my-dataset", keys={"my_dataset": 0})
+
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    responding_service.serve()
+
+                    answer = self.ask_question_and_wait_for_answer(
+                        asking_service=asking_service,
+                        responding_service=responding_service,
+                        input_values=None,
+                        input_manifest=input_manifest,
+                    )
 
         self.assertEqual(
             answer,
@@ -313,6 +377,43 @@ class TestService(BaseTestCase):
                 input_manifest=Manifest(),
             )
 
+    def test_ask_with_input_manifest_with_local_paths_works_if_allowed_and_child_has_access_to_the_local_paths(self):
+        """Test that an input manifest referencing local files can be used if the files can be accessed by the child and
+        the `allow_local_files` parameter is `True`.
+        """
+        temporary_local_path = tempfile.NamedTemporaryFile(delete=False).name
+
+        with open(temporary_local_path, "w") as f:
+            f.write("This is a local file.")
+
+        local_file = Datafile(path=temporary_local_path)
+        self.assertFalse(local_file.exists_in_cloud)
+
+        manifest = Manifest(datasets=[Dataset(name="my-local-dataset", file=local_file)], keys={0: "my-local-dataset"})
+
+        # Get the child to open the local file itself and return the contents as output.
+        def run_function(analysis_id, input_values, input_manifest, analysis_log_handler):
+            with open(temporary_local_path) as f:
+                return MockAnalysis(output_values=f.read())
+
+        child = MockService(backend=BACKEND, run_function=run_function)
+        parent = MockService(backend=BACKEND, children={child.id: child})
+
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    child.serve()
+
+                    answer = self.ask_question_and_wait_for_answer(
+                        asking_service=parent,
+                        responding_service=child,
+                        input_values={},
+                        input_manifest=manifest,
+                        allow_local_files=True,
+                    )
+
+        self.assertEqual(answer["output_values"], "This is a local file.")
+
     def test_ask_with_output_manifest(self):
         """ Test that a service can receive an output manifest as part of the answer to a question. """
         responding_service = self.make_new_server(
@@ -322,14 +423,15 @@ class TestService(BaseTestCase):
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                responding_service.serve()
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    responding_service.serve()
 
-                answer = self.ask_question_and_wait_for_answer(
-                    asking_service=asking_service,
-                    responding_service=responding_service,
-                    input_values={},
-                    input_manifest=None,
-                )
+                    answer = self.ask_question_and_wait_for_answer(
+                        asking_service=asking_service,
+                        responding_service=responding_service,
+                        input_values={},
+                        input_manifest=None,
+                    )
 
         self.assertEqual(answer["output_values"], MockAnalysisWithOutputManifest.output_values)
         self.assertEqual(answer["output_manifest"].id, MockAnalysisWithOutputManifest.output_manifest.id)
@@ -341,19 +443,20 @@ class TestService(BaseTestCase):
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                responding_service.serve()
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    responding_service.serve()
 
-                answers = []
+                    answers = []
 
-                for i in range(5):
-                    answers.append(
-                        self.ask_question_and_wait_for_answer(
-                            asking_service=asking_service,
-                            responding_service=responding_service,
-                            input_values={},
-                            input_manifest=None,
+                    for i in range(5):
+                        answers.append(
+                            self.ask_question_and_wait_for_answer(
+                                asking_service=asking_service,
+                                responding_service=responding_service,
+                                input_values={},
+                                input_manifest=None,
+                            )
                         )
-                    )
 
         for answer in answers:
             self.assertEqual(
@@ -375,22 +478,23 @@ class TestService(BaseTestCase):
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                responding_service_1.serve()
-                responding_service_2.serve()
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    responding_service_1.serve()
+                    responding_service_2.serve()
 
-                answer_1 = self.ask_question_and_wait_for_answer(
-                    asking_service=asking_service,
-                    responding_service=responding_service_1,
-                    input_values={},
-                    input_manifest=None,
-                )
+                    answer_1 = self.ask_question_and_wait_for_answer(
+                        asking_service=asking_service,
+                        responding_service=responding_service_1,
+                        input_values={},
+                        input_manifest=None,
+                    )
 
-                answer_2 = self.ask_question_and_wait_for_answer(
-                    asking_service=asking_service,
-                    responding_service=responding_service_2,
-                    input_values={},
-                    input_manifest=None,
-                )
+                    answer_2 = self.ask_question_and_wait_for_answer(
+                        asking_service=asking_service,
+                        responding_service=responding_service_2,
+                        input_values={},
+                        input_manifest=None,
+                    )
 
         self.assertEqual(
             answer_1,
@@ -421,28 +525,29 @@ class TestService(BaseTestCase):
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                child.serve()
-                child_of_child.serve()
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    child.serve()
+                    child_of_child.serve()
 
-                answer = self.ask_question_and_wait_for_answer(
-                    asking_service=parent,
-                    responding_service=child,
-                    input_values={"question": "What does the child of the child say?"},
-                    input_manifest=None,
-                )
+                    answer = self.ask_question_and_wait_for_answer(
+                        asking_service=parent,
+                        responding_service=child,
+                        input_values={"question": "What does the child of the child say?"},
+                        input_manifest=None,
+                    )
 
-                self.assertEqual(
-                    answer,
-                    {
-                        "output_values": {
-                            "What does the child of the child say?": {
-                                "output_values": DifferentMockAnalysis.output_values,
-                                "output_manifest": DifferentMockAnalysis.output_manifest,
-                            }
-                        },
-                        "output_manifest": None,
-                    },
-                )
+        self.assertEqual(
+            answer,
+            {
+                "output_values": {
+                    "What does the child of the child say?": {
+                        "output_values": DifferentMockAnalysis.output_values,
+                        "output_manifest": DifferentMockAnalysis.output_manifest,
+                    }
+                },
+                "output_manifest": None,
+            },
+        )
 
     def test_server_can_ask_its_own_children_questions(self):
         """Test that a child can contact more than one of its own children while answering a question from a parent."""
@@ -471,16 +576,17 @@ class TestService(BaseTestCase):
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                child.serve()
-                first_child_of_child.serve()
-                second_child_of_child.serve()
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    child.serve()
+                    first_child_of_child.serve()
+                    second_child_of_child.serve()
 
-                answer = self.ask_question_and_wait_for_answer(
-                    asking_service=parent,
-                    responding_service=child,
-                    input_values={"question": "What does the child of the child say?"},
-                    input_manifest=None,
-                )
+                    answer = self.ask_question_and_wait_for_answer(
+                        asking_service=parent,
+                        responding_service=child,
+                        input_values={"question": "What does the child of the child say?"},
+                        input_manifest=None,
+                    )
 
         self.assertEqual(
             answer,
@@ -505,7 +611,13 @@ class TestOrderedMessageHandler(BaseTestCase):
     def setUpClass(cls):
         service = MockService(backend=BACKEND)
         mock_topic = MockTopic(name="world", namespace="hello", service=service)
-        cls.mock_subscription = MockSubscription(name="world", topic=mock_topic, namespace="hello", service=service)
+        cls.mock_subscription = MockSubscription(
+            name="world",
+            topic=mock_topic,
+            namespace="hello",
+            project_name=TEST_PROJECT_NAME,
+            subscriber=MockSubscriber(),
+        )
 
     def _make_order_recording_message_handler(self, message_handling_order):
         """Make a message handler that records the order in which messages were handled to the given list.
@@ -523,6 +635,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         """Test that a TimeoutError is raised if message handling takes longer than the given timeout."""
         message_handler = OrderedMessageHandler(
             message_puller=MockMessagePuller(messages=[{"type": "test", "message_number": 0}]).pull,
+            subscriber=MockSubscriber(),
             subscription=self.mock_subscription,
             message_handlers={
                 "test": self._make_order_recording_message_handler([]),
@@ -537,6 +650,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         """Test that unknown message types result in a warning being logged."""
         message_handler = OrderedMessageHandler(
             message_puller=None,
+            subscriber=MockSubscriber(),
             subscription=self.mock_subscription,
             message_handlers={"finish-test": lambda message: message},
         )
@@ -544,7 +658,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         with patch("logging.StreamHandler.emit") as mock_emit:
             message_handler._handle_message({"type": "blah", "message_number": 0})
 
-        self.assertIn("received a message of unknown type", mock_emit.call_args_list[0][0][0].msg)
+        self.assertIn("Received a message of unknown type", mock_emit.call_args_list[0][0][0].msg)
 
     def test_in_order_messages_are_handled_in_order(self):
         """Test that messages received in order are handled in order."""
@@ -559,6 +673,7 @@ class TestOrderedMessageHandler(BaseTestCase):
 
         message_handler = OrderedMessageHandler(
             message_puller=MockMessagePuller(messages=messages).pull,
+            subscriber=MockSubscriber(),
             subscription=self.mock_subscription,
             message_handlers={
                 "test": self._make_order_recording_message_handler(message_handling_order),
@@ -583,6 +698,7 @@ class TestOrderedMessageHandler(BaseTestCase):
 
         message_handler = OrderedMessageHandler(
             message_puller=MockMessagePuller(messages=messages).pull,
+            subscriber=MockSubscriber(),
             subscription=self.mock_subscription,
             message_handlers={
                 "test": self._make_order_recording_message_handler(message_handling_order),
@@ -609,6 +725,7 @@ class TestOrderedMessageHandler(BaseTestCase):
 
         message_handler = OrderedMessageHandler(
             message_puller=MockMessagePuller(messages=messages).pull,
+            subscriber=MockSubscriber(),
             subscription=self.mock_subscription,
             message_handlers={
                 "test": self._make_order_recording_message_handler(message_handling_order),
@@ -619,3 +736,27 @@ class TestOrderedMessageHandler(BaseTestCase):
         result = message_handler.handle_messages()
         self.assertEqual(result, "This is the result.")
         self.assertEqual(message_handling_order, [0, 1, 2])
+
+    def test_no_timeout(self):
+        """Test that message handling works with no timeout."""
+        messages = [
+            {"type": "finish-test", "message_number": 2},
+            {"type": "test", "message_number": 0},
+            {"type": "test", "message_number": 1},
+        ]
+
+        message_handling_order = []
+
+        message_handler = OrderedMessageHandler(
+            message_puller=MockMessagePuller(messages=messages).pull,
+            subscriber=MockSubscriber(),
+            subscription=self.mock_subscription,
+            message_handlers={
+                "test": self._make_order_recording_message_handler(message_handling_order),
+                "finish-test": lambda message: "This is the result.",
+            },
+        )
+
+        result = message_handler.handle_messages(timeout=None)
+        self.assertEqual(result, "This is the result.")
+        self.assertEqual(message_handling_order, [0, 1])

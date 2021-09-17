@@ -193,3 +193,18 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
         :return octue.resources.datafile.DataFile:
         """
         return self.files.one(labels__contains=label)
+
+    def download_all_files(self, local_directory=None):
+        """Download all files in the dataset into the given local directory. If no path to a local directory is given,
+        the files will be downloaded to temporary locations.
+
+        :param str|None local_directory:
+        :return None:
+        """
+        for datafile in self.files:
+            if local_directory:
+                local_path = os.path.abspath(os.path.join(local_directory, datafile.name))
+            else:
+                local_path = None
+
+            datafile.download(local_path=local_path)

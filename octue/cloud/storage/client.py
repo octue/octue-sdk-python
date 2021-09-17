@@ -1,6 +1,7 @@
 import base64
 import json
 import logging
+import os
 from google.cloud import storage
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google_crc32c import Checksum
@@ -72,7 +73,7 @@ class GoogleCloudStorageClient:
         """
         blob = self._blob(cloud_path, bucket_name, path_in_bucket)
 
-        with open(local_path) as f:
+        with open(local_path, "rb") as f:
             blob.crc32c = self._compute_crc32c_checksum(f.read())
 
         blob.upload_from_filename(filename=local_path, timeout=timeout)
@@ -168,6 +169,7 @@ class GoogleCloudStorageClient:
         :return None:
         """
         blob = self._blob(cloud_path, bucket_name, path_in_bucket)
+        self._create_intermediate_local_directories(local_path)
         blob.download_to_filename(local_path, timeout=timeout)
         logger.debug("Downloaded %r from Google Cloud to %r.", blob.public_url, local_path)
 
@@ -246,13 +248,16 @@ class GoogleCloudStorageClient:
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         return bucket.blob(blob_name=self._strip_leading_slash(path_in_bucket))
 
-    def _compute_crc32c_checksum(self, string):
+    def _compute_crc32c_checksum(self, string_or_bytes):
         """Compute the CRC32 checksum of the string.
 
-        :param str string:
+        :param str|bytes string_or_bytes:
         :return str:
         """
-        checksum = Checksum(string.encode())
+        if isinstance(string_or_bytes, str):
+            string_or_bytes = string_or_bytes.encode()
+
+        checksum = Checksum(string_or_bytes)
         return base64.b64encode(checksum.digest()).decode("utf-8")
 
     def _overwrite_blob_custom_metadata(self, blob, metadata):
@@ -267,6 +272,16 @@ class GoogleCloudStorageClient:
 
         blob.metadata = self._encode_metadata(metadata)
         blob.patch()
+
+    def _create_intermediate_local_directories(self, local_path):
+        """Create intermediate directories for the given path to a local file if they don't exist.
+
+        :param str local_path:
+        :return None:
+        """
+        directory = os.path.dirname(os.path.abspath(local_path))
+        if not os.path.exists(directory):
+            os.makedirs(directory)
 
     def _encode_metadata(self, metadata):
         """Encode metadata as a dictionary of JSON strings.

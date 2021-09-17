@@ -1,7 +1,6 @@
 import json
 from logging import Handler
-
-from octue.cloud.pub_sub import create_custom_retry
+from google.api_core import retry
 
 
 class GooglePubSubHandler(Handler):
@@ -35,7 +34,7 @@ class GooglePubSubHandler(Handler):
                         "message_number": self.topic.messages_published,
                     }
                 ).encode(),
-                retry=create_custom_retry(self.timeout),
+                retry=retry.Retry(deadline=self.timeout),
             )
 
             self.topic.messages_published += 1

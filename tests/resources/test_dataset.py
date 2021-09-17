@@ -9,7 +9,7 @@ from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset
 from octue.resources.filter_containers import FilterSet
-from tests import TEST_BUCKET_NAME
+from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 
 
@@ -224,8 +224,6 @@ class DatasetTestCase(BaseTestCase):
 
         with warnings.catch_warnings(record=True) as warning:
             filtered_files = resource.get_files(name__icontains="second")
-            self.assertEqual(len(warning), 1)
-            self.assertTrue(issubclass(warning[-1].category, DeprecationWarning))
             self.assertIn("deprecated", str(warning[-1].message))
             self.assertEqual(len(filtered_files), 0)
 
@@ -281,8 +279,9 @@ class DatasetTestCase(BaseTestCase):
                 tags={"a": "b", "c": 1},
             )
 
-            project_name = "test-project"
-            dataset.to_cloud(project_name=project_name, bucket_name=TEST_BUCKET_NAME, output_directory="a_directory")
+            dataset.to_cloud(
+                project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, output_directory="a_directory"
+            )
 
             bucket_name = TEST_BUCKET_NAME
             path_to_dataset_directory = storage.path.join("a_directory", dataset.name)
@@ -298,7 +297,7 @@ class DatasetTestCase(BaseTestCase):
             ):
 
                 persisted_dataset = Dataset.from_cloud(
-                    project_name=project_name,
+                    project_name=TEST_PROJECT_NAME,
                     **location_parameters,
                 )
 
@@ -335,7 +334,6 @@ class DatasetTestCase(BaseTestCase):
                 tags={"a": "b", "c": 1},
             )
 
-            project_name = "test-project"
             bucket_name = TEST_BUCKET_NAME
             output_directory = "my_datasets"
             gs_path = storage.path.generate_gs_path(bucket_name, output_directory)
@@ -344,9 +342,9 @@ class DatasetTestCase(BaseTestCase):
                 {"bucket_name": bucket_name, "output_directory": output_directory, "cloud_path": None},
                 {"bucket_name": None, "output_directory": None, "cloud_path": gs_path},
             ):
-                dataset.to_cloud(project_name, **location_parameters)
+                dataset.to_cloud(TEST_PROJECT_NAME, **location_parameters)
 
-                storage_client = GoogleCloudStorageClient(project_name)
+                storage_client = GoogleCloudStorageClient(TEST_PROJECT_NAME)
 
                 persisted_file_0 = storage_client.download_as_string(
                     bucket_name=TEST_BUCKET_NAME,
@@ -377,3 +375,29 @@ class DatasetTestCase(BaseTestCase):
                 )
 
                 self.assertEqual(persisted_dataset["tags"], dataset.tags.serialise())
+
+    def test_download_all_files(self):
+        """Test that all files in a dataset can be downloaded with one command."""
+        storage_client = GoogleCloudStorageClient(project_name=TEST_PROJECT_NAME)
+
+        file_0_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "file_0.txt")
+        storage_client.upload_from_string(string=json.dumps([1, 2, 3]), cloud_path=file_0_path)
+
+        file_1_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "file_1.txt")
+        storage_client.upload_from_string(string=json.dumps([4, 5, 6]), cloud_path=file_1_path)
+
+        dataset = Dataset(
+            files={
+                Datafile(path=file_0_path, project_name=TEST_PROJECT_NAME, labels={"hello"}, tags={"a": "b"}),
+                Datafile(path=file_1_path, project_name=TEST_PROJECT_NAME, labels={"goodbye"}, tags={"a": "c"}),
+            },
+        )
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            dataset.download_all_files(local_directory=temporary_directory)
+
+            with open(os.path.join(temporary_directory, "file_0.txt")) as f:
+                self.assertEqual(f.read(), "[1, 2, 3]")
+
+            with open(os.path.join(temporary_directory, "file_1.txt")) as f:
+                self.assertEqual(f.read(), "[4, 5, 6]")
