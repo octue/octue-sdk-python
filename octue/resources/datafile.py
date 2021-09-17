@@ -227,10 +227,8 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
         cloud_metadata = GoogleCloudStorageClient(self.project_name).get_metadata(cloud_path=self.cloud_path)
 
-        if cloud_metadata is None:
-            return None
-
-        self._cloud_metadata = cloud_metadata
+        if cloud_metadata:
+            self._cloud_metadata = cloud_metadata
 
     def update_cloud_metadata(self):
         """Update the cloud metadata for the datafile.
