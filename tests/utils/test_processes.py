@@ -7,6 +7,7 @@ from octue.utils.processes import run_subprocess_and_log_stdout_and_stderr
 from tests.base import BaseTestCase
 
 
+@unittest.skipIf(condition=os.name == "nt", reason="See issue https://github.com/octue/octue-sdk-python/issues/229")
 class TestRunSubprocessAndLogStdoutAndStderr(BaseTestCase):
     def test_error_raised_if_process_fails(self):
         """Test that an error is raised if the process fails."""
@@ -16,9 +17,8 @@ class TestRunSubprocessAndLogStdoutAndStderr(BaseTestCase):
             run_subprocess_and_log_stdout_and_stderr(command=["blah blah blah"], logger=mock_logger, shell=True)
 
         log_message = mock_logger.info.call_args.args[0]
-        self.assertTrue("not found" in log_message or "not recognized" in log_message)
+        self.assertTrue("not found" in log_message)
 
-    @unittest.skipIf(condition=os.name == "nt", reason="See issue https://github.com/octue/octue-sdk-python/issues/229")
     def test_stdout_is_logged(self):
         """Test that any output to stdout is logged."""
         mock_logger = Mock()
