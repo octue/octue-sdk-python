@@ -716,3 +716,13 @@ class DatafileTestCase(BaseTestCase):
 
             with open(datafile.local_path) as f:
                 self.assertEqual(f.read(), "yumyum")
+
+    def test_bucket_name_and_path_in_bucket_properties(self):
+        """Test the bucket_name and path_in_bucket properties work as expected for cloud and local datafiles."""
+        datafile = Datafile(path="gs://my-bucket/directory/hello.txt", project_name="blah", hypothetical=True)
+        self.assertEqual(datafile.bucket_name, "my-bucket")
+        self.assertEqual(datafile.path_in_bucket, "directory/hello.txt")
+
+        datafile = Datafile(path="local_file.txt")
+        self.assertIsNone(datafile.bucket_name)
+        self.assertIsNone(datafile.path_in_bucket)

@@ -109,10 +109,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
         self.timestamp = timestamp
         self.extension = os.path.splitext(path)[-1].strip(".")
-
         self.project_name = project_name
-        self.bucket_name = None
-        self.path_in_bucket = None
 
         self._local_path = None
         self._cloud_path = None
@@ -213,18 +210,14 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         :param bool update_cloud_metadata: if `True`, update the metadata of the datafile in the cloud at upload time
         :return str: gs:// path for datafile
         """
-        project_name, bucket_name, path_in_bucket = self._get_cloud_location(
-            project_name, cloud_path, bucket_name, path_in_bucket
-        )
-
+        project_name, cloud_path = self._get_cloud_location(project_name, cloud_path, bucket_name, path_in_bucket)
         self.get_cloud_metadata()
 
         # If the datafile's file has been changed locally, overwrite its cloud copy.
         if self._cloud_metadata.get("crc32c") != self.hash_value:
             GoogleCloudStorageClient(project_name=project_name).upload_file(
                 local_path=self.local_path,
-                bucket_name=bucket_name,
-                path_in_bucket=path_in_bucket,
+                cloud_path=cloud_path,
                 metadata=self.metadata(),
             )
 
@@ -235,7 +228,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             if self._cloud_metadata.get("custom_metadata") != local_metadata:
                 self.update_cloud_metadata()
 
-        return cloud_path or storage.path.generate_gs_path(bucket_name, path_in_bucket)
+        return self.cloud_path
 
     def get_cloud_metadata(self):
         """Get the cloud metadata for the datafile.
@@ -303,6 +296,26 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         if not self.exists_in_cloud:
             return None
         return urlparse(self.cloud_path).scheme
+
+    @property
+    def bucket_name(self):
+        """Get the name of the bucket the datafile exists in if it exists in the cloud.
+
+        :return str|None:
+        """
+        if self.cloud_path:
+            return storage.path.split_bucket_name_from_gs_path(self.cloud_path)[0]
+        return None
+
+    @property
+    def path_in_bucket(self):
+        """Get the path of the datafile in its bucket if it exists in the cloud.
+
+        :return str|None:
+        """
+        if self.cloud_path:
+            return storage.path.split_bucket_name_from_gs_path(self.cloud_path)[1]
+        return None
 
     @property
     def timestamp(self):
@@ -517,18 +530,17 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         :raise octue.exceptions.CloudLocationNotSpecified: if an exact cloud location isn't provided and isn't available implicitly (i.e. the Datafile wasn't loaded from the cloud previously)
         :return (str, str, str):
         """
-        if cloud_path:
-            bucket_name, path_in_bucket = storage.path.split_bucket_name_from_gs_path(cloud_path)
-
         project_name = project_name or self.project_name
-        bucket_name = bucket_name or self.bucket_name
-        path_in_bucket = path_in_bucket or self.path_in_bucket
+        cloud_path = cloud_path or self.cloud_path
 
-        if project_name is None or bucket_name is None or path_in_bucket is None:
-            self._raise_cloud_location_error()
+        if not cloud_path:
+            try:
+                cloud_path = storage.path.generate_gs_path(bucket_name, path_in_bucket)
+            except (TypeError, AttributeError):
+                self._raise_cloud_location_error()
 
-        self._store_cloud_location(project_name=project_name, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
-        return project_name, bucket_name, path_in_bucket
+        self._store_cloud_location(project_name=project_name, cloud_path=cloud_path)
+        return project_name, cloud_path
 
     def _store_cloud_location(self, project_name=None, cloud_path=None, bucket_name=None, path_in_bucket=None):
         """Store the cloud location of the datafile. Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must be
@@ -540,15 +552,15 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         :param str|None path_in_bucket:
         :return None:
         """
+        self.project_name = project_name
+
         if cloud_path:
-            bucket_name, path_in_bucket = storage.path.split_bucket_name_from_gs_path(cloud_path)
             self._cloud_path = cloud_path
         else:
-            self._cloud_path = storage.path.generate_gs_path(bucket_name, path_in_bucket)
-
-        self.project_name = project_name
-        self.bucket_name = bucket_name
-        self.path_in_bucket = path_in_bucket
+            try:
+                self._cloud_path = storage.path.generate_gs_path(bucket_name, path_in_bucket)
+            except (TypeError, AttributeError):
+                self._raise_cloud_location_error()
 
     def _raise_cloud_location_error(self):
         """Raise an error indicating that the cloud location of the datafile has not yet been specified.
