@@ -143,8 +143,6 @@ class DatafileTestCase(BaseTestCase):
             "path",
             "cloud_path",
             "project_name",
-            "bucket_name",
-            "path_in_bucket",
             "timestamp",
             "tags",
             "labels",
