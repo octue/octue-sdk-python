@@ -528,7 +528,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         :param str|None bucket_name:
         :param str|None path_in_bucket:
         :raise octue.exceptions.CloudLocationNotSpecified: if an exact cloud location isn't provided and isn't available implicitly (i.e. the Datafile wasn't loaded from the cloud previously)
-        :return (str, str, str):
+        :return (str, str): project name and cloud path
         """
         project_name = project_name or self.project_name
         cloud_path = cloud_path or self.cloud_path
