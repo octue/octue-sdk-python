@@ -221,9 +221,9 @@ class GoogleCloudStorageClient:
         directory_path = self._strip_leading_slash(directory_path)
 
         if filter:
-            return (blob for blob in blobs if blob.name.startswith(directory_path) and filter(blob))
+            return (blob for blob in blobs if self._is_in_directory(blob, directory_path) and filter(blob))
 
-        return (blob for blob in blobs if blob.name.startswith(directory_path))
+        return (blob for blob in blobs if self._is_in_directory(blob, directory_path))
 
     def _strip_leading_slash(self, path):
         """Strip the leading slash from a path.
@@ -232,6 +232,15 @@ class GoogleCloudStorageClient:
         :return str:
         """
         return path.lstrip("/")
+
+    def _is_in_directory(self, blob, directory_path):
+        """Check if the given blob exists in the given directory.
+
+        :param google.cloud.storage.blob.Blob blob:
+        :param str directory_path:
+        :return bool:
+        """
+        return blob.name.startswith(directory_path) and blob.name.replace(directory_path, "").count("/") <= 1
 
     def _blob(self, cloud_path=None, bucket_name=None, path_in_bucket=None):
         """Instantiate a blob for the given bucket at the given path. Note that this is not synced up with Google Cloud.
