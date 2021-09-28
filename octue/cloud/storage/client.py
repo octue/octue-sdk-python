@@ -240,7 +240,7 @@ class GoogleCloudStorageClient:
         :param str directory_path:
         :return bool:
         """
-        return blob.name.startswith(directory_path) and blob.name.replace(directory_path, "").count("/") <= 1
+        return blob.name.startswith(directory_path) and blob.name.strip("/").replace(directory_path, "").count("/") == 1
 
     def _blob(self, cloud_path=None, bucket_name=None, path_in_bucket=None):
         """Instantiate a blob for the given bucket at the given path. Note that this is not synced up with Google Cloud.

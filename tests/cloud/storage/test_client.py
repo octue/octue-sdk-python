@@ -173,15 +173,15 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
     def test_scandir_with_cloud_path(self):
         """Test that Google Cloud storage "directories"' contents can be listed when a cloud path is used."""
-        directory_path = storage.path.join("my", "path")
-        path_in_bucket = storage.path.join(directory_path, self.FILENAME)
-        gs_path = f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}"
+        cloud_directory_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my", "path")
 
-        self.storage_client.upload_from_string(string=json.dumps({"height": 32}), cloud_path=gs_path)
-        contents = list(self.storage_client.scandir(gs_path))
+        self.storage_client.upload_from_string(
+            string=json.dumps({"height": 32}), cloud_path=storage.path.join(cloud_directory_path, self.FILENAME)
+        )
 
+        contents = list(self.storage_client.scandir(cloud_directory_path))
         self.assertEqual(len(contents), 1)
-        self.assertEqual(contents[0].name, storage.path.join(directory_path, self.FILENAME))
+        self.assertEqual(contents[0].name, "my/path/my_file.txt")
 
     def test_scandir_with_empty_directory(self):
         """Test that an empty directory shows as such."""
