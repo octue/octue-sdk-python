@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import warnings
+import google.api_core.exceptions
 
 from octue import definitions
 from octue.cloud import storage
@@ -66,26 +67,38 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
         """
         if cloud_path:
             bucket_name, path_to_dataset_directory = storage.path.split_bucket_name_from_gs_path(cloud_path)
+        else:
+            cloud_path = storage.path.generate_gs_path(bucket_name, path_to_dataset_directory)
 
-        serialised_dataset = json.loads(
-            GoogleCloudStorageClient(project_name=project_name).download_as_string(
-                bucket_name=bucket_name,
-                path_in_bucket=storage.path.join(path_to_dataset_directory, definitions.DATASET_FILENAME),
+        try:
+            serialised_dataset = json.loads(
+                GoogleCloudStorageClient(project_name=project_name).download_as_string(
+                    bucket_name=bucket_name,
+                    path_in_bucket=storage.path.join(path_to_dataset_directory, definitions.DATASET_FILENAME),
+                )
             )
-        )
+        except google.api_core.exceptions.NotFound:
+            serialised_dataset = {}
 
-        datafiles = FilterSet()
-
-        for file in serialised_dataset["files"]:
-            file_bucket_name, path = storage.path.split_bucket_name_from_gs_path(file)
-            datafiles.add(Datafile(storage.path.generate_gs_path(file_bucket_name, path), project_name=project_name))
+        if serialised_dataset:
+            datafiles = FilterSet(
+                Datafile(path=path, project_name=project_name) for path in serialised_dataset["files"]
+            )
+        else:
+            datafiles = FilterSet(
+                Datafile(
+                    path=storage.path.generate_gs_path(bucket_name, blob.name),
+                    project_name=project_name,
+                )
+                for blob in GoogleCloudStorageClient(project_name=project_name).scandir(cloud_path)
+            )
 
         return Dataset(
-            id=serialised_dataset["id"],
-            name=serialised_dataset["name"],
-            path=storage.path.generate_gs_path(bucket_name, path_to_dataset_directory),
-            tags=TagDict(serialised_dataset["tags"]),
-            labels=LabelSet(serialised_dataset["labels"]),
+            id=serialised_dataset.get("id"),
+            name=serialised_dataset.get("name"),
+            path=cloud_path,
+            tags=TagDict(serialised_dataset.get("tags", {})),
+            labels=LabelSet(serialised_dataset.get("labels", [])),
             files=datafiles,
         )
 

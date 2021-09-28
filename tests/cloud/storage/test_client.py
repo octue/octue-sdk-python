@@ -171,8 +171,8 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         self.assertEqual(len(contents), 1)
         self.assertEqual(contents[0].name, storage.path.join(directory_path, self.FILENAME))
 
-    def test_scandir_with_gs_path(self):
-        """Test that Google Cloud storage "directories"' contents can be listed when a GS path is used."""
+    def test_scandir_with_cloud_path(self):
+        """Test that Google Cloud storage "directories"' contents can be listed when a cloud path is used."""
         directory_path = storage.path.join("my", "path")
         path_in_bucket = storage.path.join(directory_path, self.FILENAME)
         gs_path = f"gs://{TEST_BUCKET_NAME}/{path_in_bucket}"
@@ -188,6 +188,27 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         directory_path = storage.path.join("another", "path")
         contents = list(self.storage_client.scandir(bucket_name=TEST_BUCKET_NAME, directory_path=directory_path))
         self.assertEqual(len(contents), 0)
+
+    def test_scandir_with_directory_of_subdirectories_ignores_subdirectories(self):
+        """Test that subdirectories of the given directory are ignored by scandir."""
+        directory_path = storage.path.join("my", "path")
+
+        self.storage_client.upload_from_string(
+            string=json.dumps({"height": 32}),
+            bucket_name=TEST_BUCKET_NAME,
+            path_in_bucket=storage.path.join(directory_path, self.FILENAME),
+        )
+
+        # Add a file in a subdirectory.
+        self.storage_client.upload_from_string(
+            string=json.dumps({"height": 32}),
+            bucket_name=TEST_BUCKET_NAME,
+            path_in_bucket=storage.path.join(directory_path, "sub_directory", "blah.txt"),
+        )
+
+        contents = list(self.storage_client.scandir(bucket_name=TEST_BUCKET_NAME, directory_path=directory_path))
+        self.assertEqual(len(contents), 1)
+        self.assertEqual(contents[0].name, storage.path.join(directory_path, self.FILENAME))
 
     def test_get_metadata(self):
         """Test that file metadata can be retrieved."""
