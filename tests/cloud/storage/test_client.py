@@ -189,8 +189,8 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         contents = list(self.storage_client.scandir(bucket_name=TEST_BUCKET_NAME, directory_path=directory_path))
         self.assertEqual(len(contents), 0)
 
-    def test_scandir_with_directory_of_subdirectories_ignores_subdirectories(self):
-        """Test that subdirectories of the given directory are ignored by scandir."""
+    def test_scandir_with_directory_of_subdirectories_includes_subdirectories_by_default(self):
+        """Test that subdirectories of the given directory are included by scandir by default."""
         directory_path = storage.path.join("my", "path")
 
         self.storage_client.upload_from_string(
@@ -207,6 +207,38 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         )
 
         contents = list(self.storage_client.scandir(bucket_name=TEST_BUCKET_NAME, directory_path=directory_path))
+        self.assertEqual(len(contents), 2)
+
+        self.assertEqual(
+            {blob.name for blob in contents},
+            {
+                storage.path.join(directory_path, self.FILENAME),
+                storage.path.join(directory_path, "sub_directory", "blah.txt"),
+            },
+        )
+
+    def test_scandir_with_directory_of_subdirectories_ignores_subdirectories_if_told_to(self):
+        """Test that subdirectories of the given directory are ignored by scandir if told to."""
+        directory_path = storage.path.join("my", "path")
+
+        self.storage_client.upload_from_string(
+            string=json.dumps({"height": 32}),
+            bucket_name=TEST_BUCKET_NAME,
+            path_in_bucket=storage.path.join(directory_path, self.FILENAME),
+        )
+
+        # Add a file in a subdirectory.
+        self.storage_client.upload_from_string(
+            string=json.dumps({"height": 32}),
+            bucket_name=TEST_BUCKET_NAME,
+            path_in_bucket=storage.path.join(directory_path, "sub_directory", "blah.txt"),
+        )
+
+        contents = list(
+            self.storage_client.scandir(
+                bucket_name=TEST_BUCKET_NAME, directory_path=directory_path, include_subdirectories=False
+            )
+        )
         self.assertEqual(len(contents), 1)
         self.assertEqual(contents[0].name, storage.path.join(directory_path, self.FILENAME))
 
