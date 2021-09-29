@@ -7,7 +7,7 @@ from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google_crc32c import Checksum
 
 from octue.cloud.credentials import GCPCredentialsManager
-from octue.cloud.storage.path import split_bucket_name_from_gs_path
+from octue.cloud.storage.path import split, split_bucket_name_from_gs_path
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 
@@ -240,7 +240,7 @@ class GoogleCloudStorageClient:
         :param str directory_path:
         :return bool:
         """
-        return blob.name.startswith(directory_path) and blob.name.strip("/").replace(directory_path, "").count("/") == 1
+        return split(blob.name)[0] == directory_path
 
     def _blob(self, cloud_path=None, bucket_name=None, path_in_bucket=None):
         """Instantiate a blob for the given bucket at the given path. Note that this is not synced up with Google Cloud.
