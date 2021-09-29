@@ -218,7 +218,7 @@ class GoogleCloudStorageClient:
         :param str|None bucket_name: name of bucket cloud directory is located in
         :param str|None directory_path: path of cloud directory to scan (e.g. `path/to/file.csv`)
         :param callable filter: blob filter to constrain the yielded results
-        :param bool include_directories: if False, subdirectories are ignored
+        :param bool include_subdirectories: if False, subdirectories are ignored
         :param float timeout: time in seconds to allow for the request to complete
         :yield google.cloud.storage.blob.Blob:
         """
