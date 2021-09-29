@@ -7,7 +7,7 @@ from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google_crc32c import Checksum
 
 from octue.cloud.credentials import GCPCredentialsManager
-from octue.cloud.storage.path import split_bucket_name_from_gs_path
+from octue.cloud.storage.path import split, split_bucket_name_from_gs_path
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 
@@ -202,7 +202,15 @@ class GoogleCloudStorageClient:
         blob.delete(timeout=timeout)
         logger.debug("Deleted %r from Google Cloud.", blob.public_url)
 
-    def scandir(self, cloud_path=None, bucket_name=None, directory_path=None, filter=None, timeout=_DEFAULT_TIMEOUT):
+    def scandir(
+        self,
+        cloud_path=None,
+        bucket_name=None,
+        directory_path=None,
+        filter=None,
+        include_subdirectories=True,
+        timeout=_DEFAULT_TIMEOUT,
+    ):
         """Yield the blobs belonging to the given "directory" in the given bucket. Either (`bucket_name` and
         `path_in_bucket`) or `cloud_path` must be provided.
 
@@ -210,6 +218,7 @@ class GoogleCloudStorageClient:
         :param str|None bucket_name: name of bucket cloud directory is located in
         :param str|None directory_path: path of cloud directory to scan (e.g. `path/to/file.csv`)
         :param callable filter: blob filter to constrain the yielded results
+        :param bool include_subdirectories: if False, subdirectories are ignored
         :param float timeout: time in seconds to allow for the request to complete
         :yield google.cloud.storage.blob.Blob:
         """
@@ -221,9 +230,13 @@ class GoogleCloudStorageClient:
         directory_path = self._strip_leading_slash(directory_path)
 
         if filter:
-            return (blob for blob in blobs if self._is_in_directory(blob, directory_path) and filter(blob))
+            return (
+                blob
+                for blob in blobs
+                if self._is_in_directory(blob, directory_path, include_subdirectories) and filter(blob)
+            )
 
-        return (blob for blob in blobs if self._is_in_directory(blob, directory_path))
+        return (blob for blob in blobs if self._is_in_directory(blob, directory_path, include_subdirectories))
 
     def _strip_leading_slash(self, path):
         """Strip the leading slash from a path.
@@ -233,14 +246,20 @@ class GoogleCloudStorageClient:
         """
         return path.lstrip("/")
 
-    def _is_in_directory(self, blob, directory_path):
+    def _is_in_directory(self, blob, directory_path, include_subdirectories=True):
         """Check if the given blob exists in the given directory.
 
         :param google.cloud.storage.blob.Blob blob:
         :param str directory_path:
+        :param bool include_subdirectories: if False, subdirectories are classed as not being in the directory
         :return bool:
         """
-        return blob.name.startswith(directory_path) and blob.name.replace(directory_path, "").count("/") <= 1
+        head = split(blob.name)[0]
+
+        if include_subdirectories:
+            return directory_path in head
+
+        return head == directory_path
 
     def _blob(self, cloud_path=None, bucket_name=None, path_in_bucket=None):
         """Instantiate a blob for the given bucket at the given path. Note that this is not synced up with Google Cloud.

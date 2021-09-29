@@ -90,7 +90,9 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
                     path=storage.path.generate_gs_path(bucket_name, blob.name),
                     project_name=project_name,
                 )
-                for blob in GoogleCloudStorageClient(project_name=project_name).scandir(cloud_path)
+                for blob in GoogleCloudStorageClient(project_name=project_name).scandir(
+                    cloud_path, include_subdirectories=False
+                )
             )
 
         return Dataset(
