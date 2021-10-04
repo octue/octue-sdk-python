@@ -189,3 +189,25 @@ class TestManifest(BaseTestCase):
                     self.assertEqual(dataset.path, f"gs://{TEST_BUCKET_NAME}/my-directory/{dataset.name}")
                     self.assertTrue(len(dataset.files), 2)
                     self.assertTrue(all(isinstance(file, Datafile) for file in dataset.files))
+
+    def test_instantiating_from_serialised_cloud_datasets_with_no_dataset_json_file(self):
+        """Test that a Manifest can be instantiated from a serialized cloud dataset with no `dataset.json` file. This
+        simulates what happens when such a cloud dataset is referred to in a manifest received by a child service.
+        """
+        GoogleCloudStorageClient(TEST_PROJECT_NAME).upload_from_string(
+            "[1, 2, 3]", bucket_name=TEST_BUCKET_NAME, path_in_bucket="my_dataset/file_0.txt"
+        )
+
+        GoogleCloudStorageClient(TEST_PROJECT_NAME).upload_from_string(
+            "[4, 5, 6]", bucket_name=TEST_BUCKET_NAME, path_in_bucket="my_dataset/file_1.txt"
+        )
+
+        serialised_cloud_dataset = Dataset.from_cloud(
+            project_name=TEST_PROJECT_NAME,
+            cloud_path=f"gs://{TEST_BUCKET_NAME}/my_dataset",
+        ).serialise()
+
+        manifest = Manifest(datasets=[serialised_cloud_dataset], keys={"my_dataset": 0})
+        self.assertEqual(len(manifest.datasets), 1)
+        self.assertEqual(manifest.datasets[0].path, f"gs://{TEST_BUCKET_NAME}/my_dataset")
+        self.assertEqual(len(manifest.datasets[0].files), 2)
