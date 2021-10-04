@@ -313,7 +313,9 @@ class DatasetTestCase(BaseTestCase):
                     self.assertEqual(file.path, f"gs://{TEST_BUCKET_NAME}/a_directory/{dataset.name}/{file.name}")
 
     def test_from_cloud_with_no_datafile_json_file(self):
-        """Test that any cloud directory can be accessed as a dataset, even if it has no `dataset.json` file in it."""
+        """Test that any cloud directory can be accessed as a dataset, even if it has no `dataset.json` file in it. Also
+        test that the cloud dataset doesn't lose any information during serialization.
+        """
         GoogleCloudStorageClient(TEST_PROJECT_NAME).upload_from_string(
             "[1, 2, 3]", bucket_name=TEST_BUCKET_NAME, path_in_bucket="my_dataset/file_0.txt"
         )
@@ -334,9 +336,12 @@ class DatasetTestCase(BaseTestCase):
         for file in cloud_dataset:
             self.assertEqual(file.path, f"gs://{TEST_BUCKET_NAME}/my_dataset/{file.name}")
 
+        # Test serialisation doesn't lose any information.
         deserialised_dataset = Dataset.deserialise(cloud_dataset.serialise())
-
-        self.assertEqual(deserialised_dataset, cloud_dataset)
+        self.assertEqual(deserialised_dataset.id, cloud_dataset.id)
+        self.assertEqual(deserialised_dataset.name, cloud_dataset.name)
+        self.assertEqual(deserialised_dataset.path, cloud_dataset.path)
+        self.assertEqual(deserialised_dataset.hash_value, cloud_dataset.hash_value)
 
     def test_to_cloud(self):
         """Test that a dataset can be uploaded to the cloud via (`bucket_name`, `output_directory`) and via `gs_path`,

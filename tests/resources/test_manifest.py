@@ -208,5 +208,6 @@ class TestManifest(BaseTestCase):
         ).serialise()
 
         manifest = Manifest(datasets=[serialised_cloud_dataset], keys={"my_dataset": 0})
+        self.assertEqual(len(manifest.datasets), 1)
         self.assertEqual(manifest.datasets[0].path, f"gs://{TEST_BUCKET_NAME}/my_dataset")
-        self.assertEqual(len(manifest.datasets[0].files), 1)
+        self.assertEqual(len(manifest.datasets[0].files), 2)
