@@ -7,7 +7,7 @@ from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google_crc32c import Checksum
 
 from octue.cloud.credentials import GCPCredentialsManager
-from octue.cloud.storage.path import split, split_bucket_name_from_gs_path
+from octue.cloud.storage.path import split_bucket_name_from_gs_path
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 
@@ -253,21 +253,6 @@ class GoogleCloudStorageClient:
         :return str:
         """
         return path.lstrip("/")
-
-    def _is_in_directory(self, blob, directory_path, include_subdirectories=True):
-        """Check if the given blob exists in the given directory.
-
-        :param google.cloud.storage.blob.Blob blob:
-        :param str directory_path:
-        :param bool include_subdirectories: if False, subdirectories are classed as not being in the directory
-        :return bool:
-        """
-        head = split(blob.name)[0]
-
-        if include_subdirectories:
-            return directory_path in head
-
-        return head == directory_path
 
     def _blob(self, cloud_path=None, bucket_name=None, path_in_bucket=None):
         """Instantiate a blob for the given bucket at the given path. Note that this is not synced up with Google Cloud.
