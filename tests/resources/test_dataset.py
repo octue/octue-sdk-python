@@ -367,19 +367,18 @@ class DatasetTestCase(BaseTestCase):
 
             bucket_name = TEST_BUCKET_NAME
             output_directory = "my_datasets"
-            gs_path = storage.path.generate_gs_path(bucket_name, output_directory)
+            cloud_path = storage.path.generate_gs_path(bucket_name, output_directory)
 
             for location_parameters in (
                 {"bucket_name": bucket_name, "output_directory": output_directory, "cloud_path": None},
-                {"bucket_name": None, "output_directory": None, "cloud_path": gs_path},
+                {"bucket_name": None, "output_directory": None, "cloud_path": cloud_path},
             ):
                 dataset.to_cloud(TEST_PROJECT_NAME, **location_parameters)
 
                 storage_client = GoogleCloudStorageClient(TEST_PROJECT_NAME)
 
                 persisted_file_0 = storage_client.download_as_string(
-                    bucket_name=TEST_BUCKET_NAME,
-                    path_in_bucket=storage.path.join(output_directory, dataset.name, "file_0.txt"),
+                    cloud_path=storage.path.join(cloud_path, dataset.name, "file_0.txt"),
                 )
 
                 self.assertEqual(persisted_file_0, "[1, 2, 3]")
