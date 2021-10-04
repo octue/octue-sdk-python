@@ -238,19 +238,13 @@ class GoogleCloudStorageClient:
         else:
             blobs = bucket.list_blobs(prefix=directory_path, delimiter="/", timeout=timeout)
 
-        # directory_path = self._strip_leading_slash(directory_path)
-
-        filtered_blobs = []
-
         for blob in blobs:
             if include_subdirectories:
                 if filter(blob):
-                    filtered_blobs.append(blob)
+                    yield blob
             else:
                 if filter(blob) and not blob.name.endswith("/"):
-                    filtered_blobs.append(blob)
-
-        return filtered_blobs
+                    yield blob
 
     def _strip_leading_slash(self, path):
         """Strip the leading slash from a path.
