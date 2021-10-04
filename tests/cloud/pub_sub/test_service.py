@@ -59,9 +59,7 @@ class TestService(BaseTestCase):
         :param bool use_mock:
         :return tests.cloud.pub_sub.mocks.MockService:
         """
-        run_function = (
-            lambda analysis_id, input_values, input_manifest, analysis_log_handler: run_function_returnee
-        )  # noqa
+        run_function = lambda analysis_id, input_values, input_manifest, analysis_log_handler: run_function_returnee
 
         if use_mock:
             return MockService(backend=backend, run_function=run_function)
