@@ -71,42 +71,38 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
             cloud_path = storage.path.generate_gs_path(bucket_name, path_to_dataset_directory)
 
         try:
-            serialised_dataset = json.loads(
+            dataset_metadata = json.loads(
                 GoogleCloudStorageClient(project_name=project_name).download_as_string(
                     bucket_name=bucket_name,
                     path_in_bucket=storage.path.join(path_to_dataset_directory, definitions.DATASET_FILENAME),
                 )
             )
+
         except google.api_core.exceptions.NotFound:
-            serialised_dataset = {}
+            dataset_metadata = {}
 
-        if serialised_dataset:
-            datafiles = FilterSet(
-                Datafile(path=path, project_name=project_name) for path in serialised_dataset["files"]
-            )
-        else:
-            datafiles = FilterSet(
-                Datafile(
-                    path=storage.path.generate_gs_path(bucket_name, blob.name),
-                    project_name=project_name,
-                )
-                for blob in GoogleCloudStorageClient(project_name=project_name).scandir(
-                    cloud_path, include_subdirectories=False
-                )
+        if dataset_metadata:
+            return Dataset(
+                id=dataset_metadata.get("id"),
+                name=dataset_metadata.get("name"),
+                path=cloud_path,
+                tags=TagDict(dataset_metadata.get("tags", {})),
+                labels=LabelSet(dataset_metadata.get("labels", [])),
+                files=[Datafile(path=path, project_name=project_name) for path in dataset_metadata["files"]],
             )
 
-        dataset = Dataset(
-            id=serialised_dataset.get("id"),
-            name=serialised_dataset.get("name"),
-            path=cloud_path,
-            tags=TagDict(serialised_dataset.get("tags", {})),
-            labels=LabelSet(serialised_dataset.get("labels", [])),
-            files=datafiles,
+        datafiles = FilterSet(
+            Datafile(
+                path=storage.path.generate_gs_path(bucket_name, blob.name),
+                project_name=project_name,
+            )
+            for blob in GoogleCloudStorageClient(project_name=project_name).scandir(
+                cloud_path, include_subdirectories=False
+            )
         )
 
-        if not serialised_dataset:
-            dataset._upload_metadata_file(project_name, cloud_path)
-
+        dataset = Dataset(path=cloud_path, files=datafiles)
+        dataset._upload_metadata_file(project_name, cloud_path)
         return dataset
 
     def to_cloud(self, project_name, cloud_path=None, bucket_name=None, output_directory=None):
