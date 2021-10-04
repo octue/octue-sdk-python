@@ -222,21 +222,35 @@ class GoogleCloudStorageClient:
         :param float timeout: time in seconds to allow for the request to complete
         :yield google.cloud.storage.blob.Blob:
         """
+        if filter is None:
+            filter = lambda blob: True
+
         if cloud_path:
             bucket_name, directory_path = split_bucket_name_from_gs_path(cloud_path)
 
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
-        blobs = bucket.list_blobs(timeout=timeout)
-        directory_path = self._strip_leading_slash(directory_path)
 
-        if filter:
-            return (
-                blob
-                for blob in blobs
-                if self._is_in_directory(blob, directory_path, include_subdirectories) and filter(blob)
-            )
+        if not directory_path.endswith("/"):
+            directory_path += "/"
 
-        return (blob for blob in blobs if self._is_in_directory(blob, directory_path, include_subdirectories))
+        if include_subdirectories:
+            blobs = bucket.list_blobs(prefix=directory_path, timeout=timeout)
+        else:
+            blobs = bucket.list_blobs(prefix=directory_path, delimiter="/", timeout=timeout)
+
+        # directory_path = self._strip_leading_slash(directory_path)
+
+        filtered_blobs = []
+
+        for blob in blobs:
+            if include_subdirectories:
+                if filter(blob):
+                    filtered_blobs.append(blob)
+            else:
+                if filter(blob) and not blob.name.endswith("/"):
+                    filtered_blobs.append(blob)
+
+        return filtered_blobs
 
     def _strip_leading_slash(self, path):
         """Strip the leading slash from a path.
