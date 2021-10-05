@@ -242,7 +242,7 @@ class DatasetTestCase(BaseTestCase):
     def test_serialise(self):
         """Test that a dataset can be serialised."""
         dataset = self.create_valid_dataset()
-        self.assertEqual(len(dataset.serialise()["files"]), 2)
+        self.assertEqual(len(dataset.to_primitive()["files"]), 2)
 
     def test_exists_in_cloud(self):
         """Test whether all files of a dataset are in the cloud or not can be determined."""
@@ -339,7 +339,7 @@ class DatasetTestCase(BaseTestCase):
             self.assertEqual(file.path, f"gs://{TEST_BUCKET_NAME}/my_dataset/{file.name}")
 
         # Test serialisation doesn't lose any information.
-        deserialised_dataset = Dataset.deserialise(cloud_dataset.serialise())
+        deserialised_dataset = Dataset.deserialise(cloud_dataset.to_primitive())
         self.assertEqual(deserialised_dataset.id, cloud_dataset.id)
         self.assertEqual(deserialised_dataset.name, cloud_dataset.name)
         self.assertEqual(deserialised_dataset.path, cloud_dataset.path)
@@ -429,7 +429,7 @@ class DatasetTestCase(BaseTestCase):
                     ],
                 )
 
-                self.assertEqual(persisted_dataset["tags"], dataset.tags.serialise())
+                self.assertEqual(persisted_dataset["tags"], dataset.tags.to_primitive())
 
     def test_download_all_files(self):
         """Test that all files in a dataset can be downloaded with one command."""

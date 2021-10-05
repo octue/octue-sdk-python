@@ -44,15 +44,9 @@ class TagDict(Serialisable, UserDict):
                     f"must not start with '_'."
                 )
 
-    def serialise(self, to_string=False, **kwargs):
-        """Serialise a TagDict to a JSON dictionary or string.
+    def serialise(self, **kwargs):
+        """Serialise a TagDict to a JSON string.
 
-        :param bool to_string:
-        :return str|dict:
+        :return str:
         """
-        string = json.dumps(self.data, cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
-
-        if to_string:
-            return string
-
-        return json.loads(string)
+        return json.dumps(self.data, cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)

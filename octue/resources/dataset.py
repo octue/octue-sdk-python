@@ -218,7 +218,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
         :param str cloud_path:
         :return None:
         """
-        serialised_dataset = self.serialise()
+        serialised_dataset = self.to_primitive()
         serialised_dataset["files"] = sorted(datafile.cloud_path for datafile in self.files)
         del serialised_dataset["path"]
 

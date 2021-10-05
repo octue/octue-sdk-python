@@ -136,7 +136,7 @@ class Service(CoolNameable):
             if analysis.output_manifest is None:
                 serialised_output_manifest = None
             else:
-                serialised_output_manifest = analysis.output_manifest.serialise(to_string=True)
+                serialised_output_manifest = analysis.output_manifest.serialise()
 
             self.publisher.publish(
                 topic=topic.path,
@@ -239,7 +239,7 @@ class Service(CoolNameable):
         response_subscription.create(allow_existing=False)
 
         if input_manifest is not None:
-            input_manifest = input_manifest.serialise(to_string=True)
+            input_manifest = input_manifest.serialise()
 
         self.publisher.publish(
             topic=question_topic.path,
