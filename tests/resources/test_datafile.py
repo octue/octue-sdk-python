@@ -724,3 +724,22 @@ class DatafileTestCase(BaseTestCase):
         datafile = Datafile(path="local_file.txt")
         self.assertIsNone(datafile.bucket_name)
         self.assertIsNone(datafile.path_in_bucket)
+
+    def test_datafiles_with_space_in_name_can_be_uploaded_downloaded_serialized_and_deserialized(self):
+        """Test that a datafile with a space in its name can be uploaded, downloaded, serialized, and deserialized."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            local_path = os.path.join(temporary_directory, "name with spaces.txt")
+
+            with open(local_path, "w") as f:
+                f.write("blah")
+
+            datafile = Datafile(path=local_path)
+
+            serialized_datafile = datafile.serialise()
+            deserialized_datafile = Datafile.deserialise(serialized_datafile)
+            self.assertEqual(deserialized_datafile.name, "name with spaces.txt")
+
+            datafile.to_cloud(project_name="blah", cloud_path=f"gs://{TEST_BUCKET_NAME}/name with spaces.txt")
+
+        downloaded_datafile = Datafile(project_name="blah", path=f"gs://{TEST_BUCKET_NAME}/name with spaces.txt")
+        self.assertEqual(downloaded_datafile.name, "name with spaces.txt")
