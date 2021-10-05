@@ -33,7 +33,26 @@ class Serialisable:
         return cls(**serialised_object)
 
     def serialise(self, **kwargs):
-        """Serialise to a JSON string of primitives. See `Serialisable.to_primitive` for more information.
+        """Serialise to a JSON string of primitives. By default, only public attributes are included. If the class
+        variable `_SERIALISE_FIELDS` is specified, then only these exact attributes are included (these can include
+        non-public attributes); conversely, if `_EXCLUDE_SERIALISE_FIELDS` is specified and `_SERIALISE_FIELDS` is not,
+        then all public attributes are included apart from the excluded ones. By default, the conversion is carried out
+        using the `OctueJSONEncoder`, which will sort keys as well as format and indent automatically. Additional
+        keyword arguments will be passed to ``json.dumps()`` to enable full override of formatting options.
+
+        For example:
+        ```
+        class MyThing(Serialisable):
+            _SERIALISE_FIELDS = ("a",)
+            def __init__(self):
+                self.a = 1
+                self.b = 2
+                self._private = 3
+                self.__protected = 4
+
+        MyThing().to_primitive()
+        {"a": 1}
+        ```
 
         :return str: JSON string containing a serialised primitive version of the resource
         """
@@ -65,28 +84,9 @@ class Serialisable:
         #  way as we validate incoming.
         return json.dumps(self_as_primitive, cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
 
-    def to_primitive(self, **kwargs):
-        """Convert the instance into a JSON-compatible python dictionary of its attributes as primitives. By default,
-        only public attributes are included. If the class variable `_SERIALISE_FIELDS` is specified, then only these
-        exact attributes are included (these can include non-public attributes); conversely, if
-        `_EXCLUDE_SERIALISE_FIELDS` is specified and `_SERIALISE_FIELDS` is not, then all public attributes are
-        included apart from the excluded ones. By default, the conversion is carried out using the `OctueJSONEncoder`,
-        which will sort keys as well as format and indent automatically. Additional keyword arguments will be passed to
-        ``json.dumps()`` to enable full override of formatting options.
-
-        For example:
-        ```
-        class MyThing(Serialisable):
-            _SERIALISE_FIELDS = ("a",)
-            def __init__(self):
-                self.a = 1
-                self.b = 2
-                self._private = 3
-                self.__protected = 4
-
-        MyThing().to_primitive()
-        {"a": 1}
-        ```
+    def to_primitive(self):
+        """Convert the instance into a JSON-compatible python dictionary of its attributes as primitives. The same rules
+        as described in `serialise` apply.
 
         :return dict:
         """
