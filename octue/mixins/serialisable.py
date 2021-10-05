@@ -33,13 +33,13 @@ class Serialisable:
         return cls(**serialised_object)
 
     def serialise(self, **kwargs):
-        """Serialise to a JSON string of primitives. See `Serialisable.to_primitive` for more information.
+        """Serialise to a JSON string of primitives. See `Serialisable.to_primitives` for more information.
 
         :return str: JSON string containing a serialised primitive version of the resource
         """
-        return json.dumps(self.to_primitive(), cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
+        return json.dumps(self.to_primitives(), cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
 
-    def to_primitive(self, **kwargs):
+    def to_primitives(self, **kwargs):
         """Convert the instance into a JSON-compatible python dictionary of its attributes as primitives. By default,
         only public attributes are included. If the class variable `_SERIALISE_FIELDS` is specified, then only these
         exact attributes are included (these can include non-public attributes); conversely, if
@@ -58,7 +58,7 @@ class Serialisable:
                 self._private = 3
                 self.__protected = 4
 
-        MyThing().to_primitive()
+        MyThing().to_primitives()
         {"a": 1}
         ```
 

@@ -135,7 +135,7 @@ class DatafileTestCase(BaseTestCase):
 
     def test_serialisable(self):
         """Ensure datafiles can be serialised to JSON."""
-        serialised_datafile = self.create_valid_datafile().to_primitive()
+        serialised_datafile = self.create_valid_datafile().to_primitives()
 
         expected_fields = {
             "id",
@@ -442,7 +442,7 @@ class DatafileTestCase(BaseTestCase):
             temporary_file.write("hello")
 
         datafile = Datafile(path=temporary_file.name)
-        serialised_datafile = datafile.to_primitive()
+        serialised_datafile = datafile.to_primitives()
         deserialised_datafile = Datafile.deserialise(serialised_datafile)
 
         self.assertEqual(datafile.id, deserialised_datafile.id)
@@ -459,7 +459,7 @@ class DatafileTestCase(BaseTestCase):
 
         filename = os.path.split(temporary_file.name)[-1]
         datafile = Datafile(path=filename)
-        serialised_datafile = datafile.to_primitive()
+        serialised_datafile = datafile.to_primitives()
 
         pathable = Pathable(path=os.path.join(os.sep, "an", "absolute", "path"))
         deserialised_datafile = Datafile.deserialise(serialised_datafile, path_from=pathable)
@@ -475,7 +475,7 @@ class DatafileTestCase(BaseTestCase):
             temporary_file.write("hello")
 
         datafile = Datafile(path=temporary_file.name)
-        serialised_datafile = datafile.to_primitive()
+        serialised_datafile = datafile.to_primitives()
 
         pathable = Pathable(path=os.path.join(os.sep, "an", "absolute", "path"))
         deserialised_datafile = Datafile.deserialise(serialised_datafile, path_from=pathable)
@@ -735,7 +735,7 @@ class DatafileTestCase(BaseTestCase):
 
             datafile = Datafile(path=local_path)
 
-            serialized_datafile = datafile.to_primitive()
+            serialized_datafile = datafile.to_primitives()
             deserialized_datafile = Datafile.deserialise(serialized_datafile)
             self.assertEqual(deserialized_datafile.name, "name with spaces.txt")
 

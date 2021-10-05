@@ -38,7 +38,7 @@ class SerialisableTestCase(BaseTestCase):
     def test_returns_primitive_without_logger_or_protected_fields(self):
         """Ensures class instantiates with a UUID()"""
         resource = Inherit()
-        serialised = resource.to_primitive()
+        serialised = resource.to_primitives()
         self.assertTrue("id" in serialised.keys())
         self.assertTrue("field_to_serialise" in serialised.keys())
         self.assertFalse("logger" in serialised.keys())
@@ -47,7 +47,7 @@ class SerialisableTestCase(BaseTestCase):
     def test_serialise_only_attrs(self):
         """Restricts the id field, which would normally be serialised"""
         resource = InheritWithFieldsToSerialise()
-        serialised = resource.to_primitive()
+        serialised = resource.to_primitives()
         self.assertFalse("id" in serialised.keys())
         self.assertTrue("field_to_serialise" in serialised.keys())
         self.assertFalse("logger" in serialised.keys())
