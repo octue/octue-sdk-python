@@ -7,8 +7,10 @@ FOLDER_DEFAULTS = {
 
 VALUES_FILENAME = "values.json"
 MANIFEST_FILENAME = "manifest.json"
-DATASET_FILENAME = "dataset.json"
 CHILDREN_FILENAME = "children.json"
+
+# Default JSON filenames for storing metadata about non-file objects in the cloud.
+DATASET_METADATA_FILENAME = "dataset_metadata.json"
 
 STRAND_FILENAME_MAP = {
     "configuration_values": VALUES_FILENAME,

@@ -71,38 +71,39 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
             cloud_path = storage.path.generate_gs_path(bucket_name, path_to_dataset_directory)
 
         try:
-            serialised_dataset = json.loads(
+            dataset_metadata = json.loads(
                 GoogleCloudStorageClient(project_name=project_name).download_as_string(
                     bucket_name=bucket_name,
-                    path_in_bucket=storage.path.join(path_to_dataset_directory, definitions.DATASET_FILENAME),
+                    path_in_bucket=storage.path.join(path_to_dataset_directory, definitions.DATASET_METADATA_FILENAME),
                 )
             )
+
         except google.api_core.exceptions.NotFound:
-            serialised_dataset = {}
+            dataset_metadata = {}
 
-        if serialised_dataset:
-            datafiles = FilterSet(
-                Datafile(path=path, project_name=project_name) for path in serialised_dataset["files"]
-            )
-        else:
-            datafiles = FilterSet(
-                Datafile(
-                    path=storage.path.generate_gs_path(bucket_name, blob.name),
-                    project_name=project_name,
-                )
-                for blob in GoogleCloudStorageClient(project_name=project_name).scandir(
-                    cloud_path, include_subdirectories=False
-                )
+        if dataset_metadata:
+            return Dataset(
+                id=dataset_metadata.get("id"),
+                name=dataset_metadata.get("name"),
+                path=cloud_path,
+                tags=TagDict(dataset_metadata.get("tags", {})),
+                labels=LabelSet(dataset_metadata.get("labels", [])),
+                files=[Datafile(path=path, project_name=project_name) for path in dataset_metadata["files"]],
             )
 
-        return Dataset(
-            id=serialised_dataset.get("id"),
-            name=serialised_dataset.get("name"),
-            path=cloud_path,
-            tags=TagDict(serialised_dataset.get("tags", {})),
-            labels=LabelSet(serialised_dataset.get("labels", [])),
-            files=datafiles,
+        datafiles = FilterSet(
+            Datafile(
+                path=storage.path.generate_gs_path(bucket_name, blob.name),
+                project_name=project_name,
+            )
+            for blob in GoogleCloudStorageClient(project_name=project_name).scandir(
+                cloud_path, include_subdirectories=False
+            )
         )
+
+        dataset = Dataset(path=cloud_path, files=datafiles)
+        dataset._upload_metadata_file(project_name, cloud_path)
+        return dataset
 
     def to_cloud(self, project_name, cloud_path=None, bucket_name=None, output_directory=None):
         """Upload a dataset to a cloud location. Either (`bucket_name` and `output_directory`) or `cloud_path` must be
@@ -114,31 +115,17 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
         :param str|None output_directory: path to output directory in cloud storage (e.g. `path/to/dataset`)
         :return str: cloud path for dataset
         """
-        if cloud_path:
-            bucket_name, output_directory = storage.path.split_bucket_name_from_gs_path(cloud_path)
-
-        files = []
+        if not cloud_path:
+            cloud_path = storage.path.generate_gs_path(bucket_name, output_directory, self.name)
 
         for datafile in self.files:
-            datafile_path = datafile.to_cloud(
+            datafile.to_cloud(
                 project_name,
-                bucket_name=bucket_name,
-                path_in_bucket=storage.path.join(output_directory, self.name, datafile.name),
+                cloud_path=storage.path.join(cloud_path, datafile.name),
             )
 
-            files.append(datafile_path)
-
-        serialised_dataset = self.serialise()
-        serialised_dataset["files"] = sorted(files)
-        del serialised_dataset["path"]
-
-        GoogleCloudStorageClient(project_name=project_name).upload_from_string(
-            string=json.dumps(serialised_dataset),
-            bucket_name=bucket_name,
-            path_in_bucket=storage.path.join(output_directory, self.name, definitions.DATASET_FILENAME),
-        )
-
-        return cloud_path or storage.path.generate_gs_path(bucket_name, output_directory, self.name)
+        self._upload_metadata_file(project_name, cloud_path)
+        return cloud_path
 
     @property
     def name(self):
@@ -223,3 +210,19 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
                 local_path = None
 
             datafile.download(local_path=local_path)
+
+    def _upload_metadata_file(self, project_name, cloud_path):
+        """Upload a metadata file representing the dataset to the given cloud location.
+
+        :param str project_name:
+        :param str cloud_path:
+        :return None:
+        """
+        serialised_dataset = self.serialise()
+        serialised_dataset["files"] = sorted(datafile.cloud_path for datafile in self.files)
+        del serialised_dataset["path"]
+
+        GoogleCloudStorageClient(project_name=project_name).upload_from_string(
+            string=json.dumps(serialised_dataset),
+            cloud_path=storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME),
+        )
