@@ -114,7 +114,7 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
             else:
                 datasets.append(dataset.absolute_path)
 
-        serialised_manifest = self.serialise()
+        serialised_manifest = self.to_primitive()
         serialised_manifest["datasets"] = sorted(datasets)
         del serialised_manifest["path"]
 

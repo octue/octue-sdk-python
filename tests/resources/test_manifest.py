@@ -40,7 +40,7 @@ class TestManifest(BaseTestCase):
     def test_deserialise(self):
         """Test that manifests can be deserialised."""
         manifest = self.create_valid_manifest()
-        serialised_manifest = manifest.serialise()
+        serialised_manifest = manifest.to_primitive()
         deserialised_manifest = Manifest.deserialise(serialised_manifest)
 
         self.assertEqual(manifest.name, deserialised_manifest.name)
@@ -205,7 +205,7 @@ class TestManifest(BaseTestCase):
         serialised_cloud_dataset = Dataset.from_cloud(
             project_name=TEST_PROJECT_NAME,
             cloud_path=f"gs://{TEST_BUCKET_NAME}/my_dataset",
-        ).serialise()
+        ).to_primitive()
 
         manifest = Manifest(datasets=[serialised_cloud_dataset], keys={"my_dataset": 0})
         self.assertEqual(len(manifest.datasets), 1)

@@ -32,46 +32,35 @@ class Serialisable:
 
         return cls(**serialised_object)
 
-    def serialise(self, to_string=False, **kwargs):
-        """Serialise into a primitive dict or JSON string.
+    def serialise(self, **kwargs):
+        """Serialise to a JSON string of primitives. See `Serialisable.to_primitive` for more information.
 
-        Serialises all non-private and non-protected attributes except for 'logger', unless the subclass has a
-        `_serialise_fields` tuple of the attribute names to serialise. For example:
+        :return str: JSON string containing a serialised primitive version of the resource
+        """
+        return json.dumps(self.to_primitive(), cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
+
+    def to_primitive(self, **kwargs):
+        """Convert the instance into a JSON-compatible python dictionary of its attributes as primitives. By default,
+        only public attributes are included. If the class variable `_SERIALISE_FIELDS` is specified, then only these
+        exact attributes are included (these can include non-public attributes); conversely, if
+        `_EXCLUDE_SERIALISE_FIELDS` is specified and `_SERIALISE_FIELDS` is not, then all public attributes are
+        included apart from the excluded ones. By default, the conversion is carried out using the `OctueJSONEncoder`,
+        which will sort keys as well as format and indent automatically. Additional keyword arguments will be passed to
+        ``json.dumps()`` to enable full override of formatting options.
+
+        For example:
         ```
         class MyThing(Serialisable):
-            _serialise_fields = ("a",)
+            _SERIALISE_FIELDS = ("a",)
             def __init__(self):
                 self.a = 1
                 self.b = 2
+                self._private = 3
+                self.__protected = 4
 
-        MyThing().serialise()
+        MyThing().to_primitive()
         {"a": 1}
         ```
-
-        By default, serialises using the OctueJSONEncoder, and will sort keys as well as format and indent
-        automatically. Additional keyword arguments will be passed to ``json.dumps()`` to enable full override
-        of formatting options
-
-        :return: json string or dict containing a serialised/primitive version of the resource.
-        :rtype: str, dict
-        """
-        # TODO this conversion backward-and-forward is very inefficient but allows us to use the same encoder for
-        #  converting the object to a dict as to strings, which ensures that nested attributes are also cast to
-        #  primitive using their serialise() method. A more performant method would be to implement an encoder which
-        #  returns python primitives, not strings. The reason we do this is to validate outbound information the same
-        #  way as we validate incoming.
-        string = json.dumps(self.to_primitive(), cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
-
-        if to_string:
-            return string
-
-        return json.loads(string, cls=OctueJSONDecoder)
-
-    def to_primitive(self):
-        """Convert the instance into a JSON-compatible primitive python dictionary of its attributes. By default, only
-        public attributes are included. If the class variable `_SERIALISE_FIELDS` is specified, then only these exact
-        attributes are included; conversely, if `_EXCLUDE_SERIALISE_FIELDS` is specified and `_SERIALISE_FIELDS` is
-        not, then all public attributes are included apart from the excluded ones.
 
         :return dict:
         """
@@ -96,13 +85,19 @@ class Serialisable:
             else:
                 self_as_primitive[name] = attribute
 
-        return self_as_primitive
+        # TODO this backward-and-forward conversion is very inefficient but allows us to use the same encoder for
+        #  converting the object to a dict as to strings, which ensures that nested attributes are also cast to
+        #  primitives using their `serialise` method. A more performant method would be to implement an encoder which
+        #  returns python primitives, not strings. The reason we do this is to validate outbound information the same
+        #  way as we validate incoming.
+        string = json.dumps(self_as_primitive, cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
+        return json.loads(string, cls=OctueJSONDecoder)
 
-    def to_file(self, file_name, **kwargs):
+    def to_file(self, filename, **kwargs):
         """Write the object to a JSON file.
 
-        :parameter str file_name: file to write to, including relative or absolute path and .json extension
+        :param str filename: path of file to write to, including relative or absolute path and .json extension
         :return None:
         """
-        with open(file_name, "w") as fp:
-            fp.write(self.serialise(**kwargs, to_string=True))
+        with open(filename, "w") as f:
+            f.write(self.serialise(**kwargs))
