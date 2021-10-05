@@ -65,8 +65,12 @@ class TestFilterSet(BaseTestCase):
             filterables.one(a__equals=3)
 
     def test_one(self):
-        """Test that the `one` method works and returns one result."""
+        """Test that the `one` method returns one result without mutating its `FilterContainer` instance."""
         filterables = FilterSet({FilterableThing(a=3, b=2), FilterableThing(a=3, b=99), FilterableThing(a=77)})
+        self.assertEqual(filterables.one(a__equals=77), FilterableThing(a=77))
+
+        # Test that `one` doesn't mutate the `FilterContainer` instance (i.e. `one` can be called again on the same
+        # instance and give the same result).
         self.assertEqual(filterables.one(a__equals=77), FilterableThing(a=77))
 
     def test_one_with_no_filter(self):

@@ -89,6 +89,7 @@ class FilterContainer(ABC):
         """
         results = self.filter(**kwargs)
 
+        # If no filters are given, results will be `None`.
         if results is None:
             self._raise_if_not_exactly_one_item(self, **kwargs)
             return next(iter(self))
@@ -175,6 +176,7 @@ class FilterDict(FilterContainer, UserDict):
         """
         results = self.filter(**kwargs)
 
+        # If no filters are given, results will be `None`.
         if results is None:
             self._raise_if_not_exactly_one_item(self, **kwargs)
             return next(iter(self.items()))
