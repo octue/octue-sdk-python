@@ -32,15 +32,6 @@ class Serialisable:
 
         return cls(**serialised_object)
 
-    def to_file(self, file_name, **kwargs):
-        """Write the object to a JSON file.
-
-        :parameter str file_name: file to write to, including relative or absolute path and .json extension
-        :return None:
-        """
-        with open(file_name, "w") as fp:
-            fp.write(self.serialise(**kwargs, to_string=True))
-
     def serialise(self, to_string=False, **kwargs):
         """Serialise into a primitive dict or JSON string.
 
@@ -64,7 +55,26 @@ class Serialisable:
         :return: json string or dict containing a serialised/primitive version of the resource.
         :rtype: str, dict
         """
-        # Get all non-private and non-protected attributes except those excluded specifically
+        # TODO this conversion backward-and-forward is very inefficient but allows us to use the same encoder for
+        #  converting the object to a dict as to strings, which ensures that nested attributes are also cast to
+        #  primitive using their serialise() method. A more performant method would be to implement an encoder which
+        #  returns python primitives, not strings. The reason we do this is to validate outbound information the same
+        #  way as we validate incoming.
+        string = json.dumps(self.to_primitive(), cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
+
+        if to_string:
+            return string
+
+        return json.loads(string, cls=OctueJSONDecoder)
+
+    def to_primitive(self):
+        """Convert the instance into a JSON-compatible primitive python dictionary of its attributes. By default, only
+        public attributes are included. If the class variable `_SERIALISE_FIELDS` is specified, then only these exact
+        attributes are included; conversely, if `_EXCLUDE_SERIALISE_FIELDS` is specified and `_SERIALISE_FIELDS` is
+        not, then all public attributes are included apart from the excluded ones.
+
+        :return dict:
+        """
         names_of_attributes_to_serialise = self._SERIALISE_FIELDS or (
             field_name
             for field_name in dir(self)
@@ -76,6 +86,7 @@ class Serialisable:
         )
 
         self_as_primitive = {}
+
         for name in names_of_attributes_to_serialise:
             attribute = getattr(self, name, None)
 
@@ -85,14 +96,13 @@ class Serialisable:
             else:
                 self_as_primitive[name] = attribute
 
-        # TODO this conversion backward-and-forward is very inefficient but allows us to use the same encoder for
-        #  converting the object to a dict as to strings, which ensures that nested attributes are also cast to
-        #  primitive using their serialise() method. A more performant method would be to implement an encoder which
-        #  returns python primitives, not strings. The reason we do this is to validate outbound information the same
-        #  way as we validate incoming.
-        string = json.dumps(self_as_primitive, cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
+        return self_as_primitive
 
-        if to_string:
-            return string
+    def to_file(self, file_name, **kwargs):
+        """Write the object to a JSON file.
 
-        return json.loads(string, cls=OctueJSONDecoder)
+        :parameter str file_name: file to write to, including relative or absolute path and .json extension
+        :return None:
+        """
+        with open(file_name, "w") as fp:
+            fp.write(self.serialise(**kwargs, to_string=True))
