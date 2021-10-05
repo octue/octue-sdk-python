@@ -65,9 +65,19 @@ class TestFilterSet(BaseTestCase):
             filterables.one(a__equals=3)
 
     def test_one(self):
-        """Test that the `one` method works and returns one result."""
+        """Test that the `one` method returns one result without mutating its `FilterContainer` instance."""
         filterables = FilterSet({FilterableThing(a=3, b=2), FilterableThing(a=3, b=99), FilterableThing(a=77)})
         self.assertEqual(filterables.one(a__equals=77), FilterableThing(a=77))
+
+        # Test that `one` doesn't mutate the `FilterContainer` instance (i.e. `one` can be called again on the same
+        # instance and give the same result).
+        self.assertEqual(filterables.one(a__equals=77), FilterableThing(a=77))
+
+    def test_one_with_no_filter(self):
+        """Test that the `one` method can be used with no filters on a FilterSet with only one item to return that item."""
+        filterable_thing = FilterableThing(a=3, b=2)
+        filterables = FilterSet({filterable_thing})
+        self.assertEqual(filterables.one(), filterable_thing)
 
     def test_ordering_by_a_non_existent_attribute(self):
         """ Ensure an error is raised if ordering is attempted by a non-existent attribute. """
@@ -240,6 +250,12 @@ class TestFilterDict(BaseTestCase):
     def test_one(self):
         """Test that the `one` method works and returns one result."""
         self.assertEqual(self.ANIMALS.one(age__equals=91), ("another_dog", self.ANIMALS["another_dog"]))
+
+    def test_one_with_no_filter(self):
+        """Test that the `one` method can be used with no filters on a FilterDict with only one item to return that item."""
+        filterable_thing = FilterableThing(a=3, b=2)
+        filterables = FilterDict({"my_thing": filterable_thing})
+        self.assertEqual(filterables.one(), ("my_thing", filterable_thing))
 
     def test_ordering_by_a_non_existent_attribute(self):
         """Ensure an error is raised if ordering is attempted by a non-existent attribute."""
