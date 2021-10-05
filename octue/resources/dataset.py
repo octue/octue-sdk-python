@@ -127,22 +127,6 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
         self._upload_metadata_file(project_name, cloud_path)
         return cloud_path
 
-    def _upload_metadata_file(self, project_name, cloud_path):
-        """Upload a metadata file representing the dataset to the given cloud location.
-
-        :param str project_name:
-        :param str cloud_path:
-        :return None:
-        """
-        serialised_dataset = self.serialise()
-        serialised_dataset["files"] = sorted(datafile.cloud_path for datafile in self.files)
-        del serialised_dataset["path"]
-
-        GoogleCloudStorageClient(project_name=project_name).upload_from_string(
-            string=json.dumps(serialised_dataset),
-            cloud_path=storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME),
-        )
-
     @property
     def name(self):
         return self._name or os.path.split(os.path.abspath(os.path.split(self.path)[-1]))[-1]
@@ -226,3 +210,19 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
                 local_path = None
 
             datafile.download(local_path=local_path)
+
+    def _upload_metadata_file(self, project_name, cloud_path):
+        """Upload a metadata file representing the dataset to the given cloud location.
+
+        :param str project_name:
+        :param str cloud_path:
+        :return None:
+        """
+        serialised_dataset = self.serialise()
+        serialised_dataset["files"] = sorted(datafile.cloud_path for datafile in self.files)
+        del serialised_dataset["path"]
+
+        GoogleCloudStorageClient(project_name=project_name).upload_from_string(
+            string=json.dumps(serialised_dataset),
+            cloud_path=storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME),
+        )
