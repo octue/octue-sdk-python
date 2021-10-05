@@ -348,7 +348,7 @@ class DatasetTestCase(BaseTestCase):
         # Test dataset metadata file has been uploaded.
         dataset_metadata = json.loads(
             cloud_storage_client.download_as_string(
-                cloud_path=storage.path.join(cloud_dataset.path, definitions.DATASET_FILENAME)
+                cloud_path=storage.path.join(cloud_dataset.path, definitions.DATASET_METADATA_FILENAME)
             )
         )
         del dataset_metadata["id"]
@@ -415,7 +415,9 @@ class DatasetTestCase(BaseTestCase):
                 persisted_dataset = json.loads(
                     storage_client.download_as_string(
                         bucket_name=TEST_BUCKET_NAME,
-                        path_in_bucket=storage.path.join(output_directory, dataset.name, "dataset.json"),
+                        path_in_bucket=storage.path.join(
+                            output_directory, dataset.name, definitions.DATASET_METADATA_FILENAME
+                        ),
                     )
                 )
 

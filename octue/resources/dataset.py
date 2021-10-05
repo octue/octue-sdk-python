@@ -74,7 +74,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
             dataset_metadata = json.loads(
                 GoogleCloudStorageClient(project_name=project_name).download_as_string(
                     bucket_name=bucket_name,
-                    path_in_bucket=storage.path.join(path_to_dataset_directory, definitions.DATASET_FILENAME),
+                    path_in_bucket=storage.path.join(path_to_dataset_directory, definitions.DATASET_METADATA_FILENAME),
                 )
             )
 
@@ -140,7 +140,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
 
         GoogleCloudStorageClient(project_name=project_name).upload_from_string(
             string=json.dumps(serialised_dataset),
-            cloud_path=storage.path.join(cloud_path, definitions.DATASET_FILENAME),
+            cloud_path=storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME),
         )
 
     @property
