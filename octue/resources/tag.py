@@ -44,7 +44,7 @@ class TagDict(Serialisable, UserDict):
                     f"must not start with '_'."
                 )
 
-    def to_primitives(self, **kwargs):
+    def to_primitive(self, **kwargs):
         """Serialise a TagDict to a JSON dictionary or string.
 
         :param bool to_string:

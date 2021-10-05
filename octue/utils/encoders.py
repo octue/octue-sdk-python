@@ -5,13 +5,13 @@ from twined.utils import TwinedEncoder
 
 
 class OctueJSONEncoder(TwinedEncoder):
-    """A JSON Encoder which allows objects having a `to_primitives` method to control their own conversion to primitives."""
+    """A JSON Encoder which allows objects having a `to_primitive` method to control their own conversion to primitives."""
 
     def default(self, obj):
 
-        # If the class defines a `to_primitives` method, use it.
-        if hasattr(obj, "to_primitives"):
-            return obj.to_primitives()
+        # If the class defines a `to_primitive` method, use it.
+        if hasattr(obj, "to_primitive"):
+            return obj.to_primitive()
 
         # Convert sets to sorted lists (JSON doesn't support sets).
         if isinstance(obj, set):
