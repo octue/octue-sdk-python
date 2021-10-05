@@ -37,7 +37,7 @@ class Serialisable:
 
         :return str: JSON string containing a serialised primitive version of the resource
         """
-        return json.dumps(self.to_primitive(), cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
+        return json.dumps(self.to_primitive(**kwargs), cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
 
     def to_primitive(self, **kwargs):
         """Convert the instance into a JSON-compatible python dictionary of its attributes as primitives. By default,
