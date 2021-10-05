@@ -89,16 +89,26 @@ class FilterContainer(ABC):
         """
         results = self.filter(**kwargs)
 
-        if len(results) > 1:
+        if results is None:
+            self._raise_if_not_exactly_one_item(self, **kwargs)
+            return next(iter(self))
+
+        self._raise_if_not_exactly_one_item(results, **kwargs)
+        return results.pop()
+
+    def _raise_if_not_exactly_one_item(self, iterable, **kwargs):
+        """Raise an error if the given iterable doesn't have exactly one item.
+
+        :param iter iterable:
+        :param kwargs: key-value pairs of filters used to produce the iterable (to add information to the error message)
+        :raise octue.exceptions.UnexpectedNumberOfResultsException: if the iterable doesn't have exactly one item
+        :return None:
+        """
+        if len(iterable) > 1:
             raise exceptions.UnexpectedNumberOfResultsException(f"More than one result found for filters {kwargs}.")
 
-        if len(results) == 0:
+        if len(iterable) == 0:
             raise exceptions.UnexpectedNumberOfResultsException(f"No results found for filters {kwargs}.")
-
-        if isinstance(self, UserDict):
-            return results.popitem()
-
-        return results.pop()
 
 
 class FilterSet(FilterContainer, set):
@@ -155,3 +165,19 @@ class FilterDict(FilterContainer, UserDict):
             raise exceptions.InvalidInputException(
                 f"An attribute named {attribute_name!r} does not exist on one or more members of {self!r}."
             )
+
+    def one(self, **kwargs):
+        """If a single item exists for the given filters, return it. Otherwise, raise an error.
+
+        :param {str: any} kwargs: keyword arguments whose keys are the name of the filter and whose values are the values to filter for
+        :raise octue.exceptions.UnexpectedNumberOfResultsException: if zero or more than one results satisfy the filters
+        :return (any, octue.resources.mixins.filterable.Filterable):
+        """
+        results = self.filter(**kwargs)
+
+        if results is None:
+            self._raise_if_not_exactly_one_item(self, **kwargs)
+            return next(iter(self.items()))
+
+        self._raise_if_not_exactly_one_item(results, **kwargs)
+        return results.popitem()
