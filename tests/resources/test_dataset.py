@@ -371,31 +371,31 @@ class DatasetTestCase(BaseTestCase):
         cloud_storage_client = GoogleCloudStorageClient(TEST_PROJECT_NAME)
 
         cloud_storage_client.upload_from_string(
-            "[1, 2, 3]", bucket_name=TEST_BUCKET_NAME, path_in_bucket="my_dataset/file_0.txt"
+            "[1, 2, 3]", bucket_name=TEST_BUCKET_NAME, path_in_bucket="a_dataset/file_0.txt"
         )
 
         cloud_storage_client.upload_from_string(
-            "[4, 5, 6]", bucket_name=TEST_BUCKET_NAME, path_in_bucket="my_dataset/file_1.txt"
+            "[4, 5, 6]", bucket_name=TEST_BUCKET_NAME, path_in_bucket="a_dataset/file_1.txt"
         )
 
         cloud_storage_client.upload_from_string(
-            "['a', 'b', 'c']", bucket_name=TEST_BUCKET_NAME, path_in_bucket="my_dataset/sub-directory/sub_file.txt"
+            "['a', 'b', 'c']", bucket_name=TEST_BUCKET_NAME, path_in_bucket="a_dataset/sub-directory/sub_file.txt"
         )
 
         cloud_storage_client.upload_from_string(
             "['blah', 'b', 'c']",
             bucket_name=TEST_BUCKET_NAME,
-            path_in_bucket="my_dataset/sub-directory/sub-sub-directory/sub_sub_file.txt",
+            path_in_bucket="a_dataset/sub-directory/sub-sub-directory/sub_sub_file.txt",
         )
 
         cloud_dataset = Dataset.from_cloud(
             project_name=TEST_PROJECT_NAME,
-            cloud_path=f"gs://{TEST_BUCKET_NAME}/my_dataset",
+            cloud_path=f"gs://{TEST_BUCKET_NAME}/a_dataset",
             include_subdirectories=True,
         )
 
-        self.assertEqual(cloud_dataset.path, f"gs://{TEST_BUCKET_NAME}/my_dataset")
-        self.assertEqual(cloud_dataset.name, "my_dataset")
+        self.assertEqual(cloud_dataset.path, f"gs://{TEST_BUCKET_NAME}/a_dataset")
+        self.assertEqual(cloud_dataset.name, "a_dataset")
         self.assertEqual(
             {file.name for file in cloud_dataset.files},
             {"file_0.txt", "file_1.txt", "sub_file.txt", "sub_sub_file.txt"},
@@ -412,10 +412,10 @@ class DatasetTestCase(BaseTestCase):
         self.assertEqual(
             set(dataset_metadata["files"]),
             {
-                "gs://octue-test-bucket/my_dataset/file_0.txt",
-                "gs://octue-test-bucket/my_dataset/file_1.txt",
-                "gs://octue-test-bucket/my_dataset/sub-directory/sub_file.txt",
-                "gs://octue-test-bucket/my_dataset/sub-directory/sub-sub-directory/sub_sub_file.txt",
+                "gs://octue-test-bucket/a_dataset/file_0.txt",
+                "gs://octue-test-bucket/a_dataset/file_1.txt",
+                "gs://octue-test-bucket/a_dataset/sub-directory/sub_file.txt",
+                "gs://octue-test-bucket/a_dataset/sub-directory/sub-sub-directory/sub_sub_file.txt",
             },
         )
 
