@@ -13,7 +13,28 @@ from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 
 
-class DatasetTestCase(BaseTestCase):
+class TestDataset(BaseTestCase):
+    def _create_nested_cloud_dataset(self, dataset_name="a_dataset"):
+        cloud_storage_client = GoogleCloudStorageClient(TEST_PROJECT_NAME)
+
+        cloud_storage_client.upload_from_string(
+            "[1, 2, 3]", bucket_name=TEST_BUCKET_NAME, path_in_bucket=f"{dataset_name}/file_0.txt"
+        )
+
+        cloud_storage_client.upload_from_string(
+            "[4, 5, 6]", bucket_name=TEST_BUCKET_NAME, path_in_bucket=f"{dataset_name}/file_1.txt"
+        )
+
+        cloud_storage_client.upload_from_string(
+            "['a', 'b', 'c']", bucket_name=TEST_BUCKET_NAME, path_in_bucket=f"{dataset_name}/sub-directory/sub_file.txt"
+        )
+
+        cloud_storage_client.upload_from_string(
+            "['blah', 'b', 'c']",
+            bucket_name=TEST_BUCKET_NAME,
+            path_in_bucket=f"{dataset_name}/sub-directory/sub-sub-directory/sub_sub_file.txt",
+        )
+
     def test_instantiates_with_no_args(self):
         """Ensures a Datafile instantiates using only a path and generates a uuid ID"""
         Dataset()
@@ -368,25 +389,7 @@ class DatasetTestCase(BaseTestCase):
 
     def test_from_cloud_with_nested_dataset_and_no_datafile_json_file(self):
         """Test that a nested dataset is loaded from the cloud correctly."""
-        cloud_storage_client = GoogleCloudStorageClient(TEST_PROJECT_NAME)
-
-        cloud_storage_client.upload_from_string(
-            "[1, 2, 3]", bucket_name=TEST_BUCKET_NAME, path_in_bucket="a_dataset/file_0.txt"
-        )
-
-        cloud_storage_client.upload_from_string(
-            "[4, 5, 6]", bucket_name=TEST_BUCKET_NAME, path_in_bucket="a_dataset/file_1.txt"
-        )
-
-        cloud_storage_client.upload_from_string(
-            "['a', 'b', 'c']", bucket_name=TEST_BUCKET_NAME, path_in_bucket="a_dataset/sub-directory/sub_file.txt"
-        )
-
-        cloud_storage_client.upload_from_string(
-            "['blah', 'b', 'c']",
-            bucket_name=TEST_BUCKET_NAME,
-            path_in_bucket="a_dataset/sub-directory/sub-sub-directory/sub_sub_file.txt",
-        )
+        self._create_nested_cloud_dataset()
 
         cloud_dataset = Dataset.from_cloud(
             project_name=TEST_PROJECT_NAME,
@@ -403,7 +406,7 @@ class DatasetTestCase(BaseTestCase):
 
         # Test dataset metadata file has been uploaded.
         dataset_metadata = json.loads(
-            cloud_storage_client.download_as_string(
+            GoogleCloudStorageClient(TEST_PROJECT_NAME).download_as_string(
                 cloud_path=storage.path.join(cloud_dataset.path, definitions.DATASET_METADATA_FILENAME)
             )
         )
@@ -509,3 +512,28 @@ class DatasetTestCase(BaseTestCase):
 
             with open(os.path.join(temporary_directory, "file_1.txt")) as f:
                 self.assertEqual(f.read(), "[4, 5, 6]")
+
+    def test_download_all_files_from_recursive_dataset(self):
+        """Test that all files in a nested dataset can be downloaded with one command."""
+        self._create_nested_cloud_dataset("nested_dataset")
+
+        dataset = Dataset.from_cloud(
+            project_name=TEST_PROJECT_NAME,
+            cloud_path=f"gs://{TEST_BUCKET_NAME}/nested_dataset",
+            recursive=True,
+        )
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            dataset.download_all_files(local_directory=temporary_directory)
+
+            with open(os.path.join(temporary_directory, "file_0.txt")) as f:
+                self.assertEqual(f.read(), "[1, 2, 3]")
+
+            with open(os.path.join(temporary_directory, "file_1.txt")) as f:
+                self.assertEqual(f.read(), "[4, 5, 6]")
+
+            with open(os.path.join(temporary_directory, "sub-directory", "sub_file.txt")) as f:
+                self.assertEqual(f.read(), "['a', 'b', 'c']")
+
+            with open(os.path.join(temporary_directory, "sub-directory", "sub-sub-directory", "sub_sub_file.txt")) as f:
+                self.assertEqual(f.read(), "['blah', 'b', 'c']")
