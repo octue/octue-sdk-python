@@ -2,6 +2,7 @@ import os
 import subprocess
 import unittest
 import uuid
+import warnings
 from tempfile import TemporaryDirectory, gettempdir
 
 from octue.cloud.emulators import GoogleCloudStorageEmulatorTestResultModifier
@@ -28,6 +29,11 @@ class BaseTestCase(unittest.TestCase):
         root_dir = os.path.dirname(os.path.abspath(__file__))
         self.data_path = os.path.join(root_dir, "data")
         self.templates_path = os.path.join(os.path.dirname(root_dir), "octue", "templates")
+
+        # Make unittest ignore excess ResourceWarnings so tests' console outputs are clearer. This has to be done even
+        # if these warnings are ignored elsewhere as unittest forces warnings to be displayed by default.
+        warnings.simplefilter("ignore", category=ResourceWarning)
+
         super().setUp()
 
     def callCli(self, args):
