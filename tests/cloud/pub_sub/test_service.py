@@ -291,10 +291,10 @@ class TestService(BaseTestCase):
         finish_remote_analysis_message_present = False
 
         for i, call_arg in enumerate(mock_emit.call_args_list):
-            if call_arg[0][0].msg == "[REMOTE] Starting analysis.":
+            if call_arg[0][0].msg == "Starting analysis.":
                 start_remote_analysis_message_present = True
 
-                if mock_emit.call_args_list[i + 1][0][0].msg == "[REMOTE] Finished analysis.":
+                if mock_emit.call_args_list[i + 1][0][0].msg == "Finished analysis.":
                     finish_remote_analysis_message_present = True
 
                 break

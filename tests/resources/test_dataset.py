@@ -366,6 +366,59 @@ class DatasetTestCase(BaseTestCase):
             },
         )
 
+    def test_from_cloud_with_nested_dataset_and_no_datafile_json_file(self):
+        """Test that a nested dataset is loaded from the cloud correctly."""
+        cloud_storage_client = GoogleCloudStorageClient(TEST_PROJECT_NAME)
+
+        cloud_storage_client.upload_from_string(
+            "[1, 2, 3]", bucket_name=TEST_BUCKET_NAME, path_in_bucket="a_dataset/file_0.txt"
+        )
+
+        cloud_storage_client.upload_from_string(
+            "[4, 5, 6]", bucket_name=TEST_BUCKET_NAME, path_in_bucket="a_dataset/file_1.txt"
+        )
+
+        cloud_storage_client.upload_from_string(
+            "['a', 'b', 'c']", bucket_name=TEST_BUCKET_NAME, path_in_bucket="a_dataset/sub-directory/sub_file.txt"
+        )
+
+        cloud_storage_client.upload_from_string(
+            "['blah', 'b', 'c']",
+            bucket_name=TEST_BUCKET_NAME,
+            path_in_bucket="a_dataset/sub-directory/sub-sub-directory/sub_sub_file.txt",
+        )
+
+        cloud_dataset = Dataset.from_cloud(
+            project_name=TEST_PROJECT_NAME,
+            cloud_path=f"gs://{TEST_BUCKET_NAME}/a_dataset",
+            include_subdirectories=True,
+        )
+
+        self.assertEqual(cloud_dataset.path, f"gs://{TEST_BUCKET_NAME}/a_dataset")
+        self.assertEqual(cloud_dataset.name, "a_dataset")
+        self.assertEqual(
+            {file.name for file in cloud_dataset.files},
+            {"file_0.txt", "file_1.txt", "sub_file.txt", "sub_sub_file.txt"},
+        )
+
+        # Test dataset metadata file has been uploaded.
+        dataset_metadata = json.loads(
+            cloud_storage_client.download_as_string(
+                cloud_path=storage.path.join(cloud_dataset.path, definitions.DATASET_METADATA_FILENAME)
+            )
+        )
+        del dataset_metadata["id"]
+
+        self.assertEqual(
+            set(dataset_metadata["files"]),
+            {
+                "gs://octue-test-bucket/a_dataset/file_0.txt",
+                "gs://octue-test-bucket/a_dataset/file_1.txt",
+                "gs://octue-test-bucket/a_dataset/sub-directory/sub_file.txt",
+                "gs://octue-test-bucket/a_dataset/sub-directory/sub-sub-directory/sub_sub_file.txt",
+            },
+        )
+
     def test_to_cloud(self):
         """Test that a dataset can be uploaded to the cloud via (`bucket_name`, `output_directory`) and via `gs_path`,
         including all its files and a serialised JSON file of the Datafile instance.
