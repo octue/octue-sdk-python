@@ -391,7 +391,7 @@ class DatasetTestCase(BaseTestCase):
         cloud_dataset = Dataset.from_cloud(
             project_name=TEST_PROJECT_NAME,
             cloud_path=f"gs://{TEST_BUCKET_NAME}/a_dataset",
-            include_subdirectories=True,
+            recursive=True,
         )
 
         self.assertEqual(cloud_dataset.path, f"gs://{TEST_BUCKET_NAME}/a_dataset")
