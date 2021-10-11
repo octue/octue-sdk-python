@@ -491,17 +491,16 @@ class TestDataset(BaseTestCase):
         """Test that all files in a dataset can be downloaded with one command."""
         storage_client = GoogleCloudStorageClient(project_name=TEST_PROJECT_NAME)
 
-        file_0_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "file_0.txt")
-        storage_client.upload_from_string(string=json.dumps([1, 2, 3]), cloud_path=file_0_path)
+        dataset_name = "another-dataset"
+        storage_client.upload_from_string(
+            string=json.dumps([1, 2, 3]), bucket_name=TEST_BUCKET_NAME, path_in_bucket=f"{dataset_name}/file_0.txt"
+        )
+        storage_client.upload_from_string(
+            string=json.dumps([4, 5, 6]), bucket_name=TEST_BUCKET_NAME, path_in_bucket=f"{dataset_name}/file_1.txt"
+        )
 
-        file_1_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "file_1.txt")
-        storage_client.upload_from_string(string=json.dumps([4, 5, 6]), cloud_path=file_1_path)
-
-        dataset = Dataset(
-            files={
-                Datafile(path=file_0_path, project_name=TEST_PROJECT_NAME, labels={"hello"}, tags={"a": "b"}),
-                Datafile(path=file_1_path, project_name=TEST_PROJECT_NAME, labels={"goodbye"}, tags={"a": "c"}),
-            },
+        dataset = Dataset.from_cloud(
+            project_name=TEST_PROJECT_NAME, cloud_path=f"gs://{TEST_BUCKET_NAME}/{dataset_name}"
         )
 
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -513,7 +512,7 @@ class TestDataset(BaseTestCase):
             with open(os.path.join(temporary_directory, "file_1.txt")) as f:
                 self.assertEqual(f.read(), "[4, 5, 6]")
 
-    def test_download_all_files_from_recursive_dataset(self):
+    def test_download_all_files_from_nested_dataset(self):
         """Test that all files in a nested dataset can be downloaded with one command."""
         self._create_nested_cloud_dataset("nested_dataset")
 
