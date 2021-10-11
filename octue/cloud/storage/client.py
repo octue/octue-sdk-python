@@ -208,7 +208,8 @@ class GoogleCloudStorageClient:
         bucket_name=None,
         directory_path=None,
         filter=None,
-        include_subdirectories=True,
+        recursive=True,
+        show_directories_as_blobs=False,
         timeout=_DEFAULT_TIMEOUT,
     ):
         """Yield the blobs belonging to the given "directory" in the given bucket. Either (`bucket_name` and
@@ -218,7 +219,8 @@ class GoogleCloudStorageClient:
         :param str|None bucket_name: name of bucket cloud directory is located in
         :param str|None directory_path: path of cloud directory to scan (e.g. `path/to/file.csv`)
         :param callable filter: blob filter to constrain the yielded results
-        :param bool include_subdirectories: if False, subdirectories are ignored
+        :param bool recursive: if True, include all files in the tree below the given cloud directory
+        :param bool show_directories_as_blobs: if False, do not show directories as blobs (this doesn't affect inclusion of their contained files if `recursive` is True)
         :param float timeout: time in seconds to allow for the request to complete
         :yield google.cloud.storage.blob.Blob:
         """
@@ -233,16 +235,18 @@ class GoogleCloudStorageClient:
         if not directory_path.endswith("/"):
             directory_path += "/"
 
-        if include_subdirectories:
+        if recursive:
             blobs = bucket.list_blobs(prefix=directory_path, timeout=timeout)
         else:
             blobs = bucket.list_blobs(prefix=directory_path, delimiter="/", timeout=timeout)
 
         for blob in blobs:
-            if include_subdirectories:
+            if show_directories_as_blobs:
                 if filter(blob):
                     yield blob
+
             else:
+                # Ensure the blob is a file (not a directory blob).
                 if filter(blob) and not blob.name.endswith("/"):
                     yield blob
 

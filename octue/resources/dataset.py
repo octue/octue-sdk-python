@@ -105,7 +105,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
                 project_name=project_name,
             )
             for blob in GoogleCloudStorageClient(project_name=project_name).scandir(
-                cloud_path, include_subdirectories=include_subdirectories
+                cloud_path, recursive=include_subdirectories
             )
         )
 
