@@ -61,7 +61,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
         cloud_path=None,
         bucket_name=None,
         path_to_dataset_directory=None,
-        include_subdirectories=False,
+        recursive=False,
     ):
         """Instantiate a Dataset from Google Cloud storage. Either (`bucket_name` and `path_to_dataset_directory`) or
         `cloud_path` must be provided.
@@ -70,7 +70,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
         :param str|None cloud_path: full path to dataset in cloud storage (e.g. `gs://bucket_name/path/to/dataset`)
         :param str|None bucket_name: name of bucket dataset is stored in
         :param str|None path_to_dataset_directory: path to dataset directory (containing dataset's files) in cloud (e.g. `path/to/dataset`)
-        :param bool include_subdirectories: if `True`, include in the dataset all files in the subdirectories recursively contained in the dataset directory
+        :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained in the dataset directory
         :return Dataset:
         """
         if cloud_path:
@@ -104,9 +104,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
                 path=storage.path.generate_gs_path(bucket_name, blob.name),
                 project_name=project_name,
             )
-            for blob in GoogleCloudStorageClient(project_name=project_name).scandir(
-                cloud_path, include_subdirectories=include_subdirectories
-            )
+            for blob in GoogleCloudStorageClient(project_name=project_name).scandir(cloud_path, recursive=recursive)
         )
 
         dataset = Dataset(path=cloud_path, files=datafiles)
@@ -213,7 +211,8 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
         """
         for datafile in self.files:
             if local_directory:
-                local_path = os.path.abspath(os.path.join(local_directory, datafile.name))
+                path_relative_to_dataset = datafile.cloud_path.split(self.name + "/")[1]
+                local_path = os.path.abspath(os.path.join(local_directory, *path_relative_to_dataset.split("/")))
             else:
                 local_path = None
 

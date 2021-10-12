@@ -235,9 +235,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         )
 
         contents = list(
-            self.storage_client.scandir(
-                bucket_name=TEST_BUCKET_NAME, directory_path=directory_path, include_subdirectories=False
-            )
+            self.storage_client.scandir(bucket_name=TEST_BUCKET_NAME, directory_path=directory_path, recursive=False)
         )
         self.assertEqual(len(contents), 1)
         self.assertEqual(contents[0].name, storage.path.join(directory_path, self.FILENAME))
