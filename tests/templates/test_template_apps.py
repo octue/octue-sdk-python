@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import unittest
 import uuid
 
 from octue import Runner
@@ -79,6 +80,7 @@ class TemplateAppsTestCase(BaseTestCase):
         analysis.finalise(output_dir=os.path.join("data", "output"))
         self.assertTrue(os.path.isfile(os.path.join("data", "output", "cleaned_met_mast_data", "cleaned.csv")))
 
+    @unittest.skipIf(condition=os.name == "nt", reason="See issue https://github.com/octue/octue-sdk-python/issues/229")
     def test_child_services_template(self):
         """Ensure the child services template works correctly (i.e. that children can be accessed by a parent and data
         collected from them). This template has a parent app and two children - an elevation app and wind speed app. The
