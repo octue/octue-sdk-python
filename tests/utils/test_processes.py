@@ -13,7 +13,7 @@ class TestRunSubprocessAndLogStdoutAndStderr(BaseTestCase):
         with self.assertRaises(subprocess.CalledProcessError):
             with patch(
                 "octue.utils.processes.Popen",
-                return_value=MockPopen(log_messages=[b"bash: blah: command not found"], return_code=1),
+                return_value=MockPopen(stdout_messages=[b"bash: blah: command not found"], return_code=1),
             ):
                 run_subprocess_and_log_stdout_and_stderr(command=["blah"], logger=mock_logger, shell=True)
 
@@ -24,7 +24,7 @@ class TestRunSubprocessAndLogStdoutAndStderr(BaseTestCase):
         mock_logger = Mock()
 
         with patch(
-            "octue.utils.processes.Popen", return_value=MockPopen(log_messages=[b"hello", b"goodbye"], return_code=0)
+            "octue.utils.processes.Popen", return_value=MockPopen(stdout_messages=[b"hello", b"goodbye"], return_code=0)
         ):
             process = run_subprocess_and_log_stdout_and_stderr(
                 command=["echo hello && echo goodbye"], logger=mock_logger, shell=True
@@ -38,12 +38,13 @@ class TestRunSubprocessAndLogStdoutAndStderr(BaseTestCase):
 class MockPopen:
     """A mock of subprocess.Popen.
 
-    :param iter(bytes) log_messages:
+    :param iter(bytes) stdout_messages:
+    :param int return_code:
     :return None:
     """
 
-    def __init__(self, log_messages, return_code=0, *args, **kwargs):
-        self.stdout = MockBufferedReader(log_messages)
+    def __init__(self, stdout_messages, return_code=0, *args, **kwargs):
+        self.stdout = MockBufferedReader(stdout_messages)
         self.returncode = return_code
 
     def wait(self):
