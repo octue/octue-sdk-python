@@ -73,6 +73,7 @@ class TestService(BaseTestCase):
         input_manifest,
         subscribe_to_logs=True,
         allow_local_files=False,
+        service_name="my-service",
         timeout=30,
     ):
         """Get an asking service to ask a question to a responding service and wait for the answer.
@@ -88,7 +89,7 @@ class TestService(BaseTestCase):
             responding_service.id, input_values, input_manifest, subscribe_to_logs, allow_local_files, timeout
         )
 
-        return asking_service.wait_for_answer(subscription)
+        return asking_service.wait_for_answer(subscription, service_name=service_name)
 
     def make_responding_service_with_error(self, exception_to_raise):
         """Make a mock responding service that raises the given exception when its run function is executed.
@@ -264,10 +265,9 @@ class TestService(BaseTestCase):
         messages are forwarded to the local logger.
         """
         responding_service = MockService(backend=BACKEND, run_function=create_run_function())
-
         asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
 
-        with patch("logging.StreamHandler.emit") as mock_emit:
+        with self.assertLogs() as logs_context_manager:
             with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
                 with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                     with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
@@ -279,6 +279,7 @@ class TestService(BaseTestCase):
                             input_values={},
                             input_manifest=None,
                             subscribe_to_logs=True,
+                            service_name="my-super-service",
                         )
 
         self.assertEqual(
@@ -286,15 +287,16 @@ class TestService(BaseTestCase):
             {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
         )
 
-        # Check that the two expected remote log messages were logged consecutively in the right order.
+        # Check that the two expected remote log messages were logged consecutively in the right order with the service
+        # name added as context at the start of the messages.
         start_remote_analysis_message_present = False
         finish_remote_analysis_message_present = False
 
-        for i, call_arg in enumerate(mock_emit.call_args_list):
-            if call_arg[0][0].msg == "Starting analysis.":
+        for i, log_record in enumerate(logs_context_manager.records):
+            if log_record.msg == "[my-super-service] Starting analysis.":
                 start_remote_analysis_message_present = True
 
-                if mock_emit.call_args_list[i + 1][0][0].msg == "Finished analysis.":
+                if logs_context_manager.records[i + 1].msg == "[my-super-service] Finished analysis.":
                     finish_remote_analysis_message_present = True
 
                 break
