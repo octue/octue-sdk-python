@@ -267,7 +267,7 @@ class Service(CoolNameable):
             message_puller=self._pull_message,
             subscriber=subscriber,
             subscription=subscription,
-            service_name=service_name or self.name,
+            service_name=service_name or "REMOTE",
         )
 
         with subscriber:
@@ -359,7 +359,7 @@ class OrderedMessageHandler:
     :return None:
     """
 
-    def __init__(self, message_puller, subscriber, subscription, service_name="REMOTE", message_handlers=None):
+    def __init__(self, message_puller, subscriber, subscription, service_name, message_handlers=None):
         self.message_puller = message_puller
         self.subscriber = subscriber
         self.subscription = subscription
