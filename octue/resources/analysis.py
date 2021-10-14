@@ -12,7 +12,7 @@ from twined import ALL_STRANDS, Twine
 module_logger = logging.getLogger(__name__)
 
 
-_HASH_FUNCTIONS = {
+HASH_FUNCTIONS = {
     "configuration_values": Hashable.hash_non_class_object,
     "configuration_manifest": lambda manifest: manifest.hash_value,
     "input_values": Hashable.hash_non_class_object,
@@ -24,16 +24,15 @@ CLASS_MAP = {"configuration_manifest": Manifest, "input_manifest": Manifest, "ou
 
 
 class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
-    """Analysis class, holding references to all input and output data
+    """A class representing a scientific or computational analysis, holding references to all configuration, input, and
+    output data.
 
-    ## The Analysis Instance
-
-    An Analysis instance is unique to a specific computation analysis task, however large or small, run at a specific
-    time. It will be created by the task runner (which will have validated incoming data already - Analysis() doesn't
+    An Analysis instance is unique to a specific computational analysis task, however large or small, run at a specific
+    time. It will be created by the task runner, which will have validated incoming data already (Analysis doesn't
     do any validation).
 
-    It holds references to all config, input and output data, logs, connections to child twins, credentials, etc, so
-    should be referred to from your code to get those items.
+    It holds references to all configuration, input, and output data, logs, connections to child twins, credentials,
+    etc, so should be referred to from your code to get those items.
 
     It's basically the "Internal API" for your data service - a single point of contact where you can get or update
     anything you need.
@@ -41,44 +40,46 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
     Analyses are instantiated at the top level of your app/service/twin code and you can import the instantiated
     object from there (see the templates for examples)
 
-    :parameter twine: Twine instance or json source
-    :parameter configuration_values: see Runner.run() for definition
-    :parameter configuration_manifest: see Runner.run() for definition
-    :parameter input_values: see Runner.run() for definition
-    :parameter input_manifest: see Runner.run() for definition
-    :parameter credentials: see Runner.run() for definition
-    :parameter monitors: see Runner.run() for definition
-    :parameter output_values: see Runner.run() for definition
-    :parameter output_manifest: see Runner.run() for definition
-    :parameter id: Optional UUID for the analysis
-    :parameter logger: Optional logging.Logger instance attached to the analysis
+    :param twined.Twine twine: Twine instance or json source
+    :param any configuration_values: see Runner.run() for definition
+    :param octue.resources.manifest.Manifest configuration_manifest: see Runner.run() for definition
+    :param any input_values: see Runner.run() for definition
+    :param octue.resources.manifest.Manifest input_manifest: see Runner.run() for definition
+    :param dict credentials: see Runner.run() for definition
+    :param dict monitors: see Runner.run() for definition
+    :param any output_values: see Runner.run() for definition
+    :param octue.resources.manifest.Manifest output_manifest: see Runner.run() for definition
+    :param str id: Optional UUID for the analysis
+    :param logging.Logger logger: Optional logging.Logger instance attached to the analysis
+    :return None:
     """
 
     def __init__(self, twine, skip_checks=False, **kwargs):
-        """Constructor of Analysis instance"""
+        if isinstance(twine, Twine):
+            self.twine = twine
+        else:
+            self.twine = Twine(source=twine)
 
-        # Instantiate the twine (if not already) and attach it to self
-        if not isinstance(twine, Twine):
-            twine = Twine(source=twine)
+        strand_kwargs = {name: kwargs.pop(name, None) for name in ALL_STRANDS}
 
-        self.twine = twine
+        # Values strands.
+        self.input_values = strand_kwargs.get("input_values", None)
+        self.configuration_values = strand_kwargs.get("configuration_values", None)
+        self.output_values = strand_kwargs.get("output_values", None)
+
+        # Manifest strands.
+        self.configuration_manifest = strand_kwargs.get("configuration_manifest", None)
+        self.input_manifest = strand_kwargs.get("input_manifest", None)
+        self.output_manifest = strand_kwargs.get("output_manifest", None)
+
+        # Other strands.
+        self.credentials = strand_kwargs.get("credentials", None)
+        self.children = strand_kwargs.get("children", None)
+        self.monitors = strand_kwargs.get("monitors", None)
+
+        self._calculate_strand_hashes(strands=strand_kwargs)
         self._skip_checks = skip_checks
 
-        # Pop any possible strand data sources before init superclasses (and tie them to protected attributes)
-        strand_kwargs = [(name, kwargs.pop(name, None)) for name in ALL_STRANDS]
-        for strand_name, strand_data in strand_kwargs:
-            setattr(self, f"{strand_name}", strand_data)
-
-        for strand_name, strand_data in strand_kwargs:
-            if strand_name in _HASH_FUNCTIONS:
-                strand_hash_name = f"{strand_name}_hash"
-
-                if strand_data is not None:
-                    setattr(self, strand_hash_name, _HASH_FUNCTIONS[strand_name](strand_data))
-                else:
-                    setattr(self, strand_hash_name, None)
-
-        # Init superclasses
         super().__init__(**kwargs)
 
     def finalise(self, output_dir=None, save_locally=False, upload_to_cloud=False, project_name=None, bucket_name=None):
@@ -129,3 +130,18 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
                 )
 
         return serialised_strands
+
+    def _calculate_strand_hashes(self, strands):
+        """Calculate the hashes of the strands specified in the HASH_FUNCTIONS constant.
+
+        :param dict strands: strand names mapped to strand data
+        :return None:
+        """
+        for strand_name, strand_data in strands.items():
+            if strand_name in HASH_FUNCTIONS:
+                strand_hash_name = f"{strand_name}_hash"
+
+                if strand_data is not None:
+                    setattr(self, strand_hash_name, HASH_FUNCTIONS[strand_name](strand_data))
+                else:
+                    setattr(self, strand_hash_name, None)
