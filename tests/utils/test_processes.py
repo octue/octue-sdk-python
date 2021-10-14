@@ -1,31 +1,77 @@
-import logging
-import os
 import subprocess
-import unittest
+from unittest.mock import Mock, patch
 
 from octue.utils.processes import run_subprocess_and_log_stdout_and_stderr
 from tests.base import BaseTestCase
 
 
-@unittest.skipIf(condition=os.name == "nt", reason="See issue https://github.com/octue/octue-sdk-python/issues/229")
 class TestRunSubprocessAndLogStdoutAndStderr(BaseTestCase):
     def test_error_raised_if_process_fails(self):
-        """Test that an error is raised if the process fails."""
-        with self.assertLogs() as logs_context_manager:
-            with self.assertRaises(subprocess.CalledProcessError):
-                run_subprocess_and_log_stdout_and_stderr(
-                    command=["blah blah blah"], logger=logging.getLogger(), shell=True
-                )
+        """Test that an error is raised if the subprocess fails."""
+        mock_logger = Mock()
 
-            self.assertIn("not found", logs_context_manager.records[0].message)
+        with self.assertRaises(subprocess.CalledProcessError):
+            with patch(
+                "octue.utils.processes.Popen",
+                return_value=MockPopen(log_messages=[b"bash: blah: command not found"], return_code=1),
+            ):
+                run_subprocess_and_log_stdout_and_stderr(command=["blah"], logger=mock_logger, shell=True)
+
+        self.assertEqual(mock_logger.info.call_args[0][0], "bash: blah: command not found")
 
     def test_stdout_is_logged(self):
-        """Test that any output to stdout is logged."""
-        with self.assertLogs() as logs_context_manager:
+        """Test that any output to stdout from a subprocess is logged."""
+        mock_logger = Mock()
+
+        with patch(
+            "octue.utils.processes.Popen", return_value=MockPopen(log_messages=[b"hello", b"goodbye"], return_code=0)
+        ):
             process = run_subprocess_and_log_stdout_and_stderr(
-                command=["echo hello && echo goodbye"], logger=logging.getLogger(), shell=True
+                command=["echo hello && echo goodbye"], logger=mock_logger, shell=True
             )
 
-            self.assertEqual(process.returncode, 0)
-            self.assertEqual(logs_context_manager.records[0].message, "hello")
-            self.assertEqual(logs_context_manager.records[1].message, "goodbye")
+        self.assertEqual(process.returncode, 0)
+        self.assertEqual(mock_logger.info.call_args_list[0][0][0], "hello")
+        self.assertEqual(mock_logger.info.call_args_list[1][0][0], "goodbye")
+
+
+class MockPopen:
+    """A mock of subprocess.Popen.
+
+    :param iter(bytes) log_messages:
+    :return None:
+    """
+
+    def __init__(self, log_messages, return_code=0, *args, **kwargs):
+        self.stdout = MockBufferedReader(log_messages)
+        self.returncode = return_code
+
+    def wait(self):
+        pass
+
+
+class MockBufferedReader:
+    """A mock io.BufferedReader.
+
+    :param iter(bytes) contents:
+    :return None:
+    """
+
+    def __init__(self, contents):
+        self.contents = contents
+        self._line_count = 0
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    def readline(self):
+        try:
+            line = self.contents[self._line_count]
+        except IndexError:
+            raise StopIteration()
+
+        self._line_count += 1
+        return line
