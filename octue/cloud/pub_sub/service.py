@@ -252,18 +252,22 @@ class Service(CoolNameable):
         logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
         return response_subscription, question_uuid
 
-    def wait_for_answer(self, subscription, timeout=30):
+    def wait_for_answer(self, subscription, service_name=None, timeout=30):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
+        :param str|None service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
         :param float|None timeout: how long to wait for an answer before raising a TimeoutError
         :raise TimeoutError: if the timeout is exceeded
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
         subscriber = pubsub_v1.SubscriberClient(credentials=self._credentials)
         message_handler = OrderedMessageHandler(
-            message_puller=self._pull_message, subscriber=subscriber, subscription=subscription
+            message_puller=self._pull_message,
+            subscriber=subscriber,
+            subscription=subscription,
+            service_name=service_name or self.name,
         )
 
         with subscriber:
@@ -350,14 +354,16 @@ class OrderedMessageHandler:
     :param callable message_puller: function that pulls a message from the subscription
     :param google.pubsub_v1.services.subscriber.client.SubscriberClient subscriber: a Google Pub/Sub subscriber
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
+    :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
     :param dict|None message_handlers: a mapping of message handler names to callables that handle each type of message
     :return None:
     """
 
-    def __init__(self, message_puller, subscriber, subscription, message_handlers=None):
+    def __init__(self, message_puller, subscriber, subscription, service_name="REMOTE", message_handlers=None):
         self.message_puller = message_puller
         self.subscriber = subscriber
         self.subscription = subscription
+        self.service_name = service_name
         self._waiting_messages = {}
         self._previous_message_number = -1
 
@@ -425,7 +431,7 @@ class OrderedMessageHandler:
         :return None:
         """
         record = logging.makeLogRecord(message["log_record"])
-        record.msg = f"[REMOTE] {record.msg}"
+        record.msg = f"[{self.service_name}] {record.msg}"
         logger.handle(record)
 
     def _handle_exception(self, message):
@@ -438,7 +444,7 @@ class OrderedMessageHandler:
         exception_message = "\n\n".join(
             (
                 message["exception_message"],
-                "The following traceback was captured from the remote service:",
+                f"The following traceback was captured from the remote service {self.service_name!r}:",
                 "".join(message["traceback"]),
             )
         )

@@ -9,8 +9,8 @@ class Child:
     """A class representing a child service that can be asked questions. It is a convenience wrapper for `Service` that
     makes the asking of questions more intuitive for Scientists and allows easier selection of backends.
 
-    :param str name:
-    :param str id:
+    :param str name: an arbitrary name to refer to the child by (used to access it in Analysis instances and give context to log messages forwarded from the child)
+    :param str id: the UUID of the child service
     :param dict backend: must include the key "name" with a value of the name of the type of backend e.g. GCPPubSubBackend and key-value pairs for any other parameters the chosen backend expects
     :return None:
     """
@@ -35,4 +35,4 @@ class Child:
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
         subscription, _ = self._service.ask(self.id, input_values, input_manifest, subscribe_to_logs)
-        return self._service.wait_for_answer(subscription, timeout)
+        return self._service.wait_for_answer(subscription=subscription, service_name=self.name, timeout=timeout)
