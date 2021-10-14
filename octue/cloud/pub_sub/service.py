@@ -252,12 +252,12 @@ class Service(CoolNameable):
         logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
         return response_subscription, question_uuid
 
-    def wait_for_answer(self, subscription, service_name=None, timeout=30):
+    def wait_for_answer(self, subscription, service_name="REMOTE", timeout=30):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
-        :param str|None service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
+        :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
         :param float|None timeout: how long to wait for an answer before raising a TimeoutError
         :raise TimeoutError: if the timeout is exceeded
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
@@ -267,7 +267,7 @@ class Service(CoolNameable):
             message_puller=self._pull_message,
             subscriber=subscriber,
             subscription=subscription,
-            service_name=service_name or "REMOTE",
+            service_name=service_name,
         )
 
         with subscriber:
@@ -359,7 +359,7 @@ class OrderedMessageHandler:
     :return None:
     """
 
-    def __init__(self, message_puller, subscriber, subscription, service_name, message_handlers=None):
+    def __init__(self, message_puller, subscriber, subscription, service_name="REMOTE", message_handlers=None):
         self.message_puller = message_puller
         self.subscriber = subscriber
         self.subscription = subscription
