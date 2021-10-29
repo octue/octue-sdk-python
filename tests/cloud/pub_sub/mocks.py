@@ -1,5 +1,6 @@
 import json
 import logging
+from unittest.mock import Mock
 import google.api_core.exceptions
 
 from octue.cloud.pub_sub import Subscription, Topic
@@ -304,3 +305,16 @@ class DifferentMockAnalysis:
 class MockAnalysisWithOutputManifest:
     output_values = "This is an analysis with an empty output manifest."
     output_manifest = Manifest()
+
+
+class MockSubscriptionCreationResponse:
+    def __init__(self, subscription):
+        """A mock response to creating a Google Cloud Pub/Sub subscription.
+
+        :param octue.cloud.pub_sub.subscription.Subscription subscription:
+        :return None:
+        """
+        self._pb = Mock()
+        self._pb.ack_deadline_seconds = subscription.ack_deadline
+        self._pb.expiration_policy.ttl.seconds = subscription.expiration_policy._pb.ttl.seconds
+        self._pb.message_retention_duration.seconds = subscription.message_retention_duration.seconds

@@ -9,7 +9,7 @@ from octue.cloud.pub_sub.topic import Topic
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
-from tests.cloud.pub_sub.mocks import MockSubscriber
+from tests.cloud.pub_sub.mocks import MockSubscriber, MockSubscriptionCreationResponse
 
 
 class TestSubscription(BaseTestCase):
@@ -73,15 +73,11 @@ class TestSubscription(BaseTestCase):
             subscriber=SubscriberClient(credentials=service._credentials),
         )
 
-        try:
-            topic.create(allow_existing=True)
+        with patch(
+            "octue.cloud.pub_sub.subscription.Subscription.create",
+            return_value=MockSubscriptionCreationResponse(subscription),
+        ):
             response = subscription.create(allow_existing=True)
-
-        finally:
-            try:
-                subscription.delete()
-            finally:
-                topic.delete()
 
         self.assertEqual(response._pb.ack_deadline_seconds, 60)
         self.assertEqual(response._pb.expiration_policy.ttl.seconds, THIRTY_ONE_DAYS)
