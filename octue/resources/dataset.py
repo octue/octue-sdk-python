@@ -1,3 +1,4 @@
+import concurrent.futures
 import json
 import logging
 import os
@@ -209,6 +210,8 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
         :param str|None local_directory:
         :return None:
         """
+        files_and_paths = []
+
         for datafile in self.files:
             if local_directory:
                 path_relative_to_dataset = datafile.cloud_path.split(self.name + "/")[1]
@@ -216,7 +219,21 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
             else:
                 local_path = None
 
-            datafile.download(local_path=local_path)
+            files_and_paths.append((datafile, local_path))
+
+        def download(iterable_element):
+            """Download a datafile to the given path.
+
+            :param tuple(octue.resources.datafile.Datafile, str) iterable_element:
+            :return str:
+            """
+            datafile = iterable_element[0]
+            local_path = iterable_element[1]
+            return datafile.download(local_path=local_path)
+
+        # Use multiple threads to significantly speed up files downloads by reducing latency.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            executor.map(download, files_and_paths)
 
     def _upload_metadata_file(self, project_name, cloud_path):
         """Upload a metadata file representing the dataset to the given cloud location.
