@@ -268,8 +268,13 @@ class AppFrom:
 
     def __exit__(self, exc_type, exc_value, traceback):
         # Unload the imported module
-        del sys.modules["app"]
-        logger.debug("Deleted app from sys.modules and cleaned up (app_path %s)", self.app_path)
+        try:
+            del sys.modules["app"]
+            logger.debug("Deleted app from sys.modules")
+        except KeyError:
+            logger.warning(
+                "Module 'app' was removed from system path prior to exit from teh context manager. Using 'AppFrom' context may yield unexpected results."
+            )
 
     @property
     def run(self):
