@@ -1,7 +1,7 @@
 import logging
 import google.api_core.exceptions
 from google.protobuf.duration_pb2 import Duration
-from google.pubsub_v1.types.pubsub import ExpirationPolicy, Subscription as _Subscription
+from google.pubsub_v1.types.pubsub import ExpirationPolicy, RetryPolicy, Subscription as _Subscription
 
 
 logger = logging.getLogger(__name__)
@@ -22,6 +22,8 @@ class Subscription:
     :param int ack_deadline: message acknowledgement deadline in seconds
     :param int message_retention_duration: unacknowledged message retention time in seconds
     :param int|None expiration_time: number of seconds after which the subscription is deleted (infinite time if None)
+    :param float minimum_retry_backoff: minimum number of seconds after the acknowledgement deadline has passed to exponentially retry delivering a message to the subscription
+    :param float maximum_retry_backoff: maximum number of seconds after the acknowledgement deadline has passed to exponentially retry delivering a message to the subscription
     :return None:
     """
 
@@ -35,6 +37,8 @@ class Subscription:
         ack_deadline=60,
         message_retention_duration=SEVEN_DAYS,
         expiration_time=THIRTY_ONE_DAYS,
+        minimum_retry_backoff=10,
+        maximum_retry_backoff=600,
     ):
         if name.startswith(namespace):
             self.name = name
@@ -52,6 +56,12 @@ class Subscription:
             self.expiration_policy = ExpirationPolicy(mapping=None)
         else:
             self.expiration_policy = ExpirationPolicy(mapping=None, ttl=Duration(seconds=expiration_time))
+
+        self.retry_policy = RetryPolicy(
+            mapping=None,
+            minimum_backoff=Duration(seconds=minimum_retry_backoff),
+            maximum_backoff=Duration(seconds=maximum_retry_backoff),
+        )
 
     def __repr__(self):
         """Represent the subscription as a string.
@@ -73,6 +83,7 @@ class Subscription:
             ack_deadline_seconds=self.ack_deadline,  # noqa
             message_retention_duration=self.message_retention_duration,  # noqa
             expiration_policy=self.expiration_policy,  # noqa
+            retry_policy=self.retry_policy,  # noqa
         )
 
         if not allow_existing:
