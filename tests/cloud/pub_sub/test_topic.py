@@ -52,3 +52,7 @@ class TestTopic(BaseTestCase):
             side_effect=google.api_core.exceptions.NotFound(""),
         ):
             self.assertFalse(self.topic.exists())
+
+    def test_exists_returns_false_if_timeout_exceeded(self):
+        """Test `Topic.exists` returns `False` if the timeout is exceeded."""
+        self.assertFalse(self.topic.exists(timeout=0))

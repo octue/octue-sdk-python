@@ -4,7 +4,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import time
 import unittest
 import uuid
 
@@ -142,7 +141,7 @@ class TemplateAppsTestCase(BaseTestCase):
                     twine=os.path.join(parent_service_path, "twine.json"),
                     children=test_children_path,
                 )
-                time.sleep(5)
+
                 analysis = runner.run(
                     input_values=os.path.join(parent_service_path, "data", "input", "values.json"),
                 )

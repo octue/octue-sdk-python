@@ -221,7 +221,8 @@ class Service(CoolNameable):
                 )
 
         question_topic = Topic(name=service_id, namespace=OCTUE_NAMESPACE, service=self)
-        if not question_topic.exists():
+
+        if not question_topic.exists(timeout=timeout):
             raise octue.exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
 
         question_uuid = str(uuid.uuid4())

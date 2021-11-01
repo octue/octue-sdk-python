@@ -1,4 +1,5 @@
 import logging
+import time
 import google.api_core.exceptions
 
 
@@ -57,16 +58,22 @@ class Topic:
         self.service.publisher.delete_topic(topic=self.path)
         logger.debug("%r deleted topic %r.", self.service, self.path)
 
-    def exists(self):
+    def exists(self, timeout=10):
         """Check if the topic exists on the Google Pub/Sub servers.
 
+        :param float timeout:
         :return bool:
         """
-        try:
-            self.service.publisher.get_topic(topic=self.path)
-        except google.api_core.exceptions.NotFound:
-            return False
-        return True
+        start_time = time.time()
+
+        while time.time() - start_time <= timeout:
+            try:
+                self.service.publisher.get_topic(topic=self.path)
+                return True
+            except google.api_core.exceptions.NotFound:
+                pass
+
+        return False
 
     def _log_creation(self):
         """Log the creation of the topic.
