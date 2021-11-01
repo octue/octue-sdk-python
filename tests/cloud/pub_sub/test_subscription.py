@@ -73,10 +73,7 @@ class TestSubscription(BaseTestCase):
             subscriber=SubscriberClient(credentials=service._credentials),
         )
 
-        with patch(
-            "octue.cloud.pub_sub.subscription.Subscription.create",
-            return_value=MockSubscriptionCreationResponse(subscription),
-        ):
+        with patch("google.pubsub_v1.SubscriberClient.create_subscription", new=MockSubscriptionCreationResponse):
             response = subscription.create(allow_existing=True)
 
         self.assertEqual(response._pb.ack_deadline_seconds, 60)

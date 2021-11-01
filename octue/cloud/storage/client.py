@@ -21,7 +21,7 @@ class GoogleCloudStorageClient:
     """A client for using Google Cloud Storage.
 
     :param str project_name:
-    :param str|google.auth.credentials.Credentials credentials:
+    :param str|google.auth.credentials.Credentials|None credentials:
     :return None:
     """
 
