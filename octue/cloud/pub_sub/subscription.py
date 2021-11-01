@@ -54,6 +54,10 @@ class Subscription:
             self.expiration_policy = ExpirationPolicy(mapping=None, ttl=Duration(seconds=expiration_time))
 
     def __repr__(self):
+        """Represent the subscription as a string.
+
+        :return str:
+        """
         return f"<{type(self).__name__}({self.name})>"
 
     def create(self, allow_existing=False):
@@ -85,10 +89,16 @@ class Subscription:
         return subscription
 
     def delete(self):
-        """ Delete the subscription from Google Pub/Sub. """
+        """Delete the subscription from Google Pub/Sub.
+
+        :return None:
+        """
         self.subscriber.delete_subscription(subscription=self.path)
         logger.debug("Subscription %r deleted.", self.path)
 
     def _log_creation(self):
-        """ Log the creation of the subscription. """
-        logger.debug("Subscription %r created.", self.subscriber, self.path)
+        """Log the creation of the subscription.
+
+        :return None:
+        """
+        logger.debug("Subscription %r created.", self.path)
