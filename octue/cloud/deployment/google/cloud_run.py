@@ -61,6 +61,14 @@ def answer_question(project_name, question, credentials_environment_variable=Non
     """
     service_id = os.environ.get("SERVICE_ID")
 
+    if not service_id:
+        raise MissingServiceID(
+            "The ID for the deployed service is missing or empty - ensure SERVICE_ID is available as an environment "
+            "variable."
+        )
+
+    question_uuid = question["attributes"]["question_uuid"]
+
     service = Service(
         service_id=service_id,
         backend=GCPPubSubBackend(
@@ -68,15 +76,7 @@ def answer_question(project_name, question, credentials_environment_variable=Non
         ),
     )
 
-    question_uuid = question["attributes"]["question_uuid"]
-
     try:
-        if not service_id:
-            raise MissingServiceID(
-                "The ID for the deployed service is missing - ensure SERVICE_ID is available as an environment "
-                "variable."
-            )
-
         deployment_configuration = _get_deployment_configuration(DEPLOYMENT_CONFIGURATION_PATH)
 
         runner = Runner(
