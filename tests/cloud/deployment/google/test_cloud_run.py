@@ -9,6 +9,7 @@ from unittest import TestCase, mock
 import twined.exceptions
 from octue.cloud.deployment.google import cloud_run
 from octue.cloud.pub_sub.service import Service
+from octue.exceptions import MissingServiceID
 from octue.resources.service_backends import GCPPubSubBackend
 from tests.cloud.pub_sub.mocks import MockTopic
 
@@ -54,6 +55,31 @@ class TestCloudRun(TestCase):
                 )
 
                 self.assertEqual(response.status_code, 204)
+
+    def test_error_raised_when_no_service_id_environment_variable(self):
+        """Test that a MissingServiceID error is raised if the SERVICE_ID environment variable is missing."""
+        with self.assertRaises(MissingServiceID):
+            cloud_run.answer_question(
+                project_name="a-project-name",
+                question={
+                    "data": {},
+                    "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"},
+                },
+                credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS",
+            )
+
+    def test_error_raised_when_service_id_environment_variable_is_empty(self):
+        """Test that a MissingServiceID error is raised if the SERVICE_ID environment variable is empty."""
+        with mock.patch.dict(os.environ, {"SERVICE_ID": ""}):
+            with self.assertRaises(MissingServiceID):
+                cloud_run.answer_question(
+                    project_name="a-project-name",
+                    question={
+                        "data": {},
+                        "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"},
+                    },
+                    credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS",
+                )
 
     def test_with_no_deployment_configuration_file(self):
         """Test that the Cloud Run `answer_question` function uses the default deployment values when a deployment
