@@ -71,7 +71,7 @@ class Topic:
                 self.service.publisher.get_topic(topic=self.path)
                 return True
             except google.api_core.exceptions.NotFound:
-                pass
+                time.sleep(1)
 
         return False
 
