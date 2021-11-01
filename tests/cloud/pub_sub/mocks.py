@@ -50,9 +50,10 @@ class MockTopic(Topic):
         except KeyError:
             pass
 
-    def exists(self):
+    def exists(self, timeout=10):
         """Check if the topic exists in the global messages dictionary.
 
+        :param float timeout:
         :return bool:
         """
         return get_service_id(self.path) in MESSAGES
