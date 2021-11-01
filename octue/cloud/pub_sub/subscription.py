@@ -72,12 +72,12 @@ class Subscription:
         )
 
         if not allow_existing:
-            self.subscriber.create_subscription(request=subscription)
+            subscription = self.subscriber.create_subscription(request=subscription)
             self._log_creation()
-            return
+            return subscription
 
         try:
-            self.subscriber.create_subscription(request=subscription)
+            subscription = self.subscriber.create_subscription(request=subscription)
         except google.api_core.exceptions.AlreadyExists:
             pass
 
