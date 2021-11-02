@@ -277,7 +277,6 @@ class Service(CoolNameable):
 
             finally:
                 subscription.delete()
-                subscription.topic.delete()
 
     def send_exception_to_asker(self, topic, timeout=30):
         """Serialise and send the exception being handled to the asker.
