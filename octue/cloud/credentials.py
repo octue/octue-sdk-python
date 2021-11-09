@@ -13,7 +13,7 @@ class GCPCredentialsManager:
     JSON string of the contents of such a service account file, from the given environment variable and instantiates
     a Google Cloud credentials object.
 
-    :param str environment_variable_name:
+    :param str|None environment_variable_name:
     :return None:
     """
 
@@ -37,7 +37,7 @@ class GCPCredentialsManager:
         """Get the Google OAUTH2 service account credentials.
 
         :param bool as_dict: if `True`, return the credentials as a dictionary
-        :return str|google.auth.service_account.Credentials:
+        :return str|google.auth.service_account.Credentials|None:
         """
         if self.service_account_json is None:
             return None
