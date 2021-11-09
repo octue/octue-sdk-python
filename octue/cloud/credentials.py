@@ -37,7 +37,7 @@ class GCPCredentialsManager:
         """Get the Google OAUTH2 service account credentials.
 
         :param bool as_dict: if `True`, return the credentials as a dictionary
-        :return str|google.auth.service_account.Credentials|None:
+        :return dict|google.auth.service_account.Credentials|None:
         """
         if self.service_account_json is None:
             return None
@@ -50,10 +50,10 @@ class GCPCredentialsManager:
         return self._get_credentials_from_string(as_dict=as_dict)
 
     def _get_credentials_from_file(self, as_dict=False):
-        """Get the credentials from the JSON file specified in the environment variable's value.
+        """Get the credentials from the JSON file whose path is specified in the environment variable's value.
 
         :param bool as_dict: if `True`, return the credentials as a dictionary
-        :return str|google.auth.service_account.Credentials:
+        :return dict|google.auth.service_account.Credentials:
         """
         with open(self.service_account_json) as f:
             credentials = json.load(f)
@@ -66,10 +66,10 @@ class GCPCredentialsManager:
         return service_account.Credentials.from_service_account_info(credentials)
 
     def _get_credentials_from_string(self, as_dict=False):
-        """Get the credentials directly from the JSON string that is the environment variable's value.
+        """Get the credentials directly from the JSON string specified in the environment variable's value.
 
         :param bool as_dict: if `True`, return the credentials as a dictionary
-        :return str|google.auth.service_account.Credentials:
+        :return dict|google.auth.service_account.Credentials:
         """
         credentials = json.loads(self.service_account_json)
         logger.debug("GCP credentials loaded from string.")
