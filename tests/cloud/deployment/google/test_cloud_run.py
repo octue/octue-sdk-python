@@ -24,16 +24,16 @@ class TestCloudRun(TestCase):
     def test_post_to_index_with_no_payload_results_in_400_error(self):
         """Test that a 400 (bad request) error code is returned if no payload is sent to the Flask endpoint."""
         with cloud_run.app.test_client() as client:
-            response = client.post("/")
+            response = client.post("/", json={"deliveryAttempt": 1})
             self.assertEqual(response.status_code, 400)
 
     def test_post_to_index_with_invalid_payload_results_in_400_error(self):
         """Test that a 400 (bad request) error code is returned if an invalid payload is sent to the Flask endpoint."""
         with cloud_run.app.test_client() as client:
-            response = client.post("/", json={"some": "data"})
+            response = client.post("/", json={"some": "data", "deliveryAttempt": 1})
             self.assertEqual(response.status_code, 400)
 
-            response = client.post("/", json={"message": "data"})
+            response = client.post("/", json={"message": "data", "deliveryAttempt": 1})
             self.assertEqual(response.status_code, 400)
 
     def test_post_to_index_with_valid_payload(self):
@@ -44,6 +44,7 @@ class TestCloudRun(TestCase):
                 response = client.post(
                     "/",
                     json={
+                        "deliveryAttempt": 1,
                         "subscription": "projects/my-project/subscriptions/my-subscription",
                         "message": {
                             "data": base64.b64encode(
