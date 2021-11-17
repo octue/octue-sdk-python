@@ -115,6 +115,7 @@ class Service(CoolNameable):
         in the format specified in the Service's Twine file.
 
         :param dict|Message question:
+        :param octue.cloud.pub_sub.topic.Topic|None answer_topic: instantiate and provide the answer topic if messages need to be sent to the asker from outside the service
         :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
@@ -273,6 +274,7 @@ class Service(CoolNameable):
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
         :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
         :param float|None timeout: how long to wait for an answer before raising a TimeoutError
+        :param float delivery_acknowledgement_timeout: how long to wait for a delivery acknowledgement before retrying sending the question
         :raise TimeoutError: if the timeout is exceeded
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
@@ -432,6 +434,7 @@ class OrderedMessageHandler:
         then return that result.
 
         :param float|None timeout: how long to wait for an answer before raising a `TimeoutError`
+        :param float delivery_acknowledgement_timeout: how long to wait for a delivery acknowledgement before raising `QuestionNotDelivered`
         :raise TimeoutError: if the timeout is exceeded before receiving the final message
         :return dict:
         """
