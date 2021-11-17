@@ -234,7 +234,7 @@ class TestService(BaseTestCase):
 
     def test_question_is_asked_again_if_delivery_not_acknowledged(self):
         """Test that a question is asked again if delivery is not acknowledged."""
-        responding_service = self.make_new_server(backend=BACKEND, run_function_returnee=MockAnalysis())
+        responding_service = self.make_new_server(backend=BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
         asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
@@ -790,8 +790,8 @@ class TestOrderedMessageHandler(BaseTestCase):
         timeout.
         """
         messages = [
-            {"type": "finish-test", "message_number": 1},
             {"type": "test", "message_number": 0},
+            {"type": "finish-test", "message_number": 1},
         ]
 
         message_handler = OrderedMessageHandler(
@@ -815,6 +815,8 @@ class TestOrderedMessageHandler(BaseTestCase):
             subscriber=MockSubscriber(),
             subscription=self.mock_subscription,
         )
+
+        self.assertFalse(message_handler.received_delivery_acknowledgement)
 
         result = message_handler.handle_messages()
         self.assertTrue(message_handler.received_delivery_acknowledgement)
