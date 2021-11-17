@@ -27,7 +27,7 @@ def index():
 
     if envelope["deliveryAttempt"] > 1:
         logger.info(
-            "This message has already been received by the service. It will now be acknowledged to prevent further "
+            "This question has already been received by the service. It will now be acknowledged to prevent further "
             "redundant redelivery."
         )
         return ("", 204)
@@ -106,7 +106,7 @@ def answer_question(project_name, question, credentials_environment_variable=Non
             analysis_log_handler=deployment_configuration.get("log_handler", None),
         )
 
-        service.answer(question)
+        service.answer(question, answer_topic=answer_topic)
         logger.info("Analysis successfully run and response sent for question %r.", question_uuid)
 
     # Forward any errors in the deployment configuration (errors in the analysis are already forwarded by the service).

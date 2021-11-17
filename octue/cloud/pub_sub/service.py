@@ -109,7 +109,7 @@ class Service(CoolNameable):
                 topic.delete()
                 subscription.delete()
 
-    def answer(self, question, timeout=30):
+    def answer(self, question, answer_topic=None, timeout=30):
         """Answer a question (i.e. run the Service's app to analyse the given data, and return the output values to the
         asker). Answers are published to a topic whose name is generated from the UUID sent with the question, and are
         in the format specified in the Service's Twine file.
@@ -120,7 +120,7 @@ class Service(CoolNameable):
         :return None:
         """
         data, question_uuid, forward_logs = self.parse_question(question)
-        topic = self.instantiate_answer_topic(question_uuid)
+        topic = answer_topic or self.instantiate_answer_topic(question_uuid)
 
         if forward_logs:
             analysis_log_handler = GooglePubSubHandler(publisher=self.publisher, topic=topic)
@@ -289,13 +289,16 @@ class Service(CoolNameable):
                 return message_handler.handle_messages(timeout=timeout)
 
             except octue.exceptions.QuestionNotDelivered:
-                subscription, _ = self.ask(**self._current_question)
+                logger.info("No acknowledgement of question delivery - resending.")
+                self.ask(**self._current_question)
                 return self.wait_for_answer(subscription, service_name, timeout)
 
             finally:
                 subscription.delete()
 
     def send_delivery_acknowledgment_to_asker(self, topic, timeout=30):
+        logger.info("Acknowledging receipt of question.")
+
         self.publisher.publish(
             topic=topic.path,
             data=json.dumps(
@@ -338,7 +341,7 @@ class Service(CoolNameable):
 
         topic.messages_published += 1
 
-    def _pull_message(self, subscriber, subscription, timeout, delivery_acknowledgement_timeout=30):
+    def _pull_message(self, subscriber, subscription, timeout):
         """Pull a message from the subscription, raising a `TimeoutError` if the timeout is exceeded before succeeding.
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription the message is expected on
@@ -347,7 +350,6 @@ class Service(CoolNameable):
         :return dict: message containing data
         """
         start_time = time.perf_counter()
-        received_delivery_acknowledgement = False
 
         while True:
             no_message = True
@@ -369,15 +371,7 @@ class Service(CoolNameable):
                     logger.debug("Google Pub/Sub pull response timed out early.")
                     attempt += 1
 
-                    current_time = time.perf_counter()
-
-                    if not received_delivery_acknowledgement:
-                        if current_time - start_time > delivery_acknowledgement_timeout:
-                            raise octue.exceptions.QuestionNotDelivered(
-                                f"No delivery acknowledgement received for topic {subscription.topic.path!r}"
-                            )
-
-                    if timeout is not None and (current_time - start_time) > timeout:
+                    if timeout is not None and (time.perf_counter() - start_time) > timeout:
                         raise TimeoutError(
                             f"No message received from topic {subscription.topic.path!r} after {timeout} seconds.",
                         )
@@ -406,6 +400,7 @@ class OrderedMessageHandler:
         self.subscription = subscription
         self.service_name = service_name
 
+        self.received_delivery_acknowledgement = None
         self._waiting_messages = {}
         self._previous_message_number = -1
 
@@ -416,7 +411,7 @@ class OrderedMessageHandler:
             "result": self._handle_result,
         }
 
-    def handle_messages(self, timeout=30):
+    def handle_messages(self, timeout=60, delivery_acknowledgement_timeout=30):
         """Pull messages and handle them in the order they were sent until a result is returned by a message handler,
         then return that result.
 
@@ -424,13 +419,22 @@ class OrderedMessageHandler:
         :raise TimeoutError: if the timeout is exceeded before receiving the final message
         :return dict:
         """
+        self.received_delivery_acknowledgement = False
         start_time = time.perf_counter()
         pull_timeout = None
 
         while True:
 
             if timeout is not None:
-                run_time = time.perf_counter() - start_time
+                current_time = time.perf_counter()
+                run_time = current_time - start_time
+
+                if not self.received_delivery_acknowledgement:
+                    if run_time > delivery_acknowledgement_timeout:
+                        raise octue.exceptions.QuestionNotDelivered(
+                            f"No delivery acknowledgement received for topic {self.subscription.topic.path!r} after "
+                            f"{delivery_acknowledgement_timeout} seconds."
+                        )
 
                 if run_time > timeout:
                     raise TimeoutError(
@@ -467,11 +471,12 @@ class OrderedMessageHandler:
             logger.warning("Received a message of unknown type %r.", message["type"])
 
     def _handle_delivery_acknowledgement(self, message):
+        self.received_delivery_acknowledgement = True
         logger.info("Question delivered at %s.", message["delivery_time"])
 
     def _handle_log_message(self, message):
-        """Deserialise the message into a log record and pass it to the local log handlers, adding `[REMOTE] to the
-        start of the log message.
+        """Deserialise the message into a log record and pass it to the local log handlers, adding [<service-name>] to
+        the start of the log message.
 
         :param dict message:
         :return None:
