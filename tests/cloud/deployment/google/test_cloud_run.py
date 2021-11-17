@@ -82,6 +82,26 @@ class TestCloudRun(TestCase):
                     credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS",
                 )
 
+    def test_redelivered_questions_are_acknowledged_and_ignored(self):
+        """Test that redelivered questions are acknowledged and then ignored."""
+        with cloud_run.app.test_client() as client:
+            with mock.patch("octue.cloud.deployment.google.cloud_run.answer_question") as mock_answer_question:
+
+                response = client.post(
+                    "/",
+                    json={
+                        "deliveryAttempt": 2,
+                        "subscription": "projects/my-project/subscriptions/my-subscription",
+                        "message": {
+                            "data": {},
+                            "attributes": {"question_uuid": str(uuid.uuid4()), "forward_logs": "1"},
+                        },
+                    },
+                )
+
+        self.assertEqual(response.status_code, 204)
+        mock_answer_question.assert_not_called()
+
     def test_with_no_deployment_configuration_file(self):
         """Test that the Cloud Run `answer_question` function uses the default deployment values when a deployment
         configuration file is not provided.

@@ -25,15 +25,16 @@ def index():
     """
     envelope = request.get_json()
 
+    if not envelope:
+        return _log_bad_request_and_return_400_response("No Pub/Sub message received.")
+
+    # Acknowledge questions that are redelivered to stop further redelivery and redundant processing.
     if envelope["deliveryAttempt"] > 1:
         logger.info(
             "This question has already been received by the service. It will now be acknowledged to prevent further "
             "redundant redelivery."
         )
         return ("", 204)
-
-    if not envelope:
-        return _log_bad_request_and_return_400_response("No Pub/Sub message received.")
 
     if not isinstance(envelope, dict) or "message" not in envelope:
         return _log_bad_request_and_return_400_response("Invalid Pub/Sub message format.")
