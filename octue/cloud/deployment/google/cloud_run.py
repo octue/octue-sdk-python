@@ -85,7 +85,6 @@ def answer_question(project_name, question, credentials_environment_variable=Non
     )
 
     answer_topic = service.instantiate_answer_topic(question_uuid)
-    service.send_delivery_acknowledgment_to_asker(topic=answer_topic)
 
     try:
         deployment_configuration = _get_deployment_configuration(DEPLOYMENT_CONFIGURATION_PATH)

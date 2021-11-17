@@ -121,6 +121,7 @@ class Service(CoolNameable):
         """
         data, question_uuid, forward_logs = self.parse_question(question)
         topic = answer_topic or self.instantiate_answer_topic(question_uuid)
+        self.send_delivery_acknowledgment_to_asker(topic)
 
         if forward_logs:
             analysis_log_handler = GooglePubSubHandler(publisher=self.publisher, topic=topic)
@@ -287,7 +288,6 @@ class Service(CoolNameable):
         with subscriber:
 
             try:
-
                 # Retry sending the question until the overall timeout is reached.
                 while not message_handler.received_delivery_acknowledgement:
 
