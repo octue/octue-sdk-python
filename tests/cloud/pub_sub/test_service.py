@@ -75,6 +75,7 @@ class TestService(BaseTestCase):
         allow_local_files=False,
         service_name="my-service",
         timeout=30,
+        delivery_acknowledgement_timeout=30,
     ):
         """Get an asking service to ask a question to a responding service and wait for the answer.
 
@@ -89,7 +90,9 @@ class TestService(BaseTestCase):
             responding_service.id, input_values, input_manifest, subscribe_to_logs, allow_local_files, timeout
         )
 
-        return asking_service.wait_for_answer(subscription, service_name=service_name)
+        return asking_service.wait_for_answer(
+            subscription, service_name=service_name, delivery_acknowledgement_timeout=delivery_acknowledgement_timeout
+        )
 
     def make_responding_service_with_error(self, exception_to_raise):
         """Make a mock responding service that raises the given exception when its run function is executed.
@@ -228,6 +231,27 @@ class TestService(BaseTestCase):
 
         self.assertEqual(type(context.exception).__name__, "AnUnknownException")
         self.assertIn("This is an exception unknown to the asker.", context.exception.args[0])
+
+    def test_question_is_asked_again_if_delivery_not_acknowledged(self):
+        """Test that a question is asked again if delivery is not acknowledged."""
+        responding_service = self.make_new_server(backend=BACKEND, run_function_returnee=MockAnalysis())
+        asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
+
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    responding_service.serve()
+                    subscription, _ = asking_service.ask(service_id=responding_service.id, input_values={})
+
+                    with patch(
+                        "octue.cloud.pub_sub.service.OrderedMessageHandler.handle_messages",
+                        side_effect=[exceptions.QuestionNotDelivered, TimeoutError],
+                    ):
+                        with patch("tests.cloud.pub_sub.mocks.MockService.ask") as mock_ask:
+                            with self.assertRaises(TimeoutError):
+                                asking_service.wait_for_answer(subscription)
+
+                        mock_ask.assert_called()
 
     def test_ask_with_real_run_function_with_no_log_message_forwarding(self):
         """Test that a service can ask a question to another service that is serving and receive an answer. Use a real
@@ -760,3 +784,38 @@ class TestOrderedMessageHandler(BaseTestCase):
         result = message_handler.handle_messages(timeout=None)
         self.assertEqual(result, "This is the result.")
         self.assertEqual(message_handling_order, [0, 1])
+
+    def test_error_raised_if_delivery_acknowledgement_not_received_in_time(self):
+        """Test that an error is raised if delivery acknowledgement isn't received before the given acknowledgement
+        timeout.
+        """
+        messages = [
+            {"type": "finish-test", "message_number": 1},
+            {"type": "test", "message_number": 0},
+        ]
+
+        message_handler = OrderedMessageHandler(
+            message_puller=MockMessagePuller(messages=messages).pull,
+            subscriber=MockSubscriber(),
+            subscription=self.mock_subscription,
+        )
+
+        with self.assertRaises(exceptions.QuestionNotDelivered):
+            message_handler.handle_messages(delivery_acknowledgement_timeout=0)
+
+    def test_delivery_acknowledgement(self):
+        """Test that a delivery acknowledgement message is handled correctly."""
+        messages = [
+            {"type": "delivery_acknowledgement", "delivery_time": "2021-11-17 17:33:59.717428", "message_number": 0},
+            {"type": "result", "output_values": None, "output_manifest": None, "message_number": 1},
+        ]
+
+        message_handler = OrderedMessageHandler(
+            message_puller=MockMessagePuller(messages=messages).pull,
+            subscriber=MockSubscriber(),
+            subscription=self.mock_subscription,
+        )
+
+        result = message_handler.handle_messages()
+        self.assertTrue(message_handler.received_delivery_acknowledgement)
+        self.assertEqual(result, {"output_values": None, "output_manifest": None})

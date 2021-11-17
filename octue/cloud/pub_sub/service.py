@@ -265,7 +265,7 @@ class Service(CoolNameable):
         logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
         return response_subscription, question_uuid
 
-    def wait_for_answer(self, subscription, service_name="REMOTE", timeout=30):
+    def wait_for_answer(self, subscription, service_name="REMOTE", timeout=60, delivery_acknowledgement_timeout=30):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
 
@@ -285,18 +285,33 @@ class Service(CoolNameable):
         )
 
         with subscriber:
-            try:
-                return message_handler.handle_messages(timeout=timeout)
 
-            except octue.exceptions.QuestionNotDelivered:
-                logger.info("No acknowledgement of question delivery - resending.")
-                self.ask(**self._current_question)
-                return self.wait_for_answer(subscription, service_name, timeout)
+            try:
+
+                # Retry sending the question until the overall timeout is reached.
+                while not message_handler.received_delivery_acknowledgement:
+
+                    try:
+                        return message_handler.handle_messages(
+                            timeout=timeout,
+                            delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
+                        )
+
+                    except octue.exceptions.QuestionNotDelivered:
+                        logger.info("No acknowledgement of question delivery - resending.")
+                        time.sleep(5)
+                        self.ask(**self._current_question)
 
             finally:
                 subscription.delete()
 
     def send_delivery_acknowledgment_to_asker(self, topic, timeout=30):
+        """Send an acknowledgement of question delivery to the asker.
+
+        :param octue.cloud.pub_sub.topic.Topic topic:
+        :param float timeout:
+        :return None:
+        """
         logger.info("Acknowledging receipt of question.")
 
         self.publisher.publish(
@@ -400,8 +415,9 @@ class OrderedMessageHandler:
         self.subscription = subscription
         self.service_name = service_name
 
+        self.start_time = time.perf_counter()
         self.received_delivery_acknowledgement = None
-        self._waiting_messages = {}
+        self._waiting_messages = None
         self._previous_message_number = -1
 
         self._message_handlers = message_handlers or {
@@ -420,14 +436,21 @@ class OrderedMessageHandler:
         :return dict:
         """
         self.received_delivery_acknowledgement = False
-        start_time = time.perf_counter()
+        self._waiting_messages = {}
+        self._previous_message_number = -1
+
         pull_timeout = None
 
         while True:
 
             if timeout is not None:
                 current_time = time.perf_counter()
-                run_time = current_time - start_time
+                run_time = current_time - self.start_time
+
+                if run_time > timeout:
+                    raise TimeoutError(
+                        f"No final answer received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
+                    )
 
                 if not self.received_delivery_acknowledgement:
                     if run_time > delivery_acknowledgement_timeout:
@@ -435,11 +458,6 @@ class OrderedMessageHandler:
                             f"No delivery acknowledgement received for topic {self.subscription.topic.path!r} after "
                             f"{delivery_acknowledgement_timeout} seconds."
                         )
-
-                if run_time > timeout:
-                    raise TimeoutError(
-                        f"No final answer received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
-                    )
 
                 pull_timeout = timeout - run_time
 
@@ -471,6 +489,11 @@ class OrderedMessageHandler:
             logger.warning("Received a message of unknown type %r.", message["type"])
 
     def _handle_delivery_acknowledgement(self, message):
+        """Mark the question as delivered to prevent resending it.
+
+        :param dict message:
+        :return None:
+        """
         self.received_delivery_acknowledgement = True
         logger.info("Question delivered at %s.", message["delivery_time"])
 
