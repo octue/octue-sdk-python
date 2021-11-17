@@ -25,6 +25,13 @@ def index():
     """
     envelope = request.get_json()
 
+    if envelope["deliveryAttempt"] > 1:
+        logger.info(
+            "This message has already been received by the service. It will now be acknowledged to prevent further "
+            "redundant redelivery."
+        )
+        return ("", 204)
+
     if not envelope:
         return _log_bad_request_and_return_400_response("No Pub/Sub message received.")
 
