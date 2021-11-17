@@ -1,5 +1,6 @@
 import base64
 import concurrent.futures
+import datetime
 import json
 import logging
 import sys
@@ -66,6 +67,7 @@ class Service(CoolNameable):
 
         self._credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
         self.publisher = pubsub_v1.PublisherClient(credentials=self._credentials, batch_settings=BATCH_SETTINGS)
+        self._current_question = None
         super().__init__()
 
     def __repr__(self):
@@ -250,6 +252,16 @@ class Service(CoolNameable):
             retry=retry.Retry(deadline=timeout),
         )
 
+        # Keep a record of the question asked in case it needs to be retried.
+        self._current_question = {
+            "service_id": service_id,
+            "input_values": input_values,
+            "input_manifest": input_manifest,
+            "subscribe_to_logs": subscribe_to_logs,
+            "allow_local_files": allow_local_files,
+            "timeout": timeout,
+        }
+
         logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
         return response_subscription, question_uuid
 
@@ -264,6 +276,7 @@ class Service(CoolNameable):
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
         subscriber = pubsub_v1.SubscriberClient(credentials=self._credentials)
+
         message_handler = OrderedMessageHandler(
             message_puller=self._pull_message,
             subscriber=subscriber,
@@ -275,8 +288,27 @@ class Service(CoolNameable):
             try:
                 return message_handler.handle_messages(timeout=timeout)
 
+            except octue.exceptions.QuestionNotDelivered:
+                subscription, _ = self.ask(**self._current_question)
+                return self.wait_for_answer(subscription, service_name, timeout)
+
             finally:
                 subscription.delete()
+
+    def send_delivery_acknowledgment_to_asker(self, topic, timeout=30):
+        self.publisher.publish(
+            topic=topic.path,
+            data=json.dumps(
+                {
+                    "type": "delivery_acknowledgement",
+                    "delivery_time": str(datetime.datetime.now()),
+                    "message_number": topic.messages_published,
+                }
+            ).encode(),
+            retry=retry.Retry(deadline=timeout),
+        )
+
+        topic.messages_published += 1
 
     def send_exception_to_asker(self, topic, timeout=30):
         """Serialise and send the exception being handled to the asker.
@@ -306,7 +338,7 @@ class Service(CoolNameable):
 
         topic.messages_published += 1
 
-    def _pull_message(self, subscriber, subscription, timeout):
+    def _pull_message(self, subscriber, subscription, timeout, delivery_acknowledgement_timeout=30):
         """Pull a message from the subscription, raising a `TimeoutError` if the timeout is exceeded before succeeding.
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription the message is expected on
@@ -315,6 +347,7 @@ class Service(CoolNameable):
         :return dict: message containing data
         """
         start_time = time.perf_counter()
+        received_delivery_acknowledgement = False
 
         while True:
             no_message = True
@@ -336,7 +369,15 @@ class Service(CoolNameable):
                     logger.debug("Google Pub/Sub pull response timed out early.")
                     attempt += 1
 
-                    if timeout is not None and (time.perf_counter() - start_time) > timeout:
+                    current_time = time.perf_counter()
+
+                    if not received_delivery_acknowledgement:
+                        if current_time - start_time > delivery_acknowledgement_timeout:
+                            raise octue.exceptions.QuestionNotDelivered(
+                                f"No delivery acknowledgement received for topic {subscription.topic.path!r}"
+                            )
+
+                    if timeout is not None and (current_time - start_time) > timeout:
                         raise TimeoutError(
                             f"No message received from topic {subscription.topic.path!r} after {timeout} seconds.",
                         )
@@ -364,10 +405,12 @@ class OrderedMessageHandler:
         self.subscriber = subscriber
         self.subscription = subscription
         self.service_name = service_name
+
         self._waiting_messages = {}
         self._previous_message_number = -1
 
         self._message_handlers = message_handlers or {
+            "delivery_acknowledgement": self._handle_delivery_acknowledgement,
             "log_record": self._handle_log_message,
             "exception": self._handle_exception,
             "result": self._handle_result,
@@ -422,6 +465,9 @@ class OrderedMessageHandler:
             return self._message_handlers[message["type"]](message)
         except KeyError:
             logger.warning("Received a message of unknown type %r.", message["type"])
+
+    def _handle_delivery_acknowledgement(self, message):
+        logger.info("Question delivered at %s.", message["delivery_time"])
 
     def _handle_log_message(self, message):
         """Deserialise the message into a log record and pass it to the local log handlers, adding `[REMOTE] to the

@@ -83,6 +83,9 @@ def answer_question(project_name, question, credentials_environment_variable=Non
         ),
     )
 
+    answer_topic = service.instantiate_answer_topic(question_uuid)
+    service.send_delivery_acknowledgment_to_asker(topic=answer_topic)
+
     try:
         deployment_configuration = _get_deployment_configuration(DEPLOYMENT_CONFIGURATION_PATH)
 
@@ -108,7 +111,7 @@ def answer_question(project_name, question, credentials_environment_variable=Non
 
     # Forward any errors in the deployment configuration (errors in the analysis are already forwarded by the service).
     except BaseException as error:  # noqa
-        service.send_exception_to_asker(topic=service.instantiate_answer_topic(question_uuid))
+        service.send_exception_to_asker(topic=answer_topic)
         logger.exception(error)
 
 
