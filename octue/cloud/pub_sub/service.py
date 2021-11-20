@@ -231,10 +231,16 @@ class Service(CoolNameable):
         if not question_topic.exists(timeout=timeout):
             raise octue.exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
 
+        # If a question UUID is given, this is probably a retry so allow the question topic to already exist.
+        if question_uuid:
+            allow_existing_topic = True
+        else:
+            allow_existing_topic = False
+
         question_uuid = question_uuid or str(uuid.uuid4())
 
         response_topic = self.instantiate_answer_topic(question_uuid, service_id)
-        response_topic.create(allow_existing=False)
+        response_topic.create(allow_existing=allow_existing_topic)
 
         response_subscription = Subscription(
             name=response_topic.name,
@@ -320,7 +326,7 @@ class Service(CoolNameable):
         :param float timeout:
         :return None:
         """
-        logger.info("Acknowledging receipt of question.")
+        logger.info("%r acknowledged receipt of question.", self)
 
         self.publisher.publish(
             topic=topic.path,
@@ -364,11 +370,13 @@ class Service(CoolNameable):
 
         topic.messages_published += 1
 
-    def _pull_message(self, subscriber, subscription, timeout):
+    def _pull_message(self, message_handler, subscriber, subscription, timeout, delivery_acknowledgement_timeout):
         """Pull a message from the subscription, raising a `TimeoutError` if the timeout is exceeded before succeeding.
 
+        :param OrderedMessageHandler message_handler:
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription the message is expected on
         :param float|None timeout: how long to wait in seconds for the message before raising a TimeoutError
+        :param float delivery_acknowledgement_timeout: how long to wait for a delivery acknowledgement before raising `QuestionNotDelivered`
         :raise TimeoutError|concurrent.futures.TimeoutError: if the timeout is exceeded
         :return dict: message containing data
         """
@@ -394,10 +402,19 @@ class Service(CoolNameable):
                     logger.debug("Google Pub/Sub pull response timed out early.")
                     attempt += 1
 
-                    if timeout is not None and (time.perf_counter() - start_time) > timeout:
+                    run_time = time.perf_counter() - start_time
+
+                    if timeout is not None and run_time > timeout:
                         raise TimeoutError(
                             f"No message received from topic {subscription.topic.path!r} after {timeout} seconds.",
                         )
+
+                    if not message_handler.received_delivery_acknowledgement:
+                        if run_time > delivery_acknowledgement_timeout:
+                            raise octue.exceptions.QuestionNotDelivered(
+                                f"No delivery acknowledgement received for topic {subscription.topic.path!r} after "
+                                f"{delivery_acknowledgement_timeout} seconds."
+                            )
 
                     continue
 
@@ -453,24 +470,23 @@ class OrderedMessageHandler:
         while True:
 
             if timeout is not None:
-                current_time = time.perf_counter()
-                run_time = current_time - self.start_time
+                run_time = time.perf_counter() - self.start_time
 
                 if run_time > timeout:
                     raise TimeoutError(
                         f"No final answer received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
                     )
 
-                if not self.received_delivery_acknowledgement:
-                    if run_time > delivery_acknowledgement_timeout:
-                        raise octue.exceptions.QuestionNotDelivered(
-                            f"No delivery acknowledgement received for topic {self.subscription.topic.path!r} after "
-                            f"{delivery_acknowledgement_timeout} seconds."
-                        )
-
                 pull_timeout = timeout - run_time
 
-            message = self.message_puller(self.subscriber, self.subscription, timeout=pull_timeout)
+            message = self.message_puller(
+                self,
+                self.subscriber,
+                self.subscription,
+                timeout=pull_timeout,
+                delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
+            )
+
             self._waiting_messages[message["message_number"]] = message
 
             try:

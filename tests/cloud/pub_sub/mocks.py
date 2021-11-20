@@ -142,9 +142,12 @@ class MockSubscriber:
         if self.closed:
             raise ValueError("ValueError: Cannot invoke RPC: Channel closed!")
 
-        return MockPullResponse(
-            received_messages=[MockMessageWrapper(message=MESSAGES[get_service_id(request["subscription"])].pop(0))]
-        )
+        try:
+            return MockPullResponse(
+                received_messages=[MockMessageWrapper(message=MESSAGES[get_service_id(request["subscription"])].pop(0))]
+            )
+        except IndexError:
+            return MockPullResponse(received_messages=[])
 
     def acknowledge(self, request):
         pass
@@ -274,7 +277,7 @@ class MockMessagePuller:
         self.messages = messages
         self.message_number = 0
 
-    def pull(self, subscriber, subscription, timeout):
+    def pull(self, message_handler, subscriber, subscription, timeout, delivery_acknowledgement_timeout):
         """Return the next message from the messages given at initialisation.
 
         :param any subscription: this isn't used in this mock but is required in the signature of a message pulling function

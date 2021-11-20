@@ -232,8 +232,10 @@ class TestService(BaseTestCase):
         self.assertEqual(type(context.exception).__name__, "AnUnknownException")
         self.assertIn("This is an exception unknown to the asker.", context.exception.args[0])
 
-    def test_question_is_asked_again_if_delivery_not_acknowledged(self):
-        """Test that a question is asked again if delivery is not acknowledged."""
+    def test_question_is_retried_if_delivery_acknowledgement_not_received(self):
+        """Test that a question is asked again if delivery is not acknowledged and that the re-asked question is then
+        processed.
+        """
         responding_service = self.make_new_server(backend=BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
         asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
 
@@ -241,17 +243,27 @@ class TestService(BaseTestCase):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                 with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
                     responding_service.serve()
-                    subscription, _ = asking_service.ask(service_id=responding_service.id, input_values={})
 
-                    with patch(
-                        "octue.cloud.pub_sub.service.OrderedMessageHandler.handle_messages",
-                        side_effect=[exceptions.QuestionNotDelivered, TimeoutError],
-                    ):
-                        with patch("tests.cloud.pub_sub.mocks.MockService.ask") as mock_ask:
-                            with self.assertRaises(TimeoutError):
-                                asking_service.wait_for_answer(subscription, retry_interval=0.1)
+                    # Stop the responding service from answering.
+                    with patch("octue.cloud.pub_sub.service.Service.answer"):
+                        subscription, _ = asking_service.ask(service_id=responding_service.id, input_values={})
 
-                        mock_ask.assert_called_with(**asking_service._current_question)
+                    # Wait for an answer and check that the question is asked again.
+                    with self.assertLogs() as logging_context:
+                        answer = asking_service.wait_for_answer(
+                            subscription,
+                            delivery_acknowledgement_timeout=0.01,
+                            retry_interval=0.1,
+                        )
+
+                        self.assertTrue(
+                            any(
+                                "No acknowledgement of question delivery - resending" in log_message
+                                for log_message in logging_context.output
+                            )
+                        )
+
+        self.assertEqual(answer, {"output_values": "Hello! It worked!", "output_manifest": None})
 
     def test_ask_with_real_run_function_with_no_log_message_forwarding(self):
         """Test that a service can ask a question to another service that is serving and receive an answer. Use a real
