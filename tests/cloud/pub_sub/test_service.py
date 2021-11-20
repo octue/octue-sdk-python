@@ -249,7 +249,7 @@ class TestService(BaseTestCase):
                     ):
                         with patch("tests.cloud.pub_sub.mocks.MockService.ask") as mock_ask:
                             with self.assertRaises(TimeoutError):
-                                asking_service.wait_for_answer(subscription)
+                                asking_service.wait_for_answer(subscription, retry_interval=0.1)
 
                         mock_ask.assert_called_with(**asking_service._current_question)
 

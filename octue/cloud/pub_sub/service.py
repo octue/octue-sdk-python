@@ -270,7 +270,9 @@ class Service(CoolNameable):
         logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
         return response_subscription, question_uuid
 
-    def wait_for_answer(self, subscription, service_name="REMOTE", timeout=60, delivery_acknowledgement_timeout=30):
+    def wait_for_answer(
+        self, subscription, service_name="REMOTE", timeout=60, delivery_acknowledgement_timeout=30, retry_interval=5
+    ):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
 
@@ -278,6 +280,7 @@ class Service(CoolNameable):
         :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
         :param float|None timeout: how long to wait for an answer before raising a TimeoutError
         :param float delivery_acknowledgement_timeout: how long to wait for a delivery acknowledgement before retrying sending the question
+        :param float retry_interval: the time in seconds to wait between question retries
         :raise TimeoutError: if the timeout is exceeded
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
@@ -304,7 +307,7 @@ class Service(CoolNameable):
 
                     except octue.exceptions.QuestionNotDelivered:
                         logger.info("No acknowledgement of question delivery - resending.")
-                        time.sleep(5)
+                        time.sleep(retry_interval)
                         self.ask(**self._current_question)
 
             finally:
