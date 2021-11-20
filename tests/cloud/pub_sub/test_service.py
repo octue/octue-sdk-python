@@ -251,7 +251,7 @@ class TestService(BaseTestCase):
                             with self.assertRaises(TimeoutError):
                                 asking_service.wait_for_answer(subscription)
 
-                        mock_ask.assert_called()
+                        mock_ask.assert_called_with(**asking_service._current_question)
 
     def test_ask_with_real_run_function_with_no_log_message_forwarding(self):
         """Test that a service can ask a question to another service that is serving and receive an answer. Use a real

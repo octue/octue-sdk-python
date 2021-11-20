@@ -227,6 +227,7 @@ class MockService(Service):
         subscribe_to_logs=True,
         allow_local_files=False,
         timeout=30,
+        question_uuid=None,
     ):
         """Put the question into the messages register, register the existence of the corresponding response topic, add
         the response to the register, and return a MockFuture containing the answer subscription path.
@@ -240,7 +241,7 @@ class MockService(Service):
         :return MockFuture, str:
         """
         response_subscription, question_uuid = super().ask(
-            service_id, input_values, input_manifest, subscribe_to_logs, allow_local_files, timeout
+            service_id, input_values, input_manifest, subscribe_to_logs, allow_local_files, timeout, question_uuid
         )
 
         # Ignore any errors from the answering service as they will be raised on the remote service in practice, not
