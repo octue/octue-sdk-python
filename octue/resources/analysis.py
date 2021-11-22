@@ -41,6 +41,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
     object from there (see the templates for examples)
 
     :param twined.Twine twine: Twine instance or json source
+    :param callable|None monitoring_update_function: a function that sends monitoring updates to the parent that requested the analysis
     :param any configuration_values: see Runner.run() for definition
     :param octue.resources.manifest.Manifest configuration_manifest: see Runner.run() for definition
     :param any input_values: see Runner.run() for definition
@@ -54,11 +55,13 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
     :return None:
     """
 
-    def __init__(self, twine, skip_checks=False, **kwargs):
+    def __init__(self, twine, monitoring_update_function=None, skip_checks=False, **kwargs):
         if isinstance(twine, Twine):
             self.twine = twine
         else:
             self.twine = Twine(source=twine)
+
+        self._monitoring_update_function = monitoring_update_function
 
         strand_kwargs = {name: kwargs.pop(name, None) for name in ALL_STRANDS}
 
@@ -82,12 +85,23 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
 
         super().__init__(**kwargs)
 
+    def send_monitoring_update(self, data):
+        """Send a monitoring update to the parent that requested the analysis.
+
+        :param any data:
+        :return None:
+        """
+        if self._monitoring_update_function is not None:
+            self._monitoring_update_function(data)
+            return
+
+        module_logger.warning("Attempted to send a monitoring update but no monitoring function is specified.")
+
     def finalise(self, output_dir=None, save_locally=False, upload_to_cloud=False, project_name=None, bucket_name=None):
         """Validate and serialise the output values and manifest, optionally writing them to files and/or the manifest
         to the cloud.
 
-        :param str output_dir: path-like pointing to directory where the outputs should be saved to file (if None, files
-            are not written)
+        :param str output_dir: path-like pointing to directory where the outputs should be saved to file (if None, files are not written)
         :param bool save_locally:
         :param bool upload_to_cloud:
         :param str project_name:

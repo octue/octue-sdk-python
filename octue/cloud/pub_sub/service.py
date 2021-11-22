@@ -1,6 +1,7 @@
 import base64
 import concurrent.futures
 import datetime
+import functools
 import json
 import logging
 import sys
@@ -129,6 +130,7 @@ class Service(CoolNameable):
                 input_values=data["input_values"],
                 input_manifest=data["input_manifest"],
                 analysis_log_handler=analysis_log_handler,
+                monitoring_function=functools.partial(self.send_monitoring_update_to_asker, topic=topic),
             )
 
             if analysis.output_manifest is None:
@@ -322,6 +324,30 @@ class Service(CoolNameable):
                 {
                     "type": "delivery_acknowledgement",
                     "delivery_time": str(datetime.datetime.now()),
+                    "message_number": topic.messages_published,
+                }
+            ).encode(),
+            retry=retry.Retry(deadline=timeout),
+        )
+
+        topic.messages_published += 1
+
+    def send_monitoring_update_to_asker(self, data, topic, timeout=30):
+        """Send a monitoring update to the asker.
+
+        :param any data: the data to send as a monitoring update
+        :param octue.cloud.pub_sub.topic.Topic topic: the topic to send the monitoring update to
+        :param float timeout: time in seconds to retry sending the update
+        :return None:
+        """
+        logger.info("%r sending monitoring update.", self)
+
+        self.publisher.publish(
+            topic=topic.path,
+            data=json.dumps(
+                {
+                    "type": "monitoring_update",
+                    "data": json.dumps(data),
                     "message_number": topic.messages_published,
                 }
             ).encode(),
