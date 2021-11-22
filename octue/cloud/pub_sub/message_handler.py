@@ -21,7 +21,7 @@ class OrderedMessageHandler:
 
     :param google.pubsub_v1.services.subscriber.client.SubscriberClient subscriber: a Google Pub/Sub subscriber
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
-    :param callable|None monitoring_callback: a function to handle monitoring update messages
+    :param callable|None monitoring_callback: a function to handle monitoring updates (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
     :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
     :param dict|None message_handlers: a mapping of message handler names to callables that handle each type of message
     :return None:
@@ -178,7 +178,7 @@ class OrderedMessageHandler:
         logger.info("%r received a monitoring update.", self.subscription.topic.service)
 
         if self.monitoring_callback is not None:
-            self.monitoring_callback(message["data"])
+            self.monitoring_callback(json.loads(message["data"]))
 
     def _handle_log_message(self, message):
         """Deserialise the message into a log record and pass it to the local log handlers, adding [<service-name>] to
