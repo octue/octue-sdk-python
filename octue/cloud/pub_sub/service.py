@@ -130,7 +130,7 @@ class Service(CoolNameable):
                 input_values=data["input_values"],
                 input_manifest=data["input_manifest"],
                 analysis_log_handler=analysis_log_handler,
-                monitoring_function=functools.partial(self.send_monitoring_update_to_asker, topic=topic),
+                monitoring_update_function=functools.partial(self.send_monitoring_update_to_asker, topic=topic),
             )
 
             if analysis.output_manifest is None:
@@ -266,7 +266,7 @@ class Service(CoolNameable):
         the answer is received.
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
-        :param callable|None monitoring_callback: a function to handle monitoring updates (e.g. send them to an endpoint for plotting or displaying)
+        :param callable|None monitoring_callback: a function to handle monitoring updates (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
         :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before resending the question
