@@ -21,14 +21,18 @@ class OrderedMessageHandler:
 
     :param google.pubsub_v1.services.subscriber.client.SubscriberClient subscriber: a Google Pub/Sub subscriber
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
+    :param callable|None monitoring_callback: a function to handle monitoring update messages
     :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
     :param dict|None message_handlers: a mapping of message handler names to callables that handle each type of message
     :return None:
     """
 
-    def __init__(self, subscriber, subscription, service_name="REMOTE", message_handlers=None):
+    def __init__(
+        self, subscriber, subscription, monitoring_callback=None, service_name="REMOTE", message_handlers=None
+    ):
         self.subscriber = subscriber
         self.subscription = subscription
+        self.monitoring_callback = monitoring_callback
         self.service_name = service_name
 
         self.received_delivery_acknowledgement = None
@@ -38,6 +42,7 @@ class OrderedMessageHandler:
 
         self._message_handlers = message_handlers or {
             "delivery_acknowledgement": self._handle_delivery_acknowledgement,
+            "monitoring_update": self._handle_monitoring_update,
             "log_record": self._handle_log_message,
             "exception": self._handle_exception,
             "result": self._handle_result,
@@ -163,6 +168,17 @@ class OrderedMessageHandler:
         """
         self.received_delivery_acknowledgement = True
         logger.info("%r's question was delivered at %s.", self.subscription.topic.service, message["delivery_time"])
+
+    def _handle_monitoring_update(self, message):
+        """Send a monitoring update to the monitoring callback if one has been provided.
+
+        :param dict message:
+        :return None:
+        """
+        logger.info("%r received a monitoring update.", self.subscription.topic.service)
+
+        if self.monitoring_callback is not None:
+            self.monitoring_callback(message["data"])
 
     def _handle_log_message(self, message):
         """Deserialise the message into a log record and pass it to the local log handlers, adding [<service-name>] to

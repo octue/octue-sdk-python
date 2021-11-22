@@ -271,12 +271,19 @@ class Service(CoolNameable):
         return response_subscription, question_uuid
 
     def wait_for_answer(
-        self, subscription, service_name="REMOTE", timeout=60, delivery_acknowledgement_timeout=30, retry_interval=5
+        self,
+        subscription,
+        monitoring_callback=None,
+        service_name="REMOTE",
+        timeout=60,
+        delivery_acknowledgement_timeout=30,
+        retry_interval=5,
     ):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
+        :param callable|None monitoring_callback: a function to handle monitoring updates (e.g. send them to an endpoint for plotting or displaying)
         :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before resending the question
@@ -289,6 +296,7 @@ class Service(CoolNameable):
         message_handler = OrderedMessageHandler(
             subscriber=subscriber,
             subscription=subscription,
+            monitoring_callback=monitoring_callback,
             service_name=service_name,
         )
 
