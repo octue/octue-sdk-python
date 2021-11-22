@@ -28,6 +28,14 @@ def index():
     if not envelope:
         return _log_bad_request_and_return_400_response("No Pub/Sub message received.")
 
+    # Acknowledge questions that are redelivered to stop further redelivery and redundant processing.
+    if envelope["deliveryAttempt"] > 1:
+        logger.info(
+            "This question has already been received by the service. It will now be acknowledged to prevent further "
+            "redundant redelivery."
+        )
+        return ("", 204)
+
     if not isinstance(envelope, dict) or "message" not in envelope:
         return _log_bad_request_and_return_400_response("Invalid Pub/Sub message format.")
 
@@ -76,6 +84,8 @@ def answer_question(project_name, question, credentials_environment_variable=Non
         ),
     )
 
+    answer_topic = service.instantiate_answer_topic(question_uuid)
+
     try:
         deployment_configuration = _get_deployment_configuration(DEPLOYMENT_CONFIGURATION_PATH)
 
@@ -96,12 +106,12 @@ def answer_question(project_name, question, credentials_environment_variable=Non
             analysis_log_handler=deployment_configuration.get("log_handler", None),
         )
 
-        service.answer(question)
+        service.answer(question, answer_topic=answer_topic)
         logger.info("Analysis successfully run and response sent for question %r.", question_uuid)
 
     # Forward any errors in the deployment configuration (errors in the analysis are already forwarded by the service).
     except BaseException as error:  # noqa
-        service.send_exception_to_asker(topic=service.instantiate_answer_topic(question_uuid))
+        service.send_exception_to_asker(topic=answer_topic)
         logger.exception(error)
 
 

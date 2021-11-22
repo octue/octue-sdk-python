@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import twined.exceptions
 from octue import Runner, exceptions
-from octue.cloud.pub_sub.service import OrderedMessageHandler, Service
+from octue.cloud.pub_sub.service import Service
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
@@ -13,7 +13,6 @@ from tests.cloud.pub_sub.mocks import (
     DifferentMockAnalysis,
     MockAnalysis,
     MockAnalysisWithOutputManifest,
-    MockMessagePuller,
     MockPullResponse,
     MockService,
     MockSubscriber,
@@ -75,6 +74,7 @@ class TestService(BaseTestCase):
         allow_local_files=False,
         service_name="my-service",
         timeout=30,
+        delivery_acknowledgement_timeout=30,
     ):
         """Get an asking service to ask a question to a responding service and wait for the answer.
 
@@ -89,7 +89,9 @@ class TestService(BaseTestCase):
             responding_service.id, input_values, input_manifest, subscribe_to_logs, allow_local_files, timeout
         )
 
-        return asking_service.wait_for_answer(subscription, service_name=service_name)
+        return asking_service.wait_for_answer(
+            subscription, service_name=service_name, delivery_acknowledgement_timeout=delivery_acknowledgement_timeout
+        )
 
     def make_responding_service_with_error(self, exception_to_raise):
         """Make a mock responding service that raises the given exception when its run function is executed.
@@ -228,6 +230,39 @@ class TestService(BaseTestCase):
 
         self.assertEqual(type(context.exception).__name__, "AnUnknownException")
         self.assertIn("This is an exception unknown to the asker.", context.exception.args[0])
+
+    def test_question_is_retried_if_delivery_acknowledgement_not_received(self):
+        """Test that a question is asked again if delivery is not acknowledged and that the re-asked question is then
+        processed.
+        """
+        responding_service = self.make_new_server(backend=BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
+        asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
+
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    responding_service.serve()
+
+                    # Stop the responding service from answering.
+                    with patch("octue.cloud.pub_sub.service.Service.answer"):
+                        subscription, _ = asking_service.ask(service_id=responding_service.id, input_values={})
+
+                    # Wait for an answer and check that the question is asked again.
+                    with self.assertLogs() as logging_context:
+                        answer = asking_service.wait_for_answer(
+                            subscription,
+                            delivery_acknowledgement_timeout=0.01,
+                            retry_interval=0.1,
+                        )
+
+                        self.assertTrue(
+                            any(
+                                "No acknowledgement of question delivery" in log_message
+                                for log_message in logging_context.output
+                            )
+                        )
+
+        self.assertEqual(answer, {"output_values": "Hello! It worked!", "output_manifest": None})
 
     def test_ask_with_real_run_function_with_no_log_message_forwarding(self):
         """Test that a service can ask a question to another service that is serving and receive an answer. Use a real
@@ -604,159 +639,3 @@ class TestService(BaseTestCase):
                 "output_manifest": None,
             },
         )
-
-
-class TestOrderedMessageHandler(BaseTestCase):
-    @classmethod
-    def setUpClass(cls):
-        service = MockService(backend=BACKEND)
-        mock_topic = MockTopic(name="world", namespace="hello", service=service)
-        cls.mock_subscription = MockSubscription(
-            name="world",
-            topic=mock_topic,
-            namespace="hello",
-            project_name=TEST_PROJECT_NAME,
-            subscriber=MockSubscriber(),
-        )
-
-    def _make_order_recording_message_handler(self, message_handling_order):
-        """Make a message handler that records the order in which messages were handled to the given list.
-
-        :param list message_handling_order:
-        :return callable:
-        """
-
-        def message_handler(message):
-            message_handling_order.append(message["message_number"])
-
-        return message_handler
-
-    def test_timeout(self):
-        """Test that a TimeoutError is raised if message handling takes longer than the given timeout."""
-        message_handler = OrderedMessageHandler(
-            message_puller=MockMessagePuller(messages=[{"type": "test", "message_number": 0}]).pull,
-            subscriber=MockSubscriber(),
-            subscription=self.mock_subscription,
-            message_handlers={
-                "test": self._make_order_recording_message_handler([]),
-                "finish-test": lambda message: message,
-            },
-        )
-
-        with self.assertRaises(TimeoutError):
-            message_handler.handle_messages(timeout=0)
-
-    def test_unknown_message_type_raises_warning(self):
-        """Test that unknown message types result in a warning being logged."""
-        message_handler = OrderedMessageHandler(
-            message_puller=None,
-            subscriber=MockSubscriber(),
-            subscription=self.mock_subscription,
-            message_handlers={"finish-test": lambda message: message},
-        )
-
-        with patch("logging.StreamHandler.emit") as mock_emit:
-            message_handler._handle_message({"type": "blah", "message_number": 0})
-
-        self.assertIn("Received a message of unknown type", mock_emit.call_args_list[0][0][0].msg)
-
-    def test_in_order_messages_are_handled_in_order(self):
-        """Test that messages received in order are handled in order."""
-        messages = [
-            {"type": "test", "message_number": 0},
-            {"type": "test", "message_number": 1},
-            {"type": "test", "message_number": 2},
-            {"type": "finish-test", "message_number": 3},
-        ]
-
-        message_handling_order = []
-
-        message_handler = OrderedMessageHandler(
-            message_puller=MockMessagePuller(messages=messages).pull,
-            subscriber=MockSubscriber(),
-            subscription=self.mock_subscription,
-            message_handlers={
-                "test": self._make_order_recording_message_handler(message_handling_order),
-                "finish-test": lambda message: "This is the result.",
-            },
-        )
-
-        result = message_handler.handle_messages()
-        self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handling_order, [0, 1, 2])
-
-    def test_out_of_order_messages_are_handled_in_order(self):
-        """Test that messages received out of order are handled in order."""
-        messages = [
-            {"type": "test", "message_number": 1},
-            {"type": "test", "message_number": 2},
-            {"type": "test", "message_number": 0},
-            {"type": "finish-test", "message_number": 3},
-        ]
-
-        message_handling_order = []
-
-        message_handler = OrderedMessageHandler(
-            message_puller=MockMessagePuller(messages=messages).pull,
-            subscriber=MockSubscriber(),
-            subscription=self.mock_subscription,
-            message_handlers={
-                "test": self._make_order_recording_message_handler(message_handling_order),
-                "finish-test": lambda message: "This is the result.",
-            },
-        )
-
-        result = message_handler.handle_messages()
-        self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handling_order, [0, 1, 2])
-
-    def test_out_of_order_messages_with_end_message_first_are_handled_in_order(self):
-        """Test that messages received out of order and with the final message (the message that triggers a value to be
-        returned) are handled in order.
-        """
-        messages = [
-            {"type": "finish-test", "message_number": 3},
-            {"type": "test", "message_number": 1},
-            {"type": "test", "message_number": 2},
-            {"type": "test", "message_number": 0},
-        ]
-
-        message_handling_order = []
-
-        message_handler = OrderedMessageHandler(
-            message_puller=MockMessagePuller(messages=messages).pull,
-            subscriber=MockSubscriber(),
-            subscription=self.mock_subscription,
-            message_handlers={
-                "test": self._make_order_recording_message_handler(message_handling_order),
-                "finish-test": lambda message: "This is the result.",
-            },
-        )
-
-        result = message_handler.handle_messages()
-        self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handling_order, [0, 1, 2])
-
-    def test_no_timeout(self):
-        """Test that message handling works with no timeout."""
-        messages = [
-            {"type": "finish-test", "message_number": 2},
-            {"type": "test", "message_number": 0},
-            {"type": "test", "message_number": 1},
-        ]
-
-        message_handling_order = []
-
-        message_handler = OrderedMessageHandler(
-            message_puller=MockMessagePuller(messages=messages).pull,
-            subscriber=MockSubscriber(),
-            subscription=self.mock_subscription,
-            message_handlers={
-                "test": self._make_order_recording_message_handler(message_handling_order),
-                "finish-test": lambda message: "This is the result.",
-            },
-        )
-
-        result = message_handler.handle_messages(timeout=None)
-        self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handling_order, [0, 1])

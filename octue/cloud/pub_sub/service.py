@@ -1,5 +1,6 @@
 import base64
 import concurrent.futures
+import datetime
 import json
 import logging
 import sys
@@ -10,14 +11,12 @@ from google.api_core import retry
 from google.cloud import pubsub_v1
 
 import octue.exceptions
-import twined.exceptions
 from octue.cloud.credentials import GCPCredentialsManager
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
+from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
 from octue.mixins import CoolNameable
-from octue.resources.manifest import Manifest
 from octue.utils.encoders import OctueJSONEncoder
-from octue.utils.exceptions import create_exceptions_mapping
 from octue.utils.objects import get_nested_attribute
 
 
@@ -29,10 +28,6 @@ ANSWERS_NAMESPACE = "answers"
 # Switch message batching off by setting max_messages to 1. This minimises latency and is recommended for
 # microservices publishing single messages in a request-response sequence.
 BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_latency=0.01, max_messages=1)
-
-EXCEPTIONS_MAPPING = create_exceptions_mapping(
-    globals()["__builtins__"], vars(twined.exceptions), vars(octue.exceptions)
-)
 
 
 class Service(CoolNameable):
@@ -66,6 +61,7 @@ class Service(CoolNameable):
 
         self._credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
         self.publisher = pubsub_v1.PublisherClient(credentials=self._credentials, batch_settings=BATCH_SETTINGS)
+        self._current_question = None
         super().__init__()
 
     def __repr__(self):
@@ -107,18 +103,20 @@ class Service(CoolNameable):
                 topic.delete()
                 subscription.delete()
 
-    def answer(self, question, timeout=30):
+    def answer(self, question, answer_topic=None, timeout=30):
         """Answer a question (i.e. run the Service's app to analyse the given data, and return the output values to the
         asker). Answers are published to a topic whose name is generated from the UUID sent with the question, and are
         in the format specified in the Service's Twine file.
 
         :param dict|Message question:
+        :param octue.cloud.pub_sub.topic.Topic|None answer_topic: provide if messages need to be sent to the asker from outside the service (e.g. in octue.cloud.deployment.google.cloud_run)
         :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
         """
         data, question_uuid, forward_logs = self.parse_question(question)
-        topic = self.instantiate_answer_topic(question_uuid)
+        topic = answer_topic or self.instantiate_answer_topic(question_uuid)
+        self.send_delivery_acknowledgment_to_asker(topic)
 
         if forward_logs:
             analysis_log_handler = GooglePubSubHandler(publisher=self.publisher, topic=topic)
@@ -198,6 +196,7 @@ class Service(CoolNameable):
         subscribe_to_logs=True,
         allow_local_files=False,
         timeout=30,
+        question_uuid=None,
     ):
         """Ask a serving Service a question (i.e. send it input values for it to run its app on). The input values must
         be in the format specified by the serving Service's Twine file. A single-use topic and subscription are created
@@ -210,6 +209,7 @@ class Service(CoolNameable):
         :param bool subscribe_to_logs: if `True`, subscribe to logs from the remote service and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the serving service will have access to these local files
         :param float|None timeout: time in seconds to keep retrying sending the question
+        :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :return (octue.cloud.pub_sub.subscription.Subscription, str): the response subscription and question UUID
         """
         if not allow_local_files:
@@ -225,10 +225,16 @@ class Service(CoolNameable):
         if not question_topic.exists(timeout=timeout):
             raise octue.exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
 
-        question_uuid = str(uuid.uuid4())
+        # If a question UUID is given, this is probably a retry so allow the question topic to already exist.
+        if question_uuid:
+            allow_existing_topic = True
+        else:
+            allow_existing_topic = False
+
+        question_uuid = question_uuid or str(uuid.uuid4())
 
         response_topic = self.instantiate_answer_topic(question_uuid, service_id)
-        response_topic.create(allow_existing=False)
+        response_topic.create(allow_existing=allow_existing_topic)
 
         response_subscription = Subscription(
             name=response_topic.name,
@@ -250,33 +256,90 @@ class Service(CoolNameable):
             retry=retry.Retry(deadline=timeout),
         )
 
+        # Keep a record of the question asked in case it needs to be retried.
+        self._current_question = {
+            "service_id": service_id,
+            "input_values": input_values,
+            "input_manifest": input_manifest,
+            "question_uuid": question_uuid,
+            "subscribe_to_logs": subscribe_to_logs,
+            "allow_local_files": allow_local_files,
+            "timeout": timeout,
+        }
+
         logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
         return response_subscription, question_uuid
 
-    def wait_for_answer(self, subscription, service_name="REMOTE", timeout=30):
+    def wait_for_answer(
+        self, subscription, service_name="REMOTE", timeout=60, delivery_acknowledgement_timeout=30, retry_interval=5
+    ):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
         :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
-        :param float|None timeout: how long to wait for an answer before raising a TimeoutError
+        :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
+        :param float delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before resending the question
+        :param float retry_interval: the time in seconds to wait between question retries
         :raise TimeoutError: if the timeout is exceeded
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
         subscriber = pubsub_v1.SubscriberClient(credentials=self._credentials)
+
         message_handler = OrderedMessageHandler(
-            message_puller=self._pull_message,
             subscriber=subscriber,
             subscription=subscription,
             service_name=service_name,
         )
 
         with subscriber:
+
             try:
-                return message_handler.handle_messages(timeout=timeout)
+                # Retry sending the question until the overall timeout is reached.
+                while not message_handler.received_delivery_acknowledgement:
+
+                    try:
+                        return message_handler.handle_messages(
+                            timeout=timeout,
+                            delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
+                        )
+
+                    except octue.exceptions.QuestionNotDelivered:
+                        logger.info(
+                            "%r: No acknowledgement of question delivery after %fs - resending in %fs.",
+                            self,
+                            delivery_acknowledgement_timeout,
+                            retry_interval,
+                        )
+
+                        time.sleep(retry_interval)
+                        self.ask(**self._current_question)
 
             finally:
                 subscription.delete()
+
+    def send_delivery_acknowledgment_to_asker(self, topic, timeout=30):
+        """Send an acknowledgement of question delivery to the asker.
+
+        :param octue.cloud.pub_sub.topic.Topic topic: topic to send acknowledgement to
+        :param float timeout: time in seconds after which to give up sending
+        :return None:
+        """
+        logger.info("%r acknowledged receipt of question.", self)
+
+        self.publisher.publish(
+            topic=topic.path,
+            data=json.dumps(
+                {
+                    "type": "delivery_acknowledgement",
+                    "delivery_time": str(datetime.datetime.now()),
+                    "message_number": topic.messages_published,
+                }
+            ).encode(),
+            retry=retry.Retry(deadline=timeout),
+        )
+
+        topic.messages_published += 1
 
     def send_exception_to_asker(self, topic, timeout=30):
         """Serialise and send the exception being handled to the asker.
@@ -305,168 +368,3 @@ class Service(CoolNameable):
         )
 
         topic.messages_published += 1
-
-    def _pull_message(self, subscriber, subscription, timeout):
-        """Pull a message from the subscription, raising a `TimeoutError` if the timeout is exceeded before succeeding.
-
-        :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription the message is expected on
-        :param float|None timeout: how long to wait in seconds for the message before raising a TimeoutError
-        :raise TimeoutError|concurrent.futures.TimeoutError: if the timeout is exceeded
-        :return dict: message containing data
-        """
-        start_time = time.perf_counter()
-
-        while True:
-            no_message = True
-            attempt = 1
-
-            while no_message:
-                logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
-
-                pull_response = subscriber.pull(
-                    request={"subscription": subscription.path, "max_messages": 1},
-                    retry=retry.Retry(),
-                )
-
-                try:
-                    answer = pull_response.received_messages[0]
-                    no_message = False
-
-                except IndexError:
-                    logger.debug("Google Pub/Sub pull response timed out early.")
-                    attempt += 1
-
-                    if timeout is not None and (time.perf_counter() - start_time) > timeout:
-                        raise TimeoutError(
-                            f"No message received from topic {subscription.topic.path!r} after {timeout} seconds.",
-                        )
-
-                    continue
-
-            subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
-            logger.debug("%r received a message related to question %r.", self, subscription.topic.path.split(".")[-1])
-            return json.loads(answer.message.data.decode())
-
-
-class OrderedMessageHandler:
-    """A handler for Google Pub/Sub messages that ensures messages are handled in the order they were sent.
-
-    :param callable message_puller: function that pulls a message from the subscription
-    :param google.pubsub_v1.services.subscriber.client.SubscriberClient subscriber: a Google Pub/Sub subscriber
-    :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
-    :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
-    :param dict|None message_handlers: a mapping of message handler names to callables that handle each type of message
-    :return None:
-    """
-
-    def __init__(self, message_puller, subscriber, subscription, service_name="REMOTE", message_handlers=None):
-        self.message_puller = message_puller
-        self.subscriber = subscriber
-        self.subscription = subscription
-        self.service_name = service_name
-        self._waiting_messages = {}
-        self._previous_message_number = -1
-
-        self._message_handlers = message_handlers or {
-            "log_record": self._handle_log_message,
-            "exception": self._handle_exception,
-            "result": self._handle_result,
-        }
-
-    def handle_messages(self, timeout=30):
-        """Pull messages and handle them in the order they were sent until a result is returned by a message handler,
-        then return that result.
-
-        :param float|None timeout: how long to wait for an answer before raising a `TimeoutError`
-        :raise TimeoutError: if the timeout is exceeded before receiving the final message
-        :return dict:
-        """
-        start_time = time.perf_counter()
-        pull_timeout = None
-
-        while True:
-
-            if timeout is not None:
-                run_time = time.perf_counter() - start_time
-
-                if run_time > timeout:
-                    raise TimeoutError(
-                        f"No final answer received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
-                    )
-
-                pull_timeout = timeout - run_time
-
-            message = self.message_puller(self.subscriber, self.subscription, timeout=pull_timeout)
-            self._waiting_messages[message["message_number"]] = message
-
-            try:
-                while self._waiting_messages:
-                    message = self._waiting_messages.pop(self._previous_message_number + 1)
-                    result = self._handle_message(message)
-
-                    if result is not None:
-                        return result
-
-            except KeyError:
-                pass
-
-    def _handle_message(self, message):
-        """Pass a message to its handler and update the previous message number.
-
-        :param dict message:
-        :return dict|None:
-        """
-        self._previous_message_number += 1
-
-        try:
-            return self._message_handlers[message["type"]](message)
-        except KeyError:
-            logger.warning("Received a message of unknown type %r.", message["type"])
-
-    def _handle_log_message(self, message):
-        """Deserialise the message into a log record and pass it to the local log handlers, adding `[REMOTE] to the
-        start of the log message.
-
-        :param dict message:
-        :return None:
-        """
-        record = logging.makeLogRecord(message["log_record"])
-        record.msg = f"[{self.service_name}] {record.msg}"
-        logger.handle(record)
-
-    def _handle_exception(self, message):
-        """Raise the exception from the responding service that is serialised in `data`.
-
-        :param dict message:
-        :raise Exception:
-        :return None:
-        """
-        exception_message = "\n\n".join(
-            (
-                message["exception_message"],
-                f"The following traceback was captured from the remote service {self.service_name!r}:",
-                "".join(message["traceback"]),
-            )
-        )
-
-        try:
-            raise EXCEPTIONS_MAPPING[message["exception_type"]](exception_message)
-
-        # Allow unknown exception types to still be raised.
-        except KeyError:
-            raise type(message["exception_type"], (Exception,), {})(exception_message)
-
-    def _handle_result(self, message):
-        """Convert the result to the correct form, deserialising the output manifest if it is present in the message.
-
-        :param dict message:
-        :return dict:
-        """
-        logger.info("Received an answer to question %r.", self.subscription.topic.path.split(".")[-1])
-
-        if message["output_manifest"] is None:
-            output_manifest = None
-        else:
-            output_manifest = Manifest.deserialise(message["output_manifest"], from_string=True)
-
-        return {"output_values": message["output_values"], "output_manifest": output_manifest}

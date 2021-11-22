@@ -72,6 +72,10 @@ class ServiceNotFound(OctueSDKException):
     """
 
 
+class QuestionNotDelivered(OctueSDKException):
+    """Raise if a question has not been delivered or no acknowledgement of its delivery has been received."""
+
+
 class BackendNotFound(OctueSDKException):
     """Raise when details of a backend that doesn't exist in `octue.resources.service_backends` are given for use as a
     Service backend.

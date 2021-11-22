@@ -142,9 +142,12 @@ class MockSubscriber:
         if self.closed:
             raise ValueError("ValueError: Cannot invoke RPC: Channel closed!")
 
-        return MockPullResponse(
-            received_messages=[MockMessageWrapper(message=MESSAGES[get_service_id(request["subscription"])].pop(0))]
-        )
+        try:
+            return MockPullResponse(
+                received_messages=[MockMessageWrapper(message=MESSAGES[get_service_id(request["subscription"])].pop(0))]
+            )
+        except IndexError:
+            return MockPullResponse(received_messages=[])
 
     def acknowledge(self, request):
         pass
@@ -227,6 +230,7 @@ class MockService(Service):
         subscribe_to_logs=True,
         allow_local_files=False,
         timeout=30,
+        question_uuid=None,
     ):
         """Put the question into the messages register, register the existence of the corresponding response topic, add
         the response to the register, and return a MockFuture containing the answer subscription path.
@@ -240,7 +244,7 @@ class MockService(Service):
         :return MockFuture, str:
         """
         response_subscription, question_uuid = super().ask(
-            service_id, input_values, input_manifest, subscribe_to_logs, allow_local_files, timeout
+            service_id, input_values, input_manifest, subscribe_to_logs, allow_local_files, timeout, question_uuid
         )
 
         # Ignore any errors from the answering service as they will be raised on the remote service in practice, not
@@ -263,7 +267,8 @@ class MockService(Service):
 
 
 class MockMessagePuller:
-    """A mock message puller that returns the messages in the order they were provided on initialisation.
+    """A mock message puller that returns the messages in the order they were provided on initialisation. This is meant
+    for patching `octue.cloud.pub_sub.message_handler.OrderedMessageHandler._pull_message` in tests.
 
     :param iter(dict) messages:
     :return None:
@@ -273,10 +278,9 @@ class MockMessagePuller:
         self.messages = messages
         self.message_number = 0
 
-    def pull(self, subscriber, subscription, timeout):
+    def pull(self, timeout, delivery_acknowledgement_timeout):
         """Return the next message from the messages given at initialisation.
 
-        :param any subscription: this isn't used in this mock but is required in the signature of a message pulling function
         :return dict:
         """
         message = self.messages[self.message_number]
