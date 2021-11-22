@@ -114,7 +114,7 @@ class Service(CoolNameable):
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
         """
-        data, question_uuid, forward_logs = self.parse_question(question)
+        data, question_uuid, forward_logs = self._parse_question(question)
         topic = answer_topic or self.instantiate_answer_topic(question_uuid)
         self.send_delivery_acknowledgment_to_asker(topic)
 
@@ -155,25 +155,6 @@ class Service(CoolNameable):
         except BaseException as error:  # noqa
             self.send_exception_to_asker(topic, timeout)
             raise error
-
-    def parse_question(self, question):
-        """Parse a question in the Google Cloud Pub/Sub or Google Cloud Run format.
-
-        :param dict|Message question:
-        :return (dict, str, bool):
-        """
-        try:
-            # Parse Google Cloud Pub/Sub question format.
-            data = json.loads(question.data.decode())
-            question.ack()
-            logger.info("%r received a question.", self)
-        except Exception:
-            # Parse Google Cloud Run question format.
-            data = json.loads(base64.b64decode(question["data"]).decode("utf-8").strip())
-
-        question_uuid = get_nested_attribute(question, "attributes.question_uuid")
-        forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
-        return data, question_uuid, forward_logs
 
     def instantiate_answer_topic(self, question_uuid, service_id=None):
         """Instantiate the answer topic for the given question UUID for the given service ID.
@@ -376,3 +357,22 @@ class Service(CoolNameable):
         )
 
         topic.messages_published += 1
+
+    def _parse_question(self, question):
+        """Parse a question in the Google Cloud Pub/Sub or Google Cloud Run format.
+
+        :param dict|Message question:
+        :return (dict, str, bool):
+        """
+        try:
+            # Parse Google Cloud Pub/Sub question format.
+            data = json.loads(question.data.decode())
+            question.ack()
+            logger.info("%r received a question.", self)
+        except Exception:
+            # Parse Google Cloud Run question format.
+            data = json.loads(base64.b64decode(question["data"]).decode("utf-8").strip())
+
+        question_uuid = get_nested_attribute(question, "attributes.question_uuid")
+        forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
+        return data, question_uuid, forward_logs
