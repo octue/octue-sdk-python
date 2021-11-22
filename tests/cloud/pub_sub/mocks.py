@@ -267,7 +267,8 @@ class MockService(Service):
 
 
 class MockMessagePuller:
-    """A mock message puller that returns the messages in the order they were provided on initialisation.
+    """A mock message puller that returns the messages in the order they were provided on initialisation. This is meant
+    for patching `octue.cloud.pub_sub.message_handler.OrderedMessageHandler._pull_message` in tests.
 
     :param iter(dict) messages:
     :return None:
