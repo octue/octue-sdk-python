@@ -278,10 +278,9 @@ class MockMessagePuller:
         self.messages = messages
         self.message_number = 0
 
-    def pull(self, subscriber, subscription, timeout, delivery_acknowledgement_timeout):
+    def pull(self, timeout, delivery_acknowledgement_timeout):
         """Return the next message from the messages given at initialisation.
 
-        :param any subscription: this isn't used in this mock but is required in the signature of a message pulling function
         :return dict:
         """
         message = self.messages[self.message_number]

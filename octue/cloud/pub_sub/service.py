@@ -109,7 +109,7 @@ class Service(CoolNameable):
         in the format specified in the Service's Twine file.
 
         :param dict|Message question:
-        :param octue.cloud.pub_sub.topic.Topic|None answer_topic: instantiate and provide the answer topic if messages need to be sent to the asker from outside the service
+        :param octue.cloud.pub_sub.topic.Topic|None answer_topic: provide if messages need to be sent to the asker from outside the service (e.g. in octue.cloud.deployment.google.cloud_run)
         :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
@@ -278,8 +278,8 @@ class Service(CoolNameable):
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
         :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
-        :param float|None timeout: how long to wait for an answer before raising a TimeoutError
-        :param float delivery_acknowledgement_timeout: how long to wait for a delivery acknowledgement before retrying sending the question
+        :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
+        :param float delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before resending the question
         :param float retry_interval: the time in seconds to wait between question retries
         :raise TimeoutError: if the timeout is exceeded
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
@@ -305,7 +305,13 @@ class Service(CoolNameable):
                         )
 
                     except octue.exceptions.QuestionNotDelivered:
-                        logger.info("No acknowledgement of question delivery - resending.")
+                        logger.info(
+                            "%r: No acknowledgement of question delivery after %fs - resending in %fs.",
+                            self,
+                            delivery_acknowledgement_timeout,
+                            retry_interval,
+                        )
+
                         time.sleep(retry_interval)
                         self.ask(**self._current_question)
 
@@ -315,8 +321,8 @@ class Service(CoolNameable):
     def send_delivery_acknowledgment_to_asker(self, topic, timeout=30):
         """Send an acknowledgement of question delivery to the asker.
 
-        :param octue.cloud.pub_sub.topic.Topic topic:
-        :param float timeout:
+        :param octue.cloud.pub_sub.topic.Topic topic: topic to send acknowledgement to
+        :param float timeout: time in seconds after which to give up sending
         :return None:
         """
         logger.info("%r acknowledged receipt of question.", self)

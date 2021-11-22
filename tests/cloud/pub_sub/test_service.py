@@ -257,7 +257,7 @@ class TestService(BaseTestCase):
 
                         self.assertTrue(
                             any(
-                                "No acknowledgement of question delivery - resending" in log_message
+                                "No acknowledgement of question delivery" in log_message
                                 for log_message in logging_context.output
                             )
                         )

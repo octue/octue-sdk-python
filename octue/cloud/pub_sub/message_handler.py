@@ -19,7 +19,6 @@ EXCEPTIONS_MAPPING = create_exceptions_mapping(
 class OrderedMessageHandler:
     """A handler for Google Pub/Sub messages that ensures messages are handled in the order they were sent.
 
-    :param callable message_puller: function that pulls a message from the subscription
     :param google.pubsub_v1.services.subscriber.client.SubscriberClient subscriber: a Google Pub/Sub subscriber
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
     :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
@@ -32,8 +31,8 @@ class OrderedMessageHandler:
         self.subscription = subscription
         self.service_name = service_name
 
-        self.start_time = time.perf_counter()
         self.received_delivery_acknowledgement = None
+        self._start_time = time.perf_counter()
         self._waiting_messages = None
         self._previous_message_number = -1
 
@@ -62,7 +61,7 @@ class OrderedMessageHandler:
         while True:
 
             if timeout is not None:
-                run_time = time.perf_counter() - self.start_time
+                run_time = time.perf_counter() - self._start_time
 
                 if run_time > timeout:
                     raise TimeoutError(
@@ -72,8 +71,6 @@ class OrderedMessageHandler:
                 pull_timeout = timeout - run_time
 
             message = self._pull_message(
-                self.subscriber,
-                self.subscription,
                 timeout=pull_timeout,
                 delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
             )
@@ -91,11 +88,10 @@ class OrderedMessageHandler:
             except KeyError:
                 pass
 
-    def _pull_message(self, subscriber, subscription, timeout, delivery_acknowledgement_timeout):
+    def _pull_message(self, timeout, delivery_acknowledgement_timeout):
         """Pull a message from the subscription, raising a `TimeoutError` if the timeout is exceeded before succeeding.
 
-        :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription the message is expected on
-        :param float|None timeout: how long to wait in seconds for the message before raising a TimeoutError
+        :param float|None timeout: how long to wait in seconds for the message before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long to wait for a delivery acknowledgement before raising `QuestionNotDelivered`
         :raise TimeoutError|concurrent.futures.TimeoutError: if the timeout is exceeded
         :raise octue.exceptions.QuestionNotDelivered: if a delivery acknowledgement is not received in time
@@ -104,20 +100,19 @@ class OrderedMessageHandler:
         start_time = time.perf_counter()
 
         while True:
-            no_message = True
             attempt = 1
 
-            while no_message:
+            while True:
                 logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
 
-                pull_response = subscriber.pull(
-                    request={"subscription": subscription.path, "max_messages": 1},
+                pull_response = self.subscriber.pull(
+                    request={"subscription": self.subscription.path, "max_messages": 1},
                     retry=retry.Retry(),
                 )
 
                 try:
                     answer = pull_response.received_messages[0]
-                    no_message = False
+                    break
 
                 except IndexError:
                     logger.debug("Google Pub/Sub pull response timed out early.")
@@ -127,24 +122,22 @@ class OrderedMessageHandler:
 
                     if timeout is not None and run_time > timeout:
                         raise TimeoutError(
-                            f"No message received from topic {subscription.topic.path!r} after {timeout} seconds.",
+                            f"No message received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
                         )
 
                     if not self.received_delivery_acknowledgement:
                         if run_time > delivery_acknowledgement_timeout:
                             raise octue.exceptions.QuestionNotDelivered(
-                                f"No delivery acknowledgement received for topic {subscription.topic.path!r} after "
-                                f"{delivery_acknowledgement_timeout} seconds."
+                                f"No delivery acknowledgement received for topic {self.subscription.topic.path!r} "
+                                f"after {delivery_acknowledgement_timeout} seconds."
                             )
 
-                    continue
-
-            subscriber.acknowledge(request={"subscription": subscription.path, "ack_ids": [answer.ack_id]})
+            self.subscriber.acknowledge(request={"subscription": self.subscription.path, "ack_ids": [answer.ack_id]})
 
             logger.debug(
                 "%r received a message related to question %r.",
                 self.subscription.topic.service,
-                subscription.topic.path.split(".")[-1],
+                self.subscription.topic.path.split(".")[-1],
             )
 
             return json.loads(answer.message.data.decode())
@@ -169,7 +162,7 @@ class OrderedMessageHandler:
         :return None:
         """
         self.received_delivery_acknowledgement = True
-        logger.info("Question delivered at %s.", message["delivery_time"])
+        logger.info("%r's question was delivered at %s.", self.subscription.topic.service, message["delivery_time"])
 
     def _handle_log_message(self, message):
         """Deserialise the message into a log record and pass it to the local log handlers, adding [<service-name>] to
