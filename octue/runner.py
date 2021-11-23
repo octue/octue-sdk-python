@@ -76,7 +76,7 @@ class Runner:
         analysis_log_handler=None,
         monitoring_update_function=None,
     ):
-        """Run an analysis
+        """Run an analysis.
 
         :param str|None analysis_id: UUID of analysis
         :param Union[str, dict, None] input_values: the input_values strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
@@ -84,7 +84,7 @@ class Runner:
         :param str analysis_log_level: the level below which to ignore log messages
         :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run. Handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but should use the format defined above in LOG_FORMAT.
         :param callable|None monitoring_update_function: a function that sends monitoring updates to the parent that requested the analysis
-        :return: None
+        :return None:
         """
         if hasattr(self.twine, "credentials"):
             self._populate_environment_with_google_cloud_secrets()

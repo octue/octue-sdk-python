@@ -28,7 +28,12 @@ class OrderedMessageHandler:
     """
 
     def __init__(
-        self, subscriber, subscription, monitoring_callback=None, service_name="REMOTE", message_handlers=None
+        self,
+        subscriber,
+        subscription,
+        monitoring_callback=None,
+        service_name="REMOTE",
+        message_handlers=None,
     ):
         self.subscriber = subscriber
         self.subscription = subscription
@@ -175,7 +180,7 @@ class OrderedMessageHandler:
         :param dict message:
         :return None:
         """
-        logger.info("%r received a monitoring update.", self.subscription.topic.service)
+        logger.debug("%r received a monitoring update.", self.subscription.topic.service)
 
         if self.monitoring_callback is not None:
             self.monitoring_callback(json.loads(message["data"]))

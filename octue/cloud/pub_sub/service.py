@@ -340,7 +340,7 @@ class Service(CoolNameable):
         :param float timeout: time in seconds to retry sending the update
         :return None:
         """
-        logger.info("%r sending monitoring update.", self)
+        logger.debug("%r sending monitoring update.", self)
 
         self.publisher.publish(
             topic=topic.path,

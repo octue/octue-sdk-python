@@ -90,7 +90,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
     def send_monitoring_update(self, data):
         """Send a monitoring update to the parent that requested the analysis.
 
-        :param any data:
+        :param any data: any JSON-compatible data structure
         :return None:
         """
         try:
