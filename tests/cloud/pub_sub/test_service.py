@@ -349,14 +349,23 @@ class TestService(BaseTestCase):
 
         def create_run_function_with_monitoring():
             def mock_app(analysis):
-                analysis.send_monitoring_update({"blah": "my first monitoring update"})
-                analysis.send_monitoring_update({"lorem": "my second monitoring update"})
+                analysis.send_monitoring_update({"status": "my first monitoring update"})
+                analysis.send_monitoring_update({"status": "my second monitoring update"})
 
             twine = """
                 {
                     "input_values_schema": {
                         "type": "object",
                         "required": []
+                    },
+                    "monitors_schema": {
+                        "type": "object",
+                        "properties": {
+                            "status": {
+                                "type": "string"
+                            }
+                        },
+                        "required": ["status"]
                     }
                 }
             """
@@ -377,7 +386,7 @@ class TestService(BaseTestCase):
                     parent.wait_for_answer(subscription, monitoring_callback=lambda data: monitoring_data.append(data))
 
         self.assertEqual(
-            monitoring_data, [{"blah": "my first monitoring update"}, {"lorem": "my second monitoring update"}]
+            monitoring_data, [{"status": "my first monitoring update"}, {"status": "my second monitoring update"}]
         )
 
     def test_ask_with_input_manifest(self):

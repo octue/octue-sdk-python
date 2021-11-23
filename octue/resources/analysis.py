@@ -91,6 +91,8 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
         :param any data:
         :return None:
         """
+        self.twine.validate_monitor_values(source=data)
+
         if self._monitoring_update_function is not None:
             self._monitoring_update_function(data)
             return
