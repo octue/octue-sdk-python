@@ -96,3 +96,7 @@ class CloudLocationNotSpecified(OctueSDKException):
     """Raise when attempting to interact with a cloud resource implicitly but the implicit details of its location are
     missing.
     """
+
+
+class InvalidMonitorUpdate(OctueSDKException):
+    """Raise if a monitor update fails validation against the `monitors_schema` section of the Twine."""

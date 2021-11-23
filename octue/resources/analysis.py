@@ -3,6 +3,7 @@ import logging
 
 import twined.exceptions
 from octue.definitions import OUTPUT_STRANDS
+from octue.exceptions import InvalidMonitorUpdate
 from octue.mixins import Hashable, Identifiable, Labelable, Loggable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
 from octue.utils.encoders import OctueJSONEncoder
@@ -94,9 +95,8 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
         """
         try:
             self.twine.validate_monitor_values(source=data)
-        except twined.exceptions.InvalidValuesContents:
-            module_logger.warning("Attempted to send a monitoring update but schema validation failed.")
-            return
+        except twined.exceptions.InvalidValuesContents as e:
+            raise InvalidMonitorUpdate(e)
 
         if self._monitoring_update_function is None:
             module_logger.warning("Attempted to send a monitoring update but no monitoring function is specified.")

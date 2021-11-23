@@ -1,4 +1,3 @@
-import logging
 import tempfile
 import uuid
 from unittest.mock import patch
@@ -6,6 +5,7 @@ from unittest.mock import patch
 import twined.exceptions
 from octue import Runner, exceptions
 from octue.cloud.pub_sub.service import Service
+from octue.exceptions import InvalidMonitorUpdate
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
@@ -384,8 +384,8 @@ class TestService(BaseTestCase):
         )
 
     def test_monitoring_update_fails_if_schema_not_met(self):
-        """Test that a warning is raised and sent to the analysis logger if a monitoring update fails schema validation,
-        and that earlier and subsequent valid monitoring updates still make it to the parent's monitoring callback.
+        """Test that an error is raised and sent to the analysis logger if a monitoring update fails schema validation,
+        but earlier valid monitoring updates still make it to the parent's monitoring callback.
         """
 
         def create_run_function_with_monitoring():
@@ -415,21 +415,19 @@ class TestService(BaseTestCase):
                 with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
                     child.serve()
 
-                    with self.assertLogs(level=logging.WARNING) as logging_context:
-                        subscription, _ = parent.ask(child.id, input_values={})
+                    subscription, _ = parent.ask(child.id, input_values={})
 
                     monitoring_data = []
 
-                    parent.wait_for_answer(
-                        subscription,
-                        monitoring_callback=lambda data: monitoring_data.append(data),
-                    )
-
-        self.assertIn("Attempted to send a monitoring update but schema validation failed.", logging_context.output[0])
+                    with self.assertRaises(InvalidMonitorUpdate):
+                        parent.wait_for_answer(
+                            subscription,
+                            monitoring_callback=lambda data: monitoring_data.append(data),
+                        )
 
         self.assertEqual(
             monitoring_data,
-            [{"status": "my first monitoring update"}, {"status": "my third monitoring update"}],
+            [{"status": "my first monitoring update"}],
         )
 
     def test_ask_with_input_manifest(self):
