@@ -1,3 +1,5 @@
+import logging
+
 from octue.resources.analysis import HASH_FUNCTIONS, Analysis
 from twined import Twine
 from ..base import BaseTestCase
@@ -44,3 +46,17 @@ class AnalysisTestCase(BaseTestCase):
             hash_ = getattr(analysis, f"{strand_name}_hash")
             self.assertTrue(isinstance(hash_, str))
             self.assertTrue(len(hash_) == 8)
+
+    def test_warning_raised_if_attempting_to_send_a_monitoring_update_but_no_monitoring_callback_is_provided(self):
+        """Test that a warning is raised if attempting to send a monitoring update but no monitoring callback is
+        provided.
+        """
+        analysis = Analysis(twine='{"monitors_schema": {}}')
+
+        with self.assertLogs(level=logging.WARNING) as logging_context:
+            analysis.send_monitoring_update(data=[])
+
+        self.assertIn(
+            "Attempted to send a monitoring update but no monitoring function is specified.",
+            logging_context.output[0],
+        )

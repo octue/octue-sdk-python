@@ -41,7 +41,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
     Analyses are instantiated at the top level of your app/service/twin code and you can import the instantiated
     object from there (see the templates for examples)
 
-    :param twined.Twine twine: Twine instance or json source
+    :param twined.Twine|str twine: Twine instance or json source
     :param callable|None monitoring_update_function: a function that sends monitoring updates to the parent that requested the analysis
     :param any configuration_values: see Runner.run() for definition
     :param octue.resources.manifest.Manifest configuration_manifest: see Runner.run() for definition
@@ -100,6 +100,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
 
         if self._monitoring_update_function is None:
             module_logger.warning("Attempted to send a monitoring update but no monitoring function is specified.")
+            return
 
         self._monitoring_update_function(data)
 
