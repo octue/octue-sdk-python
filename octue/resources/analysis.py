@@ -95,7 +95,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
         try:
             self.twine.validate_monitor_values(source=data)
         except twined.exceptions.InvalidValuesContents:
-            self.logger.warning("Attempted to send a monitoring update but schema validation failed.")
+            module_logger.warning("Attempted to send a monitoring update but schema validation failed.")
             return
 
         if self._monitoring_update_function is None:

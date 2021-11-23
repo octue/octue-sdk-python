@@ -415,23 +415,21 @@ class TestService(BaseTestCase):
                 with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
                     child.serve()
 
-                    subscription, _ = parent.ask(child.id, input_values={})
+                    with self.assertLogs(level=logging.WARNING) as logging_context:
+                        subscription, _ = parent.ask(child.id, input_values={})
+
                     monitoring_data = []
 
-                    with self.assertLogs(level=logging.WARNING) as logging_context:
-                        parent.wait_for_answer(
-                            subscription,
-                            monitoring_callback=lambda data: monitoring_data.append(data),
-                        )
+                    parent.wait_for_answer(
+                        subscription,
+                        monitoring_callback=lambda data: monitoring_data.append(data),
+                    )
+
+        self.assertIn("Attempted to send a monitoring update but schema validation failed.", logging_context.output[0])
 
         self.assertEqual(
             monitoring_data,
             [{"status": "my first monitoring update"}, {"status": "my third monitoring update"}],
-        )
-
-        self.assertIn(
-            "[REMOTE] Attempted to send a monitoring update but schema validation failed.",
-            logging_context.output[0],
         )
 
     def test_ask_with_input_manifest(self):
