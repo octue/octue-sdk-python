@@ -1,3 +1,4 @@
+import logging
 import tempfile
 import uuid
 from unittest.mock import patch
@@ -354,17 +355,10 @@ class TestService(BaseTestCase):
 
             twine = """
                 {
-                    "input_values_schema": {
-                        "type": "object",
-                        "required": []
-                    },
+                    "input_values_schema": {"type": "object", "required": []},
                     "monitors_schema": {
                         "type": "object",
-                        "properties": {
-                            "status": {
-                                "type": "string"
-                            }
-                        },
+                        "properties": {"status": {"type": "string"}},
                         "required": ["status"]
                     }
                 }
@@ -387,6 +381,57 @@ class TestService(BaseTestCase):
 
         self.assertEqual(
             monitoring_data, [{"status": "my first monitoring update"}, {"status": "my second monitoring update"}]
+        )
+
+    def test_monitoring_update_fails_if_schema_not_met(self):
+        """Test that a warning is raised and sent to the analysis logger if a monitoring update fails schema validation,
+        and that earlier and subsequent valid monitoring updates still make it to the parent's monitoring callback.
+        """
+
+        def create_run_function_with_monitoring():
+            def mock_app(analysis):
+                analysis.send_monitoring_update({"status": "my first monitoring update"})
+                analysis.send_monitoring_update({"wrong": "my second monitoring update"})
+                analysis.send_monitoring_update({"status": "my third monitoring update"})
+
+            twine = """
+                {
+                    "input_values_schema": {"type": "object", "required": []},
+                    "monitors_schema": {
+                        "type": "object",
+                        "properties": {"status": {"type": "string"}},
+                        "required": ["status"]
+                    }
+                }
+            """
+
+            return Runner(app_src=mock_app, twine=twine).run
+
+        child = MockService(backend=BACKEND, run_function=create_run_function_with_monitoring())
+        parent = MockService(backend=BACKEND, children={child.id: child})
+
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    child.serve()
+
+                    subscription, _ = parent.ask(child.id, input_values={})
+                    monitoring_data = []
+
+                    with self.assertLogs(level=logging.WARNING) as logging_context:
+                        parent.wait_for_answer(
+                            subscription,
+                            monitoring_callback=lambda data: monitoring_data.append(data),
+                        )
+
+        self.assertEqual(
+            monitoring_data,
+            [{"status": "my first monitoring update"}, {"status": "my third monitoring update"}],
+        )
+
+        self.assertIn(
+            "[REMOTE] Attempted to send a monitoring update but schema validation failed.",
+            logging_context.output[0],
         )
 
     def test_ask_with_input_manifest(self):

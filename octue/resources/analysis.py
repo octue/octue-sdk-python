@@ -1,6 +1,7 @@
 import json
 import logging
 
+import twined.exceptions
 from octue.definitions import OUTPUT_STRANDS
 from octue.mixins import Hashable, Identifiable, Labelable, Loggable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
@@ -91,13 +92,16 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
         :param any data:
         :return None:
         """
-        self.twine.validate_monitor_values(source=data)
-
-        if self._monitoring_update_function is not None:
-            self._monitoring_update_function(data)
+        try:
+            self.twine.validate_monitor_values(source=data)
+        except twined.exceptions.InvalidValuesContents:
+            self.logger.warning("Attempted to send a monitoring update but schema validation failed.")
             return
 
-        module_logger.warning("Attempted to send a monitoring update but no monitoring function is specified.")
+        if self._monitoring_update_function is None:
+            module_logger.warning("Attempted to send a monitoring update but no monitoring function is specified.")
+
+        self._monitoring_update_function(data)
 
     def finalise(self, output_dir=None, save_locally=False, upload_to_cloud=False, project_name=None, bucket_name=None):
         """Validate and serialise the output values and manifest, optionally writing them to files and/or the manifest
