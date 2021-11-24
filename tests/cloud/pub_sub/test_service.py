@@ -5,6 +5,7 @@ from unittest.mock import patch
 import twined.exceptions
 from octue import Runner, exceptions
 from octue.cloud.pub_sub.service import Service
+from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
@@ -58,7 +59,9 @@ class TestService(BaseTestCase):
         :param bool use_mock:
         :return tests.cloud.pub_sub.mocks.MockService:
         """
-        run_function = lambda analysis_id, input_values, input_manifest, analysis_log_handler: run_function_returnee
+        run_function = (
+            lambda analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message: run_function_returnee
+        )
 
         if use_mock:
             return MockService(backend=backend, run_function=run_function)
@@ -101,7 +104,7 @@ class TestService(BaseTestCase):
         """
         responding_service = self.make_new_server(BACKEND, run_function_returnee=None, use_mock=True)
 
-        def error_run_function(analysis_id, input_values, input_manifest, analysis_log_handler):
+        def error_run_function(analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message):
             raise exception_to_raise
 
         responding_service.run_function = error_run_function
@@ -270,10 +273,9 @@ class TestService(BaseTestCase):
         messages aren't forwarded to the local logger.
         """
         responding_service = MockService(backend=BACKEND, run_function=create_run_function())
-
         asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
 
-        with patch("logging.StreamHandler.emit") as mock_emit:
+        with self.assertLogs() as logging_context:
             with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
                 with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                     with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
@@ -292,7 +294,7 @@ class TestService(BaseTestCase):
             {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
         )
 
-        self.assertTrue(all("[REMOTE]" not in call_arg[0][0].msg for call_arg in mock_emit.call_args_list))
+        self.assertTrue(all("[REMOTE]" not in message for message in logging_context.output))
 
     def test_ask_with_real_run_function_with_log_message_forwarding(self):
         """Test that a service can ask a question to another service that is serving and receive an answer. Use a real
@@ -338,6 +340,93 @@ class TestService(BaseTestCase):
 
         self.assertTrue(start_remote_analysis_message_present)
         self.assertTrue(finish_remote_analysis_message_present)
+
+    def test_with_monitor_message_handler(self):
+        """Test that monitor messages can be sent from a child app and handled by the parent's monitor message handler."""
+
+        def create_run_function_with_monitoring():
+            def mock_app(analysis):
+                analysis.send_monitor_message({"status": "my first monitor message"})
+                analysis.send_monitor_message({"status": "my second monitor message"})
+
+            twine = """
+                {
+                    "input_values_schema": {"type": "object", "required": []},
+                    "monitor_message_schema": {
+                        "type": "object",
+                        "properties": {"status": {"type": "string"}},
+                        "required": ["status"]
+                    }
+                }
+            """
+
+            return Runner(app_src=mock_app, twine=twine).run
+
+        child = MockService(backend=BACKEND, run_function=create_run_function_with_monitoring())
+        parent = MockService(backend=BACKEND, children={child.id: child})
+
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    child.serve()
+
+                    subscription, _ = parent.ask(child.id, input_values={})
+
+                    monitoring_data = []
+                    parent.wait_for_answer(
+                        subscription, handle_monitor_message=lambda data: monitoring_data.append(data)
+                    )
+
+        self.assertEqual(
+            monitoring_data, [{"status": "my first monitor message"}, {"status": "my second monitor message"}]
+        )
+
+    def test_monitoring_update_fails_if_schema_not_met(self):
+        """Test that an error is raised and sent to the analysis logger if a monitor message fails schema validation,
+        but earlier valid monitor messages still make it to the parent's monitoring callback.
+        """
+
+        def create_run_function_with_monitoring():
+            def mock_app(analysis):
+                analysis.send_monitor_message({"status": "my first monitor message"})
+                analysis.send_monitor_message({"wrong": "my second monitor message"})
+                analysis.send_monitor_message({"status": "my third monitor message"})
+
+            twine = """
+                {
+                    "input_values_schema": {"type": "object", "required": []},
+                    "monitor_message_schema": {
+                        "type": "object",
+                        "properties": {"status": {"type": "string"}},
+                        "required": ["status"]
+                    }
+                }
+            """
+
+            return Runner(app_src=mock_app, twine=twine).run
+
+        child = MockService(backend=BACKEND, run_function=create_run_function_with_monitoring())
+        parent = MockService(backend=BACKEND, children={child.id: child})
+
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    child.serve()
+
+                    subscription, _ = parent.ask(child.id, input_values={})
+
+                    monitoring_data = []
+
+                    with self.assertRaises(InvalidMonitorMessage):
+                        parent.wait_for_answer(
+                            subscription,
+                            handle_monitor_message=lambda data: monitoring_data.append(data),
+                        )
+
+        self.assertEqual(
+            monitoring_data,
+            [{"status": "my first monitor message"}],
+        )
 
     def test_ask_with_input_manifest(self):
         """Test that a service can ask a question including an input_manifest to another service that is serving and
@@ -427,7 +516,7 @@ class TestService(BaseTestCase):
         manifest = Manifest(datasets=[Dataset(name="my-local-dataset", file=local_file)], keys={0: "my-local-dataset"})
 
         # Get the child to open the local file itself and return the contents as output.
-        def run_function(analysis_id, input_values, input_manifest, analysis_log_handler):
+        def run_function(analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message):
             with open(temporary_local_path) as f:
                 return MockAnalysis(output_values=f.read())
 
@@ -548,7 +637,7 @@ class TestService(BaseTestCase):
         """Test that a child can contact its own child while answering a question from a parent."""
         child_of_child = self.make_new_server(BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True)
 
-        def child_run_function(analysis_id, input_values, input_manifest, analysis_log_handler):
+        def child_run_function(analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message):
             subscription, _ = child.ask(service_id=child_of_child.id, input_values=input_values)
             return MockAnalysis(output_values={input_values["question"]: child.wait_for_answer(subscription)})
 
@@ -591,7 +680,7 @@ class TestService(BaseTestCase):
         )
         second_child_of_child = self.make_new_server(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
 
-        def child_run_function(analysis_id, input_values, input_manifest, analysis_log_handler):
+        def child_run_function(analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message):
             subscription_1, _ = child.ask(service_id=first_child_of_child.id, input_values=input_values)
             subscription_2, _ = child.ask(service_id=second_child_of_child.id, input_values=input_values)
 

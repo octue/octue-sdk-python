@@ -59,7 +59,7 @@ repos:
           - '^test/([a-z][a-z0-9]*)(-[a-z0-9]+)*$'
 
   - repo: https://github.com/octue/conventional-commits
-    rev: 0.2.1
+    rev: 0.5.0
     hooks:
       - id: check-commit-message-is-conventional
         stages: [commit-msg]

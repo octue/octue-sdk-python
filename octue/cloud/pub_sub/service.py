@@ -1,6 +1,7 @@
 import base64
 import concurrent.futures
 import datetime
+import functools
 import json
 import logging
 import sys
@@ -114,9 +115,9 @@ class Service(CoolNameable):
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
         """
-        data, question_uuid, forward_logs = self.parse_question(question)
+        data, question_uuid, forward_logs = self._parse_question(question)
         topic = answer_topic or self.instantiate_answer_topic(question_uuid)
-        self.send_delivery_acknowledgment_to_asker(topic)
+        self._send_delivery_acknowledgment(topic)
 
         if forward_logs:
             analysis_log_handler = GooglePubSubHandler(publisher=self.publisher, topic=topic)
@@ -129,6 +130,7 @@ class Service(CoolNameable):
                 input_values=data["input_values"],
                 input_manifest=data["input_manifest"],
                 analysis_log_handler=analysis_log_handler,
+                handle_monitor_message=functools.partial(self._send_monitor_message, topic=topic),
             )
 
             if analysis.output_manifest is None:
@@ -155,25 +157,6 @@ class Service(CoolNameable):
         except BaseException as error:  # noqa
             self.send_exception_to_asker(topic, timeout)
             raise error
-
-    def parse_question(self, question):
-        """Parse a question in the Google Cloud Pub/Sub or Google Cloud Run format.
-
-        :param dict|Message question:
-        :return (dict, str, bool):
-        """
-        try:
-            # Parse Google Cloud Pub/Sub question format.
-            data = json.loads(question.data.decode())
-            question.ack()
-            logger.info("%r received a question.", self)
-        except Exception:
-            # Parse Google Cloud Run question format.
-            data = json.loads(base64.b64decode(question["data"]).decode("utf-8").strip())
-
-        question_uuid = get_nested_attribute(question, "attributes.question_uuid")
-        forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
-        return data, question_uuid, forward_logs
 
     def instantiate_answer_topic(self, question_uuid, service_id=None):
         """Instantiate the answer topic for the given question UUID for the given service ID.
@@ -271,12 +254,19 @@ class Service(CoolNameable):
         return response_subscription, question_uuid
 
     def wait_for_answer(
-        self, subscription, service_name="REMOTE", timeout=60, delivery_acknowledgement_timeout=30, retry_interval=5
+        self,
+        subscription,
+        handle_monitor_message=None,
+        service_name="REMOTE",
+        timeout=60,
+        delivery_acknowledgement_timeout=30,
+        retry_interval=5,
     ):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
+        :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
         :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before resending the question
@@ -289,6 +279,7 @@ class Service(CoolNameable):
         message_handler = OrderedMessageHandler(
             subscriber=subscriber,
             subscription=subscription,
+            handle_monitor_message=handle_monitor_message,
             service_name=service_name,
         )
 
@@ -318,7 +309,7 @@ class Service(CoolNameable):
             finally:
                 subscription.delete()
 
-    def send_delivery_acknowledgment_to_asker(self, topic, timeout=30):
+    def _send_delivery_acknowledgment(self, topic, timeout=30):
         """Send an acknowledgement of question delivery to the asker.
 
         :param octue.cloud.pub_sub.topic.Topic topic: topic to send acknowledgement to
@@ -333,6 +324,30 @@ class Service(CoolNameable):
                 {
                     "type": "delivery_acknowledgement",
                     "delivery_time": str(datetime.datetime.now()),
+                    "message_number": topic.messages_published,
+                }
+            ).encode(),
+            retry=retry.Retry(deadline=timeout),
+        )
+
+        topic.messages_published += 1
+
+    def _send_monitor_message(self, data, topic, timeout=30):
+        """Send a monitor message to the asker.
+
+        :param any data: the data to send as a monitor message
+        :param octue.cloud.pub_sub.topic.Topic topic: the topic to send the message to
+        :param float timeout: time in seconds to retry sending the message
+        :return None:
+        """
+        logger.debug("%r sending monitor message.", self)
+
+        self.publisher.publish(
+            topic=topic.path,
+            data=json.dumps(
+                {
+                    "type": "monitor_message",
+                    "data": json.dumps(data),
                     "message_number": topic.messages_published,
                 }
             ).encode(),
@@ -368,3 +383,24 @@ class Service(CoolNameable):
         )
 
         topic.messages_published += 1
+
+    def _parse_question(self, question):
+        """Parse a question in the Google Cloud Pub/Sub or Google Cloud Run format.
+
+        :param dict|Message question:
+        :return (dict, str, bool):
+        """
+        try:
+            # Parse and acknowledge question from Google Cloud Pub/Sub.
+            data = json.loads(question.data.decode())
+            question.ack()
+        except Exception:
+            # Parse question from Google Cloud Run. We can't acknowledge the it here as it's not possible with the
+            # information given.
+            data = json.loads(base64.b64decode(question["data"]).decode("utf-8").strip())
+
+        logger.info("%r received a question.", self)
+
+        question_uuid = get_nested_attribute(question, "attributes.question_uuid")
+        forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
+        return data, question_uuid, forward_logs
