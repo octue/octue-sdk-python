@@ -391,13 +391,15 @@ class Service(CoolNameable):
         :return (dict, str, bool):
         """
         try:
-            # Parse Google Cloud Pub/Sub question format.
+            # Parse and acknowledge question from Google Cloud Pub/Sub.
             data = json.loads(question.data.decode())
             question.ack()
-            logger.info("%r received a question.", self)
         except Exception:
-            # Parse Google Cloud Run question format.
+            # Parse question from Google Cloud Run. We can't acknowledge the it here as it's not possible with the
+            # information given.
             data = json.loads(base64.b64decode(question["data"]).decode("utf-8").strip())
+
+        logger.info("%r received a question.", self)
 
         question_uuid = get_nested_attribute(question, "attributes.question_uuid")
         forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
