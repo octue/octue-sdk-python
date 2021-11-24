@@ -3,7 +3,7 @@ import logging
 
 import twined.exceptions
 from octue.definitions import OUTPUT_STRANDS
-from octue.exceptions import InvalidMonitorUpdate
+from octue.exceptions import InvalidMonitorMessage
 from octue.mixins import Hashable, Identifiable, Labelable, Loggable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
 from octue.utils.encoders import OctueJSONEncoder
@@ -43,7 +43,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
     object from there (see the templates for examples)
 
     :param twined.Twine|str twine: Twine instance or json source
-    :param callable|None monitoring_update_function: a function that sends monitoring updates to the parent that requested the analysis
+    :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
     :param any configuration_values: see Runner.run() for definition
     :param octue.resources.manifest.Manifest configuration_manifest: see Runner.run() for definition
     :param any input_values: see Runner.run() for definition
@@ -57,13 +57,13 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
     :return None:
     """
 
-    def __init__(self, twine, monitoring_update_function=None, skip_checks=False, **kwargs):
+    def __init__(self, twine, handle_monitor_message=None, skip_checks=False, **kwargs):
         if isinstance(twine, Twine):
             self.twine = twine
         else:
             self.twine = Twine(source=twine)
 
-        self._monitoring_update_function = monitoring_update_function
+        self._handle_monitor_message = handle_monitor_message
 
         strand_kwargs = {name: kwargs.pop(name, None) for name in ALL_STRANDS}
 
@@ -87,22 +87,22 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
 
         super().__init__(**kwargs)
 
-    def send_monitoring_update(self, data):
-        """Send a monitoring update to the parent that requested the analysis.
+    def send_monitor_message(self, data):
+        """Send a monitor message to the parent that requested the analysis.
 
         :param any data: any JSON-compatible data structure
         :return None:
         """
         try:
-            self.twine.validate_monitor_values(source=data)
+            self.twine.validate_monitor_message(source=data)
         except twined.exceptions.InvalidValuesContents as e:
-            raise InvalidMonitorUpdate(e)
+            raise InvalidMonitorMessage(e)
 
-        if self._monitoring_update_function is None:
-            module_logger.warning("Attempted to send a monitoring update but no monitoring function is specified.")
+        if self._handle_monitor_message is None:
+            module_logger.warning("Attempted to send a monitor message but no handler is specified.")
             return
 
-        self._monitoring_update_function(data)
+        self._handle_monitor_message(data)
 
     def finalise(self, output_dir=None, save_locally=False, upload_to_cloud=False, project_name=None, bucket_name=None):
         """Validate and serialise the output values and manifest, optionally writing them to files and/or the manifest

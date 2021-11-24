@@ -51,12 +51,12 @@ class AnalysisTestCase(BaseTestCase):
         """Test that a warning is raised if attempting to send a monitoring update but no monitoring callback is
         provided.
         """
-        analysis = Analysis(twine='{"monitors_schema": {}}')
+        analysis = Analysis(twine='{"monitor_message_schema": {}}')
 
         with self.assertLogs(level=logging.WARNING) as logging_context:
-            analysis.send_monitoring_update(data=[])
+            analysis.send_monitor_message(data=[])
 
         self.assertIn(
-            "Attempted to send a monitoring update but no monitoring function is specified.",
+            "Attempted to send a monitor message but no handler is specified.",
             logging_context.output[0],
         )

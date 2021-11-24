@@ -5,7 +5,7 @@ from unittest.mock import patch
 import twined.exceptions
 from octue import Runner, exceptions
 from octue.cloud.pub_sub.service import Service
-from octue.exceptions import InvalidMonitorUpdate
+from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
@@ -60,7 +60,7 @@ class TestService(BaseTestCase):
         :return tests.cloud.pub_sub.mocks.MockService:
         """
         run_function = (
-            lambda analysis_id, input_values, input_manifest, analysis_log_handler, monitoring_update_function: run_function_returnee
+            lambda analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message: run_function_returnee
         )
 
         if use_mock:
@@ -104,9 +104,7 @@ class TestService(BaseTestCase):
         """
         responding_service = self.make_new_server(BACKEND, run_function_returnee=None, use_mock=True)
 
-        def error_run_function(
-            analysis_id, input_values, input_manifest, analysis_log_handler, monitoring_update_function
-        ):
+        def error_run_function(analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message):
             raise exception_to_raise
 
         responding_service.run_function = error_run_function
@@ -343,20 +341,18 @@ class TestService(BaseTestCase):
         self.assertTrue(start_remote_analysis_message_present)
         self.assertTrue(finish_remote_analysis_message_present)
 
-    def test_with_monitoring_update_function(self):
-        """Test that monitoring updates can be sent from a child app and handled by the parent's monitoring callback
-        function.
-        """
+    def test_with_monitor_message_handler(self):
+        """Test that monitor messages can be sent from a child app and handled by the parent's monitor message handler."""
 
         def create_run_function_with_monitoring():
             def mock_app(analysis):
-                analysis.send_monitoring_update({"status": "my first monitoring update"})
-                analysis.send_monitoring_update({"status": "my second monitoring update"})
+                analysis.send_monitor_message({"status": "my first monitor message"})
+                analysis.send_monitor_message({"status": "my second monitor message"})
 
             twine = """
                 {
                     "input_values_schema": {"type": "object", "required": []},
-                    "monitors_schema": {
+                    "monitor_message_schema": {
                         "type": "object",
                         "properties": {"status": {"type": "string"}},
                         "required": ["status"]
@@ -377,27 +373,29 @@ class TestService(BaseTestCase):
                     subscription, _ = parent.ask(child.id, input_values={})
 
                     monitoring_data = []
-                    parent.wait_for_answer(subscription, monitoring_callback=lambda data: monitoring_data.append(data))
+                    parent.wait_for_answer(
+                        subscription, handle_monitor_message=lambda data: monitoring_data.append(data)
+                    )
 
         self.assertEqual(
-            monitoring_data, [{"status": "my first monitoring update"}, {"status": "my second monitoring update"}]
+            monitoring_data, [{"status": "my first monitor message"}, {"status": "my second monitor message"}]
         )
 
     def test_monitoring_update_fails_if_schema_not_met(self):
-        """Test that an error is raised and sent to the analysis logger if a monitoring update fails schema validation,
-        but earlier valid monitoring updates still make it to the parent's monitoring callback.
+        """Test that an error is raised and sent to the analysis logger if a monitor message fails schema validation,
+        but earlier valid monitor messages still make it to the parent's monitoring callback.
         """
 
         def create_run_function_with_monitoring():
             def mock_app(analysis):
-                analysis.send_monitoring_update({"status": "my first monitoring update"})
-                analysis.send_monitoring_update({"wrong": "my second monitoring update"})
-                analysis.send_monitoring_update({"status": "my third monitoring update"})
+                analysis.send_monitor_message({"status": "my first monitor message"})
+                analysis.send_monitor_message({"wrong": "my second monitor message"})
+                analysis.send_monitor_message({"status": "my third monitor message"})
 
             twine = """
                 {
                     "input_values_schema": {"type": "object", "required": []},
-                    "monitors_schema": {
+                    "monitor_message_schema": {
                         "type": "object",
                         "properties": {"status": {"type": "string"}},
                         "required": ["status"]
@@ -419,15 +417,15 @@ class TestService(BaseTestCase):
 
                     monitoring_data = []
 
-                    with self.assertRaises(InvalidMonitorUpdate):
+                    with self.assertRaises(InvalidMonitorMessage):
                         parent.wait_for_answer(
                             subscription,
-                            monitoring_callback=lambda data: monitoring_data.append(data),
+                            handle_monitor_message=lambda data: monitoring_data.append(data),
                         )
 
         self.assertEqual(
             monitoring_data,
-            [{"status": "my first monitoring update"}],
+            [{"status": "my first monitor message"}],
         )
 
     def test_ask_with_input_manifest(self):
@@ -518,7 +516,7 @@ class TestService(BaseTestCase):
         manifest = Manifest(datasets=[Dataset(name="my-local-dataset", file=local_file)], keys={0: "my-local-dataset"})
 
         # Get the child to open the local file itself and return the contents as output.
-        def run_function(analysis_id, input_values, input_manifest, analysis_log_handler, monitoring_update_function):
+        def run_function(analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message):
             with open(temporary_local_path) as f:
                 return MockAnalysis(output_values=f.read())
 
@@ -639,9 +637,7 @@ class TestService(BaseTestCase):
         """Test that a child can contact its own child while answering a question from a parent."""
         child_of_child = self.make_new_server(BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True)
 
-        def child_run_function(
-            analysis_id, input_values, input_manifest, analysis_log_handler, monitoring_update_function
-        ):
+        def child_run_function(analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message):
             subscription, _ = child.ask(service_id=child_of_child.id, input_values=input_values)
             return MockAnalysis(output_values={input_values["question"]: child.wait_for_answer(subscription)})
 
@@ -684,9 +680,7 @@ class TestService(BaseTestCase):
         )
         second_child_of_child = self.make_new_server(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
 
-        def child_run_function(
-            analysis_id, input_values, input_manifest, analysis_log_handler, monitoring_update_function
-        ):
+        def child_run_function(analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message):
             subscription_1, _ = child.ask(service_id=first_child_of_child.id, input_values=input_values)
             subscription_2, _ = child.ask(service_id=second_child_of_child.id, input_values=input_values)
 

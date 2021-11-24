@@ -98,5 +98,5 @@ class CloudLocationNotSpecified(OctueSDKException):
     """
 
 
-class InvalidMonitorUpdate(OctueSDKException):
-    """Raise if a monitor update fails validation against the `monitors_schema` section of the Twine."""
+class InvalidMonitorMessage(OctueSDKException):
+    """Raise if a monitor message fails validation against the "monitor_message_schema" field of the Twine."""

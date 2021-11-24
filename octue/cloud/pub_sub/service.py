@@ -117,7 +117,7 @@ class Service(CoolNameable):
         """
         data, question_uuid, forward_logs = self._parse_question(question)
         topic = answer_topic or self.instantiate_answer_topic(question_uuid)
-        self.send_delivery_acknowledgment_to_asker(topic)
+        self._send_delivery_acknowledgment(topic)
 
         if forward_logs:
             analysis_log_handler = GooglePubSubHandler(publisher=self.publisher, topic=topic)
@@ -130,7 +130,7 @@ class Service(CoolNameable):
                 input_values=data["input_values"],
                 input_manifest=data["input_manifest"],
                 analysis_log_handler=analysis_log_handler,
-                monitoring_update_function=functools.partial(self.send_monitoring_update_to_asker, topic=topic),
+                handle_monitor_message=functools.partial(self._send_monitor_message, topic=topic),
             )
 
             if analysis.output_manifest is None:
@@ -256,7 +256,7 @@ class Service(CoolNameable):
     def wait_for_answer(
         self,
         subscription,
-        monitoring_callback=None,
+        handle_monitor_message=None,
         service_name="REMOTE",
         timeout=60,
         delivery_acknowledgement_timeout=30,
@@ -266,7 +266,7 @@ class Service(CoolNameable):
         the answer is received.
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
-        :param callable|None monitoring_callback: a function to handle monitoring updates (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
+        :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
         :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before resending the question
@@ -279,7 +279,7 @@ class Service(CoolNameable):
         message_handler = OrderedMessageHandler(
             subscriber=subscriber,
             subscription=subscription,
-            monitoring_callback=monitoring_callback,
+            handle_monitor_message=handle_monitor_message,
             service_name=service_name,
         )
 
@@ -309,7 +309,7 @@ class Service(CoolNameable):
             finally:
                 subscription.delete()
 
-    def send_delivery_acknowledgment_to_asker(self, topic, timeout=30):
+    def _send_delivery_acknowledgment(self, topic, timeout=30):
         """Send an acknowledgement of question delivery to the asker.
 
         :param octue.cloud.pub_sub.topic.Topic topic: topic to send acknowledgement to
@@ -332,21 +332,21 @@ class Service(CoolNameable):
 
         topic.messages_published += 1
 
-    def send_monitoring_update_to_asker(self, data, topic, timeout=30):
-        """Send a monitoring update to the asker.
+    def _send_monitor_message(self, data, topic, timeout=30):
+        """Send a monitor message to the asker.
 
-        :param any data: the data to send as a monitoring update
-        :param octue.cloud.pub_sub.topic.Topic topic: the topic to send the monitoring update to
-        :param float timeout: time in seconds to retry sending the update
+        :param any data: the data to send as a monitor message
+        :param octue.cloud.pub_sub.topic.Topic topic: the topic to send the message to
+        :param float timeout: time in seconds to retry sending the message
         :return None:
         """
-        logger.debug("%r sending monitoring update.", self)
+        logger.debug("%r sending monitor message.", self)
 
         self.publisher.publish(
             topic=topic.path,
             data=json.dumps(
                 {
-                    "type": "monitoring_update",
+                    "type": "monitor_message",
                     "data": json.dumps(data),
                     "message_number": topic.messages_published,
                 }

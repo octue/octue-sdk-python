@@ -74,7 +74,7 @@ class Runner:
         input_manifest=None,
         analysis_log_level=logging.INFO,
         analysis_log_handler=None,
-        monitoring_update_function=None,
+        handle_monitor_message=None,
     ):
         """Run an analysis.
 
@@ -83,7 +83,7 @@ class Runner:
         :param Union[str, octue.resources.manifest.Manifest, None] input_manifest: The input_manifest strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
         :param str analysis_log_level: the level below which to ignore log messages
         :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run. Handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but should use the format defined above in LOG_FORMAT.
-        :param callable|None monitoring_update_function: a function that sends monitoring updates to the parent that requested the analysis
+        :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
         :return None:
         """
         if hasattr(self.twine, "credentials"):
@@ -109,7 +109,7 @@ class Runner:
                 for child in inputs["children"]
             }
 
-        outputs_and_monitors = self.twine.prepare("monitors", "output_values", "output_manifest", cls=CLASS_MAP)
+        outputs_and_monitors = self.twine.prepare("monitor_message", "output_values", "output_manifest", cls=CLASS_MAP)
 
         # TODO this is hacky, we need to rearchitect the twined validation so we can do this kind of thing in there
         outputs_and_monitors["output_manifest"] = self._update_manifest_path(
@@ -141,7 +141,7 @@ class Runner:
         analysis = Analysis(
             id=analysis_id,
             twine=self.twine,
-            monitoring_update_function=monitoring_update_function,
+            handle_monitor_message=handle_monitor_message,
             logger=analysis_logger,
             skip_checks=self.skip_checks,
             **self.configuration,
