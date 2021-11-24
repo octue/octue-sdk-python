@@ -29,7 +29,7 @@ setup(
         "google-crc32c>=1.1.2",
         "gunicorn",
         "python-dateutil>=2.8.1",
-        "twined @ https://github.com/octue/twined/archive/feature/validate-monitors.zip",
+        "twined==0.1.0",
     ],
     url="https://www.github.com/octue/octue-sdk-python",
     license="MIT",
