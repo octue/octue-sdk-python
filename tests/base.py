@@ -1,9 +1,6 @@
 import os
-import subprocess
 import unittest
-import uuid
 import warnings
-from tempfile import TemporaryDirectory, gettempdir
 
 from octue.cloud.emulators import GoogleCloudStorageEmulatorTestResultModifier
 from octue.mixins import MixinBase, Pathable
@@ -35,17 +32,6 @@ class BaseTestCase(unittest.TestCase):
         warnings.simplefilter("ignore", category=ResourceWarning)
 
         super().setUp()
-
-    def callCli(self, args):
-        """Utility to call the octue CLI (eg for a templated example) in a separate subprocess
-        Enables testing that multiple processes aren't using the same memory space, or for running multiple apps in
-        parallel to ensure they don't conflict
-        """
-        call_id = str(uuid.uuid4())
-        tmp_dir_name = os.path.join(gettempdir(), "octue-sdk-python", f"test-{call_id}")
-
-        with TemporaryDirectory(dir=tmp_dir_name):
-            subprocess.call(args, cwd=tmp_dir_name)
 
     def create_valid_dataset(self):
         """ Create a valid dataset with two valid datafiles (they're the same file in this case). """
