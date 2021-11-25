@@ -1,4 +1,4 @@
-exclude: 'build|.git|.tox|dist|octue.egg-info'
+exclude: 'build|.git/|.tox|dist|octue.egg-info'
 default_stages: [commit]
 fail_fast: true
 default_language_version:
