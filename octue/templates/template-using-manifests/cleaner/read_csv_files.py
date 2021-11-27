@@ -13,7 +13,6 @@ def read_csv_files(files):
     :return: Pandas dataframe containing the imported, uncleaned data
     :rtype: pandas.dataframe
     """
-
     # This is a simple concatenation. If you have a huge dataset, it's worth getting into working with remote files on
     # the cloud and/or doing this in batches.
     frames = []

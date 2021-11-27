@@ -13,21 +13,24 @@ from ..base import BaseTestCase
 
 
 class TemplateAppsTestCase(BaseTestCase):
-    """ Test case that runs analyses using apps in the templates, to ensure all the examples work. """
+    """Test case that runs analyses using apps in the templates, to ensure all the examples work."""
 
     def setUp(self):
+        """Set up the test case by adding empty attributes ready to store details about the templates.
+
+        :return None:
+        """
         super().setUp()
         self.start_path = os.getcwd()
 
         # Initialise so these variables are assigned on the instance
-        self.template_data_path = None
         self.template_twine = None
         self.template_path = None
         self.app_test_path = None
         self.teardown_templates = []
 
         def set_template(template):
-            """Sets up the working directory and data paths to run one of the provided templates"""
+            """Set up the working directory and data paths to run one of the provided templates."""
             self.template_path = os.path.join(self.templates_path, template)
             self.template_twine = os.path.join(self.templates_path, template, "twine.json")
 
@@ -53,7 +56,7 @@ class TemplateAppsTestCase(BaseTestCase):
             shutil.rmtree(path)
 
     def test_fractal_configuration(self):
-        """ Ensures fractal app can be configured with its default configuration. """
+        """Ensures fractal app can be configured with its default configuration."""
         self.set_template("template-python-fractal")
         runner = Runner(
             app_src=self.template_path,

@@ -61,7 +61,6 @@ class SerialisableTestCase(BaseTestCase):
 
     def test_serialise_to_file(self):
         """Restricts the id field, which would normally be serialised"""
-
         with TemporaryDirectory() as dir_name:
             file_name = os.path.join(dir_name, "test_serialise_to_file.json")
             resource = Inherit()

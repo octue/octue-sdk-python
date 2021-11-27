@@ -31,7 +31,7 @@ class AnalysisTestCase(BaseTestCase):
             self.assertIsNone(getattr(analysis, f"{strand_name}_hash"))
 
     def test_analysis_hash_attributes_are_populated_when_relevant_strands_are_present(self):
-        """ Ensures that the hash attributes of Analysis instances are valid if the relevant strands are provided. """
+        """Ensures that the hash attributes of Analysis instances are valid if the relevant strands are provided."""
         analysis = Analysis(
             twine="{}",
             configuration_values={"resistance_setting": 7},

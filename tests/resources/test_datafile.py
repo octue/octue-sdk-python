@@ -23,11 +23,19 @@ class MyPathable(Pathable, MixinBase):
 
 class DatafileTestCase(BaseTestCase):
     def setUp(self):
+        """Set up the test class by adding an example `path_from` and `path` to it.
+
+        :return None:
+        """
         super().setUp()
         self.path_from = MyPathable(path=os.path.join(self.data_path, "basic_files", "configuration", "test-dataset"))
         self.path = os.path.join("path-within-dataset", "a_test_file.csv")
 
     def create_valid_datafile(self):
+        """Create a datafile with its `path_from` and `path` attributes set to valid values.
+
+        :return octue.resources.datafile.Datafile:
+        """
         return Datafile(path_from=self.path_from, path=self.path, skip_checks=False)
 
     def create_datafile_in_cloud(
@@ -99,12 +107,14 @@ class DatafileTestCase(BaseTestCase):
             Datafile(path="a_path") > "hello"
 
     def test_checks_fail_when_file_doesnt_exist(self):
+        """Test that the checks fail if the file used to instantiate the datafile doesn't exist."""
         path = "not_a_real_file.csv"
         with self.assertRaises(exceptions.FileNotFoundException) as error:
             Datafile(path=path, skip_checks=False)
         self.assertIn("No file found at", error.exception.args[0])
 
     def test_conflicting_extension_fails_check(self):
+        """Test that a conflicting extension parameter and extension on the file causes checks to fail."""
         with self.assertRaises(exceptions.InvalidInputException) as error:
             Datafile(path_from=self.path_from, path=self.path, skip_checks=False, extension="notcsv")
 
@@ -130,7 +140,7 @@ class DatafileTestCase(BaseTestCase):
             df._last_modified = 1000000000.5771205
 
     def test_repr(self):
-        """ Test that Datafiles are represented as expected. """
+        """Test that Datafiles are represented as expected."""
         self.assertEqual(repr(self.create_valid_datafile()), "<Datafile('a_test_file.csv')>")
 
     def test_serialisable(self):

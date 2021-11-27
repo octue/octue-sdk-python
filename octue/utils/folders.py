@@ -18,7 +18,6 @@ def get_file_name_from_strand(strand, path):
     :return: A file name for the strand
     :rtype: path-like
     """
-
     if strand in OUTPUT_STRANDS:
         os.makedirs(path, exist_ok=True)
 

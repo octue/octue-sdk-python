@@ -17,7 +17,6 @@ def clean(data, date):
     :return: The same dataframe, cleaned.
     :rtype: pandas.dataframe
     """
-
     # Add a proper datestamp column (combining the time from the time column with the date from the metadata)
     cleaned_timestamps = []
     for ts in data["TimeStamp"]:

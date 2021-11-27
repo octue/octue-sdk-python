@@ -166,17 +166,13 @@ class Runner:
 
     @staticmethod
     def _update_manifest_path(manifest, pathname):
-        """A Quick hack to stitch the new Pathable functionality in the 0.1.4 release into the CLI and runner.
+        """Change a manifest's path to its directory if the path currently points to a JSON file. This is a quick hack
+        to stitch the new Pathable functionality in the 0.1.4 release into the CLI and runner. The way we define a
+        manifest path can be more robustly implemented as we migrate functionality into the twined library.
 
-        The way we define a manifest path can be more robustly implemented as we migrate functionality into the twined
-        library
-
-        :param manifest:
-        :type manifest:
-        :param pathname:
-        :type pathname:
-        :return:
-        :rtype:
+        :param octue.resources.manifest.Manifest|None manifest:
+        :param str pathname:
+        :return octue.resources.manifest.Manifest:
         """
         if manifest is not None and hasattr(pathname, "endswith"):
             if pathname.endswith(".json"):
@@ -284,5 +280,5 @@ class AppFrom:
 
     @property
     def run(self):
-        """Returns the unwrapped run function from app.py in the application's root directory"""
+        """Return the unwrapped run function from app.py in the application's root directory."""
         return unwrap(self.app_module.run)

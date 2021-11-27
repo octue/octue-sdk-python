@@ -1,4 +1,4 @@
-""" The names of backend classes must end with "Backend" to be registered as valid backends for the `Child` class.
+"""The names of backend classes must end with "Backend" to be registered as valid backends for the `Child` class.
 Beyond that, a backend class can store whatever data it needs to authenticate and specify resources for the specific
 backend it represents. Credentials should not be stored directly in a backend instance, but storing the names of
 environment variables that store credentials is fine. For a backend to be valid, it must have a corresponding entry in
@@ -11,6 +11,11 @@ from octue import exceptions
 
 
 def get_backend(backend_name):
+    """Get the service backend with the given name.
+
+    :param str backend_name:
+    :return ServiceBackend:
+    """
     if backend_name not in AVAILABLE_BACKENDS:
         raise exceptions.BackendNotFound(
             f"Backend with name {backend_name} not found. Available backends are {list(AVAILABLE_BACKENDS.keys())}"

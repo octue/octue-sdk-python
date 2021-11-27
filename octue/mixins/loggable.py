@@ -34,4 +34,8 @@ class Loggable:
 
     @property
     def logger(self):
+        """Get the logger of the loggable instance.
+
+        :return logging.Logger:
+        """
         return self._logger

@@ -38,7 +38,6 @@ class PathableTestCase(BaseTestCase):
 
     def test_paths_chain_with_missing_values(self):
         """Ensures that pathable resources chain even if a part of the chain doesn't have a path"""
-
         # Owner is in the current working directory
         owner = MyPathable(path="owner")
         owned = MyPathable(path_from=owner)  # This resource doesn't have a path property

@@ -2,7 +2,7 @@ import os
 
 
 def isfolder(*args, make_if_absent=False):
-    """Returns true if input path is the name of a valid, existing, file. Joins multiple inputs.
+    """Return `True` if input path is the name of a valid, existing, file. Joins multiple inputs.
 
     tf = isfolder(str) Returns true is str is a full (or relative from the current working directory) folder path,
     false otherwise.

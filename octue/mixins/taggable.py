@@ -14,6 +14,10 @@ class Taggable:
 
     @property
     def tags(self):
+        """Get the tags of the taggable instance.
+
+        :return iter:
+        """
         return self._tags
 
     @tags.setter

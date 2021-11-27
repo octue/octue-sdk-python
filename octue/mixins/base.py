@@ -15,7 +15,6 @@ class MixinBase:
     """
 
     def __init__(self, *args, **kwargs):
-        """Constructor for ResourceBase"""
         if (len(args) > 0) or (len(kwargs.keys()) > 0):
             raise TypeError("object.__init__() takes no parameters")
         super().__init__()
