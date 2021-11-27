@@ -14,6 +14,10 @@ class Labelable:
 
     @property
     def labels(self):
+        """Get the labels of the labelled object.
+
+        :return iter:
+        """
         return self._labels
 
     @labels.setter

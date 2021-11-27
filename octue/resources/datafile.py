@@ -258,6 +258,10 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
     @property
     def name(self):
+        """Get the name of the datafile.
+
+        :return str:
+        """
         return self._name or str(os.path.split(self.path)[-1])
 
     @property
@@ -320,6 +324,10 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
     @property
     def timestamp(self):
+        """Get the timestamp of the datafile.
+
+        :return float:
+        """
         return self._timestamp
 
     @timestamp.setter
@@ -368,6 +376,10 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
     @property
     def size_bytes(self):
+        """Get the size of the datafile in bytes.
+
+        :return float:
+        """
         if self._path_is_in_google_cloud_storage:
             return self._cloud_metadata.get("size")
 
@@ -375,7 +387,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
     @property
     def exists_in_cloud(self):
-        """Does the file exist in the cloud?
+        """Return `True` if the file exists in the cloud.
 
         :return bool:
         """
@@ -383,7 +395,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
 
     @property
     def exists_locally(self):
-        """Does the file exist locally?
+        """Return `True` if the file exists locally.
 
         :return bool:
         """
@@ -590,7 +602,10 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             raise FileNotFoundException(f"No file found at {self.absolute_path}")
 
     def exists(self):
-        """Returns true if the datafile exists on the current system, false otherwise"""
+        """Return `True` if the datafile exists on the current system.
+
+        :return bool:
+        """
         return isfile(self.absolute_path)
 
     @property

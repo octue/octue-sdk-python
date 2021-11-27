@@ -3,6 +3,10 @@ from setuptools import setup
 
 
 def git_version():
+    """Get the commit hash of the HEAD commit to use as a package version.
+
+    :return str:
+    """
     return os.system("git rev-parse HEAD")
 
 

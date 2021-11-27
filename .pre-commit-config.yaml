@@ -1,4 +1,4 @@
-exclude: 'build|.git|.tox|dist|octue.egg-info'
+exclude: 'build|.git/|.tox|dist|octue.egg-info'
 default_stages: [commit]
 fail_fast: true
 default_language_version:
@@ -28,6 +28,15 @@ repos:
     hooks:
       - id: flake8
         language_version: python3
+        additional_dependencies:
+          - 'pep8-naming'
+        args:
+          - --ignore-names=setUp,tearDown,setUpClass,tearDownClass,asyncSetUp,asyncTearDown,setUpTestData,failureException,longMessage,maxDiff,startTestRun,stopTestRun
+
+  - repo: https://github.com/pycqa/pydocstyle
+    rev: 6.1.1
+    hooks:
+    - id: pydocstyle
 
   - repo: https://github.com/thclark/pre-commit-sphinx
     rev: 0.0.1
@@ -57,6 +66,7 @@ repos:
           - '^review/([a-z][a-z0-9]*)(-[a-z0-9]+)*$'
           - '^refactor/([a-z][a-z0-9]*)(-[a-z0-9]+)*$'
           - '^test/([a-z][a-z0-9]*)(-[a-z0-9]+)*$'
+          - '^style/([a-z][a-z0-9]*)(-[a-z0-9]+)*$'
 
   - repo: https://github.com/octue/conventional-commits
     rev: 0.5.0

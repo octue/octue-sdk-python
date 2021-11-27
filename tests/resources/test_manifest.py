@@ -19,7 +19,7 @@ class TestManifest(BaseTestCase):
         self.assertTrue(len(hash_) == 8)
 
     def test_hashes_for_the_same_manifest_are_the_same(self):
-        """ Ensure the hashes for two manifests that are exactly the same are the same."""
+        """Ensure the hashes for two manifests that are exactly the same are the same."""
         first_manifest = self.create_valid_manifest()
         second_manifest = copy.deepcopy(first_manifest)
         self.assertEqual(first_manifest.hash_value, second_manifest.hash_value)
@@ -98,7 +98,7 @@ class TestManifest(BaseTestCase):
         self.assertEqual(persisted_manifest["keys"], {"my-dataset": 0})
 
     def test_to_cloud_without_storing_datasets(self):
-        """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance. """
+        """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             file_0_path = os.path.join(temporary_directory, "file_0.txt")
             file_1_path = os.path.join(temporary_directory, "file_1.txt")

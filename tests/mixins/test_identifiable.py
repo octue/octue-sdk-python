@@ -48,7 +48,7 @@ class IdentifiableTestCase(BaseTestCase):
 
         self.assertIn("must be a valid uuid string, an instance of class UUID or None", e.exception.args[0])
 
-    def test_get_str_from_ID(self):
+    def test_get_str_from_id(self):
         """Ensures that calling str() on an object inheriting from Identifiable will use the class name and ID
         'ClassName <uuid>'
         """

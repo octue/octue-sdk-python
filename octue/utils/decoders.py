@@ -10,6 +10,12 @@ class OctueJSONDecoder(JSONDecoder):
         json.JSONDecoder.__init__(self, object_hook=object_hook or self.object_hook, *args, **kwargs)
 
     def object_hook(self, obj):
+        """Transform the object from a JSON-compatible python primitive into another python object, including ones that
+        are not directly JSON-compatible.
+
+        :param any obj: any JSON-compatible python primitive
+        :return any: any python object
+        """
         if "_type" not in obj:
             return obj
 

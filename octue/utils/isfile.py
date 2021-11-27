@@ -2,7 +2,7 @@ import os
 
 
 def isfile(*args):
-    """Returns true if input path is the name of a valid, existing, file.
+    """Return `True` if input path is the name of a valid, existing, file.
 
     Joins multiple inputs, making it slightly more useful than os.path.isfile()
 

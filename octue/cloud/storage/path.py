@@ -5,7 +5,8 @@ CLOUD_STORAGE_PROTOCOL = "gs://"
 
 
 def join(*paths):
-    """An analogue to os.path.join for Google Cloud storage paths.
+    """Join segments of path into a valid Google Cloud storage path. This is an analogue to `os.path.join` for Google
+    Cloud storage paths.
 
     :param iter paths:
     :return str:
@@ -80,7 +81,7 @@ def split(path):
 
 
 def dirname(path, name_only=False):
-    """Get the path of the directory of the given path. If `name_only` is `True`, just return the name of the directory.
+    """Get the path of the directory of the given path. If `name_only` is `True`, just get the name of the directory.
 
     :param str path:
     :param bool name_only:

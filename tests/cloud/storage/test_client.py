@@ -14,6 +14,10 @@ from tests.base import BaseTestCase
 class TestUploadFileToGoogleCloud(BaseTestCase):
     @classmethod
     def setUpClass(cls):
+        """Set up the class by adding a cloud filename and a storage client to access the cloud storage emulator.
+
+        :return None:
+        """
         cls.FILENAME = "my_file.txt"
         cls.storage_client = GoogleCloudStorageClient(project_name=TEST_PROJECT_NAME)
 

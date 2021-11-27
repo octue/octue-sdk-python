@@ -104,6 +104,7 @@ def octue_cli(id, skip_checks, logger_uri, log_level, force_reset):
 )
 @click.option("--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.")
 def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
+    """Run an analysis on the given input data."""
     config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
     input_dir = input_dir or os.path.join(data_dir, FOLDER_DEFAULTS["input"])
     output_dir = output_dir or os.path.join(data_dir, FOLDER_DEFAULTS["output"])
@@ -186,7 +187,7 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     help="Delete Google Pub/Sub topics and subscriptions on exit.",
 )
 def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topic_and_subscription_on_exit):
-    """ Start the service as a server to be asked questions by other services. """
+    """Start the service as a server to be asked questions by other services."""
     config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
     twine = Twine(source=twine)
 
@@ -222,7 +223,7 @@ def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topi
 
 
 def set_unavailable_strand_paths_to_none(twine, strands):
-    """ Set paths to unavailable strands to None, leaving the paths of available strands as they are. """
+    """Set paths to unavailable strands to None, leaving the paths of available strands as they are."""
     updated_strand_paths = []
 
     for strand_name, strand in strands:

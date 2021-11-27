@@ -136,6 +136,10 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
 
     @property
     def name(self):
+        """Get the name of the dataset
+
+        :return str:
+        """
         return self._name or os.path.split(os.path.abspath(os.path.split(self.path)[-1]))[-1]
 
     @property
@@ -150,7 +154,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
         return all(file.exists_in_cloud for file in self.files)
 
     def add(self, *args, **kwargs):
-        """Add a data/results file to the manifest
+        """Add a data/results file to the manifest.
 
         Usage:
             my_file = octue.DataFile(...)
@@ -158,7 +162,6 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
 
             # or more simply
             my_manifest.add(**{...}) which implicitly creates the datafile from the starred list of input arguments
-
         """
         if len(args) > 1:
             # Recurse to allow addition of many files at once
@@ -176,6 +179,15 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
             self.files.add(Datafile(**kwargs))
 
     def append(self, *args, **kwargs):
+        """Add a data/results file to the manifest. This method is deprecated in favour of `Dataset.add`.
+
+        Usage:
+            my_file = octue.DataFile(...)
+            my_manifest.append(my_file)
+
+            # or more simply
+            my_manifest.append(**{...}) which implicitly creates the datafile from the starred list of input arguments
+        """
         warnings.warn(
             "The `Dataset.append` method has been deprecated and replaced with `Dataset.add` to reflect that Datafiles "
             "are stored in a set and not a list. Calls to `Dataset.append` will be redirected to the new method for "
@@ -185,6 +197,11 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
         self.files.add(*args, **kwargs)
 
     def get_files(self, **kwargs):
+        """Get files from the dataset that meet the given filters. This method has been deprecated in favour of
+        `Dataset.files.filter`.
+
+        :return octue.resources.filter_containers.FilterSet:
+        """
         warnings.warn(
             "The `Dataset.get_files` method has been deprecated and replaced with `Dataset.files.filter`, which has "
             "the same interface but with the `field_lookup` argument renamed to `filter_name`. Calls to "

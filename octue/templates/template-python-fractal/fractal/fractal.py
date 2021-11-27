@@ -7,7 +7,6 @@ from .mandelbrot import mandelbrot
 
 def fractal(analysis):
     """Compute the heightmap of a fractal and output a data file containing visualisation data"""
-
     # Call the 'mandel' function to compute the fractal. Here, we just treat 'mandel' as a legacy function, passing in
     # what we need from the analysis object and getting results back
     x, y, z = mandelbrot(

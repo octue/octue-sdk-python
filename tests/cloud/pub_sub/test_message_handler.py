@@ -23,6 +23,10 @@ BACKEND = GCPPubSubBackend(
 class TestOrderedMessageHandler(BaseTestCase):
     @classmethod
     def setUpClass(cls):
+        """Set up the test class with a mock subscription.
+
+        :return None:
+        """
         service = MockService(backend=BACKEND)
         mock_topic = MockTopic(name="world", namespace="hello", service=service)
         cls.mock_subscription = MockSubscription(

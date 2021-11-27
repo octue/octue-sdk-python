@@ -4,7 +4,7 @@ from octue.resources import Datafile
 
 
 def run(analysis, *args, **kwargs):
-    """An app to read a time series of files from a dataset, clean them and write a new, cleaned, dataset.
+    """Read a time series of files from a dataset, clean them, and write a new, cleaned, dataset.
 
     See the "fractal" template for an introduction to the analysis object and the purpose of this 'run' function.
 
@@ -16,9 +16,7 @@ def run(analysis, *args, **kwargs):
     - Perform a simple transformation on some of the data (as if we were doing a data cleaning process)
     - Create new files containing the cleaned data
     - Add them to the output manifest
-
     """
-
     # You can use the attached logger to record debug statements, general information, warnings or errors
     analysis.logger.info("Starting clean up of files in %s", analysis.input_manifest.absolute_path)
 

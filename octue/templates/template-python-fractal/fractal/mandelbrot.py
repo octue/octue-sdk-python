@@ -2,7 +2,7 @@ import numpy
 
 
 def mandelbrot(width, height, x_range, y_range, n_iterations, c=None):
-    """Computes heightmap for a mandelbrot or julia set fractal
+    """Compute the heightmap for a mandelbrot or julia set fractal.
 
     Each iteration, the new value of a pixel is calculated as z = z^2 + c, where for a mandelbrot set (default)
     c is a function of the position in the complex plane (c = x + iy) or a optionally for a julia set, c is a constant
@@ -30,7 +30,6 @@ def mandelbrot(width, height, x_range, y_range, n_iterations, c=None):
     you can lot a fancy looking 3d fractal
     :rtype: (numpy.ndarray, numpy.ndarray, numpy.ndarray)
     """
-
     # Create a linearly spaced 2d grid
     [x, y] = numpy.meshgrid(
         numpy.linspace(x_range[0], x_range[1], width), numpy.linspace(y_range[0], y_range[1], height)

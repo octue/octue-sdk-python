@@ -15,7 +15,8 @@ module_logger = logging.getLogger(__name__)
 
 class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
     """A representation of a manifest, which can contain multiple datasets This is used to manage all files coming into
-    (or leaving), a data service for an analysis at the configuration, input or output stage."""
+    (or leaving), a data service for an analysis at the configuration, input or output stage.
+    """
 
     _ATTRIBUTES_TO_HASH = ("datasets",)
     _SERIALISE_FIELDS = "datasets", "keys", "id", "name", "path"
@@ -138,7 +139,7 @@ class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
         return all(dataset.all_files_are_in_cloud for dataset in self.datasets)
 
     def get_dataset(self, key):
-        """Gets a dataset by its key name (as defined in the twine)
+        """Get a dataset by its key name (as defined in the twine).
 
         :return Dataset: Dataset selected by its key
         """

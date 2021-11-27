@@ -28,6 +28,11 @@ BACKEND = GCPPubSubBackend(
 
 
 def create_run_function():
+    """Create a run function that sends log messages back to the parent and gives a simple output value.
+
+    :return callable: the run function
+    """
+
     def mock_app(analysis):
         analysis.logger.info("Starting analysis.")
         analysis.output_values = "Hello! It worked!"
@@ -48,7 +53,8 @@ def create_run_function():
 
 class TestService(BaseTestCase):
     """Some of these tests require a connection to either a real Google Pub/Sub instance on Google Cloud Platform
-    (GCP), or a local emulator."""
+    (GCP), or a local emulator.
+    """
 
     @staticmethod
     def make_new_server(backend, run_function_returnee, use_mock=False):
@@ -121,7 +127,7 @@ class TestService(BaseTestCase):
         self.assertEqual(service_with_namespace_in_id.id, "octue.services.hello")
 
     def test_repr(self):
-        """ Test that services are represented as a string correctly. """
+        """Test that services are represented as a string correctly."""
         asking_service = Service(backend=BACKEND)
         self.assertEqual(repr(asking_service), f"<Service({asking_service.name!r})>")
 
@@ -138,7 +144,8 @@ class TestService(BaseTestCase):
 
     def test_ask_on_non_existent_service_results_in_error(self):
         """Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
-        results in an error."""
+        results in an error.
+        """
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with self.assertRaises(exceptions.ServiceNotFound):
                 MockService(backend=BACKEND).ask(service_id="hello", input_values=[1, 2, 3, 4])
@@ -184,7 +191,8 @@ class TestService(BaseTestCase):
 
     def test_exceptions_with_multiple_arguments_in_responder_are_handled_and_sent_to_asker(self):
         """Test that exceptions with multiple arguments raised in the responding service are handled and sent back to
-        the asker."""
+        the asker.
+        """
         responding_service = self.make_responding_service_with_error(
             FileNotFoundError(2, "No such file or directory: 'blah'")
         )
@@ -539,7 +547,7 @@ class TestService(BaseTestCase):
         self.assertEqual(answer["output_values"], "This is a local file.")
 
     def test_ask_with_output_manifest(self):
-        """ Test that a service can receive an output manifest as part of the answer to a question. """
+        """Test that a service can receive an output manifest as part of the answer to a question."""
         responding_service = self.make_new_server(
             BACKEND, run_function_returnee=MockAnalysisWithOutputManifest(), use_mock=True
         )
@@ -561,7 +569,7 @@ class TestService(BaseTestCase):
         self.assertEqual(answer["output_manifest"].id, MockAnalysisWithOutputManifest.output_manifest.id)
 
     def test_service_can_ask_multiple_questions(self):
-        """ Test that a service can ask multiple questions to the same server and expect replies to them all. """
+        """Test that a service can ask multiple questions to the same server and expect replies to them all."""
         responding_service = self.make_new_server(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
         asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
 
@@ -589,7 +597,7 @@ class TestService(BaseTestCase):
             )
 
     def test_service_can_ask_questions_to_multiple_servers(self):
-        """ Test that a service can ask questions to different servers and expect replies to them all. """
+        """Test that a service can ask questions to different servers and expect replies to them all."""
         responding_service_1 = self.make_new_server(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
         responding_service_2 = self.make_new_server(
             BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True

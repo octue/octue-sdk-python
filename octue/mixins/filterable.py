@@ -180,7 +180,8 @@ class Filterable:
 
     def _get_filter_actions_for_attribute(self, attribute):
         """Get the possible filters for the given attribute based on its type or interface, raising an error if the
-        attribute's type isn't supported (i.e. if there aren't any filters defined for it)."""
+        attribute's type isn't supported (i.e. if there aren't any filters defined for it).
+        """
         try:
             return TYPE_FILTERS[type(attribute).__name__]
 

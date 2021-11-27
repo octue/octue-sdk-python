@@ -17,7 +17,6 @@ def read_dat_file(file):
     :return: Dictionary of available metadata
     :rtype: dict
     """
-
     # Read the file
     with open(file.absolute_path, "r") as text_file:
         lines = text_file.readlines()

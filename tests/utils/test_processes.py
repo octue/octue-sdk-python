@@ -48,6 +48,10 @@ class MockPopen:
         self.returncode = return_code
 
     def wait(self):
+        """Do nothing.
+
+        :return None:
+        """
         pass
 
 
@@ -69,6 +73,10 @@ class MockBufferedReader:
         pass
 
     def readline(self):
+        """Read a line from the mocked buffered reader.
+
+        :return str:
+        """
         try:
             line = self.contents[self._line_count]
         except IndexError:

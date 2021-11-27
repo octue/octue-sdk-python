@@ -35,7 +35,7 @@ class Pathable:
 
     @property
     def _path_prefix(self):
-        """Gets the path prefix (this is the absolute_path of the owner path_from object).
+        """Get the path prefix (this is the absolute_path of the owner path_from object).
 
         Defaults to the current working directory.
 
@@ -51,7 +51,7 @@ class Pathable:
 
     @property
     def absolute_path(self):
-        """The absolute path of this resource.
+        """Get the absolute path of this resource.
 
         :return str:
         """
@@ -76,7 +76,7 @@ class Pathable:
 
     @property
     def path(self):
-        """The path of this resource.
+        """Get the path of this resource.
 
         :return str:
         """

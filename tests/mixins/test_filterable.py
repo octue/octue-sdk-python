@@ -16,17 +16,17 @@ class FilterableSubclass(Filterable):
 
 class TestFilterable(BaseTestCase):
     def test_error_raised_when_invalid_filter_name_received(self):
-        """ Ensure an error is raised when an invalid filter name is provided. """
+        """Ensure an error is raised when an invalid filter name is provided."""
         with self.assertRaises(exceptions.InvalidInputException):
             FilterableSubclass().satisfies(invalid_filter_name=None)
 
     def test_error_raised_when_non_existent_attribute_name_received(self):
-        """ Ensure an error is raised when a non-existent attribute name is used in the filter name. """
+        """Ensure an error is raised when a non-existent attribute name is used in the filter name."""
         with self.assertRaises(AttributeError):
             FilterableSubclass().satisfies(boogaloo__is_a_dance=True)
 
     def test_error_raised_when_valid_but_non_existent_filter_name_received(self):
-        """ Ensure an error is raised when a valid but non-existent filter name is received. """
+        """Ensure an error is raised when a valid but non-existent filter name is received."""
         with self.assertRaises(exceptions.InvalidInputException):
             FilterableSubclass(age=23).satisfies(age__is_secret=True)
 
@@ -57,7 +57,7 @@ class TestFilterable(BaseTestCase):
         self.assertTrue(filterable_thing.satisfies(name__a__b=3))
 
     def test_bool_filters(self):
-        """ Test that the boolean filters work as expected. """
+        """Test that the boolean filters work as expected."""
         filterable_thing = FilterableSubclass(is_alive=True)
         self.assertTrue(filterable_thing.satisfies(is_alive__is=True))
         self.assertFalse(filterable_thing.satisfies(is_alive__is=False))
@@ -69,7 +69,7 @@ class TestFilterable(BaseTestCase):
         self.assertFalse(filterable_thing.satisfies(is_alive__not_equals=True))
 
     def test_str_filters(self):
-        """ Test that the string filters work as expected. """
+        """Test that the string filters work as expected."""
         filterable_thing = FilterableSubclass(name="Michael")
         self.assertTrue(filterable_thing.satisfies(name__icontains="m"))
         self.assertFalse(filterable_thing.satisfies(name__icontains="d"))
@@ -111,7 +111,7 @@ class TestFilterable(BaseTestCase):
         self.assertFalse(filterable_thing.satisfies(name__not_in_range=("Amy", "Zoe")))
 
     def test_none_filters(self):
-        """ Test that the None filters work as expected. """
+        """Test that the None filters work as expected."""
         filterable_thing = FilterableSubclass(owner=None)
         self.assertTrue(filterable_thing.satisfies(owner__is=None))
         self.assertFalse(filterable_thing.satisfies(owner__is=True))
@@ -123,7 +123,7 @@ class TestFilterable(BaseTestCase):
         self.assertFalse(filterable_thing.satisfies(owner__not_equals=None))
 
     def test_number_filters_with_integers_and_floats(self):
-        """ Test that the number filters work as expected for integers and floats. """
+        """Test that the number filters work as expected for integers and floats."""
         for age in (5, 5.2):
             filterable_thing = FilterableSubclass(age=age)
             self.assertTrue(filterable_thing.satisfies(age__equals=age))
@@ -148,7 +148,7 @@ class TestFilterable(BaseTestCase):
             self.assertFalse(filterable_thing.satisfies(age__not_in_range=(0, 10)))
 
     def test_iterable_filters(self):
-        """ Test that the iterable filters work as expected with lists, sets, and tuples. """
+        """Test that the iterable filters work as expected with lists, sets, and tuples."""
         for iterable in ([1, 2, 3], {1, 2, 3}, (1, 2, 3)):
             filterable_thing = FilterableSubclass(iterable=iterable)
             self.assertTrue(filterable_thing.satisfies(iterable__contains=1))
@@ -161,7 +161,7 @@ class TestFilterable(BaseTestCase):
             self.assertFalse(filterable_thing.satisfies(iterable__is_not=iterable))
 
     def test_label_set_filters(self):
-        """ Test the filters for Labelset. """
+        """Test the filters for Labelset."""
         filterable_thing = FilterableSubclass(iterable=LabelSet({"fred", "charlie"}))
         self.assertTrue(filterable_thing.satisfies(iterable__any_label_contains="a"))
         self.assertFalse(filterable_thing.satisfies(iterable__any_label_contains="z"))
@@ -177,6 +177,7 @@ class TestFilterable(BaseTestCase):
         self.assertFalse(filterable_thing.satisfies(iterable__not_any_label_ends_with="e"))
 
     def test_datetime_filters(self):
+        """Test that datetime filters work as expected."""
         my_datetime = datetime(2000, 1, 1)
         filterable_thing = FilterableSubclass(timestamp=my_datetime)
         self.assertTrue(filterable_thing.satisfies(timestamp__equals=my_datetime))
@@ -243,7 +244,7 @@ class TestFilterable(BaseTestCase):
         self.assertFalse(filterable_thing.satisfies(timestamp__in_time_range=(time(0, 0, 1), time(13, 2, 22))))
 
     def test_filtering_different_attributes_on_same_instance(self):
-        """ Ensure all filterable attributes on an instance can be checked for filter satisfaction. """
+        """Ensure all filterable attributes on an instance can be checked for filter satisfaction."""
         filterable_thing = FilterableSubclass(name="Fred", is_alive=True, iterable={1, 2, 3}, age=5.2, owner=None)
         self.assertTrue(filterable_thing.satisfies(name__icontains="f"))
         self.assertTrue(filterable_thing.satisfies(name__not_icontains="j"))

@@ -63,9 +63,18 @@ class MockSubscription(Subscription):
     """A mock subscription that registers in a global dictionary rather than Google Pub/Sub."""
 
     def create(self, allow_existing=False):
+        """Do nothing.
+
+        :param bool allow_existing:
+        :return None:
+        """
         pass
 
     def delete(self):
+        """Do nothing.
+
+        :return None:
+        """
         pass
 
 
@@ -73,9 +82,18 @@ class MockFuture:
     """A mock future that is returned when publishing or subscribing."""
 
     def result(self, timeout=None):
+        """Do nothing.
+
+        :param float timeout:
+        :return None:
+        """
         pass
 
     def cancel(self):
+        """Do nothing.
+
+        :return None:
+        """
         pass
 
 
@@ -150,6 +168,11 @@ class MockSubscriber:
             return MockPullResponse(received_messages=[])
 
     def acknowledge(self, request):
+        """Do nothing.
+
+        :param google.pubsub_v1.types.pubsub.Subscription request:
+        :return None:
+        """
         pass
 
     @staticmethod
@@ -163,6 +186,11 @@ class MockSubscriber:
         return f"projects/{project_name}/subscriptions/{subscription_name}"
 
     def create_subscription(self, request):
+        """Do nothing.
+
+        :param google.pubsub_v1.types.pubsub.Subscription request:
+        :return None:
+        """
         pass
 
 
@@ -203,6 +231,10 @@ class MockMessage:
             self.attributes[key] = value
 
     def ack(self):
+        """Do nothing.
+
+        :return None:
+        """
         pass
 
 
@@ -279,7 +311,7 @@ class MockMessagePuller:
         self.message_number = 0
 
     def pull(self, timeout, delivery_acknowledgement_timeout):
-        """Return the next message from the messages given at initialisation.
+        """Get the next message from the messages given at initialisation.
 
         :return dict:
         """
@@ -312,10 +344,11 @@ class MockAnalysisWithOutputManifest:
 
 
 class MockSubscriptionCreationResponse:
-    def __init__(self, request):
-        """A mock response to creating a Google Cloud Pub/Sub subscription.
+    """A mock response to creating a Google Cloud Pub/Sub subscription.
 
-        :param google.pubsub_v1.types.pubsub.Subscription request:
-        :return None:
-        """
+    :param google.pubsub_v1.types.pubsub.Subscription request:
+    :return None:
+    """
+
+    def __init__(self, request):
         self.__dict__ = vars(request)

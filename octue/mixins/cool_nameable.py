@@ -2,7 +2,7 @@ from coolname import generate_slug
 
 
 class CoolNameable:
-    """ A mixin that gives the subclass a highly unique human-readable name e.g. "melodic-kestrel". """
+    """A mixin that gives the subclass a highly unique human-readable name e.g. "melodic-kestrel"."""
 
     def __init__(self, *args, **kwargs):
         existing_name = getattr(self, "name", None) or kwargs.pop("name", None)

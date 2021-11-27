@@ -31,7 +31,6 @@ def run(analysis, *args, **kwargs):
         - ``credentials``, a dict of Credential objects
 
     """
-
     # You can use the attached logger to record debug statements, general information, warnings or errors
     # analysis.logger.info("The input directory is %s", analysis.input_dir)
     # analysis.logger.info("The output directory is %s", analysis.output_dir)

@@ -7,6 +7,11 @@ from .base import BaseTestCase
 
 
 def mock_app(analysis):
+    """Run a mock analysis that does nothing.
+
+    :param octue.resources.analysis.Analysis analysis:
+    :return None:
+    """
     pass
 
 
@@ -121,7 +126,7 @@ class RunnerTestCase(BaseTestCase):
         )
 
     def test_output_manifest_is_not_none(self):
-        """ Ensure the output manifest of an analysis is not None if an output manifest is defined in the Twine. """
+        """Ensure the output manifest of an analysis is not None if an output manifest is defined in the Twine."""
         runner = Runner(
             app_src=mock_app,
             twine="""

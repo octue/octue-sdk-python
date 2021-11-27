@@ -22,7 +22,6 @@ class Identifiable:
     """
 
     def __init__(self, *args, id=None, name=None, **kwargs):
-        """Constructor for Identifiable class"""
         self._name = name
         super().__init__(*args, **kwargs)
         self._set_id(id)
@@ -35,10 +34,18 @@ class Identifiable:
 
     @property
     def id(self):
+        """Get the ID of the identifiable instance.
+
+        :return str:
+        """
         return self._id
 
     @property
     def name(self):
+        """Get the name of the identifiable instance.
+
+        :return str:
+        """
         return self._name
 
     def _set_id(self, value):
