@@ -283,5 +283,5 @@ class AppFrom:
 
     @property
     def run(self):
-        """Return the unwrapped run function from app.py in the application's root directory."""
+        """Get the unwrapped run function from app.py in the application's root directory."""
         return unwrap(self.app_module.run)

@@ -81,7 +81,7 @@ def split(path):
 
 
 def dirname(path, name_only=False):
-    """Get the path of the directory of the given path. If `name_only` is `True`, just return the name of the directory.
+    """Get the path of the directory of the given path. If `name_only` is `True`, just get the name of the directory.
 
     :param str path:
     :param bool name_only:

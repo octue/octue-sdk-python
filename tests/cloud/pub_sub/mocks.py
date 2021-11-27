@@ -311,7 +311,7 @@ class MockMessagePuller:
         self.message_number = 0
 
     def pull(self, timeout, delivery_acknowledgement_timeout):
-        """Return the next message from the messages given at initialisation.
+        """Get the next message from the messages given at initialisation.
 
         :return dict:
         """

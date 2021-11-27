@@ -51,7 +51,7 @@ class Pathable:
 
     @property
     def absolute_path(self):
-        """Return the absolute path of this resource.
+        """Get the absolute path of this resource.
 
         :return str:
         """
@@ -76,7 +76,7 @@ class Pathable:
 
     @property
     def path(self):
-        """Return the path of this resource.
+        """Get the path of this resource.
 
         :return str:
         """
