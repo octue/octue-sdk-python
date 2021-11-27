@@ -46,7 +46,7 @@ class Service(CoolNameable):
     :return None:
     """
 
-    def __init__(self, backend, service_id=None, run_function=None):
+    def __init__(self, backend, service_id=None):
         if service_id is None:
             self.id = f"{OCTUE_NAMESPACE}.{str(uuid.uuid4())}"
         elif not service_id:
@@ -58,7 +58,6 @@ class Service(CoolNameable):
                 self.id = f"{OCTUE_NAMESPACE}.{service_id}"
 
         self.backend = backend
-        self.run_function = run_function
 
         self._credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
         self.publisher = pubsub_v1.PublisherClient(credentials=self._credentials, batch_settings=BATCH_SETTINGS)
@@ -67,96 +66,6 @@ class Service(CoolNameable):
 
     def __repr__(self):
         return f"<{type(self).__name__}({self.name!r})>"
-
-    def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False):
-        """Start the Service as a server, waiting to accept questions from any other Service using Google Pub/Sub on
-        the same Google Cloud Platform project. Questions are responded to asynchronously.
-
-        :param float|None timeout: time in seconds after which to shut down the service
-        :param bool delete_topic_and_subscription_on_exit: if `True`, delete the service's topic and subscription on exit
-        :return None:
-        """
-        topic = Topic(name=self.id, namespace=OCTUE_NAMESPACE, service=self)
-        topic.create(allow_existing=True)
-
-        subscriber = pubsub_v1.SubscriberClient(credentials=self._credentials)
-
-        subscription = Subscription(
-            name=self.id,
-            topic=topic,
-            namespace=OCTUE_NAMESPACE,
-            project_name=self.backend.project_name,
-            subscriber=subscriber,
-            expiration_time=None,
-        )
-        subscription.create(allow_existing=True)
-
-        future = subscriber.subscribe(subscription=subscription.path, callback=self.answer)
-        logger.debug("%r is waiting for questions.", self)
-
-        with subscriber:
-            try:
-                future.result(timeout=timeout)
-            except (TimeoutError, concurrent.futures.TimeoutError, KeyboardInterrupt):
-                future.cancel()
-
-            if delete_topic_and_subscription_on_exit:
-                topic.delete()
-                subscription.delete()
-
-    def answer(self, question, answer_topic=None, timeout=30):
-        """Answer a question (i.e. run the Service's app to analyse the given data, and return the output values to the
-        asker). Answers are published to a topic whose name is generated from the UUID sent with the question, and are
-        in the format specified in the Service's Twine file.
-
-        :param dict|Message question:
-        :param octue.cloud.pub_sub.topic.Topic|None answer_topic: provide if messages need to be sent to the asker from outside the service (e.g. in octue.cloud.deployment.google.cloud_run)
-        :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
-        :raise Exception: if any exception arises during running analysis and sending its results
-        :return None:
-        """
-        data, question_uuid, forward_logs = self._parse_question(question)
-        topic = answer_topic or self.instantiate_answer_topic(question_uuid)
-        self._send_delivery_acknowledgment(topic)
-
-        if forward_logs:
-            analysis_log_handler = GooglePubSubHandler(publisher=self.publisher, topic=topic)
-        else:
-            analysis_log_handler = None
-
-        try:
-            analysis = self.run_function(
-                analysis_id=question_uuid,
-                input_values=data["input_values"],
-                input_manifest=data["input_manifest"],
-                analysis_log_handler=analysis_log_handler,
-                handle_monitor_message=functools.partial(self._send_monitor_message, topic=topic),
-            )
-
-            if analysis.output_manifest is None:
-                serialised_output_manifest = None
-            else:
-                serialised_output_manifest = analysis.output_manifest.serialise()
-
-            self.publisher.publish(
-                topic=topic.path,
-                data=json.dumps(
-                    {
-                        "type": "result",
-                        "output_values": analysis.output_values,
-                        "output_manifest": serialised_output_manifest,
-                        "message_number": topic.messages_published,
-                    },
-                    cls=OctueJSONEncoder,
-                ).encode(),
-                retry=retry.Retry(deadline=timeout),
-            )
-            topic.messages_published += 1
-            logger.info("%r responded to question %r.", self, question_uuid)
-
-        except BaseException as error:  # noqa
-            self.send_exception_to_asker(topic, timeout)
-            raise error
 
     def instantiate_answer_topic(self, question_uuid, service_id=None):
         """Instantiate the answer topic for the given question UUID for the given service ID.
@@ -171,6 +80,8 @@ class Service(CoolNameable):
             service=self,
         )
 
+
+class Parent(Service):
     def ask(
         self,
         service_id,
@@ -308,6 +219,102 @@ class Service(CoolNameable):
 
             finally:
                 subscription.delete()
+
+
+class Child(Service):
+    def __init__(self, backend, run_function=None, service_id=None):
+        self.run_function = run_function
+        super().__init__(backend, service_id)
+
+    def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False):
+        """Start the Service as a server, waiting to accept questions from any other Service using Google Pub/Sub on
+        the same Google Cloud Platform project. Questions are responded to asynchronously.
+
+        :param float|None timeout: time in seconds after which to shut down the service
+        :param bool delete_topic_and_subscription_on_exit: if `True`, delete the service's topic and subscription on exit
+        :return None:
+        """
+        topic = Topic(name=self.id, namespace=OCTUE_NAMESPACE, service=self)
+        topic.create(allow_existing=True)
+
+        subscriber = pubsub_v1.SubscriberClient(credentials=self._credentials)
+
+        subscription = Subscription(
+            name=self.id,
+            topic=topic,
+            namespace=OCTUE_NAMESPACE,
+            project_name=self.backend.project_name,
+            subscriber=subscriber,
+            expiration_time=None,
+        )
+        subscription.create(allow_existing=True)
+
+        future = subscriber.subscribe(subscription=subscription.path, callback=self.answer)
+        logger.debug("%r is waiting for questions.", self)
+
+        with subscriber:
+            try:
+                future.result(timeout=timeout)
+            except (TimeoutError, concurrent.futures.TimeoutError, KeyboardInterrupt):
+                future.cancel()
+
+            if delete_topic_and_subscription_on_exit:
+                topic.delete()
+                subscription.delete()
+
+    def answer(self, question, answer_topic=None, timeout=30):
+        """Answer a question (i.e. run the Service's app to analyse the given data, and return the output values to the
+        asker). Answers are published to a topic whose name is generated from the UUID sent with the question, and are
+        in the format specified in the Service's Twine file.
+
+        :param dict|Message question:
+        :param octue.cloud.pub_sub.topic.Topic|None answer_topic: provide if messages need to be sent to the asker from outside the service (e.g. in octue.cloud.deployment.google.cloud_run)
+        :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
+        :raise Exception: if any exception arises during running analysis and sending its results
+        :return None:
+        """
+        data, question_uuid, forward_logs = self._parse_question(question)
+        topic = answer_topic or self.instantiate_answer_topic(question_uuid)
+        self._send_delivery_acknowledgment(topic)
+
+        if forward_logs:
+            analysis_log_handler = GooglePubSubHandler(publisher=self.publisher, topic=topic)
+        else:
+            analysis_log_handler = None
+
+        try:
+            analysis = self.run_function(
+                analysis_id=question_uuid,
+                input_values=data["input_values"],
+                input_manifest=data["input_manifest"],
+                analysis_log_handler=analysis_log_handler,
+                handle_monitor_message=functools.partial(self._send_monitor_message, topic=topic),
+            )
+
+            if analysis.output_manifest is None:
+                serialised_output_manifest = None
+            else:
+                serialised_output_manifest = analysis.output_manifest.serialise()
+
+            self.publisher.publish(
+                topic=topic.path,
+                data=json.dumps(
+                    {
+                        "type": "result",
+                        "output_values": analysis.output_values,
+                        "output_manifest": serialised_output_manifest,
+                        "message_number": topic.messages_published,
+                    },
+                    cls=OctueJSONEncoder,
+                ).encode(),
+                retry=retry.Retry(deadline=timeout),
+            )
+            topic.messages_published += 1
+            logger.info("%r responded to question %r.", self, question_uuid)
+
+        except BaseException as error:  # noqa
+            self.send_exception_to_asker(topic, timeout)
+            raise error
 
     def _send_delivery_acknowledgment(self, topic, timeout=30):
         """Send an acknowledgement of question delivery to the asker.

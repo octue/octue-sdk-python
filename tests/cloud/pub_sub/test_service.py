@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import twined.exceptions
 from octue import Runner, exceptions
-from octue.cloud.pub_sub.service import Service
+from octue.cloud.pub_sub.service import Child, Parent, Service
 from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
@@ -14,8 +14,9 @@ from tests.cloud.pub_sub.mocks import (
     DifferentMockAnalysis,
     MockAnalysis,
     MockAnalysisWithOutputManifest,
+    MockChild,
+    MockParent,
     MockPullResponse,
-    MockService,
     MockSubscriber,
     MockSubscription,
     MockTopic,
@@ -57,7 +58,7 @@ class TestService(BaseTestCase):
     """
 
     @staticmethod
-    def make_new_server(backend, run_function_returnee, use_mock=False):
+    def make_new_child(backend, run_function_returnee, use_mock=False):
         """Make and return a new service that returns the given run function returnee when its run function is executed.
 
         :param octue.resources.service_backends.ServiceBackend backend:
@@ -70,13 +71,13 @@ class TestService(BaseTestCase):
         )
 
         if use_mock:
-            return MockService(backend=backend, run_function=run_function)
-        return Service(backend=backend, run_function=run_function)
+            return MockChild(backend=backend, run_function=run_function)
+        return Child(backend=backend, run_function=run_function)
 
     @staticmethod
     def ask_question_and_wait_for_answer(
-        asking_service,
-        responding_service,
+        parent,
+        child,
         input_values,
         input_manifest,
         subscribe_to_logs=True,
@@ -87,34 +88,34 @@ class TestService(BaseTestCase):
     ):
         """Get an asking service to ask a question to a responding service and wait for the answer.
 
-        :param tests.cloud.pub_sub.mocks.MockService asking_service:
-        :param tests.cloud.pub_sub.mocks.MockService responding_service:
+        :param tests.cloud.pub_sub.mocks.MockService parent:
+        :param tests.cloud.pub_sub.mocks.MockService child:
         :param dict|None input_values:
         :param octue.resources.manifest.Manifest|None input_manifest:
         :param bool subscribe_to_logs:
         :return dict:
         """
-        subscription, _ = asking_service.ask(
-            responding_service.id, input_values, input_manifest, subscribe_to_logs, allow_local_files, timeout
+        subscription, _ = parent.ask(
+            child.id, input_values, input_manifest, subscribe_to_logs, allow_local_files, timeout
         )
 
-        return asking_service.wait_for_answer(
+        return parent.wait_for_answer(
             subscription, service_name=service_name, delivery_acknowledgement_timeout=delivery_acknowledgement_timeout
         )
 
-    def make_responding_service_with_error(self, exception_to_raise):
+    def make_child_with_error(self, exception_to_raise):
         """Make a mock responding service that raises the given exception when its run function is executed.
 
         :param Exception exception_to_raise:
         :return tests.cloud.pub_sub.mocks.MockService:
         """
-        responding_service = self.make_new_server(BACKEND, run_function_returnee=None, use_mock=True)
+        child = self.make_new_child(BACKEND, run_function_returnee=None, use_mock=True)
 
         def error_run_function(analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message):
             raise exception_to_raise
 
-        responding_service.run_function = error_run_function
-        return responding_service
+        child.run_function = error_run_function
+        return child
 
     def test_namespace_always_appears_in_id(self):
         """Test that the Octue service namespace always appears at the start of a service's ID whether it's explicitly
@@ -128,8 +129,8 @@ class TestService(BaseTestCase):
 
     def test_repr(self):
         """Test that services are represented as a string correctly."""
-        asking_service = Service(backend=BACKEND)
-        self.assertEqual(repr(asking_service), f"<Service({asking_service.name!r})>")
+        parent = Service(backend=BACKEND)
+        self.assertEqual(repr(parent), f"<Service({parent.name!r})>")
 
     def test_service_id_cannot_be_non_none_empty_value(self):
         """Ensure that a ValueError is raised if a non-None empty value is provided as the service_id."""
@@ -148,12 +149,13 @@ class TestService(BaseTestCase):
         """
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with self.assertRaises(exceptions.ServiceNotFound):
-                MockService(backend=BACKEND).ask(service_id="hello", input_values=[1, 2, 3, 4])
+                MockParent(backend=BACKEND).ask(service_id="hello", input_values=[1, 2, 3, 4])
 
     def test_timeout_error_raised_if_no_messages_received_when_waiting(self):
         """Test that a TimeoutError is raised if no messages are received while waiting."""
-        service = Service(backend=BACKEND)
-        mock_topic = MockTopic(name="world", namespace="hello", service=service)
+        parent = Parent(backend=BACKEND)
+
+        mock_topic = MockTopic(name="world", namespace="hello", service=parent)
         mock_subscription = MockSubscription(
             name="world",
             topic=mock_topic,
@@ -164,25 +166,25 @@ class TestService(BaseTestCase):
 
         with patch("octue.cloud.pub_sub.service.pubsub_v1.SubscriberClient.pull", return_value=MockPullResponse()):
             with self.assertRaises(TimeoutError):
-                service.wait_for_answer(subscription=mock_subscription, timeout=0.01)
+                parent.wait_for_answer(subscription=mock_subscription, timeout=0.01)
 
     def test_exceptions_in_responder_are_handled_and_sent_to_asker(self):
         """Test that exceptions raised in the responding service are handled and sent back to the asker."""
-        responding_service = self.make_responding_service_with_error(
+        child = self.make_child_with_error(
             twined.exceptions.InvalidManifestContents("'met_mast_id' is a required property")
         )
 
-        asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
+        parent = MockParent(backend=BACKEND, children={child.id: child})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                 with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    responding_service.serve()
+                    child.serve()
 
                     with self.assertRaises(twined.exceptions.InvalidManifestContents) as context:
                         self.ask_question_and_wait_for_answer(
-                            asking_service=asking_service,
-                            responding_service=responding_service,
+                            parent=parent,
+                            child=child,
                             input_values={},
                             input_manifest=None,
                         )
@@ -193,21 +195,18 @@ class TestService(BaseTestCase):
         """Test that exceptions with multiple arguments raised in the responding service are handled and sent back to
         the asker.
         """
-        responding_service = self.make_responding_service_with_error(
-            FileNotFoundError(2, "No such file or directory: 'blah'")
-        )
-
-        asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
+        child = self.make_child_with_error(FileNotFoundError(2, "No such file or directory: 'blah'"))
+        parent = MockParent(backend=BACKEND, children={child.id: child})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                 with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    responding_service.serve()
+                    child.serve()
 
                     with self.assertRaises(FileNotFoundError) as context:
                         self.ask_question_and_wait_for_answer(
-                            asking_service=asking_service,
-                            responding_service=responding_service,
+                            parent=parent,
+                            child=child,
                             input_values={},
                             input_manifest=None,
                         )
@@ -220,21 +219,18 @@ class TestService(BaseTestCase):
         class AnUnknownException(Exception):
             pass
 
-        responding_service = self.make_responding_service_with_error(
-            AnUnknownException("This is an exception unknown to the asker.")
-        )
-
-        asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
+        child = self.make_child_with_error(AnUnknownException("This is an exception unknown to the asker."))
+        parent = MockParent(backend=BACKEND, children={child.id: child})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                 with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    responding_service.serve()
+                    child.serve()
 
                     with self.assertRaises(Exception) as context:
                         self.ask_question_and_wait_for_answer(
-                            asking_service=asking_service,
-                            responding_service=responding_service,
+                            parent=parent,
+                            child=child,
                             input_values={},
                             input_manifest=None,
                         )
@@ -246,21 +242,21 @@ class TestService(BaseTestCase):
         """Test that a question is asked again if delivery is not acknowledged and that the re-asked question is then
         processed.
         """
-        responding_service = self.make_new_server(backend=BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
-        asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
+        child = self.make_new_child(backend=BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
+        parent = MockParent(backend=BACKEND, children={child.id: child})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                 with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    responding_service.serve()
+                    child.serve()
 
                     # Stop the responding service from answering.
-                    with patch("octue.cloud.pub_sub.service.Service.answer"):
-                        subscription, _ = asking_service.ask(service_id=responding_service.id, input_values={})
+                    with patch("octue.cloud.pub_sub.service.Child.answer"):
+                        subscription, _ = parent.ask(service_id=child.id, input_values={})
 
                     # Wait for an answer and check that the question is asked again.
                     with self.assertLogs() as logging_context:
-                        answer = asking_service.wait_for_answer(
+                        answer = parent.wait_for_answer(
                             subscription,
                             delivery_acknowledgement_timeout=0.01,
                             retry_interval=0.1,
@@ -280,18 +276,18 @@ class TestService(BaseTestCase):
         run function rather than a mock so that the underlying `Runner` instance is used, and check that remote log
         messages aren't forwarded to the local logger.
         """
-        responding_service = MockService(backend=BACKEND, run_function=create_run_function())
-        asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
+        child = MockChild(backend=BACKEND, run_function=create_run_function())
+        parent = MockParent(backend=BACKEND, children={child.id: child})
 
         with self.assertLogs() as logging_context:
             with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
                 with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                     with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                        responding_service.serve()
+                        child.serve()
 
                         answer = self.ask_question_and_wait_for_answer(
-                            asking_service=asking_service,
-                            responding_service=responding_service,
+                            parent=parent,
+                            child=child,
                             input_values={},
                             input_manifest=None,
                             subscribe_to_logs=False,
@@ -309,18 +305,18 @@ class TestService(BaseTestCase):
         run function rather than a mock so that the underlying `Runner` instance is used, and check that remote log
         messages are forwarded to the local logger.
         """
-        responding_service = MockService(backend=BACKEND, run_function=create_run_function())
-        asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
+        child = MockChild(backend=BACKEND, run_function=create_run_function())
+        parent = MockParent(backend=BACKEND, children={child.id: child})
 
         with self.assertLogs() as logs_context_manager:
             with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
                 with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                     with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                        responding_service.serve()
+                        child.serve()
 
                         answer = self.ask_question_and_wait_for_answer(
-                            asking_service=asking_service,
-                            responding_service=responding_service,
+                            parent=parent,
+                            child=child,
                             input_values={},
                             input_manifest=None,
                             subscribe_to_logs=True,
@@ -370,8 +366,8 @@ class TestService(BaseTestCase):
 
             return Runner(app_src=mock_app, twine=twine).run
 
-        child = MockService(backend=BACKEND, run_function=create_run_function_with_monitoring())
-        parent = MockService(backend=BACKEND, children={child.id: child})
+        child = MockChild(backend=BACKEND, run_function=create_run_function_with_monitoring())
+        parent = MockParent(backend=BACKEND, children={child.id: child})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
@@ -413,8 +409,8 @@ class TestService(BaseTestCase):
 
             return Runner(app_src=mock_app, twine=twine).run
 
-        child = MockService(backend=BACKEND, run_function=create_run_function_with_monitoring())
-        parent = MockService(backend=BACKEND, children={child.id: child})
+        child = MockChild(backend=BACKEND, run_function=create_run_function_with_monitoring())
+        parent = MockParent(backend=BACKEND, children={child.id: child})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
@@ -440,8 +436,8 @@ class TestService(BaseTestCase):
         """Test that a service can ask a question including an input_manifest to another service that is serving and
         receive an answer.
         """
-        responding_service = self.make_new_server(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
-        asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
+        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
+        parent = MockParent(backend=BACKEND, children={child.id: child})
 
         files = [
             Datafile(path="gs://my-dataset/hello.txt", project_name="blah", hypothetical=True),
@@ -453,11 +449,11 @@ class TestService(BaseTestCase):
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                 with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    responding_service.serve()
+                    child.serve()
 
                     answer = self.ask_question_and_wait_for_answer(
-                        asking_service=asking_service,
-                        responding_service=responding_service,
+                        parent=parent,
+                        child=child,
                         input_values={},
                         input_manifest=input_manifest,
                     )
@@ -471,8 +467,8 @@ class TestService(BaseTestCase):
         """Test that a service can ask a question including an input manifest and no input values to another service
         that is serving and receive an answer.
         """
-        responding_service = self.make_new_server(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
-        asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
+        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
+        parent = MockParent(backend=BACKEND, children={child.id: child})
 
         files = [
             Datafile(path="gs://my-dataset/hello.txt", project_name=TEST_PROJECT_NAME, hypothetical=True),
@@ -484,11 +480,11 @@ class TestService(BaseTestCase):
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                 with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    responding_service.serve()
+                    child.serve()
 
                     answer = self.ask_question_and_wait_for_answer(
-                        asking_service=asking_service,
-                        responding_service=responding_service,
+                        parent=parent,
+                        child=child,
                         input_values=None,
                         input_manifest=input_manifest,
                     )
@@ -503,7 +499,7 @@ class TestService(BaseTestCase):
         is used in a question.
         """
         with self.assertRaises(exceptions.FileLocationError):
-            MockService(backend=BACKEND).ask(
+            MockParent(backend=BACKEND).ask(
                 service_id=str(uuid.uuid4()),
                 input_values={},
                 input_manifest=Manifest(),
@@ -528,8 +524,8 @@ class TestService(BaseTestCase):
             with open(temporary_local_path) as f:
                 return MockAnalysis(output_values=f.read())
 
-        child = MockService(backend=BACKEND, run_function=run_function)
-        parent = MockService(backend=BACKEND, children={child.id: child})
+        child = MockChild(backend=BACKEND, run_function=run_function)
+        parent = MockParent(backend=BACKEND, children={child.id: child})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
@@ -537,8 +533,8 @@ class TestService(BaseTestCase):
                     child.serve()
 
                     answer = self.ask_question_and_wait_for_answer(
-                        asking_service=parent,
-                        responding_service=child,
+                        parent=parent,
+                        child=child,
                         input_values={},
                         input_manifest=manifest,
                         allow_local_files=True,
@@ -548,19 +544,17 @@ class TestService(BaseTestCase):
 
     def test_ask_with_output_manifest(self):
         """Test that a service can receive an output manifest as part of the answer to a question."""
-        responding_service = self.make_new_server(
-            BACKEND, run_function_returnee=MockAnalysisWithOutputManifest(), use_mock=True
-        )
-        asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
+        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysisWithOutputManifest(), use_mock=True)
+        parent = MockParent(backend=BACKEND, children={child.id: child})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                 with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    responding_service.serve()
+                    child.serve()
 
                     answer = self.ask_question_and_wait_for_answer(
-                        asking_service=asking_service,
-                        responding_service=responding_service,
+                        parent=parent,
+                        child=child,
                         input_values={},
                         input_manifest=None,
                     )
@@ -570,21 +564,21 @@ class TestService(BaseTestCase):
 
     def test_service_can_ask_multiple_questions(self):
         """Test that a service can ask multiple questions to the same server and expect replies to them all."""
-        responding_service = self.make_new_server(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
-        asking_service = MockService(backend=BACKEND, children={responding_service.id: responding_service})
+        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
+        parent = MockParent(backend=BACKEND, children={child.id: child})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                 with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    responding_service.serve()
+                    child.serve()
 
                     answers = []
 
                     for i in range(5):
                         answers.append(
                             self.ask_question_and_wait_for_answer(
-                                asking_service=asking_service,
-                                responding_service=responding_service,
+                                parent=parent,
+                                child=child,
                                 input_values={},
                                 input_manifest=None,
                             )
@@ -598,32 +592,30 @@ class TestService(BaseTestCase):
 
     def test_service_can_ask_questions_to_multiple_servers(self):
         """Test that a service can ask questions to different servers and expect replies to them all."""
-        responding_service_1 = self.make_new_server(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
-        responding_service_2 = self.make_new_server(
-            BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True
-        )
+        child_1 = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
+        child_2 = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True)
 
-        asking_service = MockService(
+        parent = MockParent(
             backend=BACKEND,
-            children={responding_service_1.id: responding_service_1, responding_service_2.id: responding_service_2},
+            children={child_1.id: child_1, child_2.id: child_2},
         )
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                 with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    responding_service_1.serve()
-                    responding_service_2.serve()
+                    child_1.serve()
+                    child_2.serve()
 
                     answer_1 = self.ask_question_and_wait_for_answer(
-                        asking_service=asking_service,
-                        responding_service=responding_service_1,
+                        parent=parent,
+                        child=child_1,
                         input_values={},
                         input_manifest=None,
                     )
 
                     answer_2 = self.ask_question_and_wait_for_answer(
-                        asking_service=asking_service,
-                        responding_service=responding_service_2,
+                        parent=parent,
+                        child=child_2,
                         input_values={},
                         input_manifest=None,
                     )
@@ -643,17 +635,15 @@ class TestService(BaseTestCase):
 
     def test_server_can_ask_its_own_child_questions(self):
         """Test that a child can contact its own child while answering a question from a parent."""
-        child_of_child = self.make_new_server(BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True)
+        child_of_child = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True)
 
         def child_run_function(analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message):
-            subscription, _ = child.ask(service_id=child_of_child.id, input_values=input_values)
-            return MockAnalysis(output_values={input_values["question"]: child.wait_for_answer(subscription)})
+            parent = MockParent(backend=BACKEND, children={child_of_child.id: child_of_child})
+            subscription, _ = parent.ask(service_id=child_of_child.id, input_values=input_values)
+            return MockAnalysis(output_values={input_values["question"]: parent.wait_for_answer(subscription)})
 
-        child = MockService(
-            backend=BACKEND, run_function=child_run_function, children={child_of_child.id: child_of_child}
-        )
-
-        parent = MockService(backend=BACKEND, children={child.id: child})
+        child = MockChild(backend=BACKEND, run_function=child_run_function)
+        parent = MockParent(backend=BACKEND, children={child.id: child})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
@@ -662,8 +652,8 @@ class TestService(BaseTestCase):
                     child_of_child.serve()
 
                     answer = self.ask_question_and_wait_for_answer(
-                        asking_service=parent,
-                        responding_service=child,
+                        parent=parent,
+                        child=child,
                         input_values={"question": "What does the child of the child say?"},
                         input_manifest=None,
                     )
@@ -683,28 +673,33 @@ class TestService(BaseTestCase):
 
     def test_server_can_ask_its_own_children_questions(self):
         """Test that a child can contact more than one of its own children while answering a question from a parent."""
-        first_child_of_child = self.make_new_server(
+        first_child_of_child = self.make_new_child(
             BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True
         )
-        second_child_of_child = self.make_new_server(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
+
+        second_child_of_child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
 
         def child_run_function(analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message):
-            subscription_1, _ = child.ask(service_id=first_child_of_child.id, input_values=input_values)
-            subscription_2, _ = child.ask(service_id=second_child_of_child.id, input_values=input_values)
+            parent = MockParent(
+                backend=BACKEND,
+                children={
+                    first_child_of_child.id: first_child_of_child,
+                    second_child_of_child.id: second_child_of_child,
+                },
+            )
+
+            subscription_1, _ = parent.ask(service_id=first_child_of_child.id, input_values=input_values)
+            subscription_2, _ = parent.ask(service_id=second_child_of_child.id, input_values=input_values)
 
             return MockAnalysis(
                 output_values={
-                    "first_child_of_child": child.wait_for_answer(subscription_1),
-                    "second_child_of_child": child.wait_for_answer(subscription_2),
+                    "first_child_of_child": parent.wait_for_answer(subscription_1),
+                    "second_child_of_child": parent.wait_for_answer(subscription_2),
                 }
             )
 
-        child = MockService(
-            backend=BACKEND,
-            run_function=child_run_function,
-            children={first_child_of_child.id: first_child_of_child, second_child_of_child.id: second_child_of_child},
-        )
-        parent = MockService(backend=BACKEND, children={child.id: child})
+        child = MockChild(backend=BACKEND, run_function=child_run_function)
+        parent = MockParent(backend=BACKEND, children={child.id: child})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
@@ -714,8 +709,8 @@ class TestService(BaseTestCase):
                     second_child_of_child.serve()
 
                     answer = self.ask_question_and_wait_for_answer(
-                        asking_service=parent,
-                        responding_service=child,
+                        parent=parent,
+                        child=child,
                         input_values={"question": "What does the child of the child say?"},
                         input_manifest=None,
                     )

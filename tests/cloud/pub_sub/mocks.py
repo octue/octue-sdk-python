@@ -3,7 +3,7 @@ import logging
 import google.api_core.exceptions
 
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.service import Service
+from octue.cloud.pub_sub.service import Child, Parent
 from octue.resources import Manifest
 
 
@@ -238,18 +238,9 @@ class MockMessage:
         pass
 
 
-class MockService(Service):
-    """A mock Google Pub/Sub Service that can send and receive messages synchronously to other instances.
-
-    :param octue.resources.service_backends.GCPPubSubBackEnd backend:
-    :param str service_id:
-    :param callable run_function:
-    :param dict(str, MockService)|None children:
-    :return None:
-    """
-
-    def __init__(self, backend, service_id=None, run_function=None, children=None):
-        super().__init__(backend, service_id, run_function)
+class MockParent(Parent):
+    def __init__(self, backend, service_id=None, children=None):
+        super().__init__(backend=backend, service_id=service_id)
         self.children = children or {}
         self.publisher = MockPublisher()
         self.subscriber = MockSubscriber()
@@ -296,6 +287,14 @@ class MockService(Service):
             logger.exception(e)
 
         return response_subscription, question_uuid
+
+
+class MockChild(Child):
+    def __init__(self, backend, service_id=None, run_function=None, children=None):
+        super().__init__(backend=backend, service_id=service_id, run_function=run_function)
+        self.children = children or {}
+        self.publisher = MockPublisher()
+        self.subscriber = MockSubscriber()
 
 
 class MockMessagePuller:
