@@ -5,6 +5,7 @@ import tempfile
 import uuid
 from datetime import datetime, timezone
 from unittest.mock import patch
+import h5py
 
 from octue import exceptions
 from octue.cloud import storage
@@ -753,3 +754,23 @@ class DatafileTestCase(BaseTestCase):
 
         downloaded_datafile = Datafile(project_name="blah", path=f"gs://{TEST_BUCKET_NAME}/name with spaces.txt")
         self.assertEqual(downloaded_datafile.name, "name with spaces.txt")
+
+    def test_creating_new_hdf5_datafile(self):
+        """Test that a new HDF5 datafile can be created and written to."""
+        with tempfile.NamedTemporaryFile(suffix=".hdf5", delete=False) as temporary_file:
+            datafile = Datafile(path=temporary_file.name)
+
+            with datafile.open("w") as f:
+                f["dataset"] = range(10)
+
+            with h5py.File(datafile.local_path) as f:
+                self.assertEqual(list(f["dataset"]), list(range(10)))
+
+    def test_creating_datafile_from_existing_hdf5_file(self):
+        """Test that a datafile can be created from an existing HDF5 file."""
+        with tempfile.NamedTemporaryFile(suffix=".hdf5", delete=False) as temporary_file:
+            with h5py.File(temporary_file.name, "w") as f:
+                f["dataset"] = range(10)
+
+            with Datafile(path=temporary_file.name) as (datafile, f):
+                self.assertEqual(list(f["dataset"]), list(range(10)))

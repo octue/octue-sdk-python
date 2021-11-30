@@ -5,6 +5,7 @@ import os
 import tempfile
 from urllib.parse import urlparse
 import google.api_core.exceptions
+import h5py
 import pkg_resources
 from google_crc32c import Checksum
 
@@ -680,7 +681,11 @@ class _DatafileContextManager:
         if "w" in self.mode:
             os.makedirs(os.path.split(self.datafile.local_path)[0], exist_ok=True)
 
-        self._fp = open(self.datafile.local_path, self.mode, **self.kwargs)
+        if self.datafile.extension == "hdf5":
+            self._fp = h5py.File(self.datafile.local_path, self.mode, **self.kwargs)
+        else:
+            self._fp = open(self.datafile.local_path, self.mode, **self.kwargs)
+
         return self._fp
 
     def __exit__(self, *args):
