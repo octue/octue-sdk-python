@@ -5,6 +5,7 @@ import tempfile
 import uuid
 from datetime import datetime, timezone
 from unittest.mock import patch
+import h5py
 
 from octue import exceptions
 from octue.cloud import storage
@@ -753,3 +754,45 @@ class DatafileTestCase(BaseTestCase):
 
         downloaded_datafile = Datafile(project_name="blah", path=f"gs://{TEST_BUCKET_NAME}/name with spaces.txt")
         self.assertEqual(downloaded_datafile.name, "name with spaces.txt")
+
+    def test_creating_new_hdf5_datafile(self):
+        """Test that a new HDF5 datafile can be created and written to."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            datafile = Datafile(path=os.path.join(temporary_directory, "my-file.hdf5"))
+
+            with datafile.open("w") as f:
+                f["dataset"] = range(10)
+
+            with h5py.File(datafile.local_path) as f:
+                self.assertEqual(list(f["dataset"]), list(range(10)))
+
+    def test_creating_datafile_from_existing_hdf5_file(self):
+        """Test that a datafile can be created from an existing HDF5 file."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            path = os.path.join(temporary_directory, "my-file.hdf5")
+
+            with h5py.File(path, "w") as f:
+                f["dataset"] = range(10)
+
+            with Datafile(path=path) as (datafile, f):
+                self.assertEqual(list(f["dataset"]), list(range(10)))
+
+    def test_uploading_hdf5_datafile_to_cloud(self):
+        """Test that an HDF5 file can be uploaded to the cloud."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            datafile = Datafile(path=os.path.join(temporary_directory, "my-file.hdf5"))
+
+            with datafile.open("w") as f:
+                f["dataset"] = range(10)
+
+            datafile.to_cloud(project_name=TEST_PROJECT_NAME, cloud_path=f"gs://{TEST_BUCKET_NAME}/my-file.hdf5")
+
+            download_path = os.path.join(temporary_directory, "downloaded-file.hdf5")
+
+            GoogleCloudStorageClient(project_name=TEST_PROJECT_NAME).download_to_file(
+                local_path=download_path,
+                cloud_path=datafile.cloud_path,
+            )
+
+            with h5py.File(download_path) as f:
+                self.assertEqual(list(f["dataset"]), list(range(10)))
