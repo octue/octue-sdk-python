@@ -776,3 +776,23 @@ class DatafileTestCase(BaseTestCase):
 
             with Datafile(path=path) as (datafile, f):
                 self.assertEqual(list(f["dataset"]), list(range(10)))
+
+    def test_uploading_hdf5_datafile_to_cloud(self):
+        """Test that an HDF5 file can be uploaded to the cloud."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            datafile = Datafile(path=os.path.join(temporary_directory, "my-file.hdf5"))
+
+            with datafile.open("w") as f:
+                f["dataset"] = range(10)
+
+            datafile.to_cloud(project_name=TEST_PROJECT_NAME, cloud_path=f"gs://{TEST_BUCKET_NAME}/my-file.hdf5")
+
+            download_path = os.path.join(temporary_directory, "downloaded-file.hdf5")
+
+            GoogleCloudStorageClient(project_name=TEST_PROJECT_NAME).download_to_file(
+                local_path=download_path,
+                cloud_path=datafile.cloud_path,
+            )
+
+            with h5py.File(download_path) as f:
+                self.assertEqual(list(f["dataset"]), list(range(10)))
