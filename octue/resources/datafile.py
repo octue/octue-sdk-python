@@ -5,7 +5,13 @@ import os
 import tempfile
 from urllib.parse import urlparse
 import google.api_core.exceptions
-import h5py
+
+
+try:
+    import h5py
+except ModuleNotFoundError:
+    pass
+
 import pkg_resources
 from google_crc32c import Checksum
 
@@ -682,7 +688,14 @@ class _DatafileContextManager:
             os.makedirs(os.path.split(self.datafile.local_path)[0], exist_ok=True)
 
         if self.datafile.extension == "hdf5":
-            self._fp = h5py.File(self.datafile.local_path, self.mode, **self.kwargs)
+            try:
+                pkg_resources.get_distribution("h5py")
+                self._fp = h5py.File(self.datafile.local_path, self.mode, **self.kwargs)
+            except pkg_resources.DistributionNotFound:
+                raise ImportError(
+                    "To use datafiles with HDF5 files, please install octue with the 'hdf5' option i.e. "
+                    "`pip install octue[hdf5]`."
+                )
         else:
             self._fp = open(self.datafile.local_path, self.mode, **self.kwargs)
 

@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime, timezone
 from unittest.mock import patch
 import h5py
+import pkg_resources
 
 from octue import exceptions
 from octue.cloud import storage
@@ -796,3 +797,13 @@ class DatafileTestCase(BaseTestCase):
 
             with h5py.File(download_path) as f:
                 self.assertEqual(list(f["dataset"]), list(range(10)))
+
+    def test_error_raised_if_using_datafile_with_hdf5_file_without_h5py_package_available(self):
+        """Test that trying to open an HDF5 datafile when the `h5py` dependency is not available results in an error."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            datafile = Datafile(path=os.path.join(temporary_directory, "my-file.hdf5"))
+
+            with patch("pkg_resources.get_distribution", side_effect=pkg_resources.DistributionNotFound()):
+                with self.assertRaises(ImportError):
+                    with datafile.open("w") as f:
+                        f["dataset"] = range(10)
