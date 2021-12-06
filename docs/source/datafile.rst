@@ -15,6 +15,14 @@ easily check where a datafile exists by accessing the following properties:
     datafile.exists_in_cloud
     >>> True
 
+.. warning::
+    If you want to represent HDF5 files with a ``Datafile``, you must include the extra requirements provided by the
+    ``hdf5`` key at installation i.e.
+
+    .. code-block:: shell
+
+        pip install octue[hdf5]
+
 A datafile has the following main attributes:
 
 - ``local_path`` - the absolute local path of the file, or ``None`` if it only exists in the cloud

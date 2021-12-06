@@ -17,7 +17,7 @@ with open("LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.6.4",
+    version="0.6.5",
     py_modules=["cli"],
     install_requires=[
         "click>=7.1.2",
@@ -28,10 +28,10 @@ setup(
         "google-cloud-storage>=1.35.1",
         "google-crc32c>=1.1.2",
         "gunicorn",
-        "h5py==3.6.0",
         "python-dateutil>=2.8.1",
         "twined==0.1.0",
     ],
+    extras_require={"hdf5": ["h5py==3.6.0"]},
     url="https://www.github.com/octue/octue-sdk-python",
     license="MIT",
     author="Thomas Clark (github: thclark)",

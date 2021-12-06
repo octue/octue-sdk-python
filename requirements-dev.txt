@@ -37,4 +37,4 @@ stringcase==1.2.0
 # Current library
 #    Installs any dependencies in setup.py
 # ------------------------------------------------------------------------------
--e .
+-e .[hdf5]
