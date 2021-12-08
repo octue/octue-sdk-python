@@ -231,7 +231,7 @@ class RunnerTestCase(BaseTestCase):
         analysis = Runner(app_src=os.path.join(TESTS_DIR, "test_app_modules", "app_class"), twine="{}").run()
         self.assertEqual(analysis.output_values, "App as a class works!")
 
-    def test_app_can_be_provided_as_path_to_module_containing_function_named_run(self):
-        """Test that apps can be provided as a path to a module containing a function named "run"."""
+    def test_app_can_be_provided_as_a_module_containing_function_named_run(self):
+        """Test that apps can be provided as a module containing a function named "run"."""
         analysis = Runner(app_src=app, twine="{}").run()
         self.assertEqual(analysis.output_values, "App as a module works!")
