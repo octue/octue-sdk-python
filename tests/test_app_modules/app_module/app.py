@@ -8,3 +8,4 @@ def run(analysis, *args, **kwargs):
     :return None:
     """
     print(CUSTOM_APP_RUN_MESSAGE)  # noqa:T001
+    analysis.output_values = "App as a module works!"

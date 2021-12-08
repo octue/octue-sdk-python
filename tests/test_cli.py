@@ -6,8 +6,8 @@ from click.testing import CliRunner
 
 from octue.cli import octue_cli
 from tests import TESTS_DIR
-from tests.app import CUSTOM_APP_RUN_MESSAGE
 from tests.base import BaseTestCase
+from tests.test_app_modules.app_module.app import CUSTOM_APP_RUN_MESSAGE
 
 
 class RunnerTestCase(BaseTestCase):
@@ -34,7 +34,7 @@ class RunnerTestCase(BaseTestCase):
                 octue_cli,
                 [
                     "run",
-                    f"--app-dir={TESTS_DIR}",
+                    f"--app-dir={os.path.join(TESTS_DIR, 'test_app_modules', 'app_module')}",
                     f"--twine={self.TWINE_FILE_PATH}",
                     f'--config-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "configuration")}',
                     f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
@@ -51,7 +51,7 @@ class RunnerTestCase(BaseTestCase):
                 octue_cli,
                 [
                     "run",
-                    f"--app-dir={TESTS_DIR}",
+                    f"--app-dir={os.path.join(TESTS_DIR, 'test_app_modules', 'app_module')}",
                     f"--twine={self.TWINE_FILE_PATH}",
                     f'--data-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests")}',
                     f"--output-dir={temporary_directory}",

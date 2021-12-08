@@ -3,7 +3,10 @@ from unittest.mock import Mock, patch
 
 import twined
 from octue import Runner
-from .base import BaseTestCase
+from tests import TESTS_DIR
+from tests.base import BaseTestCase
+from tests.test_app_modules.app_class.app import App
+from tests.test_app_modules.app_module import app
 
 
 def mock_app(analysis):
@@ -220,13 +223,15 @@ class RunnerTestCase(BaseTestCase):
 
     def test_app_can_be_provided_as_a_class(self):
         """Test that apps can be written and provided as a class."""
-
-        class App:
-            def __init__(self, analysis):
-                self.analysis = analysis
-
-            def run(self):
-                self.analysis.output_values = "App as a class works!"
-
         analysis = Runner(app_src=App, twine="{}").run()
         self.assertEqual(analysis.output_values, "App as a class works!")
+
+    def test_app_can_be_provided_as_path_to_module_containing_class_named_app(self):
+        """Test that apps can be provided as a path to a module containing a class named "App"."""
+        analysis = Runner(app_src=os.path.join(TESTS_DIR, "test_app_modules", "app_class"), twine="{}").run()
+        self.assertEqual(analysis.output_values, "App as a class works!")
+
+    def test_app_can_be_provided_as_path_to_module_containing_function_named_run(self):
+        """Test that apps can be provided as a path to a module containing a function named "run"."""
+        analysis = Runner(app_src=app, twine="{}").run()
+        self.assertEqual(analysis.output_values, "App as a module works!")
