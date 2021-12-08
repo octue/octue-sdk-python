@@ -266,7 +266,7 @@ class Service(CoolNameable):
         the answer is received.
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
-        :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
+        :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
         :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before resending the question
