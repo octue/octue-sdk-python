@@ -217,3 +217,16 @@ class RunnerTestCase(BaseTestCase):
             runner.run()
             self.assertTrue("No module named 'app'" in e.msg)
             self.assertTrue(os.path.abspath(runner.app_src) in e.msg)
+
+    def test_app_can_be_provided_as_a_class(self):
+        """Test that apps can be written and provided as a class."""
+
+        class App:
+            def __init__(self, analysis):
+                self.analysis = analysis
+
+            def run(self):
+                self.analysis.output_values = "App as a class works!"
+
+        analysis = Runner(app_src=App, twine="{}").run()
+        self.assertEqual(analysis.output_values, "App as a class works!")
