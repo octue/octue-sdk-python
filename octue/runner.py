@@ -150,11 +150,26 @@ class Runner:
         )
 
         try:
-            if hasattr(self.app_src, "run"):
+            # App as a class that takes "analysis" as a constructor argument and contains a method named "run" that
+            # takes no arguments.
+            if isinstance(self.app_src, type):
+                self.app_src(analysis).run()
+
+            # App as a module containing a function named "run" that takes "analysis" as an argument.
+            elif hasattr(self.app_src, "run"):
                 self.app_src.run(analysis)
+
+            # App as a string path to a module containing a class named "App" or a function named "run". The same other
+            # specifications apply as described above.
             elif isinstance(self.app_src, str):
+
                 with AppFrom(self.app_src) as app:
-                    app.run(analysis)
+                    if hasattr(app.app_module, "App"):
+                        app.app_module.App(analysis).run()
+                    else:
+                        app.run(analysis)
+
+            # App as a function that takes "analysis" as an argument.
             else:
                 self.app_src(analysis)
 
