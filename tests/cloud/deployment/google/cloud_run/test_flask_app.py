@@ -7,29 +7,29 @@ import uuid
 from unittest import TestCase, mock
 
 import twined.exceptions
-from octue.cloud.deployment.google import cloud_run
+from octue.cloud.deployment.google.cloud_run import flask_app
 from octue.cloud.pub_sub.service import Service
 from octue.exceptions import MissingServiceID
 from octue.resources.service_backends import GCPPubSubBackend
 from tests.cloud.pub_sub.mocks import MockTopic
 
 
-cloud_run.app.testing = True
+flask_app.app.testing = True
 
 
-class TestCloudRun(TestCase):
+class TestFlaskApp(TestCase):
     # This is the service ID of the example service deployed to Google Cloud Run.
     EXAMPLE_SERVICE_ID = "octue.services.009ea106-dc37-4521-a8cc-3e0836064334"
 
     def test_post_to_index_with_no_payload_results_in_400_error(self):
         """Test that a 400 (bad request) error code is returned if no payload is sent to the Flask endpoint."""
-        with cloud_run.app.test_client() as client:
+        with flask_app.app.test_client() as client:
             response = client.post("/", json={"deliveryAttempt": 1})
             self.assertEqual(response.status_code, 400)
 
     def test_post_to_index_with_invalid_payload_results_in_400_error(self):
         """Test that a 400 (bad request) error code is returned if an invalid payload is sent to the Flask endpoint."""
-        with cloud_run.app.test_client() as client:
+        with flask_app.app.test_client() as client:
             response = client.post("/", json={"some": "data", "deliveryAttempt": 1})
             self.assertEqual(response.status_code, 400)
 
@@ -38,8 +38,8 @@ class TestCloudRun(TestCase):
 
     def test_post_to_index_with_valid_payload(self):
         """Test that the Flask endpoint returns a 204 (ok, no content) response to a valid payload."""
-        with cloud_run.app.test_client() as client:
-            with mock.patch("octue.cloud.deployment.google.cloud_run.answer_question"):
+        with flask_app.app.test_client() as client:
+            with mock.patch("octue.cloud.deployment.google.cloud_run.flask_app.answer_question"):
 
                 response = client.post(
                     "/",
@@ -60,7 +60,7 @@ class TestCloudRun(TestCase):
     def test_error_raised_when_no_service_id_environment_variable(self):
         """Test that a MissingServiceID error is raised if the SERVICE_ID environment variable is missing."""
         with self.assertRaises(MissingServiceID):
-            cloud_run.answer_question(
+            flask_app.answer_question(
                 project_name="a-project-name",
                 question={
                     "data": {},
@@ -73,7 +73,7 @@ class TestCloudRun(TestCase):
         """Test that a MissingServiceID error is raised if the SERVICE_ID environment variable is empty."""
         with mock.patch.dict(os.environ, {"SERVICE_ID": ""}):
             with self.assertRaises(MissingServiceID):
-                cloud_run.answer_question(
+                flask_app.answer_question(
                     project_name="a-project-name",
                     question={
                         "data": {},
@@ -84,8 +84,10 @@ class TestCloudRun(TestCase):
 
     def test_redelivered_questions_are_acknowledged_and_ignored(self):
         """Test that redelivered questions are acknowledged and then ignored."""
-        with cloud_run.app.test_client() as client:
-            with mock.patch("octue.cloud.deployment.google.cloud_run.answer_question") as mock_answer_question:
+        with flask_app.app.test_client() as client:
+            with mock.patch(
+                "octue.cloud.deployment.google.cloud_run.flask_app.answer_question"
+            ) as mock_answer_question:
 
                 response = client.post(
                     "/",
@@ -107,10 +109,10 @@ class TestCloudRun(TestCase):
         configuration file is not provided.
         """
         with mock.patch.dict(os.environ, {"SERVICE_ID": self.EXAMPLE_SERVICE_ID}):
-            with mock.patch("octue.cloud.deployment.google.cloud_run.Runner") as mock_runner:
+            with mock.patch("octue.cloud.deployment.google.cloud_run.flask_app.Runner") as mock_runner:
                 with mock.patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-                    with mock.patch("octue.cloud.deployment.google.cloud_run.Service"):
-                        cloud_run.answer_question(
+                    with mock.patch("octue.cloud.deployment.google.cloud_run.flask_app.Service"):
+                        flask_app.answer_question(
                             project_name="a-project-name",
                             question={
                                 "data": {},
@@ -144,13 +146,13 @@ class TestCloudRun(TestCase):
             },
         ):
             with mock.patch(
-                "octue.cloud.deployment.google.cloud_run._get_deployment_configuration",
+                "octue.cloud.deployment.google.cloud_run.flask_app._get_deployment_configuration",
                 return_value={"app_dir": "/path/to/app_dir"},
             ):
-                with mock.patch("octue.cloud.deployment.google.cloud_run.Runner") as mock_runner:
+                with mock.patch("octue.cloud.deployment.google.cloud_run.flask_app.Runner") as mock_runner:
                     with mock.patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-                        with mock.patch("octue.cloud.deployment.google.cloud_run.Service"):
-                            cloud_run.answer_question(
+                        with mock.patch("octue.cloud.deployment.google.cloud_run.flask_app.Service"):
+                            flask_app.answer_question(
                                 project_name="a-project-name",
                                 question={
                                     "data": {},

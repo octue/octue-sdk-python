@@ -110,7 +110,7 @@ class Service(CoolNameable):
         in the format specified in the Service's Twine file.
 
         :param dict|Message question:
-        :param octue.cloud.pub_sub.topic.Topic|None answer_topic: provide if messages need to be sent to the asker from outside the service (e.g. in octue.cloud.deployment.google.cloud_run)
+        :param octue.cloud.pub_sub.topic.Topic|None answer_topic: provide if messages need to be sent to the asker from outside the service (e.g. in octue.cloud.deployment.google.cloud_run.flask_app)
         :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
