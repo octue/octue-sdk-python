@@ -3,6 +3,8 @@ import logging
 import apache_beam as beam  # Google Dataflow provides `apache_beam` as a dependency - it is not needed as a dependency for octue-sdk-python or in the Dockerfile used with Dataflow.
 from apache_beam.options.pipeline_options import PipelineOptions  # noqa
 
+from octue.cloud.deployment.google.dataflow.answer_question import answer_question
+
 
 logger = logging.getLogger(__name__)
 
@@ -14,15 +16,11 @@ def run(input_topic, output_topic, beam_args=None):
         (
             pipeline
             | "Read from Pub/Sub" >> beam.io.ReadFromPubSub(topic=input_topic, with_attributes=True)
-            | "Add dummy output data"
+            | "Transform question to dictionary"
             >> beam.Map(
-                lambda question: {
-                    "type": "result",
-                    "output_values": f"The Dataflow analysis works! Original question: {question.data!r}; attributes: {question.attributes!r}",
-                    "output_manifest": None,
-                    "message_number": 0,
-                }
+                lambda question: {**json.loads(question.data.decode("utf-8")), "attributes": question.attributes}
             )
+            | "Answer question" >> beam.Map(answer_question, project_name="octue-amy")
             | "Encode as bytes" >> beam.Map(lambda answer: json.dumps(answer).encode("utf-8"))
             | "Write to Pub/Sub" >> beam.io.WriteToPubSub(topic=output_topic)
         )
