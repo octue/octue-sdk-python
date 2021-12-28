@@ -1,4 +1,3 @@
-import argparse
 import json
 import logging
 import apache_beam as beam  # Google Dataflow provides `apache_beam` as a dependency - it is not needed as a dependency for octue-sdk-python or in the Dockerfile used with Dataflow.
@@ -29,10 +28,24 @@ def run(input_topic, output_topic, beam_args=None):
         )
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--input-topic")
-    parser.add_argument("--output-topic")
+def deploy_pipeline(input_topic, output_topic, project_name, temporary_files_cloud_path, region):
+    run(
+        input_topic=f"projects/{project_name}/topics/{input_topic}",
+        output_topic=f"projects/{project_name}/topics/{output_topic}",
+        beam_args=[
+            f"--project={project_name}",
+            "--runner=DataflowRunner",
+            f"--temp_location={temporary_files_cloud_path}",
+            f"--region={region}",
+        ],
+    )
 
-    args, beam_args = parser.parse_known_args()
-    run(input_topic=args.input_topic, output_topic=args.output_topic, beam_args=beam_args)
+
+if __name__ == "__main__":
+    deploy_pipeline(
+        project_name="octue-amy",
+        input_topic="pub-sub-dataflow-trial",
+        output_topic="dataflow-output-topic",
+        temporary_files_cloud_path="gs://pub-sub-dataflow-trial/temp",
+        region="europe-west2",
+    )
