@@ -44,8 +44,8 @@ def deploy_pipeline(input_topic, output_topic, project_name, temporary_files_clo
 if __name__ == "__main__":
     deploy_pipeline(
         project_name="octue-amy",
-        input_topic="pub-sub-dataflow-trial",
-        output_topic="dataflow-output-topic",
+        input_topic="octue.services.pub-sub-dataflow-trial",
+        output_topic="octue.services.pub-sub-dataflow-trial.answers.92505713-6052-4e17-b34e-848225ab3acc",
         temporary_files_cloud_path="gs://pub-sub-dataflow-trial/temp",
         region="europe-west2",
     )
