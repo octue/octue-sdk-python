@@ -31,7 +31,7 @@ def answer_question(question, project_name, credentials_environment_variable=Non
             "variable."
         )
 
-    question_uuid = question["attributes"]["question_uuid"]
+    question_uuid = question.attributes["question_uuid"]
 
     service = Service(
         service_id=service_id,

@@ -384,10 +384,7 @@ class Service(CoolNameable):
         :return (dict, str, bool):
         """
         # Parse and acknowledge question from Google Cloud Pub/Sub.
-        print(question)
         data = json.loads(question.data.decode())
-        question.ack()
-
         logger.info("%r received a question.", self)
 
         question_uuid = get_nested_attribute(question, "attributes.question_uuid")

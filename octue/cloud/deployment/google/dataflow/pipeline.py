@@ -54,10 +54,6 @@ def deploy_pipeline(
         (
             pipeline
             | "Read from Pub/Sub" >> beam.io.ReadFromPubSub(topic=input_topic, with_attributes=True)
-            | "Transform question to dictionary"
-            >> beam.Map(
-                lambda question: {**json.loads(question.data.decode("utf-8")), "attributes": question.attributes}
-            )
             | "Answer question" >> beam.Map(lambda question: answer_question(question, project_name=project_name))
             | "Encode as bytes" >> beam.Map(lambda answer: json.dumps(answer).encode("utf-8"))
             | "Write to Pub/Sub" >> beam.io.WriteToPubSub(topic=output_topic)
