@@ -19,7 +19,7 @@ class TestPipeline(BaseTestCase):
 
         subscription, _ = parent.ask(
             service_id="octue.services.pub-sub-dataflow-trial",
-            input_values="This is my question for Dataflow.",
+            input_values={"n_iterations": 3},
             question_uuid="92505713-6052-4e17-b34e-848225ab3acc",
         )
 
