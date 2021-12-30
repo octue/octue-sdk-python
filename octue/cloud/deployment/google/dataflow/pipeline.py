@@ -62,13 +62,3 @@ def deploy_pipeline(
             | "Encode as bytes" >> beam.Map(lambda answer: json.dumps(answer).encode("utf-8"))
             | "Write to Pub/Sub" >> beam.io.WriteToPubSub(topic=output_topic)
         )
-
-
-if __name__ == "__main__":
-    deploy_pipeline(
-        project_name="octue-amy",
-        input_topic_name="octue.services.pub-sub-dataflow-trial",
-        output_topic_name="octue.services.pub-sub-dataflow-trial.answers.92505713-6052-4e17-b34e-848225ab3acc",
-        temporary_files_cloud_path="gs://pub-sub-dataflow-trial/temp",
-        region="europe-west2",
-    )

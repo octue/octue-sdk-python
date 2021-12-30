@@ -4,6 +4,7 @@ import sys
 import click
 import pkg_resources
 
+from octue.cloud.deployment.google.dataflow import pipeline
 from octue.cloud.pub_sub.service import Service
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.log_handlers import get_remote_handler
@@ -220,6 +221,35 @@ def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topi
 
     service = Service(service_id=service_id, backend=backend, run_function=run_function)
     service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=delete_topic_and_subscription_on_exit)
+
+
+@octue_cli.command()
+@click.argument("project_name", type=str)
+@click.argument("input_topic_name", type=str)
+@click.argument("output_topic_name", type=str)
+@click.argument("temporary_files_cloud_path", type=str)
+@click.argument("region", type=str)
+@click.option("--runner", type=str, default="DataflowRunner", show_default=True)
+@click.option("--image-uri", type=str, default=pipeline.DEFAULT_IMAGE_URI, show_default=True)
+def deploy_pipeline(
+    project_name,
+    input_topic_name,
+    output_topic_name,
+    temporary_files_cloud_path,
+    region,
+    runner,
+    image_uri,
+):
+    """Deploy a Google Dataflow streaming pipeline."""
+    pipeline.deploy_pipeline(
+        project_name=project_name,
+        input_topic_name=input_topic_name,
+        output_topic_name=output_topic_name,
+        temporary_files_cloud_path=temporary_files_cloud_path,
+        region=region,
+        runner=runner,
+        image_uri=image_uri,
+    )
 
 
 def set_unavailable_strand_paths_to_none(twine, strands):
