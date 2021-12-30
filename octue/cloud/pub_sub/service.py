@@ -1,4 +1,3 @@
-import base64
 import concurrent.futures
 import datetime
 import functools
@@ -384,14 +383,10 @@ class Service(CoolNameable):
         :param dict|Message question:
         :return (dict, str, bool):
         """
-        try:
-            # Parse and acknowledge question from Google Cloud Pub/Sub.
-            data = json.loads(question.data.decode())
-            question.ack()
-        except Exception:
-            # Parse question from Google Cloud Run. We can't acknowledge the it here as it's not possible with the
-            # information given.
-            data = json.loads(base64.b64decode(question["data"]).decode("utf-8").strip())
+        # Parse and acknowledge question from Google Cloud Pub/Sub.
+        print(question)
+        data = json.loads(question.data.decode())
+        question.ack()
 
         logger.info("%r received a question.", self)
 
