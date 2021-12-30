@@ -23,6 +23,6 @@ class TestPipeline(BaseTestCase):
             question_uuid="92505713-6052-4e17-b34e-848225ab3acc",
         )
 
-        answer = parent.wait_for_answer(subscription)
+        answer = parent.wait_for_answer(subscription, timeout=3600)
         self.assertIn("output_values", answer)
         self.assertIn("output_manifest", answer)
