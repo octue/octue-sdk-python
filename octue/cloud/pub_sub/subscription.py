@@ -1,7 +1,7 @@
 import logging
 import google.api_core.exceptions
+from google.cloud.pubsub_v1.types import ExpirationPolicy, RetryPolicy
 from google.protobuf.duration_pb2 import Duration
-from google.pubsub_v1.types.pubsub import ExpirationPolicy, RetryPolicy, Subscription as _Subscription
 
 
 logger = logging.getLogger(__name__)
@@ -53,12 +53,11 @@ class Subscription:
 
         # If expiration_time is None, the subscription will never expire.
         if expiration_time is None:
-            self.expiration_policy = ExpirationPolicy(mapping=None)
+            self.expiration_policy = ExpirationPolicy()
         else:
-            self.expiration_policy = ExpirationPolicy(mapping=None, ttl=Duration(seconds=expiration_time))
+            self.expiration_policy = ExpirationPolicy(ttl=Duration(seconds=expiration_time))
 
         self.retry_policy = RetryPolicy(
-            mapping=None,
             minimum_backoff=Duration(seconds=minimum_retry_backoff),
             maximum_backoff=Duration(seconds=maximum_retry_backoff),
         )
@@ -76,23 +75,22 @@ class Subscription:
         :param bool allow_existing: if `False`, raise an error if the subscription already exists; if `True`, do nothing (the existing subscription is not overwritten)
         :return google.pubsub_v1.types.pubsub.Subscription:
         """
-        subscription = _Subscription(
-            mapping=None,
-            name=self.path,
-            topic=self.topic.path,
-            ack_deadline_seconds=self.ack_deadline,  # noqa
-            message_retention_duration=self.message_retention_duration,  # noqa
-            expiration_policy=self.expiration_policy,  # noqa
-            retry_policy=self.retry_policy,  # noqa
-        )
+        subscription = {
+            "name": self.path,
+            "topic": self.topic.path,
+            "ack_deadline_seconds": self.ack_deadline,  # noqa
+            "message_retention_duration": self.message_retention_duration,  # noqa
+            "expiration_policy": self.expiration_policy,  # noqa
+            "retry_policy": self.retry_policy,  # noqa
+        }
 
         if not allow_existing:
-            subscription = self.subscriber.create_subscription(request=subscription)
+            subscription = self.subscriber.create_subscription(**subscription)
             self._log_creation()
             return subscription
 
         try:
-            subscription = self.subscriber.create_subscription(request=subscription)
+            subscription = self.subscriber.create_subscription(**subscription)
         except google.api_core.exceptions.AlreadyExists:
             pass
 

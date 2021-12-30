@@ -1,6 +1,5 @@
 import json
 from logging import Handler
-from google.api_core import retry
 
 
 class GooglePubSubHandler(Handler):
@@ -31,10 +30,9 @@ class GooglePubSubHandler(Handler):
                     {
                         "type": "log_record",
                         "log_record": vars(record),
-                        "message_number": self.topic.messages_published,
+                        "message_number": str(self.topic.messages_published),
                     }
                 ).encode(),
-                retry=retry.Retry(deadline=self.timeout),
             )
 
             self.topic.messages_published += 1
