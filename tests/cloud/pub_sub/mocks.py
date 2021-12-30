@@ -120,7 +120,7 @@ class MockPublisher:
         :param str topic_name:
         :return str:
         """
-        return f"projects/{project_name}/topics/{topic_name}"
+        return Topic.generate_topic_path(project_name, topic_name)
 
 
 class MockSubscriber:
@@ -183,7 +183,7 @@ class MockSubscriber:
         :param str subscription_name:
         :return str:
         """
-        return f"projects/{project_name}/subscriptions/{subscription_name}"
+        return Subscription.generate_subscription_path(project_name, subscription_name)
 
     def create_subscription(self, name, *args, **kwargs):
         """Do nothing.

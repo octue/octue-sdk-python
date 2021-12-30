@@ -6,6 +6,7 @@ from apache_beam.options.pipeline_options import PipelineOptions  # noqa
 
 from octue import REPOSITORY_ROOT
 from octue.cloud.deployment.google.dataflow.answer_question import answer_question
+from octue.cloud.pub_sub import Topic
 
 
 logger = logging.getLogger(__name__)
@@ -30,8 +31,8 @@ def run(input_topic, output_topic, beam_args=None):
 
 def deploy_pipeline(input_topic, output_topic, project_name, temporary_files_cloud_path, region, runner, image_uri):
     run(
-        input_topic=f"projects/{project_name}/topics/{input_topic}",
-        output_topic=f"projects/{project_name}/topics/{output_topic}",
+        input_topic=Topic.generate_topic_path(project_name, input_topic),
+        output_topic=Topic.generate_topic_path(project_name, output_topic),
         beam_args=[
             f"--project={project_name}",
             f"--runner={runner}",

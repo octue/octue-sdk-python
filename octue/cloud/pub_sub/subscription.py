@@ -105,6 +105,16 @@ class Subscription:
         self.subscriber.delete_subscription(subscription=self.path)
         logger.debug("Subscription %r deleted.", self.path)
 
+    @staticmethod
+    def generate_subscription_path(project_name, subscription_name):
+        """Generate a full subscription path in the format `projects/<project_name>/subscriptions/<subscription_name>`.
+
+        :param str project_name:
+        :param str subscription_name:
+        :return str:
+        """
+        return f"projects/{project_name}/subscriptions/{subscription_name}"
+
     def _log_creation(self):
         """Log the creation of the subscription.
 
