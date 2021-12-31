@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import apache_beam as beam
@@ -17,7 +16,6 @@ DEFAULT_IMAGE_URI = "eu.gcr.io/octue-amy/octue-sdk-python:latest"
 
 def deploy_pipeline(
     input_topic_name,
-    output_topic_name,
     project_name,
     temporary_files_cloud_path,
     region,
@@ -28,7 +26,6 @@ def deploy_pipeline(
     """Deploy a streaming Dataflow pipeline to Google Cloud.
 
     :param str input_topic_name:
-    :param str output_topic_name:
     :param str project_name:
     :param str temporary_files_cloud_path:
     :param str region:
@@ -48,13 +45,10 @@ def deploy_pipeline(
     ]
 
     input_topic = Topic.generate_topic_path(project_name, input_topic_name)
-    output_topic = Topic.generate_topic_path(project_name, output_topic_name)
 
     with beam.Pipeline(options=PipelineOptions(beam_args, save_main_session=True, streaming=True)) as pipeline:
         (
             pipeline
             | "Read from Pub/Sub" >> beam.io.ReadFromPubSub(topic=input_topic, with_attributes=True)
             | "Answer question" >> beam.Map(lambda question: answer_question(question, project_name=project_name))
-            | "Encode as bytes" >> beam.Map(lambda answer: json.dumps(answer).encode("utf-8"))
-            | "Write to Pub/Sub" >> beam.io.WriteToPubSub(topic=output_topic)
         )

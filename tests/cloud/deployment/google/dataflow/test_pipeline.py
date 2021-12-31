@@ -20,7 +20,6 @@ class TestPipeline(BaseTestCase):
         subscription, _ = parent.ask(
             service_id="octue.services.pub-sub-dataflow-trial",
             input_values={"n_iterations": 3},
-            question_uuid="92505713-6052-4e17-b34e-848225ab3acc",
         )
 
         answer = parent.wait_for_answer(subscription, timeout=3600)
