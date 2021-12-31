@@ -34,6 +34,7 @@ def answer_question(question, project_name, credentials_environment_variable=Non
     try:
         question_uuid = question.attributes["question_uuid"]
     except AttributeError:
+        logger.info(question)
         question = dict(question)
         question_uuid = question["attributes"]["question_uuid"]
 
