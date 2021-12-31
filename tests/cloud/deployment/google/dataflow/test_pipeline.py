@@ -23,5 +23,4 @@ class TestPipeline(BaseTestCase):
         )
 
         answer = parent.wait_for_answer(subscription, timeout=3600)
-        self.assertIn("output_values", answer)
-        self.assertIn("output_manifest", answer)
+        self.assertEqual(answer, {"output_values": [1, 2, 3, 4, 5], "output_manifest": None})
