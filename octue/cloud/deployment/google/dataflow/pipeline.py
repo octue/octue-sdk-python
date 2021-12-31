@@ -64,7 +64,7 @@ def dispatch_batch_job(
     forward_logs=True,
     extra_options=None,
 ):
-    data.update({"question_uuid": str(uuid.uuid4()), "forward_logs": forward_logs})
+    data.update({"attributes": {"question_uuid": str(uuid.uuid4()), "forward_logs": forward_logs}})
 
     beam_args = [
         f"--project={project_name}",
@@ -80,6 +80,6 @@ def dispatch_batch_job(
     with beam.Pipeline(options=PipelineOptions(beam_args, streaming=False)) as pipeline:
         (
             pipeline
-            | "Send data to Dataflow" >> beam.Create(data)
+            | "Send data to Dataflow" >> beam.Create([data])
             | "Answer question" >> beam.Map(lambda question: answer_question(question, project_name=project_name))
         )
