@@ -226,16 +226,14 @@ def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topi
 @octue_cli.command()
 @click.argument("project_name", type=str)
 @click.argument("input_topic_name", type=str)
-@click.argument("temporary_files_cloud_path", type=str)
 @click.argument("region", type=str)
 @click.option("--runner", type=str, default="DataflowRunner", show_default=True)
 @click.option("--image-uri", type=str, default=pipeline.DEFAULT_IMAGE_URI, show_default=True)
-def deploy_pipeline(project_name, input_topic_name, temporary_files_cloud_path, region, runner, image_uri):
+def deploy_pipeline(project_name, input_topic_name, region, runner, image_uri):
     """Deploy a Google Dataflow pipeline as a streaming job."""
     pipeline.deploy_streaming_pipeline(
         project_name=project_name,
         input_topic_name=input_topic_name,
-        temporary_files_cloud_path=temporary_files_cloud_path,
         region=region,
         runner=runner,
         image_uri=image_uri,

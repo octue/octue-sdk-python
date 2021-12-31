@@ -12,12 +12,12 @@ logger = logging.getLogger(__name__)
 
 
 DEFAULT_IMAGE_URI = "eu.gcr.io/octue-amy/octue-sdk-python:latest"
+DATAFLOW_TEMPORARY_FILES_LOCATION = "gs://pub-sub-dataflow-trial/temp"
 
 
 def deploy_streaming_pipeline(
     input_topic_name,
     project_name,
-    temporary_files_cloud_path,
     region,
     runner="DataflowRunner",
     image_uri=DEFAULT_IMAGE_URI,
@@ -37,7 +37,7 @@ def deploy_streaming_pipeline(
     beam_args = [
         f"--project={project_name}",
         f"--runner={runner}",
-        f"--temp_location={temporary_files_cloud_path}",
+        f"--temp_location={DATAFLOW_TEMPORARY_FILES_LOCATION}",
         f"--region={region}",
         f"--sdk_container_image={image_uri}",
         f"--setup_file={os.path.join(REPOSITORY_ROOT, 'setup.py')}",
