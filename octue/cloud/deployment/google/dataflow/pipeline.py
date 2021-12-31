@@ -14,14 +14,14 @@ logger = logging.getLogger(__name__)
 DEFAULT_IMAGE_URI = "eu.gcr.io/octue-amy/octue-sdk-python:latest"
 
 
-def deploy_pipeline(
+def deploy_streaming_pipeline(
     input_topic_name,
     project_name,
     temporary_files_cloud_path,
     region,
     runner="DataflowRunner",
     image_uri=DEFAULT_IMAGE_URI,
-    *args,
+    extra_options=None,
 ):
     """Deploy a streaming Dataflow pipeline to Google Cloud.
 
@@ -31,7 +31,7 @@ def deploy_pipeline(
     :param str region:
     :param str runner:
     :param str image_uri:
-    :param args: any further arguments in command-line-option format to be passed to Apache Beam as pipeline options
+    :param iter|None extra_options: any further arguments in command-line-option format to be passed to Apache Beam as pipeline options
     :return None:
     """
     beam_args = [
@@ -41,12 +41,12 @@ def deploy_pipeline(
         f"--region={region}",
         f"--sdk_container_image={image_uri}",
         f"--setup_file={os.path.join(REPOSITORY_ROOT, 'setup.py')}",
-        *args,
+        *extra_options,
     ]
 
     input_topic = Topic.generate_topic_path(project_name, input_topic_name)
 
-    with beam.Pipeline(options=PipelineOptions(beam_args, save_main_session=True, streaming=True)) as pipeline:
+    with beam.Pipeline(options=PipelineOptions(beam_args, streaming=True)) as pipeline:
         (
             pipeline
             | "Read from Pub/Sub" >> beam.io.ReadFromPubSub(topic=input_topic, with_attributes=True)
