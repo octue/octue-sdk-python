@@ -383,8 +383,11 @@ class Service(CoolNameable):
         :param dict|Message question:
         :return (dict, str, bool):
         """
-        # Parse and acknowledge question from Google Cloud Pub/Sub.
-        data = json.loads(question.data.decode())
+        try:
+            data = json.loads(question.data.decode())
+        except AttributeError:
+            data = question["data"]
+
         logger.info("%r received a question.", self)
 
         question_uuid = get_nested_attribute(question, "attributes.question_uuid")

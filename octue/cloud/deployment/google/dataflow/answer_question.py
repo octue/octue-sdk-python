@@ -31,7 +31,11 @@ def answer_question(question, project_name, credentials_environment_variable=Non
             "variable."
         )
 
-    question_uuid = question.attributes["question_uuid"]
+    try:
+        question_uuid = question.attributes["question_uuid"]
+    except AttributeError:
+        question = dict(question)
+        question_uuid = question["attributes"]["question_uuid"]
 
     service = Service(
         service_id=service_id,
