@@ -31,7 +31,7 @@ def deploy_streaming_pipeline(
     :param str temporary_files_cloud_path:
     :param str region:
     :param str runner:
-    :param str image_uri:
+    :param str|None image_uri:
     :param iter|None extra_options: any further arguments in command-line-option format to be passed to Apache Beam as pipeline options
     :return None:
     """
@@ -40,10 +40,12 @@ def deploy_streaming_pipeline(
         f"--runner={runner}",
         f"--temp_location={DATAFLOW_TEMPORARY_FILES_LOCATION}",
         f"--region={region}",
-        f"--sdk_container_image={image_uri}",
         f"--setup_file={os.path.join(REPOSITORY_ROOT, 'setup.py')}",
         *extra_options,
     ]
+
+    if image_uri:
+        beam_args.append(f"--sdk_container_image={image_uri}")
 
     input_topic = Topic.generate_topic_path(project_name, input_topic_name)
 
@@ -71,11 +73,13 @@ def dispatch_batch_job(
         f"--runner={runner}",
         f"--temp_location={DATAFLOW_TEMPORARY_FILES_LOCATION}",
         f"--region={region}",
-        f"--sdk_container_image={image_uri}",
         f"--setup_file={os.path.join(REPOSITORY_ROOT, 'setup.py')}",
         "--experiments=use_runner_v2",
         *(extra_options or []),
     ]
+
+    if image_uri:
+        beam_args.append(f"--sdk_container_image={image_uri}")
 
     with beam.Pipeline(options=PipelineOptions(beam_args, streaming=False)) as pipeline:
         (
