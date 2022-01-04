@@ -1,6 +1,11 @@
 import subprocess
 import tempfile
+import uuid
 import yaml
+
+from octue.cloud.pub_sub.service import OCTUE_NAMESPACE, Service
+from octue.cloud.pub_sub.topic import Topic
+from octue.resources.service_backends import GCPPubSubBackend
 
 
 DEFAULT_IMAGE_URI = "eu.gcr.io/octue-amy/octue-sdk-python:latest"
@@ -20,6 +25,7 @@ class Deployer:
         self.repository_name = repository_name
         self.repository_owner = repository_owner
         self.description = description
+        self.service_id = f"{OCTUE_NAMESPACE}.{uuid.uuid4()}"
 
         self._load_octue_configuration()
 
@@ -27,6 +33,7 @@ class Deployer:
         self._create_cloud_build_config()
         self._create_build_trigger()
         self._create_eventarc_run_trigger()
+        return self.service_id
 
     def _load_octue_configuration(self):
         with open(self.octue_configuration_path) as f:
@@ -46,6 +53,7 @@ class Deployer:
                 f"{variable['name']}={variable['value']}"
                 for variable in self.octue_configuration.get("environment_variables", [])
             ]
+            + [f"SERVICE_ID={self.service_id}"]
         )
 
         self.cloud_build_configuration = {
@@ -129,6 +137,10 @@ class Deployer:
         print(process.stdout.decode() + process.stderr.decode())
 
     def _create_eventarc_run_trigger(self):
+        service = Service(backend=GCPPubSubBackend(project_name=self.project_id), service_id=self.service_id)
+        topic = Topic(name=self.service_id, namespace=OCTUE_NAMESPACE, service=service)
+        topic.create()
+
         command = [
             "gcloud",
             "beta",
@@ -139,6 +151,7 @@ class Deployer:
             "--matching-criteria=type=google.cloud.pubsub.topic.v1.messagePublished",
             f"--destination-run-service={self.octue_configuration['name']}",
             f"--location={self.octue_configuration['region']}",
+            f"--transport-topic={topic.name}",
         ]
 
         process = subprocess.run(command, capture_output=True)
