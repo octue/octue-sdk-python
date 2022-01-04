@@ -1,7 +1,6 @@
 import subprocess
 import tempfile
 import yaml
-from google.cloud.devtools.cloudbuild_v1.services.cloud_build import CloudBuildClient
 
 
 DEFAULT_IMAGE_URI = "eu.gcr.io/octue-amy/octue-sdk-python:latest"
@@ -12,36 +11,29 @@ class Deployer:
         self,
         octue_configuration_path,
         project_id,
-        region,
-        build_trigger_name,
         repository_name,
         repository_owner,
         description=None,
-        branch_pattern=None,
-        pull_request_pattern=None,
     ):
         self.octue_configuration_path = octue_configuration_path
         self.project_id = project_id
-        self.region = region
-        self.build_trigger_name = build_trigger_name
         self.repository_name = repository_name
         self.repository_owner = repository_owner
         self.description = description
-        self.branch_pattern = branch_pattern
-        self.pull_request_pattern = pull_request_pattern
-        self._cloud_build_client = CloudBuildClient()
-
-        if branch_pattern and pull_request_pattern:
-            raise ValueError("Only one of `branch_pattern` and `pull_request_pattern` can be provided.")
-
-        with open(self.octue_configuration_path) as f:
-            self.octue_configuration = yaml.load(f, Loader=yaml.SafeLoader)
 
     def deploy(self):
+        self._load_octue_configuration()
         self._create_cloud_build_config()
         self._create_build_trigger()
         self._create_eventarc_run_trigger()
         self._create_cloud_run_service()
+
+    def _load_octue_configuration(self):
+        with open(self.octue_configuration_path) as f:
+            self.octue_configuration = yaml.load(f, Loader=yaml.SafeLoader)
+
+        if self.octue_configuration["branch_pattern"] and self.octue_configuration["pull_request_pattern"]:
+            raise ValueError("Only one of `branch_pattern` and `pull_request_pattern` can be provided in `octue.yaml`.")
 
     def _create_cloud_build_config(self, with_cache=False):
         if not with_cache:
@@ -106,10 +98,10 @@ class Deployer:
         }
 
     def _create_build_trigger(self):
-        if self.branch_pattern:
-            pattern_args = [f"--branch-pattern={self.branch_pattern}"]
+        if self.octue_configuration["branch_pattern"]:
+            pattern_args = [f"--branch-pattern={self.octue_configuration['branch_pattern']}"]
         else:
-            pattern_args = [f"--pull-request-pattern={self.pull_request_pattern}"]
+            pattern_args = [f"--pull-request-pattern={self.octue_configuration['pull_request_pattern']}"]
 
         with tempfile.NamedTemporaryFile() as temporary_file:
             with open(temporary_file.name, "w") as f:
@@ -122,7 +114,7 @@ class Deployer:
                 "triggers",
                 "create",
                 "github",
-                f"--name={self.build_trigger_name}",
+                f"--name={self.octue_configuration['name']}",
                 f"--repo-name={self.repository_name}",
                 f"--repo-owner={self.repository_owner}",
                 f"--inline-config={temporary_file.name}",
