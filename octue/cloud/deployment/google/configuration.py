@@ -51,7 +51,10 @@ class OctueConfigurationReader:
             cache_option = []
 
         environment_variables = ",".join(
-            [f"{name}={value}" for name, value in self.octue_configuration.get("environment_variables", [])]
+            [
+                f"{variable['name']}={variable['value']}"
+                for variable in self.octue_configuration.get("environment_variables", [])
+            ]
         )
 
         self.cloud_build_configuration = {
@@ -96,7 +99,7 @@ class OctueConfigurationReader:
                         f"--concurrency={self.octue_configuration.get('concurrency', 80)}",
                         f"--min-instances={self.octue_configuration.get('minimum_instances', 0)}",
                         f"--max-instances={self.octue_configuration.get('maximum_instances', 10)}",
-                        "--ingres=internal",
+                        "--ingress=internal",
                     ],
                 },
             ],
