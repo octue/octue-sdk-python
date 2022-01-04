@@ -21,18 +21,18 @@ class Deployer:
         self.repository_owner = repository_owner
         self.description = description
 
-    def deploy(self):
         self._load_octue_configuration()
+
+    def deploy(self):
         self._create_cloud_build_config()
         self._create_build_trigger()
         self._create_eventarc_run_trigger()
-        self._create_cloud_run_service()
 
     def _load_octue_configuration(self):
         with open(self.octue_configuration_path) as f:
             self.octue_configuration = yaml.load(f, Loader=yaml.SafeLoader)
 
-        if self.octue_configuration["branch_pattern"] and self.octue_configuration["pull_request_pattern"]:
+        if self.octue_configuration.get("branch_pattern") and self.octue_configuration.get("pull_request_pattern"):
             raise ValueError("Only one of `branch_pattern` and `pull_request_pattern` can be provided in `octue.yaml`.")
 
     def _create_cloud_build_config(self, with_cache=False):
@@ -129,7 +129,21 @@ class Deployer:
         print(process.stdout.decode() + process.stderr.decode())
 
     def _create_eventarc_run_trigger(self):
-        pass
+        command = [
+            "gcloud",
+            "beta",
+            "eventarc",
+            "triggers",
+            "create",
+            f"{self.octue_configuration['name']}-trigger",
+            "--matching-criteria=type=google.cloud.pubsub.topic.v1.messagePublished",
+            f"--destination-run-service={self.octue_configuration['name']}",
+            f"--location={self.octue_configuration['region']}",
+        ]
 
-    def _create_cloud_run_service(self):
-        pass
+        process = subprocess.run(command, capture_output=True)
+
+        if process.returncode != 0:
+            raise subprocess.SubprocessError(process.stderr.decode())
+
+        print(process.stdout.decode() + process.stderr.decode())
