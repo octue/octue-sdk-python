@@ -40,8 +40,9 @@ def deploy_streaming_pipeline(
         f"--runner={runner}",
         f"--temp_location={DATAFLOW_TEMPORARY_FILES_LOCATION}",
         f"--region={region}",
+        "--dataflow_service_options=enable_prime",
         f"--setup_file={os.path.join(REPOSITORY_ROOT, 'setup.py')}",
-        *extra_options,
+        *(extra_options or []),
     ]
 
     if image_uri:
@@ -75,6 +76,7 @@ def dispatch_batch_job(
         f"--region={region}",
         f"--setup_file={os.path.join(REPOSITORY_ROOT, 'setup.py')}",
         "--experiments=use_runner_v2",
+        "--dataflow_service_options=enable_prime",
         *(extra_options or []),
     ]
 
