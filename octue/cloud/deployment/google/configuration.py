@@ -44,7 +44,12 @@ class OctueConfigurationReader:
             },
         }
 
-    def create_cloud_build_config_file(self):
+    def create_cloud_build_config_file(self, with_cache=False):
+        if not with_cache:
+            cache_option = ["--no-cache"]
+        else:
+            cache_option = []
+
         self.cloud_build_configuration = {
             "steps": [
                 {
@@ -52,7 +57,7 @@ class OctueConfigurationReader:
                     "name": "gcr.io/cloud-builders/docker",
                     "args": [
                         "build",
-                        "--no-cache",
+                        *cache_option,
                         "-t",
                         self.octue_configuration.get("image_uri", DEFAULT_IMAGE_URI),
                         ".",
@@ -79,7 +84,6 @@ class OctueConfigurationReader:
                         self.octue_configuration["name"],
                         "--platform=managed",
                         f'--image={self.octue_configuration["image_uri"]}',
-                        "> -",
                         f"--region={self.octue_configuration['region']}",
                         "--quiet",
                     ],
