@@ -8,7 +8,7 @@ from octue.cloud.pub_sub.topic import Topic
 from octue.resources.service_backends import GCPPubSubBackend
 
 
-DEFAULT_IMAGE_URI = "eu.gcr.io/octue-amy/octue-sdk-python:latest"
+DOCKER_REGISTRY_URL = "eu.gcr.io"
 
 
 class ProgressMessage:
@@ -37,19 +37,25 @@ class Deployer:
         self.project_name = octue_configuration["project_name"]
         self.region = octue_configuration["region"]
 
+        # Generated attributes.
+        self.service_id = f"{OCTUE_NAMESPACE}.{uuid.uuid4()}"
+        self.build_trigger_description = f"Build {self.name} service and deploy it to Cloud Run."
+
+        self._default_image_uri = (
+            f"{DOCKER_REGISTRY_URL}/{self.project_name}/{self.repository_owner}/{self.repository_name}/"
+            f"{self.name}:{self._get_short_head_commit_hash()}"
+        )
+
         # Optional configuration file entries.
         self.minimum_instances = octue_configuration.get("minimum_instances", 0)
         self.maximum_instances = octue_configuration.get("maximum_instances", 10)
         self.concurrency = octue_configuration.get("concurrency", 80)
-        self.image_uri = octue_configuration.get("image_uri", DEFAULT_IMAGE_URI)
+        self.image_uri = octue_configuration.get("image_uri", self._default_image_uri)
+
         self.branch_pattern = octue_configuration.get("branch_pattern", "^main$")
         self.memory = octue_configuration.get("memory", "128Mi")
         self.cpus = octue_configuration.get("cpus", 1)
         self.environment_variables = octue_configuration.get("environment_variables", [])
-
-        # Generated attributes.
-        self.service_id = f"{OCTUE_NAMESPACE}.{uuid.uuid4()}"
-        self.build_trigger_description = f"Build {octue_configuration['name']} service and deploy it to Cloud Run."
 
     def deploy(self, no_cache):
         total_number_of_stages = 4
@@ -73,6 +79,10 @@ class Deployer:
         print(f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}.")
 
         return self.service_id
+
+    @staticmethod
+    def _get_short_head_commit_hash():
+        return subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True).stdout.decode().strip()
 
     def _generate_cloud_build_configuration(self, with_cache=False):
         if not with_cache:
