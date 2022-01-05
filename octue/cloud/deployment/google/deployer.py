@@ -19,7 +19,8 @@ class ProgressMessage:
         print(self.message, end="", flush=True)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        print("done.")
+        if not exc_type:
+            print("done.")
 
 
 class Deployer:
