@@ -17,17 +17,21 @@ DEFAULT_DOCKERFILE_URL = (
 class ProgressMessage:
     def __init__(self, message, stage, total_number_of_stages):
         self.message = f"[{stage}/{total_number_of_stages}] {message}..."
+        self.final_message = "done."
 
     def __enter__(self):
         print(self.message, end="", flush=True)
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if not exc_type:
-            print("done.")
+        if exc_type:
+            print("ERROR.")
+        else:
+            print(self.final_message)
 
 
 class Deployer:
-    def __init__(self, octue_configuration_path):
+    def __init__(self, octue_configuration_path, service_id=None):
         self.octue_configuration_path = octue_configuration_path
 
         with open(self.octue_configuration_path) as f:
@@ -41,7 +45,7 @@ class Deployer:
         self.region = octue_configuration["region"]
 
         # Generated attributes.
-        self.service_id = f"{OCTUE_NAMESPACE}.{uuid.uuid4()}"
+        self.service_id = f"{OCTUE_NAMESPACE}.{service_id or uuid.uuid4()}"
         self.build_trigger_description = f"Build {self.name} service and deploy it to Cloud Run."
 
         self._default_image_uri = (
@@ -60,7 +64,7 @@ class Deployer:
         self.cpus = octue_configuration.get("cpus", 1)
         self.environment_variables = octue_configuration.get("environment_variables", [])
 
-    def deploy(self, no_cache):
+    def deploy(self, no_cache=False, update=False):
         total_number_of_stages = 4
 
         with ProgressMessage("Generating Google Cloud Build configuration", 1, total_number_of_stages):
@@ -70,8 +74,14 @@ class Deployer:
             with open(temporary_file.name, "w") as f:
                 yaml.dump(self.cloud_build_configuration, f)
 
-            with ProgressMessage("Creating build trigger", 2, total_number_of_stages):
-                self._create_build_trigger(cloud_build_configuration_path=temporary_file.name)
+            with ProgressMessage("Creating build trigger", 2, total_number_of_stages) as progress_message:
+                try:
+                    self._create_build_trigger(cloud_build_configuration_path=temporary_file.name)
+                except subprocess.SubprocessError as e:
+                    if update and "already exists" in e.args[0]:
+                        progress_message.final_message = "already exists."
+                    else:
+                        raise e
 
             with ProgressMessage("Building and deploying service", 3, total_number_of_stages):
                 self._build_and_deploy_service(cloud_build_configuration_path=temporary_file.name)
@@ -184,7 +194,7 @@ class Deployer:
     def _create_eventarc_run_trigger(self):
         service = Service(backend=GCPPubSubBackend(project_name=self.project_name), service_id=self.service_id)
         topic = Topic(name=self.service_id, namespace=OCTUE_NAMESPACE, service=service)
-        topic.create()
+        topic.create(allow_existing=True)
 
         command = [
             "gcloud",

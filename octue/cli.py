@@ -231,10 +231,20 @@ def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topi
     show_default=True,
     help="Path to an octue.yaml file.",
 )
+@click.option(
+    "--service-id",
+    type=str,
+    default=None,
+    help="A UUID to use for the service if a specific one is required (defaults to an automatically generated one).",
+)
 @click.option("--no-cache", is_flag=True, help="If provided, don't use the Docker cache.")
-def deploy(octue_configuration_path, no_cache):
+@click.option("--update", is_flag=True, help="If provided, allow updates to an existing service.")
+def deploy(octue_configuration_path, service_id, update, no_cache):
     """Deploy an app to Google Cloud Run."""
-    Deployer(octue_configuration_path).deploy(no_cache=no_cache)
+    if update and not service_id:
+        raise Exception("If updating a service, you must also provide the `--service-id` argument.")
+
+    Deployer(octue_configuration_path, service_id=service_id).deploy(update=update, no_cache=no_cache)
 
 
 def set_unavailable_strand_paths_to_none(twine, strands):
