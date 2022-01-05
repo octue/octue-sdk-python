@@ -129,12 +129,7 @@ class Deployer:
                 *pattern_args,
             ]
 
-            process = subprocess.run(command, capture_output=True)
-
-        if process.returncode != 0:
-            raise subprocess.SubprocessError(process.stderr.decode())
-
-        print(process.stdout.decode() + process.stderr.decode())
+            self._run_command(command)
 
     def _create_eventarc_run_trigger(self):
         service = Service(backend=GCPPubSubBackend(project_name=self.project_id), service_id=self.service_id)
@@ -154,6 +149,9 @@ class Deployer:
             f"--transport-topic={topic.name}",
         ]
 
+        self._run_command(command)
+
+    def _run_command(self, command):
         process = subprocess.run(command, capture_output=True)
 
         if process.returncode != 0:
