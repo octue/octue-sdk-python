@@ -29,7 +29,7 @@ def index():
         return _log_bad_request_and_return_400_response("No Pub/Sub message received.")
 
     # Acknowledge questions that are redelivered to stop further redelivery and redundant processing.
-    if envelope.get("deliveryAttempt") and envelope["deliveryAttempt"] > 1:
+    if envelope.get("deliveryAttempt", 0) > 1:
         logger.info(
             "This question has already been received by the service. It will now be acknowledged to prevent further "
             "redundant redelivery."
