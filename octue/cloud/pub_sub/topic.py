@@ -50,6 +50,13 @@ class Topic:
             pass
         self._log_creation()
 
+    def get_subscriptions(self):
+        """Get the topic's subscriptions' paths.
+
+        :return list(str):
+        """
+        return list(self.service.publisher.list_topic_subscriptions(topic=self.path))
+
     def delete(self):
         """Delete the topic from Google Pub/Sub.
 
