@@ -234,8 +234,7 @@ def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topi
 @click.option("--no-cache", is_flag=True, help="If provided, don't use the Docker cache.")
 def deploy(octue_configuration_path, no_cache):
     """Deploy an app to Google Cloud Run."""
-    service_id = Deployer(octue_configuration_path).deploy(no_cache=no_cache)
-    print(f"Service deployed - it can be questioned via Pub/Sub at {service_id!r}.")
+    Deployer(octue_configuration_path).deploy(no_cache=no_cache)
 
 
 def set_unavailable_strand_paths_to_none(twine, strands):

@@ -16,10 +16,10 @@ class ProgressMessage:
         self.message = f"[{stage}/{total_number_of_stages}] {message}..."
 
     def __enter__(self):
-        print(self.message)
+        print(self.message, end="", flush=True)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        print(self.message + "done.")
+        print("done.")
 
 
 class Deployer:
@@ -51,6 +51,8 @@ class Deployer:
 
         with ProgressMessage("Creating and attaching Eventarc Pub/Sub run trigger", 4, total_number_of_stages):
             self._create_eventarc_run_trigger()
+
+        print(f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}.")
 
         return self.service_id
 
@@ -142,7 +144,6 @@ class Deployer:
             f"--repo-owner={self.repository_owner}",
             f"--inline-config={cloud_build_configuration_path}",
             f"--description={self.description}",
-            "--quiet",
             *pattern_args,
         ]
 
@@ -155,8 +156,6 @@ class Deployer:
             "submit",
             ".",
             f"--config={cloud_build_configuration_path}",
-            "--suppress-logs",
-            "--quiet",
         ]
 
         self._run_command(command)
@@ -177,7 +176,6 @@ class Deployer:
             f"--destination-run-service={self.octue_configuration['name']}",
             f"--location={self.octue_configuration['region']}",
             f"--transport-topic={topic.name}",
-            "--quiet",
         ]
 
         self._run_command(command)
@@ -187,5 +185,3 @@ class Deployer:
 
         if process.returncode != 0:
             raise subprocess.SubprocessError(process.stderr.decode())
-
-        print(process.stdout.decode() + process.stderr.decode())
