@@ -78,16 +78,16 @@ class Deployer:
                 try:
                     self._create_build_trigger(cloud_build_configuration_path=temporary_file.name)
                 except subprocess.SubprocessError as e:
-                    if update and "already exists" in e.args[0]:
-                        progress_message.final_message = "already exists."
-                    else:
-                        raise e
+                    self._raise_or_ignore_already_exists_error(e, update, progress_message)
 
             with ProgressMessage("Building and deploying service", 3, total_number_of_stages):
                 self._build_and_deploy_service(cloud_build_configuration_path=temporary_file.name)
 
         with ProgressMessage("Creating and attaching Eventarc Pub/Sub run trigger", 4, total_number_of_stages):
-            self._create_eventarc_run_trigger()
+            try:
+                self._create_eventarc_run_trigger()
+            except subprocess.SubprocessError as e:
+                self._raise_or_ignore_already_exists_error(e, update, progress_message)
 
         print(f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}.")
 
@@ -217,3 +217,10 @@ class Deployer:
 
         if process.returncode != 0:
             raise subprocess.SubprocessError(process.stderr.decode())
+
+    @staticmethod
+    def _raise_or_ignore_already_exists_error(exception, update, progress_message):
+        if update and "already exists" in exception.args[0]:
+            progress_message.final_message = "already exists."
+        else:
+            raise exception
