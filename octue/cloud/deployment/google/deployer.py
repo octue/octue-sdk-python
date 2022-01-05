@@ -9,6 +9,9 @@ from octue.resources.service_backends import GCPPubSubBackend
 
 
 DOCKER_REGISTRY_URL = "eu.gcr.io"
+DEFAULT_DOCKERFILE_URL = (
+    "https://raw.githubusercontent.com/octue/octue-sdk-python/main/octue/cloud/deployment/google/Dockerfile"
+)
 
 
 class ProgressMessage:
@@ -47,11 +50,11 @@ class Deployer:
         )
 
         # Optional configuration file entries.
+        self.dockerfile_path = octue_configuration.get("dockerfile_path")
         self.minimum_instances = octue_configuration.get("minimum_instances", 0)
         self.maximum_instances = octue_configuration.get("maximum_instances", 10)
         self.concurrency = octue_configuration.get("concurrency", 80)
         self.image_uri = octue_configuration.get("image_uri", self._default_image_uri)
-
         self.branch_pattern = octue_configuration.get("branch_pattern", "^main$")
         self.memory = octue_configuration.get("memory", "128Mi")
         self.cpus = octue_configuration.get("cpus", 1)
@@ -85,6 +88,21 @@ class Deployer:
         return subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True).stdout.decode().strip()
 
     def _generate_cloud_build_configuration(self, with_cache=False):
+        if self.dockerfile_path:
+            get_dockerfile_step = []
+            dockerfile_path = self.dockerfile_path
+
+        else:
+            get_dockerfile_step = [
+                {
+                    "id": "Get default Octue Dockerfile",
+                    "name": "alpine:latest",
+                    "args": ["wget", DEFAULT_DOCKERFILE_URL],
+                }
+            ]
+
+            dockerfile_path = "Dockerfile"
+
         if not with_cache:
             cache_option = ["--no-cache"]
         else:
@@ -97,10 +115,11 @@ class Deployer:
 
         self.cloud_build_configuration = {
             "steps": [
+                *get_dockerfile_step,
                 {
                     "id": "Build image",
                     "name": "gcr.io/cloud-builders/docker",
-                    "args": ["build", *cache_option, "-t", self.image_uri, ".", "-f", "Dockerfile"],
+                    "args": ["build", *cache_option, "-t", self.image_uri, ".", "-f", dockerfile_path],
                 },
                 {
                     "id": "Push image",
