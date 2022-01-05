@@ -26,13 +26,30 @@ class ProgressMessage:
 class Deployer:
     def __init__(self, octue_configuration_path):
         self.octue_configuration_path = octue_configuration_path
-        self.service_id = f"{OCTUE_NAMESPACE}.{uuid.uuid4()}"
-        self._load_octue_configuration()
 
-        self.project_id = self.octue_configuration["project_name"]
-        self.repository_name = self.octue_configuration["repository_name"]
-        self.repository_owner = self.octue_configuration["repository_owner"]
-        self.description = f"Build {self.octue_configuration['name']} service and deploy it to Cloud Run."
+        with open(self.octue_configuration_path) as f:
+            octue_configuration = yaml.load(f, Loader=yaml.SafeLoader)
+
+        # Required configuration file entries.
+        self.name = octue_configuration["name"]
+        self.repository_name = octue_configuration["repository_name"]
+        self.repository_owner = octue_configuration["repository_owner"]
+        self.project_name = octue_configuration["project_name"]
+        self.region = octue_configuration["region"]
+
+        # Optional configuration file entries.
+        self.minimum_instances = octue_configuration.get("minimum_instances", 0)
+        self.maximum_instances = octue_configuration.get("maximum_instances", 10)
+        self.concurrency = octue_configuration.get("concurrency", 80)
+        self.image_uri = octue_configuration.get("image_uri", DEFAULT_IMAGE_URI)
+        self.branch_pattern = octue_configuration.get("branch_pattern", "^main$")
+        self.memory = octue_configuration.get("memory", "128Mi")
+        self.cpus = octue_configuration.get("cpus", 1)
+        self.environment_variables = octue_configuration.get("environment_variables", [])
+
+        # Generated attributes.
+        self.service_id = f"{OCTUE_NAMESPACE}.{uuid.uuid4()}"
+        self.build_trigger_description = f"Build {octue_configuration['name']} service and deploy it to Cloud Run."
 
     def deploy(self, no_cache):
         total_number_of_stages = 4
@@ -57,13 +74,6 @@ class Deployer:
 
         return self.service_id
 
-    def _load_octue_configuration(self):
-        with open(self.octue_configuration_path) as f:
-            self.octue_configuration = yaml.load(f, Loader=yaml.SafeLoader)
-
-        if self.octue_configuration.get("branch_pattern") and self.octue_configuration.get("pull_request_pattern"):
-            raise ValueError("Only one of `branch_pattern` and `pull_request_pattern` can be provided in `octue.yaml`.")
-
     def _generate_cloud_build_configuration(self, with_cache=False):
         if not with_cache:
             cache_option = ["--no-cache"]
@@ -71,10 +81,7 @@ class Deployer:
             cache_option = []
 
         environment_variables = ",".join(
-            [
-                f"{variable['name']}={variable['value']}"
-                for variable in self.octue_configuration.get("environment_variables", [])
-            ]
+            [f"{variable['name']}={variable['value']}" for variable in self.environment_variables]
             + [f"SERVICE_ID={self.service_id}"]
         )
 
@@ -83,23 +90,12 @@ class Deployer:
                 {
                     "id": "Build image",
                     "name": "gcr.io/cloud-builders/docker",
-                    "args": [
-                        "build",
-                        *cache_option,
-                        "-t",
-                        self.octue_configuration.get("image_uri", DEFAULT_IMAGE_URI),
-                        ".",
-                        "-f",
-                        "Dockerfile",
-                    ],
+                    "args": ["build", *cache_option, "-t", self.image_uri, ".", "-f", "Dockerfile"],
                 },
                 {
                     "id": "Push image",
                     "name": "gcr.io/cloud-builders/docker",
-                    "args": [
-                        "push",
-                        self.octue_configuration.get("image_uri", DEFAULT_IMAGE_URI),
-                    ],
+                    "args": ["push", self.image_uri],
                 },
                 {
                     "id": "Deploy image to Google Cloud Run",
@@ -109,30 +105,25 @@ class Deployer:
                         "run",
                         "services",
                         "update",
-                        self.octue_configuration["name"],
+                        self.name,
                         "--platform=managed",
-                        f'--image={self.octue_configuration.get("image_uri", DEFAULT_IMAGE_URI)}',
-                        f"--region={self.octue_configuration['region']}",
-                        f"--memory={self.octue_configuration.get('memory', '128Mi')}",
-                        f"--cpu={self.octue_configuration.get('cpus', 1)}",
+                        f"--image={self.image_uri}",
+                        f"--region={self.region}",
+                        f"--memory={self.memory}",
+                        f"--cpu={self.cpus}",
                         f"--set-env-vars={environment_variables}",
                         "--timeout=3600",
-                        f"--concurrency={self.octue_configuration.get('concurrency', 80)}",
-                        f"--min-instances={self.octue_configuration.get('minimum_instances', 0)}",
-                        f"--max-instances={self.octue_configuration.get('maximum_instances', 10)}",
+                        f"--concurrency={self.concurrency}",
+                        f"--min-instances={self.minimum_instances}",
+                        f"--max-instances={self.maximum_instances}",
                         "--ingress=internal",
                     ],
                 },
             ],
-            "images": [self.octue_configuration.get("image_uri", DEFAULT_IMAGE_URI)],
+            "images": [self.image_uri],
         }
 
     def _create_build_trigger(self, cloud_build_configuration_path):
-        if self.octue_configuration["branch_pattern"]:
-            pattern_args = [f"--branch-pattern={self.octue_configuration['branch_pattern']}"]
-        else:
-            pattern_args = [f"--pull-request-pattern={self.octue_configuration['pull_request_pattern']}"]
-
         command = [
             "gcloud",
             "beta",
@@ -140,12 +131,12 @@ class Deployer:
             "triggers",
             "create",
             "github",
-            f"--name={self.octue_configuration['name']}",
+            f"--name={self.name}",
             f"--repo-name={self.repository_name}",
             f"--repo-owner={self.repository_owner}",
             f"--inline-config={cloud_build_configuration_path}",
-            f"--description={self.description}",
-            *pattern_args,
+            f"--description={self.build_trigger_description}",
+            f"--branch-pattern={self.branch_pattern}",
         ]
 
         self._run_command(command)
@@ -162,7 +153,7 @@ class Deployer:
         self._run_command(command)
 
     def _create_eventarc_run_trigger(self):
-        service = Service(backend=GCPPubSubBackend(project_name=self.project_id), service_id=self.service_id)
+        service = Service(backend=GCPPubSubBackend(project_name=self.project_name), service_id=self.service_id)
         topic = Topic(name=self.service_id, namespace=OCTUE_NAMESPACE, service=service)
         topic.create()
 
@@ -172,16 +163,17 @@ class Deployer:
             "eventarc",
             "triggers",
             "create",
-            f"{self.octue_configuration['name']}-trigger",
+            f"{self.name}-trigger",
             "--matching-criteria=type=google.cloud.pubsub.topic.v1.messagePublished",
-            f"--destination-run-service={self.octue_configuration['name']}",
-            f"--location={self.octue_configuration['region']}",
+            f"--destination-run-service={self.name}",
+            f"--location={self.region}",
             f"--transport-topic={topic.name}",
         ]
 
         self._run_command(command)
 
-    def _run_command(self, command):
+    @staticmethod
+    def _run_command(command):
         process = subprocess.run(command, capture_output=True)
 
         if process.returncode != 0:
