@@ -1,7 +1,14 @@
 import logging
 import google.api_core.exceptions
 from google.protobuf.duration_pb2 import Duration
-from google.pubsub_v1.types.pubsub import ExpirationPolicy, RetryPolicy, Subscription as _Subscription
+from google.protobuf.field_mask_pb2 import FieldMask
+from google.pubsub_v1 import SubscriberClient
+from google.pubsub_v1.types.pubsub import (
+    ExpirationPolicy,
+    RetryPolicy,
+    Subscription as _Subscription,
+    UpdateSubscriptionRequest,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -18,7 +25,7 @@ class Subscription:
     :param str name: the name of the subscription excluding "projects/<project_name>/subscriptions/<namespace>"
     :param octue.cloud.pub_sub.topic.Topic topic: the topic the subscription is attached to
     :param str namespace: a namespace to put before the subscription's name in its path
-    :param google.pubsub_v1.services.subscriber.client.SubscriberClient subscriber: a Google Pub/Sub subscriber that can be used to create or delete the subscription
+    :param google.pubsub_v1.services.subscriber.client.SubscriberClient|None subscriber: a Google Pub/Sub subscriber that can be used to create or delete the subscription
     :param int ack_deadline: message acknowledgement deadline in seconds
     :param int message_retention_duration: unacknowledged message retention time in seconds
     :param int|None expiration_time: number of seconds after which the subscription is deleted (infinite time if None)
@@ -33,20 +40,20 @@ class Subscription:
         topic,
         namespace,
         project_name,
-        subscriber,
+        subscriber=None,
         ack_deadline=60,
         message_retention_duration=SEVEN_DAYS,
         expiration_time=THIRTY_ONE_DAYS,
         minimum_retry_backoff=10,
         maximum_retry_backoff=600,
     ):
-        if name.startswith(namespace):
-            self.name = name
-        else:
+        if namespace and not name.startswith(namespace):
             self.name = f"{namespace}.{name}"
+        else:
+            self.name = name
 
         self.topic = topic
-        self.subscriber = subscriber
+        self.subscriber = subscriber or SubscriberClient()
         self.path = self.subscriber.subscription_path(project_name, self.name)
         self.ack_deadline = ack_deadline
         self.message_retention_duration = Duration(seconds=message_retention_duration)
@@ -76,15 +83,7 @@ class Subscription:
         :param bool allow_existing: if `False`, raise an error if the subscription already exists; if `True`, do nothing (the existing subscription is not overwritten)
         :return google.pubsub_v1.types.pubsub.Subscription:
         """
-        subscription = _Subscription(
-            mapping=None,
-            name=self.path,
-            topic=self.topic.path,
-            ack_deadline_seconds=self.ack_deadline,  # noqa
-            message_retention_duration=self.message_retention_duration,  # noqa
-            expiration_policy=self.expiration_policy,  # noqa
-            retry_policy=self.retry_policy,  # noqa
-        )
+        subscription = self._create_proto_message_subscription()
 
         if not allow_existing:
             subscription = self.subscriber.create_subscription(request=subscription)
@@ -98,6 +97,21 @@ class Subscription:
 
         self._log_creation()
         return subscription
+
+    def update(self):
+        """Update an existing subscription with the state of this instance.
+
+        :return None:
+        """
+        self.subscriber.update_subscription(
+            request=UpdateSubscriptionRequest(
+                mapping=None,
+                subscription=self._create_proto_message_subscription(),
+                update_mask=FieldMask(
+                    paths=["ack_deadline_seconds", "message_retention_duration", "expiration_policy", "retry_policy"]
+                ),
+            )
+        )
 
     def delete(self):
         """Delete the subscription from Google Pub/Sub.
@@ -113,3 +127,18 @@ class Subscription:
         :return None:
         """
         logger.debug("Subscription %r created.", self.path)
+
+    def _create_proto_message_subscription(self):
+        """Create a Proto message subscription from the instance to be sent to the Pub/Sub API.
+
+        :return google.pubsub_v1.types.pubsub.Subscription:
+        """
+        return _Subscription(
+            mapping=None,
+            name=self.path,
+            topic=self.topic.path,
+            ack_deadline_seconds=self.ack_deadline,  # noqa
+            message_retention_duration=self.message_retention_duration,  # noqa
+            expiration_policy=self.expiration_policy,  # noqa
+            retry_policy=self.retry_policy,  # noqa
+        )
