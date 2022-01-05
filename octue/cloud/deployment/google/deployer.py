@@ -30,8 +30,15 @@ class Deployer:
         self._load_octue_configuration()
 
     def deploy(self):
-        self._create_cloud_build_config()
-        self._create_build_trigger()
+        self._generate_cloud_build_configuration()
+
+        with tempfile.NamedTemporaryFile() as temporary_file:
+            with open(temporary_file.name, "w") as f:
+                yaml.dump(self.cloud_build_configuration, f)
+
+            self._create_build_trigger(cloud_build_configuration_path=temporary_file.name)
+            self._build_and_deploy_service(cloud_build_configuration_path=temporary_file.name)
+
         self._create_eventarc_run_trigger()
         return self.service_id
 
@@ -42,7 +49,7 @@ class Deployer:
         if self.octue_configuration.get("branch_pattern") and self.octue_configuration.get("pull_request_pattern"):
             raise ValueError("Only one of `branch_pattern` and `pull_request_pattern` can be provided in `octue.yaml`.")
 
-    def _create_cloud_build_config(self, with_cache=False):
+    def _generate_cloud_build_configuration(self, with_cache=False):
         if not with_cache:
             cache_option = ["--no-cache"]
         else:
@@ -105,31 +112,38 @@ class Deployer:
             "images": [self.octue_configuration.get("image_uri", DEFAULT_IMAGE_URI)],
         }
 
-    def _create_build_trigger(self):
+    def _create_build_trigger(self, cloud_build_configuration_path):
         if self.octue_configuration["branch_pattern"]:
             pattern_args = [f"--branch-pattern={self.octue_configuration['branch_pattern']}"]
         else:
             pattern_args = [f"--pull-request-pattern={self.octue_configuration['pull_request_pattern']}"]
 
-        with tempfile.NamedTemporaryFile() as temporary_file:
-            with open(temporary_file.name, "w") as f:
-                yaml.dump(self.cloud_build_configuration, f)
+        command = [
+            "gcloud",
+            "beta",
+            "builds",
+            "triggers",
+            "create",
+            "github",
+            f"--name={self.octue_configuration['name']}",
+            f"--repo-name={self.repository_name}",
+            f"--repo-owner={self.repository_owner}",
+            f"--inline-config={cloud_build_configuration_path}",
+            *pattern_args,
+        ]
 
-            command = [
-                "gcloud",
-                "beta",
-                "builds",
-                "triggers",
-                "create",
-                "github",
-                f"--name={self.octue_configuration['name']}",
-                f"--repo-name={self.repository_name}",
-                f"--repo-owner={self.repository_owner}",
-                f"--inline-config={temporary_file.name}",
-                *pattern_args,
-            ]
+        self._run_command(command)
 
-            self._run_command(command)
+    def _build_and_deploy_service(self, cloud_build_configuration_path):
+        command = [
+            "gcloud",
+            "builds",
+            "submit",
+            ".",
+            f"--config={cloud_build_configuration_path}",
+        ]
+
+        self._run_command(command)
 
     def _create_eventarc_run_trigger(self):
         service = Service(backend=GCPPubSubBackend(project_name=self.project_id), service_id=self.service_id)
