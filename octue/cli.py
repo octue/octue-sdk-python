@@ -4,6 +4,7 @@ import sys
 import click
 import pkg_resources
 
+from octue.cloud.deployment.google.deployer import Deployer
 from octue.cloud.pub_sub.service import Service
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.log_handlers import get_remote_handler
@@ -220,6 +221,21 @@ def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topi
 
     service = Service(service_id=service_id, backend=backend, run_function=run_function)
     service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=delete_topic_and_subscription_on_exit)
+
+
+@octue_cli.command()
+@click.option(
+    "--octue-configuration-path",
+    type=click.Path(),
+    default="octue.yaml",
+    show_default=True,
+    help="Path to an octue.yaml file.",
+)
+@click.option("--no-cache", is_flag=True, help="If provided, don't use the Docker cache.")
+def deploy(octue_configuration_path, no_cache):
+    """Deploy an app to Google Cloud Run."""
+    service_id = Deployer(octue_configuration_path).deploy(no_cache=no_cache)
+    print(f"Service deployed - it can be questioned via Pub/Sub at {service_id!r}.")
 
 
 def set_unavailable_strand_paths_to_none(twine, strands):
