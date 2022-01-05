@@ -9,6 +9,7 @@ from octue.resources.service_backends import GCPPubSubBackend
 
 
 DOCKER_REGISTRY_URL = "eu.gcr.io"
+
 DEFAULT_DOCKERFILE_URL = (
     "https://raw.githubusercontent.com/octue/octue-sdk-python/main/octue/cloud/deployment/google/Dockerfile"
 )
@@ -181,7 +182,7 @@ class Deployer:
         self._run_command(command)
 
     def _build_and_deploy_service(self, cloud_build_configuration_path):
-        command = [
+        build_and_deploy_command = [
             "gcloud",
             "builds",
             "submit",
@@ -189,7 +190,20 @@ class Deployer:
             f"--config={cloud_build_configuration_path}",
         ]
 
-        self._run_command(command)
+        self._run_command(build_and_deploy_command)
+
+        allow_unauthenticated_messages_command = [
+            "gcloud",
+            "run",
+            "services",
+            "add-iam-policy-binding",
+            self.name,
+            f"--region={self.region}",
+            "--member=allUsers",
+            "--role=roles/run.invoker",
+        ]
+
+        self._run_command(allow_unauthenticated_messages_command)
 
     def _create_eventarc_run_trigger(self):
         service = Service(backend=GCPPubSubBackend(project_name=self.project_name), service_id=self.service_id)
