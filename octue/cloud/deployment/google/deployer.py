@@ -12,22 +12,15 @@ DEFAULT_IMAGE_URI = "eu.gcr.io/octue-amy/octue-sdk-python:latest"
 
 
 class Deployer:
-    def __init__(
-        self,
-        octue_configuration_path,
-        project_id,
-        repository_name,
-        repository_owner,
-        description=None,
-    ):
+    def __init__(self, octue_configuration_path):
         self.octue_configuration_path = octue_configuration_path
-        self.project_id = project_id
-        self.repository_name = repository_name
-        self.repository_owner = repository_owner
-        self.description = description
         self.service_id = f"{OCTUE_NAMESPACE}.{uuid.uuid4()}"
-
         self._load_octue_configuration()
+
+        self.project_id = self.octue_configuration["project_name"]
+        self.repository_name = self.octue_configuration["repository_name"]
+        self.repository_owner = self.octue_configuration["repository_owner"]
+        self.description = f"Build {self.octue_configuration['name']} service and deploy it to Cloud Run."
 
     def deploy(self):
         self._generate_cloud_build_configuration()
@@ -129,6 +122,7 @@ class Deployer:
             f"--repo-name={self.repository_name}",
             f"--repo-owner={self.repository_owner}",
             f"--inline-config={cloud_build_configuration_path}",
+            f"--description={self.description}",
             *pattern_args,
         ]
 
