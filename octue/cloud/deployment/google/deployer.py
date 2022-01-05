@@ -32,7 +32,7 @@ class ProgressMessage:
             print(self.final_message)
 
 
-class Deployer:
+class CloudRunDeployer:
     def __init__(self, octue_configuration_path, service_id=None):
         self.octue_configuration_path = octue_configuration_path
 

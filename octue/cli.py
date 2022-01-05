@@ -4,7 +4,7 @@ import sys
 import click
 import pkg_resources
 
-from octue.cloud.deployment.google.deployer import Deployer
+from octue.cloud.deployment.google.deployer import CloudRunDeployer
 from octue.cloud.pub_sub.service import Service
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.log_handlers import get_remote_handler
@@ -244,7 +244,7 @@ def deploy(octue_configuration_path, service_id, update, no_cache):
     if update and not service_id:
         raise Exception("If updating a service, you must also provide the `--service-id` argument.")
 
-    Deployer(octue_configuration_path, service_id=service_id).deploy(update=update, no_cache=no_cache)
+    CloudRunDeployer(octue_configuration_path, service_id=service_id).deploy(update=update, no_cache=no_cache)
 
 
 def set_unavailable_strand_paths_to_none(twine, strands):
