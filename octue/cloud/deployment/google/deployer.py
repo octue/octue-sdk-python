@@ -11,6 +11,17 @@ from octue.resources.service_backends import GCPPubSubBackend
 DEFAULT_IMAGE_URI = "eu.gcr.io/octue-amy/octue-sdk-python:latest"
 
 
+class ProgressMessage:
+    def __init__(self, message, stage, total_number_of_stages):
+        self.message = f"[{stage}/{total_number_of_stages}] {message}..."
+
+    def __enter__(self):
+        print(self.message)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        print(self.message + "done.")
+
+
 class Deployer:
     def __init__(self, octue_configuration_path):
         self.octue_configuration_path = octue_configuration_path
@@ -22,17 +33,25 @@ class Deployer:
         self.repository_owner = self.octue_configuration["repository_owner"]
         self.description = f"Build {self.octue_configuration['name']} service and deploy it to Cloud Run."
 
-    def deploy(self):
-        self._generate_cloud_build_configuration()
+    def deploy(self, no_cache):
+        total_number_of_stages = 4
+
+        with ProgressMessage("Generating Google Cloud Build configuration", 1, total_number_of_stages):
+            self._generate_cloud_build_configuration(with_cache=not no_cache)
 
         with tempfile.NamedTemporaryFile() as temporary_file:
             with open(temporary_file.name, "w") as f:
                 yaml.dump(self.cloud_build_configuration, f)
 
-            self._create_build_trigger(cloud_build_configuration_path=temporary_file.name)
-            self._build_and_deploy_service(cloud_build_configuration_path=temporary_file.name)
+            with ProgressMessage("Creating build trigger", 2, total_number_of_stages):
+                self._create_build_trigger(cloud_build_configuration_path=temporary_file.name)
 
-        self._create_eventarc_run_trigger()
+            with ProgressMessage("Building and deploying service", 3, total_number_of_stages):
+                self._build_and_deploy_service(cloud_build_configuration_path=temporary_file.name)
+
+        with ProgressMessage("Creating and attaching Eventarc Pub/Sub run trigger", 4, total_number_of_stages):
+            self._create_eventarc_run_trigger()
+
         return self.service_id
 
     def _load_octue_configuration(self):
@@ -123,6 +142,7 @@ class Deployer:
             f"--repo-owner={self.repository_owner}",
             f"--inline-config={cloud_build_configuration_path}",
             f"--description={self.description}",
+            "--quiet",
             *pattern_args,
         ]
 
@@ -135,6 +155,8 @@ class Deployer:
             "submit",
             ".",
             f"--config={cloud_build_configuration_path}",
+            "--suppress-logs",
+            "--quiet",
         ]
 
         self._run_command(command)
@@ -155,6 +177,7 @@ class Deployer:
             f"--destination-run-service={self.octue_configuration['name']}",
             f"--location={self.octue_configuration['region']}",
             f"--transport-topic={topic.name}",
+            "--quiet",
         ]
 
         self._run_command(command)
