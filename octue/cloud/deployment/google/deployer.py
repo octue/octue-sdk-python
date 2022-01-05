@@ -4,6 +4,7 @@ import uuid
 import yaml
 
 from octue.cloud.pub_sub.service import OCTUE_NAMESPACE, Service
+from octue.cloud.pub_sub.subscription import Subscription
 from octue.cloud.pub_sub.topic import Topic
 from octue.resources.service_backends import GCPPubSubBackend
 
@@ -84,7 +85,7 @@ class Deployer:
             with ProgressMessage("Building and deploying service", 3, total_number_of_stages):
                 self._build_and_deploy_service(cloud_build_configuration_path=temporary_file.name)
 
-        with ProgressMessage("Creating and attaching Eventarc Pub/Sub run trigger", 4, total_number_of_stages):
+        with ProgressMessage("Creating Eventarc Pub/Sub run trigger", 4, total_number_of_stages) as progress_message:
             try:
                 self._create_eventarc_run_trigger()
             except subprocess.SubprocessError as e:
@@ -224,6 +225,27 @@ class Deployer:
         ]
 
         self._run_command(command)
+
+        eventarc_subscription_path = None
+
+        for subscription_path in topic.get_subscriptions():
+            if self.name in subscription_path:
+                eventarc_subscription_path = subscription_path
+                break
+
+        if not eventarc_subscription_path:
+            raise Exception("Eventarc subscription not found.")
+
+        # Set the acknowledgement deadline to the minimum value to avoid recurrent recomputation of questions.
+        subscription = Subscription(
+            name=eventarc_subscription_path.split("/")[-1],
+            topic=topic,
+            namespace="",
+            project_name=self.project_name,
+            ack_deadline=10,
+        )
+
+        subscription.update()
 
     @staticmethod
     def _run_command(command):
