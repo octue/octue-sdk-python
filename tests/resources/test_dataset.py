@@ -35,7 +35,12 @@ class TestDataset(BaseTestCase):
             path_in_bucket=f"{dataset_name}/sub-directory/sub-sub-directory/sub_sub_file.txt",
         )
 
-    def _create_nested_local_files(self, directory_path):
+    def _create_files_and_nested_subdirectories(self, directory_path):
+        """Create files and nested subdirectories of files in the given directory.
+
+        :param str directory_path: the directory to create the nested structure in
+        :return list(str): the paths of the files in the directory and subdirectories
+        """
         paths = [
             os.path.join(directory_path, "file_0.txt"),
             os.path.join(directory_path, "file_1.txt"),
@@ -46,7 +51,7 @@ class TestDataset(BaseTestCase):
         os.makedirs(os.path.join(directory_path, "sub-directory", "sub-sub-directory"))
 
         # Create nested files in directory.
-        for path, data in zip(paths, range(4)):
+        for path, data in zip(paths, range(len(paths))):
             with open(path, "w") as f:
                 f.write(str(data))
 
@@ -555,23 +560,21 @@ class TestDataset(BaseTestCase):
                 self.assertEqual(f.read(), "['blah', 'b', 'c']")
 
     def test_from_local_directory(self):
-        """Test that a dataset can be instantiated from a local nested directory ignoring subdirectories."""
+        """Test that a dataset can be instantiated from a local nested directory ignoring its subdirectories."""
         with tempfile.TemporaryDirectory() as temporary_directory:
-            paths = self._create_nested_local_files(temporary_directory)
+            paths = self._create_files_and_nested_subdirectories(temporary_directory)
             dataset = Dataset.from_local_directory(temporary_directory, recursive=False)
 
             # Check that just the top-level files from the directory are present in the dataset.
             datafile_paths = {datafile.path for datafile in dataset.files}
             self.assertEqual(datafile_paths, set(paths[:2]))
-            self.assertEqual(len(datafile_paths), 2)
 
     def test_from_local_directory_recursively(self):
-        """Test that a dataset can be instantiated from a local nested directory including subdirectories."""
+        """Test that a dataset can be instantiated from a local nested directory including its subdirectories."""
         with tempfile.TemporaryDirectory() as temporary_directory:
-            paths = self._create_nested_local_files(temporary_directory)
+            paths = self._create_files_and_nested_subdirectories(temporary_directory)
             dataset = Dataset.from_local_directory(temporary_directory, recursive=True)
 
             # Check that all the files from the directory are present in the dataset.
             datafile_paths = {datafile.path for datafile in dataset.files}
             self.assertEqual(datafile_paths, set(paths))
-            self.assertEqual(len(datafile_paths), 4)
