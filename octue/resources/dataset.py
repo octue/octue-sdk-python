@@ -56,6 +56,26 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
         return len(self.files)
 
     @classmethod
+    def from_local_directory(cls, path_to_directory, recursive=False):
+        """Instantiate a Dataset from the files in the local directory.
+
+        :param str path_to_directory:
+        :param bool recursive:
+        :return Dataset:
+        """
+        datafiles = FilterSet()
+
+        for level, (directory_path, _, filenames) in enumerate(os.walk(path_to_directory)):
+            for filename in filenames:
+
+                if not recursive and level > 0:
+                    break
+
+                datafiles.add(Datafile(path=os.path.join(directory_path, filename)))
+
+        return Dataset(path=path_to_directory, files=datafiles)
+
+    @classmethod
     def from_cloud(
         cls,
         project_name,
