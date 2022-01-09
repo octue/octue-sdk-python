@@ -29,7 +29,7 @@ twine  # <---- nothing to do with the twined library!
 #   (Used in template apps but not necessarily dependencies of the library)
 # ------------------------------------------------------------------------------
 
-numpy==1.19.2
+numpy==1.21.0
 dateparser==1.0.0
 pandas==1.1.4
 stringcase==1.2.0
