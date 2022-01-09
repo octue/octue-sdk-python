@@ -97,14 +97,26 @@ class CloudRunDeployer:
 
     @staticmethod
     def _get_short_head_commit_hash():
+        """Get the short commit hash for the HEAD commit in the current git repository.
+
+        :return str:
+        """
         return subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True).stdout.decode().strip()
 
     def _generate_cloud_build_configuration(self, with_cache=False):
+        """Generate a Google Cloud Build configuration equivalent to a `cloudbuild.yaml` file in memory and assign it
+        to the `cloud_build_configuration` attribute.
+
+        :param bool with_cache: if `True`, specify in the configuration to use the docker cache when building the service image
+        :return None:
+        """
         if self.dockerfile_path:
             get_dockerfile_step = []
             dockerfile_path = self.dockerfile_path
 
         else:
+            # If no path to a dockerfile has been provided, add a step to download the default Octue service Dockerfile
+            # to build the image from.
             get_dockerfile_step = [
                 {
                     "id": "Get default Octue Dockerfile",
@@ -165,6 +177,11 @@ class CloudRunDeployer:
         }
 
     def _create_build_trigger(self, cloud_build_configuration_path):
+        """Create the build trigger in Google Cloud Build using the given `cloudbuild.yaml` file.
+
+        :param str cloud_build_configuration_path:
+        :return None:
+        """
         command = [
             "gcloud",
             "beta",
@@ -183,6 +200,14 @@ class CloudRunDeployer:
         self._run_command(command)
 
     def _build_and_deploy_service(self, cloud_build_configuration_path):
+        """Build and deploy the service from the given cloud build configuration file and local context. This method
+        must be run from the same directory that `docker build -f <path/to/Dockerfile .` would be run from locally for
+        the correct build context to be available. When `gcloud beta builds triggers run` is working, this won't be
+        necessary as the build context can just be taken from the relevant GitHub repository.
+
+        :param str cloud_build_configuration_path:
+        :return None:
+        """
         build_and_deploy_command = [
             "gcloud",
             "builds",
@@ -207,6 +232,11 @@ class CloudRunDeployer:
         self._run_command(allow_unauthenticated_messages_command)
 
     def _create_eventarc_run_trigger(self):
+        """Create an Eventarc trigger for the service and attach it. Update the Eventarc subscription to have the
+        minimum acknowledgement deadline to avoid recurrent recomputation of questions.
+
+        :return None:
+        """
         service = Service(backend=GCPPubSubBackend(project_name=self.project_name), service_id=self.service_id)
         topic = Topic(name=self.service_id, namespace=OCTUE_NAMESPACE, service=service)
         topic.create(allow_existing=True)
