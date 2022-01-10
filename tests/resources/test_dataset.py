@@ -445,8 +445,8 @@ class TestDataset(BaseTestCase):
         )
 
     def test_to_cloud(self):
-        """Test that a dataset can be uploaded to the cloud via (`bucket_name`, `output_directory`) and via `gs_path`,
-        including all its files and a serialised JSON file of the Datafile instance.
+        """Test that a dataset can be uploaded to the cloud via (`bucket_name`, `output_directory`) and via
+        `cloud_path`, including all its files and a serialised JSON file of the Datafile instance.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
             file_0_path = os.path.join(temporary_directory, "file_0.txt")
@@ -508,6 +508,29 @@ class TestDataset(BaseTestCase):
                 )
 
                 self.assertEqual(persisted_dataset["tags"], dataset.tags.to_primitive())
+
+    def test_to_cloud_with_nested_dataset_preserves_nested_structure(self):
+        """Test that uploading a dataset containing datafiles in a nested directory structure to the cloud preserves
+        this structure in the cloud.
+        """
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            local_paths = self._create_files_and_nested_subdirectories(temporary_directory)
+            dataset = Dataset.from_local_directory(temporary_directory, recursive=True)
+
+            upload_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-dataset")
+            dataset.to_cloud(project_name=TEST_PROJECT_NAME, cloud_path=upload_path)
+
+        uploaded_dataset = Dataset.from_cloud(project_name=TEST_PROJECT_NAME, cloud_path=upload_path)
+
+        # Check that the paths relative to the dataset directory are the same in the cloud as they are locally.
+        local_datafile_relative_paths = {path.split(temporary_directory)[-1].strip("/") for path in local_paths}
+
+        cloud_datafile_relative_paths = {
+            storage.path.split_bucket_name_from_gs_path(datafile.path)[-1].split("my-dataset/")[-1]
+            for datafile in uploaded_dataset.files
+        }
+
+        self.assertEqual(cloud_datafile_relative_paths, local_datafile_relative_paths)
 
     def test_download_all_files(self):
         """Test that all files in a dataset can be downloaded with one command."""
