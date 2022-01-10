@@ -10,7 +10,7 @@ from tests.base import BaseTestCase
     condition=os.getenv("RUN_DEPLOYMENT_TESTS", "").lower() == "true",
     reason="'RUN_DEPLOYMENT_TESTS' environment variable is False or not present.",
 )
-class TestDeployment(BaseTestCase):
+class TestDataflowDeployment(BaseTestCase):
     def test_sending_question_to_dataflow_streaming_job_child(self):
         """Test that a question can be sent to an existing Google Dataflow streaming job child and an answer received
         in response.

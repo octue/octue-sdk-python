@@ -7,7 +7,7 @@ from octue.cloud.pub_sub.service import Service
 from octue.resources.service_backends import GCPPubSubBackend
 
 
-class TestDeployment(TestCase):
+class TestCloudRunDeployment(TestCase):
     # This is the service ID of the example service deployed to Google Cloud Run.
     EXAMPLE_SERVICE_ID = "octue.services.afbf37e3-7650-4e79-bc8e-37c0c26eae13"
 
