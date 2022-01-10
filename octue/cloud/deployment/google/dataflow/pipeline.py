@@ -1,6 +1,5 @@
 import logging
 import os
-import uuid
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 
@@ -54,38 +53,5 @@ def deploy_streaming_pipeline(
         (
             pipeline
             | "Read from Pub/Sub" >> beam.io.ReadFromPubSub(topic=service_id, with_attributes=True)
-            | "Answer question" >> beam.Map(lambda question: answer_question(question, project_name=project_name))
-        )
-
-
-def dispatch_batch_job(
-    data,
-    project_name,
-    region,
-    runner="DataflowRunner",
-    image_uri=DEFAULT_IMAGE_URI,
-    forward_logs=True,
-    extra_options=None,
-):
-    question = {"data": data, "attributes": {"question_uuid": str(uuid.uuid4()), "forward_logs": forward_logs}}
-
-    beam_args = [
-        f"--project={project_name}",
-        f"--runner={runner}",
-        f"--temp_location={DATAFLOW_TEMPORARY_FILES_LOCATION}",
-        f"--region={region}",
-        f"--setup_file={os.path.join(REPOSITORY_ROOT, 'setup.py')}",
-        "--experiments=use_runner_v2",
-        "--dataflow_service_options=enable_prime",
-        *(extra_options or []),
-    ]
-
-    if image_uri:
-        beam_args.append(f"--sdk_container_image={image_uri}")
-
-    with beam.Pipeline(options=PipelineOptions(beam_args, streaming=False)) as pipeline:
-        (
-            pipeline
-            | "Send data to Dataflow" >> beam.Create([question])
             | "Answer question" >> beam.Map(lambda question: answer_question(question, project_name=project_name))
         )
