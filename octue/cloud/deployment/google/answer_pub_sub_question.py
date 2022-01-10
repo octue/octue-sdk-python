@@ -33,11 +33,7 @@ def answer_question(question, project_name, credentials_environment_variable=Non
             "variable."
         )
 
-    try:
-        question_uuid = get_nested_attribute(question, "attributes.question_uuid")
-    except AttributeError:
-        question = dict(question)
-        question_uuid = question["attributes"]["question_uuid"]
+    question_uuid = get_nested_attribute(question, "attributes.question_uuid")
 
     service = Service(
         service_id=service_id,
