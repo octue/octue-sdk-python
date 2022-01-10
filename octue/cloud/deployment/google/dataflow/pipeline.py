@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 DEFAULT_IMAGE_URI = "eu.gcr.io/octue-amy/octue-sdk-python:latest"
-DATAFLOW_TEMPORARY_FILES_LOCATION = "gs://pub-sub-dataflow-trial/temp"
+DATAFLOW_TEMPORARY_FILES_LOCATION = "gs://octue-sdk-python-dataflow-temporary-data/temp"
 
 
 def deploy_streaming_pipeline(
