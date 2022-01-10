@@ -25,11 +25,11 @@ def deploy_streaming_pipeline(
 ):
     """Deploy a streaming Dataflow pipeline to Google Cloud.
 
-    :param str service_id:
-    :param str project_name:
-    :param str region:
-    :param str runner:
-    :param str|None image_uri:
+    :param str service_id: the Pub/Sub topic name for the streaming job to subscribe to
+    :param str project_name: the name of the project to deploy the pipeline to
+    :param str region: the region to deploy the pipeline to
+    :param str runner: the name of an apache-beam runner to use to execute the pipeline
+    :param str|None image_uri: the URI of the apache-beam-based Docker image to use for the pipeline
     :param iter|None extra_options: any further arguments in command-line-option format to be passed to Apache Beam as pipeline options
     :return None:
     """
