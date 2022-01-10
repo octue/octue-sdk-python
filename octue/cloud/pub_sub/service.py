@@ -223,7 +223,7 @@ class Service(CoolNameable):
             project_name=self.backend.project_name,
             subscriber=pubsub_v1.SubscriberClient(credentials=self._credentials),
         )
-        response_subscription.create(allow_existing=True)
+        response_subscription.create(allow_existing=False)
 
         if input_manifest is not None:
             input_manifest = input_manifest.serialise()
