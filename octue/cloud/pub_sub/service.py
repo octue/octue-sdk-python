@@ -1,3 +1,4 @@
+import base64
 import concurrent.futures
 import datetime
 import functools
@@ -384,9 +385,16 @@ class Service(CoolNameable):
         :return (dict, str, bool):
         """
         try:
+            # Parse question directly from Pub/Sub or Dataflow.
             data = json.loads(question.data.decode())
-        except AttributeError:
-            data = question["data"]
+
+            # Acknowledge it if it's directly from Pub/Sub
+            if hasattr(question, "ack"):
+                question.ack()
+
+        except Exception:
+            # Parse question from Google Cloud Run.
+            data = json.loads(base64.b64decode(question["data"]).decode("utf-8").strip())
 
         logger.info("%r received a question.", self)
 
