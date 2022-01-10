@@ -9,7 +9,7 @@ from octue.resources.service_backends import GCPPubSubBackend
 
 class TestDeployment(TestCase):
     # This is the service ID of the example service deployed to Google Cloud Run.
-    EXAMPLE_SERVICE_ID = "octue.services.009ea106-dc37-4521-a8cc-3e0836064334"
+    EXAMPLE_SERVICE_ID = "octue.services.afbf37e3-7650-4e79-bc8e-37c0c26eae13"
 
     @unittest.skipUnless(
         condition=os.getenv("RUN_DEPLOYMENT_TESTS", "").lower() == "true",
