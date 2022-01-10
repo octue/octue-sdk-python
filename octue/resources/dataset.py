@@ -146,9 +146,12 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
             cloud_path = storage.path.generate_gs_path(bucket_name, output_directory, self.name)
 
         for datafile in self.files:
+
+            relative_path = datafile.path.split(self.path)[-1].strip("/")
+
             datafile.to_cloud(
                 project_name,
-                cloud_path=storage.path.join(cloud_path, datafile.name),
+                cloud_path=storage.path.join(cloud_path, relative_path),
             )
 
         self._upload_metadata_file(project_name, cloud_path)
