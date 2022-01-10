@@ -230,7 +230,7 @@ def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topi
 @click.option("--runner", type=str, default="DataflowRunner", show_default=True)
 @click.option("--image-uri", type=str, default=pipeline.DEFAULT_IMAGE_URI, show_default=True)
 def deploy_pipeline(project_name, input_topic_name, region, runner, image_uri):
-    """Deploy a Google Dataflow pipeline as a streaming job."""
+    """Deploy a service as a Google Dataflow streaming pipeline."""
     pipeline.deploy_streaming_pipeline(
         project_name=project_name,
         input_topic_name=input_topic_name,
