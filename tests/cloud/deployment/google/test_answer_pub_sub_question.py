@@ -7,10 +7,10 @@ from octue.exceptions import MissingServiceID
 from tests.cloud.pub_sub.mocks import MockTopic
 
 
-class TestAnswerQuestion(TestCase):
-    # This is the service ID of the example service deployed to Google Cloud Run.
-    EXAMPLE_SERVICE_ID = "octue.services.009ea106-dc37-4521-a8cc-3e0836064334"
+SERVICE_ID = "octue.services.14b124f3-8ca9-4baf-99f5-0b79179f04a6"
 
+
+class TestAnswerQuestion(TestCase):
     def test_error_raised_when_no_service_id_environment_variable(self):
         """Test that a MissingServiceID error is raised if the SERVICE_ID environment variable is missing."""
         with self.assertRaises(MissingServiceID):
@@ -40,7 +40,7 @@ class TestAnswerQuestion(TestCase):
         """Test that the Cloud Run `answer_question` function uses the default deployment values when a deployment
         configuration file is not provided.
         """
-        with mock.patch.dict(os.environ, {"SERVICE_ID": self.EXAMPLE_SERVICE_ID}):
+        with mock.patch.dict(os.environ, {"SERVICE_ID": SERVICE_ID}):
             with mock.patch("octue.cloud.deployment.google.answer_pub_sub_question.Runner") as mock_runner:
                 with mock.patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
                     with mock.patch("octue.cloud.deployment.google.answer_pub_sub_question.Service"):
@@ -72,10 +72,7 @@ class TestAnswerQuestion(TestCase):
         """
         with mock.patch.dict(
             os.environ,
-            {
-                "DEPLOYMENT_CONFIGURATION_PATH": tempfile.NamedTemporaryFile().name,
-                "SERVICE_ID": self.EXAMPLE_SERVICE_ID,
-            },
+            {"DEPLOYMENT_CONFIGURATION_PATH": tempfile.NamedTemporaryFile().name, "SERVICE_ID": SERVICE_ID},
         ):
             with mock.patch(
                 "octue.cloud.deployment.google.answer_pub_sub_question._get_deployment_configuration",
