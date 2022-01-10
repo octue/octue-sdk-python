@@ -227,10 +227,29 @@ def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topi
 @click.argument("project_name", type=str)
 @click.argument("service_id", type=str)
 @click.argument("region", type=str)
-@click.option("--runner", type=str, default="DataflowRunner", show_default=True)
-@click.option("--image-uri", type=str, default=pipeline.DEFAULT_IMAGE_URI, show_default=True)
+@click.option(
+    "--runner",
+    type=str,
+    default="DataflowRunner",
+    show_default=True,
+    help="One of the valid apache-beam runners to use to execute the pipeline.",
+)
+@click.option(
+    "--image-uri",
+    type=str,
+    default=pipeline.DEFAULT_IMAGE_URI,
+    show_default=True,
+    help="The URI of the apache-beam-based Docker image to use for the service.",
+)
 def deploy_pipeline(project_name, service_id, region, runner, image_uri):
-    """Deploy a service as a Google Dataflow streaming pipeline."""
+    """Deploy an app as a Google Dataflow streaming pipeline service.
+
+    PROJECT_NAME - the name of the project to deploy to
+
+    SERVICE_ID - the ID that the service can be reached at by other services e.g. "octue.services.06fad9a3-fe6b-44c5-a239-5dd2a49cdd4e"
+
+    REGION - the cloud region to deploy in
+    """
     pipeline.deploy_streaming_pipeline(
         project_name=project_name,
         service_id=service_id,
