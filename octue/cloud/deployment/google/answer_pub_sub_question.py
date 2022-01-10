@@ -7,6 +7,7 @@ from octue.cloud.pub_sub.service import Service
 from octue.exceptions import MissingServiceID
 from octue.resources.service_backends import GCPPubSubBackend
 from octue.runner import Runner
+from octue.utils.objects import get_nested_attribute
 
 
 logger = logging.getLogger(__name__)
@@ -19,11 +20,12 @@ def answer_question(question, project_name, credentials_environment_variable=Non
     """Answer a question from a service by running the deployed app with the deployment configuration. Either the
     `deployment_configuration_path` should be specified, or the `deployment_configuration`.
 
+    :param dict|tuple|apache_beam.io.gcp.pubsub.PubsubMessage question:
     :param str project_name:
     :param str credentials_environment_variable:
     :return None:
     """
-    service_id = "octue.services.pub-sub-dataflow-trial"
+    service_id = os.environ.get("SERVICE_ID")
 
     if not service_id:
         raise MissingServiceID(
@@ -32,7 +34,7 @@ def answer_question(question, project_name, credentials_environment_variable=Non
         )
 
     try:
-        question_uuid = question.attributes["question_uuid"]
+        question_uuid = get_nested_attribute(question, "attributes.question_uuid")
     except AttributeError:
         question = dict(question)
         question_uuid = question["attributes"]["question_uuid"]

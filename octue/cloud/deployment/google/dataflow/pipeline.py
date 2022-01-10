@@ -5,7 +5,7 @@ import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 
 from octue import REPOSITORY_ROOT
-from octue.cloud.deployment.google.dataflow.answer_question import answer_question
+from octue.cloud.deployment.google.answer_pub_sub_question import answer_question
 from octue.cloud.pub_sub import Topic
 
 
@@ -17,7 +17,7 @@ DATAFLOW_TEMPORARY_FILES_LOCATION = "gs://pub-sub-dataflow-trial/temp"
 
 
 def deploy_streaming_pipeline(
-    input_topic_name,
+    service_id,
     project_name,
     region,
     runner="DataflowRunner",
@@ -26,7 +26,7 @@ def deploy_streaming_pipeline(
 ):
     """Deploy a streaming Dataflow pipeline to Google Cloud.
 
-    :param str input_topic_name:
+    :param str service_id:
     :param str project_name:
     :param str temporary_files_cloud_path:
     :param str region:
@@ -48,12 +48,12 @@ def deploy_streaming_pipeline(
     if image_uri:
         beam_args.append(f"--sdk_container_image={image_uri}")
 
-    input_topic = Topic.generate_topic_path(project_name, input_topic_name)
+    service_id = Topic.generate_topic_path(project_name, service_id)
 
     with beam.Pipeline(options=PipelineOptions(beam_args, streaming=True)) as pipeline:
         (
             pipeline
-            | "Read from Pub/Sub" >> beam.io.ReadFromPubSub(topic=input_topic, with_attributes=True)
+            | "Read from Pub/Sub" >> beam.io.ReadFromPubSub(topic=service_id, with_attributes=True)
             | "Answer question" >> beam.Map(lambda question: answer_question(question, project_name=project_name))
         )
 

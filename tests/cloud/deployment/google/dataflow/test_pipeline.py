@@ -20,7 +20,7 @@ class TestPipeline(BaseTestCase):
         parent = Service(backend=GCPPubSubBackend(project_name=os.environ["TEST_PROJECT_NAME"]))
 
         subscription, _ = parent.ask(
-            service_id="octue.services.pub-sub-dataflow-trial",
+            service_id="octue.services.1df81225-7e87-4b1c-9413-cdc375a127a7",
             input_values={"n_iterations": 3},
         )
 
