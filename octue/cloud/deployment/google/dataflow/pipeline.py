@@ -27,7 +27,6 @@ def deploy_streaming_pipeline(
 
     :param str service_id:
     :param str project_name:
-    :param str temporary_files_cloud_path:
     :param str region:
     :param str runner:
     :param str|None image_uri:
@@ -47,11 +46,11 @@ def deploy_streaming_pipeline(
     if image_uri:
         beam_args.append(f"--sdk_container_image={image_uri}")
 
-    service_id = Topic.generate_topic_path(project_name, service_id)
+    topic_path = Topic.generate_topic_path(project_name, service_id)
 
     with beam.Pipeline(options=PipelineOptions(beam_args, streaming=True)) as pipeline:
         (
             pipeline
-            | "Read from Pub/Sub" >> beam.io.ReadFromPubSub(topic=service_id, with_attributes=True)
+            | "Read from Pub/Sub" >> beam.io.ReadFromPubSub(topic=topic_path, with_attributes=True)
             | "Answer question" >> beam.Map(lambda question: answer_question(question, project_name=project_name))
         )
