@@ -16,6 +16,7 @@ DATAFLOW_TEMPORARY_FILES_LOCATION = "gs://octue-sdk-python-dataflow-temporary-da
 
 
 def deploy_streaming_pipeline(
+    service_name,
     service_id,
     project_name,
     region,
@@ -25,6 +26,7 @@ def deploy_streaming_pipeline(
 ):
     """Deploy a streaming Dataflow pipeline to Google Cloud.
 
+    :param str service_name: the name to give the dataflow pipeline
     :param str service_id: the Pub/Sub topic name for the streaming job to subscribe to
     :param str project_name: the name of the project to deploy the pipeline to
     :param str region: the region to deploy the pipeline to
@@ -35,9 +37,10 @@ def deploy_streaming_pipeline(
     """
     beam_args = [
         f"--project={project_name}",
-        f"--runner={runner}",
-        f"--temp_location={DATAFLOW_TEMPORARY_FILES_LOCATION}",
         f"--region={region}",
+        f"--temp_location={DATAFLOW_TEMPORARY_FILES_LOCATION}",
+        f"--job_name={service_name}",
+        f"--runner={runner}",
         "--dataflow_service_options=enable_prime",
         f"--setup_file={os.path.join(REPOSITORY_ROOT, 'setup.py')}",
         *(extra_options or []),
