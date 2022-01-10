@@ -10,7 +10,7 @@ RUN apt-get update -y && apt-get install -y --fix-missing build-essential && rm 
 
 COPY . .
 
-RUN pip install --upgrade pip && pip install -e .[dataflow]
+RUN pip install --upgrade pip && pip install -e .
 
 ENV USE_OCTUE_LOG_HANDLER=1
 ENV COMPUTE_PROVIDER=GOOGLE_CLOUD_RUN
