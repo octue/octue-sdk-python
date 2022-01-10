@@ -11,6 +11,7 @@ from octue.resources import Datafile, Dataset
 from octue.resources.filter_containers import FilterSet
 from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from tests.base import BaseTestCase
+from tests.resources import create_dataset_with_two_files
 
 
 class TestDataset(BaseTestCase):
@@ -34,6 +35,28 @@ class TestDataset(BaseTestCase):
             bucket_name=TEST_BUCKET_NAME,
             path_in_bucket=f"{dataset_name}/sub-directory/sub-sub-directory/sub_sub_file.txt",
         )
+
+    def _create_files_and_nested_subdirectories(self, directory_path):
+        """Create files and nested subdirectories of files in the given directory.
+
+        :param str directory_path: the directory to create the nested structure in
+        :return list(str): the paths of the files in the directory and subdirectories
+        """
+        paths = [
+            os.path.join(directory_path, "file_0.txt"),
+            os.path.join(directory_path, "file_1.txt"),
+            os.path.join(directory_path, "sub-directory", "sub_file.txt"),
+            os.path.join(directory_path, "sub-directory", "sub-sub-directory", "sub_sub_file.txt"),
+        ]
+
+        os.makedirs(os.path.join(directory_path, "sub-directory", "sub-sub-directory"))
+
+        # Create nested files in directory.
+        for path, data in zip(paths, range(len(paths))):
+            with open(path, "w") as f:
+                f.write(str(data))
+
+        return paths
 
     def test_instantiates_with_no_args(self):
         """Ensures a Datafile instantiates using only a path and generates a uuid ID"""
@@ -279,48 +302,31 @@ class TestDataset(BaseTestCase):
 
     def test_from_cloud(self):
         """Test that a Dataset in cloud storage can be accessed via (`bucket_name`, `output_directory`) and via
-        `gs_path`.
+        `cloud_path`.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
-            file_0_path = os.path.join(temporary_directory, "file_0.txt")
-            file_1_path = os.path.join(temporary_directory, "file_1.txt")
-
-            with open(file_0_path, "w") as f:
-                f.write("[1, 2, 3]")
-
-            with open(file_1_path, "w") as f:
-                f.write("[4, 5, 6]")
-
-            dataset = Dataset(
-                name="dataset_0",
-                files={
-                    Datafile(path=file_0_path, labels={"hello"}, tags={"a": "b"}),
-                    Datafile(path=file_1_path, labels={"goodbye"}, tags={"a": "b"}),
-                },
-                tags={"a": "b", "c": 1},
-            )
+            dataset = create_dataset_with_two_files(temporary_directory)
+            dataset.tags = {"a": "b", "c": 1}
 
             dataset.to_cloud(
-                project_name=TEST_PROJECT_NAME, bucket_name=TEST_BUCKET_NAME, output_directory="a_directory"
+                project_name=TEST_PROJECT_NAME,
+                bucket_name=TEST_BUCKET_NAME,
+                output_directory="a_directory",
             )
 
-            bucket_name = TEST_BUCKET_NAME
             path_to_dataset_directory = storage.path.join("a_directory", dataset.name)
-            gs_path = f"gs://{bucket_name}/{path_to_dataset_directory}"
+            gs_path = f"gs://{TEST_BUCKET_NAME}/{path_to_dataset_directory}"
 
             for location_parameters in (
                 {
-                    "bucket_name": bucket_name,
+                    "bucket_name": TEST_BUCKET_NAME,
                     "path_to_dataset_directory": path_to_dataset_directory,
                     "cloud_path": None,
                 },
                 {"bucket_name": None, "path_to_dataset_directory": None, "cloud_path": gs_path},
             ):
 
-                persisted_dataset = Dataset.from_cloud(
-                    project_name=TEST_PROJECT_NAME,
-                    **location_parameters,
-                )
+                persisted_dataset = Dataset.from_cloud(project_name=TEST_PROJECT_NAME, **location_parameters)
 
                 self.assertEqual(persisted_dataset.path, f"gs://{TEST_BUCKET_NAME}/a_directory/{dataset.name}")
                 self.assertEqual(persisted_dataset.id, dataset.id)
@@ -423,33 +429,19 @@ class TestDataset(BaseTestCase):
         )
 
     def test_to_cloud(self):
-        """Test that a dataset can be uploaded to the cloud via (`bucket_name`, `output_directory`) and via `gs_path`,
-        including all its files and a serialised JSON file of the Datafile instance.
+        """Test that a dataset can be uploaded to the cloud via (`bucket_name`, `output_directory`) and via
+        `cloud_path`, including all its files and a serialised JSON file of the Datafile instance.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
-            file_0_path = os.path.join(temporary_directory, "file_0.txt")
-            file_1_path = os.path.join(temporary_directory, "file_1.txt")
+            dataset_directory_name = os.path.split(temporary_directory)[-1]
+            dataset = create_dataset_with_two_files(temporary_directory)
+            dataset.tags = {"a": "b", "c": 1}
 
-            with open(file_0_path, "w") as f:
-                f.write("[1, 2, 3]")
-
-            with open(file_1_path, "w") as f:
-                f.write("[4, 5, 6]")
-
-            dataset = Dataset(
-                files={
-                    Datafile(path=file_0_path, labels={"hello"}),
-                    Datafile(path=file_1_path, labels={"goodbye"}),
-                },
-                tags={"a": "b", "c": 1},
-            )
-
-            bucket_name = TEST_BUCKET_NAME
             output_directory = "my_datasets"
-            cloud_path = storage.path.generate_gs_path(bucket_name, output_directory)
+            cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, output_directory)
 
             for location_parameters in (
-                {"bucket_name": bucket_name, "output_directory": output_directory, "cloud_path": None},
+                {"bucket_name": TEST_BUCKET_NAME, "output_directory": output_directory, "cloud_path": None},
                 {"bucket_name": None, "output_directory": None, "cloud_path": cloud_path},
             ):
                 dataset.to_cloud(TEST_PROJECT_NAME, **location_parameters)
@@ -460,13 +452,13 @@ class TestDataset(BaseTestCase):
                     cloud_path=storage.path.join(cloud_path, dataset.name, "file_0.txt"),
                 )
 
-                self.assertEqual(persisted_file_0, "[1, 2, 3]")
+                self.assertEqual(persisted_file_0, "0")
 
                 persisted_file_1 = storage_client.download_as_string(
                     bucket_name=TEST_BUCKET_NAME,
                     path_in_bucket=storage.path.join(output_directory, dataset.name, "file_1.txt"),
                 )
-                self.assertEqual(persisted_file_1, "[4, 5, 6]")
+                self.assertEqual(persisted_file_1, "1")
 
                 persisted_dataset = json.loads(
                     storage_client.download_as_string(
@@ -480,12 +472,35 @@ class TestDataset(BaseTestCase):
                 self.assertEqual(
                     persisted_dataset["files"],
                     [
-                        "gs://octue-test-bucket/my_datasets/octue-sdk-python/file_0.txt",
-                        "gs://octue-test-bucket/my_datasets/octue-sdk-python/file_1.txt",
+                        f"gs://octue-test-bucket/my_datasets/{dataset_directory_name}/file_0.txt",
+                        f"gs://octue-test-bucket/my_datasets/{dataset_directory_name}/file_1.txt",
                     ],
                 )
 
                 self.assertEqual(persisted_dataset["tags"], dataset.tags.to_primitive())
+
+    def test_to_cloud_with_nested_dataset_preserves_nested_structure(self):
+        """Test that uploading a dataset containing datafiles in a nested directory structure to the cloud preserves
+        this structure in the cloud.
+        """
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            local_paths = self._create_files_and_nested_subdirectories(temporary_directory)
+            dataset = Dataset.from_local_directory(temporary_directory, recursive=True)
+
+            upload_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-dataset")
+            dataset.to_cloud(project_name=TEST_PROJECT_NAME, cloud_path=upload_path)
+
+        uploaded_dataset = Dataset.from_cloud(project_name=TEST_PROJECT_NAME, cloud_path=upload_path)
+
+        # Check that the paths relative to the dataset directory are the same in the cloud as they are locally.
+        local_datafile_relative_paths = {path.split(temporary_directory)[-1].strip("/") for path in local_paths}
+
+        cloud_datafile_relative_paths = {
+            storage.path.split_bucket_name_from_gs_path(datafile.path)[-1].split("my-dataset/")[-1]
+            for datafile in uploaded_dataset.files
+        }
+
+        self.assertEqual(cloud_datafile_relative_paths, local_datafile_relative_paths)
 
     def test_download_all_files(self):
         """Test that all files in a dataset can be downloaded with one command."""
@@ -536,3 +551,23 @@ class TestDataset(BaseTestCase):
 
             with open(os.path.join(temporary_directory, "sub-directory", "sub-sub-directory", "sub_sub_file.txt")) as f:
                 self.assertEqual(f.read(), "['blah', 'b', 'c']")
+
+    def test_from_local_directory(self):
+        """Test that a dataset can be instantiated from a local nested directory ignoring its subdirectories."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            paths = self._create_files_and_nested_subdirectories(temporary_directory)
+            dataset = Dataset.from_local_directory(temporary_directory, recursive=False)
+
+            # Check that just the top-level files from the directory are present in the dataset.
+            datafile_paths = {datafile.path for datafile in dataset.files}
+            self.assertEqual(datafile_paths, set(paths[:2]))
+
+    def test_from_local_directory_recursively(self):
+        """Test that a dataset can be instantiated from a local nested directory including its subdirectories."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            paths = self._create_files_and_nested_subdirectories(temporary_directory)
+            dataset = Dataset.from_local_directory(temporary_directory, recursive=True)
+
+            # Check that all the files from the directory are present in the dataset.
+            datafile_paths = {datafile.path for datafile in dataset.files}
+            self.assertEqual(datafile_paths, set(paths))

@@ -56,6 +56,26 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
         return len(self.files)
 
     @classmethod
+    def from_local_directory(cls, path_to_directory, recursive=False):
+        """Instantiate a Dataset from the files in the given local directory.
+
+        :param str path_to_directory: path to a local directory
+        :param bool recursive: if `True`, include all files in the directory's subdirectories recursively
+        :return Dataset:
+        """
+        datafiles = FilterSet()
+
+        for level, (directory_path, _, filenames) in enumerate(os.walk(path_to_directory)):
+            for filename in filenames:
+
+                if not recursive and level > 0:
+                    break
+
+                datafiles.add(Datafile(path=os.path.join(directory_path, filename)))
+
+        return Dataset(path=path_to_directory, files=datafiles)
+
+    @classmethod
     def from_cloud(
         cls,
         project_name,
@@ -126,9 +146,12 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
             cloud_path = storage.path.generate_gs_path(bucket_name, output_directory, self.name)
 
         for datafile in self.files:
+
+            relative_path = datafile.path.split(self.path)[-1].strip("/")
+
             datafile.to_cloud(
                 project_name,
-                cloud_path=storage.path.join(cloud_path, datafile.name),
+                cloud_path=storage.path.join(cloud_path, relative_path),
             )
 
         self._upload_metadata_file(project_name, cloud_path)
