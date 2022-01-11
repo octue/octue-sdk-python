@@ -1,6 +1,6 @@
 import logging
 import os
-import apache_beam as beam
+import apache_beam
 from apache_beam.options.pipeline_options import PipelineOptions
 
 from octue import REPOSITORY_ROOT
@@ -51,9 +51,10 @@ def deploy_streaming_pipeline(
 
     topic_path = Topic.generate_topic_path(project_name, service_id)
 
-    with beam.Pipeline(options=PipelineOptions(beam_args, streaming=True)) as pipeline:
+    with apache_beam.Pipeline(options=PipelineOptions(beam_args, streaming=True)) as pipeline:
         (
             pipeline
-            | "Read from Pub/Sub" >> beam.io.ReadFromPubSub(topic=topic_path, with_attributes=True)
-            | "Answer question" >> beam.Map(lambda question: answer_question(question, project_name=project_name))
+            | "Read from Pub/Sub" >> apache_beam.io.ReadFromPubSub(topic=topic_path, with_attributes=True)
+            | "Answer question"
+            >> apache_beam.Map(lambda question: answer_question(question, project_name=project_name))
         )
