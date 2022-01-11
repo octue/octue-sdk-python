@@ -147,11 +147,11 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
 
         for datafile in self.files:
 
-            relative_path = datafile.path.split(self.path)[-1].strip("/")
+            datafile_path_relative_to_dataset = datafile.path.split(self.path)[-1].strip("/")
 
             datafile.to_cloud(
                 project_name,
-                cloud_path=storage.path.join(cloud_path, relative_path),
+                cloud_path=storage.path.join(cloud_path, *datafile_path_relative_to_dataset.split(os.path.sep)),
             )
 
         self._upload_metadata_file(project_name, cloud_path)
