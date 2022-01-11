@@ -47,7 +47,7 @@ class Subscription:
 
         self.topic = topic
         self.subscriber = subscriber
-        self.path = self.subscriber.subscription_path(project_name, self.name)
+        self.path = self.generate_subscription_path(project_name, self.name)
         self.ack_deadline = ack_deadline
         self.message_retention_duration = Duration(seconds=message_retention_duration)
 

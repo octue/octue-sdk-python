@@ -23,7 +23,7 @@ class Topic:
             self.name = f"{namespace}.{name}"
 
         self.service = service
-        self.path = self.service.publisher.topic_path(service.backend.project_name, self.name)
+        self.path = self.generate_topic_path(service.backend.project_name, self.name)
         self.messages_published = 0
 
     def __repr__(self):
