@@ -493,7 +493,9 @@ class TestDataset(BaseTestCase):
         uploaded_dataset = Dataset.from_cloud(project_name=TEST_PROJECT_NAME, cloud_path=upload_path)
 
         # Check that the paths relative to the dataset directory are the same in the cloud as they are locally.
-        local_datafile_relative_paths = {path.split(temporary_directory)[-1].strip("/") for path in local_paths}
+        local_datafile_relative_paths = {
+            path.split(temporary_directory)[-1].strip(os.path.sep).replace(os.path.sep, "/") for path in local_paths
+        }
 
         cloud_datafile_relative_paths = {
             storage.path.split_bucket_name_from_gs_path(datafile.path)[-1].split("my-dataset/")[-1]
