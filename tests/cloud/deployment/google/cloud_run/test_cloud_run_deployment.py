@@ -31,7 +31,12 @@ class TestCloudRunDeployment(TestCase):
         """Test that the Google Cloud Run example deployment works, providing a service that can be asked questions and
         send responses.
         """
-        asker = Service(backend=GCPPubSubBackend(project_name=os.environ["TEST_PROJECT_NAME"]))
-        subscription, _ = asker.ask(service_id=self.EXAMPLE_SERVICE_ID, input_values={"n_iterations": 3})
-        answer = asker.wait_for_answer(subscription)
+        parent = Service(backend=GCPPubSubBackend(project_name=os.environ["TEST_PROJECT_NAME"]))
+
+        subscription, _ = parent.ask(
+            service_id=self.EXAMPLE_SERVICE_ID,
+            input_values={"n_iterations": 3},
+        )
+
+        answer = parent.wait_for_answer(subscription)
         self.assertEqual(answer, {"output_values": [1, 2, 3, 4, 5], "output_manifest": None})
