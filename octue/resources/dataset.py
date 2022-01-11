@@ -288,7 +288,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
             return datafile.download(local_path=local_path)
 
         # Use multiple threads to significantly speed up files downloads by reducing latency.
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.map(download, files_and_paths)
 
     def _upload_metadata_file(self, project_name, cloud_path):
