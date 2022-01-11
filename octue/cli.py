@@ -4,7 +4,7 @@ import sys
 import click
 import pkg_resources
 
-from octue.cloud.deployment.google.dataflow import pipeline
+from octue.cloud.deployment.google.dataflow.deploy import DEFAULT_IMAGE_URI, deploy_streaming_pipeline
 from octue.cloud.pub_sub.service import Service
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.log_handlers import get_remote_handler
@@ -223,7 +223,12 @@ def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topi
     service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=delete_topic_and_subscription_on_exit)
 
 
-@octue_cli.command()
+@octue_cli.group()
+def deploy():
+    """Deploy an app to the cloud as a service."""
+
+
+@deploy.command()
 @click.argument("service_name", type=str)
 @click.argument("service_id", type=str)
 @click.argument("project_name", type=str)
@@ -238,11 +243,11 @@ def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topi
 @click.option(
     "--image-uri",
     type=str,
-    default=pipeline.DEFAULT_IMAGE_URI,
+    default=DEFAULT_IMAGE_URI,
     show_default=True,
     help="The URI of the apache-beam-based Docker image to use for the service.",
 )
-def deploy_pipeline(service_name, service_id, project_name, region, runner, image_uri):
+def dataflow(service_name, service_id, project_name, region, runner, image_uri):
     """Deploy an app as a Google Dataflow streaming pipeline service.
 
     SERVICE_NAME - the name to give the service
@@ -253,7 +258,7 @@ def deploy_pipeline(service_name, service_id, project_name, region, runner, imag
 
     REGION - the cloud region to deploy in
     """
-    pipeline.deploy_streaming_pipeline(
+    deploy_streaming_pipeline(
         service_name=service_name,
         project_name=project_name,
         service_id=service_id,
