@@ -17,7 +17,7 @@ def create_formatter(logging_metadata):
 
 
 # Logging format for analysis runs. All handlers should use this logging format, to make logs consistently parseable
-LOGGING_METADATA_WITH_TIMESTAMP = ("%(asctime)s", "%(levelname)s", "%(name)s")
+LOGGING_METADATA_WITH_TIMESTAMP = ["%(asctime)s", "%(levelname)s", "%(name)s"]
 FORMATTER_WITH_TIMESTAMP = create_formatter(LOGGING_METADATA_WITH_TIMESTAMP)
 FORMATTER_WITHOUT_TIMESTAMP = create_formatter(LOGGING_METADATA_WITH_TIMESTAMP[1:])
 
@@ -29,7 +29,7 @@ def apply_log_handler(logger_name=None, handler=None, log_level=logging.INFO, fo
     :param logging.Handler handler: The handler to use. If None, default console handler will be attached.
     :param int log_level: ignore log messages below this level
     :param logging.Formatter|None formatter: if this is `None`, the default `FORMATTER_WITH_TIMESTAMP` is used
-    :return logging.Logger:
+    :return logging.Handler:
     """
     handler = handler or logging.StreamHandler()
     handler.setFormatter(formatter or FORMATTER_WITH_TIMESTAMP)
@@ -51,7 +51,7 @@ def apply_log_handler(logger_name=None, handler=None, log_level=logging.INFO, fo
             local_logger.removeHandler(temporary_handler)
             break
 
-    return logger
+    return handler
 
 
 def get_remote_handler(logger_uri, formatter=None):
@@ -84,3 +84,10 @@ def get_formatter():
         return FORMATTER_WITHOUT_TIMESTAMP
     else:
         return FORMATTER_WITH_TIMESTAMP
+
+
+def get_metadata_schema():
+    if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") == "GOOGLE_CLOUD_RUN":
+        return LOGGING_METADATA_WITH_TIMESTAMP[1:]
+
+    return LOGGING_METADATA_WITH_TIMESTAMP
