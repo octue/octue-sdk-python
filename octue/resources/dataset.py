@@ -145,14 +145,30 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
         if not cloud_path:
             cloud_path = storage.path.generate_gs_path(bucket_name, output_directory, self.name)
 
+        files_and_paths = []
+
         for datafile in self.files:
-
-            datafile_path_relative_to_dataset = datafile.path.split(self.path)[-1].strip("/")
-
-            datafile.to_cloud(
-                project_name,
-                cloud_path=storage.path.join(cloud_path, *datafile_path_relative_to_dataset.split(os.path.sep)),
+            datafile_path_relative_to_dataset = datafile.path.split(self.path)[-1].strip(os.path.sep).strip("/")
+            files_and_paths.append(
+                (
+                    datafile,
+                    storage.path.join(cloud_path, *datafile_path_relative_to_dataset.split(os.path.sep)),
+                )
             )
+
+        def upload(iterable_element):
+            """Upload a datafile to the given cloud path.
+
+            :param tuple(octue.resources.datafile.Datafile, str) iterable_element:
+            :return None:
+            """
+            datafile = iterable_element[0]
+            cloud_path = iterable_element[1]
+            datafile.to_cloud(project_name, cloud_path=cloud_path)
+
+        # Use multiple threads to significantly speed up file uploads by reducing latency.
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.map(upload, files_and_paths)
 
         self._upload_metadata_file(project_name, cloud_path)
         return cloud_path
