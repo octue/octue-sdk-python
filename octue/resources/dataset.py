@@ -1,28 +1,23 @@
 import concurrent.futures
 import json
-import logging
 import os
-import warnings
 import google.api_core.exceptions
 
 from octue import definitions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException
-from octue.mixins import Hashable, Identifiable, Labelable, Loggable, Pathable, Serialisable, Taggable
+from octue.mixins import Hashable, Identifiable, Labelable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.resources.label import LabelSet
 from octue.resources.tag import TagDict
 
 
-module_logger = logging.getLogger(__name__)
-
-
 DATAFILES_DIRECTORY = "datafiles"
 
 
-class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable):
+class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashable):
     """A representation of a dataset, containing files, labels, etc
 
     This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
@@ -32,8 +27,8 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
     _ATTRIBUTES_TO_HASH = ("files",)
     _SERIALISE_FIELDS = "files", "name", "labels", "tags", "id", "path"
 
-    def __init__(self, name=None, id=None, logger=None, path=None, path_from=None, tags=None, labels=None, **kwargs):
-        super().__init__(name=name, id=id, logger=logger, tags=tags, labels=labels, path=path, path_from=path_from)
+    def __init__(self, name=None, id=None, path=None, path_from=None, tags=None, labels=None, **kwargs):
+        super().__init__(name=name, id=id, tags=tags, labels=labels, path=path, path_from=path_from)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
@@ -216,39 +211,6 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiabl
         else:
             # Add a single file, constructed by passing the arguments through to DataFile()
             self.files.add(Datafile(**kwargs))
-
-    def append(self, *args, **kwargs):
-        """Add a data/results file to the manifest. This method is deprecated in favour of `Dataset.add`.
-
-        Usage:
-            my_file = octue.DataFile(...)
-            my_manifest.append(my_file)
-
-            # or more simply
-            my_manifest.append(**{...}) which implicitly creates the datafile from the starred list of input arguments
-        """
-        warnings.warn(
-            "The `Dataset.append` method has been deprecated and replaced with `Dataset.add` to reflect that Datafiles "
-            "are stored in a set and not a list. Calls to `Dataset.append` will be redirected to the new method for "
-            "now, but please use `Datafile.add` in future.",
-            DeprecationWarning,
-        )
-        self.files.add(*args, **kwargs)
-
-    def get_files(self, **kwargs):
-        """Get files from the dataset that meet the given filters. This method has been deprecated in favour of
-        `Dataset.files.filter`.
-
-        :return octue.resources.filter_containers.FilterSet:
-        """
-        warnings.warn(
-            "The `Dataset.get_files` method has been deprecated and replaced with `Dataset.files.filter`, which has "
-            "the same interface but with the `field_lookup` argument renamed to `filter_name`. Calls to "
-            "`Dataset.get_files` will be redirected to the new method for now, but please use `Datafile.files.filter` "
-            "in future.",
-            DeprecationWarning,
-        )
-        return self.files.filter(**kwargs)
 
     def get_file_by_label(self, label):
         """Get a single datafile from a dataset by filtering for files with the provided label.

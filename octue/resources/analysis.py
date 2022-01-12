@@ -4,7 +4,7 @@ import logging
 import twined.exceptions
 from octue.definitions import OUTPUT_STRANDS
 from octue.exceptions import InvalidMonitorMessage
-from octue.mixins import Hashable, Identifiable, Labelable, Loggable, Serialisable, Taggable
+from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.folders import get_file_name_from_strand
@@ -25,7 +25,7 @@ HASH_FUNCTIONS = {
 CLASS_MAP = {"configuration_manifest": Manifest, "input_manifest": Manifest, "output_manifest": Manifest}
 
 
-class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
+class Analysis(Identifiable, Serialisable, Labelable, Taggable):
     """A class representing a scientific or computational analysis, holding references to all configuration, input, and
     output data.
 
@@ -53,7 +53,6 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
     :param any output_values: see Runner.run() for definition
     :param octue.resources.manifest.Manifest output_manifest: see Runner.run() for definition
     :param str id: Optional UUID for the analysis
-    :param logging.Logger logger: Optional logging.Logger instance attached to the analysis
     :return None:
     """
 

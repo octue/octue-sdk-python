@@ -292,21 +292,21 @@ class AppFrom:
 
 
 class AnalysisLogHandlerSwitcher:
-    """A context manager that, in its context, takes the given logger, removes its handlers, and adds a local handler
+    """A context manager that, when activated, takes the given logger, removes its handlers, and adds a local handler
     and any other handlers provided to it. A formatter is applied to the handlers that includes the given analysis ID
-    in the logging metadata. On leaving the context, the logger's initial handlers are restored to it and any that were
+    in the logging context. On leaving the context, the logger's initial handlers are restored to it and any that were
     added to it in the context are removed.
 
     :param str analysis_id:
     :param logger.Logger logger:
     :param str analysis_log_level:
-    :param list(logger.Logger) extra_log_handlers:
+    :param list(logging.Handler) extra_log_handlers:
     :return None:
     """
 
     def __init__(self, analysis_id, logger, analysis_log_level, extra_log_handlers=None):
-        self.logger = logger
         self.analysis_id = analysis_id
+        self.logger = logger
         self.analysis_log_level = analysis_log_level
         self.extra_log_handlers = extra_log_handlers or []
         self.initial_handlers = []
