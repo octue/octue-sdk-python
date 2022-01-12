@@ -4,22 +4,22 @@ import os
 from urllib.parse import urlparse
 
 
-def create_octue_formatter(logging_metadata):
+def create_octue_formatter(logging_metadata_schema):
     """Create a log formatter from the given logging metadata that delimits the context fields with space-padded
     pipes and encapsulates the whole context in square brackets before adding the message at the end. e.g. if the
     logging metadata was `("%(asctime)s", "%(levelname)s", "%(name)s")`, the formatter would format log messages as e.g.
     `[2021-06-29 11:58:10,985 | INFO | octue.runner] This is a log message.`
 
-    :param iter(str) logging_metadata: an iterable of context fields to use as context for every log message that the formatter is applied to
+    :param iter(str) logging_metadata_schema: an iterable of context fields to use as context for every log message that the formatter is applied to
     :return logging.Formatter:
     """
-    return logging.Formatter("[" + " | ".join(logging_metadata) + "]" + " %(message)s")
+    return logging.Formatter("[" + " | ".join(logging_metadata_schema) + "]" + " %(message)s")
 
 
 # Logging format for analysis runs. All handlers should use this logging format, to make logs consistently parseable
-LOGGING_METADATA_WITH_TIMESTAMP = ["%(asctime)s", "%(levelname)s", "%(name)s"]
-FORMATTER_WITH_TIMESTAMP = create_octue_formatter(LOGGING_METADATA_WITH_TIMESTAMP)
-FORMATTER_WITHOUT_TIMESTAMP = create_octue_formatter(LOGGING_METADATA_WITH_TIMESTAMP[1:])
+LOGGING_METADATA_SCHEMA_WITH_TIMESTAMP = ["%(asctime)s", "%(levelname)s", "%(name)s"]
+FORMATTER_WITH_TIMESTAMP = create_octue_formatter(LOGGING_METADATA_SCHEMA_WITH_TIMESTAMP)
+FORMATTER_WITHOUT_TIMESTAMP = create_octue_formatter(LOGGING_METADATA_SCHEMA_WITH_TIMESTAMP[1:])
 
 
 def apply_log_handler(logger_name=None, handler=None, log_level=logging.INFO, formatter=None):
@@ -73,21 +73,14 @@ def get_remote_handler(logger_uri, formatter=None):
     return handler
 
 
-def get_formatter():
-    """Get the correct formatter for the environment. If the environment is Google Cloud Run, use a log handler with a
-    formatter that doesn't include the timestamp in the log message context to avoid the date appearing twice in the
-    Google Cloud Run logs (Google adds its own timestamp to log messages).
+def get_metadata_schema():
+    """Get the correct metadata schema for the environment. If the environment is Google Cloud Run, use a log handler
+    with a formatter that doesn't include the timestamp in the log message context to avoid the date appearing twice in
+    the Google Cloud Run logs (Google adds its own timestamp to log messages).
 
-    :return logging.Formatter:
+    :return list:
     """
     if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") == "GOOGLE_CLOUD_RUN":
-        return FORMATTER_WITHOUT_TIMESTAMP
-    else:
-        return FORMATTER_WITH_TIMESTAMP
+        return LOGGING_METADATA_SCHEMA_WITH_TIMESTAMP[1:]
 
-
-def get_metadata_schema():
-    if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") == "GOOGLE_CLOUD_RUN":
-        return LOGGING_METADATA_WITH_TIMESTAMP[1:]
-
-    return LOGGING_METADATA_WITH_TIMESTAMP
+    return LOGGING_METADATA_SCHEMA_WITH_TIMESTAMP

@@ -307,7 +307,7 @@ class AnalysisLogHandlerSwitcher:
         self._remove_log_handlers()
 
         logging_metadata = get_metadata_schema() + [f"analysis-{self.analysis_id}"]
-        formatter = create_octue_formatter(logging_metadata=logging_metadata)
+        formatter = create_octue_formatter(logging_metadata_schema=logging_metadata)
 
         apply_log_handler(formatter=formatter, log_level=self.analysis_log_level)
 
