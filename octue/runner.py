@@ -6,7 +6,7 @@ import google.api_core.exceptions
 from google.cloud import secretmanager
 
 from octue.cloud.credentials import GCPCredentialsManager
-from octue.log_handlers import apply_log_handler, get_formatter
+from octue.log_handlers import apply_log_handler, create_octue_formatter, get_log_record_attributes_for_environment
 from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.utils import gen_uuid
@@ -118,69 +118,58 @@ class Runner:
         )
 
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
-        analysis_logger_name = f"{__name__} | analysis-{analysis_id}"
-        formatter = get_formatter()
 
-        # Apply the default stderr log handler to the analysis logger.
-        analysis_logger = apply_log_handler(
-            logger_name=analysis_logger_name, log_level=analysis_log_level, formatter=formatter
-        )
+        # Temporarily replace the root logger's handlers with a `StreamHandler` and the analysis log handler that
+        # include the analysis ID in the logging metadata.
+        with AnalysisLogHandlerSwitcher(
+            analysis_id=analysis_id,
+            logger=logging.getLogger(),
+            analysis_log_level=analysis_log_level,
+            extra_log_handlers=[analysis_log_handler],
+        ):
 
-        # Also apply the given analysis log handler if given.
-        if analysis_log_handler:
-            apply_log_handler(
-                logger_name=analysis_logger_name,
-                handler=analysis_log_handler,
-                log_level=analysis_log_level,
-                formatter=formatter,
+            analysis = Analysis(
+                id=analysis_id,
+                twine=self.twine,
+                handle_monitor_message=handle_monitor_message,
+                skip_checks=self.skip_checks,
+                **self.configuration,
+                **inputs,
+                **outputs_and_monitors,
             )
 
-        # Stop messages logged by the analysis logger being repeated by the root logger.
-        analysis_logger.propagate = False
+            try:
+                # App as a class that takes "analysis" as a constructor argument and contains a method named "run" that
+                # takes no arguments.
+                if isinstance(self.app_src, type):
+                    self.app_src(analysis).run()
 
-        analysis = Analysis(
-            id=analysis_id,
-            twine=self.twine,
-            handle_monitor_message=handle_monitor_message,
-            logger=analysis_logger,
-            skip_checks=self.skip_checks,
-            **self.configuration,
-            **inputs,
-            **outputs_and_monitors,
-        )
+                # App as a module containing a function named "run" that takes "analysis" as an argument.
+                elif hasattr(self.app_src, "run"):
+                    self.app_src.run(analysis)
 
-        try:
-            # App as a class that takes "analysis" as a constructor argument and contains a method named "run" that
-            # takes no arguments.
-            if isinstance(self.app_src, type):
-                self.app_src(analysis).run()
+                # App as a string path to a module containing a class named "App" or a function named "run". The same other
+                # specifications apply as described above.
+                elif isinstance(self.app_src, str):
 
-            # App as a module containing a function named "run" that takes "analysis" as an argument.
-            elif hasattr(self.app_src, "run"):
-                self.app_src.run(analysis)
+                    with AppFrom(self.app_src) as app:
+                        if hasattr(app.app_module, "App"):
+                            app.app_module.App(analysis).run()
+                        else:
+                            app.run(analysis)
 
-            # App as a string path to a module containing a class named "App" or a function named "run". The same other
-            # specifications apply as described above.
-            elif isinstance(self.app_src, str):
+                # App as a function that takes "analysis" as an argument.
+                else:
+                    self.app_src(analysis)
 
-                with AppFrom(self.app_src) as app:
-                    if hasattr(app.app_module, "App"):
-                        app.app_module.App(analysis).run()
-                    else:
-                        app.run(analysis)
+            except ModuleNotFoundError as e:
+                raise ModuleNotFoundError(f"{e.msg} in {os.path.abspath(self.app_src)!r}.")
 
-            # App as a function that takes "analysis" as an argument.
-            else:
-                self.app_src(analysis)
+            except Exception as e:
+                logger.error(str(e))
+                raise e
 
-        except ModuleNotFoundError as e:
-            raise ModuleNotFoundError(f"{e.msg} in {os.path.abspath(self.app_src)!r}.")
-
-        except Exception as e:
-            analysis_logger.error(str(e))
-            raise e
-
-        return analysis
+            return analysis
 
     @staticmethod
     def _update_manifest_path(manifest, pathname):
@@ -300,3 +289,65 @@ class AppFrom:
     def run(self):
         """Get the unwrapped run function from app.py in the application's root directory."""
         return unwrap(self.app_module.run)
+
+
+class AnalysisLogHandlerSwitcher:
+    """A context manager that, in its context, takes the given logger, removes its handlers, and adds a local handler
+    and any other handlers provided to it. A formatter is applied to the handlers that includes the given analysis ID
+    in the logging metadata. On leaving the context, the logger's initial handlers are restored to it and any that were
+    added to it in the context are removed.
+
+    :param str analysis_id:
+    :param logger.Logger logger:
+    :param str analysis_log_level:
+    :param list(logger.Logger) extra_log_handlers:
+    :return None:
+    """
+
+    def __init__(self, analysis_id, logger, analysis_log_level, extra_log_handlers=None):
+        self.logger = logger
+        self.analysis_id = analysis_id
+        self.analysis_log_level = analysis_log_level
+        self.extra_log_handlers = extra_log_handlers or []
+        self.initial_handlers = []
+
+    def __enter__(self):
+        """Remove the initial handlers from the logger, create a formatter that includes the analysis ID, use the
+        formatter on the local and extra handlers, and add these handlers to the logger.
+
+        :return None:
+        """
+        self.initial_handlers = list(self.logger.handlers)
+        self._remove_log_handlers()
+
+        # Add the analysis ID to the logging metadata.
+        log_record_attributes = get_log_record_attributes_for_environment() + [f"analysis-{self.analysis_id}"]
+        formatter = create_octue_formatter(log_record_attributes=log_record_attributes)
+
+        # Apply a local console `StreamHandler` to the logger.
+        apply_log_handler(formatter=formatter, log_level=self.analysis_log_level)
+
+        if not self.extra_log_handlers:
+            return
+
+        # Apply any other given handlers to the logger.
+        for extra_handler in self.extra_log_handlers:
+            apply_log_handler(handler=extra_handler, log_level=self.analysis_log_level, formatter=formatter)
+
+    def __exit__(self, *args):
+        """Remove the new handlers from the logger and re-add the initial handlers.
+
+        :return None:
+        """
+        self._remove_log_handlers()
+
+        for handler in self.initial_handlers:
+            self.logger.addHandler(handler)
+
+    def _remove_log_handlers(self):
+        """Remove all handlers from the logger.
+
+        :return None:
+        """
+        for handler in list(self.logger.handlers):
+            self.logger.removeHandler(handler)

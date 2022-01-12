@@ -1,7 +1,11 @@
 """A module containing helper functions for sending monitor messages that conform to the Octue essential monitor
 message schema https://refs.schema.octue.com/octue/essential-monitors/0.0.2.json
 """
+import logging
 from datetime import datetime, timezone
+
+
+logger = logging.getLogger(__name__)
 
 
 def send_status_text(analysis, text, service_name):
@@ -15,7 +19,7 @@ def send_status_text(analysis, text, service_name):
     analysis.send_monitor_message(
         {"service": service_name, "status_text": text, "date_time": datetime.now(timezone.utc).isoformat()}
     )
-    analysis.logger.info(text)
+    logger.info(text)
 
 
 def send_estimated_seconds_remaining(analysis, estimated_seconds_remaining, service_name):

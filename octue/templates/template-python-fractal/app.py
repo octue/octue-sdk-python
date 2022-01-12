@@ -1,4 +1,9 @@
+import logging
+
 from fractal import fractal
+
+
+logger = logging.getLogger(__name__)
 
 
 def run(analysis, *args, **kwargs):
@@ -32,21 +37,21 @@ def run(analysis, *args, **kwargs):
 
     """
     # You can use the attached logger to record debug statements, general information, warnings or errors
-    # analysis.logger.info("The input directory is %s", analysis.input_dir)
-    # analysis.logger.info("The output directory is %s", analysis.output_dir)
-    # analysis.logger.info("The tmp directory, where you can store temporary files or caches, is %s", analysis.tmp_dir)
+    # logger.info("The input directory is %s", analysis.input_dir)
+    # logger.info("The output directory is %s", analysis.output_dir)
+    # logger.info("The tmp directory, where you can store temporary files or caches, is %s", analysis.tmp_dir)
 
     # Print statements will get logged...
     print("Hello! The app is running!")  # noqa: T001
 
     # ... but we encourage you to use the attached logger, which handles sending logs to remote services and allows them
     # to be viewed with twined server
-    analysis.logger.info(
+    logger.info(
         "The logger can be used for capturing different 'levels' of statement - for debug, info, warnings or errors."
     )
 
     # You can access any of the configuration or input values, anywhere in your code, from the analysis object
-    analysis.logger.info("The maximum number of iterations will be %s", analysis.configuration_values)
+    logger.info("The maximum number of iterations will be %s", analysis.configuration_values)
 
     # Run the code
     fractal(analysis)
