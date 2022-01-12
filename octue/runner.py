@@ -322,18 +322,19 @@ class AnalysisLogHandlerSwitcher:
         self.initial_handlers = list(self.logger.handlers)
         self._remove_log_handlers()
 
+        # Add the analysis ID to the logging metadata.
         logging_metadata = get_metadata_schema_for_current_compute_platform() + [f"analysis-{self.analysis_id}"]
         formatter = create_octue_formatter(logging_metadata_schema=logging_metadata)
 
+        # Apply a local console `StreamHandler` to the logger.
         apply_log_handler(formatter=formatter, log_level=self.analysis_log_level)
 
-        if self.extra_log_handlers:
-            for extra_handler in self.extra_log_handlers:
-                apply_log_handler(
-                    handler=extra_handler,
-                    log_level=self.analysis_log_level,
-                    formatter=formatter,
-                )
+        if not self.extra_log_handlers:
+            return
+
+        # Apply any other given handlers to the logger.
+        for extra_handler in self.extra_log_handlers:
+            apply_log_handler(handler=extra_handler, log_level=self.analysis_log_level, formatter=formatter)
 
     def __exit__(self, *args):
         """Remove the new handlers from the logger and re-add the initial handlers.
