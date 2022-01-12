@@ -2,7 +2,6 @@ import copy
 import json
 import os
 import tempfile
-import warnings
 
 from octue import definitions, exceptions
 from octue.cloud import storage
@@ -78,17 +77,6 @@ class TestDataset(BaseTestCase):
         dataset = self.create_valid_dataset()
         iterated_files = {file for file in dataset}
         self.assertEqual(iterated_files, dataset.files)
-
-    def test_using_append_raises_deprecation_warning(self):
-        """Test that Dataset.append is deprecated but gets redirected to Dataset.add."""
-        resource = Dataset()
-
-        with warnings.catch_warnings(record=True) as warning:
-            resource.append(Datafile(path="path-within-dataset/a_test_file.csv"))
-            self.assertEqual(len(warning), 1)
-            self.assertTrue(issubclass(warning[-1].category, DeprecationWarning))
-            self.assertIn("deprecated", str(warning[-1].message))
-            self.assertEqual(len(resource.files), 1)
 
     def test_add_single_file_to_empty_dataset(self):
         """Ensures that when a dataset is empty, it can be added to"""
@@ -256,20 +244,6 @@ class TestDataset(BaseTestCase):
         )
         files = resource.files.filter(name__icontains="second")
         self.assertEqual(0, len(files))
-
-    def test_using_get_files_raises_deprecation_warning(self):
-        """Test that Dataset.get_files is deprecated but gets redirected to Dataset.files.filter."""
-        resource = Dataset(
-            files=[
-                Datafile(path="first-path-within-dataset/a_test_file.csv"),
-                Datafile(path="second-path-within-dataset/a_test_file.txt"),
-            ]
-        )
-
-        with warnings.catch_warnings(record=True) as warning:
-            filtered_files = resource.get_files(name__icontains="second")
-            self.assertIn("deprecated", str(warning[-1].message))
-            self.assertEqual(len(filtered_files), 0)
 
     def test_hash_value(self):
         """Test hashing a dataset with multiple files gives a hash of length 8."""
