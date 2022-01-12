@@ -19,7 +19,7 @@ cloud_run.app.testing = True
 
 class TestCloudRun(TestCase):
     # This is the service ID of the example service deployed to Google Cloud Run.
-    EXAMPLE_SERVICE_ID = "octue.services.009ea106-dc37-4521-a8cc-3e0836064334"
+    EXAMPLE_SERVICE_ID = "octue.services.afbf37e3-7650-4e79-bc8e-37c0c26eae13"
 
     def test_post_to_index_with_no_payload_results_in_400_error(self):
         """Test that a 400 (bad request) error code is returned if no payload is sent to the Flask endpoint."""

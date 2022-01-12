@@ -1,3 +1,4 @@
+import logging
 import tempfile
 import uuid
 from unittest.mock import patch
@@ -22,6 +23,9 @@ from tests.cloud.pub_sub.mocks import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+
 BACKEND = GCPPubSubBackend(
     project_name=TEST_PROJECT_NAME, credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS"
 )
@@ -34,10 +38,10 @@ def create_run_function():
     """
 
     def mock_app(analysis):
-        analysis.logger.info("Starting analysis.")
+        logger.info("Starting analysis.")
         analysis.output_values = "Hello! It worked!"
         analysis.output_manifest = None
-        analysis.logger.info("Finished analysis.")
+        logger.info("Finished analysis.")
 
     twine = """
         {
