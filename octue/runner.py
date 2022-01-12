@@ -6,11 +6,7 @@ import google.api_core.exceptions
 from google.cloud import secretmanager
 
 from octue.cloud.credentials import GCPCredentialsManager
-from octue.log_handlers import (
-    apply_log_handler,
-    create_octue_formatter,
-    get_metadata_schema_for_current_compute_platform,
-)
+from octue.log_handlers import apply_log_handler, create_octue_formatter, get_log_record_attributes_for_environment
 from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.utils import gen_uuid
@@ -325,8 +321,8 @@ class AnalysisLogHandlerSwitcher:
         self._remove_log_handlers()
 
         # Add the analysis ID to the logging metadata.
-        logging_metadata = get_metadata_schema_for_current_compute_platform() + [f"analysis-{self.analysis_id}"]
-        formatter = create_octue_formatter(logging_metadata_schema=logging_metadata)
+        log_record_attributes = get_log_record_attributes_for_environment() + [f"analysis-{self.analysis_id}"]
+        formatter = create_octue_formatter(log_record_attributes=log_record_attributes)
 
         # Apply a local console `StreamHandler` to the logger.
         apply_log_handler(formatter=formatter, log_level=self.analysis_log_level)

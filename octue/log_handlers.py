@@ -5,37 +5,37 @@ from urllib.parse import urlparse
 
 
 # Logging format for analysis runs. All handlers should use this logging format to make logs consistently parseable.
-LOGGING_METADATA_SCHEMA_WITH_TIMESTAMP = ["%(asctime)s", "%(levelname)s", "%(name)s"]
-LOGGING_METADATA_SCHEMA_WITHOUT_TIMESTAMP = LOGGING_METADATA_SCHEMA_WITH_TIMESTAMP[1:]
+LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP = ["%(asctime)s", "%(levelname)s", "%(name)s"]
+LOG_RECORD_ATTRIBUTES_WITHOUT_TIMESTAMP = LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP[1:]
 
 
 def create_octue_formatter(
-    logging_metadata_schema,
+    log_record_attributes,
     include_line_number=False,
     include_process_name=False,
     include_thread_name=False,
 ):
-    """Create a log formatter from the given logging metadata that delimits the context fields with space-padded
-    pipes and encapsulates the whole context in square brackets before adding the message at the end. e.g. if the
-    logging metadata was `("%(asctime)s", "%(levelname)s", "%(name)s")`, the formatter would format log messages as e.g.
+    """Create a log formatter from the given log record attributes that delimits the attributes with space-padded pipes
+    and encapsulates the whole log message context in square brackets before adding the message at the end. e.g. if the
+    attributes are `["%(asctime)s", "%(levelname)s", "%(name)s"]`, the formatter would format log messages as e.g.
     `[2021-06-29 11:58:10,985 | INFO | octue.runner] This is a log message.`
 
-    :param iter(str) logging_metadata_schema: an iterable of context fields to use as context for every log message that the formatter is applied to
+    :param iter(str) log_record_attributes: an iterable of log record attribute names to use as context for every log message that the formatter is applied to
     :param bool include_line_number: if `True`, include the line number in the log context
     :param bool include_process_name: if `True`, include the process name in the log context
     :param bool include_thread_name: if `True`, include the thread name in the log context
     :return logging.Formatter:
     """
-    extra_metadata = []
+    extra_attributes = []
 
     if include_line_number:
-        extra_metadata.append("%(lineno)d")
+        extra_attributes.append("%(lineno)d")
     if include_process_name:
-        extra_metadata.append("%(processName)s")
+        extra_attributes.append("%(processName)s")
     if include_thread_name:
-        extra_metadata.append("%(threadName)s")
+        extra_attributes.append("%(threadName)s")
 
-    return logging.Formatter("[" + " | ".join(logging_metadata_schema + extra_metadata) + "]" + " %(message)s")
+    return logging.Formatter("[" + " | ".join(log_record_attributes + extra_attributes) + "]" + " %(message)s")
 
 
 def apply_log_handler(
@@ -62,7 +62,7 @@ def apply_log_handler(
 
     if formatter is None:
         formatter = create_octue_formatter(
-            logging_metadata_schema=get_metadata_schema_for_current_compute_platform(),
+            log_record_attributes=get_log_record_attributes_for_environment(),
             include_line_number=include_line_number,
             include_process_name=include_process_name,
             include_thread_name=include_thread_name,
@@ -98,7 +98,8 @@ def get_remote_handler(
     include_process_name=False,
     include_thread_name=False,
 ):
-    """Get a log handler for streaming logs to a remote URI accessed via HTTP or HTTPS. The given formatter is applied.
+    """Get a log handler for streaming logs to a remote URI accessed via HTTP or HTTPS. The default octue log formatter
+    is used if no formatter is provided.
 
     :param str logger_uri: the URI to stream the logs to
     :param logging.Formatter|None formatter: if provided, this formatter is used and the other formatting options are ignored
@@ -117,7 +118,7 @@ def get_remote_handler(
     handler = logging.handlers.SocketHandler(host=parsed_uri.hostname, port=parsed_uri.port)
 
     formatter = formatter or create_octue_formatter(
-        logging_metadata_schema=get_metadata_schema_for_current_compute_platform(),
+        log_record_attributes=get_log_record_attributes_for_environment(),
         include_line_number=include_line_number,
         include_process_name=include_process_name,
         include_thread_name=include_thread_name,
@@ -127,14 +128,14 @@ def get_remote_handler(
     return handler
 
 
-def get_metadata_schema_for_current_compute_platform():
-    """Get the correct metadata schema for the environment. If the environment is Google Cloud Run, use a log handler
-    with a formatter that doesn't include the timestamp in the log message context to avoid the date appearing twice in
-    the Google Cloud Run logs (Google adds its own timestamp to log messages).
+def get_log_record_attributes_for_environment():
+    """Get the correct log record attributes for the environment. If the environment is Google Cloud Run, get log record
+    attributes not including the timestamp in the log context to avoid the date appearing twice in the Google Cloud Run
+    logs (Google adds its own timestamp to log messages). Otherwise, get log record attributes including the timestamp.
 
     :return list:
     """
     if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") == "GOOGLE_CLOUD_RUN":
-        return LOGGING_METADATA_SCHEMA_WITH_TIMESTAMP[1:]
+        return LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP[1:]
 
-    return LOGGING_METADATA_SCHEMA_WITH_TIMESTAMP
+    return LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP
