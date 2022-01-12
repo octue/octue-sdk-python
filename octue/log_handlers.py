@@ -18,8 +18,8 @@ def create_octue_formatter(logging_metadata_schema):
 
 # Logging format for analysis runs. All handlers should use this logging format, to make logs consistently parseable
 LOGGING_METADATA_SCHEMA_WITH_TIMESTAMP = ["%(asctime)s", "%(levelname)s", "%(name)s"]
+LOGGING_METADATA_SCHEMA_WITHOUT_TIMESTAMP = LOGGING_METADATA_SCHEMA_WITH_TIMESTAMP[1:]
 FORMATTER_WITH_TIMESTAMP = create_octue_formatter(LOGGING_METADATA_SCHEMA_WITH_TIMESTAMP)
-FORMATTER_WITHOUT_TIMESTAMP = create_octue_formatter(LOGGING_METADATA_SCHEMA_WITH_TIMESTAMP[1:])
 
 
 def apply_log_handler(logger_name=None, handler=None, log_level=logging.INFO, formatter=None):
