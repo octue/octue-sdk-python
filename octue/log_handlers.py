@@ -4,7 +4,7 @@ import os
 from urllib.parse import urlparse
 
 
-def create_formatter(logging_metadata):
+def create_octue_formatter(logging_metadata):
     """Create a log formatter from the given logging metadata that delimits the context fields with space-padded
     pipes and encapsulates the whole context in square brackets before adding the message at the end. e.g. if the
     logging metadata was `("%(asctime)s", "%(levelname)s", "%(name)s")`, the formatter would format log messages as e.g.
@@ -18,8 +18,8 @@ def create_formatter(logging_metadata):
 
 # Logging format for analysis runs. All handlers should use this logging format, to make logs consistently parseable
 LOGGING_METADATA_WITH_TIMESTAMP = ["%(asctime)s", "%(levelname)s", "%(name)s"]
-FORMATTER_WITH_TIMESTAMP = create_formatter(LOGGING_METADATA_WITH_TIMESTAMP)
-FORMATTER_WITHOUT_TIMESTAMP = create_formatter(LOGGING_METADATA_WITH_TIMESTAMP[1:])
+FORMATTER_WITH_TIMESTAMP = create_octue_formatter(LOGGING_METADATA_WITH_TIMESTAMP)
+FORMATTER_WITHOUT_TIMESTAMP = create_octue_formatter(LOGGING_METADATA_WITH_TIMESTAMP[1:])
 
 
 def apply_log_handler(logger_name=None, handler=None, log_level=logging.INFO, formatter=None):
