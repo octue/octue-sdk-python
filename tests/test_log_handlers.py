@@ -69,6 +69,27 @@ class TestLogging(BaseTestCase):
 
         mock_apply_log_handler.assert_called()
 
+    def test_extra_log_metadata_is_included_if_relevant_environment_variables_provided(self):
+        """Test that the expected extra log metadata is included in the log context if the relevant environment
+        variables are provided.
+        """
+        with mock.patch.dict(
+            os.environ,
+            USE_OCTUE_LOG_HANDLER="1",
+            INCLUDE_LINE_NUMBER_LOG_METADATA="1",
+            INCLUDE_PROCESS_NAME_LOG_METADATA="1",
+            INCLUDE_THREAD_NAME_LOG_METADATA="1",
+        ):
+            with mock.patch("octue.log_handlers.apply_log_handler") as mock_apply_log_handler:
+                importlib.reload(sys.modules["octue"])
+
+                mock_apply_log_handler.assert_called_with(
+                    logger_name=None,
+                    include_line_number=True,
+                    include_process_name=True,
+                    include_thread_name=True,
+                )
+
 
 class TestGetRemoteHandler(BaseTestCase):
     def test_get_remote_handler_parses_ws_properly(self):

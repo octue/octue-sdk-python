@@ -13,7 +13,7 @@ if int(os.environ.get("USE_OCTUE_LOG_HANDLER", "0")) == 1:
     # they have their own.
     apply_log_handler(
         logger_name=None,  # Apply to the root logger.
-        include_line_number=os.environ.get("INCLUDE_LINE_NUMBER_LOG_METADATA", False),
-        include_process_name=os.environ.get("INCLUDE_PROCESS_NAME_LOG_METADATA", False),
-        include_thread_name=os.environ.get("INCLUDE_THREAD_NAME_LOG_METADATA", False),
+        include_line_number=bool(int(os.environ.get("INCLUDE_LINE_NUMBER_LOG_METADATA", 0))),
+        include_process_name=bool(int(os.environ.get("INCLUDE_PROCESS_NAME_LOG_METADATA", 0))),
+        include_thread_name=bool(int(os.environ.get("INCLUDE_THREAD_NAME_LOG_METADATA", 0))),
     )
