@@ -21,7 +21,12 @@ class TestLogging(BaseTestCase):
             with mock.patch("octue.log_handlers.create_octue_formatter") as create_octue_formatter:
                 importlib.reload(sys.modules["octue"])
 
-        create_octue_formatter.assert_called_with(logging_metadata_schema=LOGGING_METADATA_SCHEMA_WITHOUT_TIMESTAMP)
+        create_octue_formatter.assert_called_with(
+            logging_metadata_schema=LOGGING_METADATA_SCHEMA_WITHOUT_TIMESTAMP,
+            include_line_number=False,
+            include_process_name=False,
+            include_thread_name=False,
+        )
 
     def test_metadata_schema_with_timestamp_used_if_compute_provider_is_not_google_cloud_run(self):
         """Test that the formatter without a timestamp is used for logging if the `COMPUTE_PROVIDER` environment
@@ -31,7 +36,12 @@ class TestLogging(BaseTestCase):
             with mock.patch("octue.log_handlers.create_octue_formatter") as create_octue_formatter:
                 importlib.reload(sys.modules["octue"])
 
-        create_octue_formatter.assert_called_with(logging_metadata_schema=LOGGING_METADATA_SCHEMA_WITH_TIMESTAMP)
+        create_octue_formatter.assert_called_with(
+            logging_metadata_schema=LOGGING_METADATA_SCHEMA_WITH_TIMESTAMP,
+            include_line_number=False,
+            include_process_name=False,
+            include_thread_name=False,
+        )
 
     def test_octue_log_handler_not_used_if_use_octue_log_handler_environment_variable_not_present_or_0(self):
         """Test that the default octue log handler is not used if the `USE_OCTUE_LOG_HANDLER` environment variable is
