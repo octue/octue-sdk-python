@@ -119,7 +119,7 @@ class Service(CoolNameable):
         self._send_delivery_acknowledgment(topic)
 
         if forward_logs:
-            analysis_log_handler = GooglePubSubHandler(publisher=self.publisher, topic=topic)
+            analysis_log_handler = GooglePubSubHandler(publisher=self.publisher, topic=topic, analysis_id=question_uuid)
         else:
             analysis_log_handler = None
 

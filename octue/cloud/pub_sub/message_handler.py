@@ -194,7 +194,7 @@ class OrderedMessageHandler:
         :return None:
         """
         record = logging.makeLogRecord(message["log_record"])
-        record.msg = f"[{self.service_name}] {record.msg}"
+        record.msg = f"[{self.service_name} | analysis-{message['analysis_id']}] {record.msg}"
         logger.handle(record)
 
     def _handle_exception(self, message):
