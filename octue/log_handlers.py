@@ -135,7 +135,7 @@ def get_log_record_attributes_for_environment():
 
     :return list:
     """
-    if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") == "GOOGLE_CLOUD_RUN":
+    if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in {"GOOGLE_CLOUD_RUN", "GOOGLE_DATAFLOW"}:
         return LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP[1:]
 
     return LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP
