@@ -123,6 +123,8 @@ class Runner:
 
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
 
+        # Temporarily replace the root logger's handlers with a `StreamHandler` and the analysis log handler that
+        # include the analysis ID in the logging metadata.
         with AnalysisLogHandlerSwitcher(
             analysis_id=analysis_id,
             logger=logging.getLogger(),
