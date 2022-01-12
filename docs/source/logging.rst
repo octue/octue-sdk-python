@@ -25,11 +25,11 @@ Here are some example logs handled by ``octue`` produced when running the child 
     [2021-07-10 20:03:44,613 | INFO | octue.runner | analysis-102ee7d5-4b94-4f8a-9dcd-36dbd00662ec] The wind speeds and elevations at [{'longitude': 0, 'latitude': 0}, {'longitude': 1, 'latitude': 1}] are [3296, 1909] and [89, 82].
 
 
-Adding additional metadata to the log context
---------------––-----------------------------
+Adding additional log record attributes to the logging context
+--------------––----------------------------------------------
 
-You can also provide environment variables to add the following metadata to the log context:
+You can add certain log record attributes to the logging context by providing the following environment variables:
 
-- ``INCLUDE_LINE_NUMBER_LOG_METADATA`` - include the line number
-- ``INCLUDE_PROCESS_NAME_LOG_METADATA`` - include the process name
-- ``INCLUDE_THREAD_NAME_LOG_METADATA`` - include the thread name
+- ``INCLUDE_LINE_NUMBER_IN_LOGS`` - include the line number
+- ``INCLUDE_PROCESS_NAME_IN_LOGS`` - include the process name
+- ``INCLUDE_THREAD_NAME_IN_LOGS`` - include the thread name
