@@ -1,6 +1,5 @@
 import concurrent.futures
 import json
-import logging
 import os
 import google.api_core.exceptions
 
@@ -13,9 +12,6 @@ from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.resources.label import LabelSet
 from octue.resources.tag import TagDict
-
-
-module_logger = logging.getLogger(__name__)
 
 
 DATAFILES_DIRECTORY = "datafiles"
@@ -31,8 +27,8 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
     _ATTRIBUTES_TO_HASH = ("files",)
     _SERIALISE_FIELDS = "files", "name", "labels", "tags", "id", "path"
 
-    def __init__(self, name=None, id=None, logger=None, path=None, path_from=None, tags=None, labels=None, **kwargs):
-        super().__init__(name=name, id=id, logger=logger, tags=tags, labels=labels, path=path, path_from=path_from)
+    def __init__(self, name=None, id=None, path=None, path_from=None, tags=None, labels=None, **kwargs):
+        super().__init__(name=name, id=id, tags=tags, labels=labels, path=path, path_from=path_from)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.

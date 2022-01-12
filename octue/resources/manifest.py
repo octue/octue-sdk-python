@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 
 from octue.cloud import storage
@@ -10,9 +9,6 @@ from octue.resources.datafile import CLOUD_STORAGE_PROTOCOL
 from .dataset import Dataset
 
 
-module_logger = logging.getLogger(__name__)
-
-
 class Manifest(Pathable, Serialisable, Identifiable, Hashable):
     """A representation of a manifest, which can contain multiple datasets This is used to manage all files coming into
     (or leaving), a data service for an analysis at the configuration, input or output stage.
@@ -21,8 +17,8 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
     _ATTRIBUTES_TO_HASH = ("datasets",)
     _SERIALISE_FIELDS = "datasets", "keys", "id", "name", "path"
 
-    def __init__(self, id=None, logger=None, path=None, datasets=None, keys=None, **kwargs):
-        super().__init__(id=id, logger=logger, path=path)
+    def __init__(self, id=None, path=None, datasets=None, keys=None, **kwargs):
+        super().__init__(id=id, path=path)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
@@ -161,7 +157,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
             self.keys[dataset_specification["key"]] = index
             # TODO generate a unique name based on the filter key, label datasets so that the label filters in the spec
             #  apply automatically and generate a description of the dataset
-            self.datasets.append(Dataset(logger=self.logger, path_from=self, path=dataset_specification["key"]))
+            self.datasets.append(Dataset(path_from=self, path=dataset_specification["key"]))
 
         return self
 

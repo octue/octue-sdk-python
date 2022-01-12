@@ -53,7 +53,6 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
     :param any output_values: see Runner.run() for definition
     :param octue.resources.manifest.Manifest output_manifest: see Runner.run() for definition
     :param str id: Optional UUID for the analysis
-    :param logging.Logger logger: Optional logging.Logger instance attached to the analysis
     :return None:
     """
 
