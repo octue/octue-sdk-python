@@ -27,7 +27,7 @@ def apply_log_handler(logger_name=None, handler=None, log_level=logging.INFO, fo
 
     :param str|None logger_name: if this is `None`, the root logger is used
     :param logging.Handler handler: The handler to use. If None, default console handler will be attached.
-    :param int log_level: ignore log messages below this level
+    :param int|str log_level: ignore log messages below this level
     :param logging.Formatter|None formatter: if this is `None`, the default `FORMATTER_WITH_TIMESTAMP` is used
     :return logging.Handler:
     """
