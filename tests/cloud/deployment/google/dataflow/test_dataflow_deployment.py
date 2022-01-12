@@ -7,7 +7,7 @@ from tests.base import BaseTestCase
 
 
 @unittest.skipUnless(
-    condition=os.getenv("RUN_DEPLOYMENT_TESTS", "").lower() == "true",
+    condition=os.getenv("RUN_DEPLOYMENT_TESTS", "").lower() == "1",
     reason="'RUN_DEPLOYMENT_TESTS' environment variable is False or not present.",
 )
 class TestDataflowDeployment(BaseTestCase):
