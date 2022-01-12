@@ -73,7 +73,7 @@ def get_remote_handler(logger_uri, formatter=None):
     return handler
 
 
-def get_metadata_schema():
+def get_metadata_schema_for_current_compute_platform():
     """Get the correct metadata schema for the environment. If the environment is Google Cloud Run, use a log handler
     with a formatter that doesn't include the timestamp in the log message context to avoid the date appearing twice in
     the Google Cloud Run logs (Google adds its own timestamp to log messages).
