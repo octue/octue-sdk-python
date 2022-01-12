@@ -5,7 +5,7 @@ import os
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException, InvalidManifestException
-from octue.mixins import Hashable, Identifiable, Loggable, Pathable, Serialisable
+from octue.mixins import Hashable, Identifiable, Pathable, Serialisable
 from octue.resources.datafile import CLOUD_STORAGE_PROTOCOL
 from .dataset import Dataset
 
@@ -13,7 +13,7 @@ from .dataset import Dataset
 module_logger = logging.getLogger(__name__)
 
 
-class Manifest(Pathable, Serialisable, Loggable, Identifiable, Hashable):
+class Manifest(Pathable, Serialisable, Identifiable, Hashable):
     """A representation of a manifest, which can contain multiple datasets This is used to manage all files coming into
     (or leaving), a data service for an analysis at the configuration, input or output stage.
     """

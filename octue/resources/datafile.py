@@ -19,7 +19,7 @@ from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.cloud.storage.path import CLOUD_STORAGE_PROTOCOL
 from octue.exceptions import CloudLocationNotSpecified, FileNotFoundException, InvalidInputException
-from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Loggable, Pathable, Serialisable, Taggable
+from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Pathable, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils import isfile
 
@@ -34,7 +34,7 @@ TAGS_DEFAULT = None
 LABELS_DEFAULT = None
 
 
-class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable, Filterable):
+class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashable, Filterable):
     """A representation of a data file on the Octue system. If the given path is a cloud path and `hypothetical` is not
     `True`, the datafile's metadata is pulled from the given cloud location, and any conflicting parameters (see the
     `Datafile.metadata` method description for the parameter names concerned) are ignored. The metadata of cloud

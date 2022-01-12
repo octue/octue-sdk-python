@@ -9,7 +9,7 @@ from octue import definitions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException
-from octue.mixins import Hashable, Identifiable, Labelable, Loggable, Pathable, Serialisable, Taggable
+from octue.mixins import Hashable, Identifiable, Labelable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.resources.label import LabelSet
@@ -22,7 +22,7 @@ module_logger = logging.getLogger(__name__)
 DATAFILES_DIRECTORY = "datafiles"
 
 
-class Dataset(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable):
+class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashable):
     """A representation of a dataset, containing files, labels, etc
 
     This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
