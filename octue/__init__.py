@@ -5,6 +5,7 @@ from .runner import Runner
 
 
 __all__ = ("Runner",)
+REPOSITORY_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
 
 if int(os.environ.get("USE_OCTUE_LOG_HANDLER", "0")) == 1:

@@ -112,16 +112,6 @@ class MockPublisher:
         MESSAGES[get_service_id(topic)].append(MockMessage(data=data, **attributes))
         return MockFuture()
 
-    @staticmethod
-    def topic_path(project_name, topic_name):
-        """Generate the full topic path from the project and topic names.
-
-        :param str project_name:
-        :param str topic_name:
-        :return str:
-        """
-        return f"projects/{project_name}/topics/{topic_name}"
-
 
 class MockSubscriber:
     """A mock subscriber that gets messages from a global dictionary instead of Google Pub/Sub."""
@@ -147,7 +137,7 @@ class MockSubscriber:
 
         return MockFuture()
 
-    def pull(self, request, timeout=None, retry=None):
+    def pull(self, subscription, max_messages, timeout=None, retry=None):
         """Return a MockPullResponse containing one MockMessage wrapped in a MockMessageWrapper. The MockMessage is
         retrieved from the global messages dictionary for the subscription included in the request under the
         "subscription" key.
@@ -162,12 +152,12 @@ class MockSubscriber:
 
         try:
             return MockPullResponse(
-                received_messages=[MockMessageWrapper(message=MESSAGES[get_service_id(request["subscription"])].pop(0))]
+                received_messages=[MockMessageWrapper(message=MESSAGES[get_service_id(subscription)].pop(0))]
             )
         except IndexError:
             return MockPullResponse(received_messages=[])
 
-    def acknowledge(self, request):
+    def acknowledge(self, subscription, ack_ids):
         """Do nothing.
 
         :param google.pubsub_v1.types.pubsub.Subscription request:
@@ -175,17 +165,7 @@ class MockSubscriber:
         """
         pass
 
-    @staticmethod
-    def subscription_path(project_name, subscription_name):
-        """Generate the full subscription path from the given project and subscription names.
-
-        :param str project_name:
-        :param str subscription_name:
-        :return str:
-        """
-        return f"projects/{project_name}/subscriptions/{subscription_name}"
-
-    def create_subscription(self, request):
+    def create_subscription(self, name, *args, **kwargs):
         """Do nothing.
 
         :param google.pubsub_v1.types.pubsub.Subscription request:
@@ -350,5 +330,10 @@ class MockSubscriptionCreationResponse:
     :return None:
     """
 
-    def __init__(self, request):
-        self.__dict__ = vars(request)
+    def __init__(
+        self, ack_deadline_seconds, expiration_policy, message_retention_duration, retry_policy, *args, **kwargs
+    ):
+        self.ack_deadline_seconds = ack_deadline_seconds
+        self.expiration_policy = expiration_policy
+        self.message_retention_duration = message_retention_duration
+        self.retry_policy = retry_policy

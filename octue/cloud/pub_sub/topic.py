@@ -23,7 +23,7 @@ class Topic:
             self.name = f"{namespace}.{name}"
 
         self.service = service
-        self.path = self.service.publisher.topic_path(service.backend.project_name, self.name)
+        self.path = self.generate_topic_path(service.backend.project_name, self.name)
         self.messages_published = 0
 
     def __repr__(self):
@@ -74,6 +74,16 @@ class Topic:
                 time.sleep(1)
 
         return False
+
+    @staticmethod
+    def generate_topic_path(project_name, topic_name):
+        """Generate a full topic path in the format `projects/<project_name>/topics/<topic_name>`.
+
+        :param str project_name:
+        :param str topic_name:
+        :return str:
+        """
+        return f"projects/{project_name}/topics/{topic_name}"
 
     def _log_creation(self):
         """Log the creation of the topic.
