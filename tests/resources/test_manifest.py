@@ -8,6 +8,7 @@ from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset, Manifest
 from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from tests.base import BaseTestCase
+from tests.resources import create_dataset_with_two_files
 
 
 class TestManifest(BaseTestCase):
@@ -58,31 +59,15 @@ class TestManifest(BaseTestCase):
         (`bucket_name`, `output_directory`) and via `gs_path`.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
-            file_0_path = os.path.join(temporary_directory, "file_0.txt")
-            file_1_path = os.path.join(temporary_directory, "file_1.txt")
-
-            with open(file_0_path, "w") as f:
-                f.write("[1, 2, 3]")
-
-            with open(file_1_path, "w") as f:
-                f.write("[4, 5, 6]")
-
-            dataset = Dataset(
-                name="my-dataset",
-                files={
-                    Datafile(path=file_0_path, tags={"a": 1, "b": 2}, labels={"hello"}),
-                    Datafile(path=file_1_path, tags={"a": 1, "b": 2}, labels={"goodbye"}),
-                },
-            )
-
+            dataset_directory_name = os.path.split(temporary_directory)[-1]
+            dataset = create_dataset_with_two_files(temporary_directory)
             manifest = Manifest(datasets=[dataset], keys={"my-dataset": 0})
 
-            bucket_name = TEST_BUCKET_NAME
             path_to_manifest_file = storage.path.join("blah", "manifest.json")
-            gs_path = storage.path.generate_gs_path(bucket_name, path_to_manifest_file)
+            gs_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, path_to_manifest_file)
 
             for location_parameters in (
-                {"bucket_name": bucket_name, "path_to_manifest_file": path_to_manifest_file, "cloud_path": None},
+                {"bucket_name": TEST_BUCKET_NAME, "path_to_manifest_file": path_to_manifest_file, "cloud_path": None},
                 {"bucket_name": None, "path_to_manifest_file": None, "cloud_path": gs_path},
             ):
                 manifest.to_cloud(TEST_PROJECT_NAME, **location_parameters)
@@ -94,30 +79,13 @@ class TestManifest(BaseTestCase):
             )
         )
 
-        self.assertEqual(persisted_manifest["datasets"], ["gs://octue-test-bucket/blah/my-dataset"])
+        self.assertEqual(persisted_manifest["datasets"], [f"gs://octue-test-bucket/blah/{dataset_directory_name}"])
         self.assertEqual(persisted_manifest["keys"], {"my-dataset": 0})
 
     def test_to_cloud_without_storing_datasets(self):
         """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance."""
         with tempfile.TemporaryDirectory() as temporary_directory:
-            file_0_path = os.path.join(temporary_directory, "file_0.txt")
-            file_1_path = os.path.join(temporary_directory, "file_1.txt")
-
-            with open(file_0_path, "w") as f:
-                f.write("[1, 2, 3]")
-
-            with open(file_1_path, "w") as f:
-                f.write("[4, 5, 6]")
-
-            dataset = Dataset(
-                name="my-dataset",
-                path=temporary_directory,
-                files={
-                    Datafile(path=file_0_path, tags={"a": 1, "b": 2}, labels={"hello"}),
-                    Datafile(path=file_1_path, tags={"a": 1, "b": 2}, labels={"goodbye"}),
-                },
-            )
-
+            dataset = create_dataset_with_two_files(temporary_directory)
             manifest = Manifest(datasets=[dataset], keys={"my-dataset": 0})
 
             manifest.to_cloud(
@@ -142,36 +110,20 @@ class TestManifest(BaseTestCase):
         `gs_path`.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
-            file_0_path = os.path.join(temporary_directory, "file_0.txt")
-            file_1_path = os.path.join(temporary_directory, "file_1.txt")
-
-            with open(file_0_path, "w") as f:
-                f.write("[1, 2, 3]")
-
-            with open(file_1_path, "w") as f:
-                f.write("[4, 5, 6]")
-
-            dataset = Dataset(
-                name="my-dataset",
-                files={
-                    Datafile(path=file_0_path, tags={"a": 1, "b": 2}, labels={"hello"}),
-                    Datafile(path=file_1_path, tags={"a": 1, "b": 2}, labels={"goodbye"}),
-                },
-            )
-
+            dataset = create_dataset_with_two_files(temporary_directory)
             manifest = Manifest(datasets=[dataset], keys={"my-dataset": 0})
+
             manifest.to_cloud(
                 TEST_PROJECT_NAME,
                 bucket_name=TEST_BUCKET_NAME,
                 path_to_manifest_file=storage.path.join("my-directory", "manifest.json"),
             )
 
-            bucket_name = TEST_BUCKET_NAME
             path_to_manifest_file = storage.path.join("my-directory", "manifest.json")
-            gs_path = storage.path.generate_gs_path(bucket_name, path_to_manifest_file)
+            gs_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, path_to_manifest_file)
 
             for location_parameters in (
-                {"bucket_name": bucket_name, "path_to_manifest_file": path_to_manifest_file, "cloud_path": None},
+                {"bucket_name": TEST_BUCKET_NAME, "path_to_manifest_file": path_to_manifest_file, "cloud_path": None},
                 {"bucket_name": None, "path_to_manifest_file": None, "cloud_path": gs_path},
             ):
                 persisted_manifest = Manifest.from_cloud(project_name=TEST_PROJECT_NAME, **location_parameters)

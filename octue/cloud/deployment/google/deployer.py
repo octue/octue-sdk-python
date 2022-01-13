@@ -12,7 +12,7 @@ from octue.resources.service_backends import GCPPubSubBackend
 DOCKER_REGISTRY_URL = "eu.gcr.io"
 
 DEFAULT_DOCKERFILE_URL = (
-    "https://raw.githubusercontent.com/octue/octue-sdk-python/main/octue/cloud/deployment/google/Dockerfile"
+    "https://raw.githubusercontent.com/octue/octue-sdk-python/main/octue/cloud/deployment/google/cloud_run/Dockerfile"
 )
 
 

@@ -4,14 +4,14 @@ import logging
 import twined.exceptions
 from octue.definitions import OUTPUT_STRANDS
 from octue.exceptions import InvalidMonitorMessage
-from octue.mixins import Hashable, Identifiable, Labelable, Loggable, Serialisable, Taggable
+from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.folders import get_file_name_from_strand
 from twined import ALL_STRANDS, Twine
 
 
-module_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 HASH_FUNCTIONS = {
@@ -25,7 +25,7 @@ HASH_FUNCTIONS = {
 CLASS_MAP = {"configuration_manifest": Manifest, "input_manifest": Manifest, "output_manifest": Manifest}
 
 
-class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
+class Analysis(Identifiable, Serialisable, Labelable, Taggable):
     """A class representing a scientific or computational analysis, holding references to all configuration, input, and
     output data.
 
@@ -53,7 +53,6 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
     :param any output_values: see Runner.run() for definition
     :param octue.resources.manifest.Manifest output_manifest: see Runner.run() for definition
     :param str id: Optional UUID for the analysis
-    :param logging.Logger logger: Optional logging.Logger instance attached to the analysis
     :return None:
     """
 
@@ -99,7 +98,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
             raise InvalidMonitorMessage(e)
 
         if self._handle_monitor_message is None:
-            module_logger.warning("Attempted to send a monitor message but no handler is specified.")
+            logger.warning("Attempted to send a monitor message but no handler is specified.")
             return
 
         self._handle_monitor_message(data)
@@ -118,7 +117,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
         serialised_strands = {}
 
         for output_strand in OUTPUT_STRANDS:
-            self.logger.debug("Serialising %r", output_strand)
+            logger.debug("Serialising %r", output_strand)
 
             attribute = getattr(self, output_strand)
             if attribute is not None:
@@ -126,7 +125,7 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
 
             serialised_strands[output_strand] = attribute
 
-        self.logger.debug("Validating serialised output json against twine")
+        logger.debug("Validating serialised output json against twine")
         self.twine.validate(**serialised_strands)
 
         # Optionally write the serialised strands to disk.
@@ -137,13 +136,13 @@ class Analysis(Identifiable, Loggable, Serialisable, Labelable, Taggable):
                     filename = get_file_name_from_strand(output_strand, output_dir)
                     with open(filename, "w") as fp:
                         fp.write(serialised_strands[output_strand])
-                    self.logger.debug("Wrote %r to file %r", output_strand, filename)
+                    logger.debug("Wrote %r to file %r", output_strand, filename)
 
         # Optionally write the manifest to Google Cloud storage.
         if upload_to_cloud:
             if hasattr(self, "output_manifest"):
                 self.output_manifest.to_cloud(project_name, bucket_name, output_dir)
-                self.logger.debug(
+                logger.debug(
                     "Wrote %r to cloud storage at project %r in bucket %r.",
                     self.output_manifest,
                     project_name,

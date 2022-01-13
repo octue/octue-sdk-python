@@ -8,7 +8,6 @@ import sys
 import time
 import traceback as tb
 import uuid
-from google.api_core import retry
 from google.cloud import pubsub_v1
 
 import octue.exceptions
@@ -110,7 +109,7 @@ class Service(CoolNameable):
         in the format specified in the Service's Twine file.
 
         :param dict|Message question:
-        :param octue.cloud.pub_sub.topic.Topic|None answer_topic: provide if messages need to be sent to the asker from outside the service (e.g. in octue.cloud.deployment.google.cloud_run)
+        :param octue.cloud.pub_sub.topic.Topic|None answer_topic: provide if messages need to be sent to the asker from outside the service (e.g. in octue.cloud.deployment.google.cloud_run.flask_app)
         :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
@@ -120,7 +119,7 @@ class Service(CoolNameable):
         self._send_delivery_acknowledgment(topic)
 
         if forward_logs:
-            analysis_log_handler = GooglePubSubHandler(publisher=self.publisher, topic=topic)
+            analysis_log_handler = GooglePubSubHandler(publisher=self.publisher, topic=topic, analysis_id=question_uuid)
         else:
             analysis_log_handler = None
 
@@ -145,11 +144,10 @@ class Service(CoolNameable):
                         "type": "result",
                         "output_values": analysis.output_values,
                         "output_manifest": serialised_output_manifest,
-                        "message_number": topic.messages_published,
+                        "message_number": str(topic.messages_published),
                     },
                     cls=OctueJSONEncoder,
                 ).encode(),
-                retry=retry.Retry(deadline=timeout),
             )
             topic.messages_published += 1
             logger.info("%r responded to question %r.", self, question_uuid)
@@ -226,7 +224,7 @@ class Service(CoolNameable):
             project_name=self.backend.project_name,
             subscriber=pubsub_v1.SubscriberClient(credentials=self._credentials),
         )
-        response_subscription.create(allow_existing=False)
+        response_subscription.create(allow_existing=True)
 
         if input_manifest is not None:
             input_manifest = input_manifest.serialise()
@@ -236,7 +234,6 @@ class Service(CoolNameable):
             data=json.dumps({"input_values": input_values, "input_manifest": input_manifest}).encode(),
             question_uuid=question_uuid,
             forward_logs=str(int(subscribe_to_logs)),
-            retry=retry.Retry(deadline=timeout),
         )
 
         # Keep a record of the question asked in case it needs to be retried.
@@ -324,10 +321,9 @@ class Service(CoolNameable):
                 {
                     "type": "delivery_acknowledgement",
                     "delivery_time": str(datetime.datetime.now()),
-                    "message_number": topic.messages_published,
+                    "message_number": str(topic.messages_published),
                 }
             ).encode(),
-            retry=retry.Retry(deadline=timeout),
         )
 
         topic.messages_published += 1
@@ -348,10 +344,9 @@ class Service(CoolNameable):
                 {
                     "type": "monitor_message",
                     "data": json.dumps(data),
-                    "message_number": topic.messages_published,
+                    "message_number": str(topic.messages_published),
                 }
             ).encode(),
-            retry=retry.Retry(deadline=timeout),
         )
 
         topic.messages_published += 1
@@ -376,10 +371,9 @@ class Service(CoolNameable):
                     "exception_type": type(exception).__name__,
                     "exception_message": exception_message,
                     "traceback": traceback,
-                    "message_number": topic.messages_published,
+                    "message_number": str(topic.messages_published),
                 }
             ).encode(),
-            retry=retry.Retry(deadline=timeout),
         )
 
         topic.messages_published += 1
@@ -391,12 +385,15 @@ class Service(CoolNameable):
         :return (dict, str, bool):
         """
         try:
-            # Parse and acknowledge question from Google Cloud Pub/Sub.
+            # Parse question directly from Pub/Sub or Dataflow.
             data = json.loads(question.data.decode())
-            question.ack()
+
+            # Acknowledge it if it's directly from Pub/Sub
+            if hasattr(question, "ack"):
+                question.ack()
+
         except Exception:
-            # Parse question from Google Cloud Run. We can't acknowledge the it here as it's not possible with the
-            # information given.
+            # Parse question from Google Cloud Run.
             data = json.loads(base64.b64decode(question["data"]).decode("utf-8").strip())
 
         logger.info("%r received a question.", self)

@@ -1,14 +1,8 @@
 import logging
 import google.api_core.exceptions
+from google.cloud.pubsub_v1 import SubscriberClient
+from google.cloud.pubsub_v1.types import ExpirationPolicy, FieldMask, RetryPolicy
 from google.protobuf.duration_pb2 import Duration
-from google.protobuf.field_mask_pb2 import FieldMask
-from google.pubsub_v1 import SubscriberClient
-from google.pubsub_v1.types.pubsub import (
-    ExpirationPolicy,
-    RetryPolicy,
-    Subscription as _Subscription,
-    UpdateSubscriptionRequest,
-)
 
 
 logger = logging.getLogger(__name__)
@@ -54,18 +48,17 @@ class Subscription:
 
         self.topic = topic
         self.subscriber = subscriber or SubscriberClient()
-        self.path = self.subscriber.subscription_path(project_name, self.name)
+        self.path = self.generate_subscription_path(project_name, self.name)
         self.ack_deadline = ack_deadline
         self.message_retention_duration = Duration(seconds=message_retention_duration)
 
         # If expiration_time is None, the subscription will never expire.
         if expiration_time is None:
-            self.expiration_policy = ExpirationPolicy(mapping=None)
+            self.expiration_policy = ExpirationPolicy()
         else:
-            self.expiration_policy = ExpirationPolicy(mapping=None, ttl=Duration(seconds=expiration_time))
+            self.expiration_policy = ExpirationPolicy(ttl=Duration(seconds=expiration_time))
 
         self.retry_policy = RetryPolicy(
-            mapping=None,
             minimum_backoff=Duration(seconds=minimum_retry_backoff),
             maximum_backoff=Duration(seconds=maximum_retry_backoff),
         )
@@ -86,12 +79,12 @@ class Subscription:
         subscription = self._create_proto_message_subscription()
 
         if not allow_existing:
-            subscription = self.subscriber.create_subscription(request=subscription)
+            subscription = self.subscriber.create_subscription(**subscription)
             self._log_creation()
             return subscription
 
         try:
-            subscription = self.subscriber.create_subscription(request=subscription)
+            subscription = self.subscriber.create_subscription(**subscription)
         except google.api_core.exceptions.AlreadyExists:
             pass
 
@@ -104,13 +97,10 @@ class Subscription:
         :return None:
         """
         self.subscriber.update_subscription(
-            request=UpdateSubscriptionRequest(
-                mapping=None,
-                subscription=self._create_proto_message_subscription(),
-                update_mask=FieldMask(
-                    paths=["ack_deadline_seconds", "message_retention_duration", "expiration_policy", "retry_policy"]
-                ),
-            )
+            subscription=self._create_proto_message_subscription(),
+            update_mask=FieldMask(
+                paths=["ack_deadline_seconds", "message_retention_duration", "expiration_policy", "retry_policy"]
+            ),
         )
 
     def delete(self):
@@ -120,6 +110,16 @@ class Subscription:
         """
         self.subscriber.delete_subscription(subscription=self.path)
         logger.debug("Subscription %r deleted.", self.path)
+
+    @staticmethod
+    def generate_subscription_path(project_name, subscription_name):
+        """Generate a full subscription path in the format `projects/<project_name>/subscriptions/<subscription_name>`.
+
+        :param str project_name:
+        :param str subscription_name:
+        :return str:
+        """
+        return f"projects/{project_name}/subscriptions/{subscription_name}"
 
     def _log_creation(self):
         """Log the creation of the subscription.
@@ -131,14 +131,13 @@ class Subscription:
     def _create_proto_message_subscription(self):
         """Create a Proto message subscription from the instance to be sent to the Pub/Sub API.
 
-        :return google.pubsub_v1.types.pubsub.Subscription:
+        :return dict:
         """
-        return _Subscription(
-            mapping=None,
-            name=self.path,
-            topic=self.topic.path,
-            ack_deadline_seconds=self.ack_deadline,  # noqa
-            message_retention_duration=self.message_retention_duration,  # noqa
-            expiration_policy=self.expiration_policy,  # noqa
-            retry_policy=self.retry_policy,  # noqa
-        )
+        return {
+            "name": self.path,
+            "topic": self.topic.path,
+            "ack_deadline_seconds": self.ack_deadline,
+            "message_retention_duration": self.message_retention_duration,
+            "expiration_policy": self.expiration_policy,
+            "retry_policy": self.retry_policy,
+        }

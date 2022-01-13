@@ -17,13 +17,14 @@ with open("LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.7.0",
+    version="0.9.0",
     py_modules=["cli"],
     install_requires=[
+        "apache-beam[gcp]==2.35.0",
         "click>=7.1.2",
         "coolname>=1.1.0",
         "Flask>=1.1",
-        "google-cloud-pubsub>=2.5.0",
+        "google-cloud-pubsub==1.7.0",
         "google-cloud-secret-manager>=2.3.0",
         "google-cloud-storage>=1.35.1",
         "google-crc32c>=1.1.2",

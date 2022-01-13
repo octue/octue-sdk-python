@@ -1,3 +1,4 @@
+import logging
 import tempfile
 import uuid
 from unittest.mock import patch
@@ -22,6 +23,9 @@ from tests.cloud.pub_sub.mocks import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+
 BACKEND = GCPPubSubBackend(
     project_name=TEST_PROJECT_NAME, credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS"
 )
@@ -34,10 +38,10 @@ def create_run_function():
     """
 
     def mock_app(analysis):
-        analysis.logger.info("Starting analysis.")
+        logger.info("Starting analysis.")
         analysis.output_values = "Hello! It worked!"
         analysis.output_manifest = None
-        analysis.logger.info("Finished analysis.")
+        logger.info("Finished analysis.")
 
     twine = """
         {
@@ -338,10 +342,13 @@ class TestService(BaseTestCase):
         finish_remote_analysis_message_present = False
 
         for i, log_record in enumerate(logs_context_manager.records):
-            if log_record.msg == "[my-super-service] Starting analysis.":
+            if "[my-super-service" in log_record.msg and "] Starting analysis." in log_record.msg:
                 start_remote_analysis_message_present = True
 
-                if logs_context_manager.records[i + 1].msg == "[my-super-service] Finished analysis.":
+                if (
+                    "[my-super-service" in logs_context_manager.records[i + 1].msg
+                    and "] Finished analysis." in logs_context_manager.records[i + 1].msg
+                ):
                     finish_remote_analysis_message_present = True
 
                 break
