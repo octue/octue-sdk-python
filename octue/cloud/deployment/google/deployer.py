@@ -17,22 +17,68 @@ DEFAULT_DOCKERFILE_URL = (
 
 
 class ProgressMessage:
-    def __init__(self, message, stage, total_number_of_stages):
-        self.message = f"[{stage}/{total_number_of_stages}] {message}..."
-        self.final_message = "done."
+    """A context manager that, on entering the context, prints the given start message and, on leaving it, prints
+    "done" on the same line. The use case is to surround a block of code with a start and finish message to give an
+    idea of progress on the command line. If multiple progress messages are required, different instances of this class
+    can be used and given information on their ordering and the total number of stages to produce an enumerated output.
+
+    For example:
+    ```
+    [1/4] Generating Google Cloud Build configuration...done.
+    [2/4] Creating build trigger...done.
+    [3/4] Building and deploying service...done.
+    [4/4] Creating Eventarc Pub/Sub run trigger...done.
+    ```
+
+    :param str start_message: the message to print before the code in the context is executed
+    :param int stage: the position of the progress message among all the related progress messages
+    :param int total_number_of_stages: the total number of progress messages that will be printed
+    :return None:
+    """
+
+    def __init__(self, start_message, stage, total_number_of_stages):
+        self.start_message = f"[{stage}/{total_number_of_stages}] {start_message}..."
+        self.finish_message = "done."
 
     def __enter__(self):
-        print(self.message, end="", flush=True)
+        """Print the start message.
+
+        :return None:
+        """
+        print(self.start_message, end="", flush=True)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Print the finish message on the same line as the start message. If there's an error, print "ERROR" instead.
+
+        :return None:
+        """
         if exc_type:
             print("ERROR.")
         else:
-            print(self.final_message)
+            print(self.finish_message)
 
 
 class CloudRunDeployer:
+    """A tool for taking an `octue.yaml` file in a repository and deploying the repository's `octue` app to Google Cloud
+    Run. This includes setting up a Google Cloud Build trigger, enabling automatic deployment during future development.
+    Note that this tool requires the `gcloud` CLI to be available. The version used while developing this tool is:
+
+    ```
+    Google Cloud SDK 367.0.0
+    beta 2021.12.10
+    bq 2.0.72
+    cloud-build-local 0.5.2
+    core 2021.12.10
+    gsutil 5.5
+    pubsub-emulator 0.6.0
+    ```
+
+    :param str octue_configuration_path: the path to the `octue.yaml` file if it's not in the current working directory
+    :param str|None service_id: the UUID to give the service if a random one is not wanted
+    :return None:
+    """
+
     def __init__(self, octue_configuration_path, service_id=None):
         self.octue_configuration_path = octue_configuration_path
 
@@ -67,6 +113,13 @@ class CloudRunDeployer:
         self.environment_variables = octue_configuration.get("environment_variables", [])
 
     def deploy(self, no_cache=False, update=False):
+        """Create a Google Cloud Build configuration from the `octue.yaml file, create a build trigger, build and
+        deploy the app as a Google Cloud Run service, and create and attach an Eventarc Pub/Sub run trigger to it.
+
+        :param bool no_cache: if `True`, don't use the Docker cache when building the image
+        :param bool update: if `True`, allow the build trigger and Eventarc run trigger to already exist and just build and deploy a new image based on an updated `octue.yaml` file
+        :return str: the service's UUID
+        """
         total_number_of_stages = 4
 
         with ProgressMessage("Generating Google Cloud Build configuration", 1, total_number_of_stages):
@@ -287,6 +340,6 @@ class CloudRunDeployer:
     @staticmethod
     def _raise_or_ignore_already_exists_error(exception, update, progress_message):
         if update and "already exists" in exception.args[0]:
-            progress_message.final_message = "already exists."
+            progress_message.finish_message = "already exists."
         else:
             raise exception
