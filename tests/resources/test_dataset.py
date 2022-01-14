@@ -529,10 +529,13 @@ class TestDataset(BaseTestCase):
                 self.assertEqual(f.read(), "['blah', 'b', 'c']")
 
     def test_from_local_directory(self):
-        """Test that a dataset can be instantiated from a local nested directory ignoring its subdirectories."""
+        """Test that a dataset can be instantiated from a local nested directory ignoring its subdirectories and that
+        extra keyword arguments can be provided for the dataset instantiation.
+        """
         with tempfile.TemporaryDirectory() as temporary_directory:
             paths = self._create_files_and_nested_subdirectories(temporary_directory)
-            dataset = Dataset.from_local_directory(temporary_directory, recursive=False)
+            dataset = Dataset.from_local_directory(temporary_directory, recursive=False, name="my-dataset")
+            self.assertEqual(dataset.name, "my-dataset")
 
             # Check that just the top-level files from the directory are present in the dataset.
             datafile_paths = {datafile.path for datafile in dataset.files}
