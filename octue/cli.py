@@ -8,6 +8,7 @@ from octue.cloud.deployment.google.dataflow.deploy import DEFAULT_IMAGE_URI, dep
 from octue.cloud.deployment.google.deployer import CloudRunDeployer
 from octue.cloud.pub_sub.service import Service
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
+from octue.exceptions import DeploymentError
 from octue.log_handlers import get_remote_handler
 from octue.resources import service_backends
 from octue.runner import Runner
@@ -248,7 +249,7 @@ def deploy():
 def cloud_run(octue_configuration_path, service_id, update, no_cache):
     """Deploy an app as a Google Cloud Run service."""
     if update and not service_id:
-        raise Exception("If updating a service, you must also provide the `--service-id` argument.")
+        raise DeploymentError("If updating a service, you must also provide the `--service-id` argument.")
 
     CloudRunDeployer(octue_configuration_path, service_id=service_id).deploy(update=update, no_cache=no_cache)
 

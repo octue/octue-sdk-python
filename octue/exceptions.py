@@ -100,3 +100,7 @@ class CloudLocationNotSpecified(OctueSDKException):
 
 class InvalidMonitorMessage(OctueSDKException):
     """Raise if a monitor message fails validation against the "monitor_message_schema" field of the Twine."""
+
+
+class DeploymentError(OctueSDKException):
+    """Raise if an error occurs during the deployment of an octue service."""
