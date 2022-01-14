@@ -13,6 +13,7 @@ octue_configuration = {
     "repository_owner": "octue",
     "project_name": "test-project",
     "region": "europe-west2",
+    "branch_pattern": "my-branch",
 }
 
 
@@ -43,6 +44,7 @@ class TestCloudRunDeployer(BaseTestCase):
                         "name": "gcr.io/cloud-builders/docker",
                         "args": [
                             "build",
+                            "--no-cache",
                             "-t",
                             expected_image_name,
                             ".",
@@ -83,29 +85,45 @@ class TestCloudRunDeployer(BaseTestCase):
 
             # Remove the commit hash from the image name as it will change for each commit made.
             generated_config = deployer.cloud_build_configuration
-            generated_config["steps"][1]["args"][2] = generated_config["steps"][1]["args"][2].split(":")[0]
+            generated_config["steps"][1]["args"][3] = generated_config["steps"][1]["args"][3].split(":")[0]
             generated_config["steps"][2]["args"][1] = generated_config["steps"][2]["args"][1].split(":")[0]
             generated_config["steps"][3]["args"][5] = generated_config["steps"][3]["args"][5].split(":")[0]
             generated_config["images"][0] = generated_config["images"][0].split(":")[0]
 
             self.assertEqual(generated_config, expected_cloud_build_configuration)
 
-    def test_create_build_trigger(self):
-        """Test that the build trigger is created correctly."""
+    def test_deploy(self):
+        """Test that the build trigger creation, build and deployment, and Eventarc run trigger creation are requested
+        correctly.
+        """
+        service_id = "octue.services.4ef88d56-49e0-459b-94e0-d68c5e55e17e"
+
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = os.path.join(temporary_directory, "octue.yaml")
 
             with open(octue_configuration_path, "w") as f:
                 yaml.dump(octue_configuration, f)
 
-            deployer = CloudRunDeployer(octue_configuration_path)
+            deployer = CloudRunDeployer(octue_configuration_path, service_id=service_id)
             deployer._generate_cloud_build_configuration()
 
             with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:
-                deployer._create_build_trigger(deployer.cloud_build_configuration)
+                with patch("octue.cloud.deployment.google.deployer.Topic.create"):
+                    with patch(
+                        "octue.cloud.deployment.google.deployer.Topic.get_subscriptions",
+                        return_value=["test-service"],
+                    ):
+                        with patch("octue.cloud.deployment.google.deployer.Subscription.update"):
+                            deployer.deploy()
 
+            # Remove the "random" path used for the build configuration in the "--inline-config" argument of the
+            # command.
+            build_trigger_command_without_inline_config_path = mock_run.call_args_list[0].args[0]
+            build_trigger_command_without_inline_config_path.pop(9)
+
+            # Test the build trigger creation request.
             self.assertEqual(
-                mock_run.call_args.args[0],
+                build_trigger_command_without_inline_config_path,
                 [
                     "gcloud",
                     "beta",
@@ -116,8 +134,42 @@ class TestCloudRunDeployer(BaseTestCase):
                     f"--name={octue_configuration['name']}",
                     f"--repo-name={octue_configuration['repository_name']}",
                     f"--repo-owner={octue_configuration['repository_owner']}",
-                    f"--inline-config={deployer.cloud_build_configuration}",
                     f"--description=Build {octue_configuration['name']} service and deploy it to Cloud Run.",
-                    "--branch-pattern=^main$",
+                    f"--branch-pattern={octue_configuration['branch_pattern']}",
+                ],
+            )
+
+            # Test the build request.
+            self.assertEqual(mock_run.call_args_list[1].args[0][:4], ["gcloud", "builds", "submit", "."])
+
+            # Test setting the Cloud Run service to accept unauthenticated requests.
+            self.assertEqual(
+                mock_run.call_args_list[2].args[0],
+                [
+                    "gcloud",
+                    "run",
+                    "services",
+                    "add-iam-policy-binding",
+                    octue_configuration["name"],
+                    f'--region={octue_configuration["region"]}',
+                    "--member=allUsers",
+                    "--role=roles/run.invoker",
+                ],
+            )
+
+            # Test the Eventarc run trigger creation request.
+            self.assertEqual(
+                mock_run.call_args_list[3].args[0],
+                [
+                    "gcloud",
+                    "beta",
+                    "eventarc",
+                    "triggers",
+                    "create",
+                    f'{octue_configuration["name"]}-trigger',
+                    "--matching-criteria=type=google.cloud.pubsub.topic.v1.messagePublished",
+                    "--destination-run-service=test-service",
+                    "--location=europe-west2",
+                    f"--transport-topic={service_id}",
                 ],
             )
