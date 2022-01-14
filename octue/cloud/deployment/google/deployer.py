@@ -6,6 +6,7 @@ import yaml
 from octue.cloud.pub_sub.service import OCTUE_NAMESPACE, Service
 from octue.cloud.pub_sub.subscription import Subscription
 from octue.cloud.pub_sub.topic import Topic
+from octue.exceptions import DeploymentError
 from octue.resources.service_backends import GCPPubSubBackend
 
 
@@ -132,7 +133,7 @@ class CloudRunDeployer:
             with ProgressMessage("Creating build trigger", 2, total_number_of_stages) as progress_message:
                 try:
                     self._create_build_trigger(cloud_build_configuration_path=temporary_file.name)
-                except subprocess.SubprocessError as e:
+                except DeploymentError as e:
                     self._raise_or_ignore_already_exists_error(e, update, progress_message)
 
             with ProgressMessage("Building and deploying service", 3, total_number_of_stages):
@@ -141,7 +142,7 @@ class CloudRunDeployer:
         with ProgressMessage("Creating Eventarc Pub/Sub run trigger", 4, total_number_of_stages) as progress_message:
             try:
                 self._create_eventarc_run_trigger()
-            except subprocess.SubprocessError as e:
+            except DeploymentError as e:
                 self._raise_or_ignore_already_exists_error(e, update, progress_message)
 
         print(f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}.")
@@ -317,9 +318,9 @@ class CloudRunDeployer:
                 break
 
         if not eventarc_subscription_path:
-            raise Exception("Eventarc subscription not found.")
+            raise DeploymentError("Eventarc subscription not found.")
 
-        # Set the acknowledgement deadline to the minimum value to avoid recurrent recomputation of questions.
+        # Set the acknowledgement deadline to the minimum value to avoid recurrent re-computation of questions.
         subscription = Subscription(
             name=eventarc_subscription_path.split("/")[-1],
             topic=topic,
@@ -335,7 +336,7 @@ class CloudRunDeployer:
         process = subprocess.run(command, capture_output=True)
 
         if process.returncode != 0:
-            raise subprocess.SubprocessError(process.stderr.decode())
+            raise DeploymentError(process.stderr.decode())
 
     @staticmethod
     def _raise_or_ignore_already_exists_error(exception, update, progress_message):
