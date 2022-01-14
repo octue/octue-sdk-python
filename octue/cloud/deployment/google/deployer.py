@@ -333,6 +333,12 @@ class CloudRunDeployer:
 
     @staticmethod
     def _run_command(command):
+        """Run a command in a subprocess, raising a `DeploymentError` if it fails.
+
+        :param iter(str) command: the command to run in `subprocess` form e.g. `["cat", "my_file.txt"]`
+        :raise octue.exceptions.DeploymentError: if the command fails
+        :return None:
+        """
         process = subprocess.run(command, capture_output=True)
 
         if process.returncode != 0:
@@ -340,6 +346,14 @@ class CloudRunDeployer:
 
     @staticmethod
     def _raise_or_ignore_already_exists_error(exception, update, progress_message):
+        """If `update` is `True` and the exception includes the words "already exists", ignore the exception and change
+        the progress message's `finish_message` to "already exists."; otherwise, raise the exception.
+
+        :param Exception exception: the exception to ignore or raise
+        :param bool update: if `True`, ignore "already exists" errors
+        :param ProgressMessage progress_message:
+        :return None:
+        """
         if update and "already exists" in exception.args[0]:
             progress_message.finish_message = "already exists."
         else:
