@@ -51,7 +51,7 @@ class CloudRunDeployer:
         self.region = octue_configuration["region"]
 
         # Generated attributes.
-        self.service_id = service_id or uuid.uuid4()
+        self.service_id = service_id or str(uuid.uuid4())
         self.build_trigger_description = f"Build {self.name} service and deploy it to Cloud Run."
 
         self._default_image_uri = (
