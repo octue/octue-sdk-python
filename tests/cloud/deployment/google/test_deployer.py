@@ -1,5 +1,6 @@
 import os
 import tempfile
+from unittest.mock import Mock, patch
 import yaml
 
 from octue.cloud.deployment.google.deployer import DEFAULT_DOCKERFILE_URL, CloudRunDeployer
@@ -88,3 +89,35 @@ class TestCloudRunDeployer(BaseTestCase):
             generated_config["images"][0] = generated_config["images"][0].split(":")[0]
 
             self.assertEqual(generated_config, expected_cloud_build_configuration)
+
+    def test_create_build_trigger(self):
+        """Test that the build trigger is created correctly."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            octue_configuration_path = os.path.join(temporary_directory, "octue.yaml")
+
+            with open(octue_configuration_path, "w") as f:
+                yaml.dump(octue_configuration, f)
+
+            deployer = CloudRunDeployer(octue_configuration_path)
+            deployer._generate_cloud_build_configuration()
+
+            with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:
+                deployer._create_build_trigger(deployer.cloud_build_configuration)
+
+            self.assertEqual(
+                mock_run.call_args.args[0],
+                [
+                    "gcloud",
+                    "beta",
+                    "builds",
+                    "triggers",
+                    "create",
+                    "github",
+                    f"--name={octue_configuration['name']}",
+                    f"--repo-name={octue_configuration['repository_name']}",
+                    f"--repo-owner={octue_configuration['repository_owner']}",
+                    f"--inline-config={deployer.cloud_build_configuration}",
+                    f"--description=Build {octue_configuration['name']} service and deploy it to Cloud Run.",
+                    "--branch-pattern=^main$",
+                ],
+            )
