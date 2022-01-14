@@ -83,7 +83,7 @@ class CloudRunDeployer:
         with ProgressMessage("Generating Google Cloud Build configuration", 1, total_number_of_stages):
             self._generate_cloud_build_configuration(with_cache=not no_cache)
 
-        with tempfile.NamedTemporaryFile() as temporary_file:
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "w") as f:
                 yaml.dump(self.cloud_build_configuration, f)
 
