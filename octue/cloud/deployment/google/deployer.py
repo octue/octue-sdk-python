@@ -17,49 +17,6 @@ DEFAULT_DOCKERFILE_URL = (
 )
 
 
-class ProgressMessage:
-    """A context manager that, on entering the context, prints the given start message and, on leaving it, prints
-    "done" on the same line. The use case is to surround a block of code with a start and finish message to give an
-    idea of progress on the command line. If multiple progress messages are required, different instances of this class
-    can be used and given information on their ordering and the total number of stages to produce an enumerated output.
-
-    For example:
-    ```
-    [1/4] Generating Google Cloud Build configuration...done.
-    [2/4] Creating build trigger...done.
-    [3/4] Building and deploying service...done.
-    [4/4] Creating Eventarc Pub/Sub run trigger...done.
-    ```
-
-    :param str start_message: the message to print before the code in the context is executed
-    :param int stage: the position of the progress message among all the related progress messages
-    :param int total_number_of_stages: the total number of progress messages that will be printed
-    :return None:
-    """
-
-    def __init__(self, start_message, stage, total_number_of_stages):
-        self.start_message = f"[{stage}/{total_number_of_stages}] {start_message}..."
-        self.finish_message = "done."
-
-    def __enter__(self):
-        """Print the start message.
-
-        :return None:
-        """
-        print(self.start_message, end="", flush=True)
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Print the finish message on the same line as the start message. If there's an error, print "ERROR" instead.
-
-        :return None:
-        """
-        if exc_type:
-            print("ERROR.")
-        else:
-            print(self.finish_message)
-
-
 class CloudRunDeployer:
     """A tool for taking an `octue.yaml` file in a repository and deploying the repository's `octue` app to Google Cloud
     Run. This includes setting up a Google Cloud Build trigger, enabling automatic deployment during future development.
@@ -286,9 +243,10 @@ class CloudRunDeployer:
         self._run_command(allow_unauthenticated_messages_command)
 
     def _create_eventarc_run_trigger(self):
-        """Create an Eventarc trigger for the service and attach it. Update the Eventarc subscription to have the
-        minimum acknowledgement deadline to avoid recurrent recomputation of questions.
+        """Create an Eventarc run trigger for the service and attach it. Update the Eventarc subscription to have the
+        minimum acknowledgement deadline to avoid recurrent re-computation of questions.
 
+        :raise octue.exceptions.DeploymentError: if the Eventarc subscription is not found after creating the Eventarc trigger
         :return None:
         """
         service = Service(backend=GCPPubSubBackend(project_name=self.project_name), service_id=self.service_id)
@@ -318,7 +276,9 @@ class CloudRunDeployer:
                 break
 
         if not eventarc_subscription_path:
-            raise DeploymentError("Eventarc subscription not found.")
+            raise DeploymentError(
+                "Eventarc subscription not found - its acknowledgement has not been updated to the minimum value."
+            )
 
         # Set the acknowledgement deadline to the minimum value to avoid recurrent re-computation of questions.
         subscription = Subscription(
@@ -358,3 +318,46 @@ class CloudRunDeployer:
             progress_message.finish_message = "already exists."
         else:
             raise exception
+
+
+class ProgressMessage:
+    """A context manager that, on entering the context, prints the given start message and, on leaving it, prints
+    "done" on the same line. The use case is to surround a block of code with a start and finish message to give an
+    idea of progress on the command line. If multiple progress messages are required, different instances of this class
+    can be used and given information on their ordering and the total number of stages to produce an enumerated output.
+
+    For example:
+    ```
+    [1/4] Generating Google Cloud Build configuration...done.
+    [2/4] Creating build trigger...done.
+    [3/4] Building and deploying service...done.
+    [4/4] Creating Eventarc Pub/Sub run trigger...done.
+    ```
+
+    :param str start_message: the message to print before the code in the context is executed
+    :param int stage: the position of the progress message among all the related progress messages
+    :param int total_number_of_stages: the total number of progress messages that will be printed
+    :return None:
+    """
+
+    def __init__(self, start_message, stage, total_number_of_stages):
+        self.start_message = f"[{stage}/{total_number_of_stages}] {start_message}..."
+        self.finish_message = "done."
+
+    def __enter__(self):
+        """Print the start message.
+
+        :return None:
+        """
+        print(self.start_message, end="", flush=True)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Print the finish message on the same line as the start message. If there's an error, print "ERROR" instead.
+
+        :return None:
+        """
+        if exc_type:
+            print("ERROR.")
+        else:
+            print(self.finish_message)
