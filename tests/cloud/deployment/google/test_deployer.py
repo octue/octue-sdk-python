@@ -113,7 +113,7 @@ class TestCloudRunDeployer(BaseTestCase):
                         "octue.cloud.deployment.google.deployer.Topic.get_subscriptions",
                         return_value=["test-service"],
                     ):
-                        with patch("octue.cloud.deployment.google.deployer.Subscription.update"):
+                        with patch("octue.cloud.deployment.google.deployer.Subscription"):
                             deployer.deploy()
 
             # Remove the "random" path used for the build configuration in the "--inline-config" argument of the
