@@ -40,6 +40,7 @@ def answer_question(question, project_name, credentials_environment_variable=Non
         backend=GCPPubSubBackend(
             project_name=project_name, credentials_environment_variable=credentials_environment_variable
         ),
+        name=os.environ.get("SERVICE_NAME"),
     )
 
     answer_topic = service.instantiate_answer_topic(question_uuid)
