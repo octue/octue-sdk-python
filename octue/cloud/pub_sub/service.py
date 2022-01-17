@@ -45,7 +45,7 @@ class Service(CoolNameable):
     :return None:
     """
 
-    def __init__(self, backend, service_id=None, run_function=None):
+    def __init__(self, backend, service_id=None, run_function=None, *args, **kwargs):
         if service_id is None:
             self.id = f"{OCTUE_NAMESPACE}.{str(uuid.uuid4())}"
         elif not service_id:
@@ -62,7 +62,7 @@ class Service(CoolNameable):
         self._credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
         self.publisher = pubsub_v1.PublisherClient(credentials=self._credentials, batch_settings=BATCH_SETTINGS)
         self._current_question = None
-        super().__init__()
+        super().__init__(*args, **kwargs)
 
     def __repr__(self):
         return f"<{type(self).__name__}({self.name!r})>"

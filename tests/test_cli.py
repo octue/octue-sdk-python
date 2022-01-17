@@ -7,6 +7,7 @@ from click.testing import CliRunner
 from octue import REPOSITORY_ROOT
 from octue.cli import octue_cli
 from octue.cloud.deployment.google.dataflow.deploy import DATAFLOW_TEMPORARY_FILES_LOCATION
+from octue.exceptions import DeploymentError
 from tests import TESTS_DIR
 from tests.base import BaseTestCase
 from tests.test_app_modules.app_module.app import CUSTOM_APP_RUN_MESSAGE
@@ -113,7 +114,16 @@ class TestDeployCommand(BaseTestCase):
     def test_deploy_command_group(self):
         """Test that the `dataflow` command is a subcommand of the `deploy` command."""
         result = CliRunner().invoke(octue_cli, ["deploy", "--help"])
-        self.assertIn("Commands:\n  dataflow", result.output)
+        self.assertIn("cloud-run ", result.output)
+        self.assertIn("dataflow ", result.output)
+
+    def test_deploy_cloud_run_raises_error_if_updating_without_providing_service_id(self):
+        """Test that a deployment error is raised if attempting to update a deployed service without providing the
+        service ID.
+        """
+        result = CliRunner().invoke(octue_cli, ["deploy", "cloud-run", "--update"])
+        self.assertEqual(result.exit_code, 1)
+        self.assertIsInstance(result.exception, DeploymentError)
 
     def test_deploy_dataflow(self):
         """Test that the `octue deploy dataflow` command works."""
