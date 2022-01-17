@@ -2,6 +2,7 @@ import os
 import tempfile
 import uuid
 from unittest import mock
+
 from click.testing import CliRunner
 
 from octue import REPOSITORY_ROOT

@@ -2,6 +2,7 @@ import os
 
 from octue.exceptions import InvalidInputException
 from octue.mixins import MixinBase, Pathable
+
 from ..base import BaseTestCase
 
 

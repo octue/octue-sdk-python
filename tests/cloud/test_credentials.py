@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 from unittest.mock import patch
+
 import google.oauth2.service_account
 
 from octue.cloud.credentials import GCPCredentialsManager

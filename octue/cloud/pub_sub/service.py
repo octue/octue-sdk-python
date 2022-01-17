@@ -8,6 +8,7 @@ import sys
 import time
 import traceback as tb
 import uuid
+
 from google.cloud import pubsub_v1
 
 import octue.exceptions

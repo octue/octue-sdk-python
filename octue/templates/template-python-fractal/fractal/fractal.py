@@ -2,6 +2,7 @@ import json
 
 from octue.resources import Datafile
 from octue.utils.encoders import OctueJSONEncoder
+
 from .mandelbrot import mandelbrot
 
 

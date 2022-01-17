@@ -9,6 +9,7 @@ import uuid
 
 from octue import Runner
 from octue.utils.processes import ProcessesContextManager
+
 from ..base import BaseTestCase
 
 

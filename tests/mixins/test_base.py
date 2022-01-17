@@ -1,4 +1,5 @@
 from octue.mixins import MixinBase
+
 from ..base import BaseTestCase
 
 

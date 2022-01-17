@@ -2,6 +2,7 @@ import base64
 import json
 import logging
 import os
+
 from google.cloud import storage
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google_crc32c import Checksum

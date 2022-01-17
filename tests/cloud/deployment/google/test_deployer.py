@@ -2,6 +2,7 @@ import copy
 import os
 import tempfile
 from unittest.mock import Mock, patch
+
 import yaml
 
 from octue.cloud.deployment.google.deployer import DEFAULT_DOCKERFILE_URL, CloudRunDeployer

@@ -5,6 +5,7 @@ import tempfile
 import uuid
 from datetime import datetime, timezone
 from unittest.mock import patch
+
 import h5py
 import pkg_resources
 
@@ -16,6 +17,7 @@ from octue.resources.datafile import Datafile
 from octue.resources.label import LabelSet
 from octue.resources.tag import TagDict
 from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
+
 from ..base import BaseTestCase
 
 

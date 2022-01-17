@@ -1,5 +1,6 @@
 import logging
 import os
+
 import apache_beam
 from apache_beam.options.pipeline_options import PipelineOptions
 
