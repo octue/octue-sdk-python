@@ -1,9 +1,11 @@
+import copy
 import os
 import tempfile
 from unittest.mock import Mock, patch
 import yaml
 
 from octue.cloud.deployment.google.deployer import DEFAULT_DOCKERFILE_URL, CloudRunDeployer
+from octue.exceptions import DeploymentError
 from tests.base import BaseTestCase
 
 
@@ -15,6 +17,9 @@ octue_configuration = {
     "region": "europe-west2",
     "branch_pattern": "my-branch",
 }
+
+
+GET_SUBSCRIPTIONS_METHOD_PATH = "octue.cloud.deployment.google.deployer.Topic.get_subscriptions"
 
 
 class TestCloudRunDeployer(BaseTestCase):
@@ -116,16 +121,13 @@ class TestCloudRunDeployer(BaseTestCase):
 
             with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:
                 with patch("octue.cloud.deployment.google.deployer.Topic.create"):
-                    with patch(
-                        "octue.cloud.deployment.google.deployer.Topic.get_subscriptions",
-                        return_value=["test-service"],
-                    ):
+                    with patch(GET_SUBSCRIPTIONS_METHOD_PATH, return_value=["test-service"]):
                         with patch("octue.cloud.deployment.google.deployer.Subscription"):
                             deployer.deploy()
 
             # Remove the "random" path used for the build configuration in the "--inline-config" argument of the
             # command.
-            build_trigger_command_without_inline_config_path = mock_run.call_args_list[0].args[0]
+            build_trigger_command_without_inline_config_path = copy.deepcopy(mock_run.call_args_list[0].args)[0]
             build_trigger_command_without_inline_config_path.pop(9)
 
             # Test the build trigger creation request.
@@ -180,3 +182,94 @@ class TestCloudRunDeployer(BaseTestCase):
                     f"--transport-topic={service_id}",
                 ],
             )
+
+    def test_create_build_trigger_with_update(self):
+        """Test that creating a build trigger for a service when one already exists results in the existing trigger
+        being deleted and recreated.
+        """
+        service_id = "octue.services.4ef88d56-49e0-459b-94e0-d68c5e55e17e"
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            octue_configuration_path = self._create_octue_configuration_file(temporary_directory)
+            deployer = CloudRunDeployer(octue_configuration_path, service_id=service_id)
+
+            with patch("octue.cloud.deployment.google.deployer.Topic.create"):
+                with patch(GET_SUBSCRIPTIONS_METHOD_PATH, return_value=["test-service"]):
+                    with patch("octue.cloud.deployment.google.deployer.Subscription"):
+
+                        deployer._generate_cloud_build_configuration()
+
+                        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+                            with open(temporary_file.name, "w") as f:
+                                yaml.dump(deployer.cloud_build_configuration, f)
+
+                            with patch(
+                                "octue.cloud.deployment.google.deployer.CloudRunDeployer._run_command",
+                                side_effect=[DeploymentError("already exists"), None, None],
+                            ) as mock_run_command:
+                                with patch("builtins.print") as mock_print:
+                                    deployer._create_build_trigger(temporary_file.name, update=True)
+
+        self.assertEqual(mock_print.call_args[0][0], "recreated.")
+
+        # Remove the "random" path used for the build configuration in the "--inline-config" argument of the
+        # command.
+        build_trigger_command_without_inline_config_path = copy.deepcopy(mock_run_command.call_args_list[0].args)[0]
+        build_trigger_command_without_inline_config_path.pop(9)
+
+        expected_build_trigger_creation_command = [
+            "gcloud",
+            "beta",
+            "builds",
+            "triggers",
+            "create",
+            "github",
+            f"--name={octue_configuration['name']}",
+            f"--repo-name={octue_configuration['repository_name']}",
+            f"--repo-owner={octue_configuration['repository_owner']}",
+            f"--description=Build the {octue_configuration['name']!r} service and deploy it to Cloud Run.",
+            f"--branch-pattern={octue_configuration['branch_pattern']}",
+        ]
+
+        # Test the build trigger creation request.
+        self.assertEqual(build_trigger_command_without_inline_config_path, expected_build_trigger_creation_command)
+
+        # Test that trigger deletion is requested.
+        self.assertEqual(
+            mock_run_command.call_args_list[1].args[0],
+            ["gcloud", "beta", "builds", "triggers", "delete", octue_configuration["name"]],
+        )
+
+        # Test the build trigger creation request is retried.
+        retried_build_trigger_command_without_inline_config_path = copy.deepcopy(
+            mock_run_command.call_args_list[2].args
+        )[0]
+
+        retried_build_trigger_command_without_inline_config_path.pop(9)
+
+        self.assertEqual(
+            retried_build_trigger_command_without_inline_config_path,
+            expected_build_trigger_creation_command,
+        )
+
+    def test_create_eventarc_run_trigger_with_update(self):
+        """Test that creating an Eventarc run trigger for a service when one already exists results in the Eventarc
+        subscription update being skipped and an "already exists" message being printed.
+        """
+        service_id = "octue.services.4ef88d56-49e0-459b-94e0-d68c5e55e17e"
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            octue_configuration_path = self._create_octue_configuration_file(temporary_directory)
+            deployer = CloudRunDeployer(octue_configuration_path, service_id=service_id)
+
+            with patch("octue.cloud.deployment.google.deployer.Topic.create"):
+                with patch(
+                    "octue.cloud.deployment.google.deployer.CloudRunDeployer._run_command",
+                    side_effect=DeploymentError("already exists"),
+                ):
+                    with patch(GET_SUBSCRIPTIONS_METHOD_PATH) as mock_get_subscriptions:
+                        with patch("builtins.print") as mock_print:
+                            deployer._create_eventarc_run_trigger(update=True)
+
+        mock_get_subscriptions.assert_not_called()
+        self.assertEqual(mock_print.call_args[0][0], "already exists.")
