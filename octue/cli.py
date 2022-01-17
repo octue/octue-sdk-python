@@ -1,6 +1,7 @@
 import functools
 import os
 import sys
+
 import click
 import pkg_resources
 
@@ -233,7 +234,7 @@ def deploy():
 @deploy.command()
 @click.option(
     "--octue-configuration-path",
-    type=click.Path(),
+    type=click.Path(exists=True, dir_okay=False),
     default="octue.yaml",
     show_default=True,
     help="Path to an octue.yaml file.",

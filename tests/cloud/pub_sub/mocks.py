@@ -1,5 +1,6 @@
 import json
 import logging
+
 import google.api_core.exceptions
 
 from octue.cloud.pub_sub import Subscription, Topic

@@ -6,6 +6,7 @@ from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException, InvalidManifestException
 from octue.mixins import Hashable, Identifiable, Pathable, Serialisable
 from octue.resources.datafile import CLOUD_STORAGE_PROTOCOL
+
 from .dataset import Dataset
 
 

@@ -2,6 +2,7 @@ import os
 import tempfile
 import uuid
 from unittest import mock
+
 from click.testing import CliRunner
 
 from octue import REPOSITORY_ROOT
@@ -121,7 +122,11 @@ class TestDeployCommand(BaseTestCase):
         """Test that a deployment error is raised if attempting to update a deployed service without providing the
         service ID.
         """
-        result = CliRunner().invoke(octue_cli, ["deploy", "cloud-run", "--update"])
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            result = CliRunner().invoke(
+                octue_cli,
+                ["deploy", "cloud-run", f"--octue-configuration-path={temporary_file.name}", "--update"],
+            )
         self.assertEqual(result.exit_code, 1)
         self.assertIsInstance(result.exception, DeploymentError)
 

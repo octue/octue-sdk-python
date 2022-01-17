@@ -4,6 +4,7 @@ import logging
 import os
 import tempfile
 from urllib.parse import urlparse
+
 import google.api_core.exceptions
 
 

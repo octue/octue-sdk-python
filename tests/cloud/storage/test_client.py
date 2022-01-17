@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 from unittest.mock import patch
+
 import google.api_core.exceptions
 import google.cloud.exceptions
 

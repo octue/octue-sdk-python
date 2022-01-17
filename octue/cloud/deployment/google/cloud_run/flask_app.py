@@ -1,4 +1,5 @@
 import logging
+
 from flask import Flask, request
 
 from octue.cloud.deployment.google.answer_pub_sub_question import answer_question
