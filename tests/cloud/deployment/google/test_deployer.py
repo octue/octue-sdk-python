@@ -18,17 +18,30 @@ octue_configuration = {
 
 
 class TestCloudRunDeployer(BaseTestCase):
+    def _create_octue_configuration_file(self, directory_path):
+        """Create an `octue.yaml` configuration file in the given directory.
+
+        :param str directory_path:
+        :return str: the path of the `octue.yaml` file
+        """
+        octue_configuration_path = os.path.join(directory_path, "octue.yaml")
+
+        with open(octue_configuration_path, "w") as f:
+            yaml.dump(octue_configuration, f)
+
+        return octue_configuration_path
+
     def test_generate_cloud_build_configuration(self):
         """Test that a correct Google Cloud Build configuration is generated from the given `octue.yaml` file."""
         service_id = "octue.services.0df08f9f-30ad-4db3-8029-ea584b4290b7"
-        expected_image_name = f"eu.gcr.io/{octue_configuration['project_name']}/octue/{octue_configuration['repository_name']}/{octue_configuration['name']}"
+
+        expected_image_name = (
+            f"eu.gcr.io/{octue_configuration['project_name']}/octue/{octue_configuration['repository_name']}/"
+            f"{octue_configuration['name']}"
+        )
 
         with tempfile.TemporaryDirectory() as temporary_directory:
-            octue_configuration_path = os.path.join(temporary_directory, "octue.yaml")
-
-            with open(octue_configuration_path, "w") as f:
-                yaml.dump(octue_configuration, f)
-
+            octue_configuration_path = self._create_octue_configuration_file(temporary_directory)
             deployer = CloudRunDeployer(octue_configuration_path, service_id=service_id)
             deployer._generate_cloud_build_configuration()
 
@@ -98,13 +111,8 @@ class TestCloudRunDeployer(BaseTestCase):
         service_id = "octue.services.4ef88d56-49e0-459b-94e0-d68c5e55e17e"
 
         with tempfile.TemporaryDirectory() as temporary_directory:
-            octue_configuration_path = os.path.join(temporary_directory, "octue.yaml")
-
-            with open(octue_configuration_path, "w") as f:
-                yaml.dump(octue_configuration, f)
-
+            octue_configuration_path = self._create_octue_configuration_file(temporary_directory)
             deployer = CloudRunDeployer(octue_configuration_path, service_id=service_id)
-            deployer._generate_cloud_build_configuration()
 
             with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:
                 with patch("octue.cloud.deployment.google.deployer.Topic.create"):
