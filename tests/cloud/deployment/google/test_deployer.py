@@ -70,7 +70,7 @@ class TestCloudRunDeployer(BaseTestCase):
                             f"--region={octue_configuration['region']}",
                             "--memory=128Mi",
                             "--cpu=1",
-                            f"--set-env-vars=SERVICE_ID={service_id}",
+                            f"--set-env-vars=SERVICE_ID={service_id},SERVICE_NAME={octue_configuration['name']}",
                             "--timeout=3600",
                             "--concurrency=10",
                             "--min-instances=0",
