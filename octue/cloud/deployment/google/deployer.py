@@ -16,6 +16,8 @@ DEFAULT_DOCKERFILE_URL = (
     "https://raw.githubusercontent.com/octue/octue-sdk-python/main/octue/cloud/deployment/google/cloud_run/Dockerfile"
 )
 
+TOTAL_NUMBER_OF_STAGES = 4
+
 
 class CloudRunDeployer:
     """A tool for using an `octue.yaml` file in a repository to build and deploy the repository's `octue` app to Google
@@ -86,9 +88,7 @@ class CloudRunDeployer:
         :param bool update: if `True`, allow the build trigger and Eventarc run trigger to already exist and just build and deploy a new image based on an updated `octue.yaml` file
         :return str: the service's UUID
         """
-        total_number_of_stages = 4
-
-        with ProgressMessage("Generating Google Cloud Build configuration", 1, total_number_of_stages):
+        with ProgressMessage("Generating Google Cloud Build configuration", 1, TOTAL_NUMBER_OF_STAGES):
             self._generate_cloud_build_configuration(no_cache=no_cache)
 
         # Put the Cloud Build configuration into a temporary file so it can be used by the `gcloud` commands.
@@ -96,16 +96,12 @@ class CloudRunDeployer:
             with open(temporary_file.name, "w") as f:
                 yaml.dump(self.cloud_build_configuration, f)
 
-            with ProgressMessage("Creating build trigger", 2, total_number_of_stages) as progress_message:
-                try:
-                    self._create_build_trigger(cloud_build_configuration_path=temporary_file.name)
-                except DeploymentError as e:
-                    self._raise_or_ignore_already_exists_error(e, update, progress_message)
+                self._create_build_trigger(cloud_build_configuration_path=temporary_file.name, update=update)
 
-            with ProgressMessage("Building and deploying service", 3, total_number_of_stages):
+            with ProgressMessage("Building and deploying service", 3, TOTAL_NUMBER_OF_STAGES):
                 self._build_and_deploy_service(cloud_build_configuration_path=temporary_file.name)
 
-        with ProgressMessage("Creating Eventarc Pub/Sub run trigger", 4, total_number_of_stages) as progress_message:
+        with ProgressMessage("Creating Eventarc Pub/Sub run trigger", 4, TOTAL_NUMBER_OF_STAGES) as progress_message:
             try:
                 self._create_eventarc_run_trigger()
             except DeploymentError as e:
@@ -195,13 +191,14 @@ class CloudRunDeployer:
             "images": [self.image_uri],
         }
 
-    def _create_build_trigger(self, cloud_build_configuration_path):
+    def _create_build_trigger(self, cloud_build_configuration_path, update=False):
         """Create the build trigger in Google Cloud Build using the given `cloudbuild.yaml` file.
 
         :param str cloud_build_configuration_path: the path to the `cloudbuild.yaml` file (it can have a different name or extension but it needs to be in the `cloudbuild.yaml` format)
+        :param bool update: if `True` and there is an existing trigger, delete it and replace it with an updated one
         :return None:
         """
-        command = [
+        create_trigger_command = [
             "gcloud",
             "beta",
             "builds",
@@ -216,7 +213,25 @@ class CloudRunDeployer:
             f"--branch-pattern={self.branch_pattern}",
         ]
 
-        self._run_command(command)
+        with ProgressMessage("Creating build trigger", 2, TOTAL_NUMBER_OF_STAGES) as progress_message:
+
+            try:
+                self._run_command(create_trigger_command)
+            except DeploymentError as e:
+                self._raise_or_ignore_already_exists_error(e, update, progress_message, finish_message="recreated.")
+
+                delete_trigger_command = [
+                    "gcloud",
+                    "beta",
+                    "builds",
+                    "triggers",
+                    "delete",
+                    f"{self.name}",
+                    f"--region={self.region}",
+                ]
+
+                self._run_command(delete_trigger_command)
+                self._run_command(create_trigger_command)
 
     def _build_and_deploy_service(self, cloud_build_configuration_path):
         """Build and deploy the service from the given Cloud Build configuration file and local context. This method
@@ -313,19 +328,24 @@ class CloudRunDeployer:
             raise DeploymentError(process.stderr.decode())
 
     @staticmethod
-    def _raise_or_ignore_already_exists_error(exception, update, progress_message):
+    def _raise_or_ignore_already_exists_error(exception, update, progress_message, finish_message=None):
         """If `update` is `True` and the exception includes the words "already exists", ignore the exception and change
         the progress message's `finish_message` to "already exists."; otherwise, raise the exception.
 
         :param Exception exception: the exception to ignore or raise
         :param bool update: if `True`, ignore "already exists" errors but raise other errors
         :param ProgressMessage progress_message: the progress message to update with "already exists" if appropriate
+        :param str finish_message:
+        :raise Exception:
         :return None:
         """
-        if update and "already exists" in exception.args[0]:
-            progress_message.finish_message = "already exists."
-        else:
+        if "already exists" not in exception.args[0]:
             raise exception
+
+        if not update:
+            raise DeploymentError("The resources already exists.")
+
+        progress_message.finish_message = finish_message or "already exists."
 
 
 class ProgressMessage:
