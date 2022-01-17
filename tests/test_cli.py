@@ -7,7 +7,7 @@ from click.testing import CliRunner
 
 from octue import REPOSITORY_ROOT
 from octue.cli import octue_cli
-from octue.cloud.deployment.google.dataflow.deploy import DATAFLOW_TEMPORARY_FILES_LOCATION
+from octue.cloud.deployment.google.dataflow.deploy import DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION
 from octue.exceptions import DeploymentError
 from tests import TESTS_DIR
 from tests.base import BaseTestCase
@@ -151,7 +151,7 @@ class TestDeployCommand(BaseTestCase):
 
         self.assertEqual(pipeline_options["project"], "my-project")
         self.assertEqual(pipeline_options["region"], "my-region")
-        self.assertEqual(pipeline_options["temp_location"], DATAFLOW_TEMPORARY_FILES_LOCATION)
+        self.assertEqual(pipeline_options["temp_location"], DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION)
         self.assertEqual(pipeline_options["job_name"], "my-service")
         self.assertEqual(pipeline_options["runner"], "MyApacheBeamRunner")
         self.assertEqual(pipeline_options["dataflow_service_options"], ["enable_prime"])

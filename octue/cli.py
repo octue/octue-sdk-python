@@ -5,7 +5,12 @@ import sys
 import click
 import pkg_resources
 
-from octue.cloud.deployment.google.dataflow.deploy import DEFAULT_IMAGE_URI, deploy_streaming_pipeline
+from octue.cloud.deployment.google.dataflow.deploy import (
+    DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION,
+    DEFAULT_IMAGE_URI,
+    DEFAULT_SETUP_FILE_PATH,
+    deploy_streaming_pipeline,
+)
 from octue.cloud.deployment.google.deployer import CloudRunDeployer
 from octue.cloud.pub_sub.service import Service
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
@@ -268,13 +273,36 @@ def cloud_run(octue_configuration_path, service_id, update, no_cache):
     help="One of the valid apache-beam runners to use to execute the pipeline.",
 )
 @click.option(
+    "--setup-file-path",
+    type=click.Path(exists=True, dir_okay=False),
+    default=DEFAULT_SETUP_FILE_PATH,
+    show_default=True,
+    help="The path to a python `setup.py` file to use for the service.",
+)
+@click.option(
     "--image-uri",
     type=str,
     default=DEFAULT_IMAGE_URI,
     show_default=True,
     help="The URI of the apache-beam-based Docker image to use for the service.",
 )
-def dataflow(service_name, service_id, project_name, region, runner, image_uri):
+@click.option(
+    "--temporary-files-location",
+    type=str,
+    default=DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION,
+    show_default=True,
+    help="The Google Cloud Storage path to save temporary files from the service at.",
+)
+def dataflow(
+    service_name,
+    service_id,
+    project_name,
+    region,
+    runner,
+    setup_file_path,
+    image_uri,
+    temporary_files_location,
+):
     """Deploy an app as a Google Dataflow streaming service.
 
     SERVICE_NAME - the name to give the service
@@ -291,7 +319,9 @@ def dataflow(service_name, service_id, project_name, region, runner, image_uri):
         service_id=service_id,
         region=region,
         runner=runner,
+        setup_file_path=os.path.abspath(setup_file_path),
         image_uri=image_uri,
+        temporary_files_location=temporary_files_location,
     )
 
 
