@@ -18,10 +18,17 @@ DEFAULT_DOCKERFILE_URL = (
 
 
 class CloudRunDeployer:
-    """A tool for taking an `octue.yaml` file in a repository and deploying the repository's `octue` app to Google Cloud
-    Run. This includes setting up a Google Cloud Build trigger, enabling automatic deployment during future development.
-    Note that this tool requires the `gcloud` CLI to be available. The version used while developing this tool is:
+    """A tool for using an `octue.yaml` file in a repository to build and deploy the repository's `octue` app to Google
+    Cloud Run. This includes setting up a Google Cloud Build trigger, enabling automatic deployment during future
+    development. Note that this tool requires the `gcloud` CLI to be available.
 
+    Warning: the build triggered by this tool will currently only work if it is run in the correct context directory for
+    the docker build - this is due to the `gcloud beta builds triggers run` command not yet working, so the first build
+    has to be triggered via `gcloud builds submit`, which collects the context from the local machine running the
+    command instead of from the remote repository. This is not ideal and will be addressed as soon as the former
+    `gcloud` command works properly.
+
+    The version information for the version of `gcloud` used to develop this tool is:
     ```
     Google Cloud SDK 367.0.0
     beta 2021.12.10
@@ -33,7 +40,7 @@ class CloudRunDeployer:
     ```
 
     :param str octue_configuration_path: the path to the `octue.yaml` file if it's not in the current working directory
-    :param str|None service_id: the UUID to give the service if a random one is not wanted
+    :param str|None service_id: the UUID to give the service if a random one is not suitable
     :return None:
     """
 
@@ -52,7 +59,7 @@ class CloudRunDeployer:
 
         # Generated attributes.
         self.service_id = service_id or str(uuid.uuid4())
-        self.build_trigger_description = f"Build {self.name} service and deploy it to Cloud Run."
+        self.build_trigger_description = f"Build the {self.name!r} service and deploy it to Cloud Run."
 
         self._default_image_uri = (
             f"{DOCKER_REGISTRY_URL}/{self.project_name}/{self.repository_owner}/{self.repository_name}/"
@@ -63,7 +70,7 @@ class CloudRunDeployer:
         self.dockerfile_path = octue_configuration.get("dockerfile_path")
         self.minimum_instances = octue_configuration.get("minimum_instances", 0)
         self.maximum_instances = octue_configuration.get("maximum_instances", 10)
-        self.concurrency = octue_configuration.get("concurrency", 80)
+        self.concurrency = octue_configuration.get("concurrency", 10)
         self.image_uri = octue_configuration.get("image_uri", self._default_image_uri)
         self.branch_pattern = octue_configuration.get("branch_pattern", "^main$")
         self.memory = octue_configuration.get("memory", "128Mi")
@@ -81,8 +88,9 @@ class CloudRunDeployer:
         total_number_of_stages = 4
 
         with ProgressMessage("Generating Google Cloud Build configuration", 1, total_number_of_stages):
-            self._generate_cloud_build_configuration(with_cache=not no_cache)
+            self._generate_cloud_build_configuration(no_cache=no_cache)
 
+        # Put the Cloud Build configuration into a temporary file so it can be used by the `gcloud` commands.
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "w") as f:
                 yaml.dump(self.cloud_build_configuration, f)
@@ -103,7 +111,6 @@ class CloudRunDeployer:
                 self._raise_or_ignore_already_exists_error(e, update, progress_message)
 
         print(f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}.")
-
         return self.service_id
 
     @staticmethod
@@ -114,11 +121,11 @@ class CloudRunDeployer:
         """
         return subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True).stdout.decode().strip()
 
-    def _generate_cloud_build_configuration(self, with_cache=False):
+    def _generate_cloud_build_configuration(self, no_cache=False):
         """Generate a Google Cloud Build configuration equivalent to a `cloudbuild.yaml` file in memory and assign it
         to the `cloud_build_configuration` attribute.
 
-        :param bool with_cache: if `True`, specify in the configuration to use the docker cache when building the service image
+        :param bool no_cache: if `True`, don't use the Docker cache when building the image
         :return None:
         """
         if self.dockerfile_path:
@@ -138,7 +145,7 @@ class CloudRunDeployer:
 
             dockerfile_path = "Dockerfile"
 
-        if not with_cache:
+        if no_cache:
             cache_option = ["--no-cache"]
         else:
             cache_option = []
@@ -190,7 +197,7 @@ class CloudRunDeployer:
     def _create_build_trigger(self, cloud_build_configuration_path):
         """Create the build trigger in Google Cloud Build using the given `cloudbuild.yaml` file.
 
-        :param str cloud_build_configuration_path:
+        :param str cloud_build_configuration_path: the path to the `cloudbuild.yaml` file (it can have a different name or extension but it needs to be in the `cloudbuild.yaml` format)
         :return None:
         """
         command = [
@@ -211,12 +218,12 @@ class CloudRunDeployer:
         self._run_command(command)
 
     def _build_and_deploy_service(self, cloud_build_configuration_path):
-        """Build and deploy the service from the given cloud build configuration file and local context. This method
+        """Build and deploy the service from the given Cloud Build configuration file and local context. This method
         must be run from the same directory that `docker build -f <path/to/Dockerfile .` would be run from locally for
         the correct build context to be available. When `gcloud beta builds triggers run` is working, this won't be
         necessary as the build context can just be taken from the relevant GitHub repository.
 
-        :param str cloud_build_configuration_path:
+        :param str cloud_build_configuration_path: the path to the `cloudbuild.yaml` file (it can have a different name or extension but it needs to be in the `cloudbuild.yaml` format)
         :return None:
         """
         build_and_deploy_command = [
@@ -243,8 +250,8 @@ class CloudRunDeployer:
         self._run_command(allow_unauthenticated_messages_command)
 
     def _create_eventarc_run_trigger(self):
-        """Create an Eventarc run trigger for the service and attach it. Update the Eventarc subscription to have the
-        minimum acknowledgement deadline to avoid recurrent re-computation of questions.
+        """Create an Eventarc run trigger for the service. Update the Eventarc subscription to have the minimum
+        acknowledgement deadline to avoid recurrent re-computation of questions.
 
         :raise octue.exceptions.DeploymentError: if the Eventarc subscription is not found after creating the Eventarc trigger
         :return None:
@@ -277,14 +284,14 @@ class CloudRunDeployer:
 
         if not eventarc_subscription_path:
             raise DeploymentError(
-                "Eventarc subscription not found - its acknowledgement has not been updated to the minimum value."
+                "Eventarc subscription not found - it may exist but its acknowledgement has not been updated to the "
+                "minimum value, which may lead to recurrent re-computation of questions."
             )
 
         # Set the acknowledgement deadline to the minimum value to avoid recurrent re-computation of questions.
         subscription = Subscription(
             name=eventarc_subscription_path.split("/")[-1],
             topic=topic,
-            namespace="",
             project_name=self.project_name,
             ack_deadline=10,
         )
@@ -299,7 +306,7 @@ class CloudRunDeployer:
         :raise octue.exceptions.DeploymentError: if the command fails
         :return None:
         """
-        process = subprocess.run(command, capture_output=True)
+        process = subprocess.run(command)
 
         if process.returncode != 0:
             raise DeploymentError(process.stderr.decode())
@@ -310,8 +317,8 @@ class CloudRunDeployer:
         the progress message's `finish_message` to "already exists."; otherwise, raise the exception.
 
         :param Exception exception: the exception to ignore or raise
-        :param bool update: if `True`, ignore "already exists" errors
-        :param ProgressMessage progress_message:
+        :param bool update: if `True`, ignore "already exists" errors but raise other errors
+        :param ProgressMessage progress_message: the progress message to update with "already exists" if appropriate
         :return None:
         """
         if update and "already exists" in exception.args[0]:
@@ -347,7 +354,7 @@ class ProgressMessage:
     def __enter__(self):
         """Print the start message.
 
-        :return None:
+        :return ProgressMessage:
         """
         print(self.start_message, end="", flush=True)
         return self

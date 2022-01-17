@@ -44,7 +44,6 @@ class TestCloudRunDeployer(BaseTestCase):
                         "name": "gcr.io/cloud-builders/docker",
                         "args": [
                             "build",
-                            "--no-cache",
                             "-t",
                             expected_image_name,
                             ".",
@@ -73,7 +72,7 @@ class TestCloudRunDeployer(BaseTestCase):
                             "--cpu=1",
                             f"--set-env-vars=SERVICE_ID={service_id}",
                             "--timeout=3600",
-                            "--concurrency=80",
+                            "--concurrency=10",
                             "--min-instances=0",
                             "--max-instances=10",
                             "--ingress=internal",
@@ -85,7 +84,7 @@ class TestCloudRunDeployer(BaseTestCase):
 
             # Remove the commit hash from the image name as it will change for each commit made.
             generated_config = deployer.cloud_build_configuration
-            generated_config["steps"][1]["args"][3] = generated_config["steps"][1]["args"][3].split(":")[0]
+            generated_config["steps"][1]["args"][2] = generated_config["steps"][1]["args"][2].split(":")[0]
             generated_config["steps"][2]["args"][1] = generated_config["steps"][2]["args"][1].split(":")[0]
             generated_config["steps"][3]["args"][5] = generated_config["steps"][3]["args"][5].split(":")[0]
             generated_config["images"][0] = generated_config["images"][0].split(":")[0]
@@ -134,7 +133,7 @@ class TestCloudRunDeployer(BaseTestCase):
                     f"--name={octue_configuration['name']}",
                     f"--repo-name={octue_configuration['repository_name']}",
                     f"--repo-owner={octue_configuration['repository_owner']}",
-                    f"--description=Build {octue_configuration['name']} service and deploy it to Cloud Run.",
+                    f"--description=Build the {octue_configuration['name']!r} service and deploy it to Cloud Run.",
                     f"--branch-pattern={octue_configuration['branch_pattern']}",
                 ],
             )
