@@ -60,6 +60,7 @@ class CloudRunDeployer:
         # Generated attributes.
         self.service_id = service_id or str(uuid.uuid4())
         self.build_trigger_description = f"Build the {self.name!r} service and deploy it to Cloud Run."
+        self.required_environment_variables = [f"SERVICE_ID={self.service_id}", f"SERVICE_NAME={self.name}"]
 
         self._default_image_uri = (
             f"{DOCKER_REGISTRY_URL}/{self.project_name}/{self.repository_owner}/{self.repository_name}/"
@@ -152,7 +153,7 @@ class CloudRunDeployer:
 
         environment_variables = ",".join(
             [f"{variable['name']}={variable['value']}" for variable in self.environment_variables]
-            + [f"SERVICE_ID={self.service_id}"]
+            + self.required_environment_variables
         )
 
         self.cloud_build_configuration = {
