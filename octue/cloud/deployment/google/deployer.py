@@ -88,24 +88,17 @@ class CloudRunDeployer:
         :param bool update: if `True`, allow the build trigger and Eventarc run trigger to already exist and just build and deploy a new image based on an updated `octue.yaml` file
         :return str: the service's UUID
         """
-        with ProgressMessage("Generating Google Cloud Build configuration", 1, TOTAL_NUMBER_OF_STAGES):
-            self._generate_cloud_build_configuration(no_cache=no_cache)
+        self._generate_cloud_build_configuration(no_cache=no_cache)
 
         # Put the Cloud Build configuration into a temporary file so it can be used by the `gcloud` commands.
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "w") as f:
                 yaml.dump(self.cloud_build_configuration, f)
 
-                self._create_build_trigger(cloud_build_configuration_path=temporary_file.name, update=update)
+            self._create_build_trigger(cloud_build_configuration_path=temporary_file.name, update=update)
+            self._build_and_deploy_service(cloud_build_configuration_path=temporary_file.name)
 
-            with ProgressMessage("Building and deploying service", 3, TOTAL_NUMBER_OF_STAGES):
-                self._build_and_deploy_service(cloud_build_configuration_path=temporary_file.name)
-
-        with ProgressMessage("Creating Eventarc Pub/Sub run trigger", 4, TOTAL_NUMBER_OF_STAGES) as progress_message:
-            try:
-                self._create_eventarc_run_trigger()
-            except DeploymentError as e:
-                self._raise_or_ignore_already_exists_error(e, update, progress_message)
+        self._create_eventarc_run_trigger(update=update)
 
         print(f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}.")
         return self.service_id
@@ -125,71 +118,72 @@ class CloudRunDeployer:
         :param bool no_cache: if `True`, don't use the Docker cache when building the image
         :return None:
         """
-        if self.dockerfile_path:
-            get_dockerfile_step = []
-            dockerfile_path = self.dockerfile_path
+        with ProgressMessage("Generating Google Cloud Build configuration", 1, TOTAL_NUMBER_OF_STAGES):
+            if self.dockerfile_path:
+                get_dockerfile_step = []
+                dockerfile_path = self.dockerfile_path
 
-        else:
-            # If no path to a dockerfile has been provided, add a step to download the default Octue service Dockerfile
-            # to build the image from.
-            get_dockerfile_step = [
-                {
-                    "id": "Get default Octue Dockerfile",
-                    "name": "alpine:latest",
-                    "args": ["wget", DEFAULT_DOCKERFILE_URL],
-                }
-            ]
+            else:
+                # If no path to a dockerfile has been provided, add a step to download the default Octue service Dockerfile
+                # to build the image from.
+                get_dockerfile_step = [
+                    {
+                        "id": "Get default Octue Dockerfile",
+                        "name": "alpine:latest",
+                        "args": ["wget", DEFAULT_DOCKERFILE_URL],
+                    }
+                ]
 
-            dockerfile_path = "Dockerfile"
+                dockerfile_path = "Dockerfile"
 
-        if no_cache:
-            cache_option = ["--no-cache"]
-        else:
-            cache_option = []
+            if no_cache:
+                cache_option = ["--no-cache"]
+            else:
+                cache_option = []
 
-        environment_variables = ",".join(
-            [f"{variable['name']}={variable['value']}" for variable in self.environment_variables]
-            + self.required_environment_variables
-        )
+            environment_variables = ",".join(
+                [f"{variable['name']}={variable['value']}" for variable in self.environment_variables]
+                + self.required_environment_variables
+            )
 
-        self.cloud_build_configuration = {
-            "steps": [
-                *get_dockerfile_step,
-                {
-                    "id": "Build image",
-                    "name": "gcr.io/cloud-builders/docker",
-                    "args": ["build", *cache_option, "-t", self.image_uri, ".", "-f", dockerfile_path],
-                },
-                {
-                    "id": "Push image",
-                    "name": "gcr.io/cloud-builders/docker",
-                    "args": ["push", self.image_uri],
-                },
-                {
-                    "id": "Deploy image to Google Cloud Run",
-                    "name": "gcr.io/google.com/cloudsdktool/cloud-sdk:slim",
-                    "entrypoint": "gcloud",
-                    "args": [
-                        "run",
-                        "services",
-                        "update",
-                        self.name,
-                        "--platform=managed",
-                        f"--image={self.image_uri}",
-                        f"--region={self.region}",
-                        f"--memory={self.memory}",
-                        f"--cpu={self.cpus}",
-                        f"--set-env-vars={environment_variables}",
-                        "--timeout=3600",
-                        f"--concurrency={self.concurrency}",
-                        f"--min-instances={self.minimum_instances}",
-                        f"--max-instances={self.maximum_instances}",
-                        "--ingress=internal",
-                    ],
-                },
-            ],
-            "images": [self.image_uri],
-        }
+            self.cloud_build_configuration = {
+                "steps": [
+                    *get_dockerfile_step,
+                    {
+                        "id": "Build image",
+                        "name": "gcr.io/cloud-builders/docker",
+                        "args": ["build", *cache_option, "-t", self.image_uri, ".", "-f", dockerfile_path],
+                    },
+                    {
+                        "id": "Push image",
+                        "name": "gcr.io/cloud-builders/docker",
+                        "args": ["push", self.image_uri],
+                    },
+                    {
+                        "id": "Deploy image to Google Cloud Run",
+                        "name": "gcr.io/google.com/cloudsdktool/cloud-sdk:slim",
+                        "entrypoint": "gcloud",
+                        "args": [
+                            "run",
+                            "services",
+                            "update",
+                            self.name,
+                            "--platform=managed",
+                            f"--image={self.image_uri}",
+                            f"--region={self.region}",
+                            f"--memory={self.memory}",
+                            f"--cpu={self.cpus}",
+                            f"--set-env-vars={environment_variables}",
+                            "--timeout=3600",
+                            f"--concurrency={self.concurrency}",
+                            f"--min-instances={self.minimum_instances}",
+                            f"--max-instances={self.maximum_instances}",
+                            "--ingress=internal",
+                        ],
+                    },
+                ],
+                "images": [self.image_uri],
+            }
 
     def _create_build_trigger(self, cloud_build_configuration_path, update=False):
         """Create the build trigger in Google Cloud Build using the given `cloudbuild.yaml` file.
@@ -198,22 +192,21 @@ class CloudRunDeployer:
         :param bool update: if `True` and there is an existing trigger, delete it and replace it with an updated one
         :return None:
         """
-        create_trigger_command = [
-            "gcloud",
-            "beta",
-            "builds",
-            "triggers",
-            "create",
-            "github",
-            f"--name={self.name}",
-            f"--repo-name={self.repository_name}",
-            f"--repo-owner={self.repository_owner}",
-            f"--inline-config={cloud_build_configuration_path}",
-            f"--description={self.build_trigger_description}",
-            f"--branch-pattern={self.branch_pattern}",
-        ]
-
         with ProgressMessage("Creating build trigger", 2, TOTAL_NUMBER_OF_STAGES) as progress_message:
+            create_trigger_command = [
+                "gcloud",
+                "beta",
+                "builds",
+                "triggers",
+                "create",
+                "github",
+                f"--name={self.name}",
+                f"--repo-name={self.repository_name}",
+                f"--repo-owner={self.repository_owner}",
+                f"--inline-config={cloud_build_configuration_path}",
+                f"--description={self.build_trigger_description}",
+                f"--branch-pattern={self.branch_pattern}",
+            ]
 
             try:
                 self._run_command(create_trigger_command)
@@ -227,7 +220,6 @@ class CloudRunDeployer:
                     "triggers",
                     "delete",
                     f"{self.name}",
-                    f"--region={self.region}",
                 ]
 
                 self._run_command(delete_trigger_command)
@@ -242,77 +234,84 @@ class CloudRunDeployer:
         :param str cloud_build_configuration_path: the path to the `cloudbuild.yaml` file (it can have a different name or extension but it needs to be in the `cloudbuild.yaml` format)
         :return None:
         """
-        build_and_deploy_command = [
-            "gcloud",
-            "builds",
-            "submit",
-            ".",
-            f"--config={cloud_build_configuration_path}",
-        ]
+        with ProgressMessage("Building and deploying service", 3, TOTAL_NUMBER_OF_STAGES):
+            build_and_deploy_command = [
+                "gcloud",
+                "builds",
+                "submit",
+                ".",
+                f"--config={cloud_build_configuration_path}",
+            ]
 
-        self._run_command(build_and_deploy_command)
+            self._run_command(build_and_deploy_command)
 
-        allow_unauthenticated_messages_command = [
-            "gcloud",
-            "run",
-            "services",
-            "add-iam-policy-binding",
-            self.name,
-            f"--region={self.region}",
-            "--member=allUsers",
-            "--role=roles/run.invoker",
-        ]
+            allow_unauthenticated_messages_command = [
+                "gcloud",
+                "run",
+                "services",
+                "add-iam-policy-binding",
+                self.name,
+                f"--region={self.region}",
+                "--member=allUsers",
+                "--role=roles/run.invoker",
+            ]
 
-        self._run_command(allow_unauthenticated_messages_command)
+            self._run_command(allow_unauthenticated_messages_command)
 
-    def _create_eventarc_run_trigger(self):
+    def _create_eventarc_run_trigger(self, update=False):
         """Create an Eventarc run trigger for the service. Update the Eventarc subscription to have the minimum
         acknowledgement deadline to avoid recurrent re-computation of questions.
 
         :raise octue.exceptions.DeploymentError: if the Eventarc subscription is not found after creating the Eventarc trigger
+        :param bool update: if `True`, ignore "already exists" errors from the Eventarc trigger
         :return None:
         """
-        service = Service(backend=GCPPubSubBackend(project_name=self.project_name), service_id=self.service_id)
-        topic = Topic(name=self.service_id, namespace=OCTUE_NAMESPACE, service=service)
-        topic.create(allow_existing=True)
+        with ProgressMessage("Creating Eventarc Pub/Sub run trigger", 4, TOTAL_NUMBER_OF_STAGES) as progress_message:
+            service = Service(backend=GCPPubSubBackend(project_name=self.project_name), service_id=self.service_id)
+            topic = Topic(name=self.service_id, namespace=OCTUE_NAMESPACE, service=service)
+            topic.create(allow_existing=True)
 
-        command = [
-            "gcloud",
-            "beta",
-            "eventarc",
-            "triggers",
-            "create",
-            f"{self.name}-trigger",
-            "--matching-criteria=type=google.cloud.pubsub.topic.v1.messagePublished",
-            f"--destination-run-service={self.name}",
-            f"--location={self.region}",
-            f"--transport-topic={topic.name}",
-        ]
+            command = [
+                "gcloud",
+                "beta",
+                "eventarc",
+                "triggers",
+                "create",
+                f"{self.name}-trigger",
+                "--matching-criteria=type=google.cloud.pubsub.topic.v1.messagePublished",
+                f"--destination-run-service={self.name}",
+                f"--location={self.region}",
+                f"--transport-topic={topic.name}",
+            ]
 
-        self._run_command(command)
+            try:
+                self._run_command(command)
 
-        eventarc_subscription_path = None
+                eventarc_subscription_path = None
 
-        for subscription_path in topic.get_subscriptions():
-            if self.name in subscription_path:
-                eventarc_subscription_path = subscription_path
-                break
+                for subscription_path in topic.get_subscriptions():
+                    if self.name in subscription_path:
+                        eventarc_subscription_path = subscription_path
+                        break
 
-        if not eventarc_subscription_path:
-            raise DeploymentError(
-                "Eventarc subscription not found - it may exist but its acknowledgement has not been updated to the "
-                "minimum value, which may lead to recurrent re-computation of questions."
-            )
+                if not eventarc_subscription_path:
+                    raise DeploymentError(
+                        "Eventarc subscription not found - it may exist but its acknowledgement has not been updated to "
+                        "the minimum value, which may lead to recurrent re-computation of questions."
+                    )
 
-        # Set the acknowledgement deadline to the minimum value to avoid recurrent re-computation of questions.
-        subscription = Subscription(
-            name=eventarc_subscription_path.split("/")[-1],
-            topic=topic,
-            project_name=self.project_name,
-            ack_deadline=10,
-        )
+                # Set the acknowledgement deadline to the minimum value to avoid recurrent re-computation of questions.
+                subscription = Subscription(
+                    name=eventarc_subscription_path.split("/")[-1],
+                    topic=topic,
+                    project_name=self.project_name,
+                    ack_deadline=10,
+                )
 
-        subscription.update()
+                subscription.update()
+
+            except DeploymentError as e:
+                self._raise_or_ignore_already_exists_error(e, update, progress_message)
 
     @staticmethod
     def _run_command(command):
@@ -322,7 +321,7 @@ class CloudRunDeployer:
         :raise octue.exceptions.DeploymentError: if the command fails
         :return None:
         """
-        process = subprocess.run(command)
+        process = subprocess.run(command, capture_output=True)
 
         if process.returncode != 0:
             raise DeploymentError(process.stderr.decode())
@@ -339,13 +338,11 @@ class CloudRunDeployer:
         :raise Exception:
         :return None:
         """
-        if "already exists" not in exception.args[0]:
-            raise exception
+        if update and "already exists" in exception.args[0]:
+            progress_message.finish_message = finish_message or "already exists."
+            return
 
-        if not update:
-            raise DeploymentError("The resources already exists.")
-
-        progress_message.finish_message = finish_message or "already exists."
+        raise exception
 
 
 class ProgressMessage:
