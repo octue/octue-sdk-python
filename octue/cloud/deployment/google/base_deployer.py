@@ -1,5 +1,6 @@
 import subprocess
 import uuid
+from abc import abstractmethod
 
 import yaml
 
@@ -10,6 +11,36 @@ DOCKER_REGISTRY_URL = "eu.gcr.io"
 
 
 class BaseDeployer:
+    """An abstract tool for using an `octue.yaml` file in a repository to build and deploy the repository's `octue` app.
+    This includes setting up a Google Cloud Build trigger, enabling automatic deployment during future development.
+    Note that this tool requires the `gcloud` CLI to be available.
+
+    This tool can be inherited from with the `deploy` and `_generate_cloud_build_configuration` overridden to set where
+    the app is deployed to (e.g. Google Cloud Run or Google Dataflow). The `TOTAL_NUMBER_OF_STAGES` class variable
+    should also be overridden and set to the number of stages in the subclass's deployment.
+
+    Warning: the build triggered by this tool will currently only work if it is run in the correct context directory for
+    the docker build - this is due to the `gcloud beta builds triggers run` command not yet working, so the first build
+    has to be triggered via `gcloud builds submit`, which collects the context from the local machine running the
+    command instead of from the remote repository. This is not ideal and will be addressed as soon as the former
+    `gcloud` command works properly.
+
+    The version information for the version of `gcloud` used to develop this tool is:
+    ```
+    Google Cloud SDK 367.0.0
+    beta 2021.12.10
+    bq 2.0.72
+    cloud-build-local 0.5.2
+    core 2021.12.10
+    gsutil 5.5
+    pubsub-emulator 0.6.0
+    ```
+
+    :param str octue_configuration_path: the path to the `octue.yaml` file if it's not in the current working directory
+    :param str|None service_id: the UUID to give the service if a random one is not suitable
+    :return None:
+    """
+
     TOTAL_NUMBER_OF_STAGES = None
 
     def __init__(self, octue_configuration_path, service_id=None):
@@ -27,7 +58,6 @@ class BaseDeployer:
 
         # Generated attributes.
         self.service_id = service_id or str(uuid.uuid4())
-        self.build_trigger_description = f"Build the {self.name!r} service and deploy it to Cloud Run."
         self.required_environment_variables = [f"SERVICE_ID={self.service_id}", f"SERVICE_NAME={self.name}"]
 
         self._default_image_uri = (
@@ -45,6 +75,24 @@ class BaseDeployer:
         self.memory = octue_configuration.get("memory", "128Mi")
         self.cpus = octue_configuration.get("cpus", 1)
         self.environment_variables = octue_configuration.get("environment_variables", [])
+
+    @abstractmethod
+    def deploy(self, no_cache=False, update=False):
+        """Deploy the octue app.
+
+        :param bool no_cache: if `True`, don't use the Docker cache when building the image
+        :param bool update: if `True`, allow the build trigger to already exist and just build and deploy a new image based on an updated `octue.yaml` file
+        :return str: the service's UUID
+        """
+
+    @abstractmethod
+    def _generate_cloud_build_configuration(self, no_cache=False):
+        """Generate a Google Cloud Build configuration equivalent to a `cloudbuild.yaml` file in memory and assign it
+        to the `cloud_build_configuration` attribute.
+
+        :param bool no_cache: if `True`, don't use the Docker cache when building the image
+        :return None:
+        """
 
     def _create_build_trigger(self, cloud_build_configuration_path, update=False):
         """Create the build trigger in Google Cloud Build using the given `cloudbuild.yaml` file.
@@ -86,16 +134,16 @@ class BaseDeployer:
                 self._run_command(delete_trigger_command)
                 self._run_command(create_trigger_command)
 
-    def _build_and_deploy_service(self, cloud_build_configuration_path):
-        """Build and deploy the service from the given Cloud Build configuration file and local context. This method
-        must be run from the same directory that `docker build -f <path/to/Dockerfile .` would be run from locally for
-        the correct build context to be available. When `gcloud beta builds triggers run` is working, this won't be
+    def _run_build_trigger(self, cloud_build_configuration_path):
+        """Run the build trigger using the given Cloud Build configuration file and local context. This method must be
+        run from the same directory that `docker build -f <path/to/Dockerfile .` would be run from locally for the
+        correct build context to be available. When `gcloud beta builds triggers run` is working, this won't be
         necessary as the build context can just be taken from the relevant GitHub repository.
 
         :param str cloud_build_configuration_path: the path to the `cloudbuild.yaml` file (it can have a different name or extension but it needs to be in the `cloudbuild.yaml` format)
         :return None:
         """
-        with ProgressMessage("Building and deploying service", 3, self.TOTAL_NUMBER_OF_STAGES):
+        with ProgressMessage("Running build trigger", 3, self.TOTAL_NUMBER_OF_STAGES):
             build_command = [
                 "gcloud",
                 "builds",

@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import yaml
 
-from octue.cloud.deployment.google.cloud_run.deployer import DEFAULT_DOCKERFILE_URL, CloudRunDeployer
+from octue.cloud.deployment.google.cloud_run.deployer import DEFAULT_CLOUD_RUN_DOCKERFILE_URL, CloudRunDeployer
 from octue.exceptions import DeploymentError
 from tests.base import BaseTestCase
 
@@ -34,7 +34,7 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
         {
             "id": "Get default Octue Dockerfile",
             "name": "alpine:latest",
-            "args": ["wget", DEFAULT_DOCKERFILE_URL],
+            "args": ["wget", DEFAULT_CLOUD_RUN_DOCKERFILE_URL],
         },
         {
             "id": "Build image",

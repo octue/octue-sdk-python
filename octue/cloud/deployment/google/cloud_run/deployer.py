@@ -10,7 +10,7 @@ from octue.exceptions import DeploymentError
 from octue.resources.service_backends import GCPPubSubBackend
 
 
-DEFAULT_DOCKERFILE_URL = (
+DEFAULT_CLOUD_RUN_DOCKERFILE_URL = (
     "https://raw.githubusercontent.com/octue/octue-sdk-python/main/octue/cloud/deployment/google/cloud_run/Dockerfile"
 )
 
@@ -44,6 +44,10 @@ class CloudRunDeployer(BaseDeployer):
 
     TOTAL_NUMBER_OF_STAGES = 5
 
+    def __init__(self, octue_configuration_path, service_id=None):
+        super().__init__(octue_configuration_path, service_id)
+        self.build_trigger_description = f"Build the {self.name!r} service and deploy it to Cloud Run."
+
     def deploy(self, no_cache=False, update=False):
         """Create a Google Cloud Build configuration from the `octue.yaml file, create a build trigger, build and
         deploy the app as a Google Cloud Run service, and create and attach an Eventarc Pub/Sub run trigger to it.
@@ -60,7 +64,7 @@ class CloudRunDeployer(BaseDeployer):
                 yaml.dump(self.cloud_build_configuration, f)
 
             self._create_build_trigger(cloud_build_configuration_path=temporary_file.name, update=update)
-            self._build_and_deploy_service(cloud_build_configuration_path=temporary_file.name)
+            self._run_build_trigger(cloud_build_configuration_path=temporary_file.name)
 
         self._allow_unauthenticated_messages()
         self._create_eventarc_run_trigger(update=update)
@@ -70,7 +74,11 @@ class CloudRunDeployer(BaseDeployer):
 
     def _generate_cloud_build_configuration(self, no_cache=False):
         """Generate a Google Cloud Build configuration equivalent to a `cloudbuild.yaml` file in memory and assign it
-        to the `cloud_build_configuration` attribute.
+        to the `cloud_build_configuration` attribute. The configuration steps are:
+        1. If no Dockerfile path is provided in `octue.yaml`, getting the default Cloud Run Dockerfile
+        2. Building the image
+        3. Pushing the image to Google Container Registry
+        4. Deploying the image to Cloud Run
 
         :param bool no_cache: if `True`, don't use the Docker cache when building the image
         :return None:
@@ -87,7 +95,7 @@ class CloudRunDeployer(BaseDeployer):
                     {
                         "id": "Get default Octue Dockerfile",
                         "name": "alpine:latest",
-                        "args": ["wget", DEFAULT_DOCKERFILE_URL],
+                        "args": ["wget", DEFAULT_CLOUD_RUN_DOCKERFILE_URL],
                     }
                 ]
 
