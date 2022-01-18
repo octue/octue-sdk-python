@@ -101,6 +101,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
                 GoogleCloudStorageClient(project_name=project_name).download_as_string(
                     bucket_name=bucket_name,
                     path_in_bucket=storage.path.join(path_to_dataset_directory, definitions.DATASET_METADATA_FILENAME),
+                    timeout=120,
                 )
             )
 
