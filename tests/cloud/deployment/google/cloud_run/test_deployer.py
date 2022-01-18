@@ -20,7 +20,7 @@ octue_configuration = {
 }
 
 
-GET_SUBSCRIPTIONS_METHOD_PATH = "octue.cloud.deployment.google.deployer.Topic.get_subscriptions"
+GET_SUBSCRIPTIONS_METHOD_PATH = "octue.cloud.deployment.google.cloud_run.deployer.Topic.get_subscriptions"
 
 SERVICE_ID = "octue.services.0df08f9f-30ad-4db3-8029-ea584b4290b7"
 
@@ -163,9 +163,9 @@ class TestCloudRunDeployer(BaseTestCase):
             deployer = CloudRunDeployer(octue_configuration_path, service_id=SERVICE_ID)
 
             with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:
-                with patch("octue.cloud.deployment.google.deployer.Topic.create"):
+                with patch("octue.cloud.deployment.google.cloud_run.deployer.Topic.create"):
                     with patch(GET_SUBSCRIPTIONS_METHOD_PATH, return_value=["test-service"]):
-                        with patch("octue.cloud.deployment.google.deployer.Subscription"):
+                        with patch("octue.cloud.deployment.google.cloud_run.deployer.Subscription"):
                             deployer.deploy()
 
             # Remove the "random" path used for the build configuration in the `--inline-config` argument of the
@@ -225,7 +225,7 @@ class TestCloudRunDeployer(BaseTestCase):
                     yaml.dump(deployer.cloud_build_configuration, f)
 
                 with patch(
-                    "octue.cloud.deployment.google.deployer.CloudRunDeployer._run_command",
+                    "octue.cloud.deployment.google.cloud_run.deployer.CloudRunDeployer._run_command",
                     side_effect=[DeploymentError("already exists"), None, None],
                 ) as mock_run_command:
                     with patch("builtins.print") as mock_print:
@@ -268,9 +268,9 @@ class TestCloudRunDeployer(BaseTestCase):
             octue_configuration_path = self._create_octue_configuration_file(temporary_directory)
             deployer = CloudRunDeployer(octue_configuration_path)
 
-            with patch("octue.cloud.deployment.google.deployer.Topic.create"):
+            with patch("octue.cloud.deployment.google.cloud_run.deployer.Topic.create"):
                 with patch(
-                    "octue.cloud.deployment.google.deployer.CloudRunDeployer._run_command",
+                    "octue.cloud.deployment.google.cloud_run.deployer.CloudRunDeployer._run_command",
                     side_effect=DeploymentError("already exists"),
                 ):
                     with patch(GET_SUBSCRIPTIONS_METHOD_PATH) as mock_get_subscriptions:
