@@ -228,11 +228,11 @@ class Service(CoolNameable):
         response_subscription.create(allow_existing=True)
 
         if input_manifest is not None:
-            input_manifest = input_manifest.serialise()
+            serialised_input_manifest = input_manifest.serialise()
 
         self.publisher.publish(
             topic=question_topic.path,
-            data=json.dumps({"input_values": input_values, "input_manifest": input_manifest}).encode(),
+            data=json.dumps({"input_values": input_values, "input_manifest": serialised_input_manifest}).encode(),
             question_uuid=question_uuid,
             forward_logs=str(int(subscribe_to_logs)),
         )
