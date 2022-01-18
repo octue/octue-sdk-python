@@ -5,8 +5,8 @@ import sys
 import click
 import pkg_resources
 
+from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
 from octue.cloud.deployment.google.dataflow.deploy import DEFAULT_IMAGE_URI, deploy_streaming_pipeline
-from octue.cloud.deployment.google.deployer import CloudRunDeployer
 from octue.cloud.pub_sub.service import Service
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.exceptions import DeploymentError

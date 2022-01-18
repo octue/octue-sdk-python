@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import yaml
 
-from octue.cloud.deployment.google.deployer import DEFAULT_DOCKERFILE_URL, CloudRunDeployer
+from octue.cloud.deployment.google.cloud_run.deployer import DEFAULT_DOCKERFILE_URL, CloudRunDeployer
 from octue.exceptions import DeploymentError
 from tests.base import BaseTestCase
 
