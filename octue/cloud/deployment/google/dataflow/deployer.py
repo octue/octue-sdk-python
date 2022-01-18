@@ -19,7 +19,7 @@ class DataflowDeployer(BaseDeployer):
         super().__init__(octue_configuration_path, service_id)
         self.build_trigger_description = f"Build the {self.name!r} service and deploy it to Dataflow."
 
-    def deploy(self, no_cache=False, update=False):
+    def deploy(self, no_cache=False, no_build=False, update=False):
         """Create a Google Cloud Build configuration from the `octue.yaml file, create a build trigger, run it, and
         deploy the app as a Google Dataflow streaming job.
 
@@ -29,15 +29,16 @@ class DataflowDeployer(BaseDeployer):
         """
         self._generate_cloud_build_configuration(no_cache=no_cache)
 
-        # Put the Cloud Build configuration into a temporary file so it can be used by the `gcloud` commands.
-        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
-            with open(temporary_file.name, "w") as f:
-                yaml.dump(self.cloud_build_configuration, f)
+        if not no_build:
+            # Put the Cloud Build configuration into a temporary file so it can be used by the `gcloud` commands.
+            with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+                with open(temporary_file.name, "w") as f:
+                    yaml.dump(self.cloud_build_configuration, f)
 
-            self._create_build_trigger(cloud_build_configuration_path=temporary_file.name, update=update)
-            self._run_build_trigger(cloud_build_configuration_path=temporary_file.name)
+                self._create_build_trigger(cloud_build_configuration_path=temporary_file.name, update=update)
+                self._run_build_trigger(cloud_build_configuration_path=temporary_file.name)
 
-        self._deploy_streaming_dataflow_job()
+        self._deploy_streaming_dataflow_job(update=update)
 
         print(f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}.")
         return self.service_id
@@ -101,16 +102,21 @@ class DataflowDeployer(BaseDeployer):
                 "images": [self.image_uri],
             }
 
-    def _deploy_streaming_dataflow_job(self):
+    def _deploy_streaming_dataflow_job(self, update=False):
         """Deploy the newly-built service as a Dataflow streaming job.
 
+        :param bool update: if `True`, update the existing job with the same name
         :return None:
         """
-        with ProgressMessage("Generating Google Cloud Build configuration", 4, self.TOTAL_NUMBER_OF_STAGES):
+        with ProgressMessage("Deploying streaming Dataflow job", 4, self.TOTAL_NUMBER_OF_STAGES) as progress_message:
+            if update:
+                progress_message.finish_message = "updated."
+
             deploy_streaming_pipeline(
                 service_name=self.name,
                 project_name=self.project_name,
                 service_id=self.service_id,
                 region=self.region,
                 image_uri=self.image_uri,
+                update=update,
             )
