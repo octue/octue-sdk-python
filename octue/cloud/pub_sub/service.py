@@ -227,6 +227,7 @@ class Service(CoolNameable):
         )
         response_subscription.create(allow_existing=True)
 
+        serialised_input_manifest = None
         if input_manifest is not None:
             serialised_input_manifest = input_manifest.serialise()
 
