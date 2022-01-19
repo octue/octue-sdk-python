@@ -54,7 +54,7 @@ def create_streaming_pipeline(
         f"--job_name={service_name}",
         f"--runner={runner}",
         "--dataflow_service_options=enable_prime",
-        f"--setup_file={setup_file_path}",
+        f"--setup_file={os.path.abspath(setup_file_path)}",
         "--streaming",
         *(extra_options or []),
     ]

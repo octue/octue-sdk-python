@@ -38,9 +38,7 @@ class DataflowDeployer(BaseDeployer):
         """
         self._generate_cloud_build_configuration(no_cache=no_cache)
 
-        if no_build:
-            self.TOTAL_NUMBER_OF_STAGES = 2
-        else:
+        if not no_build:
             # Put the Cloud Build configuration into a temporary file so it can be used by the `gcloud` commands.
             with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
 
