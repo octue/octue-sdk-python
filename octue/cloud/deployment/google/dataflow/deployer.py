@@ -24,6 +24,7 @@ class DataflowDeployer(BaseDeployer):
         deploy the app as a Google Dataflow streaming job.
 
         :param bool no_cache: if `True`, don't use the Docker cache when building the image
+        :param bool no_build: if `True`, don't build and push a new image, just update the Dataflow job based on an updated `octue.yaml` file
         :param bool update: if `True`, allow the build trigger to already exist and just build and deploy a new image based on an updated `octue.yaml` file
         :return str: the service's UUID
         """
