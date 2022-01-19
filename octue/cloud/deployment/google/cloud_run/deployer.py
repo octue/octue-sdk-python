@@ -66,7 +66,9 @@ class CloudRunDeployer(BaseDeployer):
                     yaml.dump(self.generated_cloud_build_configuration, f)
 
             self._create_build_trigger(generated_cloud_build_configuration_path=temporary_file.name, update=update)
-            self._run_build_trigger(generated_cloud_build_configuration_path=temporary_file.name)
+
+        build_id = self._run_build_trigger()
+        self._wait_for_build_to_finish(build_id)
 
         self._allow_unauthenticated_messages()
         self._create_eventarc_run_trigger(update=update)
@@ -169,6 +171,7 @@ class CloudRunDeployer(BaseDeployer):
         with ProgressMessage("Making service available via Pub/Sub", 4, self.TOTAL_NUMBER_OF_STAGES):
             allow_unauthenticated_messages_command = [
                 "gcloud",
+                f"--project={self.project_name}",
                 "run",
                 "services",
                 "add-iam-policy-binding",
@@ -199,6 +202,7 @@ class CloudRunDeployer(BaseDeployer):
 
             command = [
                 "gcloud",
+                f"--project={self.project_name}",
                 "beta",
                 "eventarc",
                 "triggers",

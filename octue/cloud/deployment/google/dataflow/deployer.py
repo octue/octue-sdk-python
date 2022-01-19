@@ -41,7 +41,9 @@ class DataflowDeployer(BaseDeployer):
                         yaml.dump(self.generated_cloud_build_configuration, f)
 
                 self._create_build_trigger(generated_cloud_build_configuration_path=temporary_file.name, update=update)
-                self._run_build_trigger(generated_cloud_build_configuration_path=temporary_file.name)
+
+            build_id = self._run_build_trigger()
+            self._wait_for_build_to_finish(build_id)
 
         self._deploy_streaming_dataflow_job(update=update)
 

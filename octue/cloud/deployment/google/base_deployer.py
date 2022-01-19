@@ -1,4 +1,6 @@
+import re
 import subprocess
+import time
 import uuid
 from abc import abstractmethod
 
@@ -18,12 +20,6 @@ class BaseDeployer:
     This tool can be inherited from with the `deploy` and `_generate_cloud_build_configuration` overridden to set where
     the app is deployed to (e.g. Google Cloud Run or Google Dataflow). The `TOTAL_NUMBER_OF_STAGES` class variable
     should also be overridden and set to the number of stages in the subclass's deployment.
-
-    Warning: the build triggered by this tool will currently only work if it is run in the correct context directory for
-    the docker build - this is due to the `gcloud beta builds triggers run` command not yet working, so the first build
-    has to be triggered via `gcloud builds submit`, which collects the context from the local machine running the
-    command instead of from the remote repository. This is not ideal and will be addressed as soon as the former
-    `gcloud` command works properly.
 
     The version information for the version of `gcloud` used to develop this tool is:
     ```
@@ -112,6 +108,7 @@ class BaseDeployer:
 
             create_trigger_command = [
                 "gcloud",
+                f"--project={self.project_name}",
                 "beta",
                 "builds",
                 "triggers",
@@ -132,6 +129,7 @@ class BaseDeployer:
 
                 delete_trigger_command = [
                     "gcloud",
+                    f"--project={self.project_name}",
                     "beta",
                     "builds",
                     "triggers",
@@ -142,30 +140,50 @@ class BaseDeployer:
                 self._run_command(delete_trigger_command)
                 self._run_command(create_trigger_command)
 
-    def _run_build_trigger(self, generated_cloud_build_configuration_path):
-        """Run the build trigger using the given Cloud Build configuration file and local context. This method must be
-        run from the same directory that `docker build -f <path/to/Dockerfile .` would be run from locally for the
-        correct build context to be available. When `gcloud beta builds triggers run` is working, this won't be
-        necessary as the build context can just be taken from the relevant GitHub repository.
+    def _run_build_trigger(self):
+        """Run the build trigger and return the build ID.
 
-        :param str generated_cloud_build_configuration_path: the path to the `cloudbuild.yaml` file (it can have a different name or extension but it needs to be in the `cloudbuild.yaml` format)
-        :return None:
+        :return str: the build ID
         """
         with ProgressMessage("Running build trigger", 3, self.TOTAL_NUMBER_OF_STAGES):
-            if self.provided_cloud_build_configuration_path:
-                configuration_path = self.provided_cloud_build_configuration_path
-            else:
-                configuration_path = generated_cloud_build_configuration_path
-
             build_command = [
                 "gcloud",
+                f"--project={self.project_name}",
+                "beta",
                 "builds",
-                "submit",
-                ".",
-                f"--config={configuration_path}",
+                "triggers",
+                "run",
+                self.name,
+                f"--branch={self.branch_pattern.strip('^$')}",
             ]
 
-            self._run_command(build_command)
+            process = self._run_command(build_command)
+            metadata = process.stdout.decode()
+            return re.findall(r"id: ([a-f0-9-]+)", metadata)[0]
+
+    def _wait_for_build_to_finish(self, build_id, check_period=20):
+        """Wait for the build with the given ID to finish.
+
+        :param str build_id: the ID of the build to wait for
+        :param float check_period: the period in seconds at which to check if the build has finished
+        :return: None
+        """
+        get_build_command = [
+            "gcloud",
+            f"--project={self.project_name}",
+            "builds",
+            "describe",
+            build_id,
+        ]
+
+        while True:
+            process = self._run_command(get_build_command)
+            status = re.findall(r"status: (\w+)", process.stdout.decode())[0]
+
+            if status != "WORKING":
+                break
+
+            time.sleep(check_period)
 
     @staticmethod
     def _get_short_head_commit_hash():
@@ -181,12 +199,14 @@ class BaseDeployer:
 
         :param iter(str) command: the command to run in `subprocess` form e.g. `["cat", "my_file.txt"]`
         :raise octue.exceptions.DeploymentError: if the command fails
-        :return None:
+        :return subprocess.CompletedProcess:
         """
         process = subprocess.run(command, capture_output=True)
 
         if process.returncode != 0:
             raise DeploymentError(process.stderr.decode())
+
+        return process
 
     @staticmethod
     def _raise_or_ignore_already_exists_error(exception, update, progress_message, finish_message=None):
