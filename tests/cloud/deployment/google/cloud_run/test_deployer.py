@@ -116,7 +116,7 @@ class TestCloudRunDeployer(BaseTestCase):
             deployer._generate_cloud_build_configuration()
 
         # Remove the commit hash from the image name as it will change for each commit made.
-        generated_config = deployer.cloud_build_configuration
+        generated_config = deployer.generated_cloud_build_configuration
         generated_config["steps"][1]["args"][2] = generated_config["steps"][1]["args"][2].split(":")[0]
         generated_config["steps"][2]["args"][1] = generated_config["steps"][2]["args"][1].split(":")[0]
         generated_config["steps"][3]["args"][5] = generated_config["steps"][3]["args"][5].split(":")[0]
@@ -137,7 +137,7 @@ class TestCloudRunDeployer(BaseTestCase):
                 deployer._generate_cloud_build_configuration()
 
             # Remove the commit hash from the image name as it will change for each commit made.
-            generated_config = deployer.cloud_build_configuration
+            generated_config = deployer.generated_cloud_build_configuration
             generated_config["steps"][0]["args"][2] = generated_config["steps"][0]["args"][2].split(":")[0]
             generated_config["steps"][1]["args"][1] = generated_config["steps"][1]["args"][1].split(":")[0]
             generated_config["steps"][2]["args"][5] = generated_config["steps"][2]["args"][5].split(":")[0]
@@ -171,7 +171,7 @@ class TestCloudRunDeployer(BaseTestCase):
             # Remove the "random" path used for the build configuration in the `--inline-config` argument of the
             # command.
             build_trigger_command_without_inline_config_path = copy.deepcopy(mock_run.call_args_list[0].args)[0]
-            build_trigger_command_without_inline_config_path.pop(9)
+            build_trigger_command_without_inline_config_path.pop(11)
 
             # Test the build trigger creation request.
             self.assertEqual(build_trigger_command_without_inline_config_path, EXPECTED_BUILD_TRIGGER_CREATION_COMMAND)
@@ -222,7 +222,7 @@ class TestCloudRunDeployer(BaseTestCase):
 
             with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
                 with open(temporary_file.name, "w") as f:
-                    yaml.dump(deployer.cloud_build_configuration, f)
+                    yaml.dump(deployer.generated_cloud_build_configuration, f)
 
                 with patch(
                     "octue.cloud.deployment.google.cloud_run.deployer.CloudRunDeployer._run_command",
@@ -236,7 +236,7 @@ class TestCloudRunDeployer(BaseTestCase):
         # Remove the "random" path used for the build configuration in the "--inline-config" argument of the
         # command.
         build_trigger_command_without_inline_config_path = copy.deepcopy(mock_run_command.call_args_list[0].args)[0]
-        build_trigger_command_without_inline_config_path.pop(9)
+        build_trigger_command_without_inline_config_path.pop(11)
 
         # Test the build trigger creation request.
         self.assertEqual(build_trigger_command_without_inline_config_path, EXPECTED_BUILD_TRIGGER_CREATION_COMMAND)
@@ -252,7 +252,7 @@ class TestCloudRunDeployer(BaseTestCase):
             mock_run_command.call_args_list[2].args
         )[0]
 
-        retried_build_trigger_command_without_inline_config_path.pop(9)
+        retried_build_trigger_command_without_inline_config_path.pop(11)
 
         self.assertEqual(
             retried_build_trigger_command_without_inline_config_path,

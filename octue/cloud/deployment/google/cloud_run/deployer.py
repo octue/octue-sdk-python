@@ -60,11 +60,13 @@ class CloudRunDeployer(BaseDeployer):
 
         # Put the Cloud Build configuration into a temporary file so it can be used by the `gcloud` commands.
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
-            with open(temporary_file.name, "w") as f:
-                yaml.dump(self.cloud_build_configuration, f)
 
-            self._create_build_trigger(cloud_build_configuration_path=temporary_file.name, update=update)
-            self._run_build_trigger(cloud_build_configuration_path=temporary_file.name)
+            if self.generated_cloud_build_configuration:
+                with open(temporary_file.name, "w") as f:
+                    yaml.dump(self.generated_cloud_build_configuration, f)
+
+            self._create_build_trigger(generated_cloud_build_configuration_path=temporary_file.name, update=update)
+            self._run_build_trigger(generated_cloud_build_configuration_path=temporary_file.name)
 
         self._allow_unauthenticated_messages()
         self._create_eventarc_run_trigger(update=update)
@@ -83,7 +85,15 @@ class CloudRunDeployer(BaseDeployer):
         :param bool no_cache: if `True`, don't use the Docker cache when building the image
         :return None:
         """
-        with ProgressMessage("Generating Google Cloud Build configuration", 1, self.TOTAL_NUMBER_OF_STAGES):
+        with ProgressMessage(
+            "Generating Google Cloud Build configuration",
+            1,
+            self.TOTAL_NUMBER_OF_STAGES,
+        ) as progress_message:
+            if self.provided_cloud_build_configuration_path:
+                progress_message.finish_message = "skipped - using file from repository."
+                return
+
             if self.dockerfile_path:
                 get_dockerfile_step = []
                 dockerfile_path = self.dockerfile_path
@@ -111,7 +121,7 @@ class CloudRunDeployer(BaseDeployer):
                 + self.required_environment_variables
             )
 
-            self.cloud_build_configuration = {
+            self.generated_cloud_build_configuration = {
                 "steps": [
                     *get_dockerfile_step,
                     {

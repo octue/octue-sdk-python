@@ -57,6 +57,8 @@ class BaseDeployer:
         self.region = octue_configuration["region"]
 
         # Generated attributes.
+        self.build_trigger_description = None
+        self.generated_cloud_build_configuration = None
         self.service_id = service_id or str(uuid.uuid4())
         self.required_environment_variables = [f"SERVICE_ID={self.service_id}", f"SERVICE_NAME={self.name}"]
 
@@ -67,6 +69,7 @@ class BaseDeployer:
 
         # Optional configuration file entries.
         self.dockerfile_path = octue_configuration.get("dockerfile_path")
+        self.provided_cloud_build_configuration_path = octue_configuration.get("cloud_build_configuration_path")
         self.minimum_instances = octue_configuration.get("minimum_instances", 0)
         self.maximum_instances = octue_configuration.get("maximum_instances", 10)
         self.concurrency = octue_configuration.get("concurrency", 10)
@@ -94,14 +97,19 @@ class BaseDeployer:
         :return None:
         """
 
-    def _create_build_trigger(self, cloud_build_configuration_path, update=False):
+    def _create_build_trigger(self, generated_cloud_build_configuration_path, update=False):
         """Create the build trigger in Google Cloud Build using the given `cloudbuild.yaml` file.
 
-        :param str cloud_build_configuration_path: the path to the `cloudbuild.yaml` file (it can have a different name or extension but it needs to be in the `cloudbuild.yaml` format)
+        :param str generated_cloud_build_configuration_path: the path to the `cloudbuild.yaml` file (it can have a different name or extension but it needs to be in the `cloudbuild.yaml` format)
         :param bool update: if `True` and there is an existing trigger, delete it and replace it with an updated one
         :return None:
         """
         with ProgressMessage("Creating build trigger", 2, self.TOTAL_NUMBER_OF_STAGES) as progress_message:
+            if self.provided_cloud_build_configuration_path:
+                configuration_option = [f"--build-config={self.provided_cloud_build_configuration_path}"]
+            else:
+                configuration_option = [f"--inline-config={generated_cloud_build_configuration_path}"]
+
             create_trigger_command = [
                 "gcloud",
                 "beta",
@@ -112,9 +120,9 @@ class BaseDeployer:
                 f"--name={self.name}",
                 f"--repo-name={self.repository_name}",
                 f"--repo-owner={self.repository_owner}",
-                f"--inline-config={cloud_build_configuration_path}",
                 f"--description={self.build_trigger_description}",
                 f"--branch-pattern={self.branch_pattern}",
+                *configuration_option,
             ]
 
             try:
@@ -134,22 +142,27 @@ class BaseDeployer:
                 self._run_command(delete_trigger_command)
                 self._run_command(create_trigger_command)
 
-    def _run_build_trigger(self, cloud_build_configuration_path):
+    def _run_build_trigger(self, generated_cloud_build_configuration_path):
         """Run the build trigger using the given Cloud Build configuration file and local context. This method must be
         run from the same directory that `docker build -f <path/to/Dockerfile .` would be run from locally for the
         correct build context to be available. When `gcloud beta builds triggers run` is working, this won't be
         necessary as the build context can just be taken from the relevant GitHub repository.
 
-        :param str cloud_build_configuration_path: the path to the `cloudbuild.yaml` file (it can have a different name or extension but it needs to be in the `cloudbuild.yaml` format)
+        :param str generated_cloud_build_configuration_path: the path to the `cloudbuild.yaml` file (it can have a different name or extension but it needs to be in the `cloudbuild.yaml` format)
         :return None:
         """
         with ProgressMessage("Running build trigger", 3, self.TOTAL_NUMBER_OF_STAGES):
+            if self.provided_cloud_build_configuration_path:
+                configuration_path = self.provided_cloud_build_configuration_path
+            else:
+                configuration_path = generated_cloud_build_configuration_path
+
             build_command = [
                 "gcloud",
                 "builds",
                 "submit",
                 ".",
-                f"--config={cloud_build_configuration_path}",
+                f"--config={configuration_path}",
             ]
 
             self._run_command(build_command)
