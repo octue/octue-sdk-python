@@ -3,7 +3,7 @@ import tempfile
 import yaml
 
 from octue.cloud.deployment.google.base_deployer import BaseDeployer, ProgressMessage
-from octue.cloud.deployment.google.dataflow.deploy import deploy_streaming_pipeline
+from octue.cloud.deployment.google.dataflow import pipeline
 
 
 DEFAULT_DATAFLOW_DOCKERFILE_URL = (
@@ -103,7 +103,7 @@ class DataflowDeployer(BaseDeployer):
             }
 
     def _deploy_streaming_dataflow_job(self, update=False):
-        """Deploy the newly-built service as a Dataflow streaming job.
+        """Deploy the newly-built service as a streaming Dataflow job.
 
         :param bool update: if `True`, update the existing job with the same name
         :return None:
@@ -112,7 +112,7 @@ class DataflowDeployer(BaseDeployer):
             if update:
                 progress_message.finish_message = "updated."
 
-            deploy_streaming_pipeline(
+            pipeline.create_streaming_pipeline(
                 service_name=self.name,
                 project_name=self.project_name,
                 service_id=self.service_id,

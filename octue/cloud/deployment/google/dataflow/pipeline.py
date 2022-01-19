@@ -20,7 +20,7 @@ DEFAULT_IMAGE_URI = "eu.gcr.io/octue-amy/octue-sdk-python:latest"
 DATAFLOW_TEMPORARY_FILES_LOCATION = "gs://octue-sdk-python-dataflow-temporary-data/temp"
 
 
-def deploy_streaming_pipeline(
+def create_streaming_pipeline(
     service_name,
     service_id,
     project_name,
