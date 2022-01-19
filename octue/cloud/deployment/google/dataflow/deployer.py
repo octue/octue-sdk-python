@@ -3,7 +3,11 @@ import tempfile
 import yaml
 
 from octue.cloud.deployment.google.base_deployer import BaseDeployer, ProgressMessage
-from octue.cloud.deployment.google.dataflow import pipeline
+from octue.cloud.deployment.google.dataflow.pipeline import (
+    DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION,
+    DEFAULT_SETUP_FILE_PATH,
+    create_streaming_pipeline,
+)
 
 
 DEFAULT_DATAFLOW_DOCKERFILE_URL = (
@@ -18,6 +22,10 @@ class DataflowDeployer(BaseDeployer):
     def __init__(self, octue_configuration_path, service_id=None):
         super().__init__(octue_configuration_path, service_id)
         self.build_trigger_description = f"Build the {self.name!r} service and deploy it to Dataflow."
+        self.temporary_files_location = self._octue_configuration.get(
+            "temporary_files_location", DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION
+        )
+        self.setup_file_path = self._octue_configuration.get("setup_file_path", DEFAULT_SETUP_FILE_PATH)
 
     def deploy(self, no_cache=False, no_build=False, update=False):
         """Create a Google Cloud Build configuration from the `octue.yaml file, create a build trigger, run it, and
@@ -127,11 +135,13 @@ class DataflowDeployer(BaseDeployer):
             if update:
                 progress_message.finish_message = "updated."
 
-            pipeline.create_streaming_pipeline(
+            create_streaming_pipeline(
                 service_name=self.name,
                 project_name=self.project_name,
                 service_id=self.service_id,
                 region=self.region,
+                setup_file_path=self.setup_file_path,
                 image_uri=self.image_uri,
+                temporary_files_location=self.temporary_files_location,
                 update=update,
             )

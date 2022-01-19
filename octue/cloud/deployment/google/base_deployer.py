@@ -43,14 +43,14 @@ class BaseDeployer:
         self.octue_configuration_path = octue_configuration_path
 
         with open(self.octue_configuration_path) as f:
-            octue_configuration = yaml.load(f, Loader=yaml.SafeLoader)
+            self._octue_configuration = yaml.load(f, Loader=yaml.SafeLoader)
 
         # Required configuration file entries.
-        self.name = octue_configuration["name"]
-        self.repository_name = octue_configuration["repository_name"]
-        self.repository_owner = octue_configuration["repository_owner"]
-        self.project_name = octue_configuration["project_name"]
-        self.region = octue_configuration["region"]
+        self.name = self._octue_configuration["name"]
+        self.repository_name = self._octue_configuration["repository_name"]
+        self.repository_owner = self._octue_configuration["repository_owner"]
+        self.project_name = self._octue_configuration["project_name"]
+        self.region = self._octue_configuration["region"]
 
         # Generated attributes.
         self.build_trigger_description = None
@@ -64,16 +64,16 @@ class BaseDeployer:
         )
 
         # Optional configuration file entries.
-        self.dockerfile_path = octue_configuration.get("dockerfile_path")
-        self.provided_cloud_build_configuration_path = octue_configuration.get("cloud_build_configuration_path")
-        self.minimum_instances = octue_configuration.get("minimum_instances", 0)
-        self.maximum_instances = octue_configuration.get("maximum_instances", 10)
-        self.concurrency = octue_configuration.get("concurrency", 10)
-        self.image_uri = octue_configuration.get("image_uri", self._default_image_uri)
-        self.branch_pattern = octue_configuration.get("branch_pattern", "^main$")
-        self.memory = octue_configuration.get("memory", "128Mi")
-        self.cpus = octue_configuration.get("cpus", 1)
-        self.environment_variables = octue_configuration.get("environment_variables", [])
+        self.dockerfile_path = self._octue_configuration.get("dockerfile_path")
+        self.provided_cloud_build_configuration_path = self._octue_configuration.get("cloud_build_configuration_path")
+        self.minimum_instances = self._octue_configuration.get("minimum_instances", 0)
+        self.maximum_instances = self._octue_configuration.get("maximum_instances", 10)
+        self.concurrency = self._octue_configuration.get("concurrency", 10)
+        self.image_uri = self._octue_configuration.get("image_uri", self._default_image_uri)
+        self.branch_pattern = self._octue_configuration.get("branch_pattern", "^main$")
+        self.memory = self._octue_configuration.get("memory", "128Mi")
+        self.cpus = self._octue_configuration.get("cpus", 1)
+        self.environment_variables = self._octue_configuration.get("environment_variables", [])
 
     @abstractmethod
     def deploy(self, no_cache=False, update=False):

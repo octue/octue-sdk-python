@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 DEFAULT_IMAGE_URI = "eu.gcr.io/octue-amy/octue-sdk-python:latest"
-DATAFLOW_TEMPORARY_FILES_LOCATION = "gs://octue-sdk-python-dataflow-temporary-data/temp"
+DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION = "gs://octue-sdk-python-dataflow-temporary-data/temp"
+DEFAULT_SETUP_FILE_PATH = os.path.join(REPOSITORY_ROOT, "setup.py")
 
 
 def create_streaming_pipeline(
@@ -26,7 +27,9 @@ def create_streaming_pipeline(
     project_name,
     region,
     runner="DataflowRunner",
+    setup_file_path=DEFAULT_SETUP_FILE_PATH,
     image_uri=DEFAULT_IMAGE_URI,
+    temporary_files_location=DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION,
     update=False,
     extra_options=None,
 ):
@@ -37,7 +40,9 @@ def create_streaming_pipeline(
     :param str project_name: the name of the project to deploy the pipeline to
     :param str region: the region to deploy the pipeline to
     :param str runner: the name of an apache-beam runner to use to execute the pipeline
-    :param str|None image_uri: the URI of the apache-beam-based Docker image to use for the pipeline
+    :param str setup_file_path: path to the python `setup.py` file to use for the service
+    :param str image_uri: the URI of the apache-beam-based Docker image to use for the pipeline
+    :param str temporary_files_location: a Google Cloud Storage path to save temporary files from the service at
     :param bool update: if `True`, update the existing service with the same name
     :param iter|None extra_options: any further arguments in command-line-option format to be passed to Apache Beam as pipeline options
     :return None:
@@ -45,11 +50,11 @@ def create_streaming_pipeline(
     beam_args = [
         f"--project={project_name}",
         f"--region={region}",
-        f"--temp_location={DATAFLOW_TEMPORARY_FILES_LOCATION}",
+        f"--temp_location={temporary_files_location}",
         f"--job_name={service_name}",
         f"--runner={runner}",
         "--dataflow_service_options=enable_prime",
-        f"--setup_file={os.path.join(REPOSITORY_ROOT, 'setup.py')}",
+        f"--setup_file={setup_file_path}",
         "--streaming",
         *(extra_options or []),
     ]
