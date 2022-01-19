@@ -1,5 +1,6 @@
 import logging
 import os
+from unittest.mock import patch
 
 import apache_beam
 from apache_beam.options.pipeline_options import PipelineOptions
@@ -49,6 +50,7 @@ def deploy_streaming_pipeline(
         f"--runner={runner}",
         "--dataflow_service_options=enable_prime",
         f"--setup_file={os.path.join(REPOSITORY_ROOT, 'setup.py')}",
+        "--streaming",
         *(extra_options or []),
     ]
 
@@ -60,7 +62,7 @@ def deploy_streaming_pipeline(
 
     topic_path = Topic.generate_topic_path(project_name, service_id)
 
-    options = PipelineOptions(beam_args, streaming=True)
+    options = PipelineOptions(beam_args)
 
     try:
         pipeline = apache_beam.Pipeline(options=options)
@@ -72,7 +74,11 @@ def deploy_streaming_pipeline(
             >> apache_beam.Map(lambda question: answer_question(question, project_name=project_name))
         )
 
-        DataflowRunner().run_pipeline(pipeline, options=options)
+        with patch("logging.warning"):
+            for logger in (logging.getLogger("subprocess"), logging.getLogger("apache_beam")):
+                logger.setLevel(logging.CRITICAL)
+
+            DataflowRunner().run_pipeline(pipeline, options=options)
 
     except DataflowJobAlreadyExistsError:
         raise DeploymentError(f"A Dataflow job with name {service_name!r} already exists.") from None
