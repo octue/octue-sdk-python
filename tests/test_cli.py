@@ -5,9 +5,7 @@ from unittest import mock
 
 from click.testing import CliRunner
 
-from octue import REPOSITORY_ROOT
 from octue.cli import octue_cli
-from octue.cloud.deployment.google.dataflow.deploy import DATAFLOW_TEMPORARY_FILES_LOCATION
 from octue.exceptions import DeploymentError
 from tests import TESTS_DIR
 from tests.base import BaseTestCase
@@ -129,34 +127,3 @@ class TestDeployCommand(BaseTestCase):
             )
         self.assertEqual(result.exit_code, 1)
         self.assertIsInstance(result.exception, DeploymentError)
-
-    def test_deploy_dataflow(self):
-        """Test that the `octue deploy dataflow` command works."""
-        with mock.patch("octue.cloud.deployment.google.dataflow.deploy.apache_beam.Pipeline") as mock_pipeline:
-            result = CliRunner().invoke(
-                octue_cli,
-                [
-                    "deploy",
-                    "dataflow",
-                    "my-service",
-                    "octue.services.1df81225-7a87-4b1c-9313-cdc376a127a7",
-                    "my-project",
-                    "my-region",
-                    "--image-uri=a.uri/image-name:latest",
-                    "--runner=MyApacheBeamRunner",
-                ],
-            )
-
-        pipeline_options = mock_pipeline.call_args.kwargs["options"].get_all_options()
-
-        self.assertEqual(pipeline_options["project"], "my-project")
-        self.assertEqual(pipeline_options["region"], "my-region")
-        self.assertEqual(pipeline_options["temp_location"], DATAFLOW_TEMPORARY_FILES_LOCATION)
-        self.assertEqual(pipeline_options["job_name"], "my-service")
-        self.assertEqual(pipeline_options["runner"], "MyApacheBeamRunner")
-        self.assertEqual(pipeline_options["dataflow_service_options"], ["enable_prime"])
-        self.assertEqual(pipeline_options["setup_file"], os.path.join(REPOSITORY_ROOT, "setup.py"))
-        self.assertEqual(pipeline_options["sdk_container_image"], "a.uri/image-name:latest")
-
-        self.assertIsNone(result.exception)
-        self.assertEqual(result.exit_code, 0)
