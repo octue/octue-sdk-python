@@ -1,5 +1,4 @@
 import json
-import re
 import subprocess
 import time
 import uuid
@@ -142,7 +141,9 @@ class BaseDeployer:
                 self._run_command(create_trigger_command)
 
     def _run_build_trigger(self):
-        """Run the build trigger and return the build ID.
+        """Run the build trigger and return the build ID. The image URI is updated from the build metadata, ensuring
+        that, if a `cloudbuild.yaml` file is provided instead of generated, the correct image URI from this file is
+        used in later steps.
 
         :return str: the build ID
         """
@@ -160,7 +161,9 @@ class BaseDeployer:
             ]
 
             process = self._run_command(build_command)
-            return json.loads(process.stdout.decode())["metadata"]["build"]["id"]
+            metadata = json.loads(process.stdout.decode())["metadata"]
+            self.image_uri = metadata["build"]["images"][0]
+            return metadata["build"]["id"]
 
     def _wait_for_build_to_finish(self, build_id, check_period=20):
         """Wait for the build with the given ID to finish.
@@ -172,6 +175,7 @@ class BaseDeployer:
         get_build_command = [
             "gcloud",
             f"--project={self.project_name}",
+            "--format=json",
             "builds",
             "describe",
             build_id,
@@ -179,9 +183,12 @@ class BaseDeployer:
 
         while True:
             process = self._run_command(get_build_command)
-            status = re.findall(r"status: (\w+)", process.stdout.decode())[0]
+            status = json.loads(process.stdout.decode())["status"]
 
-            if status != "WORKING":
+            if status not in {"WORKING", "SUCCESS"}:
+                raise DeploymentError(f"The build status is {status!r}.")
+
+            if status == "SUCCESS":
                 break
 
             time.sleep(check_period)
