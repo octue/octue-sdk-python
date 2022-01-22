@@ -1,3 +1,4 @@
+import json
 import re
 import subprocess
 import time
@@ -149,6 +150,7 @@ class BaseDeployer:
             build_command = [
                 "gcloud",
                 f"--project={self.project_name}",
+                "--format=json",
                 "beta",
                 "builds",
                 "triggers",
@@ -158,8 +160,7 @@ class BaseDeployer:
             ]
 
             process = self._run_command(build_command)
-            metadata = process.stdout.decode()
-            return re.findall(r"id: ([a-f0-9-]+)", metadata)[0]
+            return json.loads(process.stdout.decode())["metadata"]["build"]["id"]
 
     def _wait_for_build_to_finish(self, build_id, check_period=20):
         """Wait for the build with the given ID to finish.
