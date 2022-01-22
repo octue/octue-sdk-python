@@ -1,7 +1,3 @@
-import tempfile
-
-import yaml
-
 from octue.cloud.deployment.google.base_deployer import BaseDeployer, ProgressMessage
 from octue.cloud.deployment.google.dataflow.pipeline import (
     DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION,
@@ -39,15 +35,7 @@ class DataflowDeployer(BaseDeployer):
         self._generate_cloud_build_configuration(no_cache=no_cache)
 
         if not no_build:
-            # Put the Cloud Build configuration into a temporary file so it can be used by the `gcloud` commands.
-            with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
-
-                if self.generated_cloud_build_configuration:
-                    with open(temporary_file.name, "w") as f:
-                        yaml.dump(self.generated_cloud_build_configuration, f)
-
-                self._create_build_trigger(generated_cloud_build_configuration_path=temporary_file.name, update=update)
-
+            self._create_build_trigger(update=update)
             build_id = self._run_build_trigger()
             self._wait_for_build_to_finish(build_id)
 

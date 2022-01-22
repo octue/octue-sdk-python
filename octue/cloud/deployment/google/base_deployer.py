@@ -1,5 +1,6 @@
 import json
 import subprocess
+import tempfile
 import time
 import uuid
 from abc import abstractmethod
@@ -88,58 +89,63 @@ class BaseDeployer:
     @abstractmethod
     def _generate_cloud_build_configuration(self, no_cache=False):
         """Generate a Google Cloud Build configuration equivalent to a `cloudbuild.yaml` file in memory and assign it
-        to the `cloud_build_configuration` attribute.
+        to the `generated_cloud_build_configuration` attribute.
 
         :param bool no_cache: if `True`, don't use the Docker cache when building the image
         :return None:
         """
 
-    def _create_build_trigger(self, generated_cloud_build_configuration_path, update=False):
+    def _create_build_trigger(self, update=False):
         """Create the build trigger in Google Cloud Build using the given `cloudbuild.yaml` file.
 
-        :param str generated_cloud_build_configuration_path: the path to the `cloudbuild.yaml` file (it can have a different name or extension but it needs to be in the `cloudbuild.yaml` format)
         :param bool update: if `True` and there is an existing trigger, delete it and replace it with an updated one
         :return None:
         """
         with ProgressMessage("Creating build trigger", 2, self.TOTAL_NUMBER_OF_STAGES) as progress_message:
-            if self.provided_cloud_build_configuration_path:
-                configuration_option = [f"--build-config={self.provided_cloud_build_configuration_path}"]
-            else:
-                configuration_option = [f"--inline-config={generated_cloud_build_configuration_path}"]
 
-            create_trigger_command = [
-                "gcloud",
-                f"--project={self.project_name}",
-                "beta",
-                "builds",
-                "triggers",
-                "create",
-                "github",
-                f"--name={self.name}",
-                f"--repo-name={self.repository_name}",
-                f"--repo-owner={self.repository_owner}",
-                f"--description={self.build_trigger_description}",
-                f"--branch-pattern={self.branch_pattern}",
-                *configuration_option,
-            ]
+            with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+                if self.provided_cloud_build_configuration_path:
+                    configuration_option = [f"--build-config={self.provided_cloud_build_configuration_path}"]
+                else:
+                    # Put the Cloud Build configuration into a temporary file so it can be used by the `gcloud` command.
+                    with open(temporary_file.name, "w") as f:
+                        yaml.dump(self.generated_cloud_build_configuration, f)
 
-            try:
-                self._run_command(create_trigger_command)
-            except DeploymentError as e:
-                self._raise_or_ignore_already_exists_error(e, update, progress_message, finish_message="recreated.")
+                    configuration_option = [f"--inline-config={temporary_file.name}"]
 
-                delete_trigger_command = [
+                create_trigger_command = [
                     "gcloud",
                     f"--project={self.project_name}",
                     "beta",
                     "builds",
                     "triggers",
-                    "delete",
-                    f"{self.name}",
+                    "create",
+                    "github",
+                    f"--name={self.name}",
+                    f"--repo-name={self.repository_name}",
+                    f"--repo-owner={self.repository_owner}",
+                    f"--description={self.build_trigger_description}",
+                    f"--branch-pattern={self.branch_pattern}",
+                    *configuration_option,
                 ]
 
-                self._run_command(delete_trigger_command)
-                self._run_command(create_trigger_command)
+                try:
+                    self._run_command(create_trigger_command)
+                except DeploymentError as e:
+                    self._raise_or_ignore_already_exists_error(e, update, progress_message, finish_message="recreated.")
+
+                    delete_trigger_command = [
+                        "gcloud",
+                        f"--project={self.project_name}",
+                        "beta",
+                        "builds",
+                        "triggers",
+                        "delete",
+                        f"{self.name}",
+                    ]
+
+                    self._run_command(delete_trigger_command)
+                    self._run_command(create_trigger_command)
 
     def _run_build_trigger(self):
         """Run the build trigger and return the build ID. The image URI is updated from the build metadata, ensuring
