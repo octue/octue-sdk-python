@@ -177,7 +177,7 @@ class BaseDeployer:
 
         :param str build_id: the ID of the build to wait for
         :param float check_period: the period in seconds at which to check if the build has finished
-        :return: None
+        :return None:
         """
         get_build_command = [
             "gcloud",
@@ -224,19 +224,19 @@ class BaseDeployer:
         return process
 
     @staticmethod
-    def _raise_or_ignore_already_exists_error(exception, update, progress_message, finish_message=None):
-        """If `update` is `True` and the exception includes the words "already exists", ignore the exception and change
-        the progress message's `finish_message` to "already exists."; otherwise, raise the exception.
+    def _raise_or_ignore_already_exists_error(exception, update, progress_message, finish_message="already exists."):
+        """If `update` is `True` and the exception includes the words "already exists", ignore the exception and update
+        the progress message's `finish_message`; otherwise, raise the exception.
 
         :param Exception exception: the exception to ignore or raise
         :param bool update: if `True`, ignore "already exists" errors but raise other errors
-        :param ProgressMessage progress_message: the progress message to update with "already exists" if appropriate
+        :param ProgressMessage progress_message: the progress message to update with the finish message if appropriate
         :param str finish_message:
         :raise Exception:
         :return None:
         """
         if update and "already exists" in exception.args[0]:
-            progress_message.finish_message = finish_message or "already exists."
+            progress_message.finish_message = finish_message
             return
 
         raise exception
