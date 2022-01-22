@@ -25,7 +25,7 @@ GET_SUBSCRIPTIONS_METHOD_PATH = "octue.cloud.deployment.google.cloud_run.deploye
 SERVICE_ID = "octue.services.0df08f9f-30ad-4db3-8029-ea584b4290b7"
 
 EXPECTED_IMAGE_NAME = (
-    f"eu.gcr.io/{octue_configuration['project_name']}/octue/{octue_configuration['repository_name']}/"
+    f"eu.gcr.io/{octue_configuration['project_name']}/{octue_configuration['repository_name']}/"
     f"{octue_configuration['name']}"
 )
 
@@ -81,6 +81,7 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
 
 EXPECTED_BUILD_TRIGGER_CREATION_COMMAND = [
     "gcloud",
+    f"--project={octue_configuration['project_name']}",
     "beta",
     "builds",
     "triggers",
@@ -166,24 +167,60 @@ class TestCloudRunDeployer(BaseTestCase):
                 with patch("octue.cloud.deployment.google.cloud_run.deployer.Topic.create"):
                     with patch(GET_SUBSCRIPTIONS_METHOD_PATH, return_value=["test-service"]):
                         with patch("octue.cloud.deployment.google.cloud_run.deployer.Subscription"):
-                            deployer.deploy()
+                            with patch("octue.cloud.deployment.google.cloud_run.deployer.Service"):
+                                mock_build_id = "my-build-id"
+                                with patch(
+                                    "json.loads",
+                                    return_value={
+                                        "metadata": {"build": {"images": ["my-image"], "id": mock_build_id}},
+                                        "status": "SUCCESS",
+                                    },
+                                ):
+                                    deployer.deploy()
 
             # Remove the "random" path used for the build configuration in the `--inline-config` argument of the
             # command.
             build_trigger_command_without_inline_config_path = copy.deepcopy(mock_run.call_args_list[0].args)[0]
-            build_trigger_command_without_inline_config_path.pop(11)
+            build_trigger_command_without_inline_config_path.pop(12)
 
             # Test the build trigger creation request.
             self.assertEqual(build_trigger_command_without_inline_config_path, EXPECTED_BUILD_TRIGGER_CREATION_COMMAND)
 
-            # Test the build request.
-            self.assertEqual(mock_run.call_args_list[1].args[0][:4], ["gcloud", "builds", "submit", "."])
+            # Test the build trigger run request.
+            self.assertEqual(
+                mock_run.call_args_list[1].args[0],
+                [
+                    "gcloud",
+                    f"--project={octue_configuration['project_name']}",
+                    "--format=json",
+                    "beta",
+                    "builds",
+                    "triggers",
+                    "run",
+                    octue_configuration["name"],
+                    "--branch=my-branch",
+                ],
+            )
 
-            # Test setting the Cloud Run service to accept unauthenticated requests.
+            # Test waiting for the build trigger run to complete.
             self.assertEqual(
                 mock_run.call_args_list[2].args[0],
                 [
                     "gcloud",
+                    f'--project={octue_configuration["project_name"]}',
+                    "--format=json",
+                    "builds",
+                    "describe",
+                    mock_build_id,
+                ],
+            )
+
+            # Test setting the Cloud Run service to accept unauthenticated requests.
+            self.assertEqual(
+                mock_run.call_args_list[3].args[0],
+                [
+                    "gcloud",
+                    f'--project={octue_configuration["project_name"]}',
                     "run",
                     "services",
                     "add-iam-policy-binding",
@@ -196,9 +233,10 @@ class TestCloudRunDeployer(BaseTestCase):
 
             # Test the Eventarc run trigger creation request.
             self.assertEqual(
-                mock_run.call_args_list[3].args[0],
+                mock_run.call_args_list[4].args[0],
                 [
                     "gcloud",
+                    f'--project={octue_configuration["project_name"]}',
                     "beta",
                     "eventarc",
                     "triggers",
@@ -220,23 +258,19 @@ class TestCloudRunDeployer(BaseTestCase):
             deployer = CloudRunDeployer(octue_configuration_path)
             deployer._generate_cloud_build_configuration()
 
-            with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
-                with open(temporary_file.name, "w") as f:
-                    yaml.dump(deployer.generated_cloud_build_configuration, f)
-
-                with patch(
-                    "octue.cloud.deployment.google.cloud_run.deployer.CloudRunDeployer._run_command",
-                    side_effect=[DeploymentError("already exists"), None, None],
-                ) as mock_run_command:
-                    with patch("builtins.print") as mock_print:
-                        deployer._create_build_trigger(temporary_file.name, update=True)
+            with patch(
+                "octue.cloud.deployment.google.cloud_run.deployer.CloudRunDeployer._run_command",
+                side_effect=[DeploymentError("already exists"), None, None],
+            ) as mock_run_command:
+                with patch("builtins.print") as mock_print:
+                    deployer._create_build_trigger(update=True)
 
         self.assertEqual(mock_print.call_args[0][0], "recreated.")
 
         # Remove the "random" path used for the build configuration in the "--inline-config" argument of the
         # command.
         build_trigger_command_without_inline_config_path = copy.deepcopy(mock_run_command.call_args_list[0].args)[0]
-        build_trigger_command_without_inline_config_path.pop(11)
+        build_trigger_command_without_inline_config_path.pop(12)
 
         # Test the build trigger creation request.
         self.assertEqual(build_trigger_command_without_inline_config_path, EXPECTED_BUILD_TRIGGER_CREATION_COMMAND)
@@ -244,7 +278,15 @@ class TestCloudRunDeployer(BaseTestCase):
         # Test that trigger deletion is requested.
         self.assertEqual(
             mock_run_command.call_args_list[1].args[0],
-            ["gcloud", "beta", "builds", "triggers", "delete", octue_configuration["name"]],
+            [
+                "gcloud",
+                f"--project={octue_configuration['project_name']}",
+                "beta",
+                "builds",
+                "triggers",
+                "delete",
+                octue_configuration["name"],
+            ],
         )
 
         # Test the build trigger creation request is retried.
@@ -252,7 +294,7 @@ class TestCloudRunDeployer(BaseTestCase):
             mock_run_command.call_args_list[2].args
         )[0]
 
-        retried_build_trigger_command_without_inline_config_path.pop(11)
+        retried_build_trigger_command_without_inline_config_path.pop(12)
 
         self.assertEqual(
             retried_build_trigger_command_without_inline_config_path,
