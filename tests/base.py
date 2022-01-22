@@ -1,6 +1,5 @@
 import os
 import unittest
-import warnings
 
 from octue.cloud.emulators import GoogleCloudStorageEmulatorTestResultModifier
 from octue.mixins import MixinBase, Pathable
@@ -33,7 +32,6 @@ class BaseTestCase(unittest.TestCase):
         self.data_path = os.path.join(root_dir, "data")
         self.templates_path = os.path.join(os.path.dirname(root_dir), "octue", "templates")
 
-        warnings.simplefilter("ignore", category=ResourceWarning)
         super().setUp()
 
     def create_valid_dataset(self):

@@ -2,6 +2,7 @@ import base64
 import json
 import logging
 import os
+import warnings
 
 from google.cloud import storage
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
@@ -15,6 +16,7 @@ from octue.utils.encoders import OctueJSONEncoder
 
 logger = logging.getLogger(__name__)
 
+
 OCTUE_MANAGED_CREDENTIALS = "octue-managed"
 
 
@@ -27,6 +29,8 @@ class GoogleCloudStorageClient:
     """
 
     def __init__(self, project_name, credentials=OCTUE_MANAGED_CREDENTIALS):
+        warnings.simplefilter("ignore", category=ResourceWarning)
+
         if credentials == OCTUE_MANAGED_CREDENTIALS:
             credentials = GCPCredentialsManager().get_credentials()
         else:
