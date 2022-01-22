@@ -17,9 +17,10 @@ class BaseDeployer:
     This includes setting up a Google Cloud Build trigger, enabling automatic deployment during future development.
     Note that this tool requires the `gcloud` CLI to be available.
 
-    This tool can be inherited from with the `deploy` and `_generate_cloud_build_configuration` overridden to set where
-    the app is deployed to (e.g. Google Cloud Run or Google Dataflow). The `TOTAL_NUMBER_OF_STAGES` class variable
-    should also be overridden and set to the number of stages in the subclass's deployment.
+    This tool can be inherited from to create specific deployment tools (e.g. for Google Cloud Run or Google Dataflow)
+    with the `deploy` and `_generate_cloud_build_configuration` methods overridden to set where and how the app is
+    deployed. The `TOTAL_NUMBER_OF_STAGES` class variable should also be overridden and set to the number of stages in
+    the subclass's deployment.
 
     The version information for the version of `gcloud` used to develop this tool is:
     ```
@@ -59,8 +60,8 @@ class BaseDeployer:
         self.required_environment_variables = [f"SERVICE_ID={self.service_id}", f"SERVICE_NAME={self.name}"]
 
         self._default_image_uri = (
-            f"{DOCKER_REGISTRY_URL}/{self.project_name}/{self.repository_owner}/{self.repository_name}/"
-            f"{self.name}:{self._get_short_head_commit_hash()}"
+            f"{DOCKER_REGISTRY_URL}/{self.project_name}/{self.repository_name}/{self.name}"
+            f":{self._get_short_head_commit_hash()}"
         )
 
         # Optional configuration file entries.
