@@ -118,12 +118,12 @@ class DataflowDeployer(BaseDeployer):
     def _deploy_streaming_dataflow_job(self, update=False):
         """Deploy the newly-built service as a streaming Dataflow job.
 
-        :param bool update: if `True`, update the existing job with the same name
+        :param bool update: if `True`, update the identically-named existing job
         :return None:
         """
         with ProgressMessage("Deploying streaming Dataflow job", 4, self.TOTAL_NUMBER_OF_STAGES) as progress_message:
             if update:
-                progress_message.finish_message = "updated."
+                progress_message.finish_message = "update triggered."
 
             create_streaming_pipeline(
                 service_name=self.name,
