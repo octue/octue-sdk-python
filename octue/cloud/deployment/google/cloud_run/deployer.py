@@ -16,12 +16,6 @@ class CloudRunDeployer(BaseDeployer):
     Cloud Run. This includes setting up a Google Cloud Build trigger, enabling automatic deployment during future
     development. Note that this tool requires the `gcloud` CLI to be available.
 
-    Warning: the build triggered by this tool will currently only work if it is run in the correct context directory for
-    the docker build - this is due to the `gcloud beta builds triggers run` command not yet working, so the first build
-    has to be triggered via `gcloud builds submit`, which collects the context from the local machine running the
-    command instead of from the remote repository. This is not ideal and will be addressed as soon as the former
-    `gcloud` command works properly.
-
     The version information for the version of `gcloud` used to develop this tool is:
     ```
     Google Cloud SDK 367.0.0
@@ -45,8 +39,8 @@ class CloudRunDeployer(BaseDeployer):
         self.build_trigger_description = f"Build the {self.name!r} service and deploy it to Cloud Run."
 
     def deploy(self, no_cache=False, update=False):
-        """Create a Google Cloud Build configuration from the `octue.yaml file, create a build trigger, build and
-        deploy the app as a Google Cloud Run service, and create and attach an Eventarc Pub/Sub run trigger to it.
+        """Create a Google Cloud Build configuration from the `octue.yaml` file, create a build trigger, and run the
+        trigger. This deploys the app as a Google Cloud Run service and creates an Eventarc Pub/Sub run trigger for it.
 
         :param bool no_cache: if `True`, don't use the Docker cache when building the image
         :param bool update: if `True`, allow the build trigger and Eventarc run trigger to already exist and just build and deploy a new image based on an updated `octue.yaml` file
@@ -67,10 +61,10 @@ class CloudRunDeployer(BaseDeployer):
     def _generate_cloud_build_configuration(self, no_cache=False):
         """Generate a Google Cloud Build configuration equivalent to a `cloudbuild.yaml` file in memory and assign it
         to the `cloud_build_configuration` attribute. The configuration steps are:
-        1. If no Dockerfile path is provided in `octue.yaml`, getting the default Cloud Run Dockerfile
-        2. Building the image
-        3. Pushing the image to Google Container Registry
-        4. Deploying the image to Cloud Run
+        1. If no Dockerfile path is provided in `octue.yaml`, get the default `octue` Cloud Run Dockerfile
+        2. Build the image
+        3. Push the image to Google Container Registry
+        4. Deploy the image to Cloud Run
 
         :param bool no_cache: if `True`, don't use the Docker cache when building the image
         :return None:
@@ -81,7 +75,7 @@ class CloudRunDeployer(BaseDeployer):
             self.TOTAL_NUMBER_OF_STAGES,
         ) as progress_message:
             if self.provided_cloud_build_configuration_path:
-                progress_message.finish_message = "skipped - using file from repository."
+                progress_message.finish_message = "skipped - using cloudbuild.yaml file from repository."
                 return
 
             if self.dockerfile_path:
@@ -89,8 +83,8 @@ class CloudRunDeployer(BaseDeployer):
                 dockerfile_path = self.dockerfile_path
 
             else:
-                # If no path to a dockerfile has been provided, add a step to download the default Octue service Dockerfile
-                # to build the image from.
+                # If no path to a dockerfile has been provided, add a step to download the default `octue` Cloud Run
+                # Dockerfile to build the image from.
                 get_dockerfile_step = [
                     {
                         "id": "Get default Octue Dockerfile",
@@ -172,8 +166,8 @@ class CloudRunDeployer(BaseDeployer):
             self._run_command(allow_unauthenticated_messages_command)
 
     def _create_eventarc_run_trigger(self, update=False):
-        """Create an Eventarc run trigger for the service. Update the Eventarc subscription to have the minimum
-        acknowledgement deadline to avoid recurrent re-computation of questions.
+        """Create a topic and Eventarc run trigger for the service, updating the Eventarc subscription to have the
+        minimum acknowledgement deadline to avoid recurrent re-computation of questions.
 
         :raise octue.exceptions.DeploymentError: if the Eventarc subscription is not found after creating the Eventarc trigger
         :param bool update: if `True`, ignore "already exists" errors from the Eventarc trigger
@@ -214,8 +208,8 @@ class CloudRunDeployer(BaseDeployer):
 
                 if not eventarc_subscription_path:
                     raise DeploymentError(
-                        "Eventarc subscription not found - it may exist but its acknowledgement has not been updated to "
-                        "the minimum value, which may lead to recurrent re-computation of questions."
+                        "Eventarc subscription not found - it may exist but its acknowledgement deadline has not been "
+                        "updated to the minimum value, which may lead to recurrent re-computation of questions."
                     )
 
                 # Set the acknowledgement deadline to the minimum value to avoid recurrent re-computation of questions.
