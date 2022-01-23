@@ -78,22 +78,7 @@ class CloudRunDeployer(BaseDeployer):
                 progress_message.finish_message = "skipped - using cloudbuild.yaml file from repository."
                 return
 
-            if self.dockerfile_path:
-                get_dockerfile_step = []
-                dockerfile_path = self.dockerfile_path
-
-            else:
-                # If no path to a dockerfile has been provided, add a step to download the default `octue` Cloud Run
-                # Dockerfile to build the image from.
-                get_dockerfile_step = [
-                    {
-                        "id": "Get default Octue Dockerfile",
-                        "name": "alpine:latest",
-                        "args": ["wget", DEFAULT_CLOUD_RUN_DOCKERFILE_URL],
-                    }
-                ]
-
-                dockerfile_path = "Dockerfile"
+            get_dockerfile_step, dockerfile_path = self._create_get_dockerfile_step(DEFAULT_CLOUD_RUN_DOCKERFILE_URL)
 
             if no_cache:
                 cache_option = ["--no-cache"]

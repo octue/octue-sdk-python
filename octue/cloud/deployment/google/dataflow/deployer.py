@@ -65,10 +65,10 @@ class DataflowDeployer(BaseDeployer):
 
     def _generate_cloud_build_configuration(self, no_cache=False):
         """Generate a Google Cloud Build configuration equivalent to a `cloudbuild.yaml` file in memory and assign it
-        to the `cloud_build_configuration` attribute. The configuration steps are:
-        1. If no Dockerfile path is provided in `octue.yaml`, getting the default Dataflow Dockerfile
-        2. Building the image
-        3. Pushing the image to Google Container Registry
+        to the `generated_cloud_build_configuration` attribute. The configuration steps are:
+        1. If no Dockerfile path is provided in `octue.yaml`, get the default Dataflow Dockerfile
+        2. Build the image
+        3. Push the image to Google Container Registry
 
         :param bool no_cache: if `True`, don't use the Docker cache when building the image
         :return None:
@@ -82,22 +82,7 @@ class DataflowDeployer(BaseDeployer):
                 progress_message.finish_message = "skipped - using cloudbuild.yaml file from repository."
                 return
 
-            if self.dockerfile_path:
-                get_dockerfile_step = []
-                dockerfile_path = self.dockerfile_path
-
-            else:
-                # If no path to a dockerfile has been provided, add a step to download the default Octue service
-                # Dockerfile to build the image from.
-                get_dockerfile_step = [
-                    {
-                        "id": "Get default Octue Dockerfile",
-                        "name": "alpine:latest",
-                        "args": ["wget", DEFAULT_DATAFLOW_DOCKERFILE_URL],
-                    }
-                ]
-
-                dockerfile_path = "Dockerfile"
+            get_dockerfile_step, dockerfile_path = self._create_get_dockerfile_step(DEFAULT_DATAFLOW_DOCKERFILE_URL)
 
             if no_cache:
                 cache_option = ["--no-cache"]

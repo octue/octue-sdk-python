@@ -95,6 +95,28 @@ class BaseDeployer:
         :return None:
         """
 
+    def _create_get_dockerfile_step(self, default_dockerfile_url):
+        """If a Dockerfile step hasn't been provided, create a `cloudbuild.yaml` step that downloads the relevant
+        default `octue` Dockerfile to build the image from. If it has been provided, provide an empty step.
+
+        :param str default_dockerfile_url: the URL to get the default `octue` Dockerfile from
+        :return (list, str): the `cloudbuild.yaml` step and the path to the Dockerfile
+        """
+        if self.dockerfile_path:
+            return [], self.dockerfile_path
+
+        # If no path to a dockerfile has been provided, add a step to download the default Octue service
+        # Dockerfile to build the image from.
+        get_dockerfile_step = [
+            {
+                "id": "Get default Octue Dockerfile",
+                "name": "alpine:latest",
+                "args": ["wget", default_dockerfile_url],
+            }
+        ]
+
+        return get_dockerfile_step, "Dockerfile"
+
     def _create_build_trigger(self, update=False):
         """Create the build trigger in Google Cloud Build using the given `cloudbuild.yaml` file.
 
