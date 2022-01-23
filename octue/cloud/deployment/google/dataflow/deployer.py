@@ -12,32 +12,51 @@ DEFAULT_DATAFLOW_DOCKERFILE_URL = (
 
 
 class DataflowDeployer(BaseDeployer):
+    """A tool for using an `octue.yaml` file in a repository to build and deploy the repository's `octue` app to Google
+    Dataflow as a streaming job. This includes setting up a Google Cloud Build trigger, enabling automatic deployment
+    during future development. Note that this tool requires the `gcloud` CLI to be available.
+
+    The version information for the version of `gcloud` used to develop this tool is:
+    ```
+    Google Cloud SDK 367.0.0
+    beta 2021.12.10
+    bq 2.0.72
+    cloud-build-local 0.5.2
+    core 2021.12.10
+    gsutil 5.5
+    pubsub-emulator 0.6.0
+    ```
+
+    :param str octue_configuration_path: the path to the `octue.yaml` file if it's not in the current working directory
+    :param str|None service_id: the UUID to give the service if a random one is not suitable
+    :return None:
+    """
 
     TOTAL_NUMBER_OF_STAGES = 4
 
     def __init__(self, octue_configuration_path, service_id=None):
         super().__init__(octue_configuration_path, service_id)
         self.build_trigger_description = f"Build the {self.name!r} service and deploy it to Dataflow."
+
+        # Optional configuration file entries for Dataflow.
         self.temporary_files_location = self._octue_configuration.get(
             "temporary_files_location", DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION
         )
         self.setup_file_path = self._octue_configuration.get("setup_file_path", DEFAULT_SETUP_FILE_PATH)
 
-    def deploy(self, no_cache=False, no_build=False, update=False):
+    def deploy(self, no_cache=False, update=False):
         """Create a Google Cloud Build configuration from the `octue.yaml file, create a build trigger, run it, and
         deploy the app as a Google Dataflow streaming job.
 
         :param bool no_cache: if `True`, don't use the Docker cache when building the image
-        :param bool no_build: if `True`, don't build and push a new image, just update the Dataflow job based on an updated `octue.yaml` file
         :param bool update: if `True`, allow the build trigger to already exist and just build and deploy a new image based on an updated `octue.yaml` file
         :return str: the service's UUID
         """
         self._generate_cloud_build_configuration(no_cache=no_cache)
+        self._create_build_trigger(update=update)
 
-        if not no_build:
-            self._create_build_trigger(update=update)
-            build_id = self._run_build_trigger()
-            self._wait_for_build_to_finish(build_id)
+        build_id = self._run_build_trigger()
+        self._wait_for_build_to_finish(build_id)
 
         self._deploy_streaming_dataflow_job(update=update)
 
@@ -60,7 +79,7 @@ class DataflowDeployer(BaseDeployer):
             self.TOTAL_NUMBER_OF_STAGES,
         ) as progress_message:
             if self.provided_cloud_build_configuration_path:
-                progress_message.finish_message = "skipped - using file from repository."
+                progress_message.finish_message = "skipped - using cloudbuild.yaml file from repository."
                 return
 
             if self.dockerfile_path:

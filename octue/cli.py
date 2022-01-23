@@ -270,16 +270,11 @@ def cloud_run(octue_configuration_path, service_id, update, no_cache):
     help="A UUID to use for the service if a specific one is required (defaults to an automatically generated one).",
 )
 @click.option("--no-cache", is_flag=True, help="If provided, don't use the Docker cache when building the image.")
-@click.option(
-    "--no-build",
-    is_flag=True,
-    help="If provided, don't build a new Docker image, just update the Dataflow job.",
-)
 @click.option("--update", is_flag=True, help="If provided, allow updates to an existing service.")
-def dataflow(octue_configuration_path, service_id, no_cache, no_build, update):
+def dataflow(octue_configuration_path, service_id, no_cache, update):
     """Deploy an app as a Google Dataflow streaming service."""
     deployer = DataflowDeployer(octue_configuration_path, service_id=service_id)
-    deployer.deploy(no_cache=no_cache, no_build=no_build, update=update)
+    deployer.deploy(no_cache=no_cache, update=update)
 
 
 def set_unavailable_strand_paths_to_none(twine, strands):
