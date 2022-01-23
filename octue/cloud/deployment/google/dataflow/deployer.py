@@ -2,7 +2,7 @@ from octue.cloud.deployment.google.base_deployer import BaseDeployer, ProgressMe
 from octue.cloud.deployment.google.dataflow.pipeline import (
     DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION,
     DEFAULT_SETUP_FILE_PATH,
-    create_streaming_pipeline,
+    create_streaming_job,
 )
 
 
@@ -125,7 +125,7 @@ class DataflowDeployer(BaseDeployer):
             if update:
                 progress_message.finish_message = "update triggered."
 
-            create_streaming_pipeline(
+            create_streaming_job(
                 service_name=self.name,
                 project_name=self.project_name,
                 service_id=self.service_id,
