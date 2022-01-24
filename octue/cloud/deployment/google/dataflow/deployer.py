@@ -112,6 +112,18 @@ class DataflowDeployer(BaseDeployer):
                         "name": "gcr.io/cloud-builders/docker",
                         "args": ["push", self.image_uri],
                     },
+                    {
+                        "id": "Deploy Dataflow job",
+                        "name": "eu.gcr.io/octue-amy/octue-sdk-python/deployer:latest",
+                        "args": [
+                            "octue-app",
+                            "deploy",
+                            "dataflow",
+                            f"--service-id={self.service_id}",
+                            "--update",
+                            "--skip-build-trigger",
+                        ],
+                    },
                 ],
                 "images": [self.image_uri],
             }
