@@ -44,7 +44,7 @@ class DataflowDeployer(BaseDeployer):
         )
         self.setup_file_path = self._octue_configuration.get("setup_file_path", DEFAULT_SETUP_FILE_PATH)
 
-    def deploy(self, no_cache=False, update=False):
+    def deploy(self, no_cache=False, update=False, skip_build_trigger=False):
         """Create a Google Cloud Build configuration from the `octue.yaml file, create a build trigger, run it, and
         deploy the app as a Google Dataflow streaming job.
 
@@ -52,6 +52,10 @@ class DataflowDeployer(BaseDeployer):
         :param bool update: if `True`, allow the build trigger to already exist and just build and deploy a new image based on an updated `octue.yaml` file
         :return str: the service's UUID
         """
+        if skip_build_trigger:
+            self._deploy_streaming_dataflow_job(update=update)
+            return self.service_id
+
         self._generate_cloud_build_configuration(no_cache=no_cache)
         self._create_build_trigger(update=update)
         self._run_build_trigger()
