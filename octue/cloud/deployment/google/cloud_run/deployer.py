@@ -48,10 +48,7 @@ class CloudRunDeployer(BaseDeployer):
         """
         self._generate_cloud_build_configuration(no_cache=no_cache)
         self._create_build_trigger(update=update)
-
-        build_id = self._run_build_trigger()
-        self._wait_for_build_to_finish(build_id)
-
+        self._run_build_trigger()
         self._allow_unauthenticated_messages()
         self._create_eventarc_run_trigger(update=update)
 
