@@ -117,13 +117,25 @@ class TestDeployCommand(BaseTestCase):
         self.assertIn("dataflow ", result.output)
 
     def test_deploy_cloud_run_raises_error_if_updating_without_providing_service_id(self):
-        """Test that a deployment error is raised if attempting to update a deployed service without providing the
-        service ID.
+        """Test that a deployment error is raised if attempting to update a deployed Cloud Run service without providing
+        the service ID.
         """
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             result = CliRunner().invoke(
                 octue_cli,
                 ["deploy", "cloud-run", f"--octue-configuration-path={temporary_file.name}", "--update"],
+            )
+        self.assertEqual(result.exit_code, 1)
+        self.assertIsInstance(result.exception, DeploymentError)
+
+    def test_deploy_dataflow_raises_error_if_updating_without_providing_service_id(self):
+        """Test that a deployment error is raised if attempting to update a deployed Dataflow service without providing
+        the service ID.
+        """
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            result = CliRunner().invoke(
+                octue_cli,
+                ["deploy", "dataflow", f"--octue-configuration-path={temporary_file.name}", "--update"],
             )
         self.assertEqual(result.exit_code, 1)
         self.assertIsInstance(result.exception, DeploymentError)

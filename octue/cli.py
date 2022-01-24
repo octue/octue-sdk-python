@@ -273,6 +273,9 @@ def cloud_run(octue_configuration_path, service_id, update, no_cache):
 @click.option("--update", is_flag=True, help="If provided, allow updates to an existing service.")
 def dataflow(octue_configuration_path, service_id, no_cache, update):
     """Deploy an app as a Google Dataflow streaming service."""
+    if update and not service_id:
+        raise DeploymentError("If updating a service, you must also provide the `--service-id` argument.")
+
     deployer = DataflowDeployer(octue_configuration_path, service_id=service_id)
     deployer.deploy(no_cache=no_cache, update=update)
 
