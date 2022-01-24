@@ -31,7 +31,7 @@ def create_streaming_job(
     update=False,
     extra_options=None,
 ):
-    """Deploy a streaming Dataflow Prime job to Google Cloud.
+    """Deploy an `octue` service as a streaming Google Dataflow Prime job.
 
     :param str service_name: the name to give the Dataflow job
     :param str service_id: the Pub/Sub topic name for the Dataflow job to subscribe to
