@@ -176,15 +176,16 @@ class TestCloudRunDeployer(BaseTestCase):
                                         "status": "SUCCESS",
                                     },
                                 ):
-                                    deployer.deploy()
+                                    temporary_file = tempfile.NamedTemporaryFile()
 
-            # Remove the "random" path used for the build configuration in the `--inline-config` argument of the
-            # command.
-            build_trigger_command_without_inline_config_path = copy.deepcopy(mock_run.call_args_list[0].args)[0]
-            build_trigger_command_without_inline_config_path.pop(12)
+                                    with patch("tempfile.NamedTemporaryFile", return_value=temporary_file):
+                                        deployer.deploy()
 
             # Test the build trigger creation request.
-            self.assertEqual(build_trigger_command_without_inline_config_path, EXPECTED_BUILD_TRIGGER_CREATION_COMMAND)
+            self.assertEqual(
+                mock_run.call_args_list[0].args[0],
+                EXPECTED_BUILD_TRIGGER_CREATION_COMMAND + [f"--inline-config={temporary_file.name}"],
+            )
 
             # Test the build trigger run request.
             self.assertEqual(
@@ -258,22 +259,24 @@ class TestCloudRunDeployer(BaseTestCase):
             deployer = CloudRunDeployer(octue_configuration_path)
             deployer._generate_cloud_build_configuration()
 
-            with patch(
-                "octue.cloud.deployment.google.cloud_run.deployer.CloudRunDeployer._run_command",
-                side_effect=[DeploymentError("already exists"), None, None],
-            ) as mock_run_command:
-                with patch("builtins.print") as mock_print:
-                    deployer._create_build_trigger(update=True)
+            temporary_file = tempfile.NamedTemporaryFile()
+
+            with patch("tempfile.NamedTemporaryFile", return_value=temporary_file):
+                with patch(
+                    "octue.cloud.deployment.google.cloud_run.deployer.CloudRunDeployer._run_command",
+                    side_effect=[DeploymentError("already exists"), None, None],
+                ) as mock_run_command:
+                    with patch("builtins.print") as mock_print:
+                        deployer._create_build_trigger(update=True)
 
         self.assertEqual(mock_print.call_args[0][0], "recreated.")
 
-        # Remove the "random" path used for the build configuration in the "--inline-config" argument of the
-        # command.
-        build_trigger_command_without_inline_config_path = copy.deepcopy(mock_run_command.call_args_list[0].args)[0]
-        build_trigger_command_without_inline_config_path.pop(12)
+        expected_build_trigger_creation_command = EXPECTED_BUILD_TRIGGER_CREATION_COMMAND + [
+            f"--inline-config={temporary_file.name}"
+        ]
 
         # Test the build trigger creation request.
-        self.assertEqual(build_trigger_command_without_inline_config_path, EXPECTED_BUILD_TRIGGER_CREATION_COMMAND)
+        self.assertEqual(mock_run_command.call_args_list[0].args[0], expected_build_trigger_creation_command)
 
         # Test that trigger deletion is requested.
         self.assertEqual(
@@ -290,16 +293,7 @@ class TestCloudRunDeployer(BaseTestCase):
         )
 
         # Test the build trigger creation request is retried.
-        retried_build_trigger_command_without_inline_config_path = copy.deepcopy(
-            mock_run_command.call_args_list[2].args
-        )[0]
-
-        retried_build_trigger_command_without_inline_config_path.pop(12)
-
-        self.assertEqual(
-            retried_build_trigger_command_without_inline_config_path,
-            EXPECTED_BUILD_TRIGGER_CREATION_COMMAND,
-        )
+        self.assertEqual(mock_run_command.call_args_list[2].args[0], expected_build_trigger_creation_command)
 
     def test_create_eventarc_run_trigger_with_update(self):
         """Test that creating an Eventarc run trigger for a service when one already exists and the deployer is in
