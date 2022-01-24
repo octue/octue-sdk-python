@@ -106,7 +106,7 @@ class TestDataflowDeployer(BaseTestCase):
                         "status": "SUCCESS",
                     },
                 ):
-                    temporary_file = tempfile.NamedTemporaryFile()
+                    temporary_file = tempfile.NamedTemporaryFile(delete=False)
 
                     with patch("tempfile.NamedTemporaryFile", return_value=temporary_file):
                         with patch("octue.cloud.deployment.google.dataflow.pipeline.DataflowRunner") as mock_runner:
@@ -251,7 +251,7 @@ class TestDataflowDeployer(BaseTestCase):
                         "status": "SUCCESS",
                     },
                 ):
-                    temporary_file = tempfile.NamedTemporaryFile()
+                    temporary_file = tempfile.NamedTemporaryFile(delete=False)
 
                     with patch("tempfile.NamedTemporaryFile", return_value=temporary_file):
                         with patch("octue.cloud.deployment.google.dataflow.pipeline.DataflowRunner") as mock_runner:

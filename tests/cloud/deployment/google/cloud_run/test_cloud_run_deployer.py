@@ -162,7 +162,7 @@ class TestCloudRunDeployer(BaseTestCase):
                                         "status": "SUCCESS",
                                     },
                                 ):
-                                    temporary_file = tempfile.NamedTemporaryFile()
+                                    temporary_file = tempfile.NamedTemporaryFile(delete=False)
 
                                     with patch("tempfile.NamedTemporaryFile", return_value=temporary_file):
                                         deployer.deploy()
@@ -245,7 +245,7 @@ class TestCloudRunDeployer(BaseTestCase):
             deployer = CloudRunDeployer(octue_configuration_path)
             deployer._generate_cloud_build_configuration()
 
-            temporary_file = tempfile.NamedTemporaryFile()
+            temporary_file = tempfile.NamedTemporaryFile(delete=False)
 
             with patch("tempfile.NamedTemporaryFile", return_value=temporary_file):
                 with patch(
