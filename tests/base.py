@@ -1,6 +1,8 @@
 import os
 import unittest
 
+import yaml
+
 from octue.cloud.emulators import GoogleCloudStorageEmulatorTestResultModifier
 from octue.mixins import MixinBase, Pathable
 from octue.resources import Datafile, Dataset, Manifest
@@ -51,3 +53,16 @@ class BaseTestCase(unittest.TestCase):
         datasets = [self.create_valid_dataset(), self.create_valid_dataset()]
         manifest = Manifest(datasets=datasets, keys={"my_dataset": 0, "another_dataset": 1})
         return manifest
+
+    def _create_octue_configuration_file(self, octue_configuration, directory_path):
+        """Create an `octue.yaml` configuration file in the given directory.
+
+        :param str directory_path:
+        :return str: the path of the `octue.yaml` file
+        """
+        octue_configuration_path = os.path.join(directory_path, "octue.yaml")
+
+        with open(octue_configuration_path, "w") as f:
+            yaml.dump(octue_configuration, f)
+
+        return octue_configuration_path

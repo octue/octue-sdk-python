@@ -1,8 +1,5 @@
-import os
 import tempfile
 from unittest.mock import Mock, patch
-
-import yaml
 
 from octue.cloud.deployment.google.dataflow.deployer import (
     DEFAULT_DATAFLOW_DOCKERFILE_URL,
@@ -21,7 +18,6 @@ octue_configuration = {
     "region": "europe-west2",
     "branch_pattern": "my-branch",
 }
-
 
 SERVICE_ID = "octue.services.0df08f9f-30ad-4db3-8029-ea584b4290b7"
 
@@ -78,23 +74,10 @@ EXPECTED_BUILD_TRIGGER_CREATION_COMMAND = [
 
 
 class TestDataflowDeployer(BaseTestCase):
-    def _create_octue_configuration_file(self, directory_path):
-        """Create an `octue.yaml` configuration file in the given directory.
-
-        :param str directory_path:
-        :return str: the path of the `octue.yaml` file
-        """
-        octue_configuration_path = os.path.join(directory_path, "octue.yaml")
-
-        with open(octue_configuration_path, "w") as f:
-            yaml.dump(octue_configuration, f)
-
-        return octue_configuration_path
-
     def test_generate_cloud_build_configuration(self):
         """Test that a correct Google Cloud Build configuration is generated from the given `octue.yaml` file."""
         with tempfile.TemporaryDirectory() as temporary_directory:
-            octue_configuration_path = self._create_octue_configuration_file(temporary_directory)
+            octue_configuration_path = self._create_octue_configuration_file(octue_configuration, temporary_directory)
 
             with patch(
                 "tests.cloud.deployment.google.dataflow.test_dataflow_deployer.DataflowDeployer._get_short_head_commit_hash",
@@ -110,7 +93,7 @@ class TestDataflowDeployer(BaseTestCase):
         correctly.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
-            octue_configuration_path = self._create_octue_configuration_file(temporary_directory)
+            octue_configuration_path = self._create_octue_configuration_file(octue_configuration, temporary_directory)
             deployer = DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID)
 
             with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:
@@ -183,7 +166,9 @@ class TestDataflowDeployer(BaseTestCase):
             octue_configuration["cloud_build_configuration_path"] = "cloudbuild.yaml"
 
             with tempfile.TemporaryDirectory() as temporary_directory:
-                octue_configuration_path = self._create_octue_configuration_file(temporary_directory)
+                octue_configuration_path = self._create_octue_configuration_file(
+                    octue_configuration, temporary_directory
+                )
                 deployer = DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID)
 
                 with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:
@@ -253,7 +238,7 @@ class TestDataflowDeployer(BaseTestCase):
     def test_deploying_an_update(self):
         """Test deploying an update to a service."""
         with tempfile.TemporaryDirectory() as temporary_directory:
-            octue_configuration_path = self._create_octue_configuration_file(temporary_directory)
+            octue_configuration_path = self._create_octue_configuration_file(octue_configuration, temporary_directory)
             deployer = DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID)
 
             with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:

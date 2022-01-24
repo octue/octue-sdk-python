@@ -1,9 +1,6 @@
 import copy
-import os
 import tempfile
 from unittest.mock import Mock, patch
-
-import yaml
 
 from octue.cloud.deployment.google.cloud_run.deployer import DEFAULT_CLOUD_RUN_DOCKERFILE_URL, CloudRunDeployer
 from octue.exceptions import DeploymentError
@@ -96,23 +93,10 @@ EXPECTED_BUILD_TRIGGER_CREATION_COMMAND = [
 
 
 class TestCloudRunDeployer(BaseTestCase):
-    def _create_octue_configuration_file(self, directory_path):
-        """Create an `octue.yaml` configuration file in the given directory.
-
-        :param str directory_path:
-        :return str: the path of the `octue.yaml` file
-        """
-        octue_configuration_path = os.path.join(directory_path, "octue.yaml")
-
-        with open(octue_configuration_path, "w") as f:
-            yaml.dump(octue_configuration, f)
-
-        return octue_configuration_path
-
     def test_generate_cloud_build_configuration(self):
         """Test that a correct Google Cloud Build configuration is generated from the given `octue.yaml` file."""
         with tempfile.TemporaryDirectory() as temporary_directory:
-            octue_configuration_path = self._create_octue_configuration_file(temporary_directory)
+            octue_configuration_path = self._create_octue_configuration_file(octue_configuration, temporary_directory)
             deployer = CloudRunDeployer(octue_configuration_path, service_id=SERVICE_ID)
             deployer._generate_cloud_build_configuration()
 
@@ -133,7 +117,9 @@ class TestCloudRunDeployer(BaseTestCase):
             octue_configuration["dockerfile_path"] = "path/to/Dockerfile"
 
             with tempfile.TemporaryDirectory() as temporary_directory:
-                octue_configuration_path = self._create_octue_configuration_file(temporary_directory)
+                octue_configuration_path = self._create_octue_configuration_file(
+                    octue_configuration, temporary_directory
+                )
                 deployer = CloudRunDeployer(octue_configuration_path, service_id=SERVICE_ID)
                 deployer._generate_cloud_build_configuration()
 
@@ -160,7 +146,7 @@ class TestCloudRunDeployer(BaseTestCase):
         correctly.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
-            octue_configuration_path = self._create_octue_configuration_file(temporary_directory)
+            octue_configuration_path = self._create_octue_configuration_file(octue_configuration, temporary_directory)
             deployer = CloudRunDeployer(octue_configuration_path, service_id=SERVICE_ID)
 
             with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:
@@ -255,7 +241,7 @@ class TestCloudRunDeployer(BaseTestCase):
         mode results in the existing trigger being deleted and recreated.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
-            octue_configuration_path = self._create_octue_configuration_file(temporary_directory)
+            octue_configuration_path = self._create_octue_configuration_file(octue_configuration, temporary_directory)
             deployer = CloudRunDeployer(octue_configuration_path)
             deployer._generate_cloud_build_configuration()
 
@@ -301,7 +287,7 @@ class TestCloudRunDeployer(BaseTestCase):
         printed.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
-            octue_configuration_path = self._create_octue_configuration_file(temporary_directory)
+            octue_configuration_path = self._create_octue_configuration_file(octue_configuration, temporary_directory)
             deployer = CloudRunDeployer(octue_configuration_path)
 
             with patch("octue.cloud.deployment.google.cloud_run.deployer.Topic.create"):
