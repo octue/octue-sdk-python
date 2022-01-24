@@ -167,6 +167,7 @@ class TestDataflowDeployer(BaseTestCase):
             # Test deploying the streaming Dataflow job.
             options = mock_runner.mock_calls[1].kwargs["options"].get_all_options()
 
+            self.assertFalse(options["update"])
             self.assertTrue(options["streaming"])
             self.assertEqual(options["project"], octue_configuration["project_name"])
             self.assertEqual(options["job_name"], octue_configuration["name"])
@@ -248,3 +249,73 @@ class TestDataflowDeployer(BaseTestCase):
 
         finally:
             del octue_configuration["cloud_build_configuration_path"]
+
+    def test_deploying_an_update(self):
+        """Test deploying an update to a service."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            octue_configuration_path = self._create_octue_configuration_file(temporary_directory)
+            deployer = DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID)
+
+            with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:
+                mock_build_id = "my-build-id"
+
+                with patch(
+                    "json.loads",
+                    return_value={
+                        "metadata": {"build": {"images": ["my-image"], "id": mock_build_id}},
+                        "status": "SUCCESS",
+                    },
+                ):
+                    temporary_file = tempfile.NamedTemporaryFile()
+
+                    with patch("tempfile.NamedTemporaryFile", return_value=temporary_file):
+                        with patch("octue.cloud.deployment.google.dataflow.pipeline.DataflowRunner") as mock_runner:
+                            deployer.deploy(update=True)
+
+            # Test the build trigger creation request.
+            self.assertEqual(
+                mock_run.call_args_list[0].args[0],
+                EXPECTED_BUILD_TRIGGER_CREATION_COMMAND + [f"--inline-config={temporary_file.name}"],
+            )
+
+            # Test the build trigger run request.
+            self.assertEqual(
+                mock_run.call_args_list[1].args[0],
+                [
+                    "gcloud",
+                    f"--project={octue_configuration['project_name']}",
+                    "--format=json",
+                    "beta",
+                    "builds",
+                    "triggers",
+                    "run",
+                    octue_configuration["name"],
+                    "--branch=my-branch",
+                ],
+            )
+
+            # Test waiting for the build trigger run to complete.
+            self.assertEqual(
+                mock_run.call_args_list[2].args[0],
+                [
+                    "gcloud",
+                    f'--project={octue_configuration["project_name"]}',
+                    "--format=json",
+                    "builds",
+                    "describe",
+                    mock_build_id,
+                ],
+            )
+
+            # Test deploying the streaming Dataflow job.
+            options = mock_runner.mock_calls[1].kwargs["options"].get_all_options()
+
+            self.assertTrue(options["update"])
+            self.assertTrue(options["streaming"])
+            self.assertEqual(options["project"], octue_configuration["project_name"])
+            self.assertEqual(options["job_name"], octue_configuration["name"])
+            self.assertEqual(options["temp_location"], DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION)
+            self.assertEqual(options["region"], octue_configuration["region"])
+            self.assertEqual(options["dataflow_service_options"], ["enable_prime"])
+            self.assertEqual(options["sdk_container_image"], "my-image")
+            self.assertEqual(options["setup_file"], DEFAULT_SETUP_FILE_PATH)
