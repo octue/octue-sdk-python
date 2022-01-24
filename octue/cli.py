@@ -5,8 +5,8 @@ import sys
 import click
 import pkg_resources
 
-from octue.cloud.deployment.google.dataflow.deploy import DEFAULT_IMAGE_URI, deploy_streaming_pipeline
-from octue.cloud.deployment.google.deployer import CloudRunDeployer
+from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
+from octue.cloud.deployment.google.dataflow.deployer import DataflowDeployer
 from octue.cloud.pub_sub.service import Service
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.exceptions import DeploymentError
@@ -256,43 +256,28 @@ def cloud_run(octue_configuration_path, service_id, update, no_cache):
 
 
 @deploy.command()
-@click.argument("service_name", type=str)
-@click.argument("service_id", type=str)
-@click.argument("project_name", type=str)
-@click.argument("region", type=str)
 @click.option(
-    "--runner",
-    type=str,
-    default="DataflowRunner",
+    "--octue-configuration-path",
+    type=click.Path(exists=True, dir_okay=False),
+    default="octue.yaml",
     show_default=True,
-    help="One of the valid apache-beam runners to use to execute the pipeline.",
+    help="Path to an octue.yaml file.",
 )
 @click.option(
-    "--image-uri",
+    "--service-id",
     type=str,
-    default=DEFAULT_IMAGE_URI,
-    show_default=True,
-    help="The URI of the apache-beam-based Docker image to use for the service.",
+    default=None,
+    help="A UUID to use for the service if a specific one is required (defaults to an automatically generated one).",
 )
-def dataflow(service_name, service_id, project_name, region, runner, image_uri):
-    """Deploy an app as a Google Dataflow streaming service.
+@click.option("--no-cache", is_flag=True, help="If provided, don't use the Docker cache when building the image.")
+@click.option("--update", is_flag=True, help="If provided, allow updates to an existing service.")
+def dataflow(octue_configuration_path, service_id, no_cache, update):
+    """Deploy an app as a Google Dataflow streaming service."""
+    if update and not service_id:
+        raise DeploymentError("If updating a service, you must also provide the `--service-id` argument.")
 
-    SERVICE_NAME - the name to give the service
-
-    SERVICE_ID - the ID that the service can be reached at by other services e.g. "octue.services.06fad9a3-fe6b-44c5-a239-5dd2a49cdd4e"
-
-    PROJECT_NAME - the name of the project to deploy to
-
-    REGION - the cloud region to deploy in
-    """
-    deploy_streaming_pipeline(
-        service_name=service_name,
-        project_name=project_name,
-        service_id=service_id,
-        region=region,
-        runner=runner,
-        image_uri=image_uri,
-    )
+    deployer = DataflowDeployer(octue_configuration_path, service_id=service_id)
+    deployer.deploy(no_cache=no_cache, update=update)
 
 
 def set_unavailable_strand_paths_to_none(twine, strands):
