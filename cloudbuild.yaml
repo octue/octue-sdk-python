@@ -1,0 +1,27 @@
+steps:
+  - id: Build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - "-c"
+      - >-
+        docker build '-t'
+        '$_GCR_HOSTNAME/$PROJECT_ID/$_REPOSITORY_NAME:$TAG_NAME'
+        . '-f' Dockerfile
+    entrypoint: bash
+
+  - id: Push
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - "$_GCR_HOSTNAME/$PROJECT_ID/$_REPOSITORY_NAME:$TAG_NAME"
+
+images:
+  - "$_GCR_HOSTNAME/$PROJECT_ID/$_REPOSITORY_NAME:$TAG_NAME"
+timeout: 2400s
+options:
+  substitutionOption: ALLOW_LOOSE
+substitutions:
+  _GCR_HOSTNAME: eu.gcr.io
+  _REPOSITORY_NAME: octue-sdk-python
+tags:
+  - octue-sdk-python
