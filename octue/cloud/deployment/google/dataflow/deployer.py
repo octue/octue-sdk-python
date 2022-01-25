@@ -63,7 +63,6 @@ class DataflowDeployer(BaseDeployer):
         self._generate_cloud_build_configuration(no_cache=no_cache)
         self._create_build_trigger(update=update)
         self._run_build_trigger()
-        self._deploy_streaming_dataflow_job(update=update)
         print(self.success_message)
 
     def _generate_cloud_build_configuration(self, no_cache=False):
