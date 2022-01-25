@@ -41,7 +41,7 @@ class BaseDeployer:
 
     TOTAL_NUMBER_OF_STAGES = None
 
-    def __init__(self, octue_configuration_path, service_id=None):
+    def __init__(self, octue_configuration_path, service_id=None, image_uri_template=None):
         self.octue_configuration_path = octue_configuration_path
 
         with open(self.octue_configuration_path) as f:
@@ -60,9 +60,13 @@ class BaseDeployer:
         self.service_id = service_id or str(uuid.uuid4())
         self.required_environment_variables = [f"SERVICE_ID={self.service_id}", f"SERVICE_NAME={self.name}"]
 
-        self._default_image_uri = (
-            f"{DOCKER_REGISTRY_URL}/{self.project_name}/{self.repository_name}/{self.name}"
-            f":{self._get_short_head_commit_hash()}"
+        if image_uri_template:
+            self._image_uri_provided = True
+        else:
+            self._image_uri_provided = False
+
+        self.image_uri_template = image_uri_template or (
+            f"{DOCKER_REGISTRY_URL}/{self.project_name}/{self.repository_name}/{self.name}:$SHORT_SHA"
         )
 
         # Optional configuration file entries.
@@ -71,7 +75,6 @@ class BaseDeployer:
         self.minimum_instances = self._octue_configuration.get("minimum_instances", 0)
         self.maximum_instances = self._octue_configuration.get("maximum_instances", 10)
         self.concurrency = self._octue_configuration.get("concurrency", 10)
-        self.image_uri = self._octue_configuration.get("image_uri", self._default_image_uri)
         self.branch_pattern = self._octue_configuration.get("branch_pattern", "^main$")
         self.memory = self._octue_configuration.get("memory", "128Mi")
         self.cpus = self._octue_configuration.get("cpus", 1)
@@ -126,8 +129,16 @@ class BaseDeployer:
         with ProgressMessage("Creating build trigger", 2, self.TOTAL_NUMBER_OF_STAGES) as progress_message:
 
             with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+
                 if self.provided_cloud_build_configuration_path:
+                    if not self._image_uri_provided:
+                        raise DeploymentError(
+                            "If providing a Cloud Build configuration file, the image URI template must also be "
+                            "provided."
+                        )
+
                     configuration_option = [f"--build-config={self.provided_cloud_build_configuration_path}"]
+
                 else:
                     # Put the Cloud Build configuration into a temporary file so it can be used by the `gcloud` command.
                     with open(temporary_file.name, "w") as f:
@@ -176,7 +187,12 @@ class BaseDeployer:
 
         :return None:
         """
-        with ProgressMessage("Running build trigger", 3, self.TOTAL_NUMBER_OF_STAGES):
+        with ProgressMessage(
+            f"Running build trigger on branch {self._octue_configuration['branch_pattern']!r}",
+            3,
+            self.TOTAL_NUMBER_OF_STAGES,
+        ):
+
             build_command = [
                 "gcloud",
                 f"--project={self.project_name}",
@@ -191,7 +207,6 @@ class BaseDeployer:
 
             process = self._run_command(build_command)
             metadata = json.loads(process.stdout.decode())["metadata"]
-            self.image_uri = metadata["build"]["images"][0]
             self._wait_for_build_to_finish(metadata["build"]["id"])
 
     def _wait_for_build_to_finish(self, build_id, check_period=20):
