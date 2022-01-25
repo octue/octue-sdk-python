@@ -59,6 +59,7 @@ class DataflowDeployer(BaseDeployer):
         if dataflow_job_only:
             self._deploy_streaming_dataflow_job(update=update)
             print(self.success_message)
+            return
 
         self._generate_cloud_build_configuration(no_cache=no_cache)
         self._create_build_trigger(update=update)
