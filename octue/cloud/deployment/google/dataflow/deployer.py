@@ -10,6 +10,8 @@ DEFAULT_DATAFLOW_DOCKERFILE_URL = (
     "https://raw.githubusercontent.com/octue/octue-sdk-python/main/octue/cloud/deployment/google/dataflow/Dockerfile"
 )
 
+OCTUE_SDK_PYTHON_IMAGE_URI = "eu.gcr.io/octue-amy/octue-sdk-python:0.9.3-slim"
+
 
 class DataflowDeployer(BaseDeployer):
     """A tool for using an `octue.yaml` file in a repository to build and deploy the repository's `octue` app to Google
@@ -114,7 +116,7 @@ class DataflowDeployer(BaseDeployer):
                     },
                     {
                         "id": "Deploy Dataflow job",
-                        "name": "eu.gcr.io/octue-amy/octue-sdk-python/deployer:latest",
+                        "name": OCTUE_SDK_PYTHON_IMAGE_URI,
                         "args": [
                             "octue-app",
                             "deploy",
