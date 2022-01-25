@@ -9,7 +9,9 @@ from apache_beam.runners.dataflow.internal.apiclient import DataflowJobAlreadyEx
 from octue import REPOSITORY_ROOT
 from octue.cloud.deployment.google.answer_pub_sub_question import answer_question
 from octue.cloud.pub_sub import Topic
+from octue.cloud.pub_sub.service import Service
 from octue.exceptions import DeploymentError
+from octue.resources.service_backends import GCPPubSubBackend
 
 
 logger = logging.getLogger(__name__)
@@ -63,13 +65,14 @@ def create_streaming_job(
         beam_args.append("--update")
 
     options = PipelineOptions(beam_args)
-
     pipeline = apache_beam.Pipeline(options=options)
-    service_topic = Topic.generate_topic_path(project_name, service_id)
+
+    service_topic = Topic(name=service_id, service=Service(backend=GCPPubSubBackend(project_name=project_name)))
+    service_topic.create(allow_existing=True)
 
     (
         pipeline
-        | "Read from Pub/Sub" >> apache_beam.io.ReadFromPubSub(topic=service_topic, with_attributes=True)
+        | "Read from Pub/Sub" >> apache_beam.io.ReadFromPubSub(topic=service_topic.path, with_attributes=True)
         | "Answer question" >> apache_beam.Map(lambda question: answer_question(question, project_name=project_name))
     )
 

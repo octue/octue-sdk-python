@@ -271,13 +271,18 @@ def cloud_run(octue_configuration_path, service_id, update, no_cache):
 )
 @click.option("--no-cache", is_flag=True, help="If provided, don't use the Docker cache when building the image.")
 @click.option("--update", is_flag=True, help="If provided, allow updates to an existing service.")
-def dataflow(octue_configuration_path, service_id, no_cache, update):
-    """Deploy an app as a Google Dataflow streaming service."""
+@click.option(
+    "--dataflow-job-only",
+    is_flag=True,
+    help="If provided, skip creating and running the build trigger and just deploy a pre-built image to Dataflow",
+)
+def dataflow(octue_configuration_path, service_id, no_cache, update, dataflow_job_only):
+    """Deploy an app as a Google Dataflow streaming job."""
     if update and not service_id:
         raise DeploymentError("If updating a service, you must also provide the `--service-id` argument.")
 
     deployer = DataflowDeployer(octue_configuration_path, service_id=service_id)
-    deployer.deploy(no_cache=no_cache, update=update)
+    deployer.deploy(no_cache=no_cache, update=update, dataflow_job_only=dataflow_job_only)
 
 
 def set_unavailable_strand_paths_to_none(twine, strands):

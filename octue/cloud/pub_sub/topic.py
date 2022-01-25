@@ -17,11 +17,11 @@ class Topic:
     :return None:
     """
 
-    def __init__(self, name, namespace, service):
-        if name.startswith(namespace):
-            self.name = name
-        else:
+    def __init__(self, name, service, namespace=""):
+        if namespace and not name.startswith(namespace):
             self.name = f"{namespace}.{name}"
+        else:
+            self.name = name
 
         self.service = service
         self.path = self.generate_topic_path(service.backend.project_name, self.name)

@@ -174,7 +174,7 @@ class BaseDeployer:
         that, if a `cloudbuild.yaml` file is provided instead of generated, the correct image URI from this file is
         used in later steps.
 
-        :return str: the build ID
+        :return None:
         """
         with ProgressMessage("Running build trigger", 3, self.TOTAL_NUMBER_OF_STAGES):
             build_command = [
@@ -192,7 +192,7 @@ class BaseDeployer:
             process = self._run_command(build_command)
             metadata = json.loads(process.stdout.decode())["metadata"]
             self.image_uri = metadata["build"]["images"][0]
-            return metadata["build"]["id"]
+            self._wait_for_build_to_finish(metadata["build"]["id"])
 
     def _wait_for_build_to_finish(self, build_id, check_period=20):
         """Wait for the build with the given ID to finish.
@@ -214,7 +214,7 @@ class BaseDeployer:
             process = self._run_command(get_build_command)
             status = json.loads(process.stdout.decode())["status"]
 
-            if status not in {"WORKING", "SUCCESS"}:
+            if status not in {"QUEUED", "WORKING", "SUCCESS"}:
                 raise DeploymentError(f"The build status is {status!r}.")
 
             if status == "SUCCESS":
