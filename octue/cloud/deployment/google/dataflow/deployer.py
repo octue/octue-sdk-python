@@ -39,6 +39,7 @@ class DataflowDeployer(BaseDeployer):
     def __init__(self, octue_configuration_path, service_id=None):
         super().__init__(octue_configuration_path, service_id)
         self.build_trigger_description = f"Build the {self.name!r} service and deploy it to Dataflow."
+        self.success_message = f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}."
 
         # Optional configuration file entries for Dataflow.
         self.temporary_files_location = self._octue_configuration.get(
@@ -46,25 +47,24 @@ class DataflowDeployer(BaseDeployer):
         )
         self.setup_file_path = self._octue_configuration.get("setup_file_path", DEFAULT_SETUP_FILE_PATH)
 
-    def deploy(self, no_cache=False, update=False, skip_build_trigger=False):
+    def deploy(self, no_cache=False, update=False, dataflow_job_only=False):
         """Create a Google Cloud Build configuration from the `octue.yaml file, create a build trigger, run it, and
         deploy the app as a Google Dataflow streaming job.
 
         :param bool no_cache: if `True`, don't use the Docker cache when building the image
         :param bool update: if `True`, allow the build trigger to already exist and just build and deploy a new image based on an updated `octue.yaml` file
-        :return str: the service's UUID
+        :param bool dataflow_job_only: if `True`, skip creating and running the build trigger and just deploy a pre-built image to Dataflow
+        :return None:
         """
-        if skip_build_trigger:
+        if dataflow_job_only:
             self._deploy_streaming_dataflow_job(update=update)
-            return self.service_id
+            print(self.success_message)
 
         self._generate_cloud_build_configuration(no_cache=no_cache)
         self._create_build_trigger(update=update)
         self._run_build_trigger()
         self._deploy_streaming_dataflow_job(update=update)
-
-        print(f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}.")
-        return self.service_id
+        print(self.success_message)
 
     def _generate_cloud_build_configuration(self, no_cache=False):
         """Generate a Google Cloud Build configuration equivalent to a `cloudbuild.yaml` file in memory and assign it
@@ -123,7 +123,7 @@ class DataflowDeployer(BaseDeployer):
                             "dataflow",
                             f"--service-id={self.service_id}",
                             "--update",
-                            "--skip-build-trigger",
+                            "--dataflow-job-only",
                         ],
                     },
                 ],
@@ -140,13 +140,24 @@ class DataflowDeployer(BaseDeployer):
             if update:
                 progress_message.finish_message = "update triggered."
 
-            create_streaming_job(
-                service_name=self.name,
-                project_name=self.project_name,
-                service_id=self.service_id,
-                region=self.region,
-                setup_file_path=self.setup_file_path,
-                image_uri=self.image_uri,
-                temporary_files_location=self.temporary_files_location,
-                update=update,
-            )
+            kwargs = {
+                "service_name": self.name,
+                "project_name": self.project_name,
+                "service_id": self.service_id,
+                "region": self.region,
+                "setup_file_path": self.setup_file_path,
+                "image_uri": self.image_uri,
+                "temporary_files_location": self.temporary_files_location,
+                "update": update,
+            }
+
+            try:
+                create_streaming_job(**kwargs)
+
+            except ValueError as error:
+                if not update:
+                    raise error
+
+                # If attempting to update a job that doesn't yet exist, set `update` to `False`.
+                kwargs["update"] = False
+                create_streaming_job(**kwargs)
