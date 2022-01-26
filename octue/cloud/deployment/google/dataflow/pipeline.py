@@ -2,7 +2,7 @@ import logging
 import os
 
 import apache_beam
-from apache_beam.options.pipeline_options import PipelineOptions
+from apache_beam.options.pipeline_options import WorkerOptions
 from apache_beam.runners.dataflow.dataflow_runner import DataflowRunner
 from apache_beam.runners.dataflow.internal.apiclient import DataflowJobAlreadyExistsError
 
@@ -30,6 +30,8 @@ def create_streaming_job(
     runner="DataflowRunner",
     setup_file_path=DEFAULT_SETUP_FILE_PATH,
     temporary_files_location=DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION,
+    service_account_email=None,
+    worker_machine_type=None,
     update=False,
     extra_options=None,
 ):
@@ -43,6 +45,8 @@ def create_streaming_job(
     :param str runner: the name of an `apache-beam` runner to use to execute the job
     :param str setup_file_path: path to the python `setup.py` file to use for the job
     :param str temporary_files_location: a Google Cloud Storage path to save temporary files from the job at
+    :param str service_account_email: the email of the service account to run the Dataflow VMs as
+    :param str worker_machine_type: the machine type to create Dataflow worker VMs as. See https://cloud.google.com/compute/docs/machine-types for a list of valid options. If not set, the Dataflow service will choose a reasonable default.
     :param bool update: if `True`, update the existing job with the same name
     :param iter|None extra_options: any further arguments in command-line-option format to be passed to Apache Beam as pipeline options
     :raise DeploymentError: if a Dataflow job with the service name already exists
@@ -61,10 +65,16 @@ def create_streaming_job(
         *(extra_options or []),
     ]
 
+    if service_account_email:
+        beam_args.append(f"--service_account_email={service_account_email}")
+
+    if worker_machine_type:
+        beam_args.append(f"--worker_machine_type={worker_machine_type}")
+
     if update:
         beam_args.append("--update")
 
-    options = PipelineOptions(beam_args)
+    options = WorkerOptions(beam_args)
     pipeline = apache_beam.Pipeline(options=options)
 
     service_topic = Topic(name=service_id, service=Service(backend=GCPPubSubBackend(project_name=project_name)))

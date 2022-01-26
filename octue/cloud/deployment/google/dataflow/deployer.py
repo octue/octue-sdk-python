@@ -48,6 +48,8 @@ class DataflowDeployer(BaseDeployer):
             "temporary_files_location", DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION
         )
         self.setup_file_path = self._octue_configuration.get("setup_file_path", DEFAULT_SETUP_FILE_PATH)
+        self.service_account_email = self._octue_configuration.get("service_account_email")
+        self.worker_machine_type = self._octue_configuration.get("worker_machine_type")
 
     def deploy(self, no_cache=False, update=False):
         """Create a Google Cloud Build configuration from the `octue.yaml file, create a build trigger, run it, and
@@ -81,6 +83,8 @@ class DataflowDeployer(BaseDeployer):
                 "setup_file_path": self.setup_file_path,
                 "image_uri": image_uri,
                 "temporary_files_location": self.temporary_files_location,
+                "service_account_email": self.service_account_email,
+                "worker_machine_type": self.worker_machine_type,
                 "update": update,
             }
 
