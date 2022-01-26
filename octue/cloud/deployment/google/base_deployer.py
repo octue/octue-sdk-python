@@ -58,7 +58,7 @@ class BaseDeployer:
         self.build_trigger_description = None
         self.generated_cloud_build_configuration = None
         self.service_id = service_id or str(uuid.uuid4())
-        self.required_environment_variables = [f"SERVICE_ID={self.service_id}", f"SERVICE_NAME={self.name}"]
+        self.required_environment_variables = {"SERVICE_ID": self.service_id, "SERVICE_NAME": self.name}
 
         if image_uri_template:
             self._image_uri_provided = True

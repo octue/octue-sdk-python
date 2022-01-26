@@ -134,7 +134,10 @@ class DataflowDeployer(BaseDeployer):
                         "args": [
                             "build",
                             *cache_option,
-                            *[f"--build-arg={variable}" for variable in self.required_environment_variables],
+                            *[
+                                f"--build-arg={name}={value}"
+                                for name, value in self.required_environment_variables.items()
+                            ],
                             "-t",
                             self.image_uri_template,
                             ".",
