@@ -34,8 +34,8 @@ class CloudRunDeployer(BaseDeployer):
 
     TOTAL_NUMBER_OF_STAGES = 5
 
-    def __init__(self, octue_configuration_path, service_id=None):
-        super().__init__(octue_configuration_path, service_id)
+    def __init__(self, octue_configuration_path, service_id=None, image_uri_template=None):
+        super().__init__(octue_configuration_path, service_id, image_uri_template)
         self.build_trigger_description = f"Build the {self.name!r} service and deploy it to Cloud Run."
 
     def deploy(self, no_cache=False, update=False):
@@ -71,8 +71,11 @@ class CloudRunDeployer(BaseDeployer):
             1,
             self.TOTAL_NUMBER_OF_STAGES,
         ) as progress_message:
+
             if self.provided_cloud_build_configuration_path:
-                progress_message.finish_message = "skipped - using cloudbuild.yaml file from repository."
+                progress_message.finish_message = (
+                    f"skipped - using {self._octue_configuration['cloud_build_configuration_path']!r} from repository."
+                )
                 return
 
             get_dockerfile_step, dockerfile_path = self._create_get_dockerfile_step(DEFAULT_CLOUD_RUN_DOCKERFILE_URL)
@@ -84,7 +87,7 @@ class CloudRunDeployer(BaseDeployer):
 
             environment_variables = ",".join(
                 [f"{variable['name']}={variable['value']}" for variable in self.environment_variables]
-                + self.required_environment_variables
+                + [f"{name}={value}" for name, value in self.required_environment_variables.items()]
             )
 
             self.generated_cloud_build_configuration = {
@@ -93,12 +96,12 @@ class CloudRunDeployer(BaseDeployer):
                     {
                         "id": "Build image",
                         "name": "gcr.io/cloud-builders/docker",
-                        "args": ["build", *cache_option, "-t", self.image_uri, ".", "-f", dockerfile_path],
+                        "args": ["build", *cache_option, "-t", self.image_uri_template, ".", "-f", dockerfile_path],
                     },
                     {
                         "id": "Push image",
                         "name": "gcr.io/cloud-builders/docker",
-                        "args": ["push", self.image_uri],
+                        "args": ["push", self.image_uri_template],
                     },
                     {
                         "id": "Deploy image to Google Cloud Run",
@@ -110,7 +113,7 @@ class CloudRunDeployer(BaseDeployer):
                             "update",
                             self.name,
                             "--platform=managed",
-                            f"--image={self.image_uri}",
+                            f"--image={self.image_uri_template}",
                             f"--region={self.region}",
                             f"--memory={self.memory}",
                             f"--cpu={self.cpus}",
@@ -123,7 +126,7 @@ class CloudRunDeployer(BaseDeployer):
                         ],
                     },
                 ],
-                "images": [self.image_uri],
+                "images": [self.image_uri_template],
             }
 
     def _allow_unauthenticated_messages(self):

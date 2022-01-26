@@ -1,27 +1,32 @@
 steps:
+  - id: Log in to Docker
+    name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args: ['-c', 'docker login --username=$$USERNAME --password=$$PASSWORD']
+    secretEnv: ['USERNAME', 'PASSWORD']
+
   - id: Build
     name: gcr.io/cloud-builders/docker
-    args:
-      - "-c"
-      - >-
-        docker build '-t'
-        '$_GCR_HOSTNAME/$PROJECT_ID/$_REPOSITORY_NAME:$TAG_NAME'
-        . '-f' Dockerfile
     entrypoint: bash
+    args: ['-c', 'docker build -t octue/octue-sdk-python:$TAG_NAME .']
 
   - id: Push
-    name: gcr.io/cloud-builders/docker
-    args:
-      - push
-      - "$_GCR_HOSTNAME/$PROJECT_ID/$_REPOSITORY_NAME:$TAG_NAME"
+    name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args: ['-c', 'docker push octue/octue-sdk-python:$TAG_NAME']
 
 images:
-  - "$_GCR_HOSTNAME/$PROJECT_ID/$_REPOSITORY_NAME:$TAG_NAME"
+  - ${_REPOSITORY_NAME}:$TAG_NAME
 timeout: 2400s
 options:
   substitutionOption: ALLOW_LOOSE
 substitutions:
-  _GCR_HOSTNAME: eu.gcr.io
-  _REPOSITORY_NAME: octue-sdk-python
+  _REPOSITORY_NAME: octue/octue-sdk-python
 tags:
   - octue-sdk-python
+availableSecrets:
+  secretManager:
+   - versionName: projects/octue-amy/secrets/DOCKER_HUB_ACCESS_TOKEN/versions/1
+     env: 'PASSWORD'
+   - versionName: projects/octue-amy/secrets/DOCKER_HUB_USERNAME/versions/1
+     env: 'USERNAME'

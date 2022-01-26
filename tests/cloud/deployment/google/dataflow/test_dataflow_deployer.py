@@ -1,3 +1,4 @@
+import copy
 import tempfile
 from unittest.mock import Mock, patch
 
@@ -8,6 +9,7 @@ from octue.cloud.deployment.google.dataflow.deployer import (
     OCTUE_SDK_PYTHON_IMAGE_URI,
     DataflowDeployer,
 )
+from octue.exceptions import DeploymentError
 from tests.base import BaseTestCase
 
 
@@ -20,13 +22,18 @@ octue_configuration = {
     "branch_pattern": "my-branch",
 }
 
+octue_configuration_with_cloud_build_path = {
+    **copy.copy(octue_configuration),
+    "cloud_build_configuration_path": "cloudbuild.yaml",
+}
+
 SERVICE_ID = "octue.services.0df08f9f-30ad-4db3-8029-ea584b4290b7"
 
 MOCK_HEAD_COMMIT_SHORT_HASH = "3748907"
 
 EXPECTED_IMAGE_NAME = (
     f"eu.gcr.io/{octue_configuration['project_name']}/{octue_configuration['repository_name']}/"
-    f"{octue_configuration['name']}:{MOCK_HEAD_COMMIT_SHORT_HASH}"
+    f"{octue_configuration['name']}:$SHORT_SHA"
 )
 
 EXPECTED_CLOUD_BUILD_CONFIGURATION = {
@@ -64,6 +71,7 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
                 f"--service-id={SERVICE_ID}",
                 "--update",
                 "--dataflow-job-only",
+                f"--image-uri={EXPECTED_IMAGE_NAME}",
             ],
         },
     ],
@@ -91,12 +99,7 @@ class TestDataflowDeployer(BaseTestCase):
         """Test that a correct Google Cloud Build configuration is generated from the given `octue.yaml` file."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(octue_configuration, temporary_directory)
-
-            with patch(
-                "tests.cloud.deployment.google.dataflow.test_dataflow_deployer.DataflowDeployer._get_short_head_commit_hash",
-                return_value=MOCK_HEAD_COMMIT_SHORT_HASH,
-            ):
-                deployer = DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID)
+            deployer = DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID)
 
         deployer._generate_cloud_build_configuration()
         self.assertEqual(deployer.generated_cloud_build_configuration, EXPECTED_CLOUD_BUILD_CONFIGURATION)
@@ -113,7 +116,7 @@ class TestDataflowDeployer(BaseTestCase):
                 with patch(
                     "json.loads",
                     return_value={
-                        "metadata": {"build": {"images": [deployer.image_uri], "id": mock_build_id}},
+                        "metadata": {"build": {"images": [deployer.image_uri_template], "id": mock_build_id}},
                         "status": "SUCCESS",
                     },
                 ):
@@ -157,71 +160,80 @@ class TestDataflowDeployer(BaseTestCase):
                 ],
             )
 
+    def test_error_raised_if_cloudbuild_file_provided_without_image_uri_template(self):
+        """Test that an error is raised if a `cloudbuild.yaml` file is provided without giving the `image_uri_template`
+        parameter.
+        """
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            octue_configuration_path = self._create_octue_configuration_file(
+                octue_configuration_with_cloud_build_path,
+                temporary_directory,
+            )
+
+            with self.assertRaises(DeploymentError):
+                DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID).deploy()
+
     def test_deploy_with_cloud_build_file_provided(self):
         """Test deploying to Dataflow with a `cloudbuild.yaml` path provided in the `octue.yaml` file"""
-        try:
-            octue_configuration["cloud_build_configuration_path"] = "cloudbuild.yaml"
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            octue_configuration_path = self._create_octue_configuration_file(
+                octue_configuration_with_cloud_build_path,
+                temporary_directory,
+            )
 
-            with tempfile.TemporaryDirectory() as temporary_directory:
-                octue_configuration_path = self._create_octue_configuration_file(
-                    octue_configuration, temporary_directory
-                )
-                deployer = DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID)
+            deployer = DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID, image_uri_template="blah")
 
-                with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:
-                    mock_build_id = "my-build-id"
+            with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:
+                mock_build_id = "my-build-id"
 
-                    with patch(
-                        "json.loads",
-                        return_value={
-                            "metadata": {"build": {"images": [deployer.image_uri], "id": mock_build_id}},
-                            "status": "SUCCESS",
-                        },
-                    ):
-                        with patch("octue.cloud.deployment.google.dataflow.pipeline.DataflowRunner"):
-                            deployer.deploy()
+                with patch(
+                    "json.loads",
+                    return_value={
+                        "metadata": {"build": {"images": [deployer.image_uri_template], "id": mock_build_id}},
+                        "status": "SUCCESS",
+                    },
+                ):
+                    with patch("octue.cloud.deployment.google.dataflow.pipeline.DataflowRunner"):
+                        deployer.deploy()
 
-                # Test the build trigger creation request.
-                self.assertEqual(
-                    mock_run.call_args_list[0].args[0],
-                    EXPECTED_BUILD_TRIGGER_CREATION_COMMAND
-                    + [f"--build-config={octue_configuration['cloud_build_configuration_path']}"],
-                )
+            # Test the build trigger creation request.
+            self.assertEqual(
+                mock_run.call_args_list[0].args[0],
+                EXPECTED_BUILD_TRIGGER_CREATION_COMMAND
+                + [f"--build-config={octue_configuration_with_cloud_build_path['cloud_build_configuration_path']}"],
+            )
 
-                # Test the build trigger run request.
-                self.assertEqual(
-                    mock_run.call_args_list[1].args[0],
-                    [
-                        "gcloud",
-                        f"--project={octue_configuration['project_name']}",
-                        "--format=json",
-                        "beta",
-                        "builds",
-                        "triggers",
-                        "run",
-                        octue_configuration["name"],
-                        "--branch=my-branch",
-                    ],
-                )
+            # Test the build trigger run request.
+            self.assertEqual(
+                mock_run.call_args_list[1].args[0],
+                [
+                    "gcloud",
+                    f"--project={octue_configuration_with_cloud_build_path['project_name']}",
+                    "--format=json",
+                    "beta",
+                    "builds",
+                    "triggers",
+                    "run",
+                    octue_configuration_with_cloud_build_path["name"],
+                    "--branch=my-branch",
+                ],
+            )
 
-                # Test waiting for the build trigger run to complete.
-                self.assertEqual(
-                    mock_run.call_args_list[2].args[0],
-                    [
-                        "gcloud",
-                        f'--project={octue_configuration["project_name"]}',
-                        "--format=json",
-                        "builds",
-                        "describe",
-                        mock_build_id,
-                    ],
-                )
+            # Test waiting for the build trigger run to complete.
+            self.assertEqual(
+                mock_run.call_args_list[2].args[0],
+                [
+                    "gcloud",
+                    f'--project={octue_configuration["project_name"]}',
+                    "--format=json",
+                    "builds",
+                    "describe",
+                    mock_build_id,
+                ],
+            )
 
-        finally:
-            del octue_configuration["cloud_build_configuration_path"]
-
-    def test_deploy_with_dataflow_job_only(self):
-        """Test deploying with the `dataflow_job_only` parameter set to `True`."""
+    def test_create_streaming_dataflow_job(self):
+        """Test creating a streaming dataflow job directly."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(octue_configuration, temporary_directory)
             deployer = DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID)
@@ -231,7 +243,7 @@ class TestDataflowDeployer(BaseTestCase):
                 return_value=Mock(path="projects/my-project/topics/my-topic"),
             ):
                 with patch("octue.cloud.deployment.google.dataflow.pipeline.DataflowRunner") as mock_runner:
-                    deployer.deploy(dataflow_job_only=True)
+                    deployer.create_streaming_dataflow_job(image_uri="my-image-uri")
 
             options = mock_runner.mock_calls[1].kwargs["options"].get_all_options()
             self.assertFalse(options["update"])
@@ -241,11 +253,11 @@ class TestDataflowDeployer(BaseTestCase):
             self.assertEqual(options["temp_location"], DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION)
             self.assertEqual(options["region"], octue_configuration["region"])
             self.assertEqual(options["dataflow_service_options"], ["enable_prime"])
-            self.assertEqual(options["sdk_container_image"], deployer.image_uri)
+            self.assertEqual(options["sdk_container_image"], "my-image-uri")
             self.assertEqual(options["setup_file"], DEFAULT_SETUP_FILE_PATH)
 
-    def test_deploy_update_with_dataflow_job_only(self):
-        """Test deploying an update with the `dataflow_job_only` parameter set to `True`."""
+    def test_updating_streaming_dataflow_job(self):
+        """Test updating an existing streaming dataflow job."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(octue_configuration, temporary_directory)
             deployer = DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID)
@@ -255,7 +267,7 @@ class TestDataflowDeployer(BaseTestCase):
                 return_value=Mock(path="projects/my-project/topics/my-topic"),
             ):
                 with patch("octue.cloud.deployment.google.dataflow.pipeline.DataflowRunner") as mock_runner:
-                    deployer.deploy(dataflow_job_only=True, update=True)
+                    deployer.create_streaming_dataflow_job(image_uri="my-image-uri", update=True)
 
             options = mock_runner.mock_calls[1].kwargs["options"].get_all_options()
             self.assertTrue(options["update"])
@@ -265,13 +277,12 @@ class TestDataflowDeployer(BaseTestCase):
             self.assertEqual(options["temp_location"], DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION)
             self.assertEqual(options["region"], octue_configuration["region"])
             self.assertEqual(options["dataflow_service_options"], ["enable_prime"])
-            self.assertEqual(options["sdk_container_image"], deployer.image_uri)
+            self.assertEqual(options["sdk_container_image"], "my-image-uri")
             self.assertEqual(options["setup_file"], DEFAULT_SETUP_FILE_PATH)
 
-    def test_deploy_update_with_dataflow_job_only_when_job_does_not_already_exist(self):
-        """Test that attempting to deploy an update with the `dataflow_job_only` parameter set to `True` when a job
-        with the name of service does not already exist results in the job deployment being retried with `update` set
-        to `False`.
+    def test_create_streaming_dataflow_job_when_job_does_not_already_exist(self):
+        """Test that attempting to deploy an update to a Dataflow job when a job with the name of service does not
+        already exist results in the job deployment being retried with `update` set to `False`.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(octue_configuration, temporary_directory)
@@ -285,7 +296,7 @@ class TestDataflowDeployer(BaseTestCase):
                     "octue.cloud.deployment.google.dataflow.pipeline.DataflowRunner.run_pipeline",
                     side_effect=[ValueError, None],
                 ) as mock_runner:
-                    deployer.deploy(dataflow_job_only=True, update=True)
+                    deployer.create_streaming_dataflow_job(image_uri="my-image-uri", update=True)
 
             # Check that the first attempt was to update the service.
             first_attempt_options = mock_runner.mock_calls[0].kwargs["options"].get_all_options()
