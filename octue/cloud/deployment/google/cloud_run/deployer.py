@@ -38,6 +38,11 @@ class CloudRunDeployer(BaseDeployer):
         super().__init__(octue_configuration_path, service_id, image_uri_template)
         self.build_trigger_description = f"Build the {self.name!r} service and deploy it to Cloud Run."
 
+        # Optional configuration file entries.
+        self.concurrency = self._octue_configuration.get("concurrency", 10)
+        self.memory = self._octue_configuration.get("memory", "128Mi")
+        self.cpus = self._octue_configuration.get("cpus", 1)
+
     def deploy(self, no_cache=False, update=False):
         """Create a Google Cloud Build configuration from the `octue.yaml` file, create a build trigger, and run the
         trigger. This deploys the app as a Google Cloud Run service and creates an Eventarc Pub/Sub run trigger for it.
