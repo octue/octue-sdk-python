@@ -10,7 +10,7 @@ DEFAULT_DATAFLOW_DOCKERFILE_URL = (
     "https://raw.githubusercontent.com/octue/octue-sdk-python/main/octue/cloud/deployment/google/dataflow/Dockerfile"
 )
 
-OCTUE_SDK_PYTHON_IMAGE_URI = "octue/octue-sdk-python:0.9.3-slim"
+OCTUE_SDK_PYTHON_IMAGE_URI = "octue/octue-sdk-python:0.9.4-slim"
 
 
 class DataflowDeployer(BaseDeployer):
@@ -34,7 +34,7 @@ class DataflowDeployer(BaseDeployer):
     :return None:
     """
 
-    TOTAL_NUMBER_OF_STAGES = 4
+    TOTAL_NUMBER_OF_STAGES = 3
 
     def __init__(self, octue_configuration_path, service_id=None, image_uri_template=None):
         super().__init__(octue_configuration_path, service_id, image_uri_template)
@@ -67,7 +67,7 @@ class DataflowDeployer(BaseDeployer):
         :param bool update: if `True`, update the identically-named existing job
         :return None:
         """
-        with ProgressMessage("Deploying streaming Dataflow job", 4, self.TOTAL_NUMBER_OF_STAGES) as progress_message:
+        with ProgressMessage("Deploying streaming Dataflow job", 1, 1) as progress_message:
             if update:
                 progress_message.finish_message = "update triggered."
 
