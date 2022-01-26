@@ -32,6 +32,7 @@ def create_streaming_job(
     temporary_files_location=DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION,
     service_account_email=None,
     worker_machine_type=None,
+    maximum_instances=None,
     update=False,
     extra_options=None,
 ):
@@ -45,8 +46,9 @@ def create_streaming_job(
     :param str runner: the name of an `apache-beam` runner to use to execute the job
     :param str setup_file_path: path to the python `setup.py` file to use for the job
     :param str temporary_files_location: a Google Cloud Storage path to save temporary files from the job at
-    :param str service_account_email: the email of the service account to run the Dataflow VMs as
-    :param str worker_machine_type: the machine type to create Dataflow worker VMs as. See https://cloud.google.com/compute/docs/machine-types for a list of valid options. If not set, the Dataflow service will choose a reasonable default.
+    :param str|None service_account_email: the email of the service account to run the Dataflow VMs as
+    :param str|None worker_machine_type: the machine type to create Dataflow worker VMs as. See https://cloud.google.com/compute/docs/machine-types for a list of valid options. If not set, the Dataflow service will choose a reasonable default.
+    :param int|None maximum_instances: the maximum number of workers to use when executing the Dataflow job
     :param bool update: if `True`, update the existing job with the same name
     :param iter|None extra_options: any further arguments in command-line-option format to be passed to Apache Beam as pipeline options
     :raise DeploymentError: if a Dataflow job with the service name already exists
@@ -70,6 +72,9 @@ def create_streaming_job(
 
     if worker_machine_type:
         beam_args.append(f"--worker_machine_type={worker_machine_type}")
+
+    if maximum_instances:
+        beam_args.append(f"--max_num_workers={maximum_instances}")
 
     if update:
         beam_args.append("--update")

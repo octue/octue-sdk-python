@@ -42,6 +42,7 @@ class CloudRunDeployer(BaseDeployer):
         self.concurrency = self._octue_configuration.get("concurrency", 10)
         self.memory = self._octue_configuration.get("memory", "128Mi")
         self.cpus = self._octue_configuration.get("cpus", 1)
+        self.minimum_instances = self._octue_configuration.get("minimum_instances", 0)
 
     def deploy(self, no_cache=False, update=False):
         """Create a Google Cloud Build configuration from the `octue.yaml` file, create a build trigger, and run the

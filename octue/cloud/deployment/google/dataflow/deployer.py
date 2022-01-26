@@ -85,6 +85,7 @@ class DataflowDeployer(BaseDeployer):
                 "temporary_files_location": self.temporary_files_location,
                 "service_account_email": self.service_account_email,
                 "worker_machine_type": self.worker_machine_type,
+                "maximum_instances": self.maximum_instances,
                 "update": update,
             }
 
