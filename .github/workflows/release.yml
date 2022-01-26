@@ -46,4 +46,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: octue/octue-sdk-python:${{ env.PACKAGE_VERSION }}-slim
+          tags: octue/octue-sdk-python:${{ env.PACKAGE_VERSION }}-slim,octue/octue-sdk-python:${{ env.PACKAGE_VERSION }}-slim:latest
