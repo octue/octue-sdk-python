@@ -87,7 +87,7 @@ class CloudRunDeployer(BaseDeployer):
 
             environment_variables = ",".join(
                 [f"{variable['name']}={variable['value']}" for variable in self.environment_variables]
-                + self.required_environment_variables
+                + [f"{name}={value}" for name, value in self.required_environment_variables.items()]
             )
 
             self.generated_cloud_build_configuration = {
