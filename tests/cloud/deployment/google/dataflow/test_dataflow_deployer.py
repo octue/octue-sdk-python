@@ -2,6 +2,8 @@ import copy
 import tempfile
 from unittest.mock import Mock, patch
 
+from apache_beam.runners.dataflow.internal.apiclient import DataflowJobAlreadyExistsError
+
 from octue.cloud.deployment.google.dataflow.deployer import (
     DEFAULT_DATAFLOW_DOCKERFILE_URL,
     DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION,
@@ -20,6 +22,9 @@ octue_configuration = {
     "project_name": "test-project",
     "region": "europe-west2",
     "branch_pattern": "my-branch",
+    "service_account_email": "account@domain.com",
+    "maximum_instances": 30,
+    "worker_machine_type": "e2-standard-2",
 }
 
 octue_configuration_with_cloud_build_path = {
@@ -305,3 +310,20 @@ class TestDataflowDeployer(BaseTestCase):
             # Check that the second attempt was to create the service.
             second_attempt_options = mock_runner.mock_calls[1].kwargs["options"].get_all_options()
             self.assertFalse(second_attempt_options["update"])
+
+    def test_deployment_error_raised_if_dataflow_job_already_exists(self):
+        """Test that a deployment error is raised if a Dataflow job already exists with the same name as the service."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            octue_configuration_path = self._create_octue_configuration_file(octue_configuration, temporary_directory)
+            deployer = DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID)
+
+            with patch(
+                "octue.cloud.deployment.google.dataflow.pipeline.Topic",
+                return_value=Mock(path="projects/my-project/topics/my-topic"),
+            ):
+                with patch(
+                    "octue.cloud.deployment.google.dataflow.pipeline.DataflowRunner.run_pipeline",
+                    side_effect=DataflowJobAlreadyExistsError(),
+                ):
+                    with self.assertRaises(DeploymentError):
+                        deployer.create_streaming_dataflow_job(image_uri="my-image-uri", update=True)
