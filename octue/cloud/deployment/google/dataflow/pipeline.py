@@ -27,7 +27,6 @@ def create_streaming_job(
     project_name,
     region,
     image_uri,
-    runner="DataflowRunner",
     setup_file_path=DEFAULT_SETUP_FILE_PATH,
     temporary_files_location=DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION,
     service_account_email=None,
@@ -43,7 +42,6 @@ def create_streaming_job(
     :param str project_name: the name of the project to deploy the job to
     :param str region: the region to deploy the job to
     :param str image_uri: the URI of the `apache-beam`-based Docker image to use for the job
-    :param str runner: the name of an `apache-beam` runner to use to execute the job
     :param str setup_file_path: path to the python `setup.py` file to use for the job
     :param str temporary_files_location: a Google Cloud Storage path to save temporary files from the job at
     :param str|None service_account_email: the email of the service account to run the Dataflow VMs as
@@ -59,7 +57,6 @@ def create_streaming_job(
         "region": region,
         "temp_location": temporary_files_location,
         "job_name": service_name,
-        "runner": runner,
         "sdk_container_image": image_uri,
         "setup_file": os.path.abspath(setup_file_path),
         "update": update,
