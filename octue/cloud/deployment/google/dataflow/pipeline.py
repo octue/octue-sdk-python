@@ -50,37 +50,35 @@ def create_streaming_job(
     :param str|None worker_machine_type: the machine type to create Dataflow worker VMs as. See https://cloud.google.com/compute/docs/machine-types for a list of valid options. If not set, the Dataflow service will choose a reasonable default.
     :param int|None maximum_instances: the maximum number of workers to use when executing the Dataflow job
     :param bool update: if `True`, update the existing job with the same name
-    :param iter|None extra_options: any further arguments in command-line-option format to be passed to Apache Beam as pipeline options
+    :param dict|None extra_options: any further arguments to be passed to Apache Beam as pipeline options
     :raise DeploymentError: if a Dataflow job with the service name already exists
     :return None:
     """
-    beam_args = [
-        f"--project={project_name}",
-        f"--region={region}",
-        f"--temp_location={temporary_files_location}",
-        f"--job_name={service_name}",
-        f"--runner={runner}",
-        f"--sdk_container_image={image_uri}",
-        f"--setup_file={os.path.abspath(setup_file_path)}",
-        "--dataflow_service_options=enable_prime",
-        "--streaming",
-        *(extra_options or []),
-    ]
+    pipeline_options = {
+        "project": project_name,
+        "region": region,
+        "temp_location": temporary_files_location,
+        "job_name": service_name,
+        "runner": runner,
+        "sdk_container_image": image_uri,
+        "setup_file": os.path.abspath(setup_file_path),
+        "update": update,
+        "dataflow_service_options": ["enable_prime"],
+        "streaming": True,
+        **(extra_options or {}),
+    }
 
     if service_account_email:
-        beam_args.append(f"--service_account_email={service_account_email}")
+        pipeline_options["service_account_email"] = service_account_email
 
     if worker_machine_type:
-        beam_args.append(f"--worker_machine_type={worker_machine_type}")
+        pipeline_options["worker_machine_type"] = worker_machine_type
 
     if maximum_instances:
-        beam_args.append(f"--max_num_workers={maximum_instances}")
+        pipeline_options["max_num_workers"] = maximum_instances
 
-    if update:
-        beam_args.append("--update")
-
-    options = WorkerOptions(beam_args)
-    pipeline = apache_beam.Pipeline(options=options)
+    pipeline_options = WorkerOptions.from_dictionary(pipeline_options)
+    pipeline = apache_beam.Pipeline(options=pipeline_options)
 
     service_topic = Topic(name=service_id, service=Service(backend=GCPPubSubBackend(project_name=project_name)))
     service_topic.create(allow_existing=True)
@@ -92,6 +90,6 @@ def create_streaming_job(
     )
 
     try:
-        DataflowRunner().run_pipeline(pipeline, options=options)
+        DataflowRunner().run_pipeline(pipeline, options=pipeline_options)
     except DataflowJobAlreadyExistsError:
         raise DeploymentError(f"A Dataflow job with name {service_name!r} already exists.") from None
