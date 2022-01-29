@@ -17,7 +17,7 @@ with open("LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.9.5",
+    version="0.9.6",
     py_modules=["cli"],
     install_requires=[
         "apache-beam[gcp]==2.35.0",

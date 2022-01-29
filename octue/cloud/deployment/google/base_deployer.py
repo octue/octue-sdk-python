@@ -72,12 +72,8 @@ class BaseDeployer:
         # Optional configuration file entries.
         self.dockerfile_path = self._octue_configuration.get("dockerfile_path")
         self.provided_cloud_build_configuration_path = self._octue_configuration.get("cloud_build_configuration_path")
-        self.minimum_instances = self._octue_configuration.get("minimum_instances", 0)
         self.maximum_instances = self._octue_configuration.get("maximum_instances", 10)
-        self.concurrency = self._octue_configuration.get("concurrency", 10)
         self.branch_pattern = self._octue_configuration.get("branch_pattern", "^main$")
-        self.memory = self._octue_configuration.get("memory", "128Mi")
-        self.cpus = self._octue_configuration.get("cpus", 1)
         self.environment_variables = self._octue_configuration.get("environment_variables", [])
 
     @abstractmethod

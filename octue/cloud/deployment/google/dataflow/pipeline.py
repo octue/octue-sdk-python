@@ -27,9 +27,11 @@ def create_streaming_job(
     project_name,
     region,
     image_uri,
-    runner="DataflowRunner",
     setup_file_path=DEFAULT_SETUP_FILE_PATH,
     temporary_files_location=DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION,
+    service_account_email=None,
+    worker_machine_type=None,
+    maximum_instances=None,
     update=False,
     extra_options=None,
 ):
@@ -40,32 +42,40 @@ def create_streaming_job(
     :param str project_name: the name of the project to deploy the job to
     :param str region: the region to deploy the job to
     :param str image_uri: the URI of the `apache-beam`-based Docker image to use for the job
-    :param str runner: the name of an `apache-beam` runner to use to execute the job
     :param str setup_file_path: path to the python `setup.py` file to use for the job
     :param str temporary_files_location: a Google Cloud Storage path to save temporary files from the job at
+    :param str|None service_account_email: the email of the service account to run the Dataflow VMs as
+    :param str|None worker_machine_type: the machine type to create Dataflow worker VMs as. See https://cloud.google.com/compute/docs/machine-types for a list of valid options. If not set, the Dataflow service will choose a reasonable default.
+    :param int|None maximum_instances: the maximum number of workers to use when executing the Dataflow job
     :param bool update: if `True`, update the existing job with the same name
-    :param iter|None extra_options: any further arguments in command-line-option format to be passed to Apache Beam as pipeline options
+    :param dict|None extra_options: any further arguments to be passed to Apache Beam as pipeline options
     :raise DeploymentError: if a Dataflow job with the service name already exists
     :return None:
     """
-    beam_args = [
-        f"--project={project_name}",
-        f"--region={region}",
-        f"--temp_location={temporary_files_location}",
-        f"--job_name={service_name}",
-        f"--runner={runner}",
-        f"--sdk_container_image={image_uri}",
-        f"--setup_file={os.path.abspath(setup_file_path)}",
-        "--dataflow_service_options=enable_prime",
-        "--streaming",
-        *(extra_options or []),
-    ]
+    pipeline_options = {
+        "project": project_name,
+        "region": region,
+        "temp_location": temporary_files_location,
+        "job_name": service_name,
+        "sdk_container_image": image_uri,
+        "setup_file": os.path.abspath(setup_file_path),
+        "update": update,
+        "dataflow_service_options": ["enable_prime"],
+        "streaming": True,
+        **(extra_options or {}),
+    }
 
-    if update:
-        beam_args.append("--update")
+    if service_account_email:
+        pipeline_options["service_account_email"] = service_account_email
 
-    options = PipelineOptions(beam_args)
-    pipeline = apache_beam.Pipeline(options=options)
+    if worker_machine_type:
+        pipeline_options["worker_machine_type"] = worker_machine_type
+
+    if maximum_instances:
+        pipeline_options["max_num_workers"] = maximum_instances
+
+    pipeline_options = PipelineOptions.from_dictionary(pipeline_options)
+    pipeline = apache_beam.Pipeline(options=pipeline_options)
 
     service_topic = Topic(name=service_id, service=Service(backend=GCPPubSubBackend(project_name=project_name)))
     service_topic.create(allow_existing=True)
@@ -77,6 +87,6 @@ def create_streaming_job(
     )
 
     try:
-        DataflowRunner().run_pipeline(pipeline, options=options)
+        DataflowRunner().run_pipeline(pipeline, options=pipeline_options)
     except DataflowJobAlreadyExistsError:
         raise DeploymentError(f"A Dataflow job with name {service_name!r} already exists.") from None

@@ -1,3 +1,5 @@
+import pkg_resources
+
 from octue.cloud.deployment.google.base_deployer import BaseDeployer, ProgressMessage
 from octue.cloud.deployment.google.dataflow.pipeline import (
     DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION,
@@ -10,7 +12,7 @@ DEFAULT_DATAFLOW_DOCKERFILE_URL = (
     "https://raw.githubusercontent.com/octue/octue-sdk-python/main/octue/cloud/deployment/google/dataflow/Dockerfile"
 )
 
-OCTUE_SDK_PYTHON_IMAGE_URI = "octue/octue-sdk-python:0.9.4-slim"
+OCTUE_SDK_PYTHON_IMAGE_URI = f"octue/octue-sdk-python:{pkg_resources.get_distribution('octue').version}-slim"
 
 
 class DataflowDeployer(BaseDeployer):
@@ -46,6 +48,8 @@ class DataflowDeployer(BaseDeployer):
             "temporary_files_location", DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION
         )
         self.setup_file_path = self._octue_configuration.get("setup_file_path", DEFAULT_SETUP_FILE_PATH)
+        self.service_account_email = self._octue_configuration.get("service_account_email")
+        self.worker_machine_type = self._octue_configuration.get("worker_machine_type")
 
     def deploy(self, no_cache=False, update=False):
         """Create a Google Cloud Build configuration from the `octue.yaml file, create a build trigger, run it, and
@@ -79,6 +83,9 @@ class DataflowDeployer(BaseDeployer):
                 "setup_file_path": self.setup_file_path,
                 "image_uri": image_uri,
                 "temporary_files_location": self.temporary_files_location,
+                "service_account_email": self.service_account_email,
+                "worker_machine_type": self.worker_machine_type,
+                "maximum_instances": self.maximum_instances,
                 "update": update,
             }
 
