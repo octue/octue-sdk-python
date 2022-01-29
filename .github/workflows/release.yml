@@ -1,6 +1,9 @@
-name: Release the package on merge into main
+# This workflow tests and releases a new version of the package, then publishes it to PyPi and the
+# octue/octue-sdk-python Docker Hub repository.
 
-# Only trigger when a pull request into main branch is closed.
+name: Release the package
+
+# Only trigger when a pull request into main branch is merged.
 on:
   pull_request:
     types: [closed]
@@ -8,10 +11,39 @@ on:
       - main
 
 jobs:
+  run-tests:
+    if: "github.event.pull_request.merged == true"
+    runs-on: ${{ matrix.os }}
+    env:
+      USING_COVERAGE: '3.8'
+    strategy:
+      matrix:
+        python: [ 3.8 ]
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install tox
+        run: pip install tox
+      - name: Run tests
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          TEST_PROJECT_NAME: ${{ secrets.TEST_PROJECT_NAME }}
+        run: tox -e py
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          file: coverage.xml
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   release:
-    # This job will only run if the PR has been merged (and not closed without merging).
-    if: "github.event.pull_request.merged == true && !contains(github.event.pull_request.head.message, 'skipci')"
     runs-on: ubuntu-latest
+    needs: run-tests
     steps:
     - uses: actions/checkout@v2
     - name: Get package version
@@ -27,9 +59,30 @@ jobs:
         draft: false
         prerelease: false
 
-  docker:
-    needs: release
+  publish:
     runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Make package
+        run: |
+          python3 -m pip install --upgrade setuptools wheel
+          python3 setup.py sdist bdist_wheel
+      - name: Publish latest package to PyPI
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}
+          verbose: true
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: release
     timeout-minutes: 300
     steps:
       - name: Checkout
