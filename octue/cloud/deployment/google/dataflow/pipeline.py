@@ -2,7 +2,7 @@ import logging
 import os
 
 import apache_beam
-from apache_beam.options.pipeline_options import WorkerOptions
+from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.runners.dataflow.dataflow_runner import DataflowRunner
 from apache_beam.runners.dataflow.internal.apiclient import DataflowJobAlreadyExistsError
 
@@ -74,7 +74,7 @@ def create_streaming_job(
     if maximum_instances:
         pipeline_options["max_num_workers"] = maximum_instances
 
-    pipeline_options = WorkerOptions.from_dictionary(pipeline_options)
+    pipeline_options = PipelineOptions.from_dictionary(pipeline_options)
     pipeline = apache_beam.Pipeline(options=pipeline_options)
 
     service_topic = Topic(name=service_id, service=Service(backend=GCPPubSubBackend(project_name=project_name)))
