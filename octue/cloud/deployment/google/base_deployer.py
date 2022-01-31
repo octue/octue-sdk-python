@@ -60,11 +60,6 @@ class BaseDeployer:
         self.service_id = service_id or str(uuid.uuid4())
         self.required_environment_variables = {"SERVICE_ID": self.service_id, "SERVICE_NAME": self.name}
 
-        if image_uri_template:
-            self._image_uri_provided = True
-        else:
-            self._image_uri_provided = False
-
         self.image_uri_template = image_uri_template or (
             f"{DOCKER_REGISTRY_URL}/{self.project_name}/{self.repository_name}/{self.name}:$SHORT_SHA"
         )
@@ -127,12 +122,6 @@ class BaseDeployer:
             with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
 
                 if self.provided_cloud_build_configuration_path:
-                    if not self._image_uri_provided:
-                        raise DeploymentError(
-                            "If providing a Cloud Build configuration file, the image URI template must also be "
-                            "provided."
-                        )
-
                     configuration_option = [f"--build-config={self.provided_cloud_build_configuration_path}"]
 
                 else:

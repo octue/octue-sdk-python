@@ -276,14 +276,13 @@ def cloud_run(octue_configuration_path, service_id, update, no_cache):
     is_flag=True,
     help="If provided, skip creating and running the build trigger and just deploy a pre-built image to Dataflow",
 )
-@click.option("--image-uri-template", type=str, default=None, help="The `cloudbuild.yaml` template for the image URI.")
 @click.option("--image-uri", type=str, default=None, help="The actual image URI to use when creating the Dataflow job.")
-def dataflow(octue_configuration_path, service_id, no_cache, update, dataflow_job_only, image_uri_template, image_uri):
+def dataflow(octue_configuration_path, service_id, no_cache, update, dataflow_job_only, image_uri):
     """Deploy an app as a Google Dataflow streaming job."""
     if update and not service_id:
         raise DeploymentError("If updating a service, you must also provide the `--service-id` argument.")
 
-    deployer = DataflowDeployer(octue_configuration_path, service_id=service_id, image_uri_template=image_uri_template)
+    deployer = DataflowDeployer(octue_configuration_path, service_id=service_id)
 
     if dataflow_job_only:
         deployer.create_streaming_dataflow_job(image_uri=image_uri, update=update)
