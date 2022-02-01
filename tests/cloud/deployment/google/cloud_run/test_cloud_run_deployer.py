@@ -27,7 +27,7 @@ GET_SUBSCRIPTIONS_METHOD_PATH = "octue.cloud.deployment.google.cloud_run.deploye
 
 SERVICE_ID = "octue.services.0df08f9f-30ad-4db3-8029-ea584b4290b7"
 
-EXPECTED_IMAGE_NAME = f"eu.gcr.io/{service['project_name']}/{service['repository_name']}/" f"{service['name']}"
+EXPECTED_IMAGE_NAME = f"eu.gcr.io/{service['project_name']}/{service['repository_name']}/{service['name']}:$SHORT_SHA"
 
 EXPECTED_CLOUD_BUILD_CONFIGURATION = {
     "steps": [
@@ -40,13 +40,10 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
             "id": "Build image",
             "name": "gcr.io/cloud-builders/docker",
             "args": [
-                "build",
-                "-t",
-                EXPECTED_IMAGE_NAME,
-                ".",
-                "-f",
-                "Dockerfile",
+                "-c",
+                f"docker build '-t' {EXPECTED_IMAGE_NAME!r} . '-f' Dockerfile",
             ],
+            "entrypoint": "bash",
         },
         {
             "id": "Push image",
@@ -103,14 +100,7 @@ class TestCloudRunDeployer(BaseTestCase):
             deployer = CloudRunDeployer(octue_configuration_path, service_id=SERVICE_ID)
             deployer._generate_cloud_build_configuration()
 
-        # Remove the commit hash from the image name as it will change for each commit made.
-        generated_config = deployer.generated_cloud_build_configuration
-        generated_config["steps"][1]["args"][2] = generated_config["steps"][1]["args"][2].split(":")[0]
-        generated_config["steps"][2]["args"][1] = generated_config["steps"][2]["args"][1].split(":")[0]
-        generated_config["steps"][3]["args"][5] = generated_config["steps"][3]["args"][5].split(":")[0]
-        generated_config["images"][0] = generated_config["images"][0].split(":")[0]
-
-        self.assertEqual(generated_config, EXPECTED_CLOUD_BUILD_CONFIGURATION)
+        self.assertEqual(deployer.generated_cloud_build_configuration, EXPECTED_CLOUD_BUILD_CONFIGURATION)
 
     def test_generate_cloud_build_configuration_with_custom_dockerfile(self):
         """Test that a correct Google Cloud Build configuration is generated from the given `octue.yaml` file when a
@@ -126,20 +116,16 @@ class TestCloudRunDeployer(BaseTestCase):
                 deployer = CloudRunDeployer(octue_configuration_path, service_id=SERVICE_ID)
                 deployer._generate_cloud_build_configuration()
 
-            # Remove the commit hash from the image name as it will change for each commit made.
-            generated_config = deployer.generated_cloud_build_configuration
-            generated_config["steps"][0]["args"][2] = generated_config["steps"][0]["args"][2].split(":")[0]
-            generated_config["steps"][1]["args"][1] = generated_config["steps"][1]["args"][1].split(":")[0]
-            generated_config["steps"][2]["args"][5] = generated_config["steps"][2]["args"][5].split(":")[0]
-            generated_config["images"][0] = generated_config["images"][0].split(":")[0]
-
             # Expect the extra "Get default Octue Dockerfile" step to be absent and the given Dockerfile path to be
             # provided in the first step.
             expected_cloud_build_configuration = copy.deepcopy(EXPECTED_CLOUD_BUILD_CONFIGURATION)
             expected_cloud_build_configuration["steps"] = expected_cloud_build_configuration["steps"][1:]
-            expected_cloud_build_configuration["steps"][0]["args"][5] = service["dockerfile_path"]
 
-            self.assertEqual(generated_config, expected_cloud_build_configuration)
+            expected_cloud_build_configuration["steps"][0]["args"][
+                1
+            ] = f"docker build '-t' '{EXPECTED_IMAGE_NAME}' . '-f' {service['dockerfile_path']}"
+
+            self.assertEqual(deployer.generated_cloud_build_configuration, expected_cloud_build_configuration)
 
         finally:
             del service["dockerfile_path"]
