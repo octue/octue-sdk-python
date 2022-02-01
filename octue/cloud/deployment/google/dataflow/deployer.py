@@ -132,25 +132,37 @@ class DataflowDeployer(BaseDeployer):
             else:
                 cache_option = []
 
+            required_environment_variable_build_args = [
+                f"--build-arg={name}={value}" for name, value in self.required_environment_variables.items()
+            ]
+
+            available_secrets_option, build_secrets = self._create_build_secrets_sections()
+
             self.generated_cloud_build_configuration = {
                 "steps": [
                     *get_dockerfile_step,
                     {
                         "id": "Build image",
                         "name": "gcr.io/cloud-builders/docker",
+                        "entrypoint": "bash",
                         "args": [
-                            "build",
-                            *cache_option,
-                            *[
-                                f"--build-arg={name}={value}"
-                                for name, value in self.required_environment_variables.items()
-                            ],
-                            "-t",
-                            self.image_uri_template,
-                            ".",
-                            "-f",
-                            dockerfile_path,
+                            "-c",
+                            " ".join(
+                                [
+                                    "docker",
+                                    "build",
+                                    *cache_option,
+                                    "'-t'",
+                                    f"{self.image_uri_template!r}",
+                                    *build_secrets["build_args"],
+                                    *required_environment_variable_build_args,
+                                    ".",
+                                    "'-f'",
+                                    dockerfile_path,
+                                ]
+                            ),
                         ],
+                        **build_secrets["secret_env"],
                     },
                     {
                         "id": "Push image",
@@ -172,4 +184,5 @@ class DataflowDeployer(BaseDeployer):
                     },
                 ],
                 "images": [self.image_uri_template],
+                **available_secrets_option,
             }

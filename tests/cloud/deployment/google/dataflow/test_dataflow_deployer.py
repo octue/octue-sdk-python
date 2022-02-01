@@ -55,14 +55,13 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
         {
             "id": "Build image",
             "name": "gcr.io/cloud-builders/docker",
+            "entrypoint": "bash",
             "args": [
-                "build",
-                *[f"--build-arg=SERVICE_ID={SERVICE_ID}", f"--build-arg=SERVICE_NAME={service['name']}"],
-                "-t",
-                EXPECTED_IMAGE_NAME,
-                ".",
-                "-f",
-                "Dockerfile",
+                "-c",
+                (
+                    f"docker build '-t' {EXPECTED_IMAGE_NAME!r} --build-arg=SERVICE_ID={SERVICE_ID} "
+                    f"--build-arg=SERVICE_NAME={service['name']} . '-f' Dockerfile"
+                ),
             ],
         },
         {
