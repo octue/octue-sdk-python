@@ -70,6 +70,7 @@ class BaseDeployer:
         self.maximum_instances = self._octue_configuration.get("maximum_instances", 10)
         self.branch_pattern = self._octue_configuration.get("branch_pattern", "^main$")
         self.environment_variables = self._octue_configuration.get("environment_variables", [])
+        self.secrets = self._octue_configuration.get("secrets", {})
 
     @abstractmethod
     def deploy(self, no_cache=False, update=False):
@@ -110,6 +111,40 @@ class BaseDeployer:
         ]
 
         return get_dockerfile_step, "Dockerfile"
+
+    def _create_build_secrets_sections(self):
+        """Create the build secrets options for the Cloud Build configuration so secrets from the Google Cloud Secrets
+        Manager can be used during the build step of the Cloud Build process. This provides the `availableSecrets`
+        section for the overall configuration as well as Docker build args and the `secretEnv` section for the build
+        step.
+
+        :return (dict, dict): the `availableSecrets` section and the build secrets, the latter containing the Docker build args and `secretEnv` section for the Cloud Build build step
+        """
+        available_secrets_option = {}
+        build_secrets = {"build_args": "", "secret_env": {}}
+
+        if not self.secrets.get("build"):
+            return available_secrets_option, build_secrets
+
+        available_secrets_option = {
+            "availableSecrets": {
+                "secretManager": [
+                    {
+                        "versionName": f"projects/{self.project_name}/secrets/{secret_name}/versions/latest",
+                        "env": secret_name,
+                    }
+                    for secret_name in self.secrets["build"]
+                ]
+            }
+        }
+
+        build_secrets["secret_env"] = {"secretEnv": self.secrets["build"]}
+
+        build_secrets["build_args"] = " ".join(
+            [f"--build-arg={secret_name}=$${secret_name}" for secret_name in self.secrets["build"]]
+        )
+
+        return available_secrets_option, build_secrets
 
     def _create_build_trigger(self, update=False):
         """Create the build trigger in Google Cloud Build using the given `cloudbuild.yaml` file.

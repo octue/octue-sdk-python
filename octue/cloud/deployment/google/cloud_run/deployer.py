@@ -87,14 +87,16 @@ class CloudRunDeployer(BaseDeployer):
             get_dockerfile_step, dockerfile_path = self._create_get_dockerfile_step(DEFAULT_CLOUD_RUN_DOCKERFILE_URL)
 
             if no_cache:
-                cache_option = ["--no-cache"]
+                cache_option = "--no-cache"
             else:
-                cache_option = []
+                cache_option = ""
 
             environment_variables = ",".join(
                 [f"{variable['name']}={variable['value']}" for variable in self.environment_variables]
                 + [f"{name}={value}" for name, value in self.required_environment_variables.items()]
             )
+
+            available_secrets_option, build_secrets = self._create_build_secrets_sections()
 
             self.generated_cloud_build_configuration = {
                 "steps": [
@@ -102,7 +104,15 @@ class CloudRunDeployer(BaseDeployer):
                     {
                         "id": "Build image",
                         "name": "gcr.io/cloud-builders/docker",
-                        "args": ["build", *cache_option, "-t", self.image_uri_template, ".", "-f", dockerfile_path],
+                        "entrypoint": "bash",
+                        "args": [
+                            "-c",
+                            (
+                                f"docker build {cache_option} '-t' '{self.image_uri_template}' "
+                                f"{build_secrets['build_args']} . '-f' {dockerfile_path}"
+                            ),
+                        ],
+                        **build_secrets["secret_env"],
                     },
                     {
                         "id": "Push image",
@@ -133,6 +143,7 @@ class CloudRunDeployer(BaseDeployer):
                     },
                 ],
                 "images": [self.image_uri_template],
+                **available_secrets_option,
             }
 
     def _allow_unauthenticated_messages(self):
