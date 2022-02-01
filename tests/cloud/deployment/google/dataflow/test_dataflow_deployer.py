@@ -39,8 +39,6 @@ octue_configuration_with_cloud_build_path = {
 
 SERVICE_ID = "octue.services.0df08f9f-30ad-4db3-8029-ea584b4290b7"
 
-MOCK_HEAD_COMMIT_SHORT_HASH = "3748907"
-
 EXPECTED_IMAGE_NAME = (
     f"eu.gcr.io/{service['project_name']}/{service['repository_name']}/" f"{service['name']}:$SHORT_SHA"
 )
