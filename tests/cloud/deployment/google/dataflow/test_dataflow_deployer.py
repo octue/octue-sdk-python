@@ -16,29 +16,31 @@ from tests.base import BaseTestCase
 
 
 octue_configuration = {
-    "name": "test-service",
-    "repository_name": "test-repository",
-    "repository_owner": "octue",
-    "project_name": "test-project",
-    "region": "europe-west2",
-    "branch_pattern": "my-branch",
-    "service_account_email": "account@domain.com",
-    "maximum_instances": 30,
-    "worker_machine_type": "e2-standard-2",
+    "services": [
+        {
+            "name": "test-service",
+            "repository_name": "test-repository",
+            "repository_owner": "octue",
+            "project_name": "test-project",
+            "region": "europe-west2",
+            "branch_pattern": "my-branch",
+            "service_account_email": "account@domain.com",
+            "maximum_instances": 30,
+            "machine_type": "e2-standard-2",
+        }
+    ]
 }
 
+service = octue_configuration["services"][0]
+
 octue_configuration_with_cloud_build_path = {
-    **copy.copy(octue_configuration),
-    "cloud_build_configuration_path": "cloudbuild.yaml",
+    "services": [{**copy.copy(service), "cloud_build_configuration_path": "cloudbuild.yaml"}]
 }
 
 SERVICE_ID = "octue.services.0df08f9f-30ad-4db3-8029-ea584b4290b7"
 
-MOCK_HEAD_COMMIT_SHORT_HASH = "3748907"
-
 EXPECTED_IMAGE_NAME = (
-    f"eu.gcr.io/{octue_configuration['project_name']}/{octue_configuration['repository_name']}/"
-    f"{octue_configuration['name']}:$SHORT_SHA"
+    f"eu.gcr.io/{service['project_name']}/{service['repository_name']}/" f"{service['name']}:$SHORT_SHA"
 )
 
 EXPECTED_CLOUD_BUILD_CONFIGURATION = {
@@ -51,14 +53,13 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
         {
             "id": "Build image",
             "name": "gcr.io/cloud-builders/docker",
+            "entrypoint": "bash",
             "args": [
-                "build",
-                *[f"--build-arg=SERVICE_ID={SERVICE_ID}", f"--build-arg=SERVICE_NAME={octue_configuration['name']}"],
-                "-t",
-                EXPECTED_IMAGE_NAME,
-                ".",
-                "-f",
-                "Dockerfile",
+                "-c",
+                (
+                    f"docker build '-t' {EXPECTED_IMAGE_NAME!r} --build-arg=SERVICE_ID={SERVICE_ID} "
+                    f"--build-arg=SERVICE_NAME={service['name']} . '-f' Dockerfile"
+                ),
             ],
         },
         {
@@ -85,17 +86,17 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
 
 EXPECTED_BUILD_TRIGGER_CREATION_COMMAND = [
     "gcloud",
-    f"--project={octue_configuration['project_name']}",
+    f"--project={service['project_name']}",
     "beta",
     "builds",
     "triggers",
     "create",
     "github",
-    f"--name={octue_configuration['name']}",
-    f"--repo-name={octue_configuration['repository_name']}",
-    f"--repo-owner={octue_configuration['repository_owner']}",
-    f"--description=Build the {octue_configuration['name']!r} service and deploy it to Dataflow.",
-    f"--branch-pattern={octue_configuration['branch_pattern']}",
+    f"--name={service['name']}",
+    f"--repo-name={service['repository_name']}",
+    f"--repo-owner={service['repository_owner']}",
+    f"--description=Build the {service['name']!r} service and deploy it to Dataflow.",
+    f"--branch-pattern={service['branch_pattern']}",
 ]
 
 
@@ -141,13 +142,13 @@ class TestDataflowDeployer(BaseTestCase):
                 mock_run.call_args_list[1].args[0],
                 [
                     "gcloud",
-                    f"--project={octue_configuration['project_name']}",
+                    f"--project={service['project_name']}",
                     "--format=json",
                     "beta",
                     "builds",
                     "triggers",
                     "run",
-                    octue_configuration["name"],
+                    service["name"],
                     "--branch=my-branch",
                 ],
             )
@@ -157,26 +158,13 @@ class TestDataflowDeployer(BaseTestCase):
                 mock_run.call_args_list[2].args[0],
                 [
                     "gcloud",
-                    f'--project={octue_configuration["project_name"]}',
+                    f'--project={service["project_name"]}',
                     "--format=json",
                     "builds",
                     "describe",
                     mock_build_id,
                 ],
             )
-
-    def test_error_raised_if_cloudbuild_file_provided_without_image_uri_template(self):
-        """Test that an error is raised if a `cloudbuild.yaml` file is provided without giving the `image_uri_template`
-        parameter.
-        """
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            octue_configuration_path = self._create_octue_configuration_file(
-                octue_configuration_with_cloud_build_path,
-                temporary_directory,
-            )
-
-            with self.assertRaises(DeploymentError):
-                DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID).deploy()
 
     def test_deploy_with_cloud_build_file_provided(self):
         """Test deploying to Dataflow with a `cloudbuild.yaml` path provided in the `octue.yaml` file"""
@@ -205,7 +193,9 @@ class TestDataflowDeployer(BaseTestCase):
             self.assertEqual(
                 mock_run.call_args_list[0].args[0],
                 EXPECTED_BUILD_TRIGGER_CREATION_COMMAND
-                + [f"--build-config={octue_configuration_with_cloud_build_path['cloud_build_configuration_path']}"],
+                + [
+                    f"--build-config={octue_configuration_with_cloud_build_path['services'][0]['cloud_build_configuration_path']}"
+                ],
             )
 
             # Test the build trigger run request.
@@ -213,13 +203,13 @@ class TestDataflowDeployer(BaseTestCase):
                 mock_run.call_args_list[1].args[0],
                 [
                     "gcloud",
-                    f"--project={octue_configuration_with_cloud_build_path['project_name']}",
+                    f"--project={octue_configuration_with_cloud_build_path['services'][0]['project_name']}",
                     "--format=json",
                     "beta",
                     "builds",
                     "triggers",
                     "run",
-                    octue_configuration_with_cloud_build_path["name"],
+                    octue_configuration_with_cloud_build_path["services"][0]["name"],
                     "--branch=my-branch",
                 ],
             )
@@ -229,7 +219,7 @@ class TestDataflowDeployer(BaseTestCase):
                 mock_run.call_args_list[2].args[0],
                 [
                     "gcloud",
-                    f'--project={octue_configuration["project_name"]}',
+                    f'--project={service["project_name"]}',
                     "--format=json",
                     "builds",
                     "describe",
@@ -253,10 +243,10 @@ class TestDataflowDeployer(BaseTestCase):
             options = mock_runner.mock_calls[1].kwargs["options"].get_all_options()
             self.assertFalse(options["update"])
             self.assertTrue(options["streaming"])
-            self.assertEqual(options["project"], octue_configuration["project_name"])
-            self.assertEqual(options["job_name"], octue_configuration["name"])
+            self.assertEqual(options["project"], service["project_name"])
+            self.assertEqual(options["job_name"], service["name"])
             self.assertEqual(options["temp_location"], DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION)
-            self.assertEqual(options["region"], octue_configuration["region"])
+            self.assertEqual(options["region"], service["region"])
             self.assertEqual(options["dataflow_service_options"], ["enable_prime"])
             self.assertEqual(options["sdk_container_image"], "my-image-uri")
             self.assertEqual(options["setup_file"], DEFAULT_SETUP_FILE_PATH)
@@ -277,10 +267,10 @@ class TestDataflowDeployer(BaseTestCase):
             options = mock_runner.mock_calls[1].kwargs["options"].get_all_options()
             self.assertTrue(options["update"])
             self.assertTrue(options["streaming"])
-            self.assertEqual(options["project"], octue_configuration["project_name"])
-            self.assertEqual(options["job_name"], octue_configuration["name"])
+            self.assertEqual(options["project"], service["project_name"])
+            self.assertEqual(options["job_name"], service["name"])
             self.assertEqual(options["temp_location"], DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION)
-            self.assertEqual(options["region"], octue_configuration["region"])
+            self.assertEqual(options["region"], service["region"])
             self.assertEqual(options["dataflow_service_options"], ["enable_prime"])
             self.assertEqual(options["sdk_container_image"], "my-image-uri")
             self.assertEqual(options["setup_file"], DEFAULT_SETUP_FILE_PATH)

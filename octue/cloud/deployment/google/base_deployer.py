@@ -47,12 +47,15 @@ class BaseDeployer:
         with open(self.octue_configuration_path) as f:
             self._octue_configuration = yaml.load(f, Loader=yaml.SafeLoader)
 
+        # Only allow a single service in an `octue.yaml` file for now.
+        self._service = self._octue_configuration["services"][0]
+
         # Required configuration file entries.
-        self.name = self._octue_configuration["name"]
-        self.repository_name = self._octue_configuration["repository_name"]
-        self.repository_owner = self._octue_configuration["repository_owner"]
-        self.project_name = self._octue_configuration["project_name"]
-        self.region = self._octue_configuration["region"]
+        self.name = self._service["name"]
+        self.repository_name = self._service["repository_name"]
+        self.repository_owner = self._service["repository_owner"]
+        self.project_name = self._service["project_name"]
+        self.region = self._service["region"]
 
         # Generated attributes.
         self.build_trigger_description = None
@@ -60,21 +63,17 @@ class BaseDeployer:
         self.service_id = service_id or str(uuid.uuid4())
         self.required_environment_variables = {"SERVICE_ID": self.service_id, "SERVICE_NAME": self.name}
 
-        if image_uri_template:
-            self._image_uri_provided = True
-        else:
-            self._image_uri_provided = False
-
         self.image_uri_template = image_uri_template or (
             f"{DOCKER_REGISTRY_URL}/{self.project_name}/{self.repository_name}/{self.name}:$SHORT_SHA"
         )
 
         # Optional configuration file entries.
-        self.dockerfile_path = self._octue_configuration.get("dockerfile_path")
-        self.provided_cloud_build_configuration_path = self._octue_configuration.get("cloud_build_configuration_path")
-        self.maximum_instances = self._octue_configuration.get("maximum_instances", 10)
-        self.branch_pattern = self._octue_configuration.get("branch_pattern", "^main$")
-        self.environment_variables = self._octue_configuration.get("environment_variables", [])
+        self.dockerfile_path = self._service.get("dockerfile_path")
+        self.provided_cloud_build_configuration_path = self._service.get("cloud_build_configuration_path")
+        self.maximum_instances = self._service.get("maximum_instances", 10)
+        self.branch_pattern = self._service.get("branch_pattern", "^main$")
+        self.environment_variables = self._service.get("environment_variables", [])
+        self.secrets = self._service.get("secrets", {})
 
     @abstractmethod
     def deploy(self, no_cache=False, update=False):
@@ -116,6 +115,40 @@ class BaseDeployer:
 
         return get_dockerfile_step, "Dockerfile"
 
+    def _create_build_secrets_sections(self):
+        """Create the build secrets options for the Cloud Build configuration so secrets from the Google Cloud Secrets
+        Manager can be used during the build step of the Cloud Build process. This provides the `availableSecrets`
+        section for the overall configuration as well as Docker build args and the `secretEnv` section for the build
+        step.
+
+        :return (dict, dict): the `availableSecrets` section and the build secrets, the latter containing the Docker build args and `secretEnv` section for the Cloud Build build step
+        """
+        available_secrets_option = {}
+        build_secrets = {"build_args": "", "secret_env": {}}
+
+        if not self.secrets.get("build"):
+            return available_secrets_option, build_secrets
+
+        available_secrets_option = {
+            "availableSecrets": {
+                "secretManager": [
+                    {
+                        "versionName": f"projects/{self.project_name}/secrets/{secret_name}/versions/latest",
+                        "env": secret_name,
+                    }
+                    for secret_name in self.secrets["build"]
+                ]
+            }
+        }
+
+        build_secrets["secret_env"] = {"secretEnv": self.secrets["build"]}
+
+        build_secrets["build_args"] = [
+            f"--build-arg={secret_name}=$${secret_name}" for secret_name in self.secrets["build"]
+        ]
+
+        return available_secrets_option, build_secrets
+
     def _create_build_trigger(self, update=False):
         """Create the build trigger in Google Cloud Build using the given `cloudbuild.yaml` file.
 
@@ -127,12 +160,6 @@ class BaseDeployer:
             with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
 
                 if self.provided_cloud_build_configuration_path:
-                    if not self._image_uri_provided:
-                        raise DeploymentError(
-                            "If providing a Cloud Build configuration file, the image URI template must also be "
-                            "provided."
-                        )
-
                     configuration_option = [f"--build-config={self.provided_cloud_build_configuration_path}"]
 
                 else:
@@ -184,7 +211,7 @@ class BaseDeployer:
         :return None:
         """
         with ProgressMessage(
-            f"Running build trigger on branch {self._octue_configuration['branch_pattern']!r}",
+            f"Running build trigger on branch {self.branch_pattern!r}",
             3,
             self.TOTAL_NUMBER_OF_STAGES,
         ):

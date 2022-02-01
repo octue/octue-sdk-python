@@ -39,10 +39,10 @@ class CloudRunDeployer(BaseDeployer):
         self.build_trigger_description = f"Build the {self.name!r} service and deploy it to Cloud Run."
 
         # Optional configuration file entries.
-        self.concurrency = self._octue_configuration.get("concurrency", 10)
-        self.memory = self._octue_configuration.get("memory", "128Mi")
-        self.cpus = self._octue_configuration.get("cpus", 1)
-        self.minimum_instances = self._octue_configuration.get("minimum_instances", 0)
+        self.concurrency = self._service.get("concurrency", 10)
+        self.memory = self._service.get("memory", "128Mi")
+        self.cpus = self._service.get("cpus", 1)
+        self.minimum_instances = self._service.get("minimum_instances", 0)
 
     def deploy(self, no_cache=False, update=False):
         """Create a Google Cloud Build configuration from the `octue.yaml` file, create a build trigger, and run the
@@ -80,7 +80,7 @@ class CloudRunDeployer(BaseDeployer):
 
             if self.provided_cloud_build_configuration_path:
                 progress_message.finish_message = (
-                    f"skipped - using {self._octue_configuration['cloud_build_configuration_path']!r} from repository."
+                    f"skipped - using {self.provided_cloud_build_configuration_path!r} from repository."
                 )
                 return
 
@@ -96,13 +96,32 @@ class CloudRunDeployer(BaseDeployer):
                 + [f"{name}={value}" for name, value in self.required_environment_variables.items()]
             )
 
+            available_secrets_option, build_secrets = self._create_build_secrets_sections()
+
             self.generated_cloud_build_configuration = {
                 "steps": [
                     *get_dockerfile_step,
                     {
                         "id": "Build image",
                         "name": "gcr.io/cloud-builders/docker",
-                        "args": ["build", *cache_option, "-t", self.image_uri_template, ".", "-f", dockerfile_path],
+                        "entrypoint": "bash",
+                        "args": [
+                            "-c",
+                            " ".join(
+                                [
+                                    "docker",
+                                    "build",
+                                    *cache_option,
+                                    "'-t'",
+                                    f"{self.image_uri_template!r}",
+                                    *build_secrets["build_args"],
+                                    ".",
+                                    "'-f'",
+                                    dockerfile_path,
+                                ],
+                            ),
+                        ],
+                        **build_secrets["secret_env"],
                     },
                     {
                         "id": "Push image",
@@ -133,6 +152,7 @@ class CloudRunDeployer(BaseDeployer):
                     },
                 ],
                 "images": [self.image_uri_template],
+                **available_secrets_option,
             }
 
     def _allow_unauthenticated_messages(self):
