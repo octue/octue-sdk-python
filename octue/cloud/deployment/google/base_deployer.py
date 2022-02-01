@@ -143,9 +143,9 @@ class BaseDeployer:
 
         build_secrets["secret_env"] = {"secretEnv": self.secrets["build"]}
 
-        build_secrets["build_args"] = (
-            " ".join([f"--build-arg={secret_name}=$${secret_name}" for secret_name in self.secrets["build"]]) + " "
-        )
+        build_secrets["build_args"] = [
+            f"--build-arg={secret_name}=$${secret_name}" for secret_name in self.secrets["build"]
+        ]
 
         return available_secrets_option, build_secrets
 

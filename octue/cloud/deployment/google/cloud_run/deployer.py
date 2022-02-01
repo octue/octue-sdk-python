@@ -87,9 +87,9 @@ class CloudRunDeployer(BaseDeployer):
             get_dockerfile_step, dockerfile_path = self._create_get_dockerfile_step(DEFAULT_CLOUD_RUN_DOCKERFILE_URL)
 
             if no_cache:
-                cache_option = "--no-cache "
+                cache_option = ["--no-cache"]
             else:
-                cache_option = ""
+                cache_option = []
 
             environment_variables = ",".join(
                 [f"{variable['name']}={variable['value']}" for variable in self.environment_variables]
@@ -107,9 +107,18 @@ class CloudRunDeployer(BaseDeployer):
                         "entrypoint": "bash",
                         "args": [
                             "-c",
-                            (
-                                f"docker build {cache_option}'-t' '{self.image_uri_template}' "
-                                f"{build_secrets['build_args']}. '-f' {dockerfile_path}"
+                            " ".join(
+                                [
+                                    "docker",
+                                    "build",
+                                    *cache_option,
+                                    "'-t'",
+                                    f"{self.image_uri_template!r}",
+                                    *build_secrets["build_args"],
+                                    ".",
+                                    "'-f'",
+                                    dockerfile_path,
+                                ],
                             ),
                         ],
                         **build_secrets["secret_env"],
