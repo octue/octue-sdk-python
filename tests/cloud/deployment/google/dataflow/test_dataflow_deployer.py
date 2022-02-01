@@ -166,19 +166,6 @@ class TestDataflowDeployer(BaseTestCase):
                 ],
             )
 
-    def test_error_raised_if_cloudbuild_file_provided_without_image_uri_template(self):
-        """Test that an error is raised if a `cloudbuild.yaml` file is provided without giving the `image_uri_template`
-        parameter.
-        """
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            octue_configuration_path = self._create_octue_configuration_file(
-                octue_configuration_with_cloud_build_path,
-                temporary_directory,
-            )
-
-            with self.assertRaises(DeploymentError):
-                DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID).deploy()
-
     def test_deploy_with_cloud_build_file_provided(self):
         """Test deploying to Dataflow with a `cloudbuild.yaml` path provided in the `octue.yaml` file"""
         with tempfile.TemporaryDirectory() as temporary_directory:
