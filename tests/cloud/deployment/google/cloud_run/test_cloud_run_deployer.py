@@ -126,6 +126,42 @@ class TestCloudRunDeployer(BaseTestCase):
 
         self.assertEqual(deployer.generated_cloud_build_configuration, expected_cloud_build_configuration)
 
+    def test_generate_cloud_build_configuration_with_build_secrets(self):
+        """Test generating a Cloud Build configuration with build secrets."""
+        secret_name = "MY_BIG_SECRET"
+
+        octue_configuration_with_build_secrets = copy.deepcopy(OCTUE_CONFIGURATION)
+        service = octue_configuration_with_build_secrets["services"][0]
+        service["secrets"] = {"build": [secret_name]}
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            octue_configuration_path = self._create_octue_configuration_file(
+                octue_configuration_with_build_secrets,
+                temporary_directory,
+            )
+
+            deployer = CloudRunDeployer(octue_configuration_path, service_id=SERVICE_ID)
+            deployer._generate_cloud_build_configuration()
+
+        expected_cloud_build_configuration = copy.deepcopy(EXPECTED_CLOUD_BUILD_CONFIGURATION)
+
+        expected_cloud_build_configuration["availableSecrets"] = {
+            "secretManager": [
+                {
+                    "versionName": f'projects/{service["project_name"]}/secrets/{secret_name}/versions/latest',
+                    "env": secret_name,
+                }
+            ]
+        }
+
+        expected_cloud_build_configuration["steps"][1]["args"][
+            1
+        ] = f"docker build '-t' {EXPECTED_IMAGE_NAME!r} --build-arg={secret_name}=$${secret_name} . '-f' Dockerfile"
+
+        expected_cloud_build_configuration["steps"][1]["secretEnv"] = [secret_name]
+
+        self.assertEqual(deployer.generated_cloud_build_configuration, expected_cloud_build_configuration)
+
     def test_deploy(self):
         """Test that the build trigger creation, build and deployment, and Eventarc run trigger creation are requested
         correctly.
