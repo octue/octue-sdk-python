@@ -6,4 +6,4 @@ COPY setup.py setup.py
 
 COPY . .
 
-RUN pip3 install --upgrade pip && pip3 install -e .
+RUN pip3 install --upgrade pip && pip3 install -e .[dataflow]
