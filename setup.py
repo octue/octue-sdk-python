@@ -17,10 +17,9 @@ with open("LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.9.9",
+    version="0.9.10",
     py_modules=["cli"],
     install_requires=[
-        "apache-beam[gcp]==2.35.0",
         "click>=7.1.2",
         "coolname>=1.1.0",
         "Flask>=1.1",
@@ -32,7 +31,7 @@ setup(
         "python-dateutil>=2.8.1",
         "twined==0.1.0",
     ],
-    extras_require={"hdf5": ["h5py==3.6.0"]},
+    extras_require={"hdf5": ["h5py==3.6.0"], "dataflow": ["apache-beam[gcp]==2.35.0"]},
     url="https://www.github.com/octue/octue-sdk-python",
     license="MIT",
     author="Thomas Clark (github: thclark)",
