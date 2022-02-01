@@ -247,7 +247,6 @@ class TestDataflowDeployer(BaseTestCase):
             self.assertEqual(options["job_name"], service["name"])
             self.assertEqual(options["temp_location"], DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION)
             self.assertEqual(options["region"], service["region"])
-            self.assertEqual(options["dataflow_service_options"], ["enable_prime"])
             self.assertEqual(options["sdk_container_image"], "my-image-uri")
             self.assertEqual(options["setup_file"], DEFAULT_SETUP_FILE_PATH)
 
@@ -271,7 +270,6 @@ class TestDataflowDeployer(BaseTestCase):
             self.assertEqual(options["job_name"], service["name"])
             self.assertEqual(options["temp_location"], DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION)
             self.assertEqual(options["region"], service["region"])
-            self.assertEqual(options["dataflow_service_options"], ["enable_prime"])
             self.assertEqual(options["sdk_container_image"], "my-image-uri")
             self.assertEqual(options["setup_file"], DEFAULT_SETUP_FILE_PATH)
 

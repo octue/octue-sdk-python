@@ -60,7 +60,6 @@ def create_streaming_job(
         "sdk_container_image": image_uri,
         "setup_file": os.path.abspath(setup_file_path),
         "update": update,
-        "dataflow_service_options": ["enable_prime"],
         "streaming": True,
         **(extra_options or {}),
     }
@@ -70,6 +69,9 @@ def create_streaming_job(
 
     if worker_machine_type:
         pipeline_options["worker_machine_type"] = worker_machine_type
+    else:
+        # Dataflow Prime can only be used if a worker machine type is not specified.
+        pipeline_options["dataflow_service_options"] = ["enable_prime"]
 
     if maximum_instances:
         pipeline_options["max_num_workers"] = maximum_instances
