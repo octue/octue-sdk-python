@@ -26,7 +26,7 @@ octue_configuration = {
             "branch_pattern": "my-branch",
             "service_account_email": "account@domain.com",
             "maximum_instances": 30,
-            "worker_machine_type": "e2-standard-2",
+            "machine_type": "e2-standard-2",
         }
     ]
 }

@@ -49,7 +49,7 @@ class DataflowDeployer(BaseDeployer):
         )
         self.setup_file_path = self._service.get("setup_file_path", DEFAULT_SETUP_FILE_PATH)
         self.service_account_email = self._service.get("service_account_email")
-        self.worker_machine_type = self._service.get("worker_machine_type")
+        self.worker_machine_type = self._service.get("machine_type")
 
     def deploy(self, no_cache=False, update=False):
         """Create a Google Cloud Build configuration from the `octue.yaml file, create a build trigger, run it, and
