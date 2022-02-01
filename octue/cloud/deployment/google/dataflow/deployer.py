@@ -44,12 +44,12 @@ class DataflowDeployer(BaseDeployer):
         self.success_message = f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}."
 
         # Optional configuration file entries for Dataflow.
-        self.temporary_files_location = self._octue_configuration.get(
+        self.temporary_files_location = self._service.get(
             "temporary_files_location", DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION
         )
-        self.setup_file_path = self._octue_configuration.get("setup_file_path", DEFAULT_SETUP_FILE_PATH)
-        self.service_account_email = self._octue_configuration.get("service_account_email")
-        self.worker_machine_type = self._octue_configuration.get("worker_machine_type")
+        self.setup_file_path = self._service.get("setup_file_path", DEFAULT_SETUP_FILE_PATH)
+        self.service_account_email = self._service.get("service_account_email")
+        self.worker_machine_type = self._service.get("worker_machine_type")
 
     def deploy(self, no_cache=False, update=False):
         """Create a Google Cloud Build configuration from the `octue.yaml file, create a build trigger, run it, and
@@ -121,7 +121,7 @@ class DataflowDeployer(BaseDeployer):
 
             if self.provided_cloud_build_configuration_path:
                 progress_message.finish_message = (
-                    f"skipped - using {self._octue_configuration['cloud_build_configuration_path']!r} from repository."
+                    f"skipped - using {self.provided_cloud_build_configuration_path!r} from repository."
                 )
                 return
 

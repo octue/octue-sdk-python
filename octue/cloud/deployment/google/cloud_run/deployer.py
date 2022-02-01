@@ -39,10 +39,10 @@ class CloudRunDeployer(BaseDeployer):
         self.build_trigger_description = f"Build the {self.name!r} service and deploy it to Cloud Run."
 
         # Optional configuration file entries.
-        self.concurrency = self._octue_configuration.get("concurrency", 10)
-        self.memory = self._octue_configuration.get("memory", "128Mi")
-        self.cpus = self._octue_configuration.get("cpus", 1)
-        self.minimum_instances = self._octue_configuration.get("minimum_instances", 0)
+        self.concurrency = self._service.get("concurrency", 10)
+        self.memory = self._service.get("memory", "128Mi")
+        self.cpus = self._service.get("cpus", 1)
+        self.minimum_instances = self._service.get("minimum_instances", 0)
 
     def deploy(self, no_cache=False, update=False):
         """Create a Google Cloud Build configuration from the `octue.yaml` file, create a build trigger, and run the
@@ -80,7 +80,7 @@ class CloudRunDeployer(BaseDeployer):
 
             if self.provided_cloud_build_configuration_path:
                 progress_message.finish_message = (
-                    f"skipped - using {self._octue_configuration['cloud_build_configuration_path']!r} from repository."
+                    f"skipped - using {self.provided_cloud_build_configuration_path!r} from repository."
                 )
                 return
 

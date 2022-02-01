@@ -47,12 +47,15 @@ class BaseDeployer:
         with open(self.octue_configuration_path) as f:
             self._octue_configuration = yaml.load(f, Loader=yaml.SafeLoader)
 
+        # Only allow a single service in an `octue.yaml` file for now.
+        self._service = self._octue_configuration["services"][0]
+
         # Required configuration file entries.
-        self.name = self._octue_configuration["name"]
-        self.repository_name = self._octue_configuration["repository_name"]
-        self.repository_owner = self._octue_configuration["repository_owner"]
-        self.project_name = self._octue_configuration["project_name"]
-        self.region = self._octue_configuration["region"]
+        self.name = self._service["name"]
+        self.repository_name = self._service["repository_name"]
+        self.repository_owner = self._service["repository_owner"]
+        self.project_name = self._service["project_name"]
+        self.region = self._service["region"]
 
         # Generated attributes.
         self.build_trigger_description = None
@@ -65,12 +68,12 @@ class BaseDeployer:
         )
 
         # Optional configuration file entries.
-        self.dockerfile_path = self._octue_configuration.get("dockerfile_path")
-        self.provided_cloud_build_configuration_path = self._octue_configuration.get("cloud_build_configuration_path")
-        self.maximum_instances = self._octue_configuration.get("maximum_instances", 10)
-        self.branch_pattern = self._octue_configuration.get("branch_pattern", "^main$")
-        self.environment_variables = self._octue_configuration.get("environment_variables", [])
-        self.secrets = self._octue_configuration.get("secrets", {})
+        self.dockerfile_path = self._service.get("dockerfile_path")
+        self.provided_cloud_build_configuration_path = self._service.get("cloud_build_configuration_path")
+        self.maximum_instances = self._service.get("maximum_instances", 10)
+        self.branch_pattern = self._service.get("branch_pattern", "^main$")
+        self.environment_variables = self._service.get("environment_variables", [])
+        self.secrets = self._service.get("secrets", {})
 
     @abstractmethod
     def deploy(self, no_cache=False, update=False):
@@ -208,7 +211,7 @@ class BaseDeployer:
         :return None:
         """
         with ProgressMessage(
-            f"Running build trigger on branch {self._octue_configuration['branch_pattern']!r}",
+            f"Running build trigger on branch {self.branch_pattern!r}",
             3,
             self.TOTAL_NUMBER_OF_STAGES,
         ):
