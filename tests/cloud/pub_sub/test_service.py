@@ -356,6 +356,49 @@ class TestService(BaseTestCase):
         self.assertTrue(start_remote_analysis_message_present)
         self.assertTrue(finish_remote_analysis_message_present)
 
+    def test_ask_with_forwarding_exception_log_message(self):
+        """Test that exception/error logs are forwarded to the asker successfully."""
+
+        def create_exception_logging_run_function():
+            def mock_app(analysis):
+                try:
+                    raise OSError("This is an OSError.")
+                except OSError:
+                    logger.exception("An example exception to log and forward to the parent.")
+
+            return Runner(app_src=mock_app, twine='{"input_values_schema": {"type": "object", "required": []}}').run
+
+        child = MockService(backend=BACKEND, run_function=create_exception_logging_run_function())
+        parent = MockService(backend=BACKEND, children={child.id: child})
+
+        with self.assertLogs() as logs_context_manager:
+            with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+                with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                    with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                        child.serve()
+
+                        self.ask_question_and_wait_for_answer(
+                            asking_service=parent,
+                            responding_service=child,
+                            input_values={},
+                            input_manifest=None,
+                            subscribe_to_logs=True,
+                            service_name="my-super-service",
+                        )
+
+        error_logged = False
+
+        for record in logs_context_manager.records:
+            if (
+                record.levelno == logging.ERROR
+                and "An example exception to log and forward to the parent." in record.message
+                and "This is an OSError" in record.exc_text
+            ):
+                error_logged = True
+                break
+
+        self.assertTrue(error_logged)
+
     def test_with_monitor_message_handler(self):
         """Test that monitor messages can be sent from a child app and handled by the parent's monitor message handler."""
 

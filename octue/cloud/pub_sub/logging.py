@@ -1,8 +1,8 @@
 import json
-from logging import Handler
+import logging
 
 
-class GooglePubSubHandler(Handler):
+class GooglePubSubHandler(logging.Handler):
     """A log handler that publishes log records to a Google Cloud Pub/Sub topic.
 
     :param google.cloud.pubsub_v1.PublisherClient publisher: pub/sub publisher to use to publish the log records
@@ -26,6 +26,9 @@ class GooglePubSubHandler(Handler):
         :return None:
         """
         try:
+            if record.levelno == logging.ERROR:
+                record.exc_info = tuple()
+
             self._publisher.publish(
                 topic=self.topic.path,
                 data=json.dumps(
