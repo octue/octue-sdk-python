@@ -138,7 +138,7 @@ class MockSubscriber:
 
         return MockFuture()
 
-    def pull(self, subscription, max_messages, timeout=None, retry=None):
+    def pull(self, request, timeout=None, retry=None):
         """Return a MockPullResponse containing one MockMessage wrapped in a MockMessageWrapper. The MockMessage is
         retrieved from the global messages dictionary for the subscription included in the request under the
         "subscription" key.
@@ -153,12 +153,12 @@ class MockSubscriber:
 
         try:
             return MockPullResponse(
-                received_messages=[MockMessageWrapper(message=MESSAGES[get_service_id(subscription)].pop(0))]
+                received_messages=[MockMessageWrapper(message=MESSAGES[get_service_id(request["subscription"])].pop(0))]
             )
         except IndexError:
             return MockPullResponse(received_messages=[])
 
-    def acknowledge(self, subscription, ack_ids):
+    def acknowledge(self, request):
         """Do nothing.
 
         :param google.pubsub_v1.types.pubsub.Subscription request:
@@ -166,7 +166,7 @@ class MockSubscriber:
         """
         pass
 
-    def create_subscription(self, name, *args, **kwargs):
+    def create_subscription(self, request):
         """Do nothing.
 
         :param google.pubsub_v1.types.pubsub.Subscription request:
@@ -331,10 +331,5 @@ class MockSubscriptionCreationResponse:
     :return None:
     """
 
-    def __init__(
-        self, ack_deadline_seconds, expiration_policy, message_retention_duration, retry_policy, *args, **kwargs
-    ):
-        self.ack_deadline_seconds = ack_deadline_seconds
-        self.expiration_policy = expiration_policy
-        self.message_retention_duration = message_retention_duration
-        self.retry_policy = retry_policy
+    def __init__(self, request):
+        self.__dict__ = vars(request)

@@ -2,7 +2,7 @@ import os
 from unittest.mock import patch
 
 import google.api_core.exceptions
-from google.cloud.pubsub_v1 import SubscriberClient
+from google.pubsub_v1 import SubscriberClient
 
 from octue.cloud.pub_sub.service import Service
 from octue.cloud.pub_sub.subscription import SEVEN_DAYS, THIRTY_ONE_DAYS, Subscription
@@ -74,11 +74,11 @@ class TestSubscription(BaseTestCase):
             subscriber=SubscriberClient(credentials=service._credentials),
         )
 
-        with patch("google.cloud.pubsub_v1.SubscriberClient.create_subscription", new=MockSubscriptionCreationResponse):
+        with patch("google.pubsub_v1.SubscriberClient.create_subscription", new=MockSubscriptionCreationResponse):
             response = subscription.create(allow_existing=True)
 
-        self.assertEqual(response.ack_deadline_seconds, 60)
-        self.assertEqual(response.expiration_policy.ttl.seconds, THIRTY_ONE_DAYS)
-        self.assertEqual(response.message_retention_duration.seconds, SEVEN_DAYS)
-        self.assertEqual(response.retry_policy.minimum_backoff.seconds, 10)
-        self.assertEqual(response.retry_policy.maximum_backoff.seconds, 600)
+        self.assertEqual(response._pb.ack_deadline_seconds, 60)
+        self.assertEqual(response._pb.expiration_policy.ttl.seconds, THIRTY_ONE_DAYS)
+        self.assertEqual(response._pb.message_retention_duration.seconds, SEVEN_DAYS)
+        self.assertEqual(response._pb.retry_policy.minimum_backoff.seconds, 10)
+        self.assertEqual(response._pb.retry_policy.maximum_backoff.seconds, 600)

@@ -1,6 +1,8 @@
 import json
 import logging
 
+from google.api_core import retry
+
 
 class GooglePubSubHandler(logging.Handler):
     """A log handler that publishes log records to a Google Cloud Pub/Sub topic.
@@ -36,9 +38,10 @@ class GooglePubSubHandler(logging.Handler):
                         "type": "log_record",
                         "log_record": vars(record),
                         "analysis_id": self.analysis_id,
-                        "message_number": str(self.topic.messages_published),
+                        "message_number": self.topic.messages_published,
                     }
                 ).encode(),
+                retry=retry.Retry(deadline=self.timeout),
             )
 
             self.topic.messages_published += 1
