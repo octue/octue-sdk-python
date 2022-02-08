@@ -28,6 +28,7 @@ class Child:
         input_values=None,
         input_manifest=None,
         subscribe_to_logs=True,
+        allow_local_files=False,
         handle_monitor_message=None,
         timeout=20,
     ):
@@ -37,12 +38,20 @@ class Child:
         :param any input_values: the input values of the question
         :param octue.resources.manifest.Manifest|None input_manifest: the input manifest of the question
         :param bool subscribe_to_logs: if `True`, subscribe to logs from the remote service and handle them with the local log handlers
+        :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the serving service will have access to these local files
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
-        subscription, _ = self._service.ask(self.id, input_values, input_manifest, subscribe_to_logs, timeout=timeout)
+        subscription, _ = self._service.ask(
+            service_id=self.id,
+            input_values=input_values,
+            input_manifest=input_manifest,
+            subscribe_to_logs=subscribe_to_logs,
+            allow_local_files=allow_local_files,
+            timeout=timeout,
+        )
 
         return self._service.wait_for_answer(
             subscription=subscription,
