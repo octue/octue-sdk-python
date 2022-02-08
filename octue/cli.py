@@ -6,14 +6,6 @@ import sys
 import click
 import pkg_resources
 
-
-# Import the Dataflow deployer only if the `apache-beam` package is available (due to installing `octue` with the
-# `dataflow` extras option).
-try:
-    from octue.cloud.deployment.google.dataflow.deployer import DataflowDeployer
-except ImportError:
-    pass
-
 from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
 from octue.cloud.pub_sub.service import Service
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
@@ -22,6 +14,14 @@ from octue.log_handlers import get_remote_handler
 from octue.resources import service_backends
 from octue.runner import Runner
 from twined import Twine
+
+
+# Import the Dataflow deployer only if the `apache-beam` package is available (due to installing `octue` with the
+# `dataflow` extras option).
+APACHE_BEAM_PACKAGE_AVAILABLE = bool(importlib.util.find_spec("apache_beam"))
+
+if APACHE_BEAM_PACKAGE_AVAILABLE:
+    from octue.cloud.deployment.google.dataflow.deployer import DataflowDeployer
 
 
 global_cli_context = {}
@@ -287,9 +287,7 @@ def cloud_run(octue_configuration_path, service_id, update, no_cache):
 @click.option("--image-uri", type=str, default=None, help="The actual image URI to use when creating the Dataflow job.")
 def dataflow(octue_configuration_path, service_id, no_cache, update, dataflow_job_only, image_uri):
     """Deploy an app as a Google Dataflow streaming job."""
-    apache_beam_package = importlib.util.find_spec("apache_beam")
-
-    if apache_beam_package is None:
+    if not APACHE_BEAM_PACKAGE_AVAILABLE:
         raise ImportWarning(
             "To use this CLI command, you must install `octue` with the `dataflow` option e.g. "
             "`pip install octue[dataflow]`"
