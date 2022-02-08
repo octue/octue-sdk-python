@@ -128,6 +128,24 @@ class TestDeployCommand(BaseTestCase):
         self.assertEqual(result.exit_code, 1)
         self.assertIsInstance(result.exception, DeploymentError)
 
+    def test_deploy_dataflow_fails_if_apache_beam_not_available(self):
+        """Test that an `ImportWarning` is raised if the `dataflow deploy` CLI command is used when `apache_beam` is
+        not available.
+        """
+        with mock.patch("octue.cli.importlib.util.find_spec", return_value=None):
+            with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "deploy",
+                        "dataflow",
+                        f"--octue-configuration-path={temporary_file.name}",
+                    ],
+                )
+
+        self.assertEqual(result.exit_code, 1)
+        self.assertIsInstance(result.exception, ImportWarning)
+
     def test_deploy_dataflow_raises_error_if_updating_without_providing_service_id(self):
         """Test that a deployment error is raised if attempting to update a deployed Dataflow service without providing
         the service ID.
