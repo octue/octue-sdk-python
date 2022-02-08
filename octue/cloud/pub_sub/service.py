@@ -4,9 +4,7 @@ import datetime
 import functools
 import json
 import logging
-import sys
 import time
-import traceback as tb
 import uuid
 
 from google.api_core import retry
@@ -19,6 +17,7 @@ from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
 from octue.mixins import CoolNameable
 from octue.utils.encoders import OctueJSONEncoder
+from octue.utils.exceptions import convert_exception_to_primitives
 from octue.utils.objects import get_nested_attribute
 
 
@@ -365,19 +364,17 @@ class Service(CoolNameable):
         :param float|None timeout: time in seconds to keep retrying sending of the exception
         :return None:
         """
-        exception_info = sys.exc_info()
-        exception = exception_info[1]
-        exception_message = f"Error in {self!r}: {exception}"
-        traceback = tb.format_list(tb.extract_tb(exception_info[2]))
+        exception = convert_exception_to_primitives()
+        exception_message = f"Error in {self!r}: {exception['message']}"
 
         self.publisher.publish(
             topic=topic.path,
             data=json.dumps(
                 {
                     "type": "exception",
-                    "exception_type": type(exception).__name__,
+                    "exception_type": exception["type"],
                     "exception_message": exception_message,
-                    "traceback": traceback,
+                    "traceback": exception["traceback"],
                     "message_number": topic.messages_published,
                 }
             ).encode(),
