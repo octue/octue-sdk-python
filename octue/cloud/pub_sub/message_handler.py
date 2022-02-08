@@ -86,7 +86,7 @@ class OrderedMessageHandler:
                 delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
             )
 
-            self._waiting_messages[message["message_number"]] = message
+            self._waiting_messages[int(message["message_number"])] = message
 
             try:
                 while self._waiting_messages:
