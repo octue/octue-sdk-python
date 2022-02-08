@@ -86,7 +86,7 @@ class OrderedMessageHandler:
                 delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
             )
 
-            self._waiting_messages[int(message["message_number"])] = message
+            self._waiting_messages[message["message_number"]] = message
 
             try:
                 while self._waiting_messages:
@@ -117,8 +117,7 @@ class OrderedMessageHandler:
                 logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
 
                 pull_response = self.subscriber.pull(
-                    subscription=self.subscription.path,
-                    max_messages=1,
+                    request={"subscription": self.subscription.path, "max_messages": 1},
                     retry=retry.Retry(),
                 )
 
@@ -144,7 +143,7 @@ class OrderedMessageHandler:
                                 f"after {delivery_acknowledgement_timeout} seconds."
                             )
 
-            self.subscriber.acknowledge(subscription=self.subscription.path, ack_ids=[answer.ack_id])
+            self.subscriber.acknowledge(request={"subscription": self.subscription.path, "ack_ids": [answer.ack_id]})
 
             logger.debug(
                 "%r received a message related to question %r.",

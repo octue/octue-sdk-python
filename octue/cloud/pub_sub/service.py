@@ -9,6 +9,7 @@ import time
 import traceback as tb
 import uuid
 
+from google.api_core import retry
 from google.cloud import pubsub_v1
 
 import octue.exceptions
@@ -145,10 +146,11 @@ class Service(CoolNameable):
                         "type": "result",
                         "output_values": analysis.output_values,
                         "output_manifest": serialised_output_manifest,
-                        "message_number": str(topic.messages_published),
+                        "message_number": topic.messages_published,
                     },
                     cls=OctueJSONEncoder,
                 ).encode(),
+                retry=retry.Retry(deadline=timeout),
             )
             topic.messages_published += 1
             logger.info("%r responded to question %r.", self, question_uuid)
@@ -236,6 +238,7 @@ class Service(CoolNameable):
             data=json.dumps({"input_values": input_values, "input_manifest": serialised_input_manifest}).encode(),
             question_uuid=question_uuid,
             forward_logs=str(int(subscribe_to_logs)),
+            retry=retry.Retry(deadline=timeout),
         )
 
         # Keep a record of the question asked in case it needs to be retried.
@@ -323,9 +326,10 @@ class Service(CoolNameable):
                 {
                     "type": "delivery_acknowledgement",
                     "delivery_time": str(datetime.datetime.now()),
-                    "message_number": str(topic.messages_published),
+                    "message_number": topic.messages_published,
                 }
             ).encode(),
+            retry=retry.Retry(deadline=timeout),
         )
 
         topic.messages_published += 1
@@ -346,9 +350,10 @@ class Service(CoolNameable):
                 {
                     "type": "monitor_message",
                     "data": json.dumps(data),
-                    "message_number": str(topic.messages_published),
+                    "message_number": topic.messages_published,
                 }
             ).encode(),
+            retry=retry.Retry(deadline=timeout),
         )
 
         topic.messages_published += 1
@@ -373,9 +378,10 @@ class Service(CoolNameable):
                     "exception_type": type(exception).__name__,
                     "exception_message": exception_message,
                     "traceback": traceback,
-                    "message_number": str(topic.messages_published),
+                    "message_number": topic.messages_published,
                 }
             ).encode(),
+            retry=retry.Retry(deadline=timeout),
         )
 
         topic.messages_published += 1
