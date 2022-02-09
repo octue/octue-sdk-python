@@ -10,7 +10,7 @@ octue==0.1.19
 #plotly==3.6.1
 
 # A numerical manipulation library
-numpy==1.19.2
+numpy==1.21.0
 
 # A library for operating on tabulated data
 pandas
