@@ -4,10 +4,9 @@ import datetime
 import functools
 import json
 import logging
-import sys
 import time
-import traceback as tb
 import uuid
+
 from google.api_core import retry
 from google.cloud import pubsub_v1
 
@@ -18,6 +17,7 @@ from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
 from octue.mixins import CoolNameable
 from octue.utils.encoders import OctueJSONEncoder
+from octue.utils.exceptions import convert_exception_to_primitives
 from octue.utils.objects import get_nested_attribute
 
 
@@ -46,7 +46,7 @@ class Service(CoolNameable):
     :return None:
     """
 
-    def __init__(self, backend, service_id=None, run_function=None):
+    def __init__(self, backend, service_id=None, run_function=None, *args, **kwargs):
         if service_id is None:
             self.id = f"{OCTUE_NAMESPACE}.{str(uuid.uuid4())}"
         elif not service_id:
@@ -63,7 +63,7 @@ class Service(CoolNameable):
         self._credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
         self.publisher = pubsub_v1.PublisherClient(credentials=self._credentials, batch_settings=BATCH_SETTINGS)
         self._current_question = None
-        super().__init__()
+        super().__init__(*args, **kwargs)
 
     def __repr__(self):
         return f"<{type(self).__name__}({self.name!r})>"
@@ -110,7 +110,7 @@ class Service(CoolNameable):
         in the format specified in the Service's Twine file.
 
         :param dict|Message question:
-        :param octue.cloud.pub_sub.topic.Topic|None answer_topic: provide if messages need to be sent to the asker from outside the service (e.g. in octue.cloud.deployment.google.cloud_run)
+        :param octue.cloud.pub_sub.topic.Topic|None answer_topic: provide if messages need to be sent to the asker from outside the service (e.g. in octue.cloud.deployment.google.cloud_run.flask_app)
         :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
@@ -120,7 +120,7 @@ class Service(CoolNameable):
         self._send_delivery_acknowledgment(topic)
 
         if forward_logs:
-            analysis_log_handler = GooglePubSubHandler(publisher=self.publisher, topic=topic)
+            analysis_log_handler = GooglePubSubHandler(publisher=self.publisher, topic=topic, analysis_id=question_uuid)
         else:
             analysis_log_handler = None
 
@@ -226,14 +226,15 @@ class Service(CoolNameable):
             project_name=self.backend.project_name,
             subscriber=pubsub_v1.SubscriberClient(credentials=self._credentials),
         )
-        response_subscription.create(allow_existing=False)
+        response_subscription.create(allow_existing=True)
 
+        serialised_input_manifest = None
         if input_manifest is not None:
-            input_manifest = input_manifest.serialise()
+            serialised_input_manifest = input_manifest.serialise()
 
         self.publisher.publish(
             topic=question_topic.path,
-            data=json.dumps({"input_values": input_values, "input_manifest": input_manifest}).encode(),
+            data=json.dumps({"input_values": input_values, "input_manifest": serialised_input_manifest}).encode(),
             question_uuid=question_uuid,
             forward_logs=str(int(subscribe_to_logs)),
             retry=retry.Retry(deadline=timeout),
@@ -363,19 +364,17 @@ class Service(CoolNameable):
         :param float|None timeout: time in seconds to keep retrying sending of the exception
         :return None:
         """
-        exception_info = sys.exc_info()
-        exception = exception_info[1]
-        exception_message = f"Error in {self!r}: {exception}"
-        traceback = tb.format_list(tb.extract_tb(exception_info[2]))
+        exception = convert_exception_to_primitives()
+        exception_message = f"Error in {self!r}: {exception['message']}"
 
         self.publisher.publish(
             topic=topic.path,
             data=json.dumps(
                 {
                     "type": "exception",
-                    "exception_type": type(exception).__name__,
+                    "exception_type": exception["type"],
                     "exception_message": exception_message,
-                    "traceback": traceback,
+                    "traceback": exception["traceback"],
                     "message_number": topic.messages_published,
                 }
             ).encode(),
@@ -391,12 +390,15 @@ class Service(CoolNameable):
         :return (dict, str, bool):
         """
         try:
-            # Parse and acknowledge question from Google Cloud Pub/Sub.
+            # Parse question directly from Pub/Sub or Dataflow.
             data = json.loads(question.data.decode())
-            question.ack()
+
+            # Acknowledge it if it's directly from Pub/Sub
+            if hasattr(question, "ack"):
+                question.ack()
+
         except Exception:
-            # Parse question from Google Cloud Run. We can't acknowledge the it here as it's not possible with the
-            # information given.
+            # Parse question from Google Cloud Run.
             data = json.loads(base64.b64decode(question["data"]).decode("utf-8").strip())
 
         logger.info("%r received a question.", self)

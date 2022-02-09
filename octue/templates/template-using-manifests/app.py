@@ -1,6 +1,11 @@
+import logging
+
 from cleaner import clean, read_csv_files, read_dat_file
 
 from octue.resources import Datafile
+
+
+logger = logging.getLogger(__name__)
 
 
 def run(analysis, *args, **kwargs):
@@ -18,12 +23,12 @@ def run(analysis, *args, **kwargs):
     - Add them to the output manifest
     """
     # You can use the attached logger to record debug statements, general information, warnings or errors
-    analysis.logger.info("Starting clean up of files in %s", analysis.input_manifest.absolute_path)
+    logger.info("Starting clean up of files in %s", analysis.input_manifest.absolute_path)
 
     # Get the configuration value for our time averaging window (or if not present, use the default specified in
     # the twine)
     time_window = (analysis.configuration_values.get("time_window", 600),)
-    analysis.logger.info("Averaging window set to %ss", time_window)
+    logger.info("Averaging window set to %ss", time_window)
 
     # Get the input dataset which will be read in
     input_dataset = analysis.input_manifest.get_dataset("raw_met_mast_data")

@@ -1,15 +1,27 @@
 import functools
+import importlib.util
 import os
 import sys
+
 import click
 import pkg_resources
 
+from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
 from octue.cloud.pub_sub.service import Service
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
+from octue.exceptions import DeploymentError
 from octue.log_handlers import get_remote_handler
 from octue.resources import service_backends
 from octue.runner import Runner
 from twined import Twine
+
+
+# Import the Dataflow deployer only if the `apache-beam` package is available (due to installing `octue` with the
+# `dataflow` extras option).
+APACHE_BEAM_PACKAGE_AVAILABLE = bool(importlib.util.find_spec("apache_beam"))
+
+if APACHE_BEAM_PACKAGE_AVAILABLE:
+    from octue.cloud.deployment.google.dataflow.deployer import DataflowDeployer
 
 
 global_cli_context = {}
@@ -220,6 +232,77 @@ def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topi
 
     service = Service(service_id=service_id, backend=backend, run_function=run_function)
     service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=delete_topic_and_subscription_on_exit)
+
+
+@octue_cli.group()
+def deploy():
+    """Deploy an app to the cloud as a service."""
+
+
+@deploy.command()
+@click.option(
+    "--octue-configuration-path",
+    type=click.Path(exists=True, dir_okay=False),
+    default="octue.yaml",
+    show_default=True,
+    help="Path to an octue.yaml file.",
+)
+@click.option(
+    "--service-id",
+    type=str,
+    default=None,
+    help="A UUID to use for the service if a specific one is required (defaults to an automatically generated one).",
+)
+@click.option("--no-cache", is_flag=True, help="If provided, don't use the Docker cache.")
+@click.option("--update", is_flag=True, help="If provided, allow updates to an existing service.")
+def cloud_run(octue_configuration_path, service_id, update, no_cache):
+    """Deploy an app as a Google Cloud Run service."""
+    if update and not service_id:
+        raise DeploymentError("If updating a service, you must also provide the `--service-id` argument.")
+
+    CloudRunDeployer(octue_configuration_path, service_id=service_id).deploy(update=update, no_cache=no_cache)
+
+
+@deploy.command()
+@click.option(
+    "--octue-configuration-path",
+    type=click.Path(exists=True, dir_okay=False),
+    default="octue.yaml",
+    show_default=True,
+    help="Path to an octue.yaml file.",
+)
+@click.option(
+    "--service-id",
+    type=str,
+    default=None,
+    help="A UUID to use for the service if a specific one is required (defaults to an automatically generated one).",
+)
+@click.option("--no-cache", is_flag=True, help="If provided, don't use the Docker cache when building the image.")
+@click.option("--update", is_flag=True, help="If provided, allow updates to an existing service.")
+@click.option(
+    "--dataflow-job-only",
+    is_flag=True,
+    help="If provided, skip creating and running the build trigger and just deploy a pre-built image to Dataflow",
+)
+@click.option("--image-uri", type=str, default=None, help="The actual image URI to use when creating the Dataflow job.")
+def dataflow(octue_configuration_path, service_id, no_cache, update, dataflow_job_only, image_uri):
+    """Deploy an app as a Google Dataflow streaming job."""
+    if not APACHE_BEAM_PACKAGE_AVAILABLE:
+        raise ImportWarning(
+            "To use this CLI command, you must install `octue` with the `dataflow` option e.g. "
+            "`pip install octue[dataflow]`"
+        )
+
+    if update and not service_id:
+        raise DeploymentError("If updating a service, you must also provide the `--service-id` argument.")
+
+    deployer = DataflowDeployer(octue_configuration_path, service_id=service_id)
+
+    if dataflow_job_only:
+        deployer.create_streaming_dataflow_job(image_uri=image_uri, update=update)
+        return
+
+    deployer.deploy(no_cache=no_cache, update=update)
 
 
 def set_unavailable_strand_paths_to_none(twine, strands):

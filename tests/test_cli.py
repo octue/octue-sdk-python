@@ -2,18 +2,20 @@ import os
 import tempfile
 import uuid
 from unittest import mock
+
 from click.testing import CliRunner
 
 from octue.cli import octue_cli
+from octue.exceptions import DeploymentError
 from tests import TESTS_DIR
 from tests.base import BaseTestCase
 from tests.test_app_modules.app_module.app import CUSTOM_APP_RUN_MESSAGE
 
 
-class RunnerTestCase(BaseTestCase):
+TWINE_FILE_PATH = os.path.join(TESTS_DIR, "data", "twines", "valid_schema_twine.json")
 
-    TWINE_FILE_PATH = os.path.join(TESTS_DIR, "data", "twines", "valid_schema_twine.json")
 
+class TestCLI(BaseTestCase):
     def test_version(self):
         """Ensure the version command works in the CLI."""
         result = CliRunner().invoke(octue_cli, ["--version"])
@@ -27,7 +29,9 @@ class RunnerTestCase(BaseTestCase):
         h_result = CliRunner().invoke(octue_cli, ["-h"])
         assert help_result.output == h_result.output
 
-    def test_run_command_can_be_added(self):
+
+class TestRunCommand(BaseTestCase):
+    def test_run(self):
         """Test that an arbitrary run command can be used in the run command of the CLI."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             result = CliRunner().invoke(
@@ -35,7 +39,7 @@ class RunnerTestCase(BaseTestCase):
                 [
                     "run",
                     f"--app-dir={os.path.join(TESTS_DIR, 'test_app_modules', 'app_module')}",
-                    f"--twine={self.TWINE_FILE_PATH}",
+                    f"--twine={TWINE_FILE_PATH}",
                     f'--config-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "configuration")}',
                     f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
                     f"--output-dir={temporary_directory}",
@@ -44,7 +48,7 @@ class RunnerTestCase(BaseTestCase):
 
         assert CUSTOM_APP_RUN_MESSAGE in result.output
 
-    def test_run_command_works_with_data_dir(self):
+    def test_run_with_data_dir(self):
         """Test that the run command of the CLI works with the --data-dir option."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             result = CliRunner().invoke(
@@ -52,7 +56,7 @@ class RunnerTestCase(BaseTestCase):
                 [
                     "run",
                     f"--app-dir={os.path.join(TESTS_DIR, 'test_app_modules', 'app_module')}",
-                    f"--twine={self.TWINE_FILE_PATH}",
+                    f"--twine={TWINE_FILE_PATH}",
                     f'--data-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests")}',
                     f"--output-dir={temporary_directory}",
                 ],
@@ -70,7 +74,7 @@ class RunnerTestCase(BaseTestCase):
                         "--logger-uri=wss://0.0.0.1:3000",
                         "run",
                         f"--app-dir={TESTS_DIR}",
-                        f"--twine={self.TWINE_FILE_PATH}",
+                        f"--twine={TWINE_FILE_PATH}",
                         f'--data-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests")}',
                         f"--output-dir={temporary_directory}",
                     ],
@@ -78,6 +82,8 @@ class RunnerTestCase(BaseTestCase):
 
             mock_local_logger_emit.assert_called()
 
+
+class TestStartCommand(BaseTestCase):
     def test_start_command(self):
         """Test that the start command works without error."""
         elevation_service_path = os.path.join(
@@ -101,3 +107,53 @@ class RunnerTestCase(BaseTestCase):
         )
 
         self.assertEqual(result.exit_code, 0)
+
+
+class TestDeployCommand(BaseTestCase):
+    def test_deploy_command_group(self):
+        """Test that the `dataflow` command is a subcommand of the `deploy` command."""
+        result = CliRunner().invoke(octue_cli, ["deploy", "--help"])
+        self.assertIn("cloud-run ", result.output)
+        self.assertIn("dataflow ", result.output)
+
+    def test_deploy_cloud_run_raises_error_if_updating_without_providing_service_id(self):
+        """Test that a deployment error is raised if attempting to update a deployed Cloud Run service without providing
+        the service ID.
+        """
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            result = CliRunner().invoke(
+                octue_cli,
+                ["deploy", "cloud-run", f"--octue-configuration-path={temporary_file.name}", "--update"],
+            )
+        self.assertEqual(result.exit_code, 1)
+        self.assertIsInstance(result.exception, DeploymentError)
+
+    def test_deploy_dataflow_fails_if_apache_beam_not_available(self):
+        """Test that an `ImportWarning` is raised if the `dataflow deploy` CLI command is used when `apache_beam` is
+        not available.
+        """
+        with mock.patch("octue.cli.APACHE_BEAM_PACKAGE_AVAILABLE", False):
+            with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "deploy",
+                        "dataflow",
+                        f"--octue-configuration-path={temporary_file.name}",
+                    ],
+                )
+
+        self.assertEqual(result.exit_code, 1)
+        self.assertIsInstance(result.exception, ImportWarning)
+
+    def test_deploy_dataflow_raises_error_if_updating_without_providing_service_id(self):
+        """Test that a deployment error is raised if attempting to update a deployed Dataflow service without providing
+        the service ID.
+        """
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            result = CliRunner().invoke(
+                octue_cli,
+                ["deploy", "dataflow", f"--octue-configuration-path={temporary_file.name}", "--update"],
+            )
+        self.assertEqual(result.exit_code, 1)
+        self.assertIsInstance(result.exception, DeploymentError)

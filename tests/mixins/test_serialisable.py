@@ -4,6 +4,7 @@ import os
 from tempfile import TemporaryDirectory
 
 from octue.mixins import Serialisable
+
 from ..base import BaseTestCase
 
 

@@ -2,7 +2,7 @@
 # Testing
 # ------------------------------------------------------------------------------
 pluggy
-gcp-storage-emulator>=2021.9.8
+gcp-storage-emulator>=2022.01.29
 tox>=3.23.0
 
 # Code quality
@@ -37,4 +37,4 @@ stringcase==1.2.0
 # Current library
 #    Installs any dependencies in setup.py
 # ------------------------------------------------------------------------------
--e .[hdf5]
+-e .[hdf5,dataflow]

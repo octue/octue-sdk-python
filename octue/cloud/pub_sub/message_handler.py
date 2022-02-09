@@ -1,6 +1,7 @@
 import json
 import logging
 import time
+
 from google.api_core import retry
 
 import octue.exceptions
@@ -85,7 +86,7 @@ class OrderedMessageHandler:
                 delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
             )
 
-            self._waiting_messages[message["message_number"]] = message
+            self._waiting_messages[int(message["message_number"])] = message
 
             try:
                 while self._waiting_messages:
@@ -193,7 +194,7 @@ class OrderedMessageHandler:
         :return None:
         """
         record = logging.makeLogRecord(message["log_record"])
-        record.msg = f"[{self.service_name}] {record.msg}"
+        record.msg = f"[{self.service_name} | analysis-{message['analysis_id']}] {record.msg}"
         logger.handle(record)
 
     def _handle_exception(self, message):

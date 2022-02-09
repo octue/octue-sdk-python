@@ -1,5 +1,6 @@
 import json
 import logging
+
 import google.api_core.exceptions
 
 from octue.cloud.pub_sub import Subscription, Topic
@@ -112,16 +113,6 @@ class MockPublisher:
         MESSAGES[get_service_id(topic)].append(MockMessage(data=data, **attributes))
         return MockFuture()
 
-    @staticmethod
-    def topic_path(project_name, topic_name):
-        """Generate the full topic path from the project and topic names.
-
-        :param str project_name:
-        :param str topic_name:
-        :return str:
-        """
-        return f"projects/{project_name}/topics/{topic_name}"
-
 
 class MockSubscriber:
     """A mock subscriber that gets messages from a global dictionary instead of Google Pub/Sub."""
@@ -174,16 +165,6 @@ class MockSubscriber:
         :return None:
         """
         pass
-
-    @staticmethod
-    def subscription_path(project_name, subscription_name):
-        """Generate the full subscription path from the given project and subscription names.
-
-        :param str project_name:
-        :param str subscription_name:
-        :return str:
-        """
-        return f"projects/{project_name}/subscriptions/{subscription_name}"
 
     def create_subscription(self, request):
         """Do nothing.

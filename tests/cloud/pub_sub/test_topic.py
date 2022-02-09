@@ -1,4 +1,5 @@
 from unittest.mock import patch
+
 import google.api_core.exceptions
 
 from octue.cloud.pub_sub.service import Service

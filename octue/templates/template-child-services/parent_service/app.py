@@ -1,3 +1,9 @@
+import logging
+
+
+logger = logging.getLogger(__name__)
+
+
 def run(analysis, *args, **kwargs):
     """Your main entrypoint to run the application
 
@@ -28,12 +34,12 @@ def run(analysis, *args, **kwargs):
         - ``credentials``, a dict of Credential objects
 
     """
-    analysis.logger.info("Hello! The child services template app is running!")
+    logger.info("Hello! The child services template app is running!")
 
-    elevations = analysis.children["elevation"].ask(input_values=analysis.input_values, timeout=20)["output_values"]
-    wind_speeds = analysis.children["wind_speed"].ask(input_values=analysis.input_values, timeout=20)["output_values"]
+    elevations = analysis.children["elevation"].ask(input_values=analysis.input_values, timeout=60)["output_values"]
+    wind_speeds = analysis.children["wind_speed"].ask(input_values=analysis.input_values, timeout=60)["output_values"]
 
-    analysis.logger.info(
+    logger.info(
         "The wind speeds and elevations at %s are %s and %s.",
         analysis.input_values["locations"],
         elevations,

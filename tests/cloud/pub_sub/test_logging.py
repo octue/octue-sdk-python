@@ -16,6 +16,6 @@ class TestGooglePubSubHandler(BaseTestCase):
         topic.create()
 
         log_record = makeLogRecord({"msg": "Starting analysis."})
-        GooglePubSubHandler(service.publisher, topic).emit(log_record)
+        GooglePubSubHandler(service.publisher, topic, "analysis-id").emit(log_record)
 
         self.assertEqual(json.loads(MESSAGES[topic.name][0].data.decode())["log_record"]["msg"], "Starting analysis.")

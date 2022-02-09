@@ -4,6 +4,7 @@ import logging
 import os
 import tempfile
 from urllib.parse import urlparse
+
 import google.api_core.exceptions
 
 
@@ -19,12 +20,12 @@ from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.cloud.storage.path import CLOUD_STORAGE_PROTOCOL
 from octue.exceptions import CloudLocationNotSpecified, FileNotFoundException, InvalidInputException
-from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Loggable, Pathable, Serialisable, Taggable
+from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Pathable, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils import isfile
 
 
-module_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 OCTUE_METADATA_NAMESPACE = "octue"
@@ -34,7 +35,7 @@ TAGS_DEFAULT = None
 LABELS_DEFAULT = None
 
 
-class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiable, Hashable, Filterable):
+class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashable, Filterable):
     """A representation of a data file on the Octue system. If the given path is a cloud path and `hypothetical` is not
     `True`, the datafile's metadata is pulled from the given cloud location, and any conflicting parameters (see the
     `Datafile.metadata` method description for the parameter names concerned) are ignored. The metadata of cloud
@@ -59,7 +60,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
     :param str|None project_name: The name of the project if the datafile also exists in the cloud
     :param datetime.datetime|int|float|None timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when it was created but could relate to a relevant time point for the data
     :param str id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
-    :param logging.Logger logger: A logger instance to which operations with this datafile will be logged. Defaults to the module logger.
     :param Pathable path_from: The root Pathable object (typically a Dataset) that this Datafile's path is relative to.
     :param str|None project_name: The name of the cloud project if the datafile is located in the cloud
     :param dict|TagDict tags: key-value pairs with string keys conforming to the Octue tag format (see TagDict)
@@ -91,7 +91,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
         project_name=None,
         timestamp=None,
         id=ID_DEFAULT,
-        logger=None,
         path_from=None,
         tags=TAGS_DEFAULT,
         labels=LABELS_DEFAULT,
@@ -105,7 +104,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             id=id,
             name=kwargs.pop("name", None),
             immutable_hash_value=kwargs.pop("immutable_hash_value", None),
-            logger=logger,
             tags=tags,
             labels=labels,
             path=path,
@@ -527,7 +525,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Loggable, Identifiab
             if cloud_metadata_value == attribute_value or not cloud_metadata_value:
                 continue
 
-            module_logger.warning(
+            logger.warning(
                 f"The value {cloud_metadata_value!r} of the {type(self).__name__} attribute {attribute_name!r} from "
                 f"the cloud conflicts with the value given locally at instantiation {attribute_value!r}. The local "
                 f"value has been used and will overwrite the cloud value if the datafile is saved."

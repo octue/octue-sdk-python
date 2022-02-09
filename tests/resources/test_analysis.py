@@ -2,6 +2,7 @@ import logging
 
 from octue.resources.analysis import HASH_FUNCTIONS, Analysis
 from twined import Twine
+
 from ..base import BaseTestCase
 
 
