@@ -40,6 +40,7 @@ def create_octue_formatter(
 
 def apply_log_handler(
     logger_name=None,
+    logger=None,
     handler=None,
     log_level=logging.INFO,
     formatter=None,
@@ -71,7 +72,7 @@ def apply_log_handler(
     handler.setFormatter(formatter)
     handler.setLevel(log_level)
 
-    logger = logging.getLogger(name=logger_name)
+    logger = logger or logging.getLogger(name=logger_name)
     logger.addHandler(handler)
     logger.setLevel(log_level)
 
