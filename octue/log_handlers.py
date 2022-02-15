@@ -40,6 +40,7 @@ def create_octue_formatter(
 
 def apply_log_handler(
     logger_name=None,
+    logger=None,
     handler=None,
     log_level=logging.INFO,
     formatter=None,
@@ -49,8 +50,9 @@ def apply_log_handler(
 ):
     """Apply a log handler with the given formatter to the logger with the given name.
 
-    :param str|None logger_name: if this is `None`, the root logger is used
-    :param logging.Handler handler: The handler to use. If `None`, the default `StreamHandler` will be attached.
+    :param str|None logger_name: the name of the logger to apply the handler to; if this and `logger` are `None`, the root logger is used
+    :param logging.Logger|None logger: the logger instance to apply the handler to (takes precedence over a logger name)
+    :param logging.Handler|None handler: The handler to use. If `None`, the default `StreamHandler` will be attached.
     :param int|str log_level: ignore log messages below this level
     :param logging.Formatter|None formatter: if provided, this formatter is used and the other formatting options are ignored
     :param bool include_line_number: if `True`, include the line number in the log context
@@ -71,7 +73,7 @@ def apply_log_handler(
     handler.setFormatter(formatter)
     handler.setLevel(log_level)
 
-    logger = logging.getLogger(name=logger_name)
+    logger = logger or logging.getLogger(name=logger_name)
     logger.addHandler(handler)
     logger.setLevel(log_level)
 
