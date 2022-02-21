@@ -23,12 +23,15 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
 
     This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
     list of output files (results) and their properties that will be sent back to the octue system.
+
+    :param iter(dict|octue.resources.datafile.Datafile) files: the files belonging to the dataset
+    :return None:
     """
 
     _ATTRIBUTES_TO_HASH = ("files",)
     _SERIALISE_FIELDS = "files", "name", "labels", "tags", "id", "path"
 
-    def __init__(self, name=None, id=None, path=None, path_from=None, tags=None, labels=None, **kwargs):
+    def __init__(self, files=None, name=None, id=None, path=None, path_from=None, tags=None, labels=None, **kwargs):
         super().__init__(name=name, id=id, tags=tags, labels=labels, path=path, path_from=path_from)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
@@ -37,7 +40,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         #  get initialised properly, then remove this hackjob.
         self.files = FilterSet()
 
-        for file in kwargs.pop("files", list()):
+        for file in files or []:
             if isinstance(file, Datafile):
                 self.files.add(file)
             else:
