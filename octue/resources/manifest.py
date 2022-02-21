@@ -5,7 +5,6 @@ from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException, InvalidManifestException
 from octue.mixins import Hashable, Identifiable, Pathable, Serialisable
-from octue.resources.datafile import CLOUD_STORAGE_PROTOCOL
 
 from .dataset import Dataset
 
@@ -170,7 +169,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         * manifest.json form - does not include path
         * Including datafiles that already exist
         * Including datafiles that don't yet exist or are not possessed currently (e.g. future output locations or
-          cloud files
+          cloud files)
 
         :param iter(any) datasets:
         :param list key_list:
@@ -184,7 +183,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
 
             else:
                 if "path" in dataset:
-                    if not os.path.isabs(dataset["path"]) and not dataset["path"].startswith(CLOUD_STORAGE_PROTOCOL):
+                    if not os.path.isabs(dataset["path"]) and not storage.path.is_qualified_cloud_path(dataset["path"]):
                         path = dataset.pop("path")
                         self.datasets.append(Dataset(**dataset, path=path, path_from=self))
                     else:

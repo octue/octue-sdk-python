@@ -18,7 +18,6 @@ from google_crc32c import Checksum
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.cloud.storage.path import CLOUD_STORAGE_PROTOCOL
 from octue.exceptions import CloudLocationNotSpecified, FileNotFoundException, InvalidInputException
 from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Pathable, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
@@ -120,7 +119,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
         self._cloud_metadata = {}
 
-        if self.path.startswith(CLOUD_STORAGE_PROTOCOL):
+        if storage.path.is_qualified_cloud_path(self.path):
             if project_name is None:
                 raise CloudLocationNotSpecified(
                     f"The `project_name` parameter is required to instantiate a Datafile from a cloud object; received "
@@ -193,8 +192,8 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         """
         cloud_metadata = serialised_datafile.pop("_cloud_metadata", {})
 
-        if not os.path.isabs(serialised_datafile["path"]) and not serialised_datafile["path"].startswith(
-            CLOUD_STORAGE_PROTOCOL
+        if not os.path.isabs(serialised_datafile["path"]) and not storage.path.is_qualified_cloud_path(
+            serialised_datafile["path"]
         ):
             datafile = Datafile(**serialised_datafile, path_from=path_from)
         else:
