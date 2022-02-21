@@ -163,3 +163,39 @@ class TestManifest(BaseTestCase):
         self.assertEqual(len(manifest.datasets), 1)
         self.assertEqual(manifest.datasets[0].path, f"gs://{TEST_BUCKET_NAME}/my_dataset")
         self.assertEqual(len(manifest.datasets[0].files), 2)
+
+    def test_instantiating_from_datasets_from_different_cloud_buckets(self):
+        """Test instantiating a manifest from multiple datasets from different cloud buckets."""
+        storage_client = GoogleCloudStorageClient(TEST_PROJECT_NAME)
+        storage_client.create_bucket(name="another-test-bucket")
+
+        storage_client.upload_from_string(
+            "[1, 2, 3]",
+            bucket_name=TEST_BUCKET_NAME,
+            path_in_bucket="my_dataset_1/file_0.txt",
+        )
+
+        GoogleCloudStorageClient(TEST_PROJECT_NAME).upload_from_string(
+            "[4, 5, 6]",
+            bucket_name="another-test-bucket",
+            path_in_bucket="my_dataset_2/the_data.txt",
+        )
+
+        manifest = Manifest(
+            datasets=[
+                {
+                    "path": storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_dataset_1"),
+                    "project_name": TEST_PROJECT_NAME,
+                },
+                {
+                    "path": storage.path.generate_gs_path("another-test-bucket", "my_dataset_2"),
+                    "project_name": TEST_PROJECT_NAME,
+                },
+            ],
+            keys={"my_dataset_1": 0, "my_dataset_2": 1},
+        )
+
+        self.assertEqual({dataset.name for dataset in manifest.datasets}, {"my_dataset_1", "my_dataset_2"})
+
+        files_filtersets = [list(dataset.files)[0] for dataset in manifest.datasets]
+        self.assertEqual({file.bucket_name for file in files_filtersets}, {TEST_BUCKET_NAME, "another-test-bucket"})

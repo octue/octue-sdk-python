@@ -17,7 +17,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
     _ATTRIBUTES_TO_HASH = ("datasets",)
     _SERIALISE_FIELDS = "datasets", "keys", "id", "name", "path"
 
-    def __init__(self, id=None, path=None, datasets=None, keys=None, **kwargs):
+    def __init__(self, id=None, path=None, datasets=None, keys=None, project_name=None, **kwargs):
         super().__init__(id=id, path=path)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
@@ -166,7 +166,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         There are several possible forms the datasets can come in:
         * Instantiated Dataset instances
         * Fully serialised form - includes path
-        * manifest.json form - does not include path
+        * `manifest.json` form - does not include path
         * Including datafiles that already exist
         * Including datafiles that don't yet exist or are not possessed currently (e.g. future output locations or
           cloud files)
@@ -183,11 +183,23 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
 
             else:
                 if "path" in dataset:
+                    # If the path is not a cloud path or an absolute local path:
                     if not os.path.isabs(dataset["path"]) and not storage.path.is_qualified_cloud_path(dataset["path"]):
                         path = dataset.pop("path")
                         self.datasets.append(Dataset(**dataset, path=path, path_from=self))
+
+                    # If the path is a cloud path or an absolute local path:
                     else:
-                        self.datasets.append(Dataset(**dataset))
+                        if storage.path.is_qualified_cloud_path(dataset["path"]):
+                            dataset = Dataset.from_cloud(
+                                project_name=dataset["project_name"],
+                                cloud_path=dataset["path"],
+                                recursive=True,
+                            )
+                        else:
+                            dataset = Dataset(**dataset)
+
+                        self.datasets.append(dataset)
 
                 else:
                     self.datasets.append(Dataset(**dataset, path=key, path_from=self))
