@@ -3,23 +3,7 @@
 ===============
 Version History
 ===============
-
-0.0.1
-======
-
-New Features
-------------
-#. Development version. Highly unstable.
-
-
-Backward Incompatible API Changes
----------------------------------
-#. Everything. API changes daily.
-
-Bug Fixes & Minor Changes
--------------------------
-#. Minor???!
-
-
-Origins
-=======
+See our `releases on GitHub. <https://github.com/octue/octue-sdk-python/releases>`_ Note that `octue` is still in beta,
+so both breaking changes and features are denoted by an increase in the minor version number. This means the major
+version number can remain at 0, denoting a beta package. Breaking changes are clearly marked in pull requests and
+release notes.
