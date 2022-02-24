@@ -48,6 +48,6 @@ class TestGooglePubSubHandler(BaseTestCase):
             GooglePubSubHandler(service.publisher, topic, "analysis-id").emit(record)
 
         self.assertEqual(
-            json.loads(mock_publish.call_args.kwargs["data"].decode())["log_record"]["args"][0],
-            "NonJSONSerialisableInstance",
+            json.loads(mock_publish.call_args.kwargs["data"].decode())["log_record"]["msg"],
+            "NonJSONSerialisableInstance is not JSON-serialisable",
         )
