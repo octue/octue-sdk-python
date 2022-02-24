@@ -27,8 +27,8 @@ class TestManifest(BaseTestCase):
 
     def test_all_datasets_are_in_cloud(self):
         """Test whether all files of all datasets in a manifest are in the cloud or not can be determined."""
-        self.assertFalse(Manifest().all_datasets_are_in_cloud)
         self.assertFalse(self.create_valid_manifest().all_datasets_are_in_cloud)
+        self.assertTrue(Manifest().all_datasets_are_in_cloud)
 
         files = [
             Datafile(path="gs://hello/file.txt", project_name="blah", hypothetical=True),
