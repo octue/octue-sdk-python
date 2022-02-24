@@ -28,8 +28,8 @@ class TestGooglePubSubHandler(BaseTestCase):
         self.assertEqual(json.loads(MESSAGES[topic.name][0].data.decode())["log_record"]["msg"], "Starting analysis.")
 
     def test_emit_with_non_json_serialisable_args(self):
-        """Test that non-JSON-serialisable arguments to log messages are converted to their representation before being
-        serialised to publish to the Pub/Sub topic.
+        """Test that non-JSON-serialisable arguments to log messages are converted to their string representation
+        before being serialised and published to the Pub/Sub topic.
         """
         backend = GCPPubSubBackend(project_name="blah")
         service = MockService(backend=backend)
@@ -42,12 +42,14 @@ class TestGooglePubSubHandler(BaseTestCase):
         with self.assertRaises(TypeError):
             json.dumps(non_json_serialisable_thing)
 
-        record = logging.makeLogRecord({"msg": "%r is not JSON-serialisable", "args": (non_json_serialisable_thing,)})
+        record = logging.makeLogRecord(
+            {"msg": "%r is not JSON-serialisable but can go into a log message", "args": (non_json_serialisable_thing,)}
+        )
 
         with patch("tests.cloud.pub_sub.mocks.MockPublisher.publish") as mock_publish:
             GooglePubSubHandler(service.publisher, topic, "analysis-id").emit(record)
 
         self.assertEqual(
             json.loads(mock_publish.call_args.kwargs["data"].decode())["log_record"]["msg"],
-            "NonJSONSerialisableInstance is not JSON-serialisable",
+            "NonJSONSerialisableInstance is not JSON-serialisable but can go into a log message",
         )

@@ -47,9 +47,9 @@ class GooglePubSubHandler(logging.Handler):
             self.handleError(record)
 
     def _convert_log_record_to_primitives(self, log_record):
-        """Convert a log record to JSON-serialisable primitives by using and interpolating the args into the message,
-        and removing the exception info, which is potentially not JSON-serialisable. This is similar to the approach
-        in `logging.handlers.SocketHandler.makePickle`.
+        """Convert a log record to JSON-serialisable primitives by interpolating the args into the message, and
+        removing the exception info, which is potentially not JSON-serialisable. This is similar to the approach in
+        `logging.handlers.SocketHandler.makePickle`.
 
         :param logging.LogRecord log_record:
         :return dict:
