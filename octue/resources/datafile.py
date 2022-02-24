@@ -527,8 +527,11 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
 
     def _calculate_hash(self):
         """Calculate the hash of the file."""
-        hash = calculate_hash(self.local_path)
-        return super()._calculate_hash(hash)
+        try:
+            hash = calculate_hash(self.local_path)
+            return super()._calculate_hash(hash)
+        except FileNotFoundError:
+            return self._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
 
     def _get_cloud_location(self, project_name=None, cloud_path=None, bucket_name=None, path_in_bucket=None):
         """Get the cloud location details for the bucket, allowing the keyword arguments to override any stored values.
