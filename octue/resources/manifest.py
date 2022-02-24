@@ -17,7 +17,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
     _ATTRIBUTES_TO_HASH = ("datasets",)
     _SERIALISE_FIELDS = "datasets", "keys", "id", "name", "path"
 
-    def __init__(self, id=None, path=None, datasets=None, keys=None, project_name=None, **kwargs):
+    def __init__(self, id=None, path=None, datasets=None, keys=None, **kwargs):
         super().__init__(id=id, path=path)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
@@ -165,6 +165,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         """Add the given datasets to the manifest, instantiating them if needed and giving them the correct path.
         There are several possible forms the datasets can come in:
         * Instantiated Dataset instances
+        * A list of dictionaries pointing to cloud datasets
         * Fully serialised form - includes path
         * `manifest.json` form - does not include path
         * Including datafiles that already exist

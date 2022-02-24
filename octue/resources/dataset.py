@@ -29,9 +29,9 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
     """
 
     _ATTRIBUTES_TO_HASH = ("files",)
-    _SERIALISE_FIELDS = "files", "name", "labels", "tags", "id", "path"
+    _SERIALISE_FIELDS = "files", "name", "labels", "tags", "id", "path", "project_name"
 
-    def __init__(self, files=None, name=None, id=None, path=None, path_from=None, tags=None, labels=None, **kwargs):
+    def __init__(self, files=None, name=None, id=None, path=None, project_name=None, path_from=None, tags=None, labels=None, **kwargs):
         super().__init__(name=name, id=id, tags=tags, labels=labels, path=path, path_from=path_from)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
@@ -39,6 +39,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         #  Add a proper `decoder` argument  to the load_json utility in twined so that datasets, datafiles and manifests
         #  get initialised properly, then remove this hackjob.
         self.files = FilterSet()
+        self.project_name = project_name
 
         for file in files or []:
             if isinstance(file, Datafile):
@@ -115,6 +116,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
                 id=dataset_metadata.get("id"),
                 name=dataset_metadata.get("name"),
                 path=cloud_path,
+                project_name=project_name,
                 tags=TagDict(dataset_metadata.get("tags", {})),
                 labels=LabelSet(dataset_metadata.get("labels", [])),
                 files=[Datafile(path=path, project_name=project_name) for path in dataset_metadata["files"]],

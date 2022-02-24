@@ -183,14 +183,8 @@ class TestManifest(BaseTestCase):
 
         manifest = Manifest(
             datasets=[
-                {
-                    "path": storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_dataset_1"),
-                    "project_name": TEST_PROJECT_NAME,
-                },
-                {
-                    "path": storage.path.generate_gs_path("another-test-bucket", "my_dataset_2"),
-                    "project_name": TEST_PROJECT_NAME,
-                },
+                {"path": f"gs://{TEST_BUCKET_NAME}/my_dataset_1", "project_name": TEST_PROJECT_NAME},
+                {"path": f"gs://another-test-bucket/my_dataset_2", "project_name": TEST_PROJECT_NAME},
             ],
             keys={"my_dataset_1": 0, "my_dataset_2": 1},
         )
