@@ -28,15 +28,12 @@ class GooglePubSubHandler(logging.Handler):
         :return None:
         """
         try:
-            if record.levelno == logging.ERROR:
-                record.exc_info = tuple()
-
             self._publisher.publish(
                 topic=self.topic.path,
                 data=json.dumps(
                     {
                         "type": "log_record",
-                        "log_record": vars(record),
+                        "log_record": self._convert_log_record_to_primitives(record),
                         "analysis_id": self.analysis_id,
                         "message_number": self.topic.messages_published,
                     }
@@ -48,3 +45,18 @@ class GooglePubSubHandler(logging.Handler):
 
         except Exception:  # noqa
             self.handleError(record)
+
+    def _convert_log_record_to_primitives(self, log_record):
+        """Convert a log record to JSON-serialisable primitives, converting any non-JSON-serialisable `args` to their
+        string representation and removing any exception info to avoid failing JSON serialisation in the `emit` method.
+
+        :param logging.LogRecord log_record:
+        :return dict:
+        """
+        serialised_record = vars(log_record)
+
+        if serialised_record["levelno"] == logging.ERROR:
+            serialised_record["exc_info"] = tuple()
+
+        serialised_record["args"] = tuple(repr(arg) for arg in serialised_record["args"])
+        return serialised_record
