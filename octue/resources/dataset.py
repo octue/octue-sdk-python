@@ -231,7 +231,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
 
         for datafile in self.files:
             if local_directory:
-                path_relative_to_dataset = datafile.cloud_path.split(self.name + "/")[1]
+                path_relative_to_dataset = storage.path.relpath(datafile.cloud_path, self.path)
                 local_path = os.path.abspath(os.path.join(local_directory, *path_relative_to_dataset.split("/")))
             else:
                 local_path = None
