@@ -184,9 +184,6 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
 
         :return bool:
         """
-        if not self.files:
-            return False
-
         return all(file.exists_in_cloud for file in self.files)
 
     def add(self, *args, **kwargs):

@@ -130,9 +130,6 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
 
         :return bool:
         """
-        if not self.datasets:
-            return False
-
         return all(dataset.all_files_are_in_cloud for dataset in self.datasets)
 
     def get_dataset(self, key):
