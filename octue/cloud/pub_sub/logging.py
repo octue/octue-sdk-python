@@ -28,15 +28,12 @@ class GooglePubSubHandler(logging.Handler):
         :return None:
         """
         try:
-            if record.levelno == logging.ERROR:
-                record.exc_info = tuple()
-
             self._publisher.publish(
                 topic=self.topic.path,
                 data=json.dumps(
                     {
                         "type": "log_record",
-                        "log_record": vars(record),
+                        "log_record": self._convert_log_record_to_primitives(record),
                         "analysis_id": self.analysis_id,
                         "message_number": self.topic.messages_published,
                     }
@@ -48,3 +45,19 @@ class GooglePubSubHandler(logging.Handler):
 
         except Exception:  # noqa
             self.handleError(record)
+
+    def _convert_log_record_to_primitives(self, log_record):
+        """Convert a log record to JSON-serialisable primitives by interpolating the args into the message, and
+        removing the exception info, which is potentially not JSON-serialisable. This is similar to the approach in
+        `logging.handlers.SocketHandler.makePickle`.
+
+        :param logging.LogRecord log_record:
+        :return dict:
+        """
+        serialised_record = vars(log_record)
+
+        serialised_record["msg"] = log_record.getMessage()
+        serialised_record["args"] = None
+        serialised_record["exc_info"] = None
+        serialised_record.pop("message", None)
+        return serialised_record
