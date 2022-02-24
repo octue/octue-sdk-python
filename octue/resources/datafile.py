@@ -176,12 +176,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
             raise TypeError(f"An object of type {type(self)} cannot be compared with {type(other)}.")
         return self.absolute_path > other.absolute_path
 
-    def __repr__(self):
-        return f"<{type(self).__name__}({self.name!r})>"
-
-    def __str__(self):
-        return repr(self)
-
     @classmethod
     def deserialise(cls, serialised_datafile, path_from=None):
         """Deserialise a Datafile from a dictionary. The `path_from` parameter is only used if the path in the

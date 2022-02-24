@@ -25,11 +25,15 @@ class IdentifiableTestCase(BaseTestCase):
         self.assertIsInstance(resource.id, str)
         self.assertEqual(len(resource.id), 36)
 
-    def test_repr(self):
-        """Ensures the class instantiates without arguments"""
-        id = "07d38e81-6b00-4079-901b-e250ea3c7773"
-        resource = Identifiable(id=id)
-        self.assertEqual(resource.__repr__(), f"Identifiable {id}")
+    def test_repr_with_no_name(self):
+        """Test that the representation uses the ID if no name is provided."""
+        resource = Identifiable(id="07d38e81-6b00-4079-901b-e250ea3c7773")
+        self.assertEqual(repr(resource), f"<Identifiable({resource.id})>")
+
+    def test_repr_with_name(self):
+        """Test that the representation uses the name if one is provided."""
+        resource = Identifiable(id="07d38e81-6b00-4079-901b-e250ea3c7773", name="my-name")
+        self.assertEqual(repr(resource), "<Identifiable('my-name')>")
 
     def test_raises_error_with_non_uuid(self):
         """Ensures that if a string is passed not matching the UUID pattern, that an exception is raised"""
@@ -49,16 +53,16 @@ class IdentifiableTestCase(BaseTestCase):
 
         self.assertIn("must be a valid uuid string, an instance of class UUID or None", e.exception.args[0])
 
-    def test_get_str_from_id(self):
-        """Ensures that calling str() on an object inheriting from Identifiable will use the class name and ID
-        'ClassName <uuid>'
+    def test_str_on_subclass(self):
+        """Ensures that calling `str` on an object inheriting from `Identifiable` will format it with the class name and
+        ID.
         """
 
         class Inherit(Identifiable):
             pass
 
         resource = Inherit(id="07d38e81-6b00-4079-901b-e250ea3c7773")
-        self.assertEqual(str(resource), "Inherit 07d38e81-6b00-4079-901b-e250ea3c7773")
+        self.assertEqual(str(resource), "<Inherit(07d38e81-6b00-4079-901b-e250ea3c7773)>")
 
     def test_set_id_on_instantiated_object(self):
         """Ensures that setting id on an instantiated object will raise an error message, with a customised classname

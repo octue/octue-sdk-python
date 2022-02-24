@@ -27,10 +27,13 @@ class Identifiable:
         self._set_id(id)
 
     def __str__(self):
-        return f"{self.__class__.__name__} {self._id}"
+        return repr(self)
 
     def __repr__(self):
-        return self.__str__()
+        if self.name:
+            return f"<{type(self).__name__}({self.name!r})>"
+
+        return f"<{type(self).__name__}({self.id})>"
 
     @property
     def id(self):
