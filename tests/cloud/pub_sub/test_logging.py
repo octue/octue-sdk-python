@@ -33,7 +33,7 @@ class TestGooglePubSubHandler(BaseTestCase):
         """
         backend = GCPPubSubBackend(project_name="blah")
         service = MockService(backend=backend)
-        topic = MockTopic(name="world", namespace="hello", service=service)
+        topic = MockTopic(name="world-1", namespace="hello", service=service)
         topic.create()
 
         non_json_serialisable_thing = NonJSONSerialisable()
