@@ -2,8 +2,6 @@ import concurrent.futures
 import json
 import os
 
-import google.api_core.exceptions
-
 from octue import definitions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
@@ -251,15 +249,13 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         :param str cloud_path: the path to the dataset cloud directory
         :return dict: the dataset metadata
         """
-        try:
-            return json.loads(
-                GoogleCloudStorageClient(project_name=project_name).download_as_string(
-                    cloud_path=storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME)
-                )
-            )
+        storage_client = GoogleCloudStorageClient(project_name=project_name)
+        metadata_file_path = storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME)
 
-        except google.api_core.exceptions.NotFound:
+        if not storage_client.exists(cloud_path=metadata_file_path):
             return {}
+
+        return json.loads(storage_client.download_as_string(cloud_path=metadata_file_path))
 
     def _upload_dataset_metadata(self, project_name, cloud_path):
         """Upload a metadata file representing the dataset to the given cloud location.

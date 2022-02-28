@@ -56,6 +56,17 @@ class GoogleCloudStorageClient:
 
         self.client.create_bucket(bucket_or_name=name, location=location, timeout=timeout)
 
+    def exists(self, cloud_path=None, bucket_name=None, path_in_bucket=None):
+        """Check if a file exists at the given path.
+
+        :param str|None cloud_path: full cloud path to the file (e.g. `gs://bucket_name/path/to/file.csv`)
+        :param str|None bucket_name: name of the bucket to check for the file in
+        :param str|None path_in_bucket: path of the file in the bucket
+        :return bool: `True` if the file exists
+        """
+        blob = self._blob(cloud_path=cloud_path, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
+        return blob.exists()
+
     def upload_file(
         self,
         local_path,
