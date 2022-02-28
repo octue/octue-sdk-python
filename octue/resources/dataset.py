@@ -85,27 +85,18 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         `cloud_path` must be provided.
 
         :param str project_name: name of Google Cloud project dataset is stored in
-        :param str|None cloud_path: full path to dataset in cloud storage (e.g. `gs://bucket_name/path/to/dataset`)
+        :param str|None cloud_path: full path to dataset directory in cloud storage (e.g. `gs://bucket_name/path/to/dataset`)
         :param str|None bucket_name: name of bucket dataset is stored in
         :param str|None path_to_dataset_directory: path to dataset directory (containing dataset's files) in cloud (e.g. `path/to/dataset`)
         :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained in the dataset directory
         :return Dataset:
         """
         if cloud_path:
-            bucket_name, path_to_dataset_directory = storage.path.split_bucket_name_from_gs_path(cloud_path)
+            bucket_name = storage.path.split_bucket_name_from_gs_path(cloud_path)[0]
         else:
             cloud_path = storage.path.generate_gs_path(bucket_name, path_to_dataset_directory)
 
-        try:
-            dataset_metadata = json.loads(
-                GoogleCloudStorageClient(project_name=project_name).download_as_string(
-                    bucket_name=bucket_name,
-                    path_in_bucket=storage.path.join(path_to_dataset_directory, definitions.DATASET_METADATA_FILENAME),
-                )
-            )
-
-        except google.api_core.exceptions.NotFound:
-            dataset_metadata = {}
+        dataset_metadata = cls._get_dataset_metadata(project_name=project_name, cloud_path=cloud_path)
 
         if dataset_metadata:
             return Dataset(
@@ -126,7 +117,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         )
 
         dataset = Dataset(path=cloud_path, files=datafiles)
-        dataset._upload_metadata_file(project_name, cloud_path)
+        dataset._upload_dataset_metadata(project_name, cloud_path)
         return dataset
 
     def to_cloud(self, project_name, cloud_path=None, bucket_name=None, output_directory=None):
@@ -167,7 +158,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.map(upload, files_and_paths)
 
-        self._upload_metadata_file(project_name, cloud_path)
+        self._upload_dataset_metadata(project_name, cloud_path)
         return cloud_path
 
     @property
@@ -252,11 +243,29 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.map(download, files_and_paths)
 
-    def _upload_metadata_file(self, project_name, cloud_path):
+    @staticmethod
+    def _get_dataset_metadata(project_name, cloud_path):
+        """Get the metadata for the given dataset if a dataset metadata file has previously been uploaded.
+
+        :param str project_name: the name of the cloud project the dataset belongs to
+        :param str cloud_path: the path to the dataset cloud directory
+        :return dict: the dataset metadata
+        """
+        try:
+            return json.loads(
+                GoogleCloudStorageClient(project_name=project_name).download_as_string(
+                    cloud_path=storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME)
+                )
+            )
+
+        except google.api_core.exceptions.NotFound:
+            return {}
+
+    def _upload_dataset_metadata(self, project_name, cloud_path):
         """Upload a metadata file representing the dataset to the given cloud location.
 
-        :param str project_name:
-        :param str cloud_path:
+        :param str project_name: the name of the cloud project the dataset belongs to
+        :param str cloud_path: the path to the dataset cloud directory
         :return None:
         """
         serialised_dataset = self.to_primitive()
