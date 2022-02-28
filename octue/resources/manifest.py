@@ -104,12 +104,9 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         output_directory = storage.path.dirname(path_to_manifest_file)
 
         for dataset in self.datasets:
-
             if store_datasets:
                 dataset_path = dataset.to_cloud(bucket_name=bucket_name, output_directory=output_directory)
-
                 datasets.append(dataset_path)
-
             else:
                 datasets.append(dataset.absolute_path)
 

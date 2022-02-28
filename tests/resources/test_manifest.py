@@ -179,7 +179,10 @@ class TestManifest(BaseTestCase):
         )
 
         manifest = Manifest(
-            datasets=[f"gs://{TEST_BUCKET_NAME}/my_dataset_1", "gs://another-test-bucket/my_dataset_2"],
+            datasets=[
+                f"gs://{TEST_BUCKET_NAME}/my_dataset_1",
+                "gs://another-test-bucket/my_dataset_2",
+            ],
             keys={"my_dataset_1": 0, "my_dataset_2": 1},
         )
 
@@ -187,3 +190,15 @@ class TestManifest(BaseTestCase):
 
         files_filtersets = [list(dataset.files)[0] for dataset in manifest.datasets]
         self.assertEqual({file.bucket_name for file in files_filtersets}, {TEST_BUCKET_NAME, "another-test-bucket"})
+
+    def test_instantiating_from_multiple_local_datasets(self):
+        """Test instantiating a manifest from multiple local datasets."""
+        manifest = Manifest(
+            datasets=[
+                os.path.join("path", "to", "dataset_0"),
+                os.path.join("path", "to", "dataset_1"),
+            ],
+            keys={"dataset_0": 0, "dataset_1": 1},
+        )
+
+        self.assertEqual({dataset.name for dataset in manifest.datasets}, {"dataset_0", "dataset_1"})
