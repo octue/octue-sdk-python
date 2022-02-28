@@ -29,9 +29,20 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
     """
 
     _ATTRIBUTES_TO_HASH = ("files",)
-    _SERIALISE_FIELDS = "files", "name", "labels", "tags", "id", "path", "project_name"
+    _SERIALISE_FIELDS = "files", "name", "labels", "tags", "id", "path"
 
-    def __init__(self, files=None, name=None, id=None, path=None, project_name=None, path_from=None, tags=None, labels=None, **kwargs):
+    def __init__(
+        self,
+        files=None,
+        name=None,
+        id=None,
+        path=None,
+        project_name=None,
+        path_from=None,
+        tags=None,
+        labels=None,
+        **kwargs
+    ):
         super().__init__(name=name, id=id, tags=tags, labels=labels, path=path, path_from=path_from)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
