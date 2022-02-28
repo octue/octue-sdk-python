@@ -179,10 +179,7 @@ class TestManifest(BaseTestCase):
         )
 
         manifest = Manifest(
-            datasets=[
-                {"path": f"gs://{TEST_BUCKET_NAME}/my_dataset_1"},
-                {"path": "gs://another-test-bucket/my_dataset_2"},
-            ],
+            datasets=[f"gs://{TEST_BUCKET_NAME}/my_dataset_1", "gs://another-test-bucket/my_dataset_2"],
             keys={"my_dataset_1": 0, "my_dataset_2": 1},
         )
 

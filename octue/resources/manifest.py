@@ -170,7 +170,15 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
                 self.datasets.append(dataset)
 
             else:
-                if "path" in dataset:
+                # If `dataset` is just a path to a dataset:
+                if isinstance(dataset, str):
+                    if storage.path.is_qualified_cloud_path(dataset):
+                        self.datasets.append(Dataset.from_cloud(cloud_path=dataset, recursive=True))
+                    else:
+                        self.datasets.append(Dataset.from_local_directory(path_to_directory=dataset, recursive=True))
+
+                # If `dataset` is a dictionary including a "path" key:
+                elif "path" in dataset:
                     # If the path is not a cloud path or an absolute local path:
                     if not os.path.isabs(dataset["path"]) and not storage.path.is_qualified_cloud_path(dataset["path"]):
                         path = dataset.pop("path")
@@ -178,12 +186,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
 
                     # If the path is a cloud path or an absolute local path:
                     else:
-                        if storage.path.is_qualified_cloud_path(dataset["path"]):
-                            dataset = Dataset.from_cloud(cloud_path=dataset["path"], recursive=True)
-                        else:
-                            dataset = Dataset(**dataset)
-
-                        self.datasets.append(dataset)
+                        self.datasets.append(Dataset(**dataset))
 
                 else:
                     self.datasets.append(Dataset(**dataset, path=key, path_from=self))
