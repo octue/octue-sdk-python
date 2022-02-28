@@ -1,6 +1,7 @@
 import concurrent.futures
 import json
 import os
+import warnings
 
 import google.api_core.exceptions
 
@@ -78,6 +79,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
     @classmethod
     def from_cloud(
         cls,
+        project_name=None,
         cloud_path=None,
         bucket_name=None,
         path_to_dataset_directory=None,
@@ -92,6 +94,12 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained in the dataset directory
         :return Dataset:
         """
+        if project_name:
+            warnings.warn(
+                message="The `project_name` parameter is no longer needed and will be removed soon.",
+                category=DeprecationWarning,
+            )
+
         if cloud_path:
             bucket_name, path_to_dataset_directory = storage.path.split_bucket_name_from_gs_path(cloud_path)
         else:
@@ -129,7 +137,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         dataset._upload_metadata_file(cloud_path)
         return dataset
 
-    def to_cloud(self, cloud_path=None, bucket_name=None, output_directory=None):
+    def to_cloud(self, project_name=None, cloud_path=None, bucket_name=None, output_directory=None):
         """Upload a dataset to a cloud location. Either (`bucket_name` and `output_directory`) or `cloud_path` must be
         provided.
 
@@ -138,6 +146,12 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         :param str|None output_directory: path to output directory in cloud storage (e.g. `path/to/dataset`)
         :return str: cloud path for dataset
         """
+        if project_name:
+            warnings.warn(
+                message="The `project_name` parameter is no longer needed and will be removed soon.",
+                category=DeprecationWarning,
+            )
+
         if not cloud_path:
             cloud_path = storage.path.generate_gs_path(bucket_name, output_directory, self.name)
 

@@ -27,7 +27,13 @@ class GoogleCloudStorageClient:
     :return None:
     """
 
-    def __init__(self, credentials=OCTUE_MANAGED_CREDENTIALS):
+    def __init__(self, project_name=None, credentials=OCTUE_MANAGED_CREDENTIALS):
+        if project_name:
+            warnings.warn(
+                message="The `project_name` parameter is no longer needed and will be removed soon.",
+                category=DeprecationWarning,
+            )
+
         warnings.simplefilter("ignore", category=ResourceWarning)
 
         if credentials == OCTUE_MANAGED_CREDENTIALS:
