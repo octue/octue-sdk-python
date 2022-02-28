@@ -23,12 +23,11 @@ OCTUE_MANAGED_CREDENTIALS = "octue-managed"
 class GoogleCloudStorageClient:
     """A client for using Google Cloud Storage.
 
-    :param str project_name:
     :param str|google.auth.credentials.Credentials|None credentials:
     :return None:
     """
 
-    def __init__(self, project_name, credentials=OCTUE_MANAGED_CREDENTIALS):
+    def __init__(self, credentials=OCTUE_MANAGED_CREDENTIALS):
         warnings.simplefilter("ignore", category=ResourceWarning)
 
         if credentials == OCTUE_MANAGED_CREDENTIALS:
@@ -36,8 +35,8 @@ class GoogleCloudStorageClient:
         else:
             credentials = credentials
 
-        self.client = storage.Client(project=project_name, credentials=credentials)
-        self.project_name = project_name
+        self.project_name = credentials.project_id
+        self.client = storage.Client(project=self.project_name, credentials=credentials)
 
     def create_bucket(self, name, location=None, allow_existing=False, timeout=_DEFAULT_TIMEOUT):
         """Create a new bucket. If the bucket already exists, and `allow_existing` is `True`, do nothing; if it is
@@ -142,7 +141,6 @@ class GoogleCloudStorageClient:
             "time_created": blob.time_created,
             "time_deleted": blob.time_deleted,
             "custom_time": blob.custom_time,
-            "project_name": self.project_name,
             "bucket_name": bucket_name,
             "path_in_bucket": path_in_bucket,
         }

@@ -31,18 +31,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
     _ATTRIBUTES_TO_HASH = ("files",)
     _SERIALISE_FIELDS = "files", "name", "labels", "tags", "id", "path"
 
-    def __init__(
-        self,
-        files=None,
-        name=None,
-        id=None,
-        path=None,
-        project_name=None,
-        path_from=None,
-        tags=None,
-        labels=None,
-        **kwargs
-    ):
+    def __init__(self, files=None, name=None, id=None, path=None, path_from=None, tags=None, labels=None, **kwargs):
         super().__init__(name=name, id=id, tags=tags, labels=labels, path=path, path_from=path_from)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
@@ -50,7 +39,6 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         #  Add a proper `decoder` argument  to the load_json utility in twined so that datasets, datafiles and manifests
         #  get initialised properly, then remove this hackjob.
         self.files = FilterSet()
-        self.project_name = project_name
 
         for file in files or []:
             if isinstance(file, Datafile):
@@ -90,7 +78,6 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
     @classmethod
     def from_cloud(
         cls,
-        project_name,
         cloud_path=None,
         bucket_name=None,
         path_to_dataset_directory=None,
@@ -99,7 +86,6 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         """Instantiate a Dataset from Google Cloud storage. Either (`bucket_name` and `path_to_dataset_directory`) or
         `cloud_path` must be provided.
 
-        :param str project_name: name of Google Cloud project dataset is stored in
         :param str|None cloud_path: full path to dataset in cloud storage (e.g. `gs://bucket_name/path/to/dataset`)
         :param str|None bucket_name: name of bucket dataset is stored in
         :param str|None path_to_dataset_directory: path to dataset directory (containing dataset's files) in cloud (e.g. `path/to/dataset`)
@@ -111,9 +97,11 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         else:
             cloud_path = storage.path.generate_gs_path(bucket_name, path_to_dataset_directory)
 
+        storage_client = GoogleCloudStorageClient()
+
         try:
             dataset_metadata = json.loads(
-                GoogleCloudStorageClient(project_name=project_name).download_as_string(
+                storage_client.download_as_string(
                     bucket_name=bucket_name,
                     path_in_bucket=storage.path.join(path_to_dataset_directory, definitions.DATASET_METADATA_FILENAME),
                 )
@@ -127,29 +115,24 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
                 id=dataset_metadata.get("id"),
                 name=dataset_metadata.get("name"),
                 path=cloud_path,
-                project_name=project_name,
                 tags=TagDict(dataset_metadata.get("tags", {})),
                 labels=LabelSet(dataset_metadata.get("labels", [])),
-                files=[Datafile(path=path, project_name=project_name) for path in dataset_metadata["files"]],
+                files=[Datafile(path=path) for path in dataset_metadata["files"]],
             )
 
         datafiles = FilterSet(
-            Datafile(
-                path=storage.path.generate_gs_path(bucket_name, blob.name),
-                project_name=project_name,
-            )
-            for blob in GoogleCloudStorageClient(project_name=project_name).scandir(cloud_path, recursive=recursive)
+            Datafile(path=storage.path.generate_gs_path(bucket_name, blob.name))
+            for blob in GoogleCloudStorageClient().scandir(cloud_path, recursive=recursive)
         )
 
         dataset = Dataset(path=cloud_path, files=datafiles)
-        dataset._upload_metadata_file(project_name, cloud_path)
+        dataset._upload_metadata_file(cloud_path)
         return dataset
 
-    def to_cloud(self, project_name, cloud_path=None, bucket_name=None, output_directory=None):
+    def to_cloud(self, cloud_path=None, bucket_name=None, output_directory=None):
         """Upload a dataset to a cloud location. Either (`bucket_name` and `output_directory`) or `cloud_path` must be
         provided.
 
-        :param str project_name: name of Google Cloud project to store dataset in
         :param str|None cloud_path: full cloud storage path to store dataset at (e.g. `gs://bucket_name/path/to/dataset`)
         :param str|None bucket_name: name of bucket to store dataset in
         :param str|None output_directory: path to output directory in cloud storage (e.g. `path/to/dataset`)
@@ -177,13 +160,13 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
             """
             datafile = iterable_element[0]
             cloud_path = iterable_element[1]
-            datafile.to_cloud(project_name, cloud_path=cloud_path)
+            datafile.to_cloud(cloud_path=cloud_path)
 
         # Use multiple threads to significantly speed up file uploads by reducing latency.
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.map(upload, files_and_paths)
 
-        self._upload_metadata_file(project_name, cloud_path)
+        self._upload_metadata_file(cloud_path)
         return cloud_path
 
     @property
@@ -271,10 +254,9 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.map(download, files_and_paths)
 
-    def _upload_metadata_file(self, project_name, cloud_path):
+    def _upload_metadata_file(self, cloud_path):
         """Upload a metadata file representing the dataset to the given cloud location.
 
-        :param str project_name:
         :param str cloud_path:
         :return None:
         """
@@ -282,7 +264,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         serialised_dataset["files"] = sorted(datafile.cloud_path for datafile in self.files)
         del serialised_dataset["path"]
 
-        GoogleCloudStorageClient(project_name=project_name).upload_from_string(
+        GoogleCloudStorageClient().upload_from_string(
             string=json.dumps(serialised_dataset),
             cloud_path=storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME),
         )

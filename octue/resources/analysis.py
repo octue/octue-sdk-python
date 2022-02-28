@@ -103,14 +103,13 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
 
         self._handle_monitor_message(data)
 
-    def finalise(self, output_dir=None, save_locally=False, upload_to_cloud=False, project_name=None, bucket_name=None):
+    def finalise(self, output_dir=None, save_locally=False, upload_to_cloud=False, bucket_name=None):
         """Validate and serialise the output values and manifest, optionally writing them to files and/or the manifest
         to the cloud.
 
         :param str output_dir: path-like pointing to directory where the outputs should be saved to file (if None, files are not written)
         :param bool save_locally:
         :param bool upload_to_cloud:
-        :param str project_name:
         :param str bucket_name:
         :return dict: serialised strings for values and manifest data.
         """
@@ -141,13 +140,8 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         # Optionally write the manifest to Google Cloud storage.
         if upload_to_cloud:
             if hasattr(self, "output_manifest"):
-                self.output_manifest.to_cloud(project_name, bucket_name, output_dir)
-                logger.debug(
-                    "Wrote %r to cloud storage at project %r in bucket %r.",
-                    self.output_manifest,
-                    project_name,
-                    bucket_name,
-                )
+                self.output_manifest.to_cloud(bucket_name, output_dir)
+                logger.debug("Wrote %r to cloud storage bucket %r.", self.output_manifest, bucket_name)
 
         return serialised_strands
 

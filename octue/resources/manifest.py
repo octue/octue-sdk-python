@@ -43,11 +43,10 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         vars(self).update(**kwargs)
 
     @classmethod
-    def from_cloud(cls, project_name, cloud_path=None, bucket_name=None, path_to_manifest_file=None):
+    def from_cloud(cls, cloud_path=None, bucket_name=None, path_to_manifest_file=None):
         """Instantiate a Manifest from Google Cloud storage. Either (`bucket_name` and `path_to_manifest_file`) or
         `cloud_path` must be provided.
 
-        :param str project_name: name of Google Cloud project manifest is stored in
         :param str|None cloud_path: full path to manifest in cloud storage (e.g. `gs://bucket_name/path/to/manifest.json`)
         :param str|None bucket_name: name of bucket manifest is stored in
         :param str|None path_to_manifest_file: path to manifest in cloud storage e.g. `path/to/manifest.json`
@@ -57,21 +56,14 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
             bucket_name, path_to_manifest_file = storage.path.split_bucket_name_from_gs_path(cloud_path)
 
         serialised_manifest = json.loads(
-            GoogleCloudStorageClient(project_name=project_name).download_as_string(
-                bucket_name=bucket_name, path_in_bucket=path_to_manifest_file
-            )
+            GoogleCloudStorageClient().download_as_string(bucket_name=bucket_name, path_in_bucket=path_to_manifest_file)
         )
 
         datasets = []
 
         for dataset in serialised_manifest["datasets"]:
             dataset_bucket_name, path = storage.path.split_bucket_name_from_gs_path(dataset)
-
-            datasets.append(
-                Dataset.from_cloud(
-                    project_name=project_name, bucket_name=dataset_bucket_name, path_to_dataset_directory=path
-                )
-            )
+            datasets.append(Dataset.from_cloud(bucket_name=dataset_bucket_name, path_to_dataset_directory=path))
 
         return Manifest(
             id=serialised_manifest["id"],
@@ -80,13 +72,10 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
             keys=serialised_manifest["keys"],
         )
 
-    def to_cloud(
-        self, project_name, cloud_path=None, bucket_name=None, path_to_manifest_file=None, store_datasets=True
-    ):
+    def to_cloud(self, cloud_path=None, bucket_name=None, path_to_manifest_file=None, store_datasets=True):
         """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory. Either
         (`bucket_name` and `path_to_manifest_file`) or `cloud_path` must be provided.
 
-        :param str project_name: name of Google Cloud project to store manifest in
         :param str|None cloud_path: full path to cloud storage location to store manifest at (e.g. `gs://bucket_name/path/to/manifest.json`)
         :param str|None bucket_name: name of bucket to store manifest in
         :param str|None path_to_manifest_file: cloud storage path to store manifest at e.g. `path/to/manifest.json`
@@ -102,9 +91,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         for dataset in self.datasets:
 
             if store_datasets:
-                dataset_path = dataset.to_cloud(
-                    project_name, bucket_name=bucket_name, output_directory=output_directory
-                )
+                dataset_path = dataset.to_cloud(bucket_name=bucket_name, output_directory=output_directory)
 
                 datasets.append(dataset_path)
 
@@ -115,7 +102,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         serialised_manifest["datasets"] = sorted(datasets)
         del serialised_manifest["path"]
 
-        GoogleCloudStorageClient(project_name=project_name).upload_from_string(
+        GoogleCloudStorageClient().upload_from_string(
             string=json.dumps(serialised_manifest),
             bucket_name=bucket_name,
             path_in_bucket=path_to_manifest_file,
@@ -192,11 +179,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
                     # If the path is a cloud path or an absolute local path:
                     else:
                         if storage.path.is_qualified_cloud_path(dataset["path"]):
-                            dataset = Dataset.from_cloud(
-                                project_name=dataset["project_name"],
-                                cloud_path=dataset["path"],
-                                recursive=True,
-                            )
+                            dataset = Dataset.from_cloud(cloud_path=dataset["path"], recursive=True)
                         else:
                             dataset = Dataset(**dataset)
 
