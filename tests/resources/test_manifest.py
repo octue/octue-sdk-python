@@ -172,7 +172,7 @@ class TestManifest(BaseTestCase):
             path_in_bucket="my_dataset_1/file_0.txt",
         )
 
-        GoogleCloudStorageClient().upload_from_string(
+        storage_client.upload_from_string(
             "[4, 5, 6]",
             bucket_name="another-test-bucket",
             path_in_bucket="my_dataset_2/the_data.txt",
