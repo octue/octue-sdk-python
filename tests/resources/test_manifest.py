@@ -185,8 +185,8 @@ class TestManifest(BaseTestCase):
 
         self.assertEqual({dataset.name for dataset in manifest.datasets.values()}, {"my_dataset_1", "my_dataset_2"})
 
-        files_filtersets = [list(dataset.files)[0] for dataset in manifest.datasets.values()]
-        self.assertEqual({file.bucket_name for file in files_filtersets}, {TEST_BUCKET_NAME, "another-test-bucket"})
+        files = [list(dataset.files)[0] for dataset in manifest.datasets.values()]
+        self.assertEqual({file.bucket_name for file in files}, {TEST_BUCKET_NAME, "another-test-bucket"})
 
     def test_instantiating_from_multiple_local_datasets(self):
         """Test instantiating a manifest from multiple local datasets."""
@@ -198,3 +198,32 @@ class TestManifest(BaseTestCase):
         )
 
         self.assertEqual({dataset.name for dataset in manifest.datasets.values()}, {"dataset_0", "dataset_1"})
+
+    def test_deprecation_warning_issued_if_datasets_provided_as_list(self):
+        """Test that, if datasets are provided as a list (the old format), a deprecation warning is issued and the list
+        is converted to a dictionary (the new format).
+        """
+        storage_client = GoogleCloudStorageClient()
+
+        storage_client.upload_from_string(
+            "[1, 2, 3]",
+            bucket_name=TEST_BUCKET_NAME,
+            path_in_bucket="my_dataset_1/file_0.txt",
+        )
+
+        storage_client.upload_from_string(
+            "[4, 5, 6]",
+            bucket_name=TEST_BUCKET_NAME,
+            path_in_bucket="my_dataset_2/the_data.txt",
+        )
+
+        with self.assertWarns(DeprecationWarning):
+            manifest = Manifest(
+                datasets=[
+                    f"gs://{TEST_BUCKET_NAME}/my_dataset_1",
+                    f"gs://{TEST_BUCKET_NAME}/my_dataset_2",
+                ],
+                keys={"my_dataset_1": 0, "my_dataset_2": 1},
+            )
+
+        self.assertEqual(set(manifest.datasets.keys()), {"unknown_0", "unknown_1"})

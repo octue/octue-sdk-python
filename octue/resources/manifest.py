@@ -24,6 +24,27 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
     _SERIALISE_FIELDS = "datasets", "keys", "id", "name", "path"
 
     def __init__(self, id=None, path=None, datasets=None, **kwargs):
+        if isinstance(datasets, list):
+            translated_datasets = {}
+
+            for index, dataset in enumerate(datasets):
+                if isinstance(dataset, str):
+                    key = f"unknown_{index}"
+                else:
+                    key = dataset.get("name") or kwargs.get("keys", {}).get(index, f"unknown_{index}")
+
+                translated_datasets[key] = dataset
+
+            datasets = translated_datasets
+
+            warnings.warn(
+                message=(
+                    "Datasets belonging to a manifest should be provided as a dictionary mapping their name to "
+                    "themselves. Support for providing a list of datasets will be phased out soon."
+                ),
+                category=DeprecationWarning,
+            )
+
         super().__init__(id=id, path=path)
         self.datasets = {}
 
