@@ -13,6 +13,11 @@ from .dataset import Dataset
 class Manifest(Pathable, Serialisable, Identifiable, Hashable):
     """A representation of a manifest, which can contain multiple datasets This is used to manage all files coming into
     (or leaving), a data service for an analysis at the configuration, input or output stage.
+
+    :param str|None id: the UUID of the manifest (a UUID is generated if one isn't given)
+    :param str|None path: the path the manifest exists at (defaults to the current working directory)
+    :param dict|None datasets: a mapping of dataset names to `Dataset` instances, serialised datasets, or paths to datasets
+    :return None:
     """
 
     _ATTRIBUTES_TO_HASH = ("datasets",)
@@ -121,21 +126,27 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         return all(dataset.all_files_are_in_cloud for dataset in self.datasets.values())
 
     def get_dataset(self, key):
-        """Get a dataset by its key name (as defined in the twine).
+        """Get a dataset by its key (as defined in the twine).
 
-        :return Dataset: Dataset selected by its key
+        :param str key:
+        :return octue.resources.dataset.Dataset:
         """
         dataset = self.datasets.get(key, None)
 
         if dataset is None:
             raise InvalidInputException(
-                f"Attempted to fetch unknown dataset {key!r} from Manifest. Allowable keys are: {self.datasets.keys()}"
+                f"Attempted to fetch unknown dataset {key!r} from Manifest. Allowable keys are: "
+                f"{list(self.datasets.keys())}"
             )
 
         return dataset
 
     def prepare(self, data):
-        """Prepare new manifest from a manifest_spec"""
+        """Prepare new manifest from a manifest_spec.
+
+        :param dict data:
+        :return Manifest:
+        """
         if len(self.datasets) > 0:
             raise InvalidInputException("You cannot `prepare()` a manifest already instantiated with datasets")
 
@@ -157,7 +168,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         * Including datafiles that don't yet exist or are not possessed currently (e.g. future output locations or
           cloud files)
 
-        :param iter(any) datasets:
+        :param iter(octue.resources.dataset.Dataset|str|dict) datasets: the datasets to add to the manifest
         :return None:
         """
         for key, dataset in datasets.items():
