@@ -1,7 +1,7 @@
 # This workflow tests and releases a new version of the package, then publishes it to PyPi and the
 # octue/octue-sdk-python Docker Hub repository.
 
-name: Release the package
+name: Release
 
 # Only trigger when a pull request into main branch is merged.
 on:
