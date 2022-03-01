@@ -78,7 +78,9 @@ class TestManifest(BaseTestCase):
             )
         )
 
-        self.assertEqual(persisted_manifest["datasets"], [f"gs://octue-test-bucket/blah/{dataset_directory_name}"])
+        self.assertEqual(
+            persisted_manifest["datasets"]["my-dataset"], f"gs://octue-test-bucket/blah/{dataset_directory_name}"
+        )
 
     def test_to_cloud_without_storing_datasets(self):
         """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance."""
@@ -99,7 +101,7 @@ class TestManifest(BaseTestCase):
             )
         )
 
-        self.assertEqual(persisted_manifest["datasets"], [temporary_directory])
+        self.assertEqual(persisted_manifest["datasets"]["my-dataset"], temporary_directory)
 
     def test_from_cloud(self):
         """Test that a Manifest can be instantiated from the cloud via (`bucket_name`, `output_directory`) and via
@@ -127,11 +129,11 @@ class TestManifest(BaseTestCase):
                 self.assertEqual(persisted_manifest.id, manifest.id)
                 self.assertEqual(persisted_manifest.hash_value, manifest.hash_value)
                 self.assertEqual(
-                    {dataset.name for dataset in persisted_manifest.datasets},
-                    {dataset.name for dataset in manifest.datasets},
+                    {dataset.name for dataset in persisted_manifest.datasets.values()},
+                    {dataset.name for dataset in manifest.datasets.values()},
                 )
 
-                for dataset in persisted_manifest.datasets:
+                for dataset in persisted_manifest.datasets.values():
                     self.assertEqual(dataset.path, f"gs://{TEST_BUCKET_NAME}/my-directory/{dataset.name}")
                     self.assertTrue(len(dataset.files), 2)
                     self.assertTrue(all(isinstance(file, Datafile) for file in dataset.files))
@@ -154,8 +156,8 @@ class TestManifest(BaseTestCase):
 
         manifest = Manifest(datasets={"my_dataset": serialised_cloud_dataset})
         self.assertEqual(len(manifest.datasets), 1)
-        self.assertEqual(manifest.datasets[0].path, f"gs://{TEST_BUCKET_NAME}/my_dataset")
-        self.assertEqual(len(manifest.datasets[0].files), 2)
+        self.assertEqual(manifest.datasets["my_dataset"].path, f"gs://{TEST_BUCKET_NAME}/my_dataset")
+        self.assertEqual(len(manifest.datasets["my_dataset"].files), 2)
 
     def test_instantiating_from_datasets_from_different_cloud_buckets(self):
         """Test instantiating a manifest from multiple datasets from different cloud buckets."""
@@ -175,26 +177,24 @@ class TestManifest(BaseTestCase):
         )
 
         manifest = Manifest(
-            datasets=[
-                f"gs://{TEST_BUCKET_NAME}/my_dataset_1",
-                "gs://another-test-bucket/my_dataset_2",
-            ],
-            keys={"my_dataset_1": 0, "my_dataset_2": 1},
+            datasets={
+                "my_dataset_1": f"gs://{TEST_BUCKET_NAME}/my_dataset_1",
+                "my_dataset_2": "gs://another-test-bucket/my_dataset_2",
+            }
         )
 
-        self.assertEqual({dataset.name for dataset in manifest.datasets}, {"my_dataset_1", "my_dataset_2"})
+        self.assertEqual({dataset.name for dataset in manifest.datasets.values()}, {"my_dataset_1", "my_dataset_2"})
 
-        files_filtersets = [list(dataset.files)[0] for dataset in manifest.datasets]
+        files_filtersets = [list(dataset.files)[0] for dataset in manifest.datasets.values()]
         self.assertEqual({file.bucket_name for file in files_filtersets}, {TEST_BUCKET_NAME, "another-test-bucket"})
 
     def test_instantiating_from_multiple_local_datasets(self):
         """Test instantiating a manifest from multiple local datasets."""
         manifest = Manifest(
-            datasets=[
-                os.path.join("path", "to", "dataset_0"),
-                os.path.join("path", "to", "dataset_1"),
-            ],
-            keys={"dataset_0": 0, "dataset_1": 1},
+            datasets={
+                "dataset_0": os.path.join("path", "to", "dataset_0"),
+                "dataset_1": os.path.join("path", "to", "dataset_1"),
+            },
         )
 
-        self.assertEqual({dataset.name for dataset in manifest.datasets}, {"dataset_0", "dataset_1"})
+        self.assertEqual({dataset.name for dataset in manifest.datasets.values()}, {"dataset_0", "dataset_1"})

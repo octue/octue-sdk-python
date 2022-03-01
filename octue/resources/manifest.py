@@ -54,7 +54,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
             GoogleCloudStorageClient().download_as_string(bucket_name=bucket_name, path_in_bucket=path_to_manifest_file)
         )
 
-        datasets = []
+        datasets = {}
 
         for key, dataset in serialised_manifest["datasets"].items():
             dataset_bucket_name, path = storage.path.split_bucket_name_from_gs_path(dataset)
@@ -98,7 +98,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
                 datasets[key] = dataset.absolute_path
 
         serialised_manifest = self.to_primitive()
-        serialised_manifest["datasets"] = sorted(datasets)
+        serialised_manifest["datasets"] = datasets
         del serialised_manifest["path"]
 
         GoogleCloudStorageClient().upload_from_string(
@@ -132,17 +132,17 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
                 f"Attempted to fetch unknown dataset {key!r} from Manifest. Allowable keys are: {self.datasets.keys()}"
             )
 
-        return self.datasets[dataset]
+        return dataset
 
     def prepare(self, data):
         """Prepare new manifest from a manifest_spec"""
         if len(self.datasets) > 0:
             raise InvalidInputException("You cannot `prepare()` a manifest already instantiated with datasets")
 
-        for index, dataset_specification in enumerate(data["datasets"]):
+        for key, dataset_specification in data["datasets"].items():
             # TODO generate a unique name based on the filter key, label datasets so that the label filters in the spec
             #  apply automatically and generate a description of the dataset
-            self.datasets[dataset_specification["key"]] = Dataset(path_from=self, path=dataset_specification["key"])
+            self.datasets[key] = Dataset(path_from=self, path=key)
 
         return self
 
@@ -169,9 +169,9 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
                 # If `dataset` is just a path to a dataset:
                 if isinstance(dataset, str):
                     if storage.path.is_qualified_cloud_path(dataset):
-                        self.datasets.append(Dataset.from_cloud(cloud_path=dataset, recursive=True))
+                        self.datasets[key] = Dataset.from_cloud(cloud_path=dataset, recursive=True)
                     else:
-                        self.datasets.append(Dataset.from_local_directory(path_to_directory=dataset, recursive=True))
+                        self.datasets[key] = Dataset.from_local_directory(path_to_directory=dataset, recursive=True)
 
                 # If `dataset` is a dictionary including a "path" key:
                 elif "path" in dataset:

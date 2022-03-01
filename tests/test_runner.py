@@ -135,16 +135,14 @@ class RunnerTestCase(BaseTestCase):
             twine="""
                 {
                     "output_manifest": {
-                        "datasets": [
-                            {
-                                "key": "open_foam_result",
+                        "datasets": {
+                            "open_foam_result": {
                                 "purpose": "A dataset containing solution fields of an openfoam case."
                             },
-                            {
-                                "key": "airfoil_cp_values",
+                            "airfoil_cp_values": {
                                 "purpose": "A file containing cp values"
                             }
-                        ]
+                        }
                     }
                 }
             """,
