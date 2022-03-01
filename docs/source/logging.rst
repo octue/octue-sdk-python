@@ -1,4 +1,4 @@
-.. _child_services:
+.. _logging:
 
 =======
 Logging

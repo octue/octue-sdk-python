@@ -8,14 +8,14 @@ from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset
 from octue.resources.filter_containers import FilterSet
-from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
+from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
 from tests.resources import create_dataset_with_two_files
 
 
 class TestDataset(BaseTestCase):
     def _create_nested_cloud_dataset(self, dataset_name="a_dataset"):
-        cloud_storage_client = GoogleCloudStorageClient(TEST_PROJECT_NAME)
+        cloud_storage_client = GoogleCloudStorageClient()
 
         cloud_storage_client.upload_from_string(
             "[1, 2, 3]", bucket_name=TEST_BUCKET_NAME, path_in_bucket=f"{dataset_name}/file_0.txt"
@@ -268,8 +268,8 @@ class TestDataset(BaseTestCase):
         self.assertFalse(self.create_valid_dataset().all_files_are_in_cloud)
 
         files = [
-            Datafile(path="gs://hello/file.txt", project_name="blah", hypothetical=True),
-            Datafile(path="gs://goodbye/file.csv", project_name="blah", hypothetical=True),
+            Datafile(path="gs://hello/file.txt", hypothetical=True),
+            Datafile(path="gs://goodbye/file.csv", hypothetical=True),
         ]
 
         self.assertTrue(Dataset(files=files).all_files_are_in_cloud)
@@ -282,11 +282,7 @@ class TestDataset(BaseTestCase):
             dataset = create_dataset_with_two_files(temporary_directory)
             dataset.tags = {"a": "b", "c": 1}
 
-            dataset.to_cloud(
-                project_name=TEST_PROJECT_NAME,
-                bucket_name=TEST_BUCKET_NAME,
-                output_directory="a_directory",
-            )
+            dataset.to_cloud(bucket_name=TEST_BUCKET_NAME, output_directory="a_directory")
 
             path_to_dataset_directory = storage.path.join("a_directory", dataset.name)
             gs_path = f"gs://{TEST_BUCKET_NAME}/{path_to_dataset_directory}"
@@ -300,7 +296,7 @@ class TestDataset(BaseTestCase):
                 {"bucket_name": None, "path_to_dataset_directory": None, "cloud_path": gs_path},
             ):
 
-                persisted_dataset = Dataset.from_cloud(project_name=TEST_PROJECT_NAME, **location_parameters)
+                persisted_dataset = Dataset.from_cloud(**location_parameters)
 
                 self.assertEqual(persisted_dataset.path, f"gs://{TEST_BUCKET_NAME}/a_directory/{dataset.name}")
                 self.assertEqual(persisted_dataset.id, dataset.id)
@@ -313,24 +309,24 @@ class TestDataset(BaseTestCase):
                 for file in persisted_dataset:
                     self.assertEqual(file.path, f"gs://{TEST_BUCKET_NAME}/a_directory/{dataset.name}/{file.name}")
 
-    def test_from_cloud_with_no_datafile_json_file(self):
-        """Test that any cloud directory can be accessed as a dataset if it has no `dataset.json` metadata file in it,
-        the cloud dataset doesn't lose any information during serialization, and a metadata file is uploaded afterwards.
+    def test_from_cloud_with_no_datafile_metadata_file(self):
+        """Test that any cloud directory can be accessed as a dataset if it has no `dataset_metadata.json` metadata
+        file in it, the cloud dataset doesn't lose any information during serialization, and a metadata file is
+        uploaded afterwards.
         """
-        cloud_storage_client = GoogleCloudStorageClient(TEST_PROJECT_NAME)
+        cloud_storage_client = GoogleCloudStorageClient()
 
         cloud_storage_client.upload_from_string(
-            "[1, 2, 3]", bucket_name=TEST_BUCKET_NAME, path_in_bucket="my_dataset/file_0.txt"
+            "[1, 2, 3]",
+            cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_dataset", "file_0.txt"),
         )
 
         cloud_storage_client.upload_from_string(
-            "[4, 5, 6]", bucket_name=TEST_BUCKET_NAME, path_in_bucket="my_dataset/file_1.txt"
+            "[4, 5, 6]",
+            cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_dataset", "file_1.txt"),
         )
 
-        cloud_dataset = Dataset.from_cloud(
-            project_name=TEST_PROJECT_NAME,
-            cloud_path=f"gs://{TEST_BUCKET_NAME}/my_dataset",
-        )
+        cloud_dataset = Dataset.from_cloud(cloud_path=f"gs://{TEST_BUCKET_NAME}/my_dataset")
 
         self.assertEqual(cloud_dataset.path, f"gs://{TEST_BUCKET_NAME}/my_dataset")
         self.assertEqual(cloud_dataset.name, "my_dataset")
@@ -371,11 +367,7 @@ class TestDataset(BaseTestCase):
         """Test that a nested dataset is loaded from the cloud correctly."""
         self._create_nested_cloud_dataset()
 
-        cloud_dataset = Dataset.from_cloud(
-            project_name=TEST_PROJECT_NAME,
-            cloud_path=f"gs://{TEST_BUCKET_NAME}/a_dataset",
-            recursive=True,
-        )
+        cloud_dataset = Dataset.from_cloud(cloud_path=f"gs://{TEST_BUCKET_NAME}/a_dataset", recursive=True)
 
         self.assertEqual(cloud_dataset.path, f"gs://{TEST_BUCKET_NAME}/a_dataset")
         self.assertEqual(cloud_dataset.name, "a_dataset")
@@ -386,7 +378,7 @@ class TestDataset(BaseTestCase):
 
         # Test dataset metadata file has been uploaded.
         dataset_metadata = json.loads(
-            GoogleCloudStorageClient(TEST_PROJECT_NAME).download_as_string(
+            GoogleCloudStorageClient().download_as_string(
                 cloud_path=storage.path.join(cloud_dataset.path, definitions.DATASET_METADATA_FILENAME)
             )
         )
@@ -418,9 +410,9 @@ class TestDataset(BaseTestCase):
                 {"bucket_name": TEST_BUCKET_NAME, "output_directory": output_directory, "cloud_path": None},
                 {"bucket_name": None, "output_directory": None, "cloud_path": cloud_path},
             ):
-                dataset.to_cloud(TEST_PROJECT_NAME, **location_parameters)
+                dataset.to_cloud(**location_parameters)
 
-                storage_client = GoogleCloudStorageClient(TEST_PROJECT_NAME)
+                storage_client = GoogleCloudStorageClient()
 
                 persisted_file_0 = storage_client.download_as_string(
                     cloud_path=storage.path.join(cloud_path, dataset.name, "file_0.txt"),
@@ -462,9 +454,9 @@ class TestDataset(BaseTestCase):
             dataset = Dataset.from_local_directory(temporary_directory, recursive=True)
 
             upload_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-dataset")
-            dataset.to_cloud(project_name=TEST_PROJECT_NAME, cloud_path=upload_path)
+            dataset.to_cloud(cloud_path=upload_path)
 
-        uploaded_dataset = Dataset.from_cloud(project_name=TEST_PROJECT_NAME, cloud_path=upload_path)
+        uploaded_dataset = Dataset.from_cloud(cloud_path=upload_path)
 
         # Check that the paths relative to the dataset directory are the same in the cloud as they are locally.
         local_datafile_relative_paths = {
@@ -480,7 +472,7 @@ class TestDataset(BaseTestCase):
 
     def test_download_all_files(self):
         """Test that all files in a dataset can be downloaded with one command."""
-        storage_client = GoogleCloudStorageClient(project_name=TEST_PROJECT_NAME)
+        storage_client = GoogleCloudStorageClient()
 
         dataset_name = "another-dataset"
         storage_client.upload_from_string(
@@ -490,9 +482,7 @@ class TestDataset(BaseTestCase):
             string=json.dumps([4, 5, 6]), bucket_name=TEST_BUCKET_NAME, path_in_bucket=f"{dataset_name}/file_1.txt"
         )
 
-        dataset = Dataset.from_cloud(
-            project_name=TEST_PROJECT_NAME, cloud_path=f"gs://{TEST_BUCKET_NAME}/{dataset_name}"
-        )
+        dataset = Dataset.from_cloud(cloud_path=f"gs://{TEST_BUCKET_NAME}/{dataset_name}")
 
         with tempfile.TemporaryDirectory() as temporary_directory:
             dataset.download_all_files(local_directory=temporary_directory)
@@ -507,11 +497,7 @@ class TestDataset(BaseTestCase):
         """Test that all files in a nested dataset can be downloaded with one command."""
         self._create_nested_cloud_dataset("nested_dataset")
 
-        dataset = Dataset.from_cloud(
-            project_name=TEST_PROJECT_NAME,
-            cloud_path=f"gs://{TEST_BUCKET_NAME}/nested_dataset",
-            recursive=True,
-        )
+        dataset = Dataset.from_cloud(cloud_path=f"gs://{TEST_BUCKET_NAME}/nested_dataset", recursive=True)
 
         with tempfile.TemporaryDirectory() as temporary_directory:
             dataset.download_all_files(local_directory=temporary_directory)
