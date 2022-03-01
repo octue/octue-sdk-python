@@ -4,6 +4,15 @@ import os
 CLOUD_STORAGE_PROTOCOL = "gs://"
 
 
+def is_qualified_cloud_path(path):
+    """Determine if the given path is a qualified cloud path - i.e. if it begins with the cloud storage protocol.
+
+    :param str path: the path to check
+    :return bool: `True` if the path starts with the cloud storage protocol
+    """
+    return path.startswith(CLOUD_STORAGE_PROTOCOL)
+
+
 def join(*paths):
     """Join segments of path into a valid Google Cloud storage path. This is an analogue to `os.path.join` for Google
     Cloud storage paths.
@@ -17,7 +26,7 @@ def join(*paths):
     path = os.path.normpath(os.path.join(*paths)).replace("\\", "/")
 
     if path.startswith("gs:/"):
-        if not path.startswith(CLOUD_STORAGE_PROTOCOL):
+        if not is_qualified_cloud_path(path):
             path = path.replace("gs:/", CLOUD_STORAGE_PROTOCOL)
 
     return path
@@ -51,7 +60,7 @@ def strip_protocol_from_path(path):
     :param str path:
     :return str:
     """
-    if not path.startswith(CLOUD_STORAGE_PROTOCOL):
+    if not is_qualified_cloud_path(path):
         return path
     return path.split(":")[1].lstrip("/")
 

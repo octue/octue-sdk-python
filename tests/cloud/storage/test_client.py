@@ -8,7 +8,7 @@ import google.cloud.exceptions
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
+from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
 
 
@@ -20,7 +20,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         :return None:
         """
         cls.FILENAME = "my_file.txt"
-        cls.storage_client = GoogleCloudStorageClient(project_name=TEST_PROJECT_NAME)
+        cls.storage_client = GoogleCloudStorageClient()
 
     def test_create_bucket(self):
         """Test that a bucket can be created."""
