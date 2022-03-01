@@ -3,7 +3,7 @@ import os
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.exceptions import InvalidInputException, InvalidManifestException
+from octue.exceptions import InvalidInputException
 from octue.mixins import Hashable, Identifiable, Pathable, Serialisable
 from octue.resources.datafile import CLOUD_STORAGE_PROTOCOL
 
@@ -18,8 +18,9 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
     _ATTRIBUTES_TO_HASH = ("datasets",)
     _SERIALISE_FIELDS = "datasets", "keys", "id", "name", "path"
 
-    def __init__(self, id=None, path=None, datasets=None, keys=None, **kwargs):
+    def __init__(self, id=None, path=None, datasets=None, **kwargs):
         super().__init__(id=id, path=path)
+        self.datasets = {}
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
@@ -27,20 +28,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         #  get initialised properly, then tidy up this hackjob. Also need to allow Pathables to update ownership
         #  (because decoders work from the bottom of the tree upwards, not top-down)
 
-        datasets = datasets or []
-        self.keys = keys or {}
-
-        # TODO we need to add keys to the manifest file schema in twined so that we know what dataset(s) map to what keys
-        #  In the meantime, we enforce at this level that keys will match
-        if len(self.keys) != len(datasets):
-            raise InvalidManifestException(
-                f"Manifest instantiated with {len(self.keys)} keys, and {len(datasets)} datasets... keys must match datasets!"
-            )
-
-        # Sort the keys by the dataset index so we have a list of keys in the same order as the dataset list.
-        # We'll use this to name the dataset folders
-        key_list = [key for key, value in sorted(self.keys.items(), key=lambda item: item[1])]
-        self._instantiate_datasets(datasets, key_list)
+        self._instantiate_datasets(datasets or {})
         vars(self).update(**kwargs)
 
     @classmethod
@@ -65,20 +53,17 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
 
         datasets = []
 
-        for dataset in serialised_manifest["datasets"]:
+        for key, dataset in serialised_manifest["datasets"].items():
             dataset_bucket_name, path = storage.path.split_bucket_name_from_gs_path(dataset)
 
-            datasets.append(
-                Dataset.from_cloud(
-                    project_name=project_name, bucket_name=dataset_bucket_name, path_to_dataset_directory=path
-                )
+            datasets[key] = Dataset.from_cloud(
+                project_name=project_name, bucket_name=dataset_bucket_name, path_to_dataset_directory=path
             )
 
         return Manifest(
             id=serialised_manifest["id"],
             path=storage.path.generate_gs_path(bucket_name, path_to_manifest_file),
             datasets=datasets,
-            keys=serialised_manifest["keys"],
         )
 
     def to_cloud(
@@ -97,20 +82,20 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         if cloud_path:
             bucket_name, path_to_manifest_file = storage.path.split_bucket_name_from_gs_path(cloud_path)
 
-        datasets = []
+        datasets = {}
         output_directory = storage.path.dirname(path_to_manifest_file)
 
-        for dataset in self.datasets:
+        for key, dataset in self.datasets.items():
 
             if store_datasets:
                 dataset_path = dataset.to_cloud(
                     project_name, bucket_name=bucket_name, output_directory=output_directory
                 )
 
-                datasets.append(dataset_path)
+                datasets[key] = dataset_path
 
             else:
-                datasets.append(dataset.absolute_path)
+                datasets[key] = dataset.absolute_path
 
         serialised_manifest = self.to_primitive()
         serialised_manifest["datasets"] = sorted(datasets)
@@ -133,20 +118,21 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         if not self.datasets:
             return False
 
-        return all(dataset.all_files_are_in_cloud for dataset in self.datasets)
+        return all(dataset.all_files_are_in_cloud for dataset in self.datasets.values())
 
     def get_dataset(self, key):
         """Get a dataset by its key name (as defined in the twine).
 
         :return Dataset: Dataset selected by its key
         """
-        idx = self.keys.get(key, None)
-        if idx is None:
+        dataset = self.datasets.get(key, None)
+
+        if dataset is None:
             raise InvalidInputException(
-                f"Attempted to fetch unknown dataset '{key}' from Manifest. Allowable keys are: {list(self.keys.keys())}"
+                f"Attempted to fetch unknown dataset {key!r} from Manifest. Allowable keys are: {self.datasets.keys()}"
             )
 
-        return self.datasets[idx]
+        return self.datasets[dataset]
 
     def prepare(self, data):
         """Prepare new manifest from a manifest_spec"""
@@ -154,15 +140,13 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
             raise InvalidInputException("You cannot `prepare()` a manifest already instantiated with datasets")
 
         for index, dataset_specification in enumerate(data["datasets"]):
-
-            self.keys[dataset_specification["key"]] = index
             # TODO generate a unique name based on the filter key, label datasets so that the label filters in the spec
             #  apply automatically and generate a description of the dataset
-            self.datasets.append(Dataset(path_from=self, path=dataset_specification["key"]))
+            self.datasets[dataset_specification["key"]] = Dataset(path_from=self, path=dataset_specification["key"])
 
         return self
 
-    def _instantiate_datasets(self, datasets, key_list):
+    def _instantiate_datasets(self, datasets):
         """Add the given datasets to the manifest, instantiating them if needed and giving them the correct path.
         There are several possible forms the datasets can come in:
         * Instantiated Dataset instances
@@ -173,22 +157,20 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
           cloud files
 
         :param iter(any) datasets:
-        :param list key_list:
         :return None:
         """
-        self.datasets = []
-        for key, dataset in zip(key_list, datasets):
+        for key, dataset in datasets.items():
 
             if isinstance(dataset, Dataset):
-                self.datasets.append(dataset)
+                self.datasets[key] = dataset
 
             else:
                 if "path" in dataset:
                     if not os.path.isabs(dataset["path"]) and not dataset["path"].startswith(CLOUD_STORAGE_PROTOCOL):
                         path = dataset.pop("path")
-                        self.datasets.append(Dataset(**dataset, path=path, path_from=self))
+                        self.datasets[key] = Dataset(**dataset, path=path, path_from=self)
                     else:
-                        self.datasets.append(Dataset(**dataset))
+                        self.datasets[key] = Dataset(**dataset)
 
                 else:
-                    self.datasets.append(Dataset(**dataset, path=key, path_from=self))
+                    self.datasets[key] = Dataset(**dataset, path=key, path_from=self)

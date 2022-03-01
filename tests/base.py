@@ -50,8 +50,8 @@ class BaseTestCase(unittest.TestCase):
 
     def create_valid_manifest(self):
         """Create a valid manifest with two valid datasets (they're the same dataset in this case)."""
-        datasets = [self.create_valid_dataset(), self.create_valid_dataset()]
-        manifest = Manifest(datasets=datasets, keys={"my_dataset": 0, "another_dataset": 1})
+        datasets = {"my_dataset": self.create_valid_dataset(), "another_dataset": self.create_valid_dataset()}
+        manifest = Manifest(datasets=datasets)
         return manifest
 
     def _create_octue_configuration_file(self, octue_configuration, directory_path):

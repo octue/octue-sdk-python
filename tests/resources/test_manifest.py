@@ -35,7 +35,7 @@ class TestManifest(BaseTestCase):
             Datafile(path="gs://goodbye/file.csv", project_name="blah", hypothetical=True),
         ]
 
-        manifest = Manifest(datasets=[Dataset(files=files)], keys={"my_dataset": 0})
+        manifest = Manifest(datasets={"my_dataset": Dataset(files=files)})
         self.assertTrue(manifest.all_datasets_are_in_cloud)
 
     def test_deserialise(self):
@@ -47,12 +47,11 @@ class TestManifest(BaseTestCase):
         self.assertEqual(manifest.name, deserialised_manifest.name)
         self.assertEqual(manifest.id, deserialised_manifest.id)
         self.assertEqual(manifest.absolute_path, deserialised_manifest.absolute_path)
-        self.assertEqual(manifest.keys, deserialised_manifest.keys)
 
-        for original_dataset, deserialised_dataset in zip(manifest.datasets, deserialised_manifest.datasets):
-            self.assertEqual(original_dataset.name, deserialised_dataset.name)
-            self.assertEqual(original_dataset.id, deserialised_dataset.id)
-            self.assertEqual(original_dataset.absolute_path, deserialised_dataset.absolute_path)
+        for key in manifest.datasets.keys():
+            self.assertEqual(manifest.datasets[key].name, deserialised_manifest.datasets[key].name)
+            self.assertEqual(manifest.datasets[key].id, deserialised_manifest.datasets[key].id)
+            self.assertEqual(manifest.datasets[key].absolute_path, deserialised_manifest.datasets[key].absolute_path)
 
     def test_to_cloud(self):
         """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance via
@@ -61,7 +60,7 @@ class TestManifest(BaseTestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             dataset_directory_name = os.path.split(temporary_directory)[-1]
             dataset = create_dataset_with_two_files(temporary_directory)
-            manifest = Manifest(datasets=[dataset], keys={"my-dataset": 0})
+            manifest = Manifest(datasets={"my-dataset": dataset})
 
             path_to_manifest_file = storage.path.join("blah", "manifest.json")
             gs_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, path_to_manifest_file)
@@ -80,13 +79,12 @@ class TestManifest(BaseTestCase):
         )
 
         self.assertEqual(persisted_manifest["datasets"], [f"gs://octue-test-bucket/blah/{dataset_directory_name}"])
-        self.assertEqual(persisted_manifest["keys"], {"my-dataset": 0})
 
     def test_to_cloud_without_storing_datasets(self):
         """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             dataset = create_dataset_with_two_files(temporary_directory)
-            manifest = Manifest(datasets=[dataset], keys={"my-dataset": 0})
+            manifest = Manifest(datasets={"my-dataset": dataset})
 
             manifest.to_cloud(
                 TEST_PROJECT_NAME,
@@ -103,7 +101,6 @@ class TestManifest(BaseTestCase):
         )
 
         self.assertEqual(persisted_manifest["datasets"], [temporary_directory])
-        self.assertEqual(persisted_manifest["keys"], {"my-dataset": 0})
 
     def test_from_cloud(self):
         """Test that a Manifest can be instantiated from the cloud via (`bucket_name`, `output_directory`) and via
@@ -111,7 +108,7 @@ class TestManifest(BaseTestCase):
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
             dataset = create_dataset_with_two_files(temporary_directory)
-            manifest = Manifest(datasets=[dataset], keys={"my-dataset": 0})
+            manifest = Manifest(datasets={"my-dataset": dataset})
 
             manifest.to_cloud(
                 TEST_PROJECT_NAME,
@@ -131,7 +128,6 @@ class TestManifest(BaseTestCase):
                 self.assertEqual(persisted_manifest.path, f"gs://{TEST_BUCKET_NAME}/my-directory/manifest.json")
                 self.assertEqual(persisted_manifest.id, manifest.id)
                 self.assertEqual(persisted_manifest.hash_value, manifest.hash_value)
-                self.assertEqual(persisted_manifest.keys, manifest.keys)
                 self.assertEqual(
                     {dataset.name for dataset in persisted_manifest.datasets},
                     {dataset.name for dataset in manifest.datasets},
@@ -159,7 +155,7 @@ class TestManifest(BaseTestCase):
             cloud_path=f"gs://{TEST_BUCKET_NAME}/my_dataset",
         ).to_primitive()
 
-        manifest = Manifest(datasets=[serialised_cloud_dataset], keys={"my_dataset": 0})
+        manifest = Manifest(datasets={"my_dataset": serialised_cloud_dataset})
         self.assertEqual(len(manifest.datasets), 1)
         self.assertEqual(manifest.datasets[0].path, f"gs://{TEST_BUCKET_NAME}/my_dataset")
         self.assertEqual(len(manifest.datasets[0].files), 2)
