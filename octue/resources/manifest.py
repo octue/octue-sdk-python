@@ -7,8 +7,7 @@ from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException
 from octue.mixins import Hashable, Identifiable, Pathable, Serialisable
-
-from .dataset import Dataset
+from octue.resources.dataset import Dataset
 
 
 class Manifest(Pathable, Serialisable, Identifiable, Hashable):
@@ -76,7 +75,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         )
 
     def to_cloud(
-        self, project_name=None, cloud_path=None, bucket_name=None, path_to_manifest_file=None, store_datasets=True
+        self, project_name=None, cloud_path=None, bucket_name=None, path_to_manifest_file=None, store_datasets=False
     ):
         """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory. Either
         (`bucket_name` and `path_to_manifest_file`) or `cloud_path` must be provided.
@@ -104,7 +103,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
                 dataset_path = dataset.to_cloud(bucket_name=bucket_name, output_directory=output_directory)
                 datasets[key] = dataset_path
             else:
-                datasets[key] = dataset.absolute_path
+                datasets[key] = dataset.cloud_path or dataset.absolute_path
 
         serialised_manifest = self.to_primitive()
         serialised_manifest["datasets"] = datasets
@@ -124,9 +123,6 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
 
         :return bool:
         """
-        if not self.datasets:
-            return False
-
         return all(dataset.all_files_are_in_cloud for dataset in self.datasets.values())
 
     def get_dataset(self, key):

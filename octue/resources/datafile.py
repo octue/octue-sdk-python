@@ -172,12 +172,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
             raise TypeError(f"An object of type {type(self)} cannot be compared with {type(other)}.")
         return self.absolute_path > other.absolute_path
 
-    def __repr__(self):
-        return f"<{type(self).__name__}({self.name!r})>"
-
-    def __str__(self):
-        return repr(self)
-
     @classmethod
     def deserialise(cls, serialised_datafile, path_from=None):
         """Deserialise a Datafile from a dictionary. The `path_from` parameter is only used if the path in the
@@ -527,8 +521,11 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
 
     def _calculate_hash(self):
         """Calculate the hash of the file."""
-        hash = calculate_hash(self.local_path)
-        return super()._calculate_hash(hash)
+        try:
+            hash = calculate_hash(self.local_path)
+            return super()._calculate_hash(hash)
+        except FileNotFoundError:
+            return self._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
 
     def _get_cloud_location(self, cloud_path=None, bucket_name=None, path_in_bucket=None):
         """Get the cloud location details for the bucket, allowing the keyword arguments to override any stored values.

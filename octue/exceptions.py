@@ -104,3 +104,7 @@ class InvalidMonitorMessage(OctueSDKException):
 
 class DeploymentError(OctueSDKException):
     """Raise if an error occurs during the deployment of an octue service."""
+
+
+class CloudStorageBucketNotFound(OctueSDKException):
+    """Raise if attempting to access a cloud storage bucket that cannot be found."""

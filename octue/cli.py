@@ -1,5 +1,6 @@
 import functools
 import importlib.util
+import logging
 import os
 import sys
 
@@ -10,7 +11,7 @@ from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
 from octue.cloud.pub_sub.service import Service
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.exceptions import DeploymentError
-from octue.log_handlers import get_remote_handler
+from octue.log_handlers import apply_log_handler, get_remote_handler
 from octue.resources import service_backends
 from octue.runner import Runner
 from twined import Twine
@@ -23,6 +24,7 @@ APACHE_BEAM_PACKAGE_AVAILABLE = bool(importlib.util.find_spec("apache_beam"))
 if APACHE_BEAM_PACKAGE_AVAILABLE:
     from octue.cloud.deployment.google.dataflow.deployer import DataflowDeployer
 
+logger = logging.getLogger(__name__)
 
 global_cli_context = {}
 
@@ -40,8 +42,7 @@ global_cli_context = {}
     default=False,
     is_flag=True,
     show_default=True,
-    help="Skips the input checking. This can be a timesaver if you already checked "
-    "data directories (especially if manifests are large).",
+    help="Skips the input checking. This can be a timesaver if you already checked data directories (especially if manifests are large).",
 )
 @click.option("--logger-uri", default=None, show_default=True, help="Stream logs to a websocket at the given URI.")
 @click.option(
@@ -72,6 +73,8 @@ def octue_cli(id, skip_checks, logger_uri, log_level, force_reset):
     global_cli_context["log_handler"] = None
     global_cli_context["log_level"] = log_level.upper()
     global_cli_context["force_reset"] = force_reset
+
+    apply_log_handler(log_level=log_level.upper())
 
     if global_cli_context["logger_uri"]:
         global_cli_context["log_handler"] = get_remote_handler(logger_uri=global_cli_context["logger_uri"])
@@ -231,6 +234,8 @@ def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topi
     backend = service_backends.get_backend(backend_configuration_values.pop("name"))(**backend_configuration_values)
 
     service = Service(service_id=service_id, backend=backend, run_function=run_function)
+
+    logger.info("Starting service with ID %r.", service.id)
     service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=delete_topic_and_subscription_on_exit)
 
 

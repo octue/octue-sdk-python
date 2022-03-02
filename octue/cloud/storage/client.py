@@ -4,12 +4,14 @@ import logging
 import os
 import warnings
 
+import google.api_core.exceptions
 from google.cloud import storage
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google_crc32c import Checksum
 
 from octue.cloud.credentials import GCPCredentialsManager
 from octue.cloud.storage.path import split_bucket_name_from_gs_path
+from octue.exceptions import CloudStorageBucketNotFound
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 
@@ -60,6 +62,17 @@ class GoogleCloudStorageClient:
                 return
 
         self.client.create_bucket(bucket_or_name=name, location=location, timeout=timeout)
+
+    def exists(self, cloud_path=None, bucket_name=None, path_in_bucket=None):
+        """Check if a file exists at the given path.
+
+        :param str|None cloud_path: full cloud path to the file (e.g. `gs://bucket_name/path/to/file.csv`)
+        :param str|None bucket_name: name of the bucket to check for the file in
+        :param str|None path_in_bucket: path of the file in the bucket
+        :return bool: `True` if the file exists
+        """
+        blob = self._blob(cloud_path=cloud_path, bucket_name=bucket_name, path_in_bucket=path_in_bucket)
+        return blob.exists()
 
     def upload_file(
         self,
@@ -274,12 +287,17 @@ class GoogleCloudStorageClient:
         :param str|None cloud_path:
         :param str|None bucket_name:
         :param str|None path_in_bucket:
+        :raise octue.exceptions.CloudStorageBucketNotFound: if the bucket isn't found
         :return google.cloud.storage.blob.Blob:
         """
         if cloud_path:
             bucket_name, path_in_bucket = split_bucket_name_from_gs_path(cloud_path)
 
-        bucket = self.client.get_bucket(bucket_or_name=bucket_name)
+        try:
+            bucket = self.client.get_bucket(bucket_or_name=bucket_name)
+        except google.api_core.exceptions.NotFound:
+            raise CloudStorageBucketNotFound(f"The bucket {bucket_name!r} was not found.") from None
+
         return bucket.blob(blob_name=self._strip_leading_slash(path_in_bucket))
 
     def _compute_crc32c_checksum(self, string_or_bytes):

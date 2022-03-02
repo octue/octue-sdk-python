@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import tempfile
 from unittest.mock import patch
@@ -10,10 +11,15 @@ from tests.base import BaseTestCase
 
 
 class TestGCPCredentialsManager(BaseTestCase):
-    def test_warning_issued_if_no_environment_variable(self):
-        """Ensure a warning is issued if the given environment variable can't be found."""
-        with self.assertWarns(Warning):
+    def test_log_message_if_no_environment_variable(self):
+        """Ensure a debug message is logged if the given environment variable can't be found."""
+        with self.assertLogs(level=logging.DEBUG) as logging_context:
             GCPCredentialsManager(environment_variable_name="heeby_jeeby-11111-33103")
+
+        self.assertIn(
+            "No environment variable called 'heeby_jeeby-11111-33103'; resorting to default Google Cloud credentials.",
+            logging_context.output[0],
+        )
 
     def test_credentials_can_be_loaded_from_file(self):
         """Test that credentials can be loaded from the file at the path specified by the environment variable."""

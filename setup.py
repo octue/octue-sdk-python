@@ -17,7 +17,7 @@ with open("LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.12.0",
+    version="0.13.0",
     py_modules=["cli"],
     install_requires=[
         "click>=7.1.2",
@@ -34,7 +34,7 @@ setup(
     extras_require={"hdf5": ["h5py==3.6.0"], "dataflow": ["apache-beam[gcp]==2.36.0"]},
     url="https://www.github.com/octue/octue-sdk-python",
     license="MIT",
-    author="Thomas Clark (github: thclark)",
+    author="Thomas Clark (github: thclark), cortadocodes <cortado.codes@protonmail.com>",
     author_email="support@octue.com",
     description="A package providing template applications for data services, and a python SDK to the Octue API",
     long_description=readme_text,

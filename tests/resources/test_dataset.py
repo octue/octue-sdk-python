@@ -264,8 +264,8 @@ class TestDataset(BaseTestCase):
 
     def test_exists_in_cloud(self):
         """Test whether all files of a dataset are in the cloud or not can be determined."""
-        self.assertFalse(Dataset().all_files_are_in_cloud)
         self.assertFalse(self.create_valid_dataset().all_files_are_in_cloud)
+        self.assertTrue(Dataset().all_files_are_in_cloud)
 
         files = [
             Datafile(path="gs://hello/file.txt", hypothetical=True),
@@ -296,18 +296,21 @@ class TestDataset(BaseTestCase):
                 {"bucket_name": None, "path_to_dataset_directory": None, "cloud_path": gs_path},
             ):
 
-                persisted_dataset = Dataset.from_cloud(**location_parameters)
+                with self.subTest(**location_parameters):
+                    persisted_dataset = Dataset.from_cloud(**location_parameters)
 
-                self.assertEqual(persisted_dataset.path, f"gs://{TEST_BUCKET_NAME}/a_directory/{dataset.name}")
-                self.assertEqual(persisted_dataset.id, dataset.id)
-                self.assertEqual(persisted_dataset.name, dataset.name)
-                self.assertEqual(persisted_dataset.hash_value, dataset.hash_value)
-                self.assertEqual(persisted_dataset.tags, dataset.tags)
-                self.assertEqual(persisted_dataset.labels, dataset.labels)
-                self.assertEqual({file.name for file in persisted_dataset.files}, {file.name for file in dataset.files})
+                    self.assertEqual(persisted_dataset.path, f"gs://{TEST_BUCKET_NAME}/a_directory/{dataset.name}")
+                    self.assertEqual(persisted_dataset.id, dataset.id)
+                    self.assertEqual(persisted_dataset.name, dataset.name)
+                    self.assertEqual(persisted_dataset.hash_value, dataset.hash_value)
+                    self.assertEqual(persisted_dataset.tags, dataset.tags)
+                    self.assertEqual(persisted_dataset.labels, dataset.labels)
+                    self.assertEqual(
+                        {file.name for file in persisted_dataset.files}, {file.name for file in dataset.files}
+                    )
 
-                for file in persisted_dataset:
-                    self.assertEqual(file.path, f"gs://{TEST_BUCKET_NAME}/a_directory/{dataset.name}/{file.name}")
+                    for file in persisted_dataset:
+                        self.assertEqual(file.path, f"gs://{TEST_BUCKET_NAME}/a_directory/{dataset.name}/{file.name}")
 
     def test_from_cloud_with_no_datafile_metadata_file(self):
         """Test that any cloud directory can be accessed as a dataset if it has no `dataset_metadata.json` metadata
@@ -410,40 +413,41 @@ class TestDataset(BaseTestCase):
                 {"bucket_name": TEST_BUCKET_NAME, "output_directory": output_directory, "cloud_path": None},
                 {"bucket_name": None, "output_directory": None, "cloud_path": cloud_path},
             ):
-                dataset.to_cloud(**location_parameters)
+                with self.subTest(**location_parameters):
+                    dataset.to_cloud(**location_parameters)
 
-                storage_client = GoogleCloudStorageClient()
+                    storage_client = GoogleCloudStorageClient()
 
-                persisted_file_0 = storage_client.download_as_string(
-                    cloud_path=storage.path.join(cloud_path, dataset.name, "file_0.txt"),
-                )
-
-                self.assertEqual(persisted_file_0, "0")
-
-                persisted_file_1 = storage_client.download_as_string(
-                    bucket_name=TEST_BUCKET_NAME,
-                    path_in_bucket=storage.path.join(output_directory, dataset.name, "file_1.txt"),
-                )
-                self.assertEqual(persisted_file_1, "1")
-
-                persisted_dataset = json.loads(
-                    storage_client.download_as_string(
-                        bucket_name=TEST_BUCKET_NAME,
-                        path_in_bucket=storage.path.join(
-                            output_directory, dataset.name, definitions.DATASET_METADATA_FILENAME
-                        ),
+                    persisted_file_0 = storage_client.download_as_string(
+                        cloud_path=storage.path.join(cloud_path, dataset.name, "file_0.txt"),
                     )
-                )
 
-                self.assertEqual(
-                    persisted_dataset["files"],
-                    [
-                        f"gs://octue-test-bucket/my_datasets/{dataset_directory_name}/file_0.txt",
-                        f"gs://octue-test-bucket/my_datasets/{dataset_directory_name}/file_1.txt",
-                    ],
-                )
+                    self.assertEqual(persisted_file_0, "0")
 
-                self.assertEqual(persisted_dataset["tags"], dataset.tags.to_primitive())
+                    persisted_file_1 = storage_client.download_as_string(
+                        bucket_name=TEST_BUCKET_NAME,
+                        path_in_bucket=storage.path.join(output_directory, dataset.name, "file_1.txt"),
+                    )
+                    self.assertEqual(persisted_file_1, "1")
+
+                    persisted_dataset = json.loads(
+                        storage_client.download_as_string(
+                            bucket_name=TEST_BUCKET_NAME,
+                            path_in_bucket=storage.path.join(
+                                output_directory, dataset.name, definitions.DATASET_METADATA_FILENAME
+                            ),
+                        )
+                    )
+
+                    self.assertEqual(
+                        persisted_dataset["files"],
+                        [
+                            f"gs://octue-test-bucket/my_datasets/{dataset_directory_name}/file_0.txt",
+                            f"gs://octue-test-bucket/my_datasets/{dataset_directory_name}/file_1.txt",
+                        ],
+                    )
+
+                    self.assertEqual(persisted_dataset["tags"], dataset.tags.to_primitive())
 
     def test_to_cloud_with_nested_dataset_preserves_nested_structure(self):
         """Test that uploading a dataset containing datafiles in a nested directory structure to the cloud preserves

@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import warnings
 
 from google.oauth2 import service_account
 
@@ -28,9 +27,9 @@ class GCPCredentialsManager:
         try:
             self.service_account_json = os.environ[self.environment_variable_name]
         except KeyError:
-            warnings.warn(
-                f"No environment variable called {self.environment_variable_name!r}; resorting to default Google Cloud "
-                f"credentials."
+            logger.debug(
+                "No environment variable called %r; resorting to default Google Cloud credentials.",
+                self.environment_variable_name,
             )
             self.service_account_json = None
 

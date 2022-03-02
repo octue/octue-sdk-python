@@ -556,7 +556,7 @@ class TestService(BaseTestCase):
             MockService(backend=BACKEND).ask(
                 service_id=str(uuid.uuid4()),
                 input_values={},
-                input_manifest=Manifest(),
+                input_manifest=self.create_valid_manifest(),
             )
 
     def test_ask_with_input_manifest_with_local_paths_works_if_allowed_and_child_has_access_to_the_local_paths(self):

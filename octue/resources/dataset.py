@@ -3,8 +3,6 @@ import json
 import os
 import warnings
 
-import google.api_core.exceptions
-
 from octue import definitions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
@@ -40,6 +38,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         #  Add a proper `decoder` argument  to the load_json utility in twined so that datasets, datafiles and manifests
         #  get initialised properly, then remove this hackjob.
         self.files = FilterSet()
+        self._cloud_path = None
 
         for file in files or []:
             if isinstance(file, Datafile):
@@ -88,7 +87,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         """Instantiate a Dataset from Google Cloud storage. Either (`bucket_name` and `path_to_dataset_directory`) or
         `cloud_path` must be provided.
 
-        :param str|None cloud_path: full path to dataset in cloud storage (e.g. `gs://bucket_name/path/to/dataset`)
+        :param str|None cloud_path: full path to dataset directory in cloud storage (e.g. `gs://bucket_name/path/to/dataset`)
         :param str|None bucket_name: name of bucket dataset is stored in
         :param str|None path_to_dataset_directory: path to dataset directory (containing dataset's files) in cloud (e.g. `path/to/dataset`)
         :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained in the dataset directory
@@ -101,22 +100,11 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
             )
 
         if cloud_path:
-            bucket_name, path_to_dataset_directory = storage.path.split_bucket_name_from_gs_path(cloud_path)
+            bucket_name = storage.path.split_bucket_name_from_gs_path(cloud_path)[0]
         else:
             cloud_path = storage.path.generate_gs_path(bucket_name, path_to_dataset_directory)
 
-        storage_client = GoogleCloudStorageClient()
-
-        try:
-            dataset_metadata = json.loads(
-                storage_client.download_as_string(
-                    bucket_name=bucket_name,
-                    path_in_bucket=storage.path.join(path_to_dataset_directory, definitions.DATASET_METADATA_FILENAME),
-                )
-            )
-
-        except google.api_core.exceptions.NotFound:
-            dataset_metadata = {}
+        dataset_metadata = cls._get_dataset_metadata(cloud_path=cloud_path)
 
         if dataset_metadata:
             return Dataset(
@@ -134,7 +122,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         )
 
         dataset = Dataset(path=cloud_path, files=datafiles)
-        dataset._upload_metadata_file(cloud_path)
+        dataset._upload_dataset_metadata(cloud_path)
         return dataset
 
     def to_cloud(self, project_name=None, cloud_path=None, bucket_name=None, output_directory=None):
@@ -180,7 +168,8 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.map(upload, files_and_paths)
 
-        self._upload_metadata_file(cloud_path)
+        self._upload_dataset_metadata(cloud_path)
+        self._cloud_path = cloud_path
         return cloud_path
 
     @property
@@ -192,14 +181,32 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         return self._name or os.path.split(os.path.abspath(os.path.split(self.path)[-1]))[-1]
 
     @property
+    def cloud_path(self):
+        """Get the cloud path of the dataset.
+
+        :return str|None:
+        """
+        return self._cloud_path
+
+    @cloud_path.setter
+    def cloud_path(self, path):
+        """Set the cloud path of the dataset.
+
+        :param str|None path:
+        :return None:
+        """
+        if path is None:
+            self._cloud_path = None
+            return
+
+        self.to_cloud(cloud_path=path)
+
+    @property
     def all_files_are_in_cloud(self):
         """Do all the files of the dataset exist in the cloud?
 
         :return bool:
         """
-        if not self.files:
-            return False
-
         return all(file.exists_in_cloud for file in self.files)
 
     def add(self, *args, **kwargs):
@@ -247,7 +254,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
 
         for datafile in self.files:
             if local_directory:
-                path_relative_to_dataset = datafile.cloud_path.split(self.name + "/")[1]
+                path_relative_to_dataset = storage.path.relpath(datafile.cloud_path, self.path)
                 local_path = os.path.abspath(os.path.join(local_directory, *path_relative_to_dataset.split("/")))
             else:
                 local_path = None
@@ -268,10 +275,25 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.map(download, files_and_paths)
 
-    def _upload_metadata_file(self, cloud_path):
+    @staticmethod
+    def _get_dataset_metadata(cloud_path):
+        """Get the metadata for the given dataset if a dataset metadata file has previously been uploaded.
+
+        :param str cloud_path: the path to the dataset cloud directory
+        :return dict: the dataset metadata
+        """
+        storage_client = GoogleCloudStorageClient()
+        metadata_file_path = storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME)
+
+        if not storage_client.exists(cloud_path=metadata_file_path):
+            return {}
+
+        return json.loads(storage_client.download_as_string(cloud_path=metadata_file_path))
+
+    def _upload_dataset_metadata(self, cloud_path):
         """Upload a metadata file representing the dataset to the given cloud location.
 
-        :param str cloud_path:
+        :param str cloud_path: the path to the dataset cloud directory
         :return None:
         """
         serialised_dataset = self.to_primitive()
