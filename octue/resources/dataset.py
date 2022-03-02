@@ -38,6 +38,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         #  Add a proper `decoder` argument  to the load_json utility in twined so that datasets, datafiles and manifests
         #  get initialised properly, then remove this hackjob.
         self.files = FilterSet()
+        self._cloud_path = None
 
         for file in files or []:
             if isinstance(file, Datafile):
@@ -168,6 +169,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
             executor.map(upload, files_and_paths)
 
         self._upload_dataset_metadata(cloud_path)
+        self._cloud_path = cloud_path
         return cloud_path
 
     @property
@@ -177,6 +179,27 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         :return str:
         """
         return self._name or os.path.split(os.path.abspath(os.path.split(self.path)[-1]))[-1]
+
+    @property
+    def cloud_path(self):
+        """Get the cloud path of the dataset.
+
+        :return str|None:
+        """
+        return self._cloud_path
+
+    @cloud_path.setter
+    def cloud_path(self, path):
+        """Set the cloud path of the dataset.
+
+        :param str|None path:
+        :return None:
+        """
+        if path is None:
+            self._cloud_path = None
+            return
+
+        self.to_cloud(cloud_path=path)
 
     @property
     def all_files_are_in_cloud(self):
