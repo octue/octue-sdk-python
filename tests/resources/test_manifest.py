@@ -63,7 +63,7 @@ class TestManifest(BaseTestCase):
 
             manifest = Manifest(datasets={"my-dataset": dataset})
 
-            path_to_manifest_file = storage.path.join("blah", "manifest.json")
+            path_to_manifest_file = "manifest.json"
             gs_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, path_to_manifest_file)
 
             for location_parameters in (
@@ -76,7 +76,7 @@ class TestManifest(BaseTestCase):
                     persisted_manifest = json.loads(
                         GoogleCloudStorageClient().download_as_string(
                             bucket_name=TEST_BUCKET_NAME,
-                            path_in_bucket=storage.path.join("blah", "manifest.json"),
+                            path_in_bucket="manifest.json",
                         )
                     )
 
@@ -112,6 +112,9 @@ class TestManifest(BaseTestCase):
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
             dataset = create_dataset_with_two_files(temporary_directory)
+            dataset_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_nice_dataset")
+            dataset.to_cloud(cloud_path=dataset_path)
+
             manifest = Manifest(datasets={"my-dataset": dataset})
 
             manifest.to_cloud(
@@ -138,7 +141,7 @@ class TestManifest(BaseTestCase):
                     )
 
                     for dataset in persisted_manifest.datasets.values():
-                        self.assertEqual(dataset.path, f"gs://{TEST_BUCKET_NAME}/my-directory/{dataset.name}")
+                        self.assertEqual(dataset.path, dataset_path)
                         self.assertTrue(len(dataset.files), 2)
                         self.assertTrue(all(isinstance(file, Datafile) for file in dataset.files))
 
