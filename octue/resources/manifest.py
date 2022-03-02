@@ -7,8 +7,7 @@ from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException
 from octue.mixins import Hashable, Identifiable, Pathable, Serialisable
-
-from .dataset import Dataset
+from octue.resources.dataset import Dataset
 
 
 class Manifest(Pathable, Serialisable, Identifiable, Hashable):
