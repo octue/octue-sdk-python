@@ -1,5 +1,6 @@
 import json
 import logging
+import warnings
 
 import twined.exceptions
 from octue.definitions import OUTPUT_STRANDS
@@ -110,10 +111,15 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         :param str output_dir: path-like pointing to directory where the outputs should be saved to file (if None, files are not written)
         :param bool save_locally:
         :param bool upload_to_cloud:
-        :param str project_name:
         :param str bucket_name:
         :return dict: serialised strings for values and manifest data.
         """
+        if project_name:
+            warnings.warn(
+                message="The `project_name` parameter is no longer needed and will be removed soon.",
+                category=DeprecationWarning,
+            )
+
         serialised_strands = {}
 
         for output_strand in OUTPUT_STRANDS:
@@ -141,13 +147,8 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         # Optionally write the manifest to Google Cloud storage.
         if upload_to_cloud:
             if hasattr(self, "output_manifest"):
-                self.output_manifest.to_cloud(project_name, bucket_name, output_dir)
-                logger.debug(
-                    "Wrote %r to cloud storage at project %r in bucket %r.",
-                    self.output_manifest,
-                    project_name,
-                    bucket_name,
-                )
+                self.output_manifest.to_cloud(bucket_name, output_dir)
+                logger.debug("Wrote %r to cloud storage bucket %r.", self.output_manifest, bucket_name)
 
         return serialised_strands
 
