@@ -103,7 +103,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
                 dataset_path = dataset.to_cloud(bucket_name=bucket_name, output_directory=output_directory)
                 datasets[key] = dataset_path
             else:
-                datasets[key] = dataset.absolute_path
+                datasets[key] = dataset.cloud_path or dataset.absolute_path
 
         serialised_manifest = self.to_primitive()
         serialised_manifest["datasets"] = datasets
