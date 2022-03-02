@@ -58,8 +58,9 @@ class TestManifest(BaseTestCase):
         (`bucket_name`, `output_directory`) and via `gs_path`.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
-            dataset_directory_name = os.path.split(temporary_directory)[-1]
             dataset = create_dataset_with_two_files(temporary_directory)
+            dataset.to_cloud(cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-small-dataset"))
+
             manifest = Manifest(datasets={"my-dataset": dataset})
 
             path_to_manifest_file = storage.path.join("blah", "manifest.json")
@@ -81,7 +82,7 @@ class TestManifest(BaseTestCase):
 
                     self.assertEqual(
                         persisted_manifest["datasets"]["my-dataset"],
-                        f"gs://octue-test-bucket/blah/{dataset_directory_name}",
+                        "gs://octue-test-bucket/my-small-dataset",
                     )
 
     def test_to_cloud_without_storing_datasets(self):
