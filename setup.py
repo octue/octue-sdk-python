@@ -17,7 +17,7 @@ with open("LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.11.0",
+    version="0.12.0",
     py_modules=["cli"],
     install_requires=[
         "click>=7.1.2",
@@ -29,7 +29,7 @@ setup(
         "google-crc32c>=1.1.2",
         "gunicorn",
         "python-dateutil>=2.8.1",
-        "twined==0.1.0",
+        "twined==0.2.0",
     ],
     extras_require={"hdf5": ["h5py==3.6.0"], "dataflow": ["apache-beam[gcp]==2.36.0"]},
     url="https://www.github.com/octue/octue-sdk-python",
