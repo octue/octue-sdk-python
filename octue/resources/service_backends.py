@@ -10,12 +10,15 @@ from abc import ABC
 from octue import exceptions
 
 
-def get_backend(backend_name):
+def get_backend(backend_name=None):
     """Get the service backend with the given name.
 
-    :param str backend_name:
+    :param str|None backend_name: if `None`, return the `GCPPubSubBackend`
     :return ServiceBackend:
     """
+    if not backend_name:
+        return GCPPubSubBackend
+
     if backend_name not in AVAILABLE_BACKENDS:
         raise exceptions.BackendNotFound(
             f"Backend with name {backend_name} not found. Available backends are {list(AVAILABLE_BACKENDS.keys())}"
