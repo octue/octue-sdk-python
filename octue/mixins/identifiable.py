@@ -51,6 +51,15 @@ class Identifiable:
         """
         return self._name
 
+    @name.setter
+    def name(self, name):
+        """Set the name of the identifiable instance.
+
+        :param str name:
+        :return None:
+        """
+        self._name = name
+
     def _set_id(self, value):
         """Set the ID to the given value.
 

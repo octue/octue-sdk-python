@@ -1,9 +1,9 @@
 import functools
-import json
 import logging
 import os
 
 from octue.cloud.pub_sub.service import Service
+from octue.configuration import load_service_and_app_configuration
 from octue.exceptions import MissingServiceID
 from octue.resources.service_backends import GCPPubSubBackend
 from octue.runner import Runner
@@ -13,7 +13,7 @@ from octue.utils.objects import get_nested_attribute
 logger = logging.getLogger(__name__)
 
 
-DEPLOYMENT_CONFIGURATION_PATH = "deployment_configuration.json"
+SERVICE_CONFIGURATION_PATH = "service.yaml"
 
 
 def answer_question(question, project_name, credentials_environment_variable=None):
@@ -38,32 +38,28 @@ def answer_question(question, project_name, credentials_environment_variable=Non
     service = Service(
         service_id=service_id,
         backend=GCPPubSubBackend(
-            project_name=project_name, credentials_environment_variable=credentials_environment_variable
+            project_name=project_name,
+            credentials_environment_variable=credentials_environment_variable,
         ),
-        name=os.environ.get("SERVICE_NAME"),
     )
 
     answer_topic = service.instantiate_answer_topic(question_uuid)
 
     try:
-        deployment_configuration = _get_deployment_configuration(DEPLOYMENT_CONFIGURATION_PATH)
+        service_configuration, app_configuration = load_service_and_app_configuration(SERVICE_CONFIGURATION_PATH)
+        service.name = service_configuration["name"]
 
         runner = Runner(
-            app_src=deployment_configuration.get("app_dir", "."),
-            twine=deployment_configuration.get("twine", "twine.json"),
-            configuration_values=deployment_configuration.get("configuration_values", None),
-            configuration_manifest=deployment_configuration.get("configuration_manifest", None),
-            output_manifest_path=deployment_configuration.get("output_manifest", None),
-            children=deployment_configuration.get("children", None),
-            skip_checks=deployment_configuration.get("skip_checks", False),
+            app_src=service_configuration.get("app_source_path", "."),
+            twine=service_configuration.get("twine_path", "twine.json"),
+            configuration_values=app_configuration.get("configuration_values", None),
+            configuration_manifest=app_configuration.get("configuration_manifest", None),
+            output_manifest_path=app_configuration.get("output_manifest", None),
+            children=app_configuration.get("children", None),
             project_name=project_name,
         )
 
-        service.run_function = functools.partial(
-            runner.run,
-            analysis_log_level=deployment_configuration.get("log_level", "INFO"),
-            analysis_log_handler=deployment_configuration.get("log_handler", None),
-        )
+        service.run_function = functools.partial(runner.run)
 
         service.answer(question, answer_topic=answer_topic)
         logger.info("Analysis successfully run and response sent for question %r.", question_uuid)
@@ -72,22 +68,3 @@ def answer_question(question, project_name, credentials_environment_variable=Non
     except BaseException as error:  # noqa
         service.send_exception_to_asker(topic=answer_topic)
         logger.exception(error)
-
-
-def _get_deployment_configuration(deployment_configuration_path):
-    """Get the deployment configuration from the given JSON file path or return an empty one.
-
-    :param str deployment_configuration_path: path to deployment configuration file
-    :return dict:
-    """
-    try:
-        with open(deployment_configuration_path) as f:
-            deployment_configuration = json.load(f)
-
-        logger.info("Deployment configuration loaded from %r.", os.path.abspath(deployment_configuration_path))
-
-    except FileNotFoundError:
-        deployment_configuration = {}
-        logger.info("Default deployment configuration used.")
-
-    return deployment_configuration
