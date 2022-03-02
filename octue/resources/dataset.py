@@ -123,6 +123,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
 
         dataset = Dataset(path=cloud_path, files=datafiles)
         dataset._upload_dataset_metadata(cloud_path)
+        dataset._cloud_path = cloud_path
         return dataset
 
     def to_cloud(self, project_name=None, cloud_path=None, bucket_name=None, output_directory=None):
