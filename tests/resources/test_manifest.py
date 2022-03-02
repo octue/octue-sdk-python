@@ -69,18 +69,20 @@ class TestManifest(BaseTestCase):
                 {"bucket_name": TEST_BUCKET_NAME, "path_to_manifest_file": path_to_manifest_file, "cloud_path": None},
                 {"bucket_name": None, "path_to_manifest_file": None, "cloud_path": gs_path},
             ):
-                manifest.to_cloud(**location_parameters)
+                with self.subTest(**location_parameters):
+                    manifest.to_cloud(**location_parameters)
 
-        persisted_manifest = json.loads(
-            GoogleCloudStorageClient().download_as_string(
-                bucket_name=TEST_BUCKET_NAME,
-                path_in_bucket=storage.path.join("blah", "manifest.json"),
-            )
-        )
+                    persisted_manifest = json.loads(
+                        GoogleCloudStorageClient().download_as_string(
+                            bucket_name=TEST_BUCKET_NAME,
+                            path_in_bucket=storage.path.join("blah", "manifest.json"),
+                        )
+                    )
 
-        self.assertEqual(
-            persisted_manifest["datasets"]["my-dataset"], f"gs://octue-test-bucket/blah/{dataset_directory_name}"
-        )
+                    self.assertEqual(
+                        persisted_manifest["datasets"]["my-dataset"],
+                        f"gs://octue-test-bucket/blah/{dataset_directory_name}",
+                    )
 
     def test_to_cloud_without_storing_datasets(self):
         """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance."""
@@ -123,20 +125,21 @@ class TestManifest(BaseTestCase):
                 {"bucket_name": TEST_BUCKET_NAME, "path_to_manifest_file": path_to_manifest_file, "cloud_path": None},
                 {"bucket_name": None, "path_to_manifest_file": None, "cloud_path": gs_path},
             ):
-                persisted_manifest = Manifest.from_cloud(**location_parameters)
+                with self.subTest(**location_parameters):
+                    persisted_manifest = Manifest.from_cloud(**location_parameters)
 
-                self.assertEqual(persisted_manifest.path, f"gs://{TEST_BUCKET_NAME}/my-directory/manifest.json")
-                self.assertEqual(persisted_manifest.id, manifest.id)
-                self.assertEqual(persisted_manifest.hash_value, manifest.hash_value)
-                self.assertEqual(
-                    {dataset.name for dataset in persisted_manifest.datasets.values()},
-                    {dataset.name for dataset in manifest.datasets.values()},
-                )
+                    self.assertEqual(persisted_manifest.path, f"gs://{TEST_BUCKET_NAME}/my-directory/manifest.json")
+                    self.assertEqual(persisted_manifest.id, manifest.id)
+                    self.assertEqual(persisted_manifest.hash_value, manifest.hash_value)
+                    self.assertEqual(
+                        {dataset.name for dataset in persisted_manifest.datasets.values()},
+                        {dataset.name for dataset in manifest.datasets.values()},
+                    )
 
-                for dataset in persisted_manifest.datasets.values():
-                    self.assertEqual(dataset.path, f"gs://{TEST_BUCKET_NAME}/my-directory/{dataset.name}")
-                    self.assertTrue(len(dataset.files), 2)
-                    self.assertTrue(all(isinstance(file, Datafile) for file in dataset.files))
+                    for dataset in persisted_manifest.datasets.values():
+                        self.assertEqual(dataset.path, f"gs://{TEST_BUCKET_NAME}/my-directory/{dataset.name}")
+                        self.assertTrue(len(dataset.files), 2)
+                        self.assertTrue(all(isinstance(file, Datafile) for file in dataset.files))
 
     def test_instantiating_from_serialised_cloud_datasets_with_no_dataset_json_file(self):
         """Test that a Manifest can be instantiated from a serialized cloud dataset with no `dataset.json` file. This
