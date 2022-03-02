@@ -75,7 +75,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         )
 
     def to_cloud(
-        self, project_name=None, cloud_path=None, bucket_name=None, path_to_manifest_file=None, store_datasets=True
+        self, project_name=None, cloud_path=None, bucket_name=None, path_to_manifest_file=None, store_datasets=False
     ):
         """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory. Either
         (`bucket_name` and `path_to_manifest_file`) or `cloud_path` must be provided.
