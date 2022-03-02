@@ -215,7 +215,12 @@ def start(service_configuration_path, service_id, timeout, delete_topic_and_subs
         # If no backend details are provided, use Google Pub/Sub with the default project.
         backend = service_backends.get_backend()(project_name=GCPCredentialsManager().get_credentials().project_id)
 
-    service = Service(service_id=service_id, backend=backend, run_function=run_function)
+    service = Service(
+        name=service_configuration["name"],
+        service_id=service_id,
+        backend=backend,
+        run_function=run_function,
+    )
 
     logger.info("Starting service with ID %r.", service.id)
     service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=delete_topic_and_subscription_on_exit)
