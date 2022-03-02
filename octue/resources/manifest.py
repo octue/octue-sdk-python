@@ -2,6 +2,7 @@ import json
 import os
 import warnings
 
+import octue.migrations.manifest
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException
@@ -16,7 +17,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
 
     :param str|None id: the UUID of the manifest (a UUID is generated if one isn't given)
     :param str|None path: the path the manifest exists at (defaults to the current working directory)
-    :param dict|None datasets: a mapping of dataset names to `Dataset` instances, serialised datasets, or paths to datasets
+    :param dict(str, octue.resources.dataset.Dataset|dict|str)|None datasets: a mapping of dataset names to `Dataset` instances, serialised datasets, or paths to datasets
     :return None:
     """
 
@@ -25,25 +26,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
 
     def __init__(self, id=None, path=None, datasets=None, **kwargs):
         if isinstance(datasets, list):
-            translated_datasets = {}
-
-            for index, dataset in enumerate(datasets):
-                if isinstance(dataset, str):
-                    key = f"unknown_{index}"
-                else:
-                    key = dataset.get("name") or kwargs.get("keys", {}).get(index, f"unknown_{index}")
-
-                translated_datasets[key] = dataset
-
-            datasets = translated_datasets
-
-            warnings.warn(
-                message=(
-                    "Datasets belonging to a manifest should be provided as a dictionary mapping their name to "
-                    "themselves. Support for providing a list of datasets will be phased out soon."
-                ),
-                category=DeprecationWarning,
-            )
+            datasets = octue.migrations.manifest.translate_datasets_list_to_dictionary(datasets, kwargs.get("keys"))
 
         super().__init__(id=id, path=path)
         self.datasets = {}
@@ -189,7 +172,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         * Including datafiles that don't yet exist or are not possessed currently (e.g. future output locations or
           cloud files)
 
-        :param iter(octue.resources.dataset.Dataset|str|dict) datasets: the datasets to add to the manifest
+        :param dict(str, octue.resources.dataset.Dataset|dict|str) datasets: the datasets to add to the manifest
         :return None:
         """
         for key, dataset in datasets.items():
