@@ -8,6 +8,7 @@ import google.cloud.exceptions
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
+from octue.exceptions import CloudStorageBucketNotFound
 from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
 
@@ -55,6 +56,11 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
         with self.assertRaises(google.api_core.exceptions.Conflict):
             self.storage_client.create_bucket(name, allow_existing=False)
+
+    def test_error_raised_if_bucket_not_found(self):
+        """Test that an error is raised if a cloud storage bucket isn't found."""
+        with self.assertRaises(CloudStorageBucketNotFound):
+            self.storage_client.exists(cloud_path=storage.path.generate_gs_path("non-existing-bucket", "my_file.json"))
 
     def test_upload_and_download_file(self):
         """Test that a file can be uploaded to Google Cloud storage and downloaded again."""
@@ -296,3 +302,22 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
                 os.path.join(temporary_directory, "bam", "jam", "wam.csv")
             )
             self.assertTrue(os.path.exists(os.path.join(temporary_directory, "bam", "jam")))
+
+    def test_exists(self):
+        """Test that an existing cloud file shows as existing."""
+        path_to_existing_file = storage.path.generate_gs_path(TEST_BUCKET_NAME, "blah")
+
+        self.storage_client.upload_from_string(
+            string="some stuff",
+            cloud_path=path_to_existing_file,
+        )
+
+        self.assertTrue(self.storage_client.exists(cloud_path=path_to_existing_file))
+
+    def test_not_exists(self):
+        """Test that a non-existing cloud file shows as non-existing."""
+        self.assertFalse(
+            self.storage_client.exists(
+                cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "does", "not", "exist.json")
+            )
+        )
