@@ -7,8 +7,10 @@ import sys
 import click
 import pkg_resources
 
+from octue.cloud.credentials import GCPCredentialsManager
 from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
 from octue.cloud.pub_sub.service import Service
+from octue.configuration import load_service_and_app_configuration
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.exceptions import DeploymentError
 from octue.log_handlers import apply_log_handler, get_remote_handler
@@ -167,32 +169,15 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
 
 @octue_cli.command()
 @click.option(
-    "--app-dir",
-    type=click.Path(),
-    default=".",
-    show_default=True,
-    help="Directory containing your source code (app.py)",
-)
-@click.option(
-    "--data-dir",
-    type=click.Path(),
-    default=".",
-    show_default=True,
-    help="Location of directories containing configuration values and manifest.",
-)
-@click.option(
-    "--config-dir",
-    type=click.Path(),
-    default=None,
-    show_default=True,
-    help="Directory containing configuration (overrides --data-dir).",
+    "--service-configuration-path",
+    type=click.Path(dir_okay=False),
+    default="service.yaml",
 )
 @click.option(
     "--service-id",
     type=click.STRING,
     help="The unique ID of the server (this should be unique over all time and space).",
 )
-@click.option("--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.")
 @click.option("--timeout", type=click.INT, default=None, show_default=True, help="Timeout in seconds for serving.")
 @click.option(
     "--delete-topic-and-subscription-on-exit",
@@ -201,26 +186,18 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     show_default=True,
     help="Delete Google Pub/Sub topics and subscriptions on exit.",
 )
-def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topic_and_subscription_on_exit):
+def start(service_configuration_path, service_id, timeout, delete_topic_and_subscription_on_exit):
     """Start the service as a server to be asked questions by other services."""
-    config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
-    twine = Twine(source=twine)
+    service_configuration, app_configuration = load_service_and_app_configuration(service_configuration_path)
 
-    configuration_values, configuration_manifest, children = set_unavailable_strand_paths_to_none(
-        twine,
-        (
-            ("configuration_values", os.path.join(config_dir, VALUES_FILENAME)),
-            ("configuration_manifest", os.path.join(config_dir, MANIFEST_FILENAME)),
-            ("children", os.path.join(config_dir, CHILDREN_FILENAME)),
-        ),
-    )
+    twine = Twine(source=service_configuration["twine_path"])
 
     runner = Runner(
-        app_src=app_dir,
+        app_src=service_configuration["app_source_path"],
         twine=twine,
-        configuration_values=configuration_values,
-        configuration_manifest=configuration_manifest,
-        children=children,
+        configuration_values=app_configuration["configuration_values"],
+        configuration_manifest=app_configuration["configuration_manifest"],
+        children=app_configuration["children"],
         skip_checks=global_cli_context["skip_checks"],
     )
 
@@ -230,8 +207,13 @@ def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topi
         analysis_log_handler=global_cli_context["log_handler"],
     )
 
-    backend_configuration_values = runner.configuration["configuration_values"]["backend"]
-    backend = service_backends.get_backend(backend_configuration_values.pop("name"))(**backend_configuration_values)
+    backend_configuration_values = (app_configuration.get("configuration_values") or {}).get("backend")
+
+    if backend_configuration_values:
+        backend = service_backends.get_backend(backend_configuration_values.pop("name"))(**backend_configuration_values)
+    else:
+        # If no backend details are provided, use Google Pub/Sub with the default project.
+        backend = service_backends.get_backend()(project_name=GCPCredentialsManager().get_credentials().project_id)
 
     service = Service(service_id=service_id, backend=backend, run_function=run_function)
 
