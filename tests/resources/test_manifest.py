@@ -226,4 +226,4 @@ class TestManifest(BaseTestCase):
                 keys={"my_dataset_1": 0, "my_dataset_2": 1},
             )
 
-        self.assertEqual(set(manifest.datasets.keys()), {"unknown_0", "unknown_1"})
+        self.assertEqual(set(manifest.datasets.keys()), {"dataset_0", "dataset_1"})
