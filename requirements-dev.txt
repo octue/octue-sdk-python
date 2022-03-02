@@ -2,7 +2,7 @@
 # Testing
 # ------------------------------------------------------------------------------
 pluggy
-gcp-storage-emulator>=2022.01.29
+gcp-storage-emulator>=2022.02.17
 tox>=3.23.0
 
 # Code quality
