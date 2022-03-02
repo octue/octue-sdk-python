@@ -17,7 +17,7 @@ with open("LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.12.0",
+    version="0.12.1",
     py_modules=["cli"],
     install_requires=[
         "click>=7.1.2",
