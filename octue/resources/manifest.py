@@ -153,7 +153,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         for key, dataset_specification in data["datasets"].items():
             # TODO generate a unique name based on the filter key, label datasets so that the label filters in the spec
             #  apply automatically and generate a description of the dataset
-            self.datasets[key] = Dataset(path_from=self, path=key)
+            self.datasets[key] = Dataset(path=key)
 
         return self
 
@@ -186,14 +186,19 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
 
                 # If `dataset` is a dictionary including a "path" key:
                 elif "path" in dataset:
-                    # If the path is not a cloud path or an absolute local path:
-                    if not os.path.isabs(dataset["path"]) and not storage.path.is_qualified_cloud_path(dataset["path"]):
-                        path = dataset.pop("path")
-                        self.datasets[key] = Dataset(**dataset, path=path, path_from=self)
 
-                    # If the path is a cloud path or an absolute local path:
+                    # If the path is a cloud path:
+                    if storage.path.is_qualified_cloud_path(dataset["path"]):
+                        self.datasets[key] = Dataset.from_cloud(cloud_path=dataset["path"], recursive=True)
+
+                    # If the path is local but not absolute:
+                    elif not os.path.isabs(dataset["path"]):
+                        path = dataset.pop("path")
+                        self.datasets[key] = Dataset(**dataset, path=path)
+
+                    # If the path is an absolute local path:
                     else:
                         self.datasets[key] = Dataset(**dataset)
 
                 else:
-                    self.datasets[key] = Dataset(**dataset, path=key, path_from=self)
+                    self.datasets[key] = Dataset(**dataset, path=key)
