@@ -171,6 +171,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
 
         self._upload_dataset_metadata(cloud_path)
         self._cloud_path = cloud_path
+        self.path = cloud_path
         return cloud_path
 
     @property
