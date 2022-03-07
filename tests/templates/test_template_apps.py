@@ -7,6 +7,8 @@ import tempfile
 import unittest
 import uuid
 
+import yaml
+
 from octue import Runner
 from octue.utils.processes import ProcessesContextManager
 
@@ -89,67 +91,71 @@ class TemplateAppsTestCase(BaseTestCase):
         collected from them). This template has a parent app and two children - an elevation app and wind speed app. The
         parent sends coordinates to both children, receiving the elevation and wind speed from them at these locations.
         """
-        cli_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "octue", "cli.py")
-        self.set_template("template-child-services")
+        initial_directory = os.getcwd()
 
-        elevation_service_path = os.path.join(self.template_path, "elevation_service")
-        elevation_service_uuid = str(uuid.uuid4())
-        elevation_process = subprocess.Popen(
-            [
-                sys.executable,
-                cli_path,
-                "start",
-                f"--app-dir={elevation_service_path}",
-                f"--twine={os.path.join(elevation_service_path, 'twine.json')}",
-                f"--config-dir={os.path.join(elevation_service_path, 'data', 'configuration')}",
-                f"--service-id={elevation_service_uuid}",
-                "--delete-topic-and-subscription-on-exit",
-            ]
-        )
+        try:
+            cli_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "octue", "cli.py")
+            self.set_template("template-child-services")
 
-        wind_speed_service_path = os.path.join(self.template_path, "wind_speed_service")
-        wind_speed_service_uuid = str(uuid.uuid4())
-        wind_speed_process = subprocess.Popen(
-            [
-                sys.executable,
-                cli_path,
-                "start",
-                f"--app-dir={wind_speed_service_path}",
-                f"--twine={os.path.join(wind_speed_service_path, 'twine.json')}",
-                f"--config-dir={os.path.join(wind_speed_service_path, 'data', 'configuration')}",
-                f"--service-id={wind_speed_service_uuid}",
-                "--delete-topic-and-subscription-on-exit",
-            ]
-        )
+            elevation_service_path = os.path.join(self.template_path, "elevation_service")
+            elevation_service_uuid = str(uuid.uuid4())
+            os.chdir(elevation_service_path)
+            elevation_process = subprocess.Popen(
+                [
+                    sys.executable,
+                    cli_path,
+                    "start",
+                    "--service-configuration-path=service.yaml",
+                    f"--service-id={elevation_service_uuid}",
+                    "--delete-topic-and-subscription-on-exit",
+                ]
+            )
 
-        with ProcessesContextManager(processes=(elevation_process, wind_speed_process)):
-            parent_service_path = os.path.join(self.template_path, "parent_service")
+            wind_speed_service_path = os.path.join(self.template_path, "wind_speed_service")
+            wind_speed_service_uuid = str(uuid.uuid4())
+            os.chdir(wind_speed_service_path)
+            wind_speed_process = subprocess.Popen(
+                [
+                    sys.executable,
+                    cli_path,
+                    "start",
+                    "--service-configuration-path=service.yaml",
+                    f"--service-id={wind_speed_service_uuid}",
+                    "--delete-topic-and-subscription-on-exit",
+                ]
+            )
 
-            # Dynamically alter the UUIDs defined in template children.json file to avoid conflicts when the same tests
-            # run in parallel in the GitHub test runner using the actual Google Cloud PubSub instance. Apart from that,
-            # the file remains the same so this test tests the template as closely as possible.
-            with tempfile.TemporaryDirectory() as temporary_directory:
+            with ProcessesContextManager(processes=(elevation_process, wind_speed_process)):
+                parent_service_path = os.path.join(self.template_path, "parent_service")
 
-                with open(os.path.join(parent_service_path, "data", "configuration", "children.json")) as f:
-                    template_children = json.load(f)
+                # Dynamically alter the UUIDs defined in template children.json file to avoid conflicts when the same tests
+                # run in parallel in the GitHub test runner using the actual Google Cloud PubSub instance. Apart from that,
+                # the file remains the same so this test tests the template as closely as possible.
+                with tempfile.TemporaryDirectory() as temporary_directory:
 
-                template_children[0]["id"] = wind_speed_service_uuid
-                template_children[1]["id"] = elevation_service_uuid
+                    with open(os.path.join(parent_service_path, "app.yaml")) as f:
+                        template_children = yaml.load(f, Loader=yaml.SafeLoader)["children"]
 
-                test_children_path = os.path.join(temporary_directory, "children.json")
-                with open(test_children_path, "w") as f:
-                    json.dump(template_children, f)
+                    template_children[0]["id"] = wind_speed_service_uuid
+                    template_children[1]["id"] = elevation_service_uuid
 
-                runner = Runner(
-                    app_src=parent_service_path,
-                    twine=os.path.join(parent_service_path, "twine.json"),
-                    children=test_children_path,
-                )
+                    test_children_path = os.path.join(temporary_directory, "children.json")
+                    with open(test_children_path, "w") as f:
+                        json.dump(template_children, f)
 
-                analysis = runner.run(
-                    input_values=os.path.join(parent_service_path, "data", "input", "values.json"),
-                )
+                    runner = Runner(
+                        app_src=parent_service_path,
+                        twine=os.path.join(parent_service_path, "twine.json"),
+                        children=test_children_path,
+                    )
 
-        analysis.finalise()
-        self.assertTrue("elevations" in analysis.output_values)
-        self.assertTrue("wind_speeds" in analysis.output_values)
+                    analysis = runner.run(
+                        input_values=os.path.join(parent_service_path, "data", "input", "values.json"),
+                    )
+
+            analysis.finalise()
+            self.assertTrue("elevations" in analysis.output_values)
+            self.assertTrue("wind_speeds" in analysis.output_values)
+
+        finally:
+            os.chdir(initial_directory)
