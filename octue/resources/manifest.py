@@ -5,6 +5,7 @@ import octue.migrations.manifest
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException
+from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import Hashable, Identifiable, Pathable, Serialisable
 from octue.resources.dataset import Dataset
 
@@ -39,12 +40,20 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         vars(self).update(**kwargs)
 
     @classmethod
-    def from_cloud(cls, cloud_path=None):
+    def from_cloud(
+        cls,
+        cloud_path=None,
+        bucket_name=None,
+        path_to_manifest_file=None,
+    ):
         """Instantiate a Manifest from Google Cloud storage.
 
         :param str|None cloud_path: full path to manifest in cloud storage (e.g. `gs://bucket_name/path/to/manifest.json`)
         :return Dataset:
         """
+        if not cloud_path:
+            cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_to_manifest_file)
+
         bucket_name, path_to_manifest_file = storage.path.split_bucket_name_from_gs_path(cloud_path)
 
         serialised_manifest = json.loads(GoogleCloudStorageClient().download_as_string(cloud_path))
@@ -60,13 +69,16 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
             datasets=datasets,
         )
 
-    def to_cloud(self, cloud_path=None, store_datasets=False):
+    def to_cloud(self, cloud_path=None, bucket_name=None, path_to_manifest_file=None, store_datasets=False):
         """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory.
 
         :param str|None cloud_path: full path to cloud storage location to store manifest at (e.g. `gs://bucket_name/path/to/manifest.json`)
         :param bool store_datasets: if True, upload datasets to same directory as manifest file
         :return str: gs:// path for manifest file
         """
+        if not cloud_path:
+            cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_to_manifest_file)
+
         bucket_name, path_to_manifest_file = storage.path.split_bucket_name_from_gs_path(cloud_path)
 
         datasets = {}

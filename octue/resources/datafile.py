@@ -7,6 +7,8 @@ from urllib.parse import urlparse
 
 import google.api_core.exceptions
 
+from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
+
 
 try:
     import h5py
@@ -185,14 +187,18 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         datafile._cloud_metadata = cloud_metadata
         return datafile
 
-    def to_cloud(self, cloud_path=None, update_cloud_metadata=True):
+    def to_cloud(self, cloud_path=None, bucket_name=None, path_in_bucket=None, update_cloud_metadata=True):
         """Upload a datafile to Google Cloud Storage.
 
         :param str|None cloud_path: full path to cloud storage location to store datafile at (e.g. `gs://bucket_name/path/to/file.csv`)
         :param bool update_cloud_metadata: if `True`, update the metadata of the datafile in the cloud at upload time
         :return str: gs:// path for datafile
         """
+        if bucket_name:
+            cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_in_bucket)
+
         cloud_path = self._get_cloud_location(cloud_path)
+
         self.get_cloud_metadata()
 
         # If the datafile's file has been changed locally, overwrite its cloud copy.

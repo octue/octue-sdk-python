@@ -6,6 +6,7 @@ from octue import definitions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException
+from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import Hashable, Identifiable, Labelable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
@@ -75,13 +76,16 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         return Dataset(path=path_to_directory, files=datafiles, **kwargs)
 
     @classmethod
-    def from_cloud(cls, cloud_path=None, recursive=False):
+    def from_cloud(cls, cloud_path=None, bucket_name=None, path_to_dataset_directory=None, recursive=False):
         """Instantiate a Dataset from Google Cloud storage.
 
         :param str|None cloud_path: full path to dataset directory in cloud storage (e.g. `gs://bucket_name/path/to/dataset`)
         :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained in the dataset directory
         :return Dataset:
         """
+        if not cloud_path:
+            cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_to_dataset_directory)
+
         bucket_name = storage.path.split_bucket_name_from_gs_path(cloud_path)[0]
 
         dataset_metadata = cls._get_dataset_metadata(cloud_path=cloud_path)
@@ -105,12 +109,20 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         dataset._upload_dataset_metadata(cloud_path)
         return dataset
 
-    def to_cloud(self, cloud_path=None):
+    def to_cloud(
+        self,
+        cloud_path=None,
+        bucket_name=None,
+        output_directory=None,
+    ):
         """Upload a dataset to a cloud location.
 
         :param str|None cloud_path: full cloud storage path to store dataset at (e.g. `gs://bucket_name/path/to/dataset`)
         :return str: cloud path for dataset
         """
+        if not cloud_path:
+            cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, output_directory)
+
         files_and_paths = []
 
         for datafile in self.files:
