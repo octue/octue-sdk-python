@@ -13,7 +13,7 @@ from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
 
 
-class TestUploadFileToGoogleCloud(BaseTestCase):
+class TestGoogleCloudStorageClient(BaseTestCase):
     @classmethod
     def setUpClass(cls):
         """Set up the class by adding a cloud filename and a storage client to access the cloud storage emulator.
@@ -42,9 +42,11 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         name = "bucket-of-grass"
         self.storage_client.create_bucket(name)
         self.assertIsNotNone(self.storage_client.client.lookup_bucket(name))
-        self.storage_client.upload_from_string("hello", bucket_name=name, path_in_bucket="file.txt")
+        self.storage_client.upload_from_string("hello", storage.path.generate_gs_path(name, "file.txt"))
         self.storage_client.create_bucket(name, allow_existing=True)
-        self.assertEqual(self.storage_client.download_as_string(bucket_name=name, path_in_bucket="file.txt"), "hello")
+        self.assertEqual(
+            self.storage_client.download_as_string(storage.path.generate_gs_path(name, "file.txt")), "hello"
+        )
 
     def test_error_raised_when_creating_existing_bucket_and_existence_not_allowed(self):
         """Test that an error is raised when trying to create a bucket that already exists and pre-existence isn't
@@ -68,15 +70,13 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
             temporary_file.write("This is a test upload.")
 
         self.storage_client.upload_file(
-            local_path=temporary_file.name,
-            bucket_name=TEST_BUCKET_NAME,
-            path_in_bucket=self.FILENAME,
+            local_path=temporary_file.name, cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, self.FILENAME)
         )
 
         download_local_path = tempfile.NamedTemporaryFile().name
 
         self.storage_client.download_to_file(
-            bucket_name=TEST_BUCKET_NAME, path_in_bucket=self.FILENAME, local_path=download_local_path
+            cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, self.FILENAME), local_path=download_local_path
         )
 
         with open(download_local_path) as f:
@@ -95,8 +95,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
             with self.assertRaises(google.api_core.exceptions.BadRequest) as e:
                 self.storage_client.upload_file(
                     local_path=temporary_file.name,
-                    bucket_name=TEST_BUCKET_NAME,
-                    path_in_bucket=self.FILENAME,
+                    cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, self.FILENAME),
                 )
 
             self.assertTrue("doesn't match calculated CRC32C" in e.exception.message)
@@ -104,14 +103,13 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
     def test_upload_from_string(self):
         """Test that a string can be uploaded to Google Cloud storage as a file and downloaded again."""
         self.storage_client.upload_from_string(
-            string=json.dumps({"height": 32}),
-            bucket_name=TEST_BUCKET_NAME,
-            path_in_bucket=self.FILENAME,
+            string=json.dumps({"height": 32}), cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, self.FILENAME)
         )
 
         with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
             self.storage_client.download_to_file(
-                bucket_name=TEST_BUCKET_NAME, path_in_bucket=self.FILENAME, local_path=temporary_file.name
+                cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, self.FILENAME),
+                local_path=temporary_file.name,
             )
 
         with open(temporary_file.name) as f:
@@ -126,8 +124,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
             with self.assertRaises(google.api_core.exceptions.BadRequest) as e:
                 self.storage_client.upload_from_string(
                     string=json.dumps({"height": 15}),
-                    bucket_name=TEST_BUCKET_NAME,
-                    path_in_bucket=self.FILENAME,
+                    cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, self.FILENAME),
                 )
 
             self.assertTrue("doesn't match calculated CRC32C" in e.exception.message)
@@ -138,35 +135,31 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
             temporary_file.write("This is a test upload.")
 
         self.storage_client.upload_file(
-            local_path=temporary_file.name,
-            bucket_name=TEST_BUCKET_NAME,
-            path_in_bucket=self.FILENAME,
+            local_path=temporary_file.name, cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, self.FILENAME)
         )
 
         self.assertEqual(
-            self.storage_client.download_as_string(bucket_name=TEST_BUCKET_NAME, path_in_bucket=self.FILENAME),
+            self.storage_client.download_as_string(storage.path.generate_gs_path(TEST_BUCKET_NAME, self.FILENAME)),
             "This is a test upload.",
         )
 
     def test_delete(self):
         """Test that a file can be deleted."""
         self.storage_client.upload_from_string(
-            string=json.dumps({"height": 32}),
-            bucket_name=TEST_BUCKET_NAME,
-            path_in_bucket=self.FILENAME,
+            string=json.dumps({"height": 32}), cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, self.FILENAME)
         )
 
         self.assertEqual(
             json.loads(
-                self.storage_client.download_as_string(bucket_name=TEST_BUCKET_NAME, path_in_bucket=self.FILENAME),
+                self.storage_client.download_as_string(storage.path.generate_gs_path(TEST_BUCKET_NAME, self.FILENAME)),
             ),
             {"height": 32},
         )
 
-        self.storage_client.delete(bucket_name=TEST_BUCKET_NAME, path_in_bucket=self.FILENAME)
+        self.storage_client.delete(storage.path.generate_gs_path(TEST_BUCKET_NAME, self.FILENAME))
 
         with self.assertRaises(google.api_core.exceptions.NotFound):
-            self.storage_client.download_as_string(bucket_name=TEST_BUCKET_NAME, path_in_bucket=self.FILENAME)
+            self.storage_client.download_as_string(storage.path.generate_gs_path(TEST_BUCKET_NAME, self.FILENAME))
 
     def test_scandir(self):
         """Test that Google Cloud storage "directories"' contents can be listed."""
@@ -174,11 +167,12 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
         self.storage_client.upload_from_string(
             string=json.dumps({"height": 32}),
-            bucket_name=TEST_BUCKET_NAME,
-            path_in_bucket=storage.path.join(directory_path, self.FILENAME),
+            cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, directory_path, self.FILENAME),
         )
 
-        contents = list(self.storage_client.scandir(bucket_name=TEST_BUCKET_NAME, directory_path=directory_path))
+        contents = list(
+            self.storage_client.scandir(cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, directory_path))
+        )
         self.assertEqual(len(contents), 1)
         self.assertEqual(contents[0].name, storage.path.join(directory_path, self.FILENAME))
 
@@ -197,7 +191,9 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
     def test_scandir_with_empty_directory(self):
         """Test that an empty directory shows as such."""
         directory_path = storage.path.join("another", "path")
-        contents = list(self.storage_client.scandir(bucket_name=TEST_BUCKET_NAME, directory_path=directory_path))
+        contents = list(
+            self.storage_client.scandir(cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, directory_path))
+        )
         self.assertEqual(len(contents), 0)
 
     def test_scandir_with_directory_of_subdirectories_includes_subdirectories_by_default(self):
@@ -206,18 +202,18 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
         self.storage_client.upload_from_string(
             string=json.dumps({"height": 32}),
-            bucket_name=TEST_BUCKET_NAME,
-            path_in_bucket=storage.path.join(directory_path, self.FILENAME),
+            cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, directory_path, self.FILENAME),
         )
 
         # Add a file in a subdirectory.
         self.storage_client.upload_from_string(
             string=json.dumps({"height": 32}),
-            bucket_name=TEST_BUCKET_NAME,
-            path_in_bucket=storage.path.join(directory_path, "sub_directory", "blah.txt"),
+            cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, directory_path, "sub_directory", "blah.txt"),
         )
 
-        contents = list(self.storage_client.scandir(bucket_name=TEST_BUCKET_NAME, directory_path=directory_path))
+        contents = list(
+            self.storage_client.scandir(cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, directory_path))
+        )
         self.assertEqual(len(contents), 2)
 
         self.assertEqual(
@@ -234,19 +230,19 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
 
         self.storage_client.upload_from_string(
             string=json.dumps({"height": 32}),
-            bucket_name=TEST_BUCKET_NAME,
-            path_in_bucket=storage.path.join(directory_path, self.FILENAME),
+            cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, directory_path, self.FILENAME),
         )
 
         # Add a file in a subdirectory.
         self.storage_client.upload_from_string(
             string=json.dumps({"height": 32}),
-            bucket_name=TEST_BUCKET_NAME,
-            path_in_bucket=storage.path.join(directory_path, "sub_directory", "blah.txt"),
+            cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, directory_path, "sub_directory", "blah.txt"),
         )
 
         contents = list(
-            self.storage_client.scandir(bucket_name=TEST_BUCKET_NAME, directory_path=directory_path, recursive=False)
+            self.storage_client.scandir(
+                cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, directory_path), recursive=False
+            )
         )
         self.assertEqual(len(contents), 1)
         self.assertEqual(contents[0].name, storage.path.join(directory_path, self.FILENAME))
@@ -254,14 +250,11 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
     def test_get_metadata(self):
         """Test that file metadata can be retrieved."""
         self.storage_client.upload_from_string(
-            string=json.dumps({"height": 32}),
-            bucket_name=TEST_BUCKET_NAME,
-            path_in_bucket=self.FILENAME,
+            string=json.dumps({"height": 32}), cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, self.FILENAME)
         )
 
         metadata = self.storage_client.get_metadata(
-            bucket_name=TEST_BUCKET_NAME,
-            path_in_bucket=self.FILENAME,
+            cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, self.FILENAME)
         )
 
         self.assertTrue(len(metadata) > 0)
@@ -277,9 +270,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
     def test_get_metadata_does_not_fail_on_non_json_encoded_metadata(self):
         """Test that non-JSON-encoded metadata does not cause getting of metadata to fail."""
         self.storage_client.upload_from_string(
-            string="some stuff",
-            bucket_name=TEST_BUCKET_NAME,
-            path_in_bucket=self.FILENAME,
+            string="some stuff", cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, self.FILENAME)
         )
 
         # Manually add metadata that isn't JSON encoded (the above method JSON-encodes any metadata given to it).
@@ -289,8 +280,7 @@ class TestUploadFileToGoogleCloud(BaseTestCase):
         blob.patch()
 
         metadata = self.storage_client.get_metadata(
-            bucket_name=TEST_BUCKET_NAME,
-            path_in_bucket=self.FILENAME,
+            cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, self.FILENAME)
         )
 
         self.assertEqual(metadata["custom_metadata"], {"this": "is-not-json-encoded"})
