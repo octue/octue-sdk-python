@@ -14,9 +14,6 @@ from octue.resources.label import LabelSet
 from octue.resources.tag import TagDict
 
 
-DATAFILES_DIRECTORY = "datafiles"
-
-
 class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashable):
     """A representation of a dataset, containing files, labels, etc
 
@@ -30,15 +27,19 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
     _ATTRIBUTES_TO_HASH = ("files",)
     _SERIALISE_FIELDS = "files", "name", "labels", "tags", "id", "path"
 
-    def __init__(self, files=None, name=None, id=None, path=None, path_from=None, tags=None, labels=None, **kwargs):
-        super().__init__(name=name, id=id, tags=tags, labels=labels, path=path, path_from=path_from)
+    def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None, **kwargs):
+        super().__init__(name=name, id=id, tags=tags, labels=labels, path=path)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
         #  Add a proper `decoder` argument  to the load_json utility in twined so that datasets, datafiles and manifests
         #  get initialised properly, then remove this hackjob.
-        self.files = FilterSet()
         self._cloud_path = None
+
+        if path and storage.path.is_qualified_cloud_path(path):
+            self._cloud_path = path
+
+        self.files = FilterSet()
 
         for file in files or []:
             if isinstance(file, Datafile):
@@ -123,7 +124,6 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
 
         dataset = Dataset(path=cloud_path, files=datafiles)
         dataset._upload_dataset_metadata(cloud_path)
-        dataset._cloud_path = cloud_path
         return dataset
 
     def to_cloud(self, project_name=None, cloud_path=None, bucket_name=None, output_directory=None):
@@ -253,14 +253,19 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         """
         files_and_paths = []
 
-        for datafile in self.files:
+        for file in self.files:
+
+            if not file.exists_in_cloud:
+                continue
+
             if local_directory:
-                path_relative_to_dataset = storage.path.relpath(datafile.cloud_path, self.path)
+                path_relative_to_dataset = storage.path.relpath(file.cloud_path, self.cloud_path)
                 local_path = os.path.abspath(os.path.join(local_directory, *path_relative_to_dataset.split("/")))
+
             else:
                 local_path = None
 
-            files_and_paths.append((datafile, local_path))
+            files_and_paths.append((file, local_path))
 
         def download(iterable_element):
             """Download a datafile to the given path.
