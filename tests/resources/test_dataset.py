@@ -398,56 +398,43 @@ class TestDataset(BaseTestCase):
         )
 
     def test_to_cloud(self):
-        """Test that a dataset can be uploaded to the cloud via (`bucket_name`, `output_directory`) and via
-        `cloud_path`, including all its files and a serialised JSON file of the Datafile instance.
-        """
+        """Test that a dataset can be uploaded to a cloud path, including all its files and the dataset's metadata."""
         with tempfile.TemporaryDirectory() as temporary_directory:
-            dataset_directory_name = os.path.split(temporary_directory)[-1]
             dataset = create_dataset_with_two_files(temporary_directory)
             dataset.tags = {"a": "b", "c": 1}
 
             output_directory = "my_datasets"
-            cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, output_directory)
+            cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, output_directory, dataset.name)
 
-            for location_parameters in (
-                {"bucket_name": TEST_BUCKET_NAME, "output_directory": output_directory, "cloud_path": None},
-                {"bucket_name": None, "output_directory": None, "cloud_path": cloud_path},
-            ):
-                with self.subTest(**location_parameters):
-                    dataset.to_cloud(**location_parameters)
+            dataset.to_cloud(cloud_path=cloud_path)
 
-                    storage_client = GoogleCloudStorageClient()
+            storage_client = GoogleCloudStorageClient()
 
-                    persisted_file_0 = storage_client.download_as_string(
-                        cloud_path=storage.path.join(cloud_path, dataset.name, "file_0.txt"),
-                    )
+            # Check its files have been uploaded.
+            persisted_file_0 = storage_client.download_as_string(cloud_path=storage.path.join(cloud_path, "file_0.txt"))
+            self.assertEqual(persisted_file_0, "0")
 
-                    self.assertEqual(persisted_file_0, "0")
+            persisted_file_1 = storage_client.download_as_string(
+                cloud_path=storage.path.join(cloud_path, "file_1.txt"),
+            )
+            self.assertEqual(persisted_file_1, "1")
 
-                    persisted_file_1 = storage_client.download_as_string(
-                        bucket_name=TEST_BUCKET_NAME,
-                        path_in_bucket=storage.path.join(output_directory, dataset.name, "file_1.txt"),
-                    )
-                    self.assertEqual(persisted_file_1, "1")
+            # Check its metadata has been uploaded.
+            persisted_dataset_metadata = json.loads(
+                storage_client.download_as_string(
+                    cloud_path=storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME),
+                )
+            )
 
-                    persisted_dataset = json.loads(
-                        storage_client.download_as_string(
-                            bucket_name=TEST_BUCKET_NAME,
-                            path_in_bucket=storage.path.join(
-                                output_directory, dataset.name, definitions.DATASET_METADATA_FILENAME
-                            ),
-                        )
-                    )
+            self.assertEqual(
+                persisted_dataset_metadata["files"],
+                [
+                    f"gs://octue-test-bucket/my_datasets/{dataset.name}/file_0.txt",
+                    f"gs://octue-test-bucket/my_datasets/{dataset.name}/file_1.txt",
+                ],
+            )
 
-                    self.assertEqual(
-                        persisted_dataset["files"],
-                        [
-                            f"gs://octue-test-bucket/my_datasets/{dataset_directory_name}/file_0.txt",
-                            f"gs://octue-test-bucket/my_datasets/{dataset_directory_name}/file_1.txt",
-                        ],
-                    )
-
-                    self.assertEqual(persisted_dataset["tags"], dataset.tags.to_primitive())
+            self.assertEqual(persisted_dataset_metadata["tags"], dataset.tags.to_primitive())
 
     def test_to_cloud_with_nested_dataset_preserves_nested_structure(self):
         """Test that uploading a dataset containing datafiles in a nested directory structure to the cloud preserves
