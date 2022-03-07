@@ -6,7 +6,7 @@ import warnings
 from octue import definitions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.exceptions import InvalidInputException
+from octue.exceptions import CloudLocationNotSpecified, InvalidInputException
 from octue.mixins import Hashable, Identifiable, Labelable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
@@ -198,10 +198,32 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         :return None:
         """
         if path is None:
-            self._cloud_path = None
-            return
 
-        self.to_cloud(cloud_path=path)
+            if not self.exists_locally:
+                raise CloudLocationNotSpecified(
+                    "The cloud path cannot be reset because this datafile only exists in the cloud."
+                )
+
+            self._cloud_path = None
+
+        else:
+            self.to_cloud(cloud_path=path)
+
+    @property
+    def exists_in_cloud(self):
+        """Return `True` if the dataset exists in the cloud.
+
+        :return bool:
+        """
+        return self.cloud_path is not None
+
+    @property
+    def exists_locally(self):
+        """Return `True` if the dataset exists locally.
+
+        :return bool:
+        """
+        return not storage.path.is_qualified_cloud_path(self.path)
 
     @property
     def all_files_are_in_cloud(self):
