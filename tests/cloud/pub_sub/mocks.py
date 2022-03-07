@@ -229,8 +229,8 @@ class MockService(Service):
     :return None:
     """
 
-    def __init__(self, backend, service_id=None, run_function=None, children=None):
-        super().__init__(backend, service_id, run_function)
+    def __init__(self, backend, service_id=None, run_function=None, children=None, *args, **kwargs):
+        super().__init__(backend, service_id, run_function, *args, **kwargs)
         self.children = children or {}
         self.publisher = MockPublisher()
         self.subscriber = MockSubscriber()
