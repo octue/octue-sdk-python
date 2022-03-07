@@ -3,7 +3,6 @@ import functools
 import logging
 import os
 import tempfile
-import warnings
 from urllib.parse import urlparse
 
 import google.api_core.exceptions
@@ -85,7 +84,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         path,
         local_path=None,
         cloud_path=None,
-        project_name=None,
         timestamp=None,
         id=ID_DEFAULT,
         path_from=None,
@@ -97,12 +95,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         hypothetical=False,
         **kwargs,
     ):
-        if project_name:
-            warnings.warn(
-                message="The `project_name` parameter is no longer needed and will be removed soon.",
-                category=DeprecationWarning,
-            )
-
         super().__init__(
             id=id,
             name=kwargs.pop("name", None),
@@ -193,9 +185,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         datafile._cloud_metadata = cloud_metadata
         return datafile
 
-    def to_cloud(
-        self, project_name=None, cloud_path=None, bucket_name=None, path_in_bucket=None, update_cloud_metadata=True
-    ):
+    def to_cloud(self, cloud_path=None, bucket_name=None, path_in_bucket=None, update_cloud_metadata=True):
         """Upload a datafile to Google Cloud Storage. Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must
         be provided.
 
@@ -205,12 +195,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         :param bool update_cloud_metadata: if `True`, update the metadata of the datafile in the cloud at upload time
         :return str: gs:// path for datafile
         """
-        if project_name:
-            warnings.warn(
-                message="The `project_name` parameter is no longer needed and will be removed soon.",
-                category=DeprecationWarning,
-            )
-
         cloud_path = self._get_cloud_location(cloud_path, bucket_name, path_in_bucket)
         self.get_cloud_metadata()
 

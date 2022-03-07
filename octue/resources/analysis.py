@@ -1,6 +1,5 @@
 import json
 import logging
-import warnings
 
 import twined.exceptions
 from octue.definitions import OUTPUT_STRANDS
@@ -104,7 +103,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
 
         self._handle_monitor_message(data)
 
-    def finalise(self, output_dir=None, save_locally=False, upload_to_cloud=False, project_name=None, bucket_name=None):
+    def finalise(self, output_dir=None, save_locally=False, upload_to_cloud=False, bucket_name=None):
         """Validate and serialise the output values and manifest, optionally writing them to files and/or the manifest
         to the cloud.
 
@@ -114,12 +113,6 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         :param str bucket_name:
         :return dict: serialised strings for values and manifest data.
         """
-        if project_name:
-            warnings.warn(
-                message="The `project_name` parameter is no longer needed and will be removed soon.",
-                category=DeprecationWarning,
-            )
-
         serialised_strands = {}
 
         for output_strand in OUTPUT_STRANDS:

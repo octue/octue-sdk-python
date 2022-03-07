@@ -1,6 +1,5 @@
 import json
 import os
-import warnings
 
 import octue.migrations.manifest
 from octue.cloud import storage
@@ -40,7 +39,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         vars(self).update(**kwargs)
 
     @classmethod
-    def from_cloud(cls, project_name=None, cloud_path=None, bucket_name=None, path_to_manifest_file=None):
+    def from_cloud(cls, cloud_path=None, bucket_name=None, path_to_manifest_file=None):
         """Instantiate a Manifest from Google Cloud storage. Either (`bucket_name` and `path_to_manifest_file`) or
         `cloud_path` must be provided.
 
@@ -49,12 +48,6 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         :param str|None path_to_manifest_file: path to manifest in cloud storage e.g. `path/to/manifest.json`
         :return Dataset:
         """
-        if project_name:
-            warnings.warn(
-                message="The `project_name` parameter is no longer needed and will be removed soon.",
-                category=DeprecationWarning,
-            )
-
         if cloud_path:
             bucket_name, path_to_manifest_file = storage.path.split_bucket_name_from_gs_path(cloud_path)
 
@@ -74,9 +67,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
             datasets=datasets,
         )
 
-    def to_cloud(
-        self, project_name=None, cloud_path=None, bucket_name=None, path_to_manifest_file=None, store_datasets=False
-    ):
+    def to_cloud(self, cloud_path=None, bucket_name=None, path_to_manifest_file=None, store_datasets=False):
         """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory. Either
         (`bucket_name` and `path_to_manifest_file`) or `cloud_path` must be provided.
 
@@ -86,12 +77,6 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         :param bool store_datasets: if True, upload datasets to same directory as manifest file
         :return str: gs:// path for manifest file
         """
-        if project_name:
-            warnings.warn(
-                message="The `project_name` parameter is no longer needed and will be removed soon.",
-                category=DeprecationWarning,
-            )
-
         if cloud_path:
             bucket_name, path_to_manifest_file = storage.path.split_bucket_name_from_gs_path(cloud_path)
 
