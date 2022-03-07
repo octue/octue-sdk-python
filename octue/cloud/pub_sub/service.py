@@ -104,8 +104,12 @@ class Service(CoolNameable):
         finally:
             if delete_topic_and_subscription_on_exit:
                 try:
-                    subscription.delete()
-                    topic.delete()
+                    if subscription.exists():
+                        subscription.delete()
+
+                    if topic.exists():
+                        topic.delete()
+
                 except Exception:
                     logger.error("Deletion of topic and/or subscription %r failed.", topic.name)
 

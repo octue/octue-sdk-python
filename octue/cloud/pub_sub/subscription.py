@@ -1,4 +1,5 @@
 import logging
+import time
 
 import google.api_core.exceptions
 from google.cloud.pubsub_v1 import SubscriberClient
@@ -114,6 +115,23 @@ class Subscription:
         """
         self.subscriber.delete_subscription(subscription=self.path)
         logger.debug("Subscription %r deleted.", self.path)
+
+    def exists(self, timeout=5):
+        """Check if the subscription exists on the Google Pub/Sub servers.
+
+        :param float timeout:
+        :return bool:
+        """
+        start_time = time.time()
+
+        while time.time() - start_time <= timeout:
+            try:
+                self.subscriber.get_subscription(subscription=self.path)
+                return True
+            except google.api_core.exceptions.NotFound:
+                time.sleep(1)
+
+        return False
 
     @staticmethod
     def generate_subscription_path(project_name, subscription_name):
