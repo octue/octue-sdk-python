@@ -74,6 +74,7 @@ class TemplateAppsTestCase(BaseTestCase):
     def test_using_manifests(self):
         """Ensure the using-manifests template app works correctly."""
         self.set_template("template-using-manifests")
+
         runner = Runner(
             app_src=self.template_path,
             twine=self.template_twine,
@@ -82,8 +83,9 @@ class TemplateAppsTestCase(BaseTestCase):
         )
 
         analysis = runner.run(input_manifest=os.path.join("data", "input", "manifest.json"))
-        analysis.finalise(output_dir=os.path.join("data", "output"))
-        self.assertTrue(os.path.isfile(os.path.join("data", "output", "cleaned_met_mast_data", "cleaned.csv")))
+        analysis.finalise()
+
+        self.assertTrue(os.path.isfile(os.path.join("cleaned_met_mast_data", "cleaned.csv")))
 
     @unittest.skipIf(condition=os.name == "nt", reason="See issue https://github.com/octue/octue-sdk-python/issues/229")
     def test_child_services_template(self):
