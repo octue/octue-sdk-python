@@ -144,9 +144,9 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.map(upload, files_and_paths)
 
-        self._upload_dataset_metadata(cloud_path)
         self._cloud_path = cloud_path
         self.path = cloud_path
+        self._upload_dataset_metadata(cloud_path)
         return cloud_path
 
     @property
@@ -155,7 +155,13 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
 
         :return str:
         """
-        return self._name or os.path.split(os.path.abspath(os.path.split(self.path)[-1]))[-1]
+        if self._name:
+            return self._name
+
+        if self.cloud_path:
+            return storage.path.split(self.cloud_path)[-1]
+
+        return os.path.split(os.path.abspath(os.path.split(self.path)[-1]))[-1]
 
     @property
     def cloud_path(self):
