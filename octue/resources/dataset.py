@@ -1,12 +1,12 @@
 import concurrent.futures
 import json
 import os
-import warnings
 
 from octue import definitions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException
+from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import Hashable, Identifiable, Labelable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
@@ -76,33 +76,17 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         return Dataset(path=path_to_directory, files=datafiles, **kwargs)
 
     @classmethod
-    def from_cloud(
-        cls,
-        project_name=None,
-        cloud_path=None,
-        bucket_name=None,
-        path_to_dataset_directory=None,
-        recursive=False,
-    ):
-        """Instantiate a Dataset from Google Cloud storage. Either (`bucket_name` and `path_to_dataset_directory`) or
-        `cloud_path` must be provided.
+    def from_cloud(cls, cloud_path=None, bucket_name=None, path_to_dataset_directory=None, recursive=False):
+        """Instantiate a Dataset from Google Cloud storage.
 
         :param str|None cloud_path: full path to dataset directory in cloud storage (e.g. `gs://bucket_name/path/to/dataset`)
-        :param str|None bucket_name: name of bucket dataset is stored in
-        :param str|None path_to_dataset_directory: path to dataset directory (containing dataset's files) in cloud (e.g. `path/to/dataset`)
         :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained in the dataset directory
         :return Dataset:
         """
-        if project_name:
-            warnings.warn(
-                message="The `project_name` parameter is no longer needed and will be removed soon.",
-                category=DeprecationWarning,
-            )
+        if not cloud_path:
+            cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_to_dataset_directory)
 
-        if cloud_path:
-            bucket_name = storage.path.split_bucket_name_from_gs_path(cloud_path)[0]
-        else:
-            cloud_path = storage.path.generate_gs_path(bucket_name, path_to_dataset_directory)
+        bucket_name = storage.path.split_bucket_name_from_gs_path(cloud_path)[0]
 
         dataset_metadata = cls._get_dataset_metadata(cloud_path=cloud_path)
 
@@ -125,23 +109,14 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         dataset._upload_dataset_metadata(cloud_path)
         return dataset
 
-    def to_cloud(self, project_name=None, cloud_path=None, bucket_name=None, output_directory=None):
-        """Upload a dataset to a cloud location. Either (`bucket_name` and `output_directory`) or `cloud_path` must be
-        provided.
+    def to_cloud(self, cloud_path=None, bucket_name=None, output_directory=None):
+        """Upload a dataset to the given cloud path.
 
-        :param str|None cloud_path: full cloud storage path to store dataset at (e.g. `gs://bucket_name/path/to/dataset`)
-        :param str|None bucket_name: name of bucket to store dataset in
-        :param str|None output_directory: path to output directory in cloud storage (e.g. `path/to/dataset`)
+        :param str|None cloud_path: cloud path to store dataset at (e.g. `gs://bucket_name/path/to/dataset`)
         :return str: cloud path for dataset
         """
-        if project_name:
-            warnings.warn(
-                message="The `project_name` parameter is no longer needed and will be removed soon.",
-                category=DeprecationWarning,
-            )
-
         if not cloud_path:
-            cloud_path = storage.path.generate_gs_path(bucket_name, output_directory, self.name)
+            cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, output_directory)
 
         files_and_paths = []
 
