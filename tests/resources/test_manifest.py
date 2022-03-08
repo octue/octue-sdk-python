@@ -151,30 +151,3 @@ class TestManifest(BaseTestCase):
         )
 
         self.assertEqual({dataset.name for dataset in manifest.datasets.values()}, {"dataset_0", "dataset_1"})
-
-    def test_deprecation_warning_issued_if_datasets_provided_as_list(self):
-        """Test that, if datasets are provided as a list (the old format), a deprecation warning is issued and the list
-        is converted to a dictionary (the new format).
-        """
-        storage_client = GoogleCloudStorageClient()
-
-        storage_client.upload_from_string(
-            "[1, 2, 3]",
-            storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_dataset_1", "file_0.txt"),
-        )
-
-        storage_client.upload_from_string(
-            "[4, 5, 6]",
-            storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_dataset_2", "the_data.txt"),
-        )
-
-        with self.assertWarns(DeprecationWarning):
-            manifest = Manifest(
-                datasets=[
-                    f"gs://{TEST_BUCKET_NAME}/my_dataset_1",
-                    f"gs://{TEST_BUCKET_NAME}/my_dataset_2",
-                ],
-                keys={"my_dataset_1": 0, "my_dataset_2": 1},
-            )
-
-        self.assertEqual(set(manifest.datasets.keys()), {"dataset_0", "dataset_1"})
