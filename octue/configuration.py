@@ -31,7 +31,7 @@ def load_service_and_app_configuration(service_configuration_path):
         "app_configuration": raw_service_configuration.get("app_configuration"),
     }
 
-    app_configuration = load_app_configuration(service_configuration.get("app_configuration", ""))
+    app_configuration = load_app_configuration(service_configuration.get("app_configuration"))
     return service_configuration, app_configuration
 
 
@@ -43,12 +43,13 @@ def load_app_configuration(app_configuration_path):
     """
     raw_app_configuration = {}
 
-    try:
-        with open(app_configuration_path) as f:
-            raw_app_configuration = yaml.load(f, Loader=yaml.SafeLoader)
+    if app_configuration_path:
+        try:
+            with open(app_configuration_path) as f:
+                raw_app_configuration = yaml.load(f, Loader=yaml.SafeLoader)
 
-    except FileNotFoundError:
-        pass
+        except FileNotFoundError:
+            pass
 
     if not raw_app_configuration:
         logger.info("No app configuration found.")
