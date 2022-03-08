@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 def load_service_and_app_configuration(service_configuration_path):
     """Load the service configuration from the given YAML file or return an empty one.
 
-    :param str service_configuration_path: path to deployment configuration file
+    :param str service_configuration_path: path to service configuration file
     :return dict:
     """
     raw_service_configuration = {}
@@ -31,24 +31,35 @@ def load_service_and_app_configuration(service_configuration_path):
         "app_configuration": raw_service_configuration.get("app_configuration"),
     }
 
+    if service_configuration.get("app_configuration"):
+        app_configuration = load_app_configuration(service_configuration["app_configuration"])
+    else:
+        app_configuration = {}
+
+    return service_configuration, app_configuration
+
+
+def load_app_configuration(app_configuration_path):
+    """Load the app configuration from the given YAML file or return an empty one.
+
+    :param str app_configuration_path: path to app configuration file
+    :return dict:
+    """
     raw_app_configuration = {}
 
-    if service_configuration.get("app_configuration"):
-        try:
-            with open(service_configuration["app_configuration"]) as f:
-                raw_app_configuration = yaml.load(f, Loader=yaml.SafeLoader)
+    try:
+        with open(app_configuration_path) as f:
+            raw_app_configuration = yaml.load(f, Loader=yaml.SafeLoader)
 
-        except FileNotFoundError:
-            pass
+    except FileNotFoundError:
+        pass
 
     if not raw_app_configuration:
         logger.info("No app configuration found.")
 
-    app_configuration = {
+    return {
         "configuration_values": raw_app_configuration.get("configuration_values"),
         "configuration_manifest": raw_app_configuration.get("configuration_manifest"),
         "output_manifest_path": raw_app_configuration.get("output_manifest"),
         "children": raw_app_configuration.get("children"),
     }
-
-    return service_configuration, app_configuration
