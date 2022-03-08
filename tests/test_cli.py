@@ -1,14 +1,17 @@
 import os
 import tempfile
+import unittest.mock
 import uuid
 from unittest import mock
 
+import yaml
 from click.testing import CliRunner
 
 from octue.cli import octue_cli
 from octue.exceptions import DeploymentError
 from tests import TESTS_DIR
 from tests.base import BaseTestCase
+from tests.cloud.pub_sub.mocks import MockService, MockSubscriber, MockSubscription, MockTopic
 from tests.test_app_modules.app_module.app import CUSTOM_APP_RUN_MESSAGE
 
 
@@ -94,17 +97,27 @@ class TestStartCommand(BaseTestCase):
             "elevation_service",
         )
 
-        result = CliRunner().invoke(
-            octue_cli,
-            [
-                "start",
-                f"--app-dir={elevation_service_path}",
-                f"--twine={os.path.join(elevation_service_path, 'twine.json')}",
-                f"--config-dir={os.path.join(elevation_service_path, 'data', 'configuration')}",
-                f"--service-id={uuid.uuid4()}",
-                "--timeout=0",
-            ],
-        )
+        with mock.patch(
+            "octue.configuration.open",
+            unittest.mock.mock_open(
+                read_data=yaml.dump(
+                    {"name": "test-service", "twine_path": os.path.join(elevation_service_path, "twine.json")}
+                )
+            ),
+        ):
+            with mock.patch("octue.cloud.pub_sub.service.Topic", MockTopic):
+                with mock.patch("octue.cloud.pub_sub.service.Subscription", MockSubscription):
+                    with mock.patch("google.cloud.pubsub_v1.SubscriberClient", MockSubscriber):
+                        with mock.patch("octue.cli.Service", MockService):
+
+                            result = CliRunner().invoke(
+                                octue_cli,
+                                [
+                                    "start",
+                                    f"--service-id={uuid.uuid4()}",
+                                    "--timeout=0",
+                                ],
+                            )
 
         self.assertEqual(result.exit_code, 0)
 
