@@ -31,11 +31,7 @@ def load_service_and_app_configuration(service_configuration_path):
         "app_configuration": raw_service_configuration.get("app_configuration"),
     }
 
-    if service_configuration.get("app_configuration"):
-        app_configuration = load_app_configuration(service_configuration["app_configuration"])
-    else:
-        app_configuration = {}
-
+    app_configuration = load_app_configuration(service_configuration.get("app_configuration", ""))
     return service_configuration, app_configuration
 
 
