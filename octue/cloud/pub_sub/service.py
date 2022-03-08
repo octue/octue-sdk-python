@@ -76,6 +76,8 @@ class Service(CoolNameable):
         :param bool delete_topic_and_subscription_on_exit: if `True`, delete the service's topic and subscription on exit
         :return None:
         """
+        logger.info("Starting service with ID %r.", self.id)
+
         topic = Topic(name=self.id, namespace=OCTUE_NAMESPACE, service=self)
         subscriber = pubsub_v1.SubscriberClient(credentials=self._credentials)
 

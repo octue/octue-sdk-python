@@ -222,7 +222,6 @@ def start(service_configuration_path, service_id, timeout, delete_topic_and_subs
         run_function=run_function,
     )
 
-    logger.info("Starting service with ID %r.", service.id)
     service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=delete_topic_and_subscription_on_exit)
 
 
