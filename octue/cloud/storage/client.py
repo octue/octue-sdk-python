@@ -129,8 +129,6 @@ class GoogleCloudStorageClient:
         """Get the metadata of the given file in the given bucket.
 
         :param str|None cloud_path: full cloud path to file (e.g. `gs://bucket_name/path/to/file.csv`)
-        :param str|None bucket_name: name of bucket where cloud file is located
-        :param str|None path_in_bucket: path to cloud file (e.g. `path/to/file.csv`)
         :param float timeout: time in seconds to allow for the request to complete
         :return dict:
         """

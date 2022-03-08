@@ -109,15 +109,10 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         dataset._upload_dataset_metadata(cloud_path)
         return dataset
 
-    def to_cloud(
-        self,
-        cloud_path=None,
-        bucket_name=None,
-        output_directory=None,
-    ):
-        """Upload a dataset to a cloud location.
+    def to_cloud(self, cloud_path=None, bucket_name=None, output_directory=None):
+        """Upload a dataset to the given cloud path.
 
-        :param str|None cloud_path: full cloud storage path to store dataset at (e.g. `gs://bucket_name/path/to/dataset`)
+        :param str|None cloud_path: cloud path to store dataset at (e.g. `gs://bucket_name/path/to/dataset`)
         :return str: cloud path for dataset
         """
         if not cloud_path:
