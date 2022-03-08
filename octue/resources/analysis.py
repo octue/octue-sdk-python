@@ -1,10 +1,11 @@
 import json
 import logging
+import warnings
 
 import twined.exceptions
+from octue.cloud import storage
 from octue.definitions import OUTPUT_STRANDS
 from octue.exceptions import InvalidMonitorMessage
-from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
 from octue.utils.encoders import OctueJSONEncoder
@@ -142,7 +143,15 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         if upload_to_cloud:
             if hasattr(self, "output_manifest"):
                 if not cloud_path:
-                    cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, output_dir)
+                    warnings.warn(
+                        message=(
+                            "Using a bucket name and path in bucket will be deprecated soon. Please use `cloud_path` instead e.g."
+                            "'gs://bucket_name/path/to/file.txt'."
+                        ),
+                        category=DeprecationWarning,
+                    )
+
+                    cloud_path = storage.path.generate_gs_path(bucket_name, output_dir)
 
                 self.output_manifest.to_cloud(cloud_path)
                 logger.debug("Wrote %r to %r.", self.output_manifest, cloud_path)
