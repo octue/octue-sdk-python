@@ -4,6 +4,7 @@ import logging
 import twined.exceptions
 from octue.definitions import OUTPUT_STRANDS
 from octue.exceptions import InvalidMonitorMessage
+from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
 from octue.utils.encoders import OctueJSONEncoder
@@ -103,7 +104,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
 
         self._handle_monitor_message(data)
 
-    def finalise(self, output_dir=None, save_locally=False, upload_to_cloud=False, cloud_path=None):
+    def finalise(self, output_dir=None, save_locally=False, upload_to_cloud=False, cloud_path=None, bucket_name=None):
         """Validate and serialise the output values and manifest, optionally writing them to files and/or the manifest
         to the cloud.
 
@@ -140,6 +141,9 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         # Optionally write the manifest to Google Cloud storage.
         if upload_to_cloud:
             if hasattr(self, "output_manifest"):
+                if not cloud_path:
+                    cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, output_dir)
+
                 self.output_manifest.to_cloud(cloud_path)
                 logger.debug("Wrote %r to %r.", self.output_manifest, cloud_path)
 
