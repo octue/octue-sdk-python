@@ -3,10 +3,11 @@ import functools
 import logging
 import os
 import tempfile
-import warnings
 from urllib.parse import urlparse
 
 import google.api_core.exceptions
+
+from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 
 
 try:
@@ -85,7 +86,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         path,
         local_path=None,
         cloud_path=None,
-        project_name=None,
         timestamp=None,
         id=ID_DEFAULT,
         path_from=None,
@@ -97,12 +97,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         hypothetical=False,
         **kwargs,
     ):
-        if project_name:
-            warnings.warn(
-                message="The `project_name` parameter is no longer needed and will be removed soon.",
-                category=DeprecationWarning,
-            )
-
         super().__init__(
             id=id,
             name=kwargs.pop("name", None),
@@ -123,7 +117,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         self._cloud_metadata = {}
 
         if storage.path.is_qualified_cloud_path(self.path):
-            self._store_cloud_location(cloud_path=path)
+            self._cloud_path = path
 
             if not self._hypothetical:
                 # Collect any non-`None` metadata instantiation parameters so the user can be warned if they conflict
@@ -193,25 +187,18 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         datafile._cloud_metadata = cloud_metadata
         return datafile
 
-    def to_cloud(
-        self, project_name=None, cloud_path=None, bucket_name=None, path_in_bucket=None, update_cloud_metadata=True
-    ):
-        """Upload a datafile to Google Cloud Storage. Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must
-        be provided.
+    def to_cloud(self, cloud_path=None, bucket_name=None, path_in_bucket=None, update_cloud_metadata=True):
+        """Upload a datafile to Google Cloud Storage.
 
         :param str|None cloud_path: full path to cloud storage location to store datafile at (e.g. `gs://bucket_name/path/to/file.csv`)
-        :param str|None bucket_name: name of bucket to store datafile in
-        :param str|None path_in_bucket: cloud storage path to store datafile at (e.g. `path/to/file.csv`)
         :param bool update_cloud_metadata: if `True`, update the metadata of the datafile in the cloud at upload time
         :return str: gs:// path for datafile
         """
-        if project_name:
-            warnings.warn(
-                message="The `project_name` parameter is no longer needed and will be removed soon.",
-                category=DeprecationWarning,
-            )
+        if bucket_name:
+            cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_in_bucket)
 
-        cloud_path = self._get_cloud_location(cloud_path, bucket_name, path_in_bucket)
+        cloud_path = self._get_cloud_location(cloud_path)
+
         self.get_cloud_metadata()
 
         # If the datafile's file has been changed locally, overwrite its cloud copy.
@@ -527,44 +514,21 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         except FileNotFoundError:
             return self._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
 
-    def _get_cloud_location(self, cloud_path=None, bucket_name=None, path_in_bucket=None):
+    def _get_cloud_location(self, cloud_path=None):
         """Get the cloud location details for the bucket, allowing the keyword arguments to override any stored values.
-        Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must be provided. Once the cloud location details
-        have been determined, update the stored cloud location details.
+        Once the cloud location details have been determined, update the stored cloud location details.
 
         :param str|None cloud_path:
-        :param str|None bucket_name:
-        :param str|None path_in_bucket:
         :raise octue.exceptions.CloudLocationNotSpecified: if an exact cloud location isn't provided and isn't available implicitly (i.e. the Datafile wasn't loaded from the cloud previously)
         :return (str, str): project name and cloud path
         """
         cloud_path = cloud_path or self.cloud_path
 
         if not cloud_path:
-            try:
-                cloud_path = storage.path.generate_gs_path(bucket_name, path_in_bucket)
-            except (TypeError, AttributeError):
-                self._raise_cloud_location_error()
+            self._raise_cloud_location_error()
 
-        self._store_cloud_location(cloud_path=cloud_path)
+        self._cloud_path = cloud_path
         return cloud_path
-
-    def _store_cloud_location(self, cloud_path=None, bucket_name=None, path_in_bucket=None):
-        """Store the cloud location of the datafile. Either (`bucket_name` and `path_in_bucket`) or `cloud_path` must be
-        provided.
-
-        :param str|None cloud_path:
-        :param str|None bucket_name:
-        :param str|None path_in_bucket:
-        :return None:
-        """
-        if cloud_path:
-            self._cloud_path = cloud_path
-        else:
-            try:
-                self._cloud_path = storage.path.generate_gs_path(bucket_name, path_in_bucket)
-            except (TypeError, AttributeError):
-                self._raise_cloud_location_error()
 
     def _raise_cloud_location_error(self):
         """Raise an error indicating that the cloud location of the datafile has not yet been specified.
