@@ -489,6 +489,32 @@ class TestDataset(BaseTestCase):
             with open(os.path.join(temporary_directory, "sub-directory", "sub-sub-directory", "sub_sub_file.txt")) as f:
                 self.assertEqual(f.read(), "['blah', 'b', 'c']")
 
+    def test_download_all_files_from_nested_dataset_with_no_local_directory_given(self):
+        """Test that, when downloading all files from a nested dataset and no local directory is given, the dataset
+        structure is preserved in the temporary directory used.
+        """
+        self._create_nested_cloud_dataset("nested_dataset")
+
+        dataset = Dataset.from_cloud(f"gs://{TEST_BUCKET_NAME}/nested_dataset", recursive=True)
+
+        with self.assertLogs() as logging_context:
+            dataset.download_all_files()
+
+        # Get the path of the temporary directory created by the `download_all_files` method from the logs.
+        local_directory = logging_context.records[0].args[1]
+
+        with open(os.path.join(local_directory, "file_0.txt")) as f:
+            self.assertEqual(f.read(), "[1, 2, 3]")
+
+        with open(os.path.join(local_directory, "file_1.txt")) as f:
+            self.assertEqual(f.read(), "[4, 5, 6]")
+
+        with open(os.path.join(local_directory, "sub-directory", "sub_file.txt")) as f:
+            self.assertEqual(f.read(), "['a', 'b', 'c']")
+
+        with open(os.path.join(local_directory, "sub-directory", "sub-sub-directory", "sub_sub_file.txt")) as f:
+            self.assertEqual(f.read(), "['blah', 'b', 'c']")
+
     def test_from_local_directory(self):
         """Test that a dataset can be instantiated from a local nested directory ignoring its subdirectories and that
         extra keyword arguments can be provided for the dataset instantiation.

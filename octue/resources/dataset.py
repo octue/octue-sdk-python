@@ -1,6 +1,8 @@
 import concurrent.futures
 import json
+import logging
 import os
+import tempfile
 
 from octue import definitions
 from octue.cloud import storage
@@ -12,6 +14,9 @@ from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.resources.label import LabelSet
 from octue.resources.tag import TagDict
+
+
+logger = logging.getLogger(__name__)
 
 
 class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashable):
@@ -255,6 +260,8 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         :param str|None local_directory:
         :return None:
         """
+        local_directory = local_directory or tempfile.TemporaryDirectory().name
+
         files_and_paths = []
 
         for file in self.files:
@@ -262,13 +269,8 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
             if not file.exists_in_cloud:
                 continue
 
-            if local_directory:
-                path_relative_to_dataset = storage.path.relpath(file.cloud_path, self.cloud_path)
-                local_path = os.path.abspath(os.path.join(local_directory, *path_relative_to_dataset.split("/")))
-
-            else:
-                local_path = None
-
+            path_relative_to_dataset = storage.path.relpath(file.cloud_path, self.cloud_path)
+            local_path = os.path.abspath(os.path.join(local_directory, *path_relative_to_dataset.split("/")))
             files_and_paths.append((file, local_path))
 
         def download(iterable_element):
@@ -284,6 +286,8 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         # Use multiple threads to significantly speed up files downloads by reducing latency.
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.map(download, files_and_paths)
+
+        logger.info("Downloaded %r dataset to %r.", self.name, local_directory)
 
     @staticmethod
     def _get_dataset_metadata(cloud_path):
