@@ -28,6 +28,7 @@ class Child:
         input_values=None,
         input_manifest=None,
         subscribe_to_logs=True,
+        just_log_errors=False,
         allow_local_files=False,
         handle_monitor_message=None,
         timeout=20,
@@ -57,5 +58,6 @@ class Child:
             subscription=subscription,
             handle_monitor_message=handle_monitor_message,
             service_name=self.name,
+            just_log_errors=just_log_errors,
             timeout=timeout,
         )

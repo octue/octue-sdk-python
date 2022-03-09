@@ -4,6 +4,7 @@ import datetime
 import functools
 import json
 import logging
+import math
 import time
 import uuid
 
@@ -76,6 +77,8 @@ class Service(CoolNameable):
         :param bool delete_topic_and_subscription_on_exit: if `True`, delete the service's topic and subscription on exit
         :return None:
         """
+        logger.info("%r started with ID %r.", self, self.id)
+
         topic = Topic(name=self.id, namespace=OCTUE_NAMESPACE, service=self)
         topic.create(allow_existing=True)
 
@@ -91,14 +94,33 @@ class Service(CoolNameable):
         )
         subscription.create(allow_existing=True)
 
-        future = subscriber.subscribe(subscription=subscription.path, callback=self.answer)
-        logger.debug("%r is waiting for questions.", self)
+        start_time = time.perf_counter()
+        run_time = 0
+
+        if timeout is None:
+            timeout = math.inf
 
         with subscriber:
-            try:
-                future.result(timeout=timeout)
-            except (TimeoutError, concurrent.futures.TimeoutError, KeyboardInterrupt):
-                future.cancel()
+            while run_time < timeout:
+
+                logger.info("%r is waiting for new questions...", self)
+                future = subscriber.subscribe(subscription=subscription.path, callback=self.answer)
+
+                try:
+                    if timeout == math.inf:
+                        future.result(timeout=None)
+                    else:
+                        future.result(timeout=timeout - run_time)
+
+                # Abandon analysis for current question but continue listening for new ones.
+                except octue.exceptions.AbandonAnalysis:
+                    run_time = time.perf_counter() - start_time
+                    continue
+
+                # Stop serving.
+                except (TimeoutError, concurrent.futures.TimeoutError, KeyboardInterrupt):
+                    future.cancel()
+                    break
 
             if delete_topic_and_subscription_on_exit:
                 topic.delete()
@@ -260,6 +282,7 @@ class Service(CoolNameable):
         handle_monitor_message=None,
         service_name="REMOTE",
         timeout=60,
+        just_log_errors=False,
         delivery_acknowledgement_timeout=30,
         retry_interval=5,
     ):
@@ -306,6 +329,14 @@ class Service(CoolNameable):
 
                         time.sleep(retry_interval)
                         self.ask(**self._current_question)
+
+                    except Exception as e:
+
+                        if just_log_errors:
+                            logger.exception(e)
+                            raise octue.exceptions.AbandonAnalysis()
+
+                        raise e
 
             finally:
                 subscription.delete()
