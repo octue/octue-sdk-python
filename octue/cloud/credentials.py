@@ -3,9 +3,10 @@ import logging
 import os
 import warnings
 from json.decoder import JSONDecodeError
-from google.auth import compute_engine
+from google import auth
 from google.oauth2 import service_account
 from octue.exceptions import InvalidInputException
+
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,9 @@ class GCPCredentialsManager:
 
         if self.using_application_default_credentials:
             logger.debug("Using application default credentials")
-            creds = compute_engine.Credentials()
+            creds, project_id = auth.default()
+            # FFS google why can't you bloody make it simple
+            creds.project_id = project_id
 
         elif os.path.exists(self.environment_variable_value):
             logger.debug("Using credentials from file %s", self.environment_variable_value)

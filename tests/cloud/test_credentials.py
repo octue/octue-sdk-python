@@ -1,9 +1,8 @@
 import json
-import logging
 import os
 import tempfile
 from unittest.mock import patch
-from google.auth import compute_engine
+from google.auth.exceptions import DefaultCredentialsError
 import google.oauth2.service_account
 
 from octue.exceptions import InvalidInputException
@@ -51,9 +50,8 @@ class TestGCPCredentialsManager(BaseTestCase):
                 credentials = GCPCredentialsManager().get_credentials(as_dict=True)
                 self.assertEqual(credentials, {"blah": "nah"})
 
-    def test_compute_engine_credentials_are_used_when_environment_unset(self):
+    def test_default_credentials_are_used_when_environment_unset(self):
         """Test that application default credentials are accessed when the environment variable value is not set."""
         with patch.dict(os.environ, {"GOOGLE_APPLICATION_CREDENTIALS": ""}):
-            del os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
-            creds = GCPCredentialsManager().get_credentials()
-            self.assertIsInstance(creds, compute_engine.credentials.Credentials)
+            with self.assertRaises(DefaultCredentialsError):
+                GCPCredentialsManager().get_credentials()
