@@ -59,7 +59,6 @@ class Service(CoolNameable):
 
         self.backend = backend
         self.run_function = run_function
-
         self._credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
         self.publisher = pubsub_v1.PublisherClient(credentials=self._credentials, batch_settings=BATCH_SETTINGS)
         self._current_question = None
