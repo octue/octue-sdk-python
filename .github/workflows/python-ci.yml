@@ -12,7 +12,6 @@ on:
       - main
 
 jobs:
-
   check-semantic-version:
     if: "!contains(github.event.head_commit.message, 'skipci')"
     runs-on: ubuntu-latest
@@ -36,7 +35,7 @@ jobs:
     if: "!contains(github.event.head_commit.message, 'skipci')"
     runs-on: ${{ matrix.os }}
     env:
-      USING_COVERAGE: '3.8'
+      USING_COVERAGE: "3.8"
     strategy:
       matrix:
         python: [3.8]
@@ -44,17 +43,21 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
+
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python }}
+
       - name: Install tox
         run: pip install tox
+
       - name: Run tests
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           TEST_PROJECT_NAME: ${{ secrets.TEST_PROJECT_NAME }}
         run: tox -e py
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
@@ -69,14 +72,17 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
+
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: 3.8
+
       - name: Make package
         run: |
           python3 -m pip install --upgrade setuptools wheel
           python3 setup.py sdist bdist_wheel
+
       - name: Test package is publishable with PyPI test server
         uses: pypa/gh-action-pypi-publish@master
         with:

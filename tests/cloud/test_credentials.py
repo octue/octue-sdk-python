@@ -3,23 +3,31 @@ import logging
 import os
 import tempfile
 from unittest.mock import patch
-
+from google.auth import compute_engine
 import google.oauth2.service_account
 
+from octue.exceptions import InvalidInputException
 from octue.cloud.credentials import GCPCredentialsManager
 from tests.base import BaseTestCase
 
 
 class TestGCPCredentialsManager(BaseTestCase):
-    def test_log_message_if_no_environment_variable(self):
-        """Ensure a debug message is logged if the given environment variable can't be found."""
-        with self.assertLogs(level=logging.DEBUG) as logging_context:
-            GCPCredentialsManager(environment_variable_name="heeby_jeeby-11111-33103")
+    def test_error_raised_if_environment_variable_set_to_none(self):
+        """Ensure an error is raised in the case that someone explicitly overrides the default value to None"""
+        with self.assertRaises(InvalidInputException):
+            GCPCredentialsManager(environment_variable_name=None)
 
-        self.assertIn(
-            "No environment variable called 'heeby_jeeby-11111-33103'; resorting to default Google Cloud credentials.",
-            logging_context.output[0],
-        )
+    def test_error_raised_if_environment_variable_is_unset(self):
+        """Ensure an error is raised if the given environment variable can't be found."""
+        with self.assertRaises(InvalidInputException):
+            mgr = GCPCredentialsManager(environment_variable_name="AN_UNSET_ENVVAR")
+
+    def test_error_raised_if_environment_variable_is_invalid(self):
+        """Ensure an error is raised if the given environment variable can't be found."""
+        with patch.dict(os.environ, {"A_LEGIT_ENVVAR_NAME": "with-a-value-neither-file-nor-json"}):
+            with self.assertRaises(InvalidInputException):
+                mgr = GCPCredentialsManager(environment_variable_name="A_LEGIT_ENVVAR_NAME")
+                mgr.get_credentials()
 
     def test_credentials_can_be_loaded_from_file(self):
         """Test that credentials can be loaded from the file at the path specified by the environment variable."""
@@ -43,6 +51,9 @@ class TestGCPCredentialsManager(BaseTestCase):
                 credentials = GCPCredentialsManager().get_credentials(as_dict=True)
                 self.assertEqual(credentials, {"blah": "nah"})
 
-    def test_credentials_are_none_when_environment_variable_name_is_none(self):
-        """Test that credentials are `None` when the given environment variable name is `None`."""
-        self.assertIsNone(GCPCredentialsManager(environment_variable_name=None).get_credentials())
+    def test_compute_engine_credentials_are_used_when_environment_unset(self):
+        """Test that application default credentials are accessed when the environment variable value is not set."""
+        with patch.dict(os.environ, {"GOOGLE_APPLICATION_CREDENTIALS": ""}):
+            del os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
+            creds = GCPCredentialsManager().get_credentials()
+            self.assertIsInstance(creds, compute_engine.credentials.Credentials)

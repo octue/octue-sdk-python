@@ -90,5 +90,12 @@ ENV/
 # Rope project settings
 .ropeproject
 
-# JetBrains IDE projects:
+# IDE projects
 .idea/
+.vscode/
+.devcontainer/.zsh_history
+
+# See: https://github.com/google-github-actions/auth/issues/123
+google_credentials.json
+gha-creds-*.json
+gcp-creds-*.json
