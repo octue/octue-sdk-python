@@ -2,7 +2,7 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.187.0/containers/python-3
 {
   "name": "Python 3",
-  "image": "windpioneers/gdal-python:familiar-catshark-gdal-2.4.1-python-3.9-dev",
+  "image": "windpioneers/gdal-python:familiar-catshark-gdal-2.4.1-python-3.8-dev",
   // Set *default* container specific settings.json values on container create.
   "settings": {
     "austin.mode": "Wall time",
