@@ -3,7 +3,7 @@ import logging
 import os
 import tempfile
 from unittest.mock import patch
-
+from google.auth import compute_engine
 import google.oauth2.service_account
 
 from octue.cloud.credentials import GCPCredentialsManager
@@ -43,6 +43,7 @@ class TestGCPCredentialsManager(BaseTestCase):
                 credentials = GCPCredentialsManager().get_credentials(as_dict=True)
                 self.assertEqual(credentials, {"blah": "nah"})
 
-    def test_credentials_are_none_when_environment_variable_name_is_none(self):
-        """Test that credentials are `None` when the given environment variable name is `None`."""
-        self.assertIsNone(GCPCredentialsManager(environment_variable_name=None).get_credentials())
+    def test_compute_engine_credentials_are_used_when_environment_unset(self):
+        """Test that application default credentials are accessed when the given environment variable name is `None`."""
+        creds = GCPCredentialsManager(environment_variable_name=None).get_credentials()
+        self.assertIsInstance(creds, compute_engine.credentials.Credentials)
