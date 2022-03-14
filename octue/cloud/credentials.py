@@ -1,7 +1,8 @@
 import json
 import logging
 import os
-
+import warnings
+from google.auth import compute_engine
 from google.oauth2 import service_account
 
 
@@ -39,15 +40,42 @@ class GCPCredentialsManager:
         :param bool as_dict: if `True`, get the credentials as a dictionary
         :return dict|google.auth.service_account.Credentials|None:
         """
+        if as_dict:
+            warnings.warn(
+                message=(
+                    "Requesting credentials as a dictionary is deprecated"
+                    "to enable uniform treatment between specified"
+                    "GOOGLE_APPLICATION_CREDENTIALS and use of Google's"
+                    "Application Default Credentials."
+                ),
+                category=DeprecationWarning,
+            )
+
         if self.service_account_json is None:
-            return None
+            logger.debug("Using application default credentials")
+            creds = compute_engine.Credentials()
 
-        # Check that the environment variable refers to a real file.
-        if os.path.exists(self.service_account_json):
-            return self._get_credentials_from_file(as_dict=as_dict)
+        elif os.path.exists(self.service_account_json):
+            logger.debug("Using credentials from file %s", self.service_account_json)
+            creds = self._get_credentials_from_file(as_dict=as_dict)
 
-        # If it doesn't, assume that it's the credentials file as a JSON string.
-        return self._get_credentials_from_string(as_dict=as_dict)
+        else:
+            warnings.warn(
+                message=(
+                    "Placing service account credentials JSON directly in an"
+                    "environment variable will be deprecated soon. Set "
+                    "GOOGLE_APPLICATION_CREDENTIALS to a file path, or leave"
+                    "unset to use Application Default Credentials."
+                    "See https://medium.com/datamindedbe/application-default-credentials-477879e31cb5"
+                    "for a helpful overview of google credentials"
+                ),
+                category=DeprecationWarning,
+            )
+
+            logger.debug("Using credentials from environment string")
+            creds = self._get_credentials_from_string(as_dict=as_dict)
+
+        return creds
 
     def _get_credentials_from_file(self, as_dict=False):
         """Get the credentials from the JSON file whose path is specified in the environment variable's value.
