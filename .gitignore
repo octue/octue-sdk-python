@@ -90,5 +90,7 @@ ENV/
 # Rope project settings
 .ropeproject
 
-# JetBrains IDE projects:
+# IDE projects
 .idea/
+.vscode/
+.devcontainer/.zsh_history
