@@ -40,6 +40,8 @@ jobs:
       matrix:
         python: [3.8]
         os: [ubuntu-latest, windows-latest, macos-latest]
+    permissions:
+      id-token: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
