@@ -66,7 +66,6 @@ jobs:
       - name: Run tests
         env:
           TEST_PROJECT_NAME: ${{ secrets.TEST_PROJECT_NAME }}
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
         run: tox -e py
 
       - name: Upload coverage to Codecov
