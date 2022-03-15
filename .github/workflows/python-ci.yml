@@ -52,9 +52,10 @@ jobs:
       - name: Install tox
         run: pip install tox
 
-      - uses: 'google-github-actions/auth@v0'
+      - name: Authenticate with Google Cloud
+        uses: 'google-github-actions/auth@v0'
         with:
-          workload_identity_provider: 'projects/481503880524/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider'
+          workload_identity_provider: 'projects/481503880524/locations/global/workloadIdentityPools/github-actions-pool-2/providers/github-actions-provider-2'
           service_account: 'gha-sdk-python@octue-amy.iam.gserviceaccount.com'
 
       - name: Run tests
