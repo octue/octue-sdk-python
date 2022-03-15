@@ -63,18 +63,8 @@ jobs:
           workload_identity_provider: 'projects/481503880524/locations/global/workloadIdentityPools/github-actions-pool-2/providers/github-actions-provider-2'
           service_account: 'gha-sdk-python@octue-amy.iam.gserviceaccount.com'
 
-      - name: Prepare Integration Test Credentials
-        # The workload identity federation works great for using the GCloud API, but the credentials required by
-        # the storage client in integration tests don't like it. So until the credentials APIs are sensibly
-        # applied across the google client libraries we inject the service account key manually purely for test...
-        id: auth-override
-        run: |
-          echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}' > $(pwd)/gha-creds-github-actions.json && \
-          echo "::set-output name=credentials_file_path::$(pwd)/gha-creds-github-actions.json"
-
       - name: Run tests
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: /workspace/gha-creds-github-actions.json
           TEST_PROJECT_NAME: ${{ secrets.TEST_PROJECT_NAME }}
 
         run: tox -e py
