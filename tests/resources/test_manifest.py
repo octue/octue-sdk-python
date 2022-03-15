@@ -144,21 +144,21 @@ class TestManifest(BaseTestCase):
 
         storage_client.upload_from_string(
             "[1, 2, 3]",
-            storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_dataset_1", "file_0.txt"),
+            storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_dataset_a", "file_0.txt"),
         )
 
         storage_client.upload_from_string(
-            "[4, 5, 6]", storage.path.generate_gs_path("another-test-bucket", "my_dataset_2", "the_data.txt")
+            "[4, 5, 6]", storage.path.generate_gs_path("another-test-bucket", "my_dataset_b", "the_data.txt")
         )
 
         manifest = Manifest(
             datasets={
-                "my_dataset_1": f"gs://{TEST_BUCKET_NAME}/my_dataset_1",
-                "my_dataset_2": "gs://another-test-bucket/my_dataset_2",
+                "my_dataset_a": f"gs://{TEST_BUCKET_NAME}/my_dataset_a",
+                "my_dataset_b": "gs://another-test-bucket/my_dataset_b",
             }
         )
 
-        self.assertEqual({dataset.name for dataset in manifest.datasets.values()}, {"my_dataset_1", "my_dataset_2"})
+        self.assertEqual({dataset.name for dataset in manifest.datasets.values()}, {"my_dataset_a", "my_dataset_b"})
 
         files = [list(dataset.files)[0] for dataset in manifest.datasets.values()]
         self.assertEqual({file.bucket_name for file in files}, {TEST_BUCKET_NAME, "another-test-bucket"})
@@ -178,25 +178,26 @@ class TestManifest(BaseTestCase):
         """Test that, if datasets are provided as a list (the old format), a deprecation warning is issued and the list
         is converted to a dictionary (the new format).
         """
-        storage_client = GoogleCloudStorageClient()
+        test_cases = [
+            {
+                "datasets": [f"gs://{TEST_BUCKET_NAME}/my_dataset_1", f"gs://{TEST_BUCKET_NAME}/my_dataset_2"],
+                "keys": {"my_dataset_1": 0, "my_dataset_2": 1},
+                "expected_keys": {"my_dataset_1", "my_dataset_2"},
+            },
+            {
+                "datasets": [f"gs://{TEST_BUCKET_NAME}/my_dataset_1", f"gs://{TEST_BUCKET_NAME}/my_dataset_2"],
+                "expected_keys": {"dataset_0", "dataset_1"},
+            },
+            {
+                "datasets": [Dataset(name="wind_speed_map"), Dataset(name="elevation_map")],
+                "keys": {"elevation_map": 1, "wind_speed_map": 0},
+                "expected_keys": {"elevation_map", "wind_speed_map"},
+            },
+        ]
 
-        storage_client.upload_from_string(
-            "[1, 2, 3]",
-            storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_dataset_1", "file_0.txt"),
-        )
+        for test_case in test_cases:
+            with self.subTest(test_case=test_case):
+                with self.assertWarns(DeprecationWarning):
+                    manifest = Manifest(datasets=test_case["datasets"], keys=test_case.get("keys"))
 
-        storage_client.upload_from_string(
-            "[4, 5, 6]",
-            storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_dataset_2", "the_data.txt"),
-        )
-
-        with self.assertWarns(DeprecationWarning):
-            manifest = Manifest(
-                datasets=[
-                    f"gs://{TEST_BUCKET_NAME}/my_dataset_1",
-                    f"gs://{TEST_BUCKET_NAME}/my_dataset_2",
-                ],
-                keys={"my_dataset_1": 0, "my_dataset_2": 1},
-            )
-
-        self.assertEqual(set(manifest.datasets.keys()), {"dataset_0", "dataset_1"})
+                self.assertEqual(set(manifest.datasets.keys()), test_case["expected_keys"])
