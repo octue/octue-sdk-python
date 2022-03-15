@@ -42,9 +42,11 @@ class Topic:
         :param bool allow_existing: if `False`, raise an error if a topic of this name already exists; if `True`, do nothing (the existing topic is not overwritten)
         :return None:
         """
+        posix_timestamp_with_no_decimals = str(datetime.now().timestamp()).split(".")[0]
+
         if not allow_existing:
             self.service.publisher.create_topic(
-                request=Topic_(name=self.path, labels={"created": str(datetime.now().timestamp()).split(".")[0]})
+                request=Topic_(name=self.path, labels={"created": posix_timestamp_with_no_decimals})
             )
 
             self._log_creation()
@@ -52,7 +54,7 @@ class Topic:
 
         try:
             self.service.publisher.create_topic(
-                request=Topic_(name=self.path, labels={"created": str(datetime.now().timestamp()).split(".")[0]})
+                request=Topic_(name=self.path, labels={"created": posix_timestamp_with_no_decimals})
             )
         except google.api_core.exceptions.AlreadyExists:
             pass
