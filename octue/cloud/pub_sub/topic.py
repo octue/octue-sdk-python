@@ -1,7 +1,9 @@
 import logging
 import time
+from datetime import datetime
 
 import google.api_core.exceptions
+from google.pubsub_v1.types.pubsub import Topic as Topic_
 
 
 logger = logging.getLogger(__name__)
@@ -41,12 +43,17 @@ class Topic:
         :return None:
         """
         if not allow_existing:
-            self.service.publisher.create_topic(name=self.path)
+            self.service.publisher.create_topic(
+                request=Topic_(name=self.path, labels={"created": str(datetime.now().timestamp()).split(".")[0]})
+            )
+
             self._log_creation()
             return
 
         try:
-            self.service.publisher.create_topic(name=self.path)
+            self.service.publisher.create_topic(
+                request=Topic_(name=self.path, labels={"created": str(datetime.now().timestamp()).split(".")[0]})
+            )
         except google.api_core.exceptions.AlreadyExists:
             pass
         self._log_creation()
