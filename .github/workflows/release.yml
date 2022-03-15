@@ -22,16 +22,19 @@ jobs:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python }}
       - name: Install tox
         run: pip install tox
+      - uses: 'google-github-actions/auth@v0'
+        with:
+          workload_identity_provider: 'projects/481503880524/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider'
+          service_account: 'gha-sdk-python@octue-amy.iam.gserviceaccount.com'
       - name: Run tests
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           TEST_PROJECT_NAME: ${{ secrets.TEST_PROJECT_NAME }}
         run: tox -e py
       - name: Upload coverage to Codecov
@@ -45,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: run-tests
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Get package version
       run: echo "PACKAGE_VERSION=$(python setup.py --version)" >> $GITHUB_ENV
     - name: Create Release
@@ -64,7 +67,7 @@ jobs:
     needs: release
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
@@ -86,7 +89,7 @@ jobs:
     timeout-minutes: 300
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Get package version
         run: echo "PACKAGE_VERSION=$(python setup.py --version)" >> $GITHUB_ENV
       - name: Log in to DockerHub
