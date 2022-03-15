@@ -3,8 +3,10 @@ import logging
 import os
 import warnings
 from json.decoder import JSONDecodeError
+
 from google import auth
 from google.oauth2 import service_account
+
 from octue.exceptions import InvalidInputException
 
 
@@ -44,7 +46,10 @@ class GCPCredentialsManager:
 
     @property
     def using_application_default_credentials(self):
-        """A boolean determining whether ADCs are used or not"""
+        """Determine whether application default credentials (ADCs) are used or not
+
+        :return bool:
+        """
         return self.environment_variable_value == ""
 
     def get_credentials(self, as_dict=False):
@@ -56,10 +61,8 @@ class GCPCredentialsManager:
         if as_dict:
             warnings.warn(
                 message=(
-                    "Requesting credentials as a dictionary is deprecated "
-                    "to enable uniform treatment between specified "
-                    "GOOGLE_APPLICATION_CREDENTIALS and use of Google's "
-                    "Application Default Credentials."
+                    "Requesting credentials as a dictionary is deprecated to enable uniform treatment between "
+                    "specified GOOGLE_APPLICATION_CREDENTIALS and use of Google's Application Default Credentials."
                 ),
                 category=DeprecationWarning,
             )
@@ -67,7 +70,6 @@ class GCPCredentialsManager:
         if self.using_application_default_credentials:
             logger.debug("Using application default credentials")
             creds, project_id = auth.default()
-            # FFS google why can't you bloody make it simple
             creds.project_id = project_id
 
         elif os.path.exists(self.environment_variable_value):
@@ -97,21 +99,24 @@ class GCPCredentialsManager:
 
         return creds
 
-    def _get_credentials_from_file(self, filename, as_dict=False):
+    def _get_credentials_from_file(self, filename, as_dict=None):
         """Get the credentials from the JSON file whose path is specified in the environment variable's value.
 
-        :param bool as_dict: if `True`, get the credentials as a dictionary
-        :return dict|google.auth.service_account.Credentials:
+        :param bool as_dict: deprecated - this no longer works
+        :return google.auth.service_account.Credentials:
         """
-        with open(filename, encoding="utf-8") as f:
-            credentials = json.load(f)
-
-        logger.debug("GCP credentials read from file.")
-
         if as_dict:
-            return credentials
+            warnings.warn(
+                message=(
+                    "Providing `as_dict` to credentials read from a file no longer works. Please convert to a "
+                    "dictionary manually."
+                ),
+                category=DeprecationWarning,
+            )
 
-        return service_account.Credentials.from_service_account_info(credentials)
+        credentials = service_account.Credentials.from_service_account_file(filename)
+        logger.debug("GCP credentials read from file.")
+        return credentials
 
     def _get_credentials_from_string(self, value, as_dict=False):
         """Get the credentials directly from the JSON string specified in the environment variable's value.
