@@ -202,13 +202,11 @@ class Runner:
         if not missing_credentials:
             return
 
-        google_cloud_credentials = auth.default()[0]
+        google_cloud_credentials, project_name = auth.default()
         secrets_client = secretmanager.SecretManagerServiceClient(credentials=google_cloud_credentials)
 
         if google_cloud_credentials is None:
             project_name = self._project_name
-        else:
-            project_name = google_cloud_credentials.project_id
 
         for credential in missing_credentials:
             secret_path = secrets_client.secret_version_path(

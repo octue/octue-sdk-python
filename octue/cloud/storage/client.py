@@ -34,11 +34,10 @@ class GoogleCloudStorageClient:
         warnings.simplefilter("ignore", category=ResourceWarning)
 
         if credentials == OCTUE_MANAGED_CREDENTIALS:
-            credentials = auth.default()[0]
+            credentials, self.project_name = auth.default()
         else:
             credentials = credentials
 
-        self.project_name = credentials.project_id
         self.client = storage.Client(project=self.project_name, credentials=credentials)
 
     def create_bucket(self, name, location=None, allow_existing=False, timeout=_DEFAULT_TIMEOUT):
