@@ -13,7 +13,7 @@ from octue.utils.objects import get_nested_attribute
 logger = logging.getLogger(__name__)
 
 
-SERVICE_CONFIGURATION_PATH = "service.yaml"
+DEFAULT_SERVICE_CONFIGURATION_PATH = "octue.yaml"
 
 
 def answer_question(question, project_name, credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS"):
@@ -46,7 +46,9 @@ def answer_question(question, project_name, credentials_environment_variable="GO
     answer_topic = service.instantiate_answer_topic(question_uuid)
 
     try:
-        service_configuration, app_configuration = load_service_and_app_configuration(SERVICE_CONFIGURATION_PATH)
+        service_configuration, app_configuration = load_service_and_app_configuration(
+            DEFAULT_SERVICE_CONFIGURATION_PATH
+        )
         service.name = service_configuration["name"]
 
         runner = Runner(

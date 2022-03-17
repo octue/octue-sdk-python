@@ -171,7 +171,8 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
 @click.option(
     "--service-configuration-path",
     type=click.Path(dir_okay=False),
-    default="service.yaml",
+    default="octue.yaml",
+    help="The path to an `octue.yaml` file defining the service to start.",
 )
 @click.option(
     "--service-id",
@@ -187,14 +188,12 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
     help="Delete Google Pub/Sub topics and subscriptions on exit.",
 )
 def start(service_configuration_path, service_id, timeout, delete_topic_and_subscription_on_exit):
-    """Start the service as a server to be asked questions by other services."""
+    """Start the service as a child to be asked questions by other services."""
     service_configuration, app_configuration = load_service_and_app_configuration(service_configuration_path)
-
-    twine = Twine(source=service_configuration["twine_path"])
 
     runner = Runner(
         app_src=service_configuration["app_source_path"],
-        twine=twine,
+        twine=Twine(source=service_configuration["twine_path"]),
         configuration_values=app_configuration["configuration_values"],
         configuration_manifest=app_configuration["configuration_manifest"],
         children=app_configuration["children"],

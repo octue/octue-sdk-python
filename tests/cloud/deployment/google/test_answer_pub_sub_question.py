@@ -78,7 +78,7 @@ class TestAnswerPubSubQuestion(TestCase):
 
         class MockOpenForConfigurationFiles(MockOpen):
             path_to_contents_mapping = {
-                "service.yaml": yaml.dump(
+                "octue.yaml": yaml.dump(
                     {
                         "name": "test-service",
                         "app_source_path": "/path/to/app_dir",
