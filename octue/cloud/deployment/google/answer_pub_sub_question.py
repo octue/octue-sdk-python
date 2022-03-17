@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 SERVICE_CONFIGURATION_PATH = "service.yaml"
 
 
-def answer_question(question, project_name, credentials_environment_variable=None):
+def answer_question(question, project_name, credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS"):
     """Answer a question from a service by running the deployed app with the deployment configuration. Either the
     `deployment_configuration_path` should be specified, or the `deployment_configuration`.
 

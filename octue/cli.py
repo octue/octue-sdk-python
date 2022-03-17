@@ -6,8 +6,8 @@ import sys
 
 import click
 import pkg_resources
+from google import auth
 
-from octue.cloud.credentials import GCPCredentialsManager
 from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
 from octue.cloud.pub_sub.service import Service
 from octue.configuration import load_service_and_app_configuration
@@ -213,7 +213,8 @@ def start(service_configuration_path, service_id, timeout, delete_topic_and_subs
         backend = service_backends.get_backend(backend_configuration_values.pop("name"))(**backend_configuration_values)
     else:
         # If no backend details are provided, use Google Pub/Sub with the default project.
-        backend = service_backends.get_backend()(project_name=GCPCredentialsManager().get_credentials().project_id)
+        _, project_name = auth.default()
+        backend = service_backends.get_backend()(project_name=project_name)
 
     service = Service(
         name=service_configuration["name"],

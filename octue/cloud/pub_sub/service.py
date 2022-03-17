@@ -7,11 +7,11 @@ import logging
 import time
 import uuid
 
+from google import auth
 from google.api_core import retry
 from google.cloud import pubsub_v1
 
 import octue.exceptions
-from octue.cloud.credentials import GCPCredentialsManager
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
@@ -59,8 +59,7 @@ class Service(CoolNameable):
 
         self.backend = backend
         self.run_function = run_function
-
-        self._credentials = GCPCredentialsManager(backend.credentials_environment_variable).get_credentials()
+        self._credentials = auth.default()[0]
         self.publisher = pubsub_v1.PublisherClient(credentials=self._credentials, batch_settings=BATCH_SETTINGS)
         self._current_question = None
         super().__init__(*args, **kwargs)

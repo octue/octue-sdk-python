@@ -122,21 +122,21 @@ class TestManifest(BaseTestCase):
 
         storage_client.upload_from_string(
             "[1, 2, 3]",
-            storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_dataset_1", "file_0.txt"),
+            storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_dataset_a", "file_0.txt"),
         )
 
         storage_client.upload_from_string(
-            "[4, 5, 6]", storage.path.generate_gs_path("another-test-bucket", "my_dataset_2", "the_data.txt")
+            "[4, 5, 6]", storage.path.generate_gs_path("another-test-bucket", "my_dataset_b", "the_data.txt")
         )
 
         manifest = Manifest(
             datasets={
-                "my_dataset_1": f"gs://{TEST_BUCKET_NAME}/my_dataset_1",
-                "my_dataset_2": "gs://another-test-bucket/my_dataset_2",
+                "my_dataset_a": f"gs://{TEST_BUCKET_NAME}/my_dataset_a",
+                "my_dataset_b": "gs://another-test-bucket/my_dataset_b",
             }
         )
 
-        self.assertEqual({dataset.name for dataset in manifest.datasets.values()}, {"my_dataset_1", "my_dataset_2"})
+        self.assertEqual({dataset.name for dataset in manifest.datasets.values()}, {"my_dataset_a", "my_dataset_b"})
 
         files = [list(dataset.files)[0] for dataset in manifest.datasets.values()]
         self.assertEqual({file.bucket_name for file in files}, {TEST_BUCKET_NAME, "another-test-bucket"})
