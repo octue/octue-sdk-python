@@ -16,7 +16,7 @@ jobs:
     if: "!contains(github.event.head_commit.message, 'skipci')"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           # Set fetch-depth to 0 to fetch all tags (necessary for git-mkver to determine the correct semantic version).
           fetch-depth: 0
@@ -40,9 +40,11 @@ jobs:
       matrix:
         python: [3.8]
         os: [ubuntu-latest, windows-latest, macos-latest]
+    permissions:
+      id-token: write
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Setup Python
         uses: actions/setup-python@v2
@@ -52,9 +54,17 @@ jobs:
       - name: Install tox
         run: pip install tox
 
+      - name: Authenticate with Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v0.6.0
+        with:
+          # NOTE: If setting create_credentials_file=true, .dockerignore file must include `gha-creds-*.json` to avoid baking these credentials into build
+          create_credentials_file: true
+          workload_identity_provider: 'projects/481503880524/locations/global/workloadIdentityPools/github-actions-pool-2/providers/github-actions-provider-2'
+          service_account: 'gha-sdk-python@octue-amy.iam.gserviceaccount.com'
+
       - name: Run tests
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           TEST_PROJECT_NAME: ${{ secrets.TEST_PROJECT_NAME }}
         run: tox -e py
 
@@ -71,7 +81,7 @@ jobs:
     needs: [check-semantic-version, run-tests]
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v2
