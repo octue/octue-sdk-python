@@ -192,11 +192,11 @@ def start(service_configuration_path, service_id, timeout, delete_topic_and_subs
     service_configuration, app_configuration = load_service_and_app_configuration(service_configuration_path)
 
     runner = Runner(
-        app_src=service_configuration["app_source_path"],
-        twine=Twine(source=service_configuration["twine_path"]),
-        configuration_values=app_configuration["configuration_values"],
-        configuration_manifest=app_configuration["configuration_manifest"],
-        children=app_configuration["children"],
+        app_src=service_configuration.app_source_path,
+        twine=Twine(source=service_configuration.twine_path),
+        configuration_values=app_configuration.configuration_values,
+        configuration_manifest=app_configuration.configuration_manifest,
+        children=app_configuration.children,
         skip_checks=global_cli_context["skip_checks"],
     )
 
@@ -206,7 +206,7 @@ def start(service_configuration_path, service_id, timeout, delete_topic_and_subs
         analysis_log_handler=global_cli_context["log_handler"],
     )
 
-    backend_configuration_values = (app_configuration.get("configuration_values") or {}).get("backend")
+    backend_configuration_values = (app_configuration.configuration_values or {}).get("backend")
 
     if backend_configuration_values:
         backend = service_backends.get_backend(backend_configuration_values.pop("name"))(**backend_configuration_values)
@@ -216,7 +216,7 @@ def start(service_configuration_path, service_id, timeout, delete_topic_and_subs
         backend = service_backends.get_backend()(project_name=project_name)
 
     service = Service(
-        name=service_configuration["name"],
+        name=service_configuration.name,
         service_id=service_id,
         backend=backend,
         run_function=run_function,

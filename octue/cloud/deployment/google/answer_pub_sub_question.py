@@ -49,15 +49,15 @@ def answer_question(question, project_name, credentials_environment_variable="GO
         service_configuration, app_configuration = load_service_and_app_configuration(
             DEFAULT_SERVICE_CONFIGURATION_PATH
         )
-        service.name = service_configuration["name"]
+        service.name = service_configuration.name
 
         runner = Runner(
-            app_src=service_configuration.get("app_source_path", "."),
-            twine=service_configuration.get("twine_path", "twine.json"),
-            configuration_values=app_configuration.get("configuration_values", None),
-            configuration_manifest=app_configuration.get("configuration_manifest", None),
-            output_manifest_path=app_configuration.get("output_manifest", None),
-            children=app_configuration.get("children", None),
+            app_src=service_configuration.app_source_path,
+            twine=service_configuration.twine_path,
+            configuration_values=app_configuration.configuration_values,
+            configuration_manifest=app_configuration.configuration_manifest,
+            output_manifest_path=app_configuration.output_manifest,
+            children=app_configuration.children,
             project_name=project_name,
         )
 

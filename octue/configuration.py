@@ -7,56 +7,57 @@ import yaml
 logger = logging.getLogger(__name__)
 
 
+class ServiceConfiguration:
+    def __init__(self, name, app_source_path=".", twine_path="twine.json", app_configuration_path=None):
+        self.name = name
+        self.app_source_path = app_source_path
+        self.twine_path = twine_path
+        self.app_configuration_path = app_configuration_path
+
+    @classmethod
+    def from_file(cls, path):
+        with open(path) as f:
+            raw_service_configuration = yaml.load(f, Loader=yaml.SafeLoader)
+
+        logger.info("Service configuration loaded from %r.", os.path.abspath(path))
+        return cls(**raw_service_configuration)
+
+
+class AppConfiguration:
+    def __init__(
+        self,
+        configuration_values=None,
+        configuration_manifest=None,
+        output_manifest_path=None,
+        children=None,
+    ):
+        self.configuration_values = configuration_values
+        self.configuration_manifest = configuration_manifest
+        self.output_manifest_path = output_manifest_path
+        self.children = children
+
+    @classmethod
+    def from_file(cls, path):
+        with open(path) as f:
+            raw_app_configuration = yaml.load(f, Loader=yaml.SafeLoader)
+
+        logger.info("Service configuration loaded from %r.", os.path.abspath(path))
+        return cls(**raw_app_configuration)
+
+
 def load_service_and_app_configuration(service_configuration_path):
     """Load the service configuration from the given YAML file or return an empty one.
 
     :param str service_configuration_path: path to service configuration file
     :return dict:
     """
-    raw_service_configuration = {}
+    service_configuration = ServiceConfiguration.from_file(service_configuration_path)
+    app_configuration = AppConfiguration()
 
-    try:
-        with open(service_configuration_path) as f:
-            raw_service_configuration = yaml.load(f, Loader=yaml.SafeLoader)
-
-        logger.info("Service configuration loaded from %r.", os.path.abspath(service_configuration_path))
-
-    except FileNotFoundError:
-        logger.info("Default service configuration used.")
-
-    service_configuration = {
-        "name": raw_service_configuration["name"],
-        "app_source_path": raw_service_configuration.get("app_source_path", "."),
-        "twine_path": raw_service_configuration.get("twine_path", "twine.json"),
-        "app_configuration": raw_service_configuration.get("app_configuration"),
-    }
-
-    app_configuration = load_app_configuration(service_configuration.get("app_configuration"))
-    return service_configuration, app_configuration
-
-
-def load_app_configuration(app_configuration_path):
-    """Load the app configuration from the given YAML file or return an empty one.
-
-    :param str app_configuration_path: path to app configuration file
-    :return dict:
-    """
-    raw_app_configuration = {}
-
-    if app_configuration_path:
+    if service_configuration.app_configuration_path:
         try:
-            with open(app_configuration_path) as f:
-                raw_app_configuration = yaml.load(f, Loader=yaml.SafeLoader)
-
+            app_configuration = AppConfiguration.from_file(service_configuration.app_configuration_path)
         except FileNotFoundError:
-            pass
+            logger.info("No app configuration found.")
 
-    if not raw_app_configuration:
-        logger.info("No app configuration found.")
-
-    return {
-        "configuration_values": raw_app_configuration.get("configuration_values"),
-        "configuration_manifest": raw_app_configuration.get("configuration_manifest"),
-        "output_manifest_path": raw_app_configuration.get("output_manifest"),
-        "children": raw_app_configuration.get("children"),
-    }
+    return service_configuration, app_configuration
