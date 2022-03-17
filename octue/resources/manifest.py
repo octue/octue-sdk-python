@@ -2,6 +2,7 @@ import json
 import os
 import warnings
 
+import octue.migrations.manifest
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException
@@ -24,6 +25,9 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
     _SERIALISE_FIELDS = "datasets", "keys", "id", "name", "path"
 
     def __init__(self, id=None, path=None, datasets=None, **kwargs):
+        if isinstance(datasets, list):
+            datasets = octue.migrations.manifest.translate_datasets_list_to_dictionary(datasets, kwargs.get("keys"))
+
         super().__init__(id=id, path=path)
         self.datasets = {}
 

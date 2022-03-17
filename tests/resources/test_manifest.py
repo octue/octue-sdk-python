@@ -151,3 +151,31 @@ class TestManifest(BaseTestCase):
         )
 
         self.assertEqual({dataset.name for dataset in manifest.datasets.values()}, {"dataset_0", "dataset_1"})
+
+    def test_deprecation_warning_issued_if_datasets_provided_as_list(self):
+        """Test that, if datasets are provided as a list (the old format), a deprecation warning is issued and the list
+        is converted to a dictionary (the new format).
+        """
+        test_cases = [
+            {
+                "datasets": [f"gs://{TEST_BUCKET_NAME}/my_dataset_1", f"gs://{TEST_BUCKET_NAME}/my_dataset_2"],
+                "keys": {"my_dataset_1": 0, "my_dataset_2": 1},
+                "expected_keys": {"my_dataset_1", "my_dataset_2"},
+            },
+            {
+                "datasets": [f"gs://{TEST_BUCKET_NAME}/my_dataset_1", f"gs://{TEST_BUCKET_NAME}/my_dataset_2"],
+                "expected_keys": {"dataset_0", "dataset_1"},
+            },
+            {
+                "datasets": [Dataset(name="wind_speed_map"), Dataset(name="elevation_map")],
+                "keys": {"elevation_map": 1, "wind_speed_map": 0},
+                "expected_keys": {"elevation_map", "wind_speed_map"},
+            },
+        ]
+
+        for test_case in test_cases:
+            with self.subTest(test_case=test_case):
+                with self.assertWarns(DeprecationWarning):
+                    manifest = Manifest(datasets=test_case["datasets"], keys=test_case.get("keys"))
+
+                self.assertEqual(set(manifest.datasets.keys()), test_case["expected_keys"])
