@@ -56,7 +56,7 @@ def answer_question(question, project_name, credentials_environment_variable="GO
             twine=service_configuration.twine_path,
             configuration_values=app_configuration.configuration_values,
             configuration_manifest=app_configuration.configuration_manifest,
-            output_manifest_path=app_configuration.output_manifest,
+            output_manifest_path=app_configuration.output_manifest_path,
             children=app_configuration.children,
             project_name=project_name,
         )

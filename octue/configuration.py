@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 
@@ -39,7 +40,7 @@ class AppConfiguration:
     @classmethod
     def from_file(cls, path):
         with open(path) as f:
-            raw_app_configuration = yaml.load(f, Loader=yaml.SafeLoader)
+            raw_app_configuration = json.load(f)
 
         logger.info("Service configuration loaded from %r.", os.path.abspath(path))
         return cls(**raw_app_configuration)

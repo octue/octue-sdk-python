@@ -7,8 +7,6 @@ import tempfile
 import unittest
 import uuid
 
-import yaml
-
 from octue import REPOSITORY_ROOT, Runner
 from octue.utils.processes import ProcessesContextManager
 
@@ -134,8 +132,8 @@ class TemplateAppsTestCase(BaseTestCase):
             # the file remains the same so this test tests the template as closely as possible.
             with tempfile.TemporaryDirectory() as temporary_directory:
 
-                with open(os.path.join(parent_service_path, "app.yaml")) as f:
-                    template_children = yaml.load(f, Loader=yaml.SafeLoader)["children"]
+                with open(os.path.join(parent_service_path, "app_configuration.json")) as f:
+                    template_children = json.load(f)["children"]
 
                 template_children[0]["id"] = wind_speed_service_uuid
                 template_children[1]["id"] = elevation_service_uuid

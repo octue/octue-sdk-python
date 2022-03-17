@@ -1,3 +1,4 @@
+import json
 import os
 import unittest.mock
 from unittest import TestCase, mock
@@ -83,10 +84,10 @@ class TestAnswerPubSubQuestion(TestCase):
                         "name": "test-service",
                         "app_source_path": "/path/to/app_dir",
                         "twine_path": "path/to/twine.json",
-                        "app_configuration": "app.yaml",
+                        "app_configuration_path": "app_configuration.json",
                     }
                 ),
-                "app.yaml": yaml.dump({"configuration_values": {"hello": "configuration"}}),
+                "app_configuration.json": json.dumps({"configuration_values": {"hello": "configuration"}}),
             }
 
         with mock.patch.dict(os.environ, {"SERVICE_ID": SERVICE_ID}):
