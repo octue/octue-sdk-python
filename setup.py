@@ -17,13 +17,12 @@ with open("LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.14.6",
+    version="0.14.5",
     py_modules=["cli"],
     install_requires=[
         "click>=7.1.2",
         "coolname>=1.1.0",
         "Flask>=1.1",
-        "google-auth>=1.27.0,<3",
         "google-cloud-pubsub>=2.5.0,<3",
         "google-cloud-secret-manager>=2.3.0",
         "google-cloud-storage>=1.35.1",

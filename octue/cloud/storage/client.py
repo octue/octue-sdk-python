@@ -5,11 +5,11 @@ import os
 import warnings
 
 import google.api_core.exceptions
-from google import auth
 from google.cloud import storage
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google_crc32c import Checksum
 
+from octue.cloud.credentials import GCPCredentialsManager
 from octue.cloud.storage.path import split_bucket_name_from_gs_path
 from octue.exceptions import CloudStorageBucketNotFound
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
@@ -34,10 +34,11 @@ class GoogleCloudStorageClient:
         warnings.simplefilter("ignore", category=ResourceWarning)
 
         if credentials == OCTUE_MANAGED_CREDENTIALS:
-            credentials, self.project_name = auth.default()
+            credentials = GCPCredentialsManager().get_credentials()
         else:
             credentials = credentials
 
+        self.project_name = credentials.project_id
         self.client = storage.Client(project=self.project_name, credentials=credentials)
 
     def create_bucket(self, name, location=None, allow_existing=False, timeout=_DEFAULT_TIMEOUT):
