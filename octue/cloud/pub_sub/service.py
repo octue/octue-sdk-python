@@ -188,8 +188,8 @@ class Service(CoolNameable):
         input_manifest=None,
         subscribe_to_logs=True,
         allow_local_files=False,
-        timeout=30,
         question_uuid=None,
+        timeout=30,
     ):
         """Ask a serving Service a question (i.e. send it input values for it to run its app on). The input values must
         be in the format specified by the serving Service's Twine file. A single-use topic and subscription are created
@@ -201,8 +201,8 @@ class Service(CoolNameable):
         :param octue.resources.manifest.Manifest|None input_manifest: the input manifest of the question
         :param bool subscribe_to_logs: if `True`, subscribe to logs from the remote service and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the serving service will have access to these local files
-        :param float|None timeout: time in seconds to keep retrying sending the question
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
+        :param float|None timeout: time in seconds to keep retrying sending the question
         :return (octue.cloud.pub_sub.subscription.Subscription, str): the response subscription and question UUID
         """
         if not allow_local_files:

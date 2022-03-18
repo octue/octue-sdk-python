@@ -84,6 +84,7 @@ class TestService(BaseTestCase):
         subscribe_to_logs=True,
         allow_local_files=False,
         service_name="my-service",
+        question_uuid=None,
         timeout=30,
         delivery_acknowledgement_timeout=30,
     ):
@@ -97,7 +98,13 @@ class TestService(BaseTestCase):
         :return dict:
         """
         subscription, _ = asking_service.ask(
-            responding_service.id, input_values, input_manifest, subscribe_to_logs, allow_local_files, timeout
+            responding_service.id,
+            input_values,
+            input_manifest,
+            subscribe_to_logs,
+            allow_local_files,
+            question_uuid,
+            timeout,
         )
 
         return asking_service.wait_for_answer(
