@@ -1,8 +1,8 @@
 {
 	"configuration_values_schema": {
 		"$schema": "http://json-schema.org/2019-09/schema#",
-		"title": "Elevation app configuration",
-		"description": "Back-end configuration for the elevation service to enable it to connect to Google Pub/Sub and communicate with other services.",
+		"title": "Wind speed app configuration",
+		"description": "Back-end configuration for the wind speed service to enable it to connect to Google Pub/Sub and communicate with other services.",
 		"type": "object",
 		"properties": {
 			"backend": {
