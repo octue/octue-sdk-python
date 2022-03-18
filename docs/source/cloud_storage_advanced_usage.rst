@@ -106,8 +106,8 @@ To use any of the methods above, valid Google Cloud Storage credentials are need
 provide them:
 
 1. Provide no credentials to the storage client (which by default uses Octue-managed credentials from the environment)
-   while providing an environment variable ``GOOGLE_APPLICATION_CREDENTIALS`` containing either the path to or contents
-   of a service account JSON file.
+   while providing an environment variable ``GOOGLE_APPLICATION_CREDENTIALS`` containing the path to a service account
+   JSON file.
 
 2. Advanced users of Google Cloud may choose to provide an instance of ``google.auth.credentials.Credentials`` as the
    credentials parameter of the storage client, opening up a more diverse array of credential possibilities.
