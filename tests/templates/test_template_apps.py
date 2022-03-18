@@ -69,9 +69,7 @@ class TemplateAppsTestCase(BaseTestCase):
         analysis = runner.run()
         analysis.finalise(output_dir=os.path.join("data", "output"))
 
-    @unittest.skipIf(
-        condition=os.name == "posix", reason="See issue https://github.com/octue/octue-sdk-python/issues/385"
-    )
+    @unittest.skip(reason="See issue https://github.com/octue/octue-sdk-python/issues/385")
     def test_using_manifests(self):
         """Ensure the using-manifests template app works correctly."""
         self.set_template("template-using-manifests")
