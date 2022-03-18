@@ -138,6 +138,7 @@ class TestStartCommand(BaseTestCase):
                                 ],
                             )
 
+        self.assertIsNone(result.exception)
         self.assertEqual(result.exit_code, 0)
 
 
