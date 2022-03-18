@@ -118,6 +118,10 @@ class TestStartCommand(BaseTestCase):
                             "type": "png",
                             "x_range": [-1.5, 0.6],
                             "y_range": [-1.26, 1.26],
+                            "backend": {
+                                "name": "GCPPubSubBackend",
+                                "project_name": "octue-amy",
+                            },
                         }
                     }
                 ),
