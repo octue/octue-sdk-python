@@ -15,9 +15,7 @@ from tests.cloud.pub_sub.mocks import (
 )
 
 
-BACKEND = GCPPubSubBackend(
-    project_name=TEST_PROJECT_NAME, credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS"
-)
+BACKEND = GCPPubSubBackend(project_name=TEST_PROJECT_NAME)
 
 
 class TestOrderedMessageHandler(BaseTestCase):

@@ -16,13 +16,12 @@ logger = logging.getLogger(__name__)
 DEFAULT_SERVICE_CONFIGURATION_PATH = "octue.yaml"
 
 
-def answer_question(question, project_name, credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS"):
+def answer_question(question, project_name):
     """Answer a question from a service by running the deployed app with the deployment configuration. Either the
     `deployment_configuration_path` should be specified, or the `deployment_configuration`.
 
     :param dict|tuple|apache_beam.io.gcp.pubsub.PubsubMessage question:
     :param str project_name:
-    :param str credentials_environment_variable:
     :return None:
     """
     service_id = os.environ.get("SERVICE_ID")
@@ -35,13 +34,7 @@ def answer_question(question, project_name, credentials_environment_variable="GO
 
     question_uuid = get_nested_attribute(question, "attributes.question_uuid")
 
-    service = Service(
-        service_id=service_id,
-        backend=GCPPubSubBackend(
-            project_name=project_name,
-            credentials_environment_variable=credentials_environment_variable,
-        ),
-    )
+    service = Service(service_id=service_id, backend=GCPPubSubBackend(project_name=project_name))
 
     answer_topic = service.instantiate_answer_topic(question_uuid)
 

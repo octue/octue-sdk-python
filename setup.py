@@ -30,7 +30,7 @@ setup(
         "google-crc32c>=1.1.2",
         "gunicorn",
         "python-dateutil>=2.8.1",
-        "twined @ https://github.com/octue/twined/archive/enhancement/allow-default-child-credentials-environment-variable-name.zip",
+        "twined==0.2.1",
     ],
     extras_require={"hdf5": ["h5py==3.6.0"], "dataflow": ["apache-beam[gcp]==2.36.0"]},
     url="https://www.github.com/octue/octue-sdk-python",

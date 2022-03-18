@@ -24,7 +24,6 @@ class TestAnswerPubSubQuestion(TestCase):
                     "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"},
                 },
                 project_name="a-project-name",
-                credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS",
             )
 
     def test_error_raised_when_service_id_environment_variable_is_empty(self):
@@ -37,7 +36,6 @@ class TestAnswerPubSubQuestion(TestCase):
                         "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"},
                     },
                     project_name="a-project-name",
-                    credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS",
                 )
 
     def test_with_no_app_configuration_file(self):
@@ -57,7 +55,6 @@ class TestAnswerPubSubQuestion(TestCase):
                                     "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"},
                                 },
                                 project_name="a-project-name",
-                                credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS",
                             )
 
         mock_runner.assert_called_with(
@@ -101,7 +98,6 @@ class TestAnswerPubSubQuestion(TestCase):
                                     "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"},
                                 },
                                 project_name="a-project-name",
-                                credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS",
                             )
 
         mock_runner.assert_called_with(

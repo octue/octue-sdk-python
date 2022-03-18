@@ -31,25 +31,19 @@ class ServiceBackend(ABC):
     """A dataclass specifying the backend for an Octue Service, including any credentials and other information it
     needs.
 
-    :param str|None credentials_environment_variable:
     :return None:
     """
-
-    def __init__(self, credentials_environment_variable):
-        self.credentials_environment_variable = credentials_environment_variable
 
 
 class GCPPubSubBackend(ServiceBackend):
     """A dataclass containing the details needed to use Google Cloud Platform Pub/Sub as a Service backend.
 
     :param str project_name:
-    :param str|None credentials_environment_variable:
     :return None:
     """
 
-    def __init__(self, project_name, credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS"):
+    def __init__(self, project_name):
         self.project_name = project_name
-        super().__init__(credentials_environment_variable)
 
     def __repr__(self):
         return f"<{type(self).__name__}(project_name={self.project_name!r})>"
