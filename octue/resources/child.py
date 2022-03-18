@@ -30,6 +30,7 @@ class Child:
         subscribe_to_logs=True,
         allow_local_files=False,
         handle_monitor_message=None,
+        question_uuid=None,
         timeout=20,
     ):
         """Ask the child a question (i.e. send it some input value and/or a manifest and wait for it to run an analysis
@@ -41,6 +42,7 @@ class Child:
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the serving service will have access to these local files
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
+        :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
@@ -50,6 +52,7 @@ class Child:
             input_manifest=input_manifest,
             subscribe_to_logs=subscribe_to_logs,
             allow_local_files=allow_local_files,
+            question_uuid=question_uuid,
             timeout=timeout,
         )
 
