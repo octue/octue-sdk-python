@@ -9,6 +9,15 @@ logger = logging.getLogger(__name__)
 
 
 class ServiceConfiguration:
+    """A class containing the details needed to configure a service.
+
+    :param str name: the name to give the service
+    :param str app_source_path: the path to the directory containing the app's source code
+    :param str twine_path: the path to the twine file defining the schema for input, output, and configuration data for the service
+    :param str|None app_configuration_path: the path to the app configuration file containing configuration data for the service; if this is `None`, the default application configuration is used
+    :return None:
+    """
+
     def __init__(self, name, app_source_path=".", twine_path="twine.json", app_configuration_path=None):
         self.name = name
         self.app_source_path = app_source_path
@@ -17,6 +26,11 @@ class ServiceConfiguration:
 
     @classmethod
     def from_file(cls, path):
+        """Load a service configuration from a file.
+
+        :param str path:
+        :return ServiceConfiguration:
+        """
         with open(path) as f:
             raw_service_configuration = yaml.load(f, Loader=yaml.SafeLoader)
 
@@ -25,6 +39,16 @@ class ServiceConfiguration:
 
 
 class AppConfiguration:
+    """A class containing the configuration data needed to start an app as a service. The configuration data should
+    conform to the service's twine schema.
+
+    :param str|None configuration_values: values to configure the app
+    :param str|None configuration_manifest: a manifest of files to configure the app
+    :param str|None output_manifest_path: the path to give the output manifest
+    :param str|None children: details of the children the app requires
+    :return None:
+    """
+
     def __init__(
         self,
         configuration_values=None,
@@ -39,6 +63,11 @@ class AppConfiguration:
 
     @classmethod
     def from_file(cls, path):
+        """Load an app configuration from a file.
+
+        :param str path:
+        :return AppConfiguration:
+        """
         with open(path) as f:
             raw_app_configuration = json.load(f)
 
