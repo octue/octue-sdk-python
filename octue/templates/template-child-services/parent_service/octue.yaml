@@ -1,2 +1,2 @@
 name: template-child-services/parent-service
-app_configuration: app.yaml
+app_configuration: app_configuration.json
