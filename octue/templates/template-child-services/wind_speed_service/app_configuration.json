@@ -1,0 +1,8 @@
+{
+    "configuration_values": {
+        "backend": {
+            "name": "GCPPubSubBackend",
+            "project_name": "octue-amy"
+        }
+    }
+}
