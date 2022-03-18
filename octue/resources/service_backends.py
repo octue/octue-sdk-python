@@ -43,6 +43,12 @@ class GCPPubSubBackend(ServiceBackend):
     """
 
     def __init__(self, project_name):
+        if project_name is None:
+            raise exceptions.CloudLocationNotSpecified(
+                "The project name must be specified for a service to connect to the correct Google Cloud Pub/Sub "
+                f"instance - it's currently {project_name!r}.",
+            )
+
         self.project_name = project_name
 
     def __repr__(self):
