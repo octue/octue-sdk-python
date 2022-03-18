@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import tempfile
+from unittest.mock import patch
 
 from octue import definitions, exceptions
 from octue.cloud import storage
@@ -497,22 +498,24 @@ class TestDataset(BaseTestCase):
 
         dataset = Dataset.from_cloud(f"gs://{TEST_BUCKET_NAME}/nested_dataset", recursive=True)
 
-        with self.assertLogs() as logging_context:
+        # Mock the temporary directory created in `Dataset.download_all_files` so we can access it for the test.
+        temporary_directory = tempfile.TemporaryDirectory()
+
+        with patch("tempfile.TemporaryDirectory", return_value=temporary_directory):
             dataset.download_all_files()
 
-        # Get the path of the temporary directory created by the `download_all_files` method from the logs.
-        local_directory = logging_context.records[0].args[1]
-
-        with open(os.path.join(local_directory, "file_0.txt")) as f:
+        with open(os.path.join(temporary_directory.name, "file_0.txt")) as f:
             self.assertEqual(f.read(), "[1, 2, 3]")
 
-        with open(os.path.join(local_directory, "file_1.txt")) as f:
+        with open(os.path.join(temporary_directory.name, "file_1.txt")) as f:
             self.assertEqual(f.read(), "[4, 5, 6]")
 
-        with open(os.path.join(local_directory, "sub-directory", "sub_file.txt")) as f:
+        with open(os.path.join(temporary_directory.name, "sub-directory", "sub_file.txt")) as f:
             self.assertEqual(f.read(), "['a', 'b', 'c']")
 
-        with open(os.path.join(local_directory, "sub-directory", "sub-sub-directory", "sub_sub_file.txt")) as f:
+        with open(
+            os.path.join(temporary_directory.name, "sub-directory", "sub-sub-directory", "sub_sub_file.txt")
+        ) as f:
             self.assertEqual(f.read(), "['blah', 'b', 'c']")
 
     def test_from_local_directory(self):
