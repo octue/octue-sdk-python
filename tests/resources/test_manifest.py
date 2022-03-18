@@ -54,9 +54,7 @@ class TestManifest(BaseTestCase):
             self.assertEqual(manifest.datasets[key].absolute_path, deserialised_manifest.datasets[key].absolute_path)
 
     def test_to_cloud(self):
-        """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance via
-        (`bucket_name`, `output_directory`) and via `gs_path`.
-        """
+        """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             dataset = create_dataset_with_two_files(temporary_directory)
             dataset.to_cloud(cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-small-dataset"))
@@ -66,27 +64,7 @@ class TestManifest(BaseTestCase):
             manifest.to_cloud(cloud_path)
 
             persisted_manifest = json.loads(GoogleCloudStorageClient().download_as_string(cloud_path))
-
             self.assertEqual(persisted_manifest["datasets"]["my-dataset"], "gs://octue-test-bucket/my-small-dataset")
-
-    def test_to_cloud_without_storing_datasets(self):
-        """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance."""
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            dataset = create_dataset_with_two_files(temporary_directory)
-            manifest = Manifest(datasets={"my-dataset": dataset})
-
-            manifest.to_cloud(
-                storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-manifests", "manifest.json"),
-                store_datasets=False,
-            )
-
-        persisted_manifest = json.loads(
-            GoogleCloudStorageClient().download_as_string(
-                storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-manifests", "manifest.json")
-            )
-        )
-
-        self.assertEqual(persisted_manifest["datasets"]["my-dataset"], temporary_directory)
 
     def test_from_cloud(self):
         """Test that a Manifest can be instantiated from the cloud via (`bucket_name`, `output_directory`) and via

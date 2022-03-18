@@ -57,12 +57,7 @@ class GoogleCloudStorageClient:
 
         self.client.create_bucket(bucket_or_name=name, location=location, timeout=timeout)
 
-    def exists(
-        self,
-        cloud_path=None,
-        bucket_name=None,
-        path_in_bucket=None,
-    ):
+    def exists(self, cloud_path=None, bucket_name=None, path_in_bucket=None):
         """Check if a file exists at the given path.
 
         :param str|None cloud_path: full cloud path to the file (e.g. `gs://bucket_name/path/to/file.csv`)
@@ -163,13 +158,7 @@ class GoogleCloudStorageClient:
             "path_in_bucket": path_in_bucket,
         }
 
-    def overwrite_custom_metadata(
-        self,
-        metadata,
-        cloud_path=None,
-        bucket_name=None,
-        path_in_bucket=None,
-    ):
+    def overwrite_custom_metadata(self, metadata, cloud_path=None, bucket_name=None, path_in_bucket=None):
         """Overwrite the custom metadata for the given cloud file.
 
         :param dict metadata: key-value pairs to set as the new custom metadata

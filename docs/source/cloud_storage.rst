@@ -55,9 +55,8 @@ Datasets are downloaded from their directory. Assuming you have an instance of `
 
 Manifest
 --------
-Manifests are uploaded as a file to the given path. The manifest's datasets are uploaded by default into the same
-directory as the manifest file, but this can be disabled by specifying ``store_datasets=False``. Manifests are
-downloaded by providing the path to the manifest file. Assuming you have an instance of ``Manifest`` called ``my_manifest``:
+Manifests are uploaded as a file to the given path and downloaded by providing the same path. Assuming you have an
+instance of ``Manifest`` called ``my_manifest``:
 
 .. code-block:: python
 
@@ -69,4 +68,4 @@ downloaded by providing the path to the manifest file. Assuming you have an inst
 
 The datasets specified in a manifest can be located anywhere in any bucket as long as their paths are correct in their
 ``Dataset`` instances. A manifest that takes advantage of this can be created locally with datasets whose paths are set
-to cloud locations; it can be uploaded by supplying ``store_datasets=False`` as a parameter to ``Manifest.to_cloud``.
+to cloud locations.

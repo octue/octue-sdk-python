@@ -1,14 +1,19 @@
+import json
 import os
 import tempfile
+import unittest.mock
 import uuid
 from unittest import mock
 
+import yaml
 from click.testing import CliRunner
 
 from octue.cli import octue_cli
 from octue.exceptions import DeploymentError
 from tests import TESTS_DIR
 from tests.base import BaseTestCase
+from tests.cloud.pub_sub.mocks import MockService, MockSubscriber, MockSubscription, MockTopic
+from tests.mocks import MockOpen
 from tests.test_app_modules.app_module.app import CUSTOM_APP_RUN_MESSAGE
 
 
@@ -86,26 +91,58 @@ class TestRunCommand(BaseTestCase):
 class TestStartCommand(BaseTestCase):
     def test_start_command(self):
         """Test that the start command works without error."""
-        elevation_service_path = os.path.join(
+        python_fractal_service_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
             "octue",
             "templates",
-            "template-child-services",
-            "elevation_service",
+            "template-python-fractal",
         )
 
-        result = CliRunner().invoke(
-            octue_cli,
-            [
-                "start",
-                f"--app-dir={elevation_service_path}",
-                f"--twine={os.path.join(elevation_service_path, 'twine.json')}",
-                f"--config-dir={os.path.join(elevation_service_path, 'data', 'configuration')}",
-                f"--service-id={uuid.uuid4()}",
-                "--timeout=0",
-            ],
-        )
+        class MockOpenForConfigurationFiles(MockOpen):
+            path_to_contents_mapping = {
+                "octue.yaml": yaml.dump(
+                    {
+                        "name": "test-service",
+                        "app_source_path": python_fractal_service_path,
+                        "twine_path": os.path.join(python_fractal_service_path, "twine.json"),
+                        "app_configuration_path": "app_configuration.json",
+                    }
+                ),
+                "app_configuration.json": json.dumps(
+                    {
+                        "configuration_values": {
+                            "width": 600,
+                            "height": 600,
+                            "n_iterations": 64,
+                            "color_scale": "YlGnBu",
+                            "type": "png",
+                            "x_range": [-1.5, 0.6],
+                            "y_range": [-1.26, 1.26],
+                            "backend": {
+                                "name": "GCPPubSubBackend",
+                                "project_name": "octue-amy",
+                            },
+                        }
+                    }
+                ),
+            }
 
+        with mock.patch("octue.configuration.open", unittest.mock.mock_open(mock=MockOpenForConfigurationFiles)):
+            with mock.patch("octue.cloud.pub_sub.service.Topic", MockTopic):
+                with mock.patch("octue.cloud.pub_sub.service.Subscription", MockSubscription):
+                    with mock.patch("google.cloud.pubsub_v1.SubscriberClient", MockSubscriber):
+                        with mock.patch("octue.cli.Service", MockService):
+
+                            result = CliRunner().invoke(
+                                octue_cli,
+                                [
+                                    "start",
+                                    f"--service-id={uuid.uuid4()}",
+                                    "--timeout=0",
+                                ],
+                            )
+
+        self.assertIsNone(result.exception)
         self.assertEqual(result.exit_code, 0)
 
 

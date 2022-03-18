@@ -1,0 +1,2 @@
+name: template-child-services/wind-speed-service
+app_configuration_path: app_configuration.json

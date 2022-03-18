@@ -26,9 +26,7 @@ from tests.cloud.pub_sub.mocks import (
 logger = logging.getLogger(__name__)
 
 
-BACKEND = GCPPubSubBackend(
-    project_name=TEST_PROJECT_NAME, credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS"
-)
+BACKEND = GCPPubSubBackend(project_name=TEST_PROJECT_NAME)
 
 
 def create_run_function():

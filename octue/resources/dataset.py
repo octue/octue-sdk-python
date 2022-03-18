@@ -1,11 +1,13 @@
 import concurrent.futures
 import json
+import logging
 import os
+import tempfile
 
 from octue import definitions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.exceptions import InvalidInputException
+from octue.exceptions import CloudLocationNotSpecified, InvalidInputException
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import Hashable, Identifiable, Labelable, Pathable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
@@ -14,7 +16,7 @@ from octue.resources.label import LabelSet
 from octue.resources.tag import TagDict
 
 
-DATAFILES_DIRECTORY = "datafiles"
+logger = logging.getLogger(__name__)
 
 
 class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashable):
@@ -30,15 +32,19 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
     _ATTRIBUTES_TO_HASH = ("files",)
     _SERIALISE_FIELDS = "files", "name", "labels", "tags", "id", "path"
 
-    def __init__(self, files=None, name=None, id=None, path=None, path_from=None, tags=None, labels=None, **kwargs):
-        super().__init__(name=name, id=id, tags=tags, labels=labels, path=path, path_from=path_from)
+    def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None, **kwargs):
+        super().__init__(name=name, id=id, tags=tags, labels=labels, path=path)
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
         #  Add a proper `decoder` argument  to the load_json utility in twined so that datasets, datafiles and manifests
         #  get initialised properly, then remove this hackjob.
-        self.files = FilterSet()
         self._cloud_path = None
+
+        if path and storage.path.is_qualified_cloud_path(path):
+            self._cloud_path = path
+
+        self.files = FilterSet()
 
         for file in files or []:
             if isinstance(file, Datafile):
@@ -143,8 +149,9 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.map(upload, files_and_paths)
 
-        self._upload_dataset_metadata(cloud_path)
         self._cloud_path = cloud_path
+        self.path = cloud_path
+        self._upload_dataset_metadata(cloud_path)
         return cloud_path
 
     @property
@@ -153,7 +160,13 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
 
         :return str:
         """
-        return self._name or os.path.split(os.path.abspath(os.path.split(self.path)[-1]))[-1]
+        if self._name:
+            return self._name
+
+        if self.cloud_path:
+            return storage.path.split(self.cloud_path)[-1]
+
+        return os.path.split(os.path.abspath(os.path.split(self.path)[-1]))[-1]
 
     @property
     def cloud_path(self):
@@ -171,10 +184,32 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         :return None:
         """
         if path is None:
-            self._cloud_path = None
-            return
 
-        self.to_cloud(cloud_path=path)
+            if not self.exists_locally:
+                raise CloudLocationNotSpecified(
+                    "The cloud path cannot be reset because this datafile only exists in the cloud."
+                )
+
+            self._cloud_path = None
+
+        else:
+            self.to_cloud(cloud_path=path)
+
+    @property
+    def exists_in_cloud(self):
+        """Return `True` if the dataset exists in the cloud.
+
+        :return bool:
+        """
+        return self.cloud_path is not None
+
+    @property
+    def exists_locally(self):
+        """Return `True` if the dataset exists locally.
+
+        :return bool:
+        """
+        return not storage.path.is_qualified_cloud_path(self.path)
 
     @property
     def all_files_are_in_cloud(self):
@@ -225,16 +260,18 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         :param str|None local_directory:
         :return None:
         """
+        local_directory = local_directory or tempfile.TemporaryDirectory().name
+
         files_and_paths = []
 
-        for datafile in self.files:
-            if local_directory:
-                path_relative_to_dataset = storage.path.relpath(datafile.cloud_path, self.path)
-                local_path = os.path.abspath(os.path.join(local_directory, *path_relative_to_dataset.split("/")))
-            else:
-                local_path = None
+        for file in self.files:
 
-            files_and_paths.append((datafile, local_path))
+            if not file.exists_in_cloud:
+                continue
+
+            path_relative_to_dataset = storage.path.relpath(file.cloud_path, self.cloud_path)
+            local_path = os.path.abspath(os.path.join(local_directory, *path_relative_to_dataset.split("/")))
+            files_and_paths.append((file, local_path))
 
         def download(iterable_element):
             """Download a datafile to the given path.
@@ -249,6 +286,8 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         # Use multiple threads to significantly speed up files downloads by reducing latency.
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.map(download, files_and_paths)
+
+        logger.info("Downloaded %r dataset to %r.", self.name, local_directory)
 
     @staticmethod
     def _get_dataset_metadata(cloud_path):

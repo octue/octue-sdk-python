@@ -75,9 +75,9 @@ class Service(CoolNameable):
         :param bool delete_topic_and_subscription_on_exit: if `True`, delete the service's topic and subscription on exit
         :return None:
         """
-        topic = Topic(name=self.id, namespace=OCTUE_NAMESPACE, service=self)
-        topic.create(allow_existing=True)
+        logger.info("Starting service with ID %r.", self.id)
 
+        topic = Topic(name=self.id, namespace=OCTUE_NAMESPACE, service=self)
         subscriber = pubsub_v1.SubscriberClient(credentials=self._credentials)
 
         subscription = Subscription(
@@ -88,20 +88,31 @@ class Service(CoolNameable):
             subscriber=subscriber,
             expiration_time=None,
         )
-        subscription.create(allow_existing=True)
 
-        future = subscriber.subscribe(subscription=subscription.path, callback=self.answer)
-        logger.debug("%r is waiting for questions.", self)
+        try:
+            topic.create(allow_existing=True)
+            subscription.create(allow_existing=True)
 
-        with subscriber:
-            try:
-                future.result(timeout=timeout)
-            except (TimeoutError, concurrent.futures.TimeoutError, KeyboardInterrupt):
-                future.cancel()
+            future = subscriber.subscribe(subscription=subscription.path, callback=self.answer)
+            logger.debug("%r is waiting for questions.", self)
 
+            with subscriber:
+                try:
+                    future.result(timeout=timeout)
+                except (TimeoutError, concurrent.futures.TimeoutError, KeyboardInterrupt):
+                    future.cancel()
+
+        finally:
             if delete_topic_and_subscription_on_exit:
-                topic.delete()
-                subscription.delete()
+                try:
+                    if subscription.exists():
+                        subscription.delete()
+
+                    if topic.exists():
+                        topic.delete()
+
+                except Exception:
+                    logger.error("Deletion of topic and/or subscription %r failed.", topic.name)
 
     def answer(self, question, answer_topic=None, timeout=30):
         """Answer a question (i.e. run the Service's app to analyse the given data, and return the output values to the

@@ -1,5 +1,6 @@
 import json
 import os
+import warnings
 
 import octue.migrations.manifest
 from octue.cloud import storage
@@ -40,12 +41,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         vars(self).update(**kwargs)
 
     @classmethod
-    def from_cloud(
-        cls,
-        cloud_path=None,
-        bucket_name=None,
-        path_to_manifest_file=None,
-    ):
+    def from_cloud(cls, cloud_path=None, bucket_name=None, path_to_manifest_file=None):
         """Instantiate a Manifest from Google Cloud storage.
 
         :param str|None cloud_path: full path to manifest in cloud storage (e.g. `gs://bucket_name/path/to/manifest.json`)
@@ -69,34 +65,34 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
             datasets=datasets,
         )
 
-    def to_cloud(self, cloud_path=None, bucket_name=None, path_to_manifest_file=None, store_datasets=False):
+    def to_cloud(self, cloud_path=None, bucket_name=None, path_to_manifest_file=None, store_datasets=None):
         """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory.
 
         :param str|None cloud_path: full path to cloud storage location to store manifest at (e.g. `gs://bucket_name/path/to/manifest.json`)
-        :param bool store_datasets: if True, upload datasets to same directory as manifest file
-        :return str: gs:// path for manifest file
+        :return None:
         """
+        if store_datasets:
+            warnings.warn(
+                message=(
+                    "The `store_datasets` parameter is no longer available - please call the `to_cloud` method on any "
+                    "datasets you wish to upload to the cloud separately."
+                ),
+                category=DeprecationWarning,
+            )
+
         if not cloud_path:
             cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_to_manifest_file)
 
-        bucket_name, path_to_manifest_file = storage.path.split_bucket_name_from_gs_path(cloud_path)
-
         datasets = {}
-        output_directory = storage.path.dirname(path_to_manifest_file)
 
         for key, dataset in self.datasets.items():
-            if store_datasets:
-                dataset_path = dataset.to_cloud(storage.path.generate_gs_path(bucket_name, output_directory))
-                datasets[key] = dataset_path
-            else:
-                datasets[key] = dataset.cloud_path or dataset.absolute_path
+            datasets[key] = dataset.cloud_path or dataset.absolute_path
 
         serialised_manifest = self.to_primitive()
         serialised_manifest["datasets"] = datasets
         del serialised_manifest["path"]
 
         GoogleCloudStorageClient().upload_from_string(string=json.dumps(serialised_manifest), cloud_path=cloud_path)
-        return cloud_path
 
     @property
     def all_datasets_are_in_cloud(self):
@@ -134,7 +130,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         for key, dataset_specification in data["datasets"].items():
             # TODO generate a unique name based on the filter key, label datasets so that the label filters in the spec
             #  apply automatically and generate a description of the dataset
-            self.datasets[key] = Dataset(path_from=self, path=key)
+            self.datasets[key] = Dataset(path=key)
 
         return self
 
@@ -167,14 +163,19 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
 
                 # If `dataset` is a dictionary including a "path" key:
                 elif "path" in dataset:
-                    # If the path is not a cloud path or an absolute local path:
-                    if not os.path.isabs(dataset["path"]) and not storage.path.is_qualified_cloud_path(dataset["path"]):
-                        path = dataset.pop("path")
-                        self.datasets[key] = Dataset(**dataset, path=path, path_from=self)
 
-                    # If the path is a cloud path or an absolute local path:
+                    # If the path is a cloud path:
+                    if storage.path.is_qualified_cloud_path(dataset["path"]):
+                        self.datasets[key] = Dataset.from_cloud(cloud_path=dataset["path"], recursive=True)
+
+                    # If the path is local but not absolute:
+                    elif not os.path.isabs(dataset["path"]):
+                        path = dataset.pop("path")
+                        self.datasets[key] = Dataset(**dataset, path=path)
+
+                    # If the path is an absolute local path:
                     else:
                         self.datasets[key] = Dataset(**dataset)
 
                 else:
-                    self.datasets[key] = Dataset(**dataset, path=key, path_from=self)
+                    self.datasets[key] = Dataset(**dataset, path=key)

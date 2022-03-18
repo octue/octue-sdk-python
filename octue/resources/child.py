@@ -21,7 +21,7 @@ class Child:
 
         backend_type_name = backend.pop("name")
         backend = service_backends.get_backend(backend_type_name)(**backend)
-        self._service = BACKEND_TO_SERVICE_MAPPING[backend_type_name](backend=backend)
+        self._service = BACKEND_TO_SERVICE_MAPPING[backend_type_name](name=f"{self.name}-parent", backend=backend)
 
     def ask(
         self,

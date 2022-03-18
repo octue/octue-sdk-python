@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import tempfile
+from unittest.mock import patch
 
 from octue import definitions, exceptions
 from octue.cloud import storage
@@ -385,39 +386,38 @@ class TestDataset(BaseTestCase):
         )
 
     def test_to_cloud(self):
-        """Test that a dataset can be uploaded to the cloud, including all its files and a serialised JSON file of the
-        Datafile instance.
-        """
+        """Test that a dataset can be uploaded to a cloud path, including all its files and the dataset's metadata."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             dataset = create_dataset_with_two_files(temporary_directory)
             dataset.tags = {"a": "b", "c": 1}
 
             output_directory = "my_datasets"
             cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, output_directory, dataset.name)
-
             dataset.to_cloud(cloud_path)
 
             storage_client = GoogleCloudStorageClient()
 
-            persisted_file_0 = storage_client.download_as_string(cloud_path=storage.path.join(cloud_path, "file_0.txt"))
+            # Check its files have been uploaded.
+            persisted_file_0 = storage_client.download_as_string(storage.path.join(cloud_path, "file_0.txt"))
             self.assertEqual(persisted_file_0, "0")
 
             persisted_file_1 = storage_client.download_as_string(storage.path.join(cloud_path, "file_1.txt"))
             self.assertEqual(persisted_file_1, "1")
 
-            persisted_dataset = json.loads(
+            # Check its metadata has been uploaded.
+            persisted_dataset_metadata = json.loads(
                 storage_client.download_as_string(storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME))
             )
 
             self.assertEqual(
-                persisted_dataset["files"],
+                persisted_dataset_metadata["files"],
                 [
                     f"gs://octue-test-bucket/my_datasets/{dataset.name}/file_0.txt",
                     f"gs://octue-test-bucket/my_datasets/{dataset.name}/file_1.txt",
                 ],
             )
 
-            self.assertEqual(persisted_dataset["tags"], dataset.tags.to_primitive())
+            self.assertEqual(persisted_dataset_metadata["tags"], dataset.tags.to_primitive())
 
     def test_to_cloud_with_nested_dataset_preserves_nested_structure(self):
         """Test that uploading a dataset containing datafiles in a nested directory structure to the cloud preserves
@@ -489,6 +489,34 @@ class TestDataset(BaseTestCase):
 
             with open(os.path.join(temporary_directory, "sub-directory", "sub-sub-directory", "sub_sub_file.txt")) as f:
                 self.assertEqual(f.read(), "['blah', 'b', 'c']")
+
+    def test_download_all_files_from_nested_dataset_with_no_local_directory_given(self):
+        """Test that, when downloading all files from a nested dataset and no local directory is given, the dataset
+        structure is preserved in the temporary directory used.
+        """
+        self._create_nested_cloud_dataset("nested_dataset")
+
+        dataset = Dataset.from_cloud(f"gs://{TEST_BUCKET_NAME}/nested_dataset", recursive=True)
+
+        # Mock the temporary directory created in `Dataset.download_all_files` so we can access it for the test.
+        temporary_directory = tempfile.TemporaryDirectory()
+
+        with patch("tempfile.TemporaryDirectory", return_value=temporary_directory):
+            dataset.download_all_files()
+
+        with open(os.path.join(temporary_directory.name, "file_0.txt")) as f:
+            self.assertEqual(f.read(), "[1, 2, 3]")
+
+        with open(os.path.join(temporary_directory.name, "file_1.txt")) as f:
+            self.assertEqual(f.read(), "[4, 5, 6]")
+
+        with open(os.path.join(temporary_directory.name, "sub-directory", "sub_file.txt")) as f:
+            self.assertEqual(f.read(), "['a', 'b', 'c']")
+
+        with open(
+            os.path.join(temporary_directory.name, "sub-directory", "sub-sub-directory", "sub_sub_file.txt")
+        ) as f:
+            self.assertEqual(f.read(), "['blah', 'b', 'c']")
 
     def test_from_local_directory(self):
         """Test that a dataset can be instantiated from a local nested directory ignoring its subdirectories and that

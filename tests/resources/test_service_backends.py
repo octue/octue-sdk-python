@@ -1,4 +1,4 @@
-from octue.exceptions import BackendNotFound
+from octue.exceptions import BackendNotFound, CloudLocationNotSpecified
 from octue.resources.service_backends import GCPPubSubBackend, get_backend
 from tests.base import BaseTestCase
 
@@ -17,3 +17,8 @@ class TestServiceBackends(BaseTestCase):
     def test_repr(self):
         """Test the representation displays as expected."""
         self.assertEqual(repr(GCPPubSubBackend(project_name="hello")), "<GCPPubSubBackend(project_name='hello')>")
+
+    def test_error_raised_if_project_name_is_none(self):
+        """Test that an error is raised if the project name is not given during `GCPPubSubBackend` instantiation."""
+        with self.assertRaises(CloudLocationNotSpecified):
+            GCPPubSubBackend(project_name=None)

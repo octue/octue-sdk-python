@@ -115,6 +115,18 @@ class Subscription:
         self.subscriber.delete_subscription(subscription=self.path)
         logger.debug("Subscription %r deleted.", self.path)
 
+    def exists(self, timeout=5):
+        """Check if the subscription exists on the Google Pub/Sub servers.
+
+        :param float timeout:
+        :return bool:
+        """
+        try:
+            self.subscriber.get_subscription(subscription=self.path, timeout=timeout)
+            return True
+        except google.api_core.exceptions.NotFound:
+            return False
+
     @staticmethod
     def generate_subscription_path(project_name, subscription_name):
         """Generate a full subscription path in the format `projects/<project_name>/subscriptions/<subscription_name>`.
