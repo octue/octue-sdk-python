@@ -111,7 +111,7 @@ class Hashable:
             if not all(hasattr(item, "hash_value") for item in items):
                 raise ValueError(f"Mixed types in attribute <{attribute_name!r}: {attribute!r}>")
 
-            return str(sorted(item.hash_value for item in items))
+            return self._sort_items_and_convert_to_string((item.hash_value for item in items), attribute_name)
 
         return self._sort_items_and_convert_to_string(items, attribute_name)
 
@@ -128,7 +128,10 @@ class Hashable:
             if not all(hasattr(item[1], "hash_value") for item in items):
                 raise ValueError(f"Mixed types in attribute <{attribute_name!r}: {attribute!r}>")
 
-            return str(sorted((key, value.hash_value) for key, value in items))
+            return self._sort_items_and_convert_to_string(
+                ((key, value.hash_value) for key, value in items),
+                attribute_name,
+            )
 
         return self._sort_items_and_convert_to_string(items, attribute_name)
 
