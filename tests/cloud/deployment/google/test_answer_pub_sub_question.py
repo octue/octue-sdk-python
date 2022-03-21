@@ -44,7 +44,8 @@ class TestAnswerPubSubQuestion(TestCase):
         """
         with mock.patch.dict(os.environ, {"SERVICE_ID": SERVICE_ID}):
             with mock.patch(
-                "octue.configuration.open", unittest.mock.mock_open(read_data=yaml.dump({"name": "test-service"}))
+                "octue.configuration.open",
+                unittest.mock.mock_open(read_data=yaml.dump({"services": [{"name": "test-service"}]})),
             ):
                 with mock.patch("octue.cloud.deployment.google.answer_pub_sub_question.Runner") as mock_runner:
                     with mock.patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
@@ -78,10 +79,14 @@ class TestAnswerPubSubQuestion(TestCase):
             path_to_contents_mapping = {
                 "octue.yaml": yaml.dump(
                     {
-                        "name": "test-service",
-                        "app_source_path": "/path/to/app_dir",
-                        "twine_path": "path/to/twine.json",
-                        "app_configuration_path": "app_configuration.json",
+                        "services": [
+                            {
+                                "name": "test-service",
+                                "app_source_path": "/path/to/app_dir",
+                                "twine_path": "path/to/twine.json",
+                                "app_configuration_path": "app_configuration.json",
+                            }
+                        ]
                     }
                 ),
                 "app_configuration.json": json.dumps({"configuration_values": {"hello": "configuration"}}),

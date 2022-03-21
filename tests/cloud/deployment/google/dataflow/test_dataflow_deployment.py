@@ -18,7 +18,7 @@ class TestDataflowDeployment(BaseTestCase):
         parent = Service(backend=GCPPubSubBackend(project_name=os.environ["TEST_PROJECT_NAME"]))
 
         subscription, _ = parent.ask(
-            service_id="octue.services.1df81225-7e87-4b1c-9413-cdc375a127a7",
+            service_id="octue.services.c32f9dbd-7ffb-48b1-8be5-a64495a71873",
             input_values={"n_iterations": 3},
         )
 

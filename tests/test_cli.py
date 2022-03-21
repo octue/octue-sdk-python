@@ -102,10 +102,14 @@ class TestStartCommand(BaseTestCase):
             path_to_contents_mapping = {
                 "octue.yaml": yaml.dump(
                     {
-                        "name": "test-service",
-                        "app_source_path": python_fractal_service_path,
-                        "twine_path": os.path.join(python_fractal_service_path, "twine.json"),
-                        "app_configuration_path": "app_configuration.json",
+                        "services": [
+                            {
+                                "name": "test-service",
+                                "app_source_path": python_fractal_service_path,
+                                "twine_path": os.path.join(python_fractal_service_path, "twine.json"),
+                                "app_configuration_path": "app_configuration.json",
+                            }
+                        ]
                     }
                 ),
                 "app_configuration.json": json.dumps(
