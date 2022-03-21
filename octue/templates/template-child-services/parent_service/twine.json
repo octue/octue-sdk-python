@@ -21,19 +21,17 @@
 		"properties": {
 			"locations": {
 				"type": "array",
-				"items": [
-					{
-						"type": "object",
-						"properties": {
-							"longitude": {
-								"type": "number"
-							},
-							"latitude": {
-								"type": "number"
-							}
+				"items": {
+					"type": "object",
+					"properties": {
+						"longitude": {
+							"type": "number"
+						},
+						"latitude": {
+							"type": "number"
 						}
 					}
-				]
+				}
 			}
 		}
 	},

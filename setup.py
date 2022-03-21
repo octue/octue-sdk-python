@@ -30,7 +30,7 @@ setup(
         "google-crc32c>=1.1.2",
         "gunicorn",
         "python-dateutil>=2.8.1",
-        "twined==0.2.1",
+        "twined==0.2.2",
     ],
     extras_require={"hdf5": ["h5py==3.6.0"], "dataflow": ["apache-beam[gcp]==2.37.0"]},
     url="https://www.github.com/octue/octue-sdk-python",
