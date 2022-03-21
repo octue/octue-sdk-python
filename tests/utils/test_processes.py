@@ -1,3 +1,4 @@
+import logging
 import subprocess
 from unittest.mock import Mock, patch
 
@@ -8,16 +9,12 @@ from tests.base import BaseTestCase
 class TestRunSubprocessAndLogStdoutAndStderr(BaseTestCase):
     def test_error_raised_if_process_fails(self):
         """Test that an error is raised if the subprocess fails."""
-        mock_logger = Mock()
-
         with self.assertRaises(subprocess.CalledProcessError):
             with patch(
                 "octue.utils.processes.Popen",
                 return_value=MockPopen(stdout_messages=[b"bash: blah: command not found"], return_code=1),
             ):
-                run_subprocess_and_log_stdout_and_stderr(command=["blah"], logger=mock_logger, shell=True)
-
-        self.assertEqual(mock_logger.info.call_args[0][0], "bash: blah: command not found")
+                run_subprocess_and_log_stdout_and_stderr(command=["blah"], logger=logging.getLogger(), shell=True)
 
     def test_stdout_is_logged(self):
         """Test that any output to stdout from a subprocess is logged."""
