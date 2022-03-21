@@ -73,7 +73,7 @@ class AppConfiguration:
         with open(path) as f:
             raw_app_configuration = json.load(f)
 
-        logger.info("Service configuration loaded from %r.", os.path.abspath(path))
+        logger.info("App configuration loaded from %r.", os.path.abspath(path))
         return cls(**raw_app_configuration)
 
 
