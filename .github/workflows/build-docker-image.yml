@@ -26,4 +26,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: octue/octue-sdk-python:${{ github.event.inputs.tag }}"
+          tags: octue/octue-sdk-python:${{ github.event.inputs.tag }}
