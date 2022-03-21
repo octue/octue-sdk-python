@@ -17,7 +17,7 @@ with open("LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.15.4",
+    version="0.15.5",
     py_modules=["cli"],
     install_requires=[
         "click>=7.1.2",
@@ -30,6 +30,7 @@ setup(
         "google-crc32c>=1.1.2",
         "gunicorn",
         "python-dateutil>=2.8.1",
+        "pyyaml>=6",
         "twined==0.2.2",
     ],
     extras_require={"hdf5": ["h5py==3.6.0"], "dataflow": ["apache-beam[gcp]==2.37.0"]},
