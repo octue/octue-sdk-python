@@ -1,4 +1,4 @@
-FROM apache/beam_python3.8_sdk:2.36.0
+FROM apache/beam_python3.9_sdk:2.37.0
 
 # Allow statements and log messages to immediately appear in the logs on Google Cloud.
 ENV PYTHONUNBUFFERED=1
