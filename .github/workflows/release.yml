@@ -42,7 +42,7 @@ jobs:
       - name: Run tests
         env:
           TEST_PROJECT_NAME: ${{ secrets.TEST_PROJECT_NAME }}
-        run: tox -e py
+        run: tox -vv -e py
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
