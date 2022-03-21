@@ -35,7 +35,9 @@ class ServiceConfiguration:
             raw_service_configuration = yaml.load(f, Loader=yaml.SafeLoader)
 
         logger.info("Service configuration loaded from %r.", os.path.abspath(path))
-        return cls(**raw_service_configuration)
+
+        # Ignore services other than the first for now.
+        return cls(**raw_service_configuration["services"][0])
 
 
 class AppConfiguration:
