@@ -18,11 +18,63 @@ class ServiceConfiguration:
     :return None:
     """
 
-    def __init__(self, name, app_source_path=".", twine_path="twine.json", app_configuration_path=None):
+    def __init__(
+        self,
+        name,
+        app_source_path=".",
+        twine_path="twine.json",
+        app_configuration_path=None,
+        repository_name=None,
+        repository_owner=None,
+        project_name=None,
+        region=None,
+        dockerfile_path=None,
+        cloud_build_configuration_path=None,
+        maximum_instances=10,
+        branch_pattern="^main$",
+        environment_variables=None,
+        secrets=None,
+        concurrency=10,
+        memory="128Mi",
+        cpus=1,
+        minimum_instances=0,
+        temporary_files_location=None,
+        setup_file_path=None,
+        service_account_email=None,
+        machine_type=None,
+        **kwargs,
+    ):
         self.name = name
         self.app_source_path = app_source_path
         self.twine_path = twine_path
         self.app_configuration_path = app_configuration_path
+
+        # Deployed services only.
+        self.repository_name = repository_name
+        self.repository_owner = repository_owner
+        self.project_name = project_name
+        self.region = region
+        self.dockerfile_path = dockerfile_path
+        self.provided_cloud_build_configuration_path = cloud_build_configuration_path
+        self.maximum_instances = maximum_instances
+        self.branch_pattern = branch_pattern
+        self.environment_variables = environment_variables or []
+        self.secrets = secrets or {}
+
+        # Cloud Run services only.
+        self.concurrency = concurrency
+        self.memory = memory
+        self.cpus = cpus
+        self.minimum_instances = minimum_instances
+
+        # Dataflow services only.
+        self.temporary_files_location = temporary_files_location
+        self.setup_file_path = setup_file_path
+        self.service_account_email = service_account_email
+        self.worker_machine_type = machine_type
+
+        if kwargs:
+            logger.warning(f"The following keyword arguments were not used by {type(self).__name__}: {kwargs!r}.")
 
     @classmethod
     def from_file(cls, path):
@@ -57,11 +109,15 @@ class AppConfiguration:
         configuration_manifest=None,
         output_manifest_path=None,
         children=None,
+        **kwargs,
     ):
         self.configuration_values = configuration_values
         self.configuration_manifest = configuration_manifest
         self.output_manifest_path = output_manifest_path
         self.children = children
+
+        if kwargs:
+            logger.warning(f"The following keyword arguments were not used by {type(self).__name__}: {kwargs!r}.")
 
     @classmethod
     def from_file(cls, path):

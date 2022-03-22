@@ -40,16 +40,16 @@ class DataflowDeployer(BaseDeployer):
 
     def __init__(self, octue_configuration_path, service_id=None, image_uri_template=None):
         super().__init__(octue_configuration_path, service_id, image_uri_template)
-        self.build_trigger_description = f"Build the {self.name!r} service and deploy it to Dataflow."
+        self.build_trigger_description = (
+            f"Build the {self.service_configuration.name!r} service and deploy it to Dataflow."
+        )
         self.success_message = f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}."
 
-        # Optional configuration file entries for Dataflow.
-        self.temporary_files_location = self._service.get(
-            "temporary_files_location", DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION
-        )
-        self.setup_file_path = self._service.get("setup_file_path", DEFAULT_SETUP_FILE_PATH)
-        self.service_account_email = self._service.get("service_account_email")
-        self.worker_machine_type = self._service.get("machine_type")
+        if not self.service_configuration.temporary_files_location:
+            self.service_configuration.temporary_files_location = DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION
+
+        if not self.service_configuration.setup_file_path:
+            self.service_configuration.setup_file_path = DEFAULT_SETUP_FILE_PATH
 
     def deploy(self, no_cache=False, update=False):
         """Create a Google Cloud Build configuration from the `octue.yaml file, create a build trigger, run it, and
@@ -76,16 +76,16 @@ class DataflowDeployer(BaseDeployer):
                 progress_message.finish_message = "update triggered."
 
             kwargs = {
-                "service_name": self.name,
-                "project_name": self.project_name,
+                "service_name": self.service_configuration.name,
+                "project_name": self.service_configuration.project_name,
                 "service_id": self.service_id,
-                "region": self.region,
-                "setup_file_path": self.setup_file_path,
+                "region": self.service_configuration.region,
+                "setup_file_path": self.service_configuration.setup_file_path,
                 "image_uri": image_uri,
-                "temporary_files_location": self.temporary_files_location,
-                "service_account_email": self.service_account_email,
-                "worker_machine_type": self.worker_machine_type,
-                "maximum_instances": self.maximum_instances,
+                "temporary_files_location": self.service_configuration.temporary_files_location,
+                "service_account_email": self.service_configuration.service_account_email,
+                "worker_machine_type": self.service_configuration.worker_machine_type,
+                "maximum_instances": self.service_configuration.maximum_instances,
                 "update": update,
             }
 
@@ -119,10 +119,8 @@ class DataflowDeployer(BaseDeployer):
             self.TOTAL_NUMBER_OF_STAGES,
         ) as progress_message:
 
-            if self.provided_cloud_build_configuration_path:
-                progress_message.finish_message = (
-                    f"skipped - using {self.provided_cloud_build_configuration_path!r} from repository."
-                )
+            if self.service_configuration.provided_cloud_build_configuration_path:
+                progress_message.finish_message = f"skipped - using {self.service_configuration.provided_cloud_build_configuration_path!r} from repository."
                 return
 
             get_dockerfile_step, dockerfile_path = self._create_get_dockerfile_step(DEFAULT_DATAFLOW_DOCKERFILE_URL)
