@@ -25,12 +25,18 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
       - name: Install tox
         run: pip install tox
+
       - name: Authenticate with Google Cloud
         id: auth
         uses: google-github-actions/auth@v0.6.0
@@ -39,11 +45,13 @@ jobs:
           create_credentials_file: true
           workload_identity_provider: 'projects/481503880524/locations/global/workloadIdentityPools/github-actions-pool-2/providers/github-actions-provider-2'
           service_account: 'gha-sdk-python@octue-amy.iam.gserviceaccount.com'
+
       - name: Run tests
         env:
           TEST_PROJECT_NAME: ${{ secrets.TEST_PROJECT_NAME }}
           GOOGLE_CLOUD_PROJECT: ${{ secrets.TEST_PROJECT_NAME }}
         run: tox -vv -e py
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:

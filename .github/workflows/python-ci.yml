@@ -51,6 +51,9 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
       - name: Install tox
         run: pip install tox
 
