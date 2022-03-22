@@ -116,6 +116,9 @@ class AppConfiguration:
         self.output_manifest_path = output_manifest_path
         self.children = children
 
+        if kwargs:
+            logger.warning(f"The following keyword arguments were not used by {type(self).__name__}: {kwargs!r}.")
+
     @classmethod
     def from_file(cls, path):
         """Load an app configuration from a file.
