@@ -31,7 +31,7 @@ twine  # <---- nothing to do with the twined library!
 # ------------------------------------------------------------------------------
 
 numpy==1.21.0
-dateparser==1.0.0
+dateparser==1.1.1
 pandas==1.1.4
 stringcase==1.2.0
 
