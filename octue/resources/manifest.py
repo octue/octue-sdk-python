@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import warnings
@@ -148,6 +149,8 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         :param dict(str, octue.resources.dataset.Dataset|dict|str) datasets: the datasets to add to the manifest
         :return None:
         """
+        datasets = copy.deepcopy(datasets)
+
         for key, dataset in datasets.items():
 
             if isinstance(dataset, Dataset):
