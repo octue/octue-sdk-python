@@ -1,3 +1,4 @@
+import copy
 import functools
 import importlib.util
 import logging
@@ -209,6 +210,7 @@ def start(service_configuration_path, service_id, timeout, delete_topic_and_subs
     backend_configuration_values = (app_configuration.configuration_values or {}).get("backend")
 
     if backend_configuration_values:
+        backend_configuration_values = copy.deepcopy(backend_configuration_values)
         backend = service_backends.get_backend(backend_configuration_values.pop("name"))(**backend_configuration_values)
     else:
         # If no backend details are provided, use Google Pub/Sub with the default project.

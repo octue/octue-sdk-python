@@ -1,3 +1,5 @@
+import copy
+
 from octue.cloud.pub_sub.service import Service
 from octue.resources import service_backends
 
@@ -19,6 +21,7 @@ class Child:
         self.name = name
         self.id = id
 
+        backend = copy.deepcopy(backend)
         backend_type_name = backend.pop("name")
         backend = service_backends.get_backend(backend_type_name)(**backend)
         self._service = BACKEND_TO_SERVICE_MAPPING[backend_type_name](name=f"{self.name}-parent", backend=backend)

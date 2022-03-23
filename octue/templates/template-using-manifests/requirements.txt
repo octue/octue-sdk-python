@@ -16,7 +16,7 @@ numpy==1.21.0
 pandas
 
 # An incredibly powerful date parsing utility
-dateparser==1.0.0
+dateparser==1.1.1
 
 # A utility library for converting text cases; useful for cleaning up column names and such
 stringcase==1.2.0

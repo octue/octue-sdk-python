@@ -1,3 +1,4 @@
+import copy
 import datetime
 import functools
 import logging
@@ -175,6 +176,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         :param octue.mixins.Pathable path_from:
         :return Datafile:
         """
+        serialised_datafile = copy.deepcopy(serialised_datafile)
         cloud_metadata = serialised_datafile.pop("_cloud_metadata", {})
 
         if not os.path.isabs(serialised_datafile["path"]) and not storage.path.is_qualified_cloud_path(
