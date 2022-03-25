@@ -23,7 +23,7 @@ def run(analysis, *args, **kwargs):
     - Add them to the output manifest
     """
     # You can use the attached logger to record debug statements, general information, warnings or errors
-    logger.info("Starting clean up of files in %s", analysis.input_manifest.absolute_path)
+    logger.info("Starting clean up of files in %s", analysis.input_manifest.path)
 
     # Get the configuration value for our time averaging window (or if not present, use the default specified in
     # the twine)
