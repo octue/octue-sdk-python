@@ -7,7 +7,7 @@ import tempfile
 from octue import definitions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.exceptions import InvalidInputException
+from octue.exceptions import CloudLocationNotSpecified, InvalidInputException
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
@@ -228,6 +228,11 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :param str|None local_directory:
         :return None:
         """
+        if not self.exists_in_cloud:
+            raise CloudLocationNotSpecified(
+                f"You can only download files from a cloud dataset. This dataset's path is {self.path!r}."
+            )
+
         local_directory = local_directory or tempfile.TemporaryDirectory().name
 
         files_and_paths = []

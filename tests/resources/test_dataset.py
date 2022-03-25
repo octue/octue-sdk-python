@@ -444,6 +444,13 @@ class TestDataset(BaseTestCase):
 
         self.assertEqual(cloud_datafile_relative_paths, local_datafile_relative_paths)
 
+    def test_error_raised_if_trying_to_download_files_from_local_dataset(self):
+        """Test that an error is raised if trying to download files from a local dataset."""
+        dataset = self.create_valid_dataset()
+
+        with self.assertRaises(exceptions.CloudLocationNotSpecified):
+            dataset.download_all_files()
+
     def test_download_all_files(self):
         """Test that all files in a dataset can be downloaded with one command."""
         storage_client = GoogleCloudStorageClient()
