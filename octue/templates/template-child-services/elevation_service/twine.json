@@ -1,6 +1,6 @@
 {
 	"configuration_values_schema": {
-		"$schema": "http://json-schema.org/2019-09/schema#",
+		"$schema": "https://json-schema.org/draft/2020-12/schema",
 		"title": "Elevation app configuration",
 		"description": "Back-end configuration for the elevation service to enable it to connect to Google Pub/Sub and communicate with other services.",
 		"type": "object",
@@ -24,7 +24,7 @@
 		}
 	},
 	"input_values_schema": {
-		"$schema": "http://json-schema.org/2019-09/schema#",
+		"$schema": "https://json-schema.org/draft/2020-12/schema",
 		"title": "Input values",
 		"description": "Locations as longitude-latitude pairs",
 		"type": "object",
