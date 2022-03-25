@@ -1,0 +1,65 @@
+[tool.poetry]
+name = "octue"
+version = "0.16.0"
+description = "A package providing template applications for data services, and a python SDK to the Octue API."
+readme = "README.md"
+authors = ["Thomas Clark <support@octue.com>", "cortadocodes <cortado.codes@protonmail.com>"]
+license = "MIT"
+repository = "https://www.github.com/octue/octue-sdk-python"
+packages = [{ include = "octue"}]
+keywords = ["digital", "twins", "twined", "data", "services", "science", "api", "apps", "ml"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Operating System :: OS Independent",
+]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+click = "^7.1.2"
+coolname = "^1.1.0"
+Flask = "2.0.3"
+google-auth = ">=1.27.0, <3"
+google-cloud-pubsub = "^2.5.0"
+google-cloud-secret-manager = "^2.3.0"
+google-cloud-storage = "^1.35.1"
+google-crc32c = "^1.1.2"
+gunicorn = "^20.1.0"
+python-dateutil = "^2.8.1"
+pyyaml = "^6"
+twined = "0.2.2"
+h5py = { version = "^3.6.0", optional = true }
+apache-beam = { extras = ["gcp"], version = "2.37.0", optional = true }
+
+[tool.poetry.extras]
+hdf5 = ["h5py"]
+dataflow = ["apache-beam"]
+
+[tool.poetry.scripts]
+octue-app = "octue.cli:octue_cli"
+
+[tool.poetry.dev-dependencies]
+# Testing
+gcp-storage-emulator = "2022.02.17"
+pytest = "^7"
+tox = "^3.23"
+# Code quality
+flake8 = "3.8.3"
+flake8-isort = "3.0.0"
+black = "19.10b0"
+pre-commit = "^2.17"
+coverage = "^5"
+# Template app dependencies
+numpy = "1.21.0"
+dateparser = "1.1.1"
+pandas = "1.1.4"
+stringcase = "1.2.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

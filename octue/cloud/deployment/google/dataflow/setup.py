@@ -9,31 +9,31 @@ from setuptools import find_packages, setup
 #       https://packaging.python.org/tutorials/distributing-packages/#uploading-your-project-to-pypi
 #   where the username on pypi for all octue modules is 'octue'
 
-with open("README.md") as f:
+with open("../../../../../README.md") as f:
     readme_text = f.read()
 
-with open("LICENSE") as f:
+with open("../../../../../LICENSE") as f:
     license_text = f.read()
 
 setup(
     name="octue",
-    version="0.15.9",
+    version="0.16.0",
     py_modules=["cli"],
     install_requires=[
-        "click>=7.1.2",
-        "coolname>=1.1.0",
-        "Flask>=1.1",
+        "click>=7.1.2,<8",
+        "coolname>=1.1.0,<2",
+        "Flask==2.0.3",
         "google-auth>=1.27.0,<3",
         "google-cloud-pubsub>=2.5.0,<3",
-        "google-cloud-secret-manager>=2.3.0",
-        "google-cloud-storage>=1.35.1",
-        "google-crc32c>=1.1.2",
-        "gunicorn",
-        "python-dateutil>=2.8.1",
-        "pyyaml>=6",
+        "google-cloud-secret-manager>=2.3.0,<3",
+        "google-cloud-storage>=1.35.1,<2",
+        "google-crc32c>=1.1.2,<2",
+        "gunicorn>=20.1.0,<21",
+        "python-dateutil>=2.8.1,<3",
+        "pyyaml>=6,<7",
         "twined==0.2.2",
     ],
-    extras_require={"hdf5": ["h5py==3.6.0"], "dataflow": ["apache-beam[gcp]==2.37.0"]},
+    extras_require={"hdf5": ["h5py>=3.6.0,<4"], "dataflow": ["apache-beam[gcp]==2.37.0"]},
     url="https://www.github.com/octue/octue-sdk-python",
     license="MIT",
     author="Thomas Clark (github: thclark), cortadocodes <cortado.codes@protonmail.com>",
