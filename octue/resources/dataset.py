@@ -7,7 +7,7 @@ import tempfile
 from octue import definitions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.exceptions import CloudLocationNotSpecified, InvalidInputException
+from octue.exceptions import InvalidInputException
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
@@ -35,17 +35,12 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None, **kwargs):
         super().__init__(name=name, id=id, tags=tags, labels=labels)
         self.path = path
+        self.files = FilterSet()
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
         #  Add a proper `decoder` argument  to the load_json utility in twined so that datasets, datafiles and manifests
         #  get initialised properly, then remove this hackjob.
-        self._cloud_path = None
-
-        if path and storage.path.is_qualified_cloud_path(path):
-            self._cloud_path = path
-
-        self.files = FilterSet()
 
         for file in files or []:
             if isinstance(file, Datafile):
@@ -150,7 +145,6 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.map(upload, files_and_paths)
 
-        self._cloud_path = cloud_path
         self.path = cloud_path
         self._upload_dataset_metadata(cloud_path)
         return cloud_path
@@ -164,37 +158,10 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         if self._name:
             return self._name
 
-        if self.cloud_path:
-            return storage.path.split(self.cloud_path)[-1]
+        if self.exists_in_cloud:
+            return storage.path.split(self.path)[-1]
 
         return os.path.split(os.path.abspath(os.path.split(self.path)[-1]))[-1]
-
-    @property
-    def cloud_path(self):
-        """Get the cloud path of the dataset.
-
-        :return str|None:
-        """
-        return self._cloud_path
-
-    @cloud_path.setter
-    def cloud_path(self, path):
-        """Set the cloud path of the dataset.
-
-        :param str|None path:
-        :return None:
-        """
-        if path is None:
-
-            if not self.exists_locally:
-                raise CloudLocationNotSpecified(
-                    "The cloud path cannot be reset because this datafile only exists in the cloud."
-                )
-
-            self._cloud_path = None
-
-        else:
-            self.to_cloud(cloud_path=path)
 
     @property
     def exists_in_cloud(self):
@@ -202,7 +169,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         :return bool:
         """
-        return self.cloud_path is not None
+        return storage.path.is_qualified_cloud_path(self.path)
 
     @property
     def exists_locally(self):
@@ -270,7 +237,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
             if not file.exists_in_cloud:
                 continue
 
-            path_relative_to_dataset = storage.path.relpath(file.cloud_path, self.cloud_path)
+            path_relative_to_dataset = storage.path.relpath(file.cloud_path, self.path)
             local_path = os.path.abspath(os.path.join(local_directory, *path_relative_to_dataset.split("/")))
             files_and_paths.append((file, local_path))
 
