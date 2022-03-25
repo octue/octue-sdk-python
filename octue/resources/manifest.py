@@ -8,11 +8,11 @@ from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
-from octue.mixins import Hashable, Identifiable, Pathable, Serialisable
+from octue.mixins import Hashable, Identifiable, Serialisable
 from octue.resources.dataset import Dataset
 
 
-class Manifest(Pathable, Serialisable, Identifiable, Hashable):
+class Manifest(Serialisable, Identifiable, Hashable):
     """A representation of a manifest, which can contain multiple datasets This is used to manage all files coming into
     (or leaving), a data service for an analysis at the configuration, input or output stage.
 
@@ -25,11 +25,11 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
     _ATTRIBUTES_TO_HASH = ("datasets",)
     _SERIALISE_FIELDS = "datasets", "keys", "id", "name", "path"
 
-    def __init__(self, id=None, path=None, datasets=None, **kwargs):
+    def __init__(self, id=None, datasets=None, **kwargs):
         if isinstance(datasets, list):
             datasets = octue.migrations.manifest.translate_datasets_list_to_dictionary(datasets, kwargs.get("keys"))
 
-        super().__init__(id=id, path=path)
+        super().__init__(id=id)
         self.datasets = {}
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined

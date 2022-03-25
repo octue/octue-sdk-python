@@ -46,7 +46,6 @@ class TestManifest(BaseTestCase):
 
         self.assertEqual(manifest.name, deserialised_manifest.name)
         self.assertEqual(manifest.id, deserialised_manifest.id)
-        self.assertEqual(manifest.path, deserialised_manifest.path)
 
         for key in manifest.datasets.keys():
             self.assertEqual(manifest.datasets[key].name, deserialised_manifest.datasets[key].name)
