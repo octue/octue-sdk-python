@@ -9,7 +9,7 @@ from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudLocationNotSpecified, InvalidInputException
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
-from octue.mixins import Hashable, Identifiable, Labelable, Pathable, Serialisable, Taggable
+from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.resources.label import LabelSet
@@ -19,7 +19,7 @@ from octue.resources.tag import TagDict
 logger = logging.getLogger(__name__)
 
 
-class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashable):
+class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     """A representation of a dataset, containing files, labels, etc
 
     This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
@@ -33,7 +33,8 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
     _SERIALISE_FIELDS = "files", "name", "labels", "tags", "id", "path"
 
     def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None, **kwargs):
-        super().__init__(name=name, id=id, tags=tags, labels=labels, path=path)
+        super().__init__(name=name, id=id, tags=tags, labels=labels)
+        self.path = path
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
         #  so that resources get automatically instantiated.
@@ -50,7 +51,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
             if isinstance(file, Datafile):
                 self.files.add(file)
             else:
-                self.files.add(Datafile.deserialise(file, path_from=self))
+                self.files.add(Datafile.deserialise(file))
 
         self.__dict__.update(**kwargs)
 
