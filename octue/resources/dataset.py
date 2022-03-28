@@ -207,7 +207,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         """
         return all(file.exists_in_cloud for file in self.files)
 
-    def add(self, *args, **kwargs):
+    def add(self, *args, path_in_dataset=None, **kwargs):
         """Add a data/results file to the manifest.
 
         Usage:
@@ -215,7 +215,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
             my_manifest.add(my_file)
         """
         if len(args) > 1:
-            # Recurse to allow addition of many files at once
+            # Recurse to allow addition of many files at once.
             for arg in args:
                 self.add(arg, **kwargs)
 
@@ -224,7 +224,11 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
                 raise InvalidInputException(
                     'Object "{}" must be of class Datafile to add it to a Dataset'.format(args[0])
                 )
+
             self.files.add(args[0])
+
+            if path_in_dataset:
+                args[0].local_path = path_in_dataset
 
     def get_file_by_label(self, label):
         """Get a single datafile from a dataset by filtering for files with the provided label.

@@ -500,7 +500,9 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
                 "the given path."
             )
 
-        GoogleCloudStorageClient().download_to_file(local_path=path, cloud_path=self.cloud_path)
+        if self.exists_in_cloud:
+            GoogleCloudStorageClient().download_to_file(local_path=path, cloud_path=self.cloud_path)
+
         self._local_path = os.path.abspath(path)
 
     def _use_cloud_metadata(self, **initialisation_parameters):
