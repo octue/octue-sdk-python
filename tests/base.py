@@ -36,7 +36,7 @@ class BaseTestCase(unittest.TestCase):
 
         super().setUp()
 
-    def create_valid_dataset(self):
+    def create_valid_dataset(self, **kwargs):
         """Create a valid dataset with two valid datafiles (they're the same file in this case)."""
         path = os.path.join(self.data_path, "basic_files", "configuration", "test-dataset")
 
@@ -46,6 +46,7 @@ class BaseTestCase(unittest.TestCase):
                 Datafile(path=os.path.join(path, "path-within-dataset", "a_test_file.csv")),
                 Datafile(path=os.path.join(path, "path-within-dataset", "another_test_file.csv")),
             ],
+            **kwargs
         )
 
     def create_valid_manifest(self):

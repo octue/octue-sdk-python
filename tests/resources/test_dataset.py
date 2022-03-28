@@ -4,7 +4,7 @@ import os
 import tempfile
 from unittest.mock import patch
 
-from octue import definitions, exceptions
+from octue import REPOSITORY_ROOT, definitions, exceptions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset
@@ -254,10 +254,40 @@ class TestDataset(BaseTestCase):
         second_dataset = copy.deepcopy(first_dataset)
         self.assertEqual(first_dataset.hash_value, second_dataset.hash_value)
 
-    def test_serialise(self):
-        """Test that a dataset can be serialised."""
-        dataset = self.create_valid_dataset()
-        self.assertEqual(len(dataset.to_primitive()["files"]), 2)
+    def test_serialisation_and_deserialisation(self):
+        """Test that a dataset can be serialised and deserialised."""
+        dataset_id = "e376fb31-8f66-414d-b99f-b43395cebbf1"
+        dataset = self.create_valid_dataset(id=dataset_id, labels=["b", "a"], tags={"a": 1, "b": 2})
+
+        serialised_dataset = dataset.to_primitive()
+
+        self.assertEqual(
+            serialised_dataset,
+            {
+                "name": "test-dataset",
+                "labels": ["a", "b"],
+                "tags": {"a": 1, "b": 2},
+                "id": dataset_id,
+                "path": os.path.join(REPOSITORY_ROOT, "tests/data/basic_files/configuration/test-dataset"),
+                "files": [
+                    os.path.join(
+                        REPOSITORY_ROOT,
+                        "tests/data/basic_files/configuration/test-dataset/path-within-dataset/a_test_file.csv",
+                    ),
+                    os.path.join(
+                        REPOSITORY_ROOT,
+                        "tests/data/basic_files/configuration/test-dataset/path-within-dataset/another_test_file.csv",
+                    ),
+                ],
+            },
+        )
+
+        deserialised_dataset = Dataset.deserialise(serialised_dataset)
+        self.assertEqual(dataset.id, deserialised_dataset.id)
+        self.assertEqual(dataset.path, deserialised_dataset.path)
+        self.assertEqual(dataset.name, deserialised_dataset.name)
+        self.assertEqual(dataset.labels, deserialised_dataset.labels)
+        self.assertEqual(dataset.tags, deserialised_dataset.tags)
 
     def test_exists_in_cloud(self):
         """Test whether all files of a dataset are in the cloud or not can be determined."""

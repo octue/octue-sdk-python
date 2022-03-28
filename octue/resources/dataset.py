@@ -59,7 +59,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
     @classmethod
     def from_local_directory(cls, path_to_directory, recursive=False, **kwargs):
-        """Instantiate a Dataset from the files in the given local directory.
+        """Instantiate a Dataset from the files in the given local directory. If a dataset metadata file is present,
+        that is used to decide which files are in the dataset.
 
         :param str path_to_directory: path to a local directory
         :param bool recursive: if `True`, include all files in the directory's subdirectories recursively
