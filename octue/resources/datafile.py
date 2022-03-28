@@ -254,7 +254,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
 
     def get_local_metadata(self):
         existing_metadata_records = self._load_local_metadata_file()
-        datafile_metadata = existing_metadata_records.get(self.path, {})
+        datafile_metadata = existing_metadata_records.get(self.name, {})
 
         if not datafile_metadata:
             return
