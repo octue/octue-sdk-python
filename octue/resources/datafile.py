@@ -1,6 +1,7 @@
 import copy
 import datetime
 import functools
+import json
 import logging
 import os
 import tempfile
@@ -8,7 +9,8 @@ from urllib.parse import urlparse
 
 import google.api_core.exceptions
 
-from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
+from octue.utils.decoders import OctueJSONDecoder
+from octue.utils.encoders import OctueJSONEncoder
 
 
 try:
@@ -22,6 +24,7 @@ from google_crc32c import Checksum
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudLocationNotSpecified, FileNotFoundException, InvalidInputException
+from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Pathable, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils import isfile
@@ -30,6 +33,7 @@ from octue.utils import isfile
 logger = logging.getLogger(__name__)
 
 
+OCTUE_LOCAL_METADATA_FILENAME = ".octue"
 OCTUE_METADATA_NAMESPACE = "octue"
 
 ID_DEFAULT = None
@@ -112,6 +116,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         self.extension = os.path.splitext(path)[-1].strip(".")
 
         self._local_path = None
+        self._local_metadata_records_path = OCTUE_LOCAL_METADATA_FILENAME
         self._cloud_path = None
         self._hypothetical = hypothetical
         self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
@@ -142,6 +147,10 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
 
         else:
             self._local_path = self.absolute_path
+            self._local_metadata_records_path = os.path.join(
+                os.path.dirname(self._local_path), OCTUE_LOCAL_METADATA_FILENAME
+            )
+            self.get_local_metadata()
 
             # Run integrity checks on the file.
             if not skip_checks:
@@ -242,6 +251,41 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
             self._raise_cloud_location_error()
 
         GoogleCloudStorageClient().overwrite_custom_metadata(metadata=self.metadata(), cloud_path=self.cloud_path)
+
+    def get_local_metadata(self):
+        existing_metadata_records = self._load_local_metadata_file()
+        datafile_metadata = existing_metadata_records.get(self.path, {})
+
+        if not datafile_metadata:
+            return
+
+        if "id" in datafile_metadata:
+            self._set_id(datafile_metadata["id"])
+
+        for parameter in ("timestamp", "tags", "labels"):
+            if parameter in datafile_metadata:
+                setattr(self, parameter, datafile_metadata[parameter])
+
+    def update_local_metadata(self):
+        """Create or update the local octue metadata file with the datafile's metadata.
+
+        :return None:
+        """
+        existing_metadata_records = self._load_local_metadata_file()
+        existing_metadata_records[self.path] = self.metadata()
+
+        with open(self._local_metadata_records_path, "w") as f:
+            json.dump(existing_metadata_records, f, cls=OctueJSONEncoder)
+
+    def _load_local_metadata_file(self):
+        if not os.path.exists(self._local_metadata_records_path):
+            return {}
+
+        with open(self._local_metadata_records_path) as f:
+            try:
+                return json.load(f, cls=OctueJSONDecoder)
+            except json.decoder.JSONDecodeError:
+                return {}
 
     @property
     def name(self):
@@ -653,15 +697,18 @@ class _DatafileContextManager:
 
     def __exit__(self, *args):
         """Close the datafile, updating the corresponding file in the cloud if necessary and its metadata if
-        self._update_cloud_metadata is True.
+        `self._update_cloud_metadata` is True.
 
         :return None:
         """
         if self._fp is not None:
             self._fp.close()
 
-        if self.datafile.exists_in_cloud and any(character in self.mode for character in self.MODIFICATION_MODES):
-            self.datafile.to_cloud(update_cloud_metadata=self._update_cloud_metadata)
+        if any(character in self.mode for character in self.MODIFICATION_MODES):
+            self.datafile.update_local_metadata()
+
+            if self.datafile.exists_in_cloud:
+                self.datafile.to_cloud(update_cloud_metadata=self._update_cloud_metadata)
 
 
 def calculate_hash(path):
