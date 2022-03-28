@@ -65,6 +65,18 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :param kwargs: other keyword arguments for the `Dataset` instantiation
         :return Dataset:
         """
+        dataset_metadata = cls._get_dataset_local_metadata(path=path_to_directory)
+
+        if dataset_metadata:
+            return Dataset(
+                id=dataset_metadata.get("id"),
+                name=dataset_metadata.get("name"),
+                path=os.path.abspath(path_to_directory),
+                tags=TagDict(dataset_metadata.get("tags", {})),
+                labels=LabelSet(dataset_metadata.get("labels", [])),
+                files=[Datafile(path=path) for path in dataset_metadata["files"]],
+            )
+
         datafiles = FilterSet()
 
         for level, (directory_path, _, filenames) in enumerate(os.walk(path_to_directory)):
@@ -90,7 +102,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         bucket_name = storage.path.split_bucket_name_from_gs_path(cloud_path)[0]
 
-        dataset_metadata = cls._get_dataset_metadata(cloud_path=cloud_path)
+        dataset_metadata = cls._get_dataset_cloud_metadata(cloud_path=cloud_path)
 
         if dataset_metadata:
             return Dataset(
@@ -148,6 +160,14 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         self.path = cloud_path
         self._upload_dataset_metadata(cloud_path)
         return cloud_path
+
+    def save_metadata_locally(self):
+        serialised_dataset = self.to_primitive()
+        serialised_dataset["files"] = sorted(datafile.cloud_path for datafile in self.files)
+        del serialised_dataset["path"]
+
+        with open(os.path.join(self.path, definitions.DATASET_METADATA_FILENAME), "w") as f:
+            json.dump(serialised_dataset, f)
 
     @property
     def name(self):
@@ -263,8 +283,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         logger.info("Downloaded %r dataset to %r.", self.name, local_directory)
 
     @staticmethod
-    def _get_dataset_metadata(cloud_path):
-        """Get the metadata for the given dataset if a dataset metadata file has previously been uploaded.
+    def _get_dataset_cloud_metadata(cloud_path):
+        """Get the cloud metadata for the given dataset if a dataset metadata file has previously been uploaded.
 
         :param str cloud_path: the path to the dataset cloud directory
         :return dict: the dataset metadata
@@ -291,3 +311,18 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
             string=json.dumps(serialised_dataset),
             cloud_path=storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME),
         )
+
+    @staticmethod
+    def _get_dataset_local_metadata(path):
+        """Get the local metadata for the given dataset if a dataset metadata file has previously been uploaded.
+
+        :param str path: the local path to the dataset
+        :return dict: the dataset metadata
+        """
+        metadata_file_path = os.path.join(path, definitions.DATASET_METADATA_FILENAME)
+
+        if not os.path.exists(metadata_file_path):
+            return {}
+
+        with open(metadata_file_path) as f:
+            return json.load(f)
