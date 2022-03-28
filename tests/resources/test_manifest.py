@@ -40,9 +40,22 @@ class TestManifest(BaseTestCase):
 
     def test_deserialise(self):
         """Test that manifests can be deserialised."""
-        manifest = self.create_valid_manifest()
-        serialised_manifest = manifest.to_primitive()
-        deserialised_manifest = Manifest.deserialise(serialised_manifest)
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            datasets = {
+                "my_dataset_0": Dataset(
+                    path=os.path.join(temporary_directory, "my_dataset_0"),
+                    files=[Datafile(path=os.path.join(temporary_directory, "my_dataset_0", "my_file_0.txt"))],
+                ),
+                "my_dataset_1": Dataset(
+                    path=os.path.join(temporary_directory, "my_dataset_1"),
+                    files=[Datafile(path=os.path.join(temporary_directory, "my_dataset_1", "my_file_1.txt"))],
+                ),
+            }
+
+            manifest = Manifest(datasets=datasets)
+
+            serialised_manifest = manifest.to_primitive()
+            deserialised_manifest = Manifest.deserialise(serialised_manifest)
 
         self.assertEqual(manifest.name, deserialised_manifest.name)
         self.assertEqual(manifest.id, deserialised_manifest.id)
