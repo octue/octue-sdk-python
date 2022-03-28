@@ -266,7 +266,7 @@ class TestDatafile(BaseTestCase):
         datafile, _ = self.create_datafile_in_cloud(labels={"start"})
         datafile.labels = {"finish"}
 
-        with patch("octue.resources.datafile.Datafile.update_cloud_metadata") as mock:
+        with patch("octue.resources.datafile.Datafile._update_cloud_metadata") as mock:
             datafile.to_cloud(datafile.cloud_path, update_cloud_metadata=False)
             self.assertFalse(mock.called)
 
@@ -278,7 +278,7 @@ class TestDatafile(BaseTestCase):
 
         new_datafile = Datafile(datafile.cloud_path)
 
-        with patch("octue.resources.datafile.Datafile.update_cloud_metadata") as mock:
+        with patch("octue.resources.datafile.Datafile._update_cloud_metadata") as mock:
             new_datafile.to_cloud()
             self.assertFalse(mock.called)
 
@@ -313,7 +313,7 @@ class TestDatafile(BaseTestCase):
 
         new_datafile = Datafile(datafile.cloud_path)
         new_datafile.labels = {"new"}
-        new_datafile.update_cloud_metadata()
+        new_datafile._update_cloud_metadata()
 
         self.assertEqual(Datafile(datafile.cloud_path).labels, {"new"})
 
@@ -324,7 +324,7 @@ class TestDatafile(BaseTestCase):
         datafile = Datafile(path="hello.txt")
 
         with self.assertRaises(exceptions.CloudLocationNotSpecified):
-            datafile.update_cloud_metadata()
+            datafile._update_cloud_metadata()
 
     def test_cloud_path(self):
         """Test that the cloud path property gives the right path."""
