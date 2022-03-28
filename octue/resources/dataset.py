@@ -51,13 +51,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         self.__dict__.update(**kwargs)
 
         if path and not storage.path.is_qualified_cloud_path(self.path):
-            self.save_metadata_locally()
-
-    def __iter__(self):
-        yield from self.files
-
-    def __len__(self):
-        return len(self.files)
+            self._save_local_metadata()
 
     @classmethod
     def from_local_directory(cls, path_to_directory, recursive=False, **kwargs):
@@ -68,7 +62,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :param kwargs: other keyword arguments for the `Dataset` instantiation
         :return Dataset:
         """
-        dataset_metadata = cls._get_dataset_local_metadata(path=path_to_directory)
+        dataset_metadata = cls._get_local_metadata(path=path_to_directory)
 
         if dataset_metadata:
             return Dataset(
@@ -105,7 +99,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         bucket_name = storage.path.split_bucket_name_from_gs_path(cloud_path)[0]
 
-        dataset_metadata = cls._get_dataset_cloud_metadata(cloud_path=cloud_path)
+        dataset_metadata = cls._get_cloud_metadata(cloud_path=cloud_path)
 
         if dataset_metadata:
             return Dataset(
@@ -123,56 +117,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         )
 
         dataset = Dataset(path=cloud_path, files=datafiles)
-        dataset._upload_dataset_metadata(cloud_path)
+        dataset._upload_cloud_metadata(cloud_path)
         return dataset
-
-    def to_cloud(self, cloud_path=None, bucket_name=None, output_directory=None):
-        """Upload a dataset to the given cloud path.
-
-        :param str|None cloud_path: cloud path to store dataset at (e.g. `gs://bucket_name/path/to/dataset`)
-        :return str: cloud path for dataset
-        """
-        if not cloud_path:
-            cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, output_directory)
-
-        files_and_paths = []
-
-        for datafile in self.files:
-            datafile_path_relative_to_dataset = datafile.path.split(self.path)[-1].strip(os.path.sep).strip("/")
-            files_and_paths.append(
-                (
-                    datafile,
-                    storage.path.join(cloud_path, *datafile_path_relative_to_dataset.split(os.path.sep)),
-                )
-            )
-
-        def upload(iterable_element):
-            """Upload a datafile to the given cloud path.
-
-            :param tuple(octue.resources.datafile.Datafile, str) iterable_element:
-            :return None:
-            """
-            datafile = iterable_element[0]
-            cloud_path = iterable_element[1]
-            datafile.to_cloud(cloud_path=cloud_path)
-
-        # Use multiple threads to significantly speed up file uploads by reducing latency.
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.map(upload, files_and_paths)
-
-        self.path = cloud_path
-        self._upload_dataset_metadata(cloud_path)
-        return cloud_path
-
-    def save_metadata_locally(self):
-        serialised_dataset = self.to_primitive()
-        serialised_dataset["files"] = sorted(datafile.path for datafile in self.files)
-        del serialised_dataset["path"]
-
-        os.makedirs(self.path, exist_ok=True)
-
-        with open(os.path.join(self.path, definitions.DATASET_METADATA_FILENAME), "w") as f:
-            json.dump(serialised_dataset, f)
 
     @property
     def name(self):
@@ -211,6 +157,50 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :return bool:
         """
         return all(file.exists_in_cloud for file in self.files)
+
+    def __iter__(self):
+        yield from self.files
+
+    def __len__(self):
+        return len(self.files)
+
+    def to_cloud(self, cloud_path=None, bucket_name=None, output_directory=None):
+        """Upload a dataset to the given cloud path.
+
+        :param str|None cloud_path: cloud path to store dataset at (e.g. `gs://bucket_name/path/to/dataset`)
+        :return str: cloud path for dataset
+        """
+        if not cloud_path:
+            cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, output_directory)
+
+        files_and_paths = []
+
+        for datafile in self.files:
+            datafile_path_relative_to_dataset = datafile.path.split(self.path)[-1].strip(os.path.sep).strip("/")
+            files_and_paths.append(
+                (
+                    datafile,
+                    storage.path.join(cloud_path, *datafile_path_relative_to_dataset.split(os.path.sep)),
+                )
+            )
+
+        def upload(iterable_element):
+            """Upload a datafile to the given cloud path.
+
+            :param tuple(octue.resources.datafile.Datafile, str) iterable_element:
+            :return None:
+            """
+            datafile = iterable_element[0]
+            cloud_path = iterable_element[1]
+            datafile.to_cloud(cloud_path=cloud_path)
+
+        # Use multiple threads to significantly speed up file uploads by reducing latency.
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.map(upload, files_and_paths)
+
+        self.path = cloud_path
+        self._upload_cloud_metadata(cloud_path)
+        return cloud_path
 
     def add(self, *args, path_in_dataset=None, **kwargs):
         """Add a data/results file to the manifest.
@@ -286,7 +276,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         logger.info("Downloaded %r dataset to %r.", self.name, local_directory)
 
     @staticmethod
-    def _get_dataset_cloud_metadata(cloud_path):
+    def _get_cloud_metadata(cloud_path):
         """Get the cloud metadata for the given dataset if a dataset metadata file has previously been uploaded.
 
         :param str cloud_path: the path to the dataset cloud directory
@@ -300,7 +290,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         return json.loads(storage_client.download_as_string(cloud_path=metadata_file_path))
 
-    def _upload_dataset_metadata(self, cloud_path):
+    def _upload_cloud_metadata(self, cloud_path):
         """Upload a metadata file representing the dataset to the given cloud location.
 
         :param str cloud_path: the path to the dataset cloud directory
@@ -316,7 +306,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         )
 
     @staticmethod
-    def _get_dataset_local_metadata(path):
+    def _get_local_metadata(path):
         """Get the local metadata for the given dataset if a dataset metadata file has previously been uploaded.
 
         :param str path: the local path to the dataset
@@ -329,3 +319,13 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         with open(metadata_file_path) as f:
             return json.load(f)
+
+    def _save_local_metadata(self):
+        serialised_dataset = self.to_primitive()
+        serialised_dataset["files"] = sorted(datafile.path for datafile in self.files)
+        del serialised_dataset["path"]
+
+        os.makedirs(self.path, exist_ok=True)
+
+        with open(os.path.join(self.path, definitions.DATASET_METADATA_FILENAME), "w") as f:
+            json.dump(serialised_dataset, f)

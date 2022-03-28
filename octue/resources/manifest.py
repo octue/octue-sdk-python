@@ -66,6 +66,14 @@ class Manifest(Serialisable, Identifiable, Hashable):
             datasets=datasets,
         )
 
+    @property
+    def all_datasets_are_in_cloud(self):
+        """Do all the files of all the datasets of the manifest exist in the cloud?
+
+        :return bool:
+        """
+        return all(dataset.all_files_are_in_cloud for dataset in self.datasets.values())
+
     def to_cloud(self, cloud_path=None, bucket_name=None, path_to_manifest_file=None, store_datasets=None):
         """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory.
 
@@ -94,14 +102,6 @@ class Manifest(Serialisable, Identifiable, Hashable):
         del serialised_manifest["path"]
 
         GoogleCloudStorageClient().upload_from_string(string=json.dumps(serialised_manifest), cloud_path=cloud_path)
-
-    @property
-    def all_datasets_are_in_cloud(self):
-        """Do all the files of all the datasets of the manifest exist in the cloud?
-
-        :return bool:
-        """
-        return all(dataset.all_files_are_in_cloud for dataset in self.datasets.values())
 
     def get_dataset(self, key):
         """Get a dataset by its key (as defined in the twine).
@@ -134,6 +134,11 @@ class Manifest(Serialisable, Identifiable, Hashable):
             self.datasets[key] = Dataset(path=key)
 
         return self
+
+    def to_primitive(self):
+        self_as_primitive = super().to_primitive()
+        self_as_primitive["datasets"] = {name: dataset.path for name, dataset in self.datasets.items()}
+        return self_as_primitive
 
     def _instantiate_datasets(self, datasets):
         """Add the given datasets to the manifest, instantiating them if needed and giving them the correct path.
@@ -182,8 +187,3 @@ class Manifest(Serialisable, Identifiable, Hashable):
 
                 else:
                     self.datasets[key] = Dataset(**dataset, path=key)
-
-    def to_primitive(self):
-        self_as_primitive = super().to_primitive()
-        self_as_primitive["datasets"] = {name: dataset.path for name, dataset in self.datasets.items()}
-        return self_as_primitive
