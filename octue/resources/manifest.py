@@ -25,11 +25,11 @@ class Manifest(Serialisable, Identifiable, Hashable):
     _ATTRIBUTES_TO_HASH = ("datasets",)
     _SERIALISE_FIELDS = "id", "name", "path"
 
-    def __init__(self, id=None, datasets=None, **kwargs):
+    def __init__(self, id=None, name=None, datasets=None, **kwargs):
         if isinstance(datasets, list):
             datasets = octue.migrations.manifest.translate_datasets_list_to_dictionary(datasets, kwargs.get("keys"))
 
-        super().__init__(id=id)
+        super().__init__(id=id, name=name)
         self.datasets = {}
 
         # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
