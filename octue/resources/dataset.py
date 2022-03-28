@@ -213,24 +213,18 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         Usage:
             my_file = octue.DataFile(...)
             my_manifest.add(my_file)
-
-            # or more simply
-            my_manifest.add(**{...}) which implicitly creates the datafile from the starred list of input arguments
         """
         if len(args) > 1:
             # Recurse to allow addition of many files at once
             for arg in args:
                 self.add(arg, **kwargs)
+
         elif len(args) > 0:
             if not isinstance(args[0], Datafile):
                 raise InvalidInputException(
                     'Object "{}" must be of class Datafile to add it to a Dataset'.format(args[0])
                 )
             self.files.add(args[0])
-
-        else:
-            # Add a single file, constructed by passing the arguments through to DataFile()
-            self.files.add(Datafile(**kwargs))
 
     def get_file_by_label(self, label):
         """Get a single datafile from a dataset by filtering for files with the provided label.
