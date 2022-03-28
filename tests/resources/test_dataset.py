@@ -94,12 +94,6 @@ class TestDataset(BaseTestCase):
         resource.add(Datafile(path="path-within-dataset/a_test_file.csv"))
         self.assertEqual(len(resource.files), 2)
 
-    def test_add_with_datafile_creation_shortcut(self):
-        """Ensures that when a dataset is not empty, it can be added to"""
-        resource = Dataset()
-        resource.add(path="path-within-dataset/a_test_file.csv")
-        self.assertEqual(len(resource.files), 1)
-
     def test_add_multiple_files(self):
         """Ensures that when a dataset is not empty, it can be added to"""
         files = [
