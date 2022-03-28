@@ -273,6 +273,11 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         logger.info("Downloaded %r dataset to %r.", self.name, local_directory)
 
     def to_primitive(self):
+        """Convert the dataset to a dictionary of primitives, converting its files into their paths for a lightweight
+        serialisation.
+
+        :return dict:
+        """
         serialised_dataset = super().to_primitive()
 
         if self.exists_in_cloud:

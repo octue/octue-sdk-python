@@ -136,6 +136,11 @@ class Manifest(Serialisable, Identifiable, Hashable):
         return self
 
     def to_primitive(self):
+        """Convert the manifest to a dictionary of primitives, converting its datasets into their paths for a
+        lightweight serialisation.
+
+        :return dict:
+        """
         self_as_primitive = super().to_primitive()
         self_as_primitive["datasets"] = {name: dataset.path for name, dataset in self.datasets.items()}
         return self_as_primitive
