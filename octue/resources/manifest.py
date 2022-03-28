@@ -23,7 +23,7 @@ class Manifest(Serialisable, Identifiable, Hashable):
     """
 
     _ATTRIBUTES_TO_HASH = ("datasets",)
-    _SERIALISE_FIELDS = "datasets", "keys", "id", "name", "path"
+    _SERIALISE_FIELDS = "id", "name", "path"
 
     def __init__(self, id=None, datasets=None, **kwargs):
         if isinstance(datasets, list):
@@ -182,3 +182,8 @@ class Manifest(Serialisable, Identifiable, Hashable):
 
                 else:
                     self.datasets[key] = Dataset(**dataset, path=key)
+
+    def to_primitive(self):
+        self_as_primitive = super().to_primitive()
+        self_as_primitive["datasets"] = {name: dataset.path for name, dataset in self.datasets.items()}
+        return self_as_primitive
