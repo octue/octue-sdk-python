@@ -147,6 +147,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
 
         else:
             self._local_path = self.absolute_path
+
             self._local_metadata_records_path = os.path.join(
                 os.path.dirname(self._local_path), OCTUE_LOCAL_METADATA_FILENAME
             )

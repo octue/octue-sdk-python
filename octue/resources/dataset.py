@@ -50,7 +50,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         self.__dict__.update(**kwargs)
 
-        if path and not storage.path.is_qualified_cloud_path(self.path):
+        # Save metadata locally if the dataset exists locally.
+        if path and self.exists_locally:
             self._save_local_metadata()
 
     @classmethod
