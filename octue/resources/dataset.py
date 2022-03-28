@@ -14,6 +14,7 @@ from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.resources.label import LabelSet
 from octue.resources.tag import TagDict
+from octue.utils.encoders import OctueJSONEncoder
 
 
 logger = logging.getLogger(__name__)
@@ -68,14 +69,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         dataset_metadata = cls._get_local_metadata(path=path_to_directory)
 
         if dataset_metadata:
-            return Dataset(
-                id=dataset_metadata.get("id"),
-                name=dataset_metadata.get("name"),
-                path=os.path.abspath(path_to_directory),
-                tags=TagDict(dataset_metadata.get("tags", {})),
-                labels=LabelSet(dataset_metadata.get("labels", [])),
-                files=[Datafile(path=path) for path in dataset_metadata["files"]],
-            )
+            return Dataset.deserialise(dataset_metadata)
 
         datafiles = FilterSet()
 
@@ -311,7 +305,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :return None:
         """
         GoogleCloudStorageClient().upload_from_string(
-            string=json.dumps(self.to_primitive()),
+            string=self.serialise(),
             cloud_path=storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME),
         )
 
@@ -334,4 +328,4 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         os.makedirs(self.path, exist_ok=True)
 
         with open(os.path.join(self.path, definitions.DATASET_METADATA_FILENAME), "w") as f:
-            json.dump(self.to_primitive(), f)
+            json.dump(self.to_primitive(), f, cls=OctueJSONEncoder)
