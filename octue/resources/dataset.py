@@ -30,7 +30,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     """
 
     _ATTRIBUTES_TO_HASH = ("files",)
-    _SERIALISE_FIELDS = "files", "name", "labels", "tags", "id", "path"
+    _SERIALISE_FIELDS = "name", "labels", "tags", "id", "path"
 
     def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None, **kwargs):
         super().__init__(name=name, id=id, tags=tags, labels=labels)
@@ -45,6 +45,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         for file in files or []:
             if isinstance(file, Datafile):
                 self.files.add(file)
+            elif isinstance(file, str):
+                self.files.add(Datafile(path=file))
             else:
                 self.files.add(Datafile.deserialise(file))
 
@@ -276,6 +278,17 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         logger.info("Downloaded %r dataset to %r.", self.name, local_directory)
 
+    def to_primitive(self):
+        serialised_dataset = super().to_primitive()
+
+        if self.exists_in_cloud:
+            path_type = "cloud_path"
+        else:
+            path_type = "path"
+
+        serialised_dataset["files"] = sorted(getattr(datafile, path_type) for datafile in self.files)
+        return serialised_dataset
+
     @staticmethod
     def _get_cloud_metadata(cloud_path):
         """Get the cloud metadata for the given dataset if a dataset metadata file has previously been uploaded.
@@ -297,12 +310,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :param str cloud_path: the path to the dataset cloud directory
         :return None:
         """
-        serialised_dataset = self.to_primitive()
-        serialised_dataset["files"] = sorted(datafile.cloud_path for datafile in self.files)
-        del serialised_dataset["path"]
-
         GoogleCloudStorageClient().upload_from_string(
-            string=json.dumps(serialised_dataset),
+            string=json.dumps(self.to_primitive()),
             cloud_path=storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME),
         )
 
@@ -322,11 +331,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
             return json.load(f)
 
     def _save_local_metadata(self):
-        serialised_dataset = self.to_primitive()
-        serialised_dataset["files"] = sorted(datafile.path for datafile in self.files)
-        del serialised_dataset["path"]
-
         os.makedirs(self.path, exist_ok=True)
 
         with open(os.path.join(self.path, definitions.DATASET_METADATA_FILENAME), "w") as f:
-            json.dump(serialised_dataset, f)
+            json.dump(self.to_primitive(), f)

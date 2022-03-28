@@ -338,6 +338,7 @@ class TestDataset(BaseTestCase):
         self.assertEqual(
             dataset_metadata,
             {
+                "path": "gs://octue-test-bucket/my_dataset",
                 "files": [
                     "gs://octue-test-bucket/my_dataset/file_0.txt",
                     "gs://octue-test-bucket/my_dataset/file_1.txt",
