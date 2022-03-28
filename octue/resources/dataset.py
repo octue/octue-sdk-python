@@ -50,6 +50,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         self.__dict__.update(**kwargs)
 
+        if path and not storage.path.is_qualified_cloud_path(self.path):
+            self.save_metadata_locally()
+
     def __iter__(self):
         yield from self.files
 
@@ -163,8 +166,10 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
     def save_metadata_locally(self):
         serialised_dataset = self.to_primitive()
-        serialised_dataset["files"] = sorted(datafile.cloud_path for datafile in self.files)
+        serialised_dataset["files"] = sorted(datafile.path for datafile in self.files)
         del serialised_dataset["path"]
+
+        os.makedirs(self.path, exist_ok=True)
 
         with open(os.path.join(self.path, definitions.DATASET_METADATA_FILENAME), "w") as f:
             json.dump(serialised_dataset, f)
