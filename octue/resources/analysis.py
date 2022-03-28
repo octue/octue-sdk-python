@@ -115,7 +115,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         :param str bucket_name:
         :return dict: serialised strings for values and manifest data.
         """
-        serialised_strands = {}
+        serialised_strands = {"output_values": {}, "output_manifest": None}
 
         if self.output_values:
             serialised_strands["output_values"] = json.dumps(self.output_values, cls=OctueJSONEncoder)
