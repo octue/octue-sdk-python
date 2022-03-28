@@ -25,7 +25,7 @@ class MyPathable(Pathable, MixinBase):
     pass
 
 
-class DatafileTestCase(BaseTestCase):
+class TestDatafile(BaseTestCase):
     def setUp(self):
         """Set up the test class by adding an example `path_from` and `path` to it.
 
@@ -755,3 +755,34 @@ class DatafileTestCase(BaseTestCase):
                 with self.assertRaises(ImportError):
                     with datafile.open("w") as f:
                         f["dataset"] = range(10)
+
+    def test_metadata_is_saved_and_loaded_locally(self):
+        """Test that metadata for a local datafile is saved and loaded locally."""
+        new_labels = {"yes", "no", "maybe"}
+
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            with Datafile(path=temporary_file.name, mode="w") as (datafile, f):
+                datafile.labels = new_labels
+                f.write("blah, blah, blah")
+
+            reloaded_datafile = Datafile(path=temporary_file.name, skip_checks=True)
+            self.assertEqual(reloaded_datafile.labels, new_labels)
+            self.assertEqual(datafile.id, reloaded_datafile.id)
+
+    def test_local_metadata_is_updated(self):
+        """Test that local metadata for a datafile is updated when the datafile's metadata is updated."""
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            with Datafile(path=temporary_file.name, mode="w") as (datafile, f):
+                datafile.labels = {"yes", "no", "maybe"}
+                f.write("blah, blah, blah")
+
+            # Change the labels and tags.
+            with Datafile(path=temporary_file.name, mode="w", skip_checks=True) as (reloaded_datafile, f):
+                reloaded_datafile.labels = {"blah", "nah"}
+                reloaded_datafile.tags = {"my_tag": "hello"}
+
+            # Check that the local metadata file is updated.
+            datafile_reloaded_again = Datafile(path=temporary_file.name, skip_checks=True)
+            self.assertEqual(datafile_reloaded_again.labels, {"blah", "nah"})
+            self.assertEqual(datafile_reloaded_again.tags, {"my_tag": "hello"})
+            self.assertEqual(datafile_reloaded_again.id, datafile.id)
