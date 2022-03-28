@@ -38,8 +38,8 @@ class TestManifest(BaseTestCase):
         manifest = Manifest(datasets={"my_dataset": Dataset(files=files)})
         self.assertTrue(manifest.all_datasets_are_in_cloud)
 
-    def test_deserialise(self):
-        """Test that manifests can be deserialised."""
+    def test_serialisation_and_deserialisation(self):
+        """Test that manifests can be serialised and deserialised."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             datasets = {
                 "my_dataset_0": Dataset(
@@ -52,9 +52,23 @@ class TestManifest(BaseTestCase):
                 ),
             }
 
-            manifest = Manifest(datasets=datasets)
+            manifest = Manifest(datasets=datasets, id="7e0025cd-bd68-4de6-b48d-2643ebd5effd", name="my-manifest")
 
             serialised_manifest = manifest.to_primitive()
+
+            self.assertEqual(
+                serialised_manifest,
+                {
+                    "id": manifest.id,
+                    "name": "my-manifest",
+                    "path": None,
+                    "datasets": {
+                        "my_dataset_0": os.path.join(temporary_directory, "my_dataset_0"),
+                        "my_dataset_1": os.path.join(temporary_directory, "my_dataset_1"),
+                    },
+                },
+            )
+
             deserialised_manifest = Manifest.deserialise(serialised_manifest)
 
         self.assertEqual(manifest.name, deserialised_manifest.name)
