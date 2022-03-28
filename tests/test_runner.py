@@ -83,10 +83,8 @@ class RunnerTestCase(BaseTestCase):
         runner = Runner(app_src=mock_app, twine=twine)
 
         # Test for failure with an incorrect output
-        with self.assertRaises(twined.exceptions.InvalidValuesContents) as error:
+        with self.assertRaises(twined.exceptions.TwineValueException):
             runner.run().finalise()
-
-        self.assertIn("'n_iterations' is a required property", error.exception.args[0])
 
         # Test for success with a valid output
         def fcn(analysis):
