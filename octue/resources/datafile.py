@@ -272,7 +272,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         :return None:
         """
         existing_metadata_records = self._load_local_metadata_file()
-        existing_metadata_records[self.path] = self.metadata()
+        existing_metadata_records[self.path] = self.metadata(use_octue_namespace=False)
 
         with open(self._local_metadata_records_path, "w") as f:
             json.dump(existing_metadata_records, f, cls=OctueJSONEncoder)
@@ -705,7 +705,10 @@ class _DatafileContextManager:
             self._fp.close()
 
         if any(character in self.mode for character in self.MODIFICATION_MODES):
-            self.datafile.update_local_metadata()
+
+            # If the datafile is local-first, update its local metadata.
+            if not storage.path.is_qualified_cloud_path(self.datafile.path):
+                self.datafile.update_local_metadata()
 
             if self.datafile.exists_in_cloud:
                 self.datafile.to_cloud(update_cloud_metadata=self._update_cloud_metadata)
