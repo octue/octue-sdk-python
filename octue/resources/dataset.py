@@ -110,7 +110,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         )
 
         dataset = Dataset(path=cloud_path, files=datafiles)
-        dataset._upload_cloud_metadata(cloud_path)
+        dataset._upload_cloud_metadata()
         return dataset
 
     @property
@@ -150,6 +150,17 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :return bool:
         """
         return all(file.exists_in_cloud for file in self.files)
+
+    @property
+    def _metadata_path(self):
+        """Get the path to the dataset's metadata file.
+
+        :return str:
+        """
+        if self.exists_in_cloud:
+            return storage.path.join(self.path, definitions.DATASET_METADATA_FILENAME)
+
+        return os.path.join(self.path, definitions.DATASET_METADATA_FILENAME)
 
     def __iter__(self):
         yield from self.files
@@ -192,7 +203,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
             executor.map(upload, files_and_paths)
 
         self.path = cloud_path
-        self._upload_cloud_metadata(cloud_path)
+        self._upload_cloud_metadata()
         return cloud_path
 
     def add(self, datafile, path_in_dataset=None):
@@ -292,20 +303,16 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         return json.loads(storage_client.download_as_string(cloud_path=metadata_file_path))
 
-    def _upload_cloud_metadata(self, cloud_path):
+    def _upload_cloud_metadata(self):
         """Upload a metadata file representing the dataset to the given cloud location.
 
-        :param str cloud_path: the path to the dataset cloud directory
         :return None:
         """
-        GoogleCloudStorageClient().upload_from_string(
-            string=self.serialise(),
-            cloud_path=storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME),
-        )
+        GoogleCloudStorageClient().upload_from_string(string=self.serialise(), cloud_path=self._metadata_path)
 
     @staticmethod
     def _get_local_metadata(path):
-        """Get the local metadata for the given dataset if a dataset metadata file has previously been uploaded.
+        """Get the local metadata for the given dataset if a dataset metadata file has previously been saved locally.
 
         :param str path: the local path to the dataset
         :return dict: the dataset metadata
@@ -319,7 +326,11 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
             return json.load(f)
 
     def _save_local_metadata(self):
+        """Save the dataset metadata locally in the dataset directory.
+
+        :return None:
+        """
         os.makedirs(self.path, exist_ok=True)
 
-        with open(os.path.join(self.path, definitions.DATASET_METADATA_FILENAME), "w") as f:
+        with open(self._metadata_path, "w") as f:
             json.dump(self.to_primitive(), f, cls=OctueJSONEncoder)
