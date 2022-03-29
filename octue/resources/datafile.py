@@ -33,7 +33,7 @@ from octue.utils import isfile
 logger = logging.getLogger(__name__)
 
 
-OCTUE_LOCAL_METADATA_FILENAME = ".octue"
+LOCAL_METADATA_FILENAME = ".octue"
 OCTUE_METADATA_NAMESPACE = "octue"
 
 ID_DEFAULT = None
@@ -116,7 +116,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         self.extension = os.path.splitext(path)[-1].strip(".")
 
         self._local_path = None
-        self._local_metadata_records_path = OCTUE_LOCAL_METADATA_FILENAME
+        self._local_metadata_records_path = LOCAL_METADATA_FILENAME
         self._cloud_path = None
         self._hypothetical = hypothetical
         self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
@@ -148,9 +148,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         else:
             self._local_path = self.absolute_path
 
-            self._local_metadata_records_path = os.path.join(
-                os.path.dirname(self._local_path), OCTUE_LOCAL_METADATA_FILENAME
-            )
+            self._local_metadata_records_path = os.path.join(os.path.dirname(self._local_path), LOCAL_METADATA_FILENAME)
             self._get_local_metadata()
 
             # Run integrity checks on the file.
@@ -551,6 +549,11 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
             )
 
     def _load_local_metadata_file(self):
+        """Load the datafile's metadata from the local metadata records file, returning an empty dictionary if the file
+        does not exist or is incorrectly formatted.
+
+        :return dict:
+        """
         if not os.path.exists(self._local_metadata_records_path):
             return {}
 
@@ -561,6 +564,11 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
                 return {}
 
     def _get_local_metadata(self):
+        """Get the datafile's local metadata from the local metadata records file and apply it to the datafile instance.
+        If no metadata is stored for the datafile, do nothing.
+
+        :return None:
+        """
         existing_metadata_records = self._load_local_metadata_file()
         datafile_metadata = existing_metadata_records.get(self.name, {})
 
