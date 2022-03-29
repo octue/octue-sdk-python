@@ -8,18 +8,14 @@ import tempfile
 from urllib.parse import urlparse
 
 import google.api_core.exceptions
-
-from octue.utils.decoders import OctueJSONDecoder
-from octue.utils.encoders import OctueJSONEncoder
+import pkg_resources
+from google_crc32c import Checksum
 
 
 try:
     import h5py
 except ModuleNotFoundError:
     pass
-
-import pkg_resources
-from google_crc32c import Checksum
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
@@ -28,12 +24,12 @@ from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_buc
 from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Pathable, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils import isfile
+from octue.utils.encoders import OctueJSONEncoder
+from octue.utils.local_metadata import LOCAL_METADATA_FILENAME, load_local_metadata_file
 
 
 logger = logging.getLogger(__name__)
 
-
-LOCAL_METADATA_FILENAME = ".octue"
 OCTUE_METADATA_NAMESPACE = "octue"
 
 ID_DEFAULT = None
@@ -116,7 +112,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         self.extension = os.path.splitext(path)[-1].strip(".")
 
         self._local_path = None
-        self._local_metadata_records_path = LOCAL_METADATA_FILENAME
         self._cloud_path = None
         self._hypothetical = hypothetical
         self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
@@ -147,8 +142,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
 
         else:
             self._local_path = self.absolute_path
-
-            self._local_metadata_records_path = os.path.join(os.path.dirname(self._local_path), LOCAL_METADATA_FILENAME)
             self._get_local_metadata()
 
             # Run integrity checks on the file.
@@ -373,6 +366,17 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         """
         return functools.partial(_DatafileContextManager, self)
 
+    @property
+    def _local_metadata_path(self):
+        """Get the path to the datafile's local metadata file (if the datafile exists locally).
+
+        :return str|None:
+        """
+        if not self.exists_locally:
+            return None
+
+        return os.path.join(os.path.dirname(self._local_path), LOCAL_METADATA_FILENAME)
+
     def __enter__(self):
         self._open_context_manager = self.open(**self._open_attributes)
         return self, self._open_context_manager.__enter__()
@@ -548,29 +552,14 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
                 ),
             )
 
-    def _load_local_metadata_file(self):
-        """Load the datafile's metadata from the local metadata records file, returning an empty dictionary if the file
-        does not exist or is incorrectly formatted.
-
-        :return dict:
-        """
-        if not os.path.exists(self._local_metadata_records_path):
-            return {}
-
-        with open(self._local_metadata_records_path) as f:
-            try:
-                return json.load(f, cls=OctueJSONDecoder)
-            except json.decoder.JSONDecodeError:
-                return {}
-
     def _get_local_metadata(self):
         """Get the datafile's local metadata from the local metadata records file and apply it to the datafile instance.
         If no metadata is stored for the datafile, do nothing.
 
         :return None:
         """
-        existing_metadata_records = self._load_local_metadata_file()
-        datafile_metadata = existing_metadata_records.get(self.name, {})
+        existing_metadata_records = load_local_metadata_file(self._local_metadata_path)
+        datafile_metadata = existing_metadata_records.get("datafiles", {}).get(self.name, {})
 
         if not datafile_metadata:
             return
@@ -587,10 +576,14 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
 
         :return None:
         """
-        existing_metadata_records = self._load_local_metadata_file()
-        existing_metadata_records[self.name] = self.metadata(use_octue_namespace=False)
+        existing_metadata_records = load_local_metadata_file(self._local_metadata_path)
 
-        with open(self._local_metadata_records_path, "w") as f:
+        if not existing_metadata_records.get("datafiles"):
+            existing_metadata_records["datafiles"] = {}
+
+        existing_metadata_records["datafiles"][self.name] = self.metadata(use_octue_namespace=False)
+
+        with open(self._local_metadata_path, "w") as f:
             json.dump(existing_metadata_records, f, cls=OctueJSONEncoder)
 
     def _warn_about_attribute_conflicts(self, cloud_custom_metadata, **initialisation_parameters):

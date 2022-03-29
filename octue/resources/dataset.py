@@ -4,7 +4,6 @@ import logging
 import os
 import tempfile
 
-from octue import definitions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudLocationNotSpecified, InvalidInputException
@@ -15,6 +14,7 @@ from octue.resources.filter_containers import FilterSet
 from octue.resources.label import LabelSet
 from octue.resources.tag import TagDict
 from octue.utils.encoders import OctueJSONEncoder
+from octue.utils.local_metadata import LOCAL_METADATA_FILENAME, load_local_metadata_file
 
 
 logger = logging.getLogger(__name__)
@@ -62,7 +62,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :param kwargs: other keyword arguments for the `Dataset` instantiation
         :return Dataset:
         """
-        dataset_metadata = cls._get_local_metadata(path=path_to_directory)
+        local_metadata = load_local_metadata_file(os.path.join(path_to_directory, LOCAL_METADATA_FILENAME))
+        dataset_metadata = local_metadata.get("dataset")
 
         if dataset_metadata:
             return Dataset.deserialise(dataset_metadata)
@@ -158,9 +159,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :return str:
         """
         if self.exists_in_cloud:
-            return storage.path.join(self.path, definitions.DATASET_METADATA_FILENAME)
+            return storage.path.join(self.path, LOCAL_METADATA_FILENAME)
 
-        return os.path.join(self.path, definitions.DATASET_METADATA_FILENAME)
+        return os.path.join(self.path, LOCAL_METADATA_FILENAME)
 
     def __iter__(self):
         yield from self.files
@@ -296,7 +297,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :return dict: the dataset metadata
         """
         storage_client = GoogleCloudStorageClient()
-        metadata_file_path = storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME)
+        metadata_file_path = storage.path.join(cloud_path, LOCAL_METADATA_FILENAME)
 
         if not storage_client.exists(cloud_path=metadata_file_path):
             return {}
@@ -310,21 +311,6 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         """
         GoogleCloudStorageClient().upload_from_string(string=self.serialise(), cloud_path=self._metadata_path)
 
-    @staticmethod
-    def _get_local_metadata(path):
-        """Get the local metadata for the given dataset if a dataset metadata file has previously been saved locally.
-
-        :param str path: the local path to the dataset
-        :return dict: the dataset metadata
-        """
-        metadata_file_path = os.path.join(path, definitions.DATASET_METADATA_FILENAME)
-
-        if not os.path.exists(metadata_file_path):
-            return {}
-
-        with open(metadata_file_path) as f:
-            return json.load(f)
-
     def _save_local_metadata(self):
         """Save the dataset metadata locally in the dataset directory.
 
@@ -332,5 +318,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         """
         os.makedirs(self.path, exist_ok=True)
 
+        existing_metadata_records = load_local_metadata_file(self._metadata_path)
+        existing_metadata_records["dataset"] = self.to_primitive()
+
         with open(self._metadata_path, "w") as f:
-            json.dump(self.to_primitive(), f, cls=OctueJSONEncoder)
+            json.dump(existing_metadata_records, f, cls=OctueJSONEncoder)

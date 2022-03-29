@@ -4,11 +4,12 @@ import os
 import tempfile
 from unittest.mock import patch
 
-from octue import REPOSITORY_ROOT, definitions, exceptions
+from octue import REPOSITORY_ROOT, exceptions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset
 from octue.resources.filter_containers import FilterSet
+from octue.utils.local_metadata import LOCAL_METADATA_FILENAME
 from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
 from tests.resources import create_dataset_with_two_files
@@ -324,10 +325,9 @@ class TestDataset(BaseTestCase):
             for file in persisted_dataset:
                 self.assertEqual(file.path, f"gs://{TEST_BUCKET_NAME}/a_directory/{dataset.name}/{file.name}")
 
-    def test_from_cloud_with_no_datafile_metadata_file(self):
-        """Test that any cloud directory can be accessed as a dataset if it has no `dataset_metadata.json` metadata
-        file in it, the cloud dataset doesn't lose any information during serialization, and a metadata file is
-        uploaded afterwards.
+    def test_from_cloud_with_no_metadata_file(self):
+        """Test that any cloud directory can be accessed as a dataset if it has no `.octue` metadata file in it, the
+        cloud dataset doesn't lose any information during serialization, and a metadata file is uploaded afterwards.
         """
         cloud_storage_client = GoogleCloudStorageClient()
 
@@ -360,7 +360,7 @@ class TestDataset(BaseTestCase):
         # Test dataset metadata file has been uploaded.
         dataset_metadata = json.loads(
             cloud_storage_client.download_as_string(
-                cloud_path=storage.path.join(cloud_dataset.path, definitions.DATASET_METADATA_FILENAME)
+                cloud_path=storage.path.join(cloud_dataset.path, LOCAL_METADATA_FILENAME)
             )
         )
         del dataset_metadata["id"]
@@ -379,8 +379,8 @@ class TestDataset(BaseTestCase):
             },
         )
 
-    def test_from_cloud_with_nested_dataset_and_no_datafile_json_file(self):
-        """Test that a nested dataset is loaded from the cloud correctly."""
+    def test_from_cloud_with_nested_dataset_and_no_metadata_file(self):
+        """Test that a nested dataset is loaded from the cloud correctly if it has no `.octue` metadata file in it."""
         self._create_nested_cloud_dataset()
 
         cloud_dataset = Dataset.from_cloud(cloud_path=f"gs://{TEST_BUCKET_NAME}/a_dataset", recursive=True)
@@ -395,7 +395,7 @@ class TestDataset(BaseTestCase):
         # Test dataset metadata file has been uploaded.
         dataset_metadata = json.loads(
             GoogleCloudStorageClient().download_as_string(
-                cloud_path=storage.path.join(cloud_dataset.path, definitions.DATASET_METADATA_FILENAME)
+                cloud_path=storage.path.join(cloud_dataset.path, LOCAL_METADATA_FILENAME)
             )
         )
         del dataset_metadata["id"]
@@ -476,7 +476,7 @@ class TestDataset(BaseTestCase):
 
             # Check its metadata has been uploaded.
             persisted_dataset_metadata = json.loads(
-                storage_client.download_as_string(storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME))
+                storage_client.download_as_string(storage.path.join(cloud_path, LOCAL_METADATA_FILENAME))
             )
 
             self.assertEqual(
