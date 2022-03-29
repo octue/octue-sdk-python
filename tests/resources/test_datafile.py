@@ -757,15 +757,16 @@ class TestDatafile(BaseTestCase):
                         f["dataset"] = range(10)
 
     def test_metadata_is_saved_and_loaded_locally(self):
-        """Test that metadata for a local datafile is saved and loaded locally."""
+        """Test that metadata for a local datafile is saved locally if in write mode and loaded in new instantiations of
+        the same file.
+        """
         new_labels = {"yes", "no", "maybe"}
 
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with Datafile(path=temporary_file.name, mode="w") as (datafile, f):
                 datafile.labels = new_labels
-                f.write("blah, blah, blah")
 
-            reloaded_datafile = Datafile(path=temporary_file.name, skip_checks=True)
+            reloaded_datafile = Datafile(path=temporary_file.name)
             self.assertEqual(reloaded_datafile.labels, new_labels)
             self.assertEqual(datafile.id, reloaded_datafile.id)
 
@@ -774,15 +775,17 @@ class TestDatafile(BaseTestCase):
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with Datafile(path=temporary_file.name, mode="w") as (datafile, f):
                 datafile.labels = {"yes", "no", "maybe"}
-                f.write("blah, blah, blah")
+
+            self.assertEqual(datafile.labels, {"yes", "no", "maybe"})
+            self.assertEqual(datafile.tags, {})
 
             # Change the labels and tags.
-            with Datafile(path=temporary_file.name, mode="w", skip_checks=True) as (reloaded_datafile, f):
+            with Datafile(path=temporary_file.name, mode="w") as (reloaded_datafile, f):
                 reloaded_datafile.labels = {"blah", "nah"}
                 reloaded_datafile.tags = {"my_tag": "hello"}
 
-            # Check that the local metadata file is updated.
-            datafile_reloaded_again = Datafile(path=temporary_file.name, skip_checks=True)
+            # Check that the local metadata for the file is updated.
+            datafile_reloaded_again = Datafile(path=temporary_file.name)
             self.assertEqual(datafile_reloaded_again.labels, {"blah", "nah"})
             self.assertEqual(datafile_reloaded_again.tags, {"my_tag": "hello"})
             self.assertEqual(datafile_reloaded_again.id, datafile.id)
