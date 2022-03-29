@@ -1,5 +1,4 @@
 import logging
-import os
 
 from cleaner import clean, read_csv_files, read_dat_file
 
@@ -89,7 +88,7 @@ def run(analysis, *args, **kwargs):
         labels="timeseries",
     )
 
-    output_dataset.add(timeseries_datafile, path_in_dataset=os.path.join(output_dataset.path, "cleaned.csv"))
+    output_dataset.add(timeseries_datafile, path_in_dataset="cleaned.csv")
 
     # Write the file (now we know where to write it)
     with timeseries_datafile.open("w") as fp:

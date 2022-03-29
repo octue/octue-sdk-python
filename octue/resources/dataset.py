@@ -195,28 +195,21 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         self._upload_cloud_metadata(cloud_path)
         return cloud_path
 
-    def add(self, *args, path_in_dataset=None, **kwargs):
-        """Add a data/results file to the manifest.
+    def add(self, datafile, path_in_dataset=None):
+        """Add a datafile to the dataset.
 
-        Usage:
-            my_file = octue.DataFile(...)
-            my_manifest.add(my_file)
+        :param octue.resources.datafile.Datafile datafile: the datafile to add to the dataset
+        :param str|None path_in_dataset: if provided, set the datafile's local path to this path within the dataset
+        :raise octue.exceptions.InvalidInputException: if the datafile is not a `Datafile` instance
+        :return None:
         """
-        if len(args) > 1:
-            # Recurse to allow addition of many files at once.
-            for arg in args:
-                self.add(arg, **kwargs)
+        if not isinstance(datafile, Datafile):
+            raise InvalidInputException(f"{datafile!r} must be of type `Datafile` to add it to the dataset.")
 
-        elif len(args) > 0:
-            if not isinstance(args[0], Datafile):
-                raise InvalidInputException(
-                    'Object "{}" must be of class Datafile to add it to a Dataset'.format(args[0])
-                )
+        self.files.add(datafile)
 
-            self.files.add(args[0])
-
-            if path_in_dataset:
-                args[0].local_path = path_in_dataset
+        if path_in_dataset:
+            datafile.local_path = os.path.join(self.path, path_in_dataset)
 
     def get_file_by_label(self, label):
         """Get a single datafile from a dataset by filtering for files with the provided label.

@@ -94,16 +94,6 @@ class TestDataset(BaseTestCase):
         resource.add(Datafile(path="path-within-dataset/a_test_file.csv"))
         self.assertEqual(len(resource.files), 2)
 
-    def test_add_multiple_files(self):
-        """Ensures that when a dataset is not empty, it can be added to"""
-        files = [
-            Datafile(path="path-within-dataset/a_test_file.csv"),
-            Datafile(path="path-within-dataset/a_test_file.csv"),
-        ]
-        resource = Dataset()
-        resource.add(*files)
-        self.assertEqual(len(resource.files), 2)
-
     def test_cannot_add_non_datafiles(self):
         """Ensures that exception will be raised if adding a non-datafile object"""
 
@@ -111,10 +101,8 @@ class TestDataset(BaseTestCase):
             pass
 
         resource = Dataset()
-        with self.assertRaises(exceptions.InvalidInputException) as e:
+        with self.assertRaises(exceptions.InvalidInputException):
             resource.add(NotADatafile())
-
-        self.assertIn("must be of class Datafile to add it to a Dataset", e.exception.args[0])
 
     def test_filter_catches_single_underscore_mistake(self):
         """Ensure that if the filter name contains only single underscores, an error is raised."""
