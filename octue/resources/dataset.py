@@ -38,11 +38,6 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         self.path = path
         self.files = FilterSet()
 
-        # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
-        #  so that resources get automatically instantiated.
-        #  Add a proper `decoder` argument  to the load_json utility in twined so that datasets, datafiles and manifests
-        #  get initialised properly, then remove this hackjob.
-
         for file in files or []:
             if isinstance(file, Datafile):
                 self.files.add(file)

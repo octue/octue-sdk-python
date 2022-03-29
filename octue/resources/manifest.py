@@ -31,13 +31,6 @@ class Manifest(Serialisable, Identifiable, Hashable):
 
         super().__init__(id=id, name=name)
         self.datasets = {}
-
-        # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
-        #  so that resources get automatically instantiated.
-        #  Add a proper `decoder` argument  to the load_json utility in twined so that datasets, datafiles and manifests
-        #  get initialised properly, then tidy up this hackjob. Also need to allow Pathables to update ownership
-        #  (because decoders work from the bottom of the tree upwards, not top-down)
-
         self._instantiate_datasets(datasets or {})
         vars(self).update(**kwargs)
 
