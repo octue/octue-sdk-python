@@ -112,12 +112,6 @@ class Runner:
 
         outputs_and_monitors = self.twine.prepare("monitor_message", "output_values", "output_manifest", cls=CLASS_MAP)
 
-        # TODO this is hacky, we need to rearchitect the twined validation so we can do this kind of thing in there
-        outputs_and_monitors["output_manifest"] = self._update_manifest_path(
-            outputs_and_monitors.get("output_manifest", None),
-            self.output_manifest_path,
-        )
-
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
 
         # Temporarily replace the root logger's handlers with a `StreamHandler` and the analysis log handler that
@@ -171,23 +165,6 @@ class Runner:
                 raise e
 
             return analysis
-
-    @staticmethod
-    def _update_manifest_path(manifest, pathname):
-        """Change a manifest's path to its directory if the path currently points to a JSON file. This is a quick hack
-        to stitch the new Pathable functionality in the 0.1.4 release into the CLI and runner. The way we define a
-        manifest path can be more robustly implemented as we migrate functionality into the twined library.
-
-        :param octue.resources.manifest.Manifest|None manifest:
-        :param str pathname:
-        :return octue.resources.manifest.Manifest:
-        """
-        if manifest is not None and hasattr(pathname, "endswith"):
-            if pathname.endswith(".json"):
-                manifest.path = os.path.split(pathname)[0]
-
-        # Otherwise do nothing and rely on manifest having its path variable set already
-        return manifest
 
     def _populate_environment_with_google_cloud_secrets(self):
         """Get any secrets specified in the credentials strand from Google Cloud Secret Manager and put them in the

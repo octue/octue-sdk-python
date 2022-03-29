@@ -31,6 +31,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     """
 
     _ATTRIBUTES_TO_HASH = ("files",)
+
+    # Paths to files are added to the serialisation in `Dataset.to_primitive`.
     _SERIALISE_FIELDS = "name", "labels", "tags", "id", "path"
 
     def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None, **kwargs):

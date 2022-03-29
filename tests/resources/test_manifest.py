@@ -107,7 +107,6 @@ class TestManifest(BaseTestCase):
 
             persisted_manifest = Manifest.from_cloud(cloud_path)
 
-            self.assertEqual(persisted_manifest.path, f"gs://{TEST_BUCKET_NAME}/my-directory/manifest.json")
             self.assertEqual(persisted_manifest.id, manifest.id)
             self.assertEqual(persisted_manifest.hash_value, manifest.hash_value)
             self.assertEqual(
