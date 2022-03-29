@@ -768,8 +768,8 @@ class TestDatafile(BaseTestCase):
 
             reloaded_datafile = Datafile(path=temporary_file.name)
             self.assertEqual(reloaded_datafile.labels, new_labels)
-            self.assertEqual(datafile.id, reloaded_datafile.id)
-            self.assertEqual(datafile.hash_value, reloaded_datafile.hash_value)
+            self.assertEqual(reloaded_datafile.id, datafile.id)
+            self.assertEqual(reloaded_datafile.hash_value, datafile.hash_value)
 
     def test_local_metadata_is_updated(self):
         """Test that local metadata for a datafile is updated when the datafile's metadata is updated."""

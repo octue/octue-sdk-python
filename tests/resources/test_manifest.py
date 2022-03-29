@@ -61,7 +61,6 @@ class TestManifest(BaseTestCase):
                 {
                     "id": manifest.id,
                     "name": "my-manifest",
-                    "path": None,
                     "datasets": {
                         "my_dataset_0": os.path.join(temporary_directory, "my_dataset_0"),
                         "my_dataset_1": os.path.join(temporary_directory, "my_dataset_1"),

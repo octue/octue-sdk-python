@@ -25,7 +25,7 @@ class Manifest(Serialisable, Identifiable, Hashable):
     _ATTRIBUTES_TO_HASH = ("datasets",)
 
     # Paths to datasets are added to the serialisation in `Manifest.to_primitive`.
-    _SERIALISE_FIELDS = "id", "name", "path"
+    _SERIALISE_FIELDS = "id", "name"
 
     def __init__(self, id=None, name=None, datasets=None, **kwargs):
         if isinstance(datasets, list):
@@ -77,15 +77,8 @@ class Manifest(Serialisable, Identifiable, Hashable):
         if not cloud_path:
             cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_to_manifest_file)
 
-        datasets = {}
-
-        for key, dataset in self.datasets.items():
-            datasets[key] = dataset.path
-
         serialised_manifest = self.to_primitive()
-        serialised_manifest["datasets"] = datasets
-        del serialised_manifest["path"]
-
+        serialised_manifest["datasets"] = {key: dataset.path for key, dataset in self.datasets.items()}
         GoogleCloudStorageClient().upload_from_string(string=json.dumps(serialised_manifest), cloud_path=cloud_path)
 
     def get_dataset(self, key):
