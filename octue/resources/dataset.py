@@ -35,7 +35,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     # Paths to files are added to the serialisation in `Dataset.to_primitive`.
     _SERIALISE_FIELDS = "name", "labels", "tags", "id", "path"
 
-    def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None, **kwargs):
+    def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None):
         super().__init__(name=name, id=id, tags=tags, labels=labels)
         self.path = path
         self.files = FilterSet()
@@ -47,8 +47,6 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
                 self.files.add(Datafile(path=file))
             else:
                 self.files.add(Datafile.deserialise(file))
-
-        self.__dict__.update(**kwargs)
 
         # Save metadata locally if the dataset exists locally.
         if path and self.exists_locally:

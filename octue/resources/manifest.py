@@ -34,7 +34,6 @@ class Manifest(Serialisable, Identifiable, Hashable):
         super().__init__(id=id, name=name)
         self.datasets = {}
         self._instantiate_datasets(datasets or {})
-        vars(self).update(**kwargs)
 
     @classmethod
     def from_cloud(cls, cloud_path=None, bucket_name=None, path_to_manifest_file=None):
