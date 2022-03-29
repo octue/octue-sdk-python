@@ -756,7 +756,7 @@ class TestDatafile(BaseTestCase):
                     with datafile.open("w") as f:
                         f["dataset"] = range(10)
 
-    def test_metadata_is_saved_and_loaded_locally(self):
+    def test_metadata_is_saved_locally_when_in_write_mode_and_is_loaded_on_new_instantiation(self):
         """Test that metadata for a local datafile is saved locally if in write mode and loaded in new instantiations of
         the same file.
         """
@@ -769,6 +769,7 @@ class TestDatafile(BaseTestCase):
             reloaded_datafile = Datafile(path=temporary_file.name)
             self.assertEqual(reloaded_datafile.labels, new_labels)
             self.assertEqual(datafile.id, reloaded_datafile.id)
+            self.assertEqual(datafile.hash_value, reloaded_datafile.hash_value)
 
     def test_local_metadata_is_updated(self):
         """Test that local metadata for a datafile is updated when the datafile's metadata is updated."""
@@ -789,3 +790,4 @@ class TestDatafile(BaseTestCase):
             self.assertEqual(datafile_reloaded_again.labels, {"blah", "nah"})
             self.assertEqual(datafile_reloaded_again.tags, {"my_tag": "hello"})
             self.assertEqual(datafile_reloaded_again.id, datafile.id)
+            self.assertEqual(datafile_reloaded_again.hash_value, datafile.hash_value)

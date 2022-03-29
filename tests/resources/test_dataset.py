@@ -422,6 +422,51 @@ class TestDataset(BaseTestCase):
             },
         )
 
+    def test_metadata_saved_locally(self):
+        """Test that metadata for a local dataset is stored locally and is used on re-instantiation of the same
+        dataset.
+        """
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            self._create_files_and_nested_subdirectories(temporary_directory)
+
+            dataset = Dataset.from_local_directory(
+                temporary_directory,
+                recursive=True,
+                id="69253db4-7972-42de-8ccc-61336a28cd50",
+                tags={"cat": "dog"},
+                labels=["animals"],
+            )
+
+            dataset_reloaded = Dataset.from_local_directory(temporary_directory)
+            self.assertEqual(dataset.id, dataset_reloaded.id)
+            self.assertEqual(dataset.tags, dataset_reloaded.tags)
+            self.assertEqual(dataset.labels, dataset_reloaded.labels)
+            self.assertEqual(dataset.hash_value, dataset_reloaded.hash_value)
+
+    # This test will pass in a near-future release.
+    #
+    # def test_local_metadata_updated(self):
+    #     """Test that metadata for a local dataset can be updated."""
+    #     with tempfile.TemporaryDirectory() as temporary_directory:
+    #         self._create_files_and_nested_subdirectories(temporary_directory)
+    #
+    #         dataset = Dataset.from_local_directory(
+    #             temporary_directory,
+    #             recursive=True,
+    #             id="69253db4-7972-42de-8ccc-61336a28cd50",
+    #             tags={"cat": "dog"},
+    #             labels=["animals"],
+    #         )
+    #
+    #         dataset_reloaded = Dataset.from_local_directory(temporary_directory)
+    #         dataset_reloaded.labels = {"fish", "mammals"}
+    #
+    #         dataset_reloaded_again = Dataset.from_local_directory(temporary_directory)
+    #         self.assertEqual(dataset_reloaded_again.id, dataset.id)
+    #         self.assertEqual(dataset_reloaded_again.tags, dataset.tags)
+    #         self.assertEqual(dataset_reloaded_again.labels, {"fish", "mammals"})
+    #         self.assertEqual(dataset_reloaded_again.hash_value, dataset.hash_value)
+
     def test_to_cloud(self):
         """Test that a dataset can be uploaded to a cloud path, including all its files and the dataset's metadata."""
         with tempfile.TemporaryDirectory() as temporary_directory:
