@@ -121,6 +121,16 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
             self._cloud_path = path
 
             if not self._hypothetical:
+                # If there's no file at the given cloud path, raise an error if not in write mode.
+                if not GoogleCloudStorageClient().exists(cloud_path=self.path):
+
+                    if mode == "w":
+                        return
+
+                    raise FileNotFoundError(
+                        f"No file exists at {self.path!r}. Check this path is correct or switch to write mode."
+                    )
+
                 # Collect any non-`None` metadata instantiation parameters so the user can be warned if they conflict
                 # with any metadata already on the cloud object.
                 initialisation_parameters = {}
@@ -132,13 +142,15 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
 
                 self._use_cloud_metadata(**initialisation_parameters)
 
-            if local_path:
-                # If there is no file at the given local path or the file is different to the one in the cloud, download
-                # the cloud file locally.
-                if not os.path.exists(local_path) or self._cloud_metadata.get("crc32c") != calculate_hash(local_path):
-                    self.download(local_path)
-                else:
-                    self._local_path = local_path
+                if local_path:
+                    # If there is no file at the given local path or the file is different to the one in the cloud,
+                    # download the cloud file locally.
+                    if not os.path.exists(local_path) or self._cloud_metadata.get("crc32c") != calculate_hash(
+                        local_path
+                    ):
+                        self.download(local_path)
+                    else:
+                        self._local_path = local_path
 
         else:
             self._local_path = self.absolute_path
