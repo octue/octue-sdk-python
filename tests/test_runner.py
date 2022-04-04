@@ -1,5 +1,8 @@
+import copy
 import os
 from unittest.mock import Mock, patch
+
+from jsonschema.validators import RefResolver
 
 import twined
 from octue import Runner
@@ -18,7 +21,7 @@ def mock_app(analysis):
     pass
 
 
-class RunnerTestCase(BaseTestCase):
+class TestRunner(BaseTestCase):
     def test_instantiate_runner(self):
         """Ensures that runner whose twine requires configuration can be instantiated"""
         runner = Runner(app_src=".", twine="{}")
@@ -231,3 +234,312 @@ class RunnerTestCase(BaseTestCase):
         """Test that apps can be provided as a module containing a function named "run"."""
         analysis = Runner(app_src=app, twine="{}").run()
         self.assertEqual(analysis.output_values, "App as a module works!")
+
+
+class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
+
+    TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE = """
+        {
+            "input_manifest": {
+                "datasets": {
+                    "met_mast_data": {
+                        "purpose": "A dataset containing meteorological mast data",
+                        "file_tags_template": {
+                            "type": "object",
+                            "properties": {
+                                "manufacturer": {
+                                    "type": "string"
+                                },
+                                "height": {
+                                    "type": "number"
+                                },
+                                "is_recycled": {
+                                    "type": "boolean"
+                                },
+                                "number_of_blades": {
+                                    "type": "number"
+                                }
+                            },
+                            "required": [
+                                "manufacturer",
+                                "height",
+                                "is_recycled",
+                                "number_of_blades"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    """
+
+    INPUT_MANIFEST_WITH_CORRECT_FILE_TAGS = """
+        {
+            "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
+            "datasets": {
+                "met_mast_data": {
+                    "id": "7ead7669-8162-4f64-8cd5-4abe92509e17",
+                    "name": "met_mast_data",
+                    "tags": {},
+                    "labels": ["met", "mast", "wind"],
+                    "files": [
+                        {
+                            "path": "input/datasets/7ead7669/file_1.csv",
+                            "cluster": 0,
+                            "sequence": 0,
+                            "extension": "csv",
+                            "labels": ["mykeyword1", "mykeyword2"],
+                            "tags": {
+                                "manufacturer": "vestas",
+                                "height": 500,
+                                "is_recycled": true,
+                                "number_of_blades": 3
+                            },
+                            "id": "abff07bc-7c19-4ed5-be6d-a6546eae8e86",
+                            "name": "file_1.csv"
+                        },
+                        {
+                            "path": "input/datasets/7ead7669/file_1.csv",
+                            "cluster": 0,
+                            "sequence": 1,
+                            "extension": "csv",
+                            "labels": [],
+                            "tags": {
+                                "manufacturer": "vestas",
+                                "height": 500,
+                                "is_recycled": true,
+                                "number_of_blades": 3
+                            },
+                            "id": "abff07bc-7c19-4ed5-be6d-a6546eae8e86",
+                            "name": "file_1.csv"
+                        }
+                    ]
+                }
+            }
+        }
+    """
+
+    def test_error_raised_when_required_tags_missing_for_validate_input_manifest(self):
+        """Test that an error is raised when required tags from the file tags template for a dataset are missing when
+        validating the input manifest.
+        """
+        input_manifest = """
+            {
+                "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
+                "datasets": {
+                    "met_mast_data": {
+                        "id": "7ead7669-8162-4f64-8cd5-4abe92509e17",
+                        "name": "met_mast_data",
+                        "tags": {},
+                        "labels": ["met", "mast", "wind"],
+                        "files": [
+                            {
+                                "path": "input/datasets/7ead7669/file_1.csv",
+                                "cluster": 0,
+                                "sequence": 0,
+                                "extension": "csv",
+                                "tags": {},
+                                "labels": [],
+                                "id": "abff07bc-7c19-4ed5-be6d-a6546eae8e86",
+                                "name": "file_1.csv"
+                            }
+                        ]
+                    }
+                }
+            }
+        """
+
+        runner = Runner(app_src=app, twine=self.TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE)
+
+        with self.assertRaises(twined.exceptions.InvalidManifestContents):
+            runner.run(input_manifest=input_manifest)
+
+    def test_validate_input_manifest_raises_error_if_required_tags_are_not_of_required_type(self):
+        """Test that an error is raised if the required tags from the file tags template for a dataset are present but
+        are not of the required type when validating an input manifest.
+        """
+        input_manifest = """
+            {
+                "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
+                "datasets": {
+                    "met_mast_data": {
+                        "id": "7ead7669-8162-4f64-8cd5-4abe92509e17",
+                        "name": "met_mast_data",
+                        "tags": {},
+                        "labels": ["met", "mast", "wind"],
+                        "files": [
+                            {
+                                "path": "input/datasets/7ead7669/file_1.csv",
+                                "cluster": 0,
+                                "sequence": 0,
+                                "extension": "csv",
+                                "tags": %s,
+                                "labels": [],
+                                "id": "abff07bc-7c19-4ed5-be6d-a6546eae8e86",
+                                "name": "file_1.csv"
+                            }
+                        ]
+                    }
+                }
+            }
+        """
+
+        runner = Runner(app_src=app, twine=self.TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE)
+
+        for tags in (
+            '{"manufacturer": "Vestas", "height": 350, "is_recycled": false, "number_of_blades": "3"}',
+            '{"manufacturer": "Vestas", "height": 350, "is_recycled": "no", "number_of_blades": 3}',
+            '{"manufacturer": false, "height": 350, "is_recycled": "false", "number_of_blades": 3}',
+        ):
+            with self.subTest(tags=tags):
+                with self.assertRaises(twined.exceptions.InvalidManifestContents):
+                    runner.run(input_manifest=input_manifest % tags)
+
+    def test_validate_input_manifest_with_required_tags(self):
+        """Test that validating an input manifest with required tags from the file tags template for a dataset works
+        for tags meeting the requirements.
+        """
+        runner = Runner(app_src=app, twine=self.TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE)
+        runner.run(input_manifest=self.INPUT_MANIFEST_WITH_CORRECT_FILE_TAGS)
+
+    def test_validate_input_manifest_with_required_tags_for_remote_tag_template_schema(self):
+        """Test that a remote tag template can be used for validating tags on the datafiles in a manifest."""
+        schema_url = "https://refs.schema.octue.com/octue/my-file-type-tag-template/0.0.0.json"
+
+        twine_with_input_manifest_with_remote_tag_template = (
+            """
+            {
+                "input_manifest": {
+                    "datasets": {
+                        "met_mast_data": {
+                            "purpose": "A dataset containing meteorological mast data",
+                            "file_tags_template": {
+                                "$ref": "%s"
+                            }
+                        }
+                    }
+                }
+            }
+            """
+            % schema_url
+        )
+
+        remote_schema = {
+            "type": "object",
+            "properties": {
+                "manufacturer": {"type": "string"},
+                "height": {"type": "number"},
+                "is_recycled": {"type": "boolean"},
+            },
+            "required": ["manufacturer", "height", "is_recycled"],
+        }
+
+        runner = Runner(app_src=app, twine=twine_with_input_manifest_with_remote_tag_template)
+        original_resolve_from_url = copy.copy(RefResolver.resolve_from_url)
+
+        def patch_if_url_is_schema_url(instance, url):
+            """Patch the jsonschema validator `RefResolver.resolve_from_url` if the url is the schema URL, otherwise
+            leave it unpatched.
+
+            :param jsonschema.validators.RefResolver instance:
+            :param str url:
+            :return mixed:
+            """
+            if url == schema_url:
+                return remote_schema
+            else:
+                return original_resolve_from_url(instance, url)
+
+        with patch("jsonschema.validators.RefResolver.resolve_from_url", new=patch_if_url_is_schema_url):
+            runner.run(input_manifest=self.INPUT_MANIFEST_WITH_CORRECT_FILE_TAGS)
+
+    def test_validate_input_manifest_with_required_tags_in_several_datasets(self):
+        """Test that required tags from the file tags template are validated separately and correctly for each dataset."""
+        twine_with_input_manifest_with_required_tags_for_multiple_datasets = """
+            {
+                "input_manifest": {
+                    "datasets": {
+                        "first_dataset": {
+                            "purpose": "A dataset containing meteorological mast data",
+                            "file_tags_template": {
+                                "type": "object",
+                                "properties": {
+                                    "manufacturer": {
+                                        "type": "string"
+                                    },
+                                    "height": {
+                                        "type": "number"
+                                    }
+                                }
+                            }
+                        },
+                        "second_dataset": {
+                            "file_tags_template": {
+                                "type": "object",
+                                "properties": {
+                                    "is_recycled": {
+                                        "type": "boolean"
+                                    },
+                                    "number_of_blades": {
+                                        "type": "number"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        """
+
+        input_manifest = """
+            {
+                "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
+                "datasets": {
+                    "first_dataset": {
+                        "id": "7ead7669-8162-4f64-8cd5-4abe92509e19",
+                        "name": "first_dataset",
+                        "tags": {},
+                        "labels": [],
+                        "files": [
+                            {
+                                "path": "input/datasets/7ead7669/file_0.csv",
+                                "cluster": 0,
+                                "sequence": 0,
+                                "extension": "csv",
+                                "tags": {
+                                    "manufacturer": "Vestas",
+                                    "height": 503.7
+                                },
+                                "labels": [],
+                                "id": "abff07bc-7c19-4ed5-be6d-a6546eae8e86",
+                                "name": "file_0.csv"
+                            }
+                        ]
+                    },
+                    "second_dataset": {
+                        "id": "7ead7669-8162-4f64-8cd5-4abe92509e18",
+                        "name": "second_dataset",
+                        "tags": {},
+                        "labels": [],
+                        "files": [
+                            {
+                                "path": "input/datasets/blah/file_1.csv",
+                                "cluster": 0,
+                                "sequence": 0,
+                                "extension": "csv",
+                                "tags": {
+                                    "is_recycled": true,
+                                    "number_of_blades": 3
+                                },
+                                "labels": [],
+                                "id": "abff07bc-7c19-4ed5-be6d-a6546eae8e82",
+                                "name": "file_1.csv"
+                            }
+                        ]
+                    }
+                }
+            }
+        """
+
+        runner = Runner(app_src=app, twine=twine_with_input_manifest_with_required_tags_for_multiple_datasets)
+        runner.run(input_manifest=input_manifest)
