@@ -123,7 +123,7 @@ class Manifest(Serialisable, Identifiable, Hashable):
         self_as_primitive["datasets"] = {name: dataset.path for name, dataset in self.datasets.items()}
         return self_as_primitive
 
-    def _instantiate_datasets(self, raw_datasets):
+    def _instantiate_datasets(self, datasets):
         """Add the given datasets to the manifest, instantiating them if needed and giving them the correct path.
         There are several possible forms the datasets can come in:
         * Instantiated Dataset instances
@@ -134,42 +134,42 @@ class Manifest(Serialisable, Identifiable, Hashable):
         * Including datafiles that don't yet exist or are not possessed currently (e.g. future output locations or
           cloud files)
 
-        :param dict(str, octue.resources.dataset.Dataset|dict|str) raw_datasets: the datasets to add to the manifest
+        :param dict(str, octue.resources.dataset.Dataset|dict|str) datasets: the datasets to add to the manifest
         :return dict:
         """
-        raw_datasets = copy.deepcopy(raw_datasets)
-        datasets = {}
+        datasets = copy.deepcopy(datasets)
+        datasets_to_add = {}
 
-        for key, dataset in raw_datasets.items():
+        for key, dataset in datasets.items():
 
             if isinstance(dataset, Dataset):
-                datasets[key] = dataset
+                datasets_to_add[key] = dataset
 
             else:
                 # If `dataset` is just a path to a dataset:
                 if isinstance(dataset, str):
                     if storage.path.is_qualified_cloud_path(dataset):
-                        datasets[key] = Dataset.from_cloud(cloud_path=dataset, recursive=True)
+                        datasets_to_add[key] = Dataset.from_cloud(cloud_path=dataset, recursive=True)
                     else:
-                        datasets[key] = Dataset.from_local_directory(path_to_directory=dataset, recursive=True)
+                        datasets_to_add[key] = Dataset.from_local_directory(path_to_directory=dataset, recursive=True)
 
                 # If `dataset` is a dictionary including a "path" key:
                 elif "path" in dataset:
 
                     # If the path is a cloud path:
                     if storage.path.is_qualified_cloud_path(dataset["path"]):
-                        datasets[key] = Dataset.from_cloud(cloud_path=dataset["path"], recursive=True)
+                        datasets_to_add[key] = Dataset.from_cloud(cloud_path=dataset["path"], recursive=True)
 
                     # If the path is local but not absolute:
                     elif not os.path.isabs(dataset["path"]):
                         path = dataset.pop("path")
-                        datasets[key] = Dataset(**dataset, path=path)
+                        datasets_to_add[key] = Dataset(**dataset, path=path)
 
                     # If the path is an absolute local path:
                     else:
-                        datasets[key] = Dataset(**dataset)
+                        datasets_to_add[key] = Dataset(**dataset)
 
                 else:
-                    datasets[key] = Dataset(**dataset, path=key)
+                    datasets_to_add[key] = Dataset(**dataset, path=key)
 
-        return datasets
+        return datasets_to_add
