@@ -77,9 +77,7 @@ class Manifest(Serialisable, Identifiable, Hashable):
         if not cloud_path:
             cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_to_manifest_file)
 
-        serialised_manifest = self.to_primitive()
-        serialised_manifest["datasets"] = {key: dataset.path for key, dataset in self.datasets.items()}
-        GoogleCloudStorageClient().upload_from_string(string=json.dumps(serialised_manifest), cloud_path=cloud_path)
+        GoogleCloudStorageClient().upload_from_string(string=json.dumps(self.to_primitive()), cloud_path=cloud_path)
 
     def get_dataset(self, key):
         """Get a dataset by its key (as defined in the twine).
