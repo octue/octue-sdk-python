@@ -44,15 +44,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None, save_metadata_locally=True):
         super().__init__(name=name, id=id, tags=tags, labels=labels)
         self.path = path
-        self.files = FilterSet()
-
-        for file in files or []:
-            if isinstance(file, Datafile):
-                self.files.add(file)
-            elif isinstance(file, str):
-                self.files.add(Datafile(path=file))
-            else:
-                self.files.add(Datafile.deserialise(file))
+        self.files = self._instantiate_datafiles(files or [])
 
         # Save metadata locally if the dataset exists locally.
         if save_metadata_locally:
@@ -295,6 +287,24 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         serialised_dataset["files"] = sorted(getattr(datafile, path_type) for datafile in self.files)
         return serialised_dataset
+
+    def _instantiate_datafiles(self, files):
+        """Instantiate and add the given files to a `FilterSet`.
+
+        :param iter(str|dict|octue.resources.datafile.Datafile) files:
+        :return octue.resources.filter_containers.FilterSet:
+        """
+        files_to_add = FilterSet()
+
+        for file in files:
+            if isinstance(file, Datafile):
+                files_to_add.add(file)
+            elif isinstance(file, str):
+                files_to_add.add(Datafile(path=file))
+            else:
+                files_to_add.add(Datafile.deserialise(file))
+
+        return files_to_add
 
     @staticmethod
     def _get_cloud_metadata(cloud_path):
