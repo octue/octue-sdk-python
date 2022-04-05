@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import tempfile
+from unittest.mock import patch
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
@@ -167,12 +168,13 @@ class TestManifest(BaseTestCase):
 
     def test_instantiating_from_multiple_local_datasets(self):
         """Test instantiating a manifest from multiple local datasets."""
-        manifest = Manifest(
-            datasets={
-                "dataset_0": os.path.join("path", "to", "dataset_0"),
-                "dataset_1": os.path.join("path", "to", "dataset_1"),
-            },
-        )
+        with patch("octue.resources.dataset.Dataset._save_local_metadata"):
+            manifest = Manifest(
+                datasets={
+                    "dataset_0": os.path.join("path", "to", "dataset_0"),
+                    "dataset_1": os.path.join("path", "to", "dataset_1"),
+                },
+            )
 
         self.assertEqual({dataset.name for dataset in manifest.datasets.values()}, {"dataset_0", "dataset_1"})
 

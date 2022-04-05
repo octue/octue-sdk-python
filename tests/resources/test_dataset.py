@@ -283,6 +283,9 @@ class TestDataset(BaseTestCase):
             },
         )
 
+        # Avoid saving metadata locally when deserialising.
+        serialised_dataset["save_metadata_locally"] = False
+
         deserialised_dataset = Dataset.deserialise(serialised_dataset)
         self.assertEqual(dataset.id, deserialised_dataset.id)
         self.assertEqual(dataset.path, deserialised_dataset.path)

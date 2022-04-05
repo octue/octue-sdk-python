@@ -21,12 +21,18 @@ logger = logging.getLogger(__name__)
 
 
 class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
-    """A representation of a dataset, containing files, labels, etc
+    """A representation of a dataset, containing files, labels, etc.
 
     This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
     list of output files (results) and their properties that will be sent back to the octue system.
 
     :param iter(dict|octue.resources.datafile.Datafile) files: the files belonging to the dataset
+    :param str|None name:
+    :param str|None id:
+    :param str|None path:
+    :param dict|None tags:
+    :param iter|None labels:
+    :param bool save_metadata_locally: if `True` and the dataset is local, save its metadata to disk locally
     :return None:
     """
 
@@ -35,7 +41,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     # Paths to files are added to the serialisation in `Dataset.to_primitive`.
     _SERIALISE_FIELDS = "name", "labels", "tags", "id", "path"
 
-    def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None):
+    def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None, save_metadata_locally=True):
         super().__init__(name=name, id=id, tags=tags, labels=labels)
         self.path = path
         self.files = FilterSet()
@@ -49,8 +55,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
                 self.files.add(Datafile.deserialise(file))
 
         # Save metadata locally if the dataset exists locally.
-        if path and self.exists_locally:
-            self._save_local_metadata()
+        if save_metadata_locally:
+            if path and self.exists_locally:
+                self._save_local_metadata()
 
     @classmethod
     def from_local_directory(cls, path_to_directory, recursive=False, **kwargs):

@@ -149,8 +149,10 @@ class TestRunner(BaseTestCase):
             """,
         )
 
-        analysis = runner.run()
-        self.assertIsNotNone(analysis.output_manifest)
+        # Avoid writing dataset metadata to disk so it isn't left behind by the test.
+        with patch("octue.resources.dataset.Dataset._save_local_metadata"):
+            analysis = runner.run()
+            self.assertIsNotNone(analysis.output_manifest)
 
     def test_runner_with_credentials(self):
         """Test that credentials can be used with Runner."""
@@ -351,8 +353,10 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
 
         runner = Runner(app_src=app, twine=self.TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE)
 
-        with self.assertRaises(twined.exceptions.InvalidManifestContents):
-            runner.run(input_manifest=input_manifest)
+        # Avoid writing dataset metadata to disk so it isn't left behind by the test.
+        with patch("octue.resources.dataset.Dataset._save_local_metadata"):
+            with self.assertRaises(twined.exceptions.InvalidManifestContents):
+                runner.run(input_manifest=input_manifest)
 
     def test_validate_input_manifest_raises_error_if_required_tags_are_not_of_required_type(self):
         """Test that an error is raised if the required tags from the file tags template for a dataset are present but
@@ -386,21 +390,26 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
 
         runner = Runner(app_src=app, twine=self.TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE)
 
-        for tags in (
-            '{"manufacturer": "Vestas", "height": 350, "is_recycled": false, "number_of_blades": "3"}',
-            '{"manufacturer": "Vestas", "height": 350, "is_recycled": "no", "number_of_blades": 3}',
-            '{"manufacturer": false, "height": 350, "is_recycled": "false", "number_of_blades": 3}',
-        ):
-            with self.subTest(tags=tags):
-                with self.assertRaises(twined.exceptions.InvalidManifestContents):
-                    runner.run(input_manifest=input_manifest % tags)
+        # Avoid writing dataset metadata to disk so it isn't left behind by the test.
+        with patch("octue.resources.dataset.Dataset._save_local_metadata"):
+            for tags in (
+                '{"manufacturer": "Vestas", "height": 350, "is_recycled": false, "number_of_blades": "3"}',
+                '{"manufacturer": "Vestas", "height": 350, "is_recycled": "no", "number_of_blades": 3}',
+                '{"manufacturer": false, "height": 350, "is_recycled": "false", "number_of_blades": 3}',
+            ):
+                with self.subTest(tags=tags):
+                    with self.assertRaises(twined.exceptions.InvalidManifestContents):
+                        runner.run(input_manifest=input_manifest % tags)
 
     def test_validate_input_manifest_with_required_tags(self):
         """Test that validating an input manifest with required tags from the file tags template for a dataset works
         for tags meeting the requirements.
         """
         runner = Runner(app_src=app, twine=self.TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE)
-        runner.run(input_manifest=self.INPUT_MANIFEST_WITH_CORRECT_FILE_TAGS)
+
+        # Avoid writing dataset metadata to disk so it isn't left behind by the test.
+        with patch("octue.resources.dataset.Dataset._save_local_metadata"):
+            runner.run(input_manifest=self.INPUT_MANIFEST_WITH_CORRECT_FILE_TAGS)
 
     def test_validate_input_manifest_with_required_tags_for_remote_tag_template_schema(self):
         """Test that a remote tag template can be used for validating tags on the datafiles in a manifest."""
@@ -451,7 +460,9 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
                 return original_resolve_from_url(instance, url)
 
         with patch("jsonschema.validators.RefResolver.resolve_from_url", new=patch_if_url_is_schema_url):
-            runner.run(input_manifest=self.INPUT_MANIFEST_WITH_CORRECT_FILE_TAGS)
+            # Avoid writing dataset metadata to disk so it isn't left behind by the test.
+            with patch("octue.resources.dataset.Dataset._save_local_metadata"):
+                runner.run(input_manifest=self.INPUT_MANIFEST_WITH_CORRECT_FILE_TAGS)
 
     def test_validate_input_manifest_with_required_tags_in_several_datasets(self):
         """Test that required tags from the file tags template are validated separately and correctly for each dataset."""
@@ -541,5 +552,7 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
             }
         """
 
-        runner = Runner(app_src=app, twine=twine_with_input_manifest_with_required_tags_for_multiple_datasets)
-        runner.run(input_manifest=input_manifest)
+        # Avoid writing dataset metadata to disk so it isn't left behind by the test.
+        with patch("octue.resources.dataset.Dataset._save_local_metadata"):
+            runner = Runner(app_src=app, twine=twine_with_input_manifest_with_required_tags_for_multiple_datasets)
+            runner.run(input_manifest=input_manifest)

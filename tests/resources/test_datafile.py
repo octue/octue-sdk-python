@@ -565,6 +565,7 @@ class TestDatafile(BaseTestCase):
 
         finally:
             os.remove("blah.txt")
+            os.remove(".octue")
 
     def test_setting_local_path_to_path_corresponding_to_existing_file_fails(self):
         """Ensure that a datafile's local path cannot be set to an existing file's path."""
@@ -602,6 +603,7 @@ class TestDatafile(BaseTestCase):
 
         finally:
             os.remove("blib.txt")
+            os.remove(".octue")
 
     def test_cloud_path_property(self):
         """Test that the cloud path property returns the expected value."""
