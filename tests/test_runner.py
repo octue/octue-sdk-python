@@ -1,4 +1,5 @@
 import copy
+import json
 import os
 import tempfile
 from unittest.mock import Mock, patch
@@ -242,7 +243,7 @@ class TestRunner(BaseTestCase):
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
 
-    TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE = """
+    TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE = json.dumps(
         {
             "input_manifest": {
                 "datasets": {
@@ -252,30 +253,30 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
                             "type": "object",
                             "properties": {
                                 "manufacturer": {
-                                    "type": "string"
+                                    "type": "string",
                                 },
                                 "height": {
-                                    "type": "number"
+                                    "type": "number",
                                 },
                                 "is_recycled": {
-                                    "type": "boolean"
+                                    "type": "boolean",
                                 },
                                 "number_of_blades": {
-                                    "type": "number"
-                                }
+                                    "type": "number",
+                                },
                             },
                             "required": [
                                 "manufacturer",
                                 "height",
                                 "is_recycled",
-                                "number_of_blades"
-                            ]
-                        }
+                                "number_of_blades",
+                            ],
+                        },
                     }
                 }
             }
         }
-    """
+    )
 
     def test_error_raised_when_required_tags_missing_for_validate_input_manifest(self):
         """Test that an error is raised when required tags from the file tags template for a dataset are missing when
@@ -288,17 +289,12 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
             with Datafile(os.path.join(dataset_path, "my_file_0.txt"), mode="w") as (datafile, f):
                 f.write("hello")
 
-            input_manifest = (
-                """
-                {
-                    "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
-                    "datasets": {
-                        "met_mast_data": "%s"
-                    }
-                }
-            """
-                % dataset_path
-            )
+            input_manifest = {
+                "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
+                "datasets": {
+                    "met_mast_data": dataset_path,
+                },
+            }
 
             runner = Runner(app_src=app, twine=self.TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE)
 
@@ -312,17 +308,12 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             dataset_path = os.path.join(temporary_directory, "met_mast_data")
 
-            input_manifest = (
-                """
-                {
-                    "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
-                    "datasets": {
-                        "met_mast_data": "%s"
-                    }
-                }
-            """
-                % dataset_path
-            )
+            input_manifest = {
+                "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
+                "datasets": {
+                    "met_mast_data": dataset_path,
+                },
+            }
 
             runner = Runner(app_src=app, twine=self.TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE)
 
@@ -358,23 +349,16 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
         """Test that a remote tag template can be used for validating tags on the datafiles in a manifest."""
         schema_url = "https://refs.schema.octue.com/octue/my-file-type-tag-template/0.0.0.json"
 
-        twine_with_input_manifest_with_remote_tag_template = (
-            """
-            {
-                "input_manifest": {
-                    "datasets": {
-                        "met_mast_data": {
-                            "purpose": "A dataset containing meteorological mast data",
-                            "file_tags_template": {
-                                "$ref": "%s"
-                            }
-                        }
+        twine_with_input_manifest_with_remote_tag_template = {
+            "input_manifest": {
+                "datasets": {
+                    "met_mast_data": {
+                        "purpose": "A dataset containing meteorological mast data",
+                        "file_tags_template": {"$ref": schema_url},
                     }
                 }
             }
-            """
-            % schema_url
-        )
+        }
 
         remote_schema = {
             "type": "object",
@@ -413,41 +397,25 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
         """Test that required tags for different datasets' file tags templates are validated separately and correctly
         for each dataset.
         """
-        twine_with_input_manifest_with_required_tags_for_multiple_datasets = """
-            {
-                "input_manifest": {
-                    "datasets": {
-                        "first_dataset": {
-                            "purpose": "A dataset containing meteorological mast data",
-                            "file_tags_template": {
-                                "type": "object",
-                                "properties": {
-                                    "manufacturer": {
-                                        "type": "string"
-                                    },
-                                    "height": {
-                                        "type": "number"
-                                    }
-                                }
-                            }
+        twine_with_input_manifest_with_required_tags_for_multiple_datasets = {
+            "input_manifest": {
+                "datasets": {
+                    "first_dataset": {
+                        "purpose": "A dataset containing meteorological mast data",
+                        "file_tags_template": {
+                            "type": "object",
+                            "properties": {"manufacturer": {"type": "string"}, "height": {"type": "number"}},
                         },
-                        "second_dataset": {
-                            "file_tags_template": {
-                                "type": "object",
-                                "properties": {
-                                    "is_recycled": {
-                                        "type": "boolean"
-                                    },
-                                    "number_of_blades": {
-                                        "type": "number"
-                                    }
-                                }
-                            }
+                    },
+                    "second_dataset": {
+                        "file_tags_template": {
+                            "type": "object",
+                            "properties": {"is_recycled": {"type": "boolean"}, "number_of_blades": {"type": "number"}},
                         }
-                    }
+                    },
                 }
             }
-        """
+        }
 
         with tempfile.TemporaryDirectory() as temporary_directory:
 
@@ -456,18 +424,13 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
                 os.path.join(temporary_directory, "second_dataset"),
             )
 
-            input_manifest = (
-                """
-                {
-                    "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
-                    "datasets": {
-                        "first_dataset": "%s",
-                        "second_dataset": "%s"
-                    }
-                }
-            """
-                % dataset_paths
-            )
+            input_manifest = {
+                "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
+                "datasets": {
+                    "first_dataset": dataset_paths[0],
+                    "second_dataset": dataset_paths[1],
+                },
+            }
 
             with Datafile(
                 path=os.path.join(dataset_paths[0], "file_0.csv"),
@@ -494,17 +457,7 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
         :param str dataset_path: the path to make the dataset at
         :return str: the serialised input manifest
         """
-        input_manifest = (
-            """
-            {
-                "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
-                "datasets": {
-                    "met_mast_data": "%s"
-                }
-            }
-        """
-            % dataset_path
-        )
+        input_manifest = {"id": "8ead7669-8162-4f64-8cd5-4abe92509e17", "datasets": {"met_mast_data": dataset_path}}
 
         # Make two datafiles with the correct tags for `TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE`
         for filename in ("file_1.csv", "file_2.csv"):
