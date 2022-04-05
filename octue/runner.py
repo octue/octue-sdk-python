@@ -219,13 +219,10 @@ class Runner:
 
         for dataset_name, dataset_schema in manifest_schema["datasets"].items():
             dataset = manifest.datasets.get(dataset_name)
-
-            if not dataset or isinstance(dataset, str):
-                continue
-
             file_tags_template = dataset_schema.get("file_tags_template")
 
-            if not file_tags_template:
+            # Allow optional datasets in future (not currently allowed by `twined`).
+            if not (dataset and file_tags_template):
                 continue
 
             for file in dataset.files:
