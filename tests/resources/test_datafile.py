@@ -773,8 +773,18 @@ class TestDatafile(BaseTestCase):
             self.assertEqual(reloaded_datafile.id, datafile.id)
             self.assertEqual(reloaded_datafile.hash_value, datafile.hash_value)
 
-    def test_local_metadata_is_updated(self):
-        """Test that local metadata for a datafile is updated when the datafile's metadata is updated."""
+    def test_local_metadata_is_not_saved_locally_if_changed_in_read_mode(self):
+        """Test that local metadata for a datafile is not saved if changed in read mode."""
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            with Datafile(path=temporary_file.name, mode="r") as (datafile, f):
+                datafile.labels = {"yes", "no", "maybe"}
+
+            reloaded_datafile = Datafile(path=temporary_file.name)
+            self.assertEqual(reloaded_datafile.labels, LabelSet())
+            self.assertEqual(reloaded_datafile.hash_value, datafile.hash_value)
+
+    def test_local_metadata_is_updated_if_changed_in_write_mode(self):
+        """Test that local metadata for a datafile is updated if the datafile's metadata is updated in write mode."""
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with Datafile(path=temporary_file.name, mode="w") as (datafile, f):
                 datafile.labels = {"yes", "no", "maybe"}
