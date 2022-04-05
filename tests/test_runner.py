@@ -1,11 +1,13 @@
 import copy
 import os
+import tempfile
 from unittest.mock import Mock, patch
 
 from jsonschema.validators import RefResolver
 
 import twined
 from octue import Runner
+from octue.resources.datafile import Datafile
 from tests import TESTS_DIR
 from tests.base import BaseTestCase
 from tests.test_app_modules.app_class.app import App
@@ -275,86 +277,31 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
         }
     """
 
-    INPUT_MANIFEST_WITH_CORRECT_FILE_TAGS = """
-        {
-            "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
-            "datasets": {
-                "met_mast_data": {
-                    "id": "7ead7669-8162-4f64-8cd5-4abe92509e17",
-                    "name": "met_mast_data",
-                    "tags": {},
-                    "labels": ["met", "mast", "wind"],
-                    "files": [
-                        {
-                            "path": "input/datasets/7ead7669/file_1.csv",
-                            "cluster": 0,
-                            "sequence": 0,
-                            "extension": "csv",
-                            "labels": ["mykeyword1", "mykeyword2"],
-                            "tags": {
-                                "manufacturer": "vestas",
-                                "height": 500,
-                                "is_recycled": true,
-                                "number_of_blades": 3
-                            },
-                            "id": "abff07bc-7c19-4ed5-be6d-a6546eae8e86",
-                            "name": "file_1.csv"
-                        },
-                        {
-                            "path": "input/datasets/7ead7669/file_1.csv",
-                            "cluster": 0,
-                            "sequence": 1,
-                            "extension": "csv",
-                            "labels": [],
-                            "tags": {
-                                "manufacturer": "vestas",
-                                "height": 500,
-                                "is_recycled": true,
-                                "number_of_blades": 3
-                            },
-                            "id": "abff07bc-7c19-4ed5-be6d-a6546eae8e86",
-                            "name": "file_1.csv"
-                        }
-                    ]
-                }
-            }
-        }
-    """
-
     def test_error_raised_when_required_tags_missing_for_validate_input_manifest(self):
         """Test that an error is raised when required tags from the file tags template for a dataset are missing when
         validating the input manifest.
         """
-        input_manifest = """
-            {
-                "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
-                "datasets": {
-                    "met_mast_data": {
-                        "id": "7ead7669-8162-4f64-8cd5-4abe92509e17",
-                        "name": "met_mast_data",
-                        "tags": {},
-                        "labels": ["met", "mast", "wind"],
-                        "files": [
-                            {
-                                "path": "input/datasets/7ead7669/file_1.csv",
-                                "cluster": 0,
-                                "sequence": 0,
-                                "extension": "csv",
-                                "tags": {},
-                                "labels": [],
-                                "id": "abff07bc-7c19-4ed5-be6d-a6546eae8e86",
-                                "name": "file_1.csv"
-                            }
-                        ]
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            dataset_path = os.path.join(temporary_directory, "met_mast_data")
+
+            # Make a datafile with no tags.
+            with Datafile(os.path.join(dataset_path, "my_file_0.txt"), mode="w") as (datafile, f):
+                f.write("hello")
+
+            input_manifest = (
+                """
+                {
+                    "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
+                    "datasets": {
+                        "met_mast_data": "%s"
                     }
                 }
-            }
-        """
+            """
+                % dataset_path
+            )
 
-        runner = Runner(app_src=app, twine=self.TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE)
+            runner = Runner(app_src=app, twine=self.TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE)
 
-        # Avoid writing dataset metadata to disk so it isn't left behind by the test.
-        with patch("octue.resources.dataset.Dataset._save_local_metadata"):
             with self.assertRaises(twined.exceptions.InvalidManifestContents):
                 runner.run(input_manifest=input_manifest)
 
@@ -362,44 +309,40 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
         """Test that an error is raised if the required tags from the file tags template for a dataset are present but
         are not of the required type when validating an input manifest.
         """
-        input_manifest = """
-            {
-                "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
-                "datasets": {
-                    "met_mast_data": {
-                        "id": "7ead7669-8162-4f64-8cd5-4abe92509e17",
-                        "name": "met_mast_data",
-                        "tags": {},
-                        "labels": ["met", "mast", "wind"],
-                        "files": [
-                            {
-                                "path": "input/datasets/7ead7669/file_1.csv",
-                                "cluster": 0,
-                                "sequence": 0,
-                                "extension": "csv",
-                                "tags": %s,
-                                "labels": [],
-                                "id": "abff07bc-7c19-4ed5-be6d-a6546eae8e86",
-                                "name": "file_1.csv"
-                            }
-                        ]
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            dataset_path = os.path.join(temporary_directory, "met_mast_data")
+
+            input_manifest = (
+                """
+                {
+                    "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
+                    "datasets": {
+                        "met_mast_data": "%s"
                     }
                 }
-            }
-        """
+            """
+                % dataset_path
+            )
 
-        runner = Runner(app_src=app, twine=self.TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE)
+            runner = Runner(app_src=app, twine=self.TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE)
 
-        # Avoid writing dataset metadata to disk so it isn't left behind by the test.
-        with patch("octue.resources.dataset.Dataset._save_local_metadata"):
             for tags in (
-                '{"manufacturer": "Vestas", "height": 350, "is_recycled": false, "number_of_blades": "3"}',
-                '{"manufacturer": "Vestas", "height": 350, "is_recycled": "no", "number_of_blades": 3}',
-                '{"manufacturer": false, "height": 350, "is_recycled": "false", "number_of_blades": 3}',
+                {"manufacturer": "Vestas", "height": 350, "is_recycled": False, "number_of_blades": "3"},
+                {"manufacturer": "Vestas", "height": 350, "is_recycled": "no", "number_of_blades": 3},
+                {"manufacturer": False, "height": 350, "is_recycled": "false", "number_of_blades": 3},
             ):
                 with self.subTest(tags=tags):
+
+                    # Make a datafile with the given tags.
+                    with Datafile(
+                        path=os.path.join(dataset_path, "my_file_0.txt"),
+                        tags=tags,
+                        mode="w",
+                    ) as (datafile, f):
+                        f.write("hello")
+
                     with self.assertRaises(twined.exceptions.InvalidManifestContents):
-                        runner.run(input_manifest=input_manifest % tags)
+                        runner.run(input_manifest=input_manifest)
 
     def test_validate_input_manifest_with_required_tags(self):
         """Test that validating an input manifest with required tags from the file tags template for a dataset works
@@ -407,9 +350,9 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
         """
         runner = Runner(app_src=app, twine=self.TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE)
 
-        # Avoid writing dataset metadata to disk so it isn't left behind by the test.
-        with patch("octue.resources.dataset.Dataset._save_local_metadata"):
-            runner.run(input_manifest=self.INPUT_MANIFEST_WITH_CORRECT_FILE_TAGS)
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            input_manifest = self._make_serialised_input_manifest_with_correct_dataset_file_tags(temporary_directory)
+            runner.run(input_manifest=input_manifest)
 
     def test_validate_input_manifest_with_required_tags_for_remote_tag_template_schema(self):
         """Test that a remote tag template can be used for validating tags on the datafiles in a manifest."""
@@ -460,12 +403,16 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
                 return original_resolve_from_url(instance, url)
 
         with patch("jsonschema.validators.RefResolver.resolve_from_url", new=patch_if_url_is_schema_url):
-            # Avoid writing dataset metadata to disk so it isn't left behind by the test.
-            with patch("octue.resources.dataset.Dataset._save_local_metadata"):
-                runner.run(input_manifest=self.INPUT_MANIFEST_WITH_CORRECT_FILE_TAGS)
+            with tempfile.TemporaryDirectory() as temporary_directory:
+                input_manifest = self._make_serialised_input_manifest_with_correct_dataset_file_tags(
+                    temporary_directory
+                )
+                runner.run(input_manifest=input_manifest)
 
     def test_validate_input_manifest_with_required_tags_in_several_datasets(self):
-        """Test that required tags from the file tags template are validated separately and correctly for each dataset."""
+        """Test that required tags for different datasets' file tags templates are validated separately and correctly
+        for each dataset.
+        """
         twine_with_input_manifest_with_required_tags_for_multiple_datasets = """
             {
                 "input_manifest": {
@@ -502,57 +449,75 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
             }
         """
 
-        input_manifest = """
+        with tempfile.TemporaryDirectory() as temporary_directory:
+
+            dataset_paths = (
+                os.path.join(temporary_directory, "first_dataset"),
+                os.path.join(temporary_directory, "second_dataset"),
+            )
+
+            input_manifest = (
+                """
+                {
+                    "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
+                    "datasets": {
+                        "first_dataset": "%s",
+                        "second_dataset": "%s"
+                    }
+                }
+            """
+                % dataset_paths
+            )
+
+            with Datafile(
+                path=os.path.join(dataset_paths[0], "file_0.csv"),
+                tags={"manufacturer": "vestas", "height": 503.7},
+                mode="w",
+            ) as (datafile, f):
+                f.write("hello")
+
+            with Datafile(
+                path=os.path.join(dataset_paths[1], "file_1.csv"),
+                tags={"is_recycled": True, "number_of_blades": 3},
+                mode="w",
+            ) as (datafile, f):
+                f.write("hello")
+
+            runner = Runner(app_src=app, twine=twine_with_input_manifest_with_required_tags_for_multiple_datasets)
+            runner.run(input_manifest=input_manifest)
+
+    def _make_serialised_input_manifest_with_correct_dataset_file_tags(self, dataset_path):
+        """Make a serialised input manifest and create one dataset and its metadata on the filesystem so that, when
+        the manifest is loaded, the dataset and its metadata are also loaded. The tags on the dataset's files are
+        correct for the `TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE` twine (see the test class variable).
+
+        :param str dataset_path: the path to make the dataset at
+        :return str: the serialised input manifest
+        """
+        input_manifest = (
+            """
             {
                 "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
                 "datasets": {
-                    "first_dataset": {
-                        "id": "7ead7669-8162-4f64-8cd5-4abe92509e19",
-                        "name": "first_dataset",
-                        "tags": {},
-                        "labels": [],
-                        "files": [
-                            {
-                                "path": "input/datasets/7ead7669/file_0.csv",
-                                "cluster": 0,
-                                "sequence": 0,
-                                "extension": "csv",
-                                "tags": {
-                                    "manufacturer": "Vestas",
-                                    "height": 503.7
-                                },
-                                "labels": [],
-                                "id": "abff07bc-7c19-4ed5-be6d-a6546eae8e86",
-                                "name": "file_0.csv"
-                            }
-                        ]
-                    },
-                    "second_dataset": {
-                        "id": "7ead7669-8162-4f64-8cd5-4abe92509e18",
-                        "name": "second_dataset",
-                        "tags": {},
-                        "labels": [],
-                        "files": [
-                            {
-                                "path": "input/datasets/blah/file_1.csv",
-                                "cluster": 0,
-                                "sequence": 0,
-                                "extension": "csv",
-                                "tags": {
-                                    "is_recycled": true,
-                                    "number_of_blades": 3
-                                },
-                                "labels": [],
-                                "id": "abff07bc-7c19-4ed5-be6d-a6546eae8e82",
-                                "name": "file_1.csv"
-                            }
-                        ]
-                    }
+                    "met_mast_data": "%s"
                 }
             }
         """
+            % dataset_path
+        )
 
-        # Avoid writing dataset metadata to disk so it isn't left behind by the test.
-        with patch("octue.resources.dataset.Dataset._save_local_metadata"):
-            runner = Runner(app_src=app, twine=twine_with_input_manifest_with_required_tags_for_multiple_datasets)
-            runner.run(input_manifest=input_manifest)
+        # Make two datafiles with the correct tags for `TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE`
+        for filename in ("file_1.csv", "file_2.csv"):
+            with Datafile(
+                path=os.path.join(dataset_path, filename),
+                tags={
+                    "manufacturer": "vestas",
+                    "height": 500,
+                    "is_recycled": True,
+                    "number_of_blades": 3,
+                },
+                mode="w",
+            ) as (datafile, f):
+                f.write("hello")
+
+        return input_manifest
