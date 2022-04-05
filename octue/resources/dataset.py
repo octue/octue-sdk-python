@@ -72,6 +72,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         for level, (directory_path, _, filenames) in enumerate(os.walk(path_to_directory)):
             for filename in filenames:
 
+                if filename == LOCAL_METADATA_FILENAME:
+                    continue
+
                 if not recursive and level > 0:
                     break
 
@@ -106,7 +109,11 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         datafiles = FilterSet(
             Datafile(path=storage.path.generate_gs_path(bucket_name, blob.name))
-            for blob in GoogleCloudStorageClient().scandir(cloud_path, recursive=recursive)
+            for blob in GoogleCloudStorageClient().scandir(
+                cloud_path,
+                recursive=recursive,
+                filter=lambda blob: not blob.name.endswith(LOCAL_METADATA_FILENAME),
+            )
         )
 
         dataset = Dataset(path=cloud_path, files=datafiles)
