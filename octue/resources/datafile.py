@@ -135,7 +135,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
             if local_path:
                 # If there is no file at the given local path or the file is different to the one in the cloud, download
                 # the cloud file locally.
-                if not os.path.exists(local_path) or self._cloud_metadata.get("crc32c") != calculate_hash(local_path):
+                if not os.path.exists(local_path) or self.cloud_hash_value != calculate_hash(local_path):
                     self.download(local_path)
                 else:
                     self._local_path = local_path
@@ -238,6 +238,14 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         if self.cloud_path:
             return storage.path.split_bucket_name_from_gs_path(self.cloud_path)[1]
         return None
+
+    @property
+    def cloud_hash_value(self):
+        """Get the hash value of the datafile according to its cloud file.
+
+        :return str|None: `None` if no cloud metadata is available
+        """
+        return self._cloud_metadata.get("crc32c")
 
     @property
     def timestamp(self):
@@ -409,7 +417,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         self._get_cloud_metadata()
 
         # If the datafile's file has been changed locally, overwrite its cloud copy.
-        if self._cloud_metadata.get("crc32c") != self.hash_value:
+        if self.cloud_hash_value != self.hash_value:
             GoogleCloudStorageClient().upload_file(
                 local_path=self.local_path,
                 cloud_path=cloud_path,
@@ -541,7 +549,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
             )
         )
 
-        self.immutable_hash_value = self._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
+        self.immutable_hash_value = self.cloud_hash_value or EMPTY_STRING_HASH_VALUE
 
         for attribute in ("timestamp", "tags", "labels"):
             setattr(
