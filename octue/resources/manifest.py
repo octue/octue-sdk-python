@@ -1,3 +1,4 @@
+import concurrent.futures
 import copy
 import json
 import os
@@ -135,41 +136,43 @@ class Manifest(Serialisable, Identifiable, Hashable):
         :param dict(str, octue.resources.dataset.Dataset|dict|str) datasets: the datasets to add to the manifest
         :return dict:
         """
-        datasets = copy.deepcopy(datasets)
-        datasets_to_add = {}
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            return dict(executor.map(self._instantiate_dataset, copy.deepcopy(datasets).items()))
 
-        for key, dataset in datasets.items():
-            datasets_to_add.update(self._instantiate_dataset(key, dataset))
+    def _instantiate_dataset(self, key_and_dataset):
+        """Instantiate a dataset from multiple input formats.
 
-        return datasets_to_add
+        :param tuple(str, any) key_and_dataset:
+        :return tuple(str, octue.resources.dataset.Dataset):
+        """
+        key, dataset = key_and_dataset
 
-    def _instantiate_dataset(self, key, dataset):
         if isinstance(dataset, Dataset):
-            return {key: dataset}
+            return (key, dataset)
 
         else:
             # If `dataset` is just a path to a dataset:
             if isinstance(dataset, str):
                 if storage.path.is_qualified_cloud_path(dataset):
-                    return {key: Dataset.from_cloud(cloud_path=dataset, recursive=True)}
+                    return (key, Dataset.from_cloud(cloud_path=dataset, recursive=True))
                 else:
-                    return {key: Dataset.from_local_directory(path_to_directory=dataset, recursive=True)}
+                    return (key, Dataset.from_local_directory(path_to_directory=dataset, recursive=True))
 
             # If `dataset` is a dictionary including a "path" key:
             elif "path" in dataset:
 
                 # If the path is a cloud path:
                 if storage.path.is_qualified_cloud_path(dataset["path"]):
-                    return {key: Dataset.from_cloud(cloud_path=dataset["path"], recursive=True)}
+                    return (key, Dataset.from_cloud(cloud_path=dataset["path"], recursive=True))
 
                 # If the path is local but not absolute:
                 elif not os.path.isabs(dataset["path"]):
                     path = dataset.pop("path")
-                    return {key: Dataset(**dataset, path=path)}
+                    return (key, Dataset(**dataset, path=path))
 
                 # If the path is an absolute local path:
                 else:
-                    return {key: Dataset(**dataset)}
+                    return (key, Dataset(**dataset))
 
             else:
-                return {key: Dataset(**dataset, path=key)}
+                return (key, Dataset(**dataset, path=key))
