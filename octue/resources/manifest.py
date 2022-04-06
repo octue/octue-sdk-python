@@ -139,35 +139,37 @@ class Manifest(Serialisable, Identifiable, Hashable):
         datasets_to_add = {}
 
         for key, dataset in datasets.items():
-
-            if isinstance(dataset, Dataset):
-                datasets_to_add[key] = dataset
-
-            else:
-                # If `dataset` is just a path to a dataset:
-                if isinstance(dataset, str):
-                    if storage.path.is_qualified_cloud_path(dataset):
-                        datasets_to_add[key] = Dataset.from_cloud(cloud_path=dataset, recursive=True)
-                    else:
-                        datasets_to_add[key] = Dataset.from_local_directory(path_to_directory=dataset, recursive=True)
-
-                # If `dataset` is a dictionary including a "path" key:
-                elif "path" in dataset:
-
-                    # If the path is a cloud path:
-                    if storage.path.is_qualified_cloud_path(dataset["path"]):
-                        datasets_to_add[key] = Dataset.from_cloud(cloud_path=dataset["path"], recursive=True)
-
-                    # If the path is local but not absolute:
-                    elif not os.path.isabs(dataset["path"]):
-                        path = dataset.pop("path")
-                        datasets_to_add[key] = Dataset(**dataset, path=path)
-
-                    # If the path is an absolute local path:
-                    else:
-                        datasets_to_add[key] = Dataset(**dataset)
-
-                else:
-                    datasets_to_add[key] = Dataset(**dataset, path=key)
+            datasets_to_add.update(self._instantiate_dataset(key, dataset))
 
         return datasets_to_add
+
+    def _instantiate_dataset(self, key, dataset):
+        if isinstance(dataset, Dataset):
+            return {key: dataset}
+
+        else:
+            # If `dataset` is just a path to a dataset:
+            if isinstance(dataset, str):
+                if storage.path.is_qualified_cloud_path(dataset):
+                    return {key: Dataset.from_cloud(cloud_path=dataset, recursive=True)}
+                else:
+                    return {key: Dataset.from_local_directory(path_to_directory=dataset, recursive=True)}
+
+            # If `dataset` is a dictionary including a "path" key:
+            elif "path" in dataset:
+
+                # If the path is a cloud path:
+                if storage.path.is_qualified_cloud_path(dataset["path"]):
+                    return {key: Dataset.from_cloud(cloud_path=dataset["path"], recursive=True)}
+
+                # If the path is local but not absolute:
+                elif not os.path.isabs(dataset["path"]):
+                    path = dataset.pop("path")
+                    return {key: Dataset(**dataset, path=path)}
+
+                # If the path is an absolute local path:
+                else:
+                    return {key: Dataset(**dataset)}
+
+            else:
+                return {key: Dataset(**dataset, path=key)}
