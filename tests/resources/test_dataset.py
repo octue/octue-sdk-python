@@ -197,7 +197,7 @@ class TestDataset(BaseTestCase):
         resource = Dataset(files=files)
 
         # Check working for single result
-        self.assertIs(resource.get_file_by_label("three"), files[2])
+        self.assertEqual(resource.get_file_by_label("three").labels, files[2].labels)
 
         # Check raises for too many results
         with self.assertRaises(exceptions.UnexpectedNumberOfResultsException) as e:
@@ -218,7 +218,9 @@ class TestDataset(BaseTestCase):
             Datafile(path="path-within-dataset/a_test_file.txt"),
         ]
 
-        self.assertEqual(Dataset(files=files).files.filter(name__icontains="txt"), FilterSet({files[1]}))
+        self.assertEqual(
+            Dataset(files=files).files.filter(name__icontains="txt").pop().path, FilterSet({files[1]}).pop().path
+        )
 
     def test_filter_name_filters_exclude_path(self):
         """Ensures that filters applied to the name will not catch terms in the extension"""

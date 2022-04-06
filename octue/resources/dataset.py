@@ -1,4 +1,5 @@
 import concurrent.futures
+import copy
 import json
 import logging
 import os
@@ -301,17 +302,22 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :param iter(str|dict|octue.resources.datafile.Datafile) files:
         :return octue.resources.filter_containers.FilterSet:
         """
-        files_to_add = FilterSet()
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            return FilterSet(executor.map(self._instantiate_datafile, copy.deepcopy(files)))
 
-        for file in files:
-            if isinstance(file, Datafile):
-                files_to_add.add(file)
-            elif isinstance(file, str):
-                files_to_add.add(Datafile(path=file))
-            else:
-                files_to_add.add(Datafile.deserialise(file))
+    def _instantiate_datafile(self, file):
+        """Instantiate a datafile from multiple input formats.
 
-        return files_to_add
+        :param str|dict|octue.resources.datafile.Datafile file:
+        :return octue.resources.datafile.Datafile:
+        """
+        if isinstance(file, Datafile):
+            return file
+
+        if isinstance(file, str):
+            return Datafile(path=file)
+
+        return Datafile.deserialise(file)
 
     @staticmethod
     def _get_cloud_metadata(cloud_path):
