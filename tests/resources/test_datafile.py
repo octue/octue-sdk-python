@@ -54,7 +54,7 @@ class TestDatafile(BaseTestCase):
         :param str bucket_name:
         :param str path_in_bucket:
         :param str contents:
-        :return (octue.resources.datafile.Datafile, str, str, str):
+        :return (octue.resources.datafile.Datafile, str):
         """
         with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
             temporary_file.write(contents)
@@ -173,6 +173,24 @@ class TestDatafile(BaseTestCase):
         first_file = self.create_valid_datafile()
         second_file = copy.deepcopy(first_file)
         self.assertEqual(first_file.hash_value, second_file.hash_value)
+
+    def test_hash_only_depends_on_file_contents(self):
+        """Test that the hash of a datafile depends only on its file contents and not on e.g. its name or ID."""
+        first_file = self.create_valid_datafile()
+        second_file = copy.deepcopy(first_file)
+        second_file._name = "different"
+        second_file._id = "51f62f08-112c-44cb-9468-3e856d30a7ff"
+        self.assertEqual(first_file.hash_value, second_file.hash_value)
+
+    def test_hash_of_cloud_datafile_avoids_downloading_file(self):
+        cloud_datafile, _ = self.create_datafile_in_cloud()
+        datafile_reloaded_from_cloud = Datafile(path=cloud_datafile.cloud_path)
+
+        # Calculate the hashes of the datafiles and check that they're equal.
+        self.assertEqual(datafile_reloaded_from_cloud.hash_value, cloud_datafile.hash_value)
+
+        # Check that the reloaded datafile hasn't been downloaded.
+        self.assertIsNone(datafile_reloaded_from_cloud._local_path)
 
     def test_exists_in_cloud(self):
         """Test whether it can be determined that a datafile exists in the cloud or not."""
