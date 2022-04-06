@@ -4,75 +4,76 @@ import logging
 import os
 import tempfile
 
-from octue import definitions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudLocationNotSpecified, InvalidInputException
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
-from octue.mixins import Hashable, Identifiable, Labelable, Pathable, Serialisable, Taggable
+from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.resources.label import LabelSet
 from octue.resources.tag import TagDict
+from octue.utils.encoders import OctueJSONEncoder
+from octue.utils.local_metadata import LOCAL_METADATA_FILENAME, load_local_metadata_file
 
 
 logger = logging.getLogger(__name__)
 
 
-class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashable):
-    """A representation of a dataset, containing files, labels, etc
+class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
+    """A representation of a dataset, containing files, labels, etc.
 
     This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
     list of output files (results) and their properties that will be sent back to the octue system.
 
     :param iter(dict|octue.resources.datafile.Datafile) files: the files belonging to the dataset
+    :param str|None name:
+    :param str|None id:
+    :param str|None path:
+    :param dict|None tags:
+    :param iter|None labels:
+    :param bool save_metadata_locally: if `True` and the dataset is local, save its metadata to disk locally
     :return None:
     """
 
     _ATTRIBUTES_TO_HASH = ("files",)
-    _SERIALISE_FIELDS = "files", "name", "labels", "tags", "id", "path"
 
-    def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None, **kwargs):
-        super().__init__(name=name, id=id, tags=tags, labels=labels, path=path)
+    # Paths to files are added to the serialisation in `Dataset.to_primitive`.
+    _SERIALISE_FIELDS = "name", "labels", "tags", "id", "path"
 
-        # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
-        #  so that resources get automatically instantiated.
-        #  Add a proper `decoder` argument  to the load_json utility in twined so that datasets, datafiles and manifests
-        #  get initialised properly, then remove this hackjob.
-        self._cloud_path = None
+    def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None, save_metadata_locally=True):
+        super().__init__(name=name, id=id, tags=tags, labels=labels)
+        self.path = path
+        self.files = self._instantiate_datafiles(files or [])
 
-        if path and storage.path.is_qualified_cloud_path(path):
-            self._cloud_path = path
-
-        self.files = FilterSet()
-
-        for file in files or []:
-            if isinstance(file, Datafile):
-                self.files.add(file)
-            else:
-                self.files.add(Datafile.deserialise(file, path_from=self))
-
-        self.__dict__.update(**kwargs)
-
-    def __iter__(self):
-        yield from self.files
-
-    def __len__(self):
-        return len(self.files)
+        # Save metadata locally if the dataset exists locally.
+        if save_metadata_locally:
+            if path and self.exists_locally:
+                self._save_local_metadata()
 
     @classmethod
     def from_local_directory(cls, path_to_directory, recursive=False, **kwargs):
-        """Instantiate a Dataset from the files in the given local directory.
+        """Instantiate a Dataset from the files in the given local directory. If a dataset metadata file is present,
+        that is used to decide which files are in the dataset.
 
         :param str path_to_directory: path to a local directory
         :param bool recursive: if `True`, include all files in the directory's subdirectories recursively
         :param kwargs: other keyword arguments for the `Dataset` instantiation
         :return Dataset:
         """
+        local_metadata = load_local_metadata_file(os.path.join(path_to_directory, LOCAL_METADATA_FILENAME))
+        dataset_metadata = local_metadata.get("dataset")
+
+        if dataset_metadata:
+            return Dataset.deserialise(dataset_metadata)
+
         datafiles = FilterSet()
 
         for level, (directory_path, _, filenames) in enumerate(os.walk(path_to_directory)):
             for filename in filenames:
+
+                if filename == LOCAL_METADATA_FILENAME:
+                    continue
 
                 if not recursive and level > 0:
                     break
@@ -94,7 +95,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
 
         bucket_name = storage.path.split_bucket_name_from_gs_path(cloud_path)[0]
 
-        dataset_metadata = cls._get_dataset_metadata(cloud_path=cloud_path)
+        dataset_metadata = cls._get_cloud_metadata(cloud_path=cloud_path)
 
         if dataset_metadata:
             return Dataset(
@@ -108,12 +109,71 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
 
         datafiles = FilterSet(
             Datafile(path=storage.path.generate_gs_path(bucket_name, blob.name))
-            for blob in GoogleCloudStorageClient().scandir(cloud_path, recursive=recursive)
+            for blob in GoogleCloudStorageClient().scandir(
+                cloud_path,
+                recursive=recursive,
+                filter=lambda blob: not blob.name.endswith(LOCAL_METADATA_FILENAME),
+            )
         )
 
         dataset = Dataset(path=cloud_path, files=datafiles)
-        dataset._upload_dataset_metadata(cloud_path)
+        dataset._upload_cloud_metadata()
         return dataset
+
+    @property
+    def name(self):
+        """Get the name of the dataset
+
+        :return str:
+        """
+        if self._name:
+            return self._name
+
+        if self.exists_in_cloud:
+            return storage.path.split(self.path)[-1]
+
+        return os.path.split(os.path.abspath(os.path.split(self.path)[-1]))[-1]
+
+    @property
+    def exists_in_cloud(self):
+        """Return `True` if the dataset exists in the cloud.
+
+        :return bool:
+        """
+        return storage.path.is_qualified_cloud_path(self.path)
+
+    @property
+    def exists_locally(self):
+        """Return `True` if the dataset exists locally.
+
+        :return bool:
+        """
+        return not storage.path.is_qualified_cloud_path(self.path)
+
+    @property
+    def all_files_are_in_cloud(self):
+        """Do all the files of the dataset exist in the cloud?
+
+        :return bool:
+        """
+        return all(file.exists_in_cloud for file in self.files)
+
+    @property
+    def _metadata_path(self):
+        """Get the path to the dataset's metadata file.
+
+        :return str:
+        """
+        if self.exists_in_cloud:
+            return storage.path.join(self.path, LOCAL_METADATA_FILENAME)
+
+        return os.path.join(self.path, LOCAL_METADATA_FILENAME)
+
+    def __iter__(self):
+        yield from self.files
+
+    def __len__(self):
+        return len(self.files)
 
     def to_cloud(self, cloud_path=None, bucket_name=None, output_directory=None):
         """Upload a dataset to the given cloud path.
@@ -149,100 +209,25 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.map(upload, files_and_paths)
 
-        self._cloud_path = cloud_path
         self.path = cloud_path
-        self._upload_dataset_metadata(cloud_path)
+        self._upload_cloud_metadata()
         return cloud_path
 
-    @property
-    def name(self):
-        """Get the name of the dataset
+    def add(self, datafile, path_in_dataset=None):
+        """Add a datafile to the dataset.
 
-        :return str:
-        """
-        if self._name:
-            return self._name
-
-        if self.cloud_path:
-            return storage.path.split(self.cloud_path)[-1]
-
-        return os.path.split(os.path.abspath(os.path.split(self.path)[-1]))[-1]
-
-    @property
-    def cloud_path(self):
-        """Get the cloud path of the dataset.
-
-        :return str|None:
-        """
-        return self._cloud_path
-
-    @cloud_path.setter
-    def cloud_path(self, path):
-        """Set the cloud path of the dataset.
-
-        :param str|None path:
+        :param octue.resources.datafile.Datafile datafile: the datafile to add to the dataset
+        :param str|None path_in_dataset: if provided, set the datafile's local path to this path within the dataset
+        :raise octue.exceptions.InvalidInputException: if the datafile is not a `Datafile` instance
         :return None:
         """
-        if path is None:
+        if not isinstance(datafile, Datafile):
+            raise InvalidInputException(f"{datafile!r} must be of type `Datafile` to add it to the dataset.")
 
-            if not self.exists_locally:
-                raise CloudLocationNotSpecified(
-                    "The cloud path cannot be reset because this datafile only exists in the cloud."
-                )
+        self.files.add(datafile)
 
-            self._cloud_path = None
-
-        else:
-            self.to_cloud(cloud_path=path)
-
-    @property
-    def exists_in_cloud(self):
-        """Return `True` if the dataset exists in the cloud.
-
-        :return bool:
-        """
-        return self.cloud_path is not None
-
-    @property
-    def exists_locally(self):
-        """Return `True` if the dataset exists locally.
-
-        :return bool:
-        """
-        return not storage.path.is_qualified_cloud_path(self.path)
-
-    @property
-    def all_files_are_in_cloud(self):
-        """Do all the files of the dataset exist in the cloud?
-
-        :return bool:
-        """
-        return all(file.exists_in_cloud for file in self.files)
-
-    def add(self, *args, **kwargs):
-        """Add a data/results file to the manifest.
-
-        Usage:
-            my_file = octue.DataFile(...)
-            my_manifest.add(my_file)
-
-            # or more simply
-            my_manifest.add(**{...}) which implicitly creates the datafile from the starred list of input arguments
-        """
-        if len(args) > 1:
-            # Recurse to allow addition of many files at once
-            for arg in args:
-                self.add(arg, **kwargs)
-        elif len(args) > 0:
-            if not isinstance(args[0], Datafile):
-                raise InvalidInputException(
-                    'Object "{}" must be of class Datafile to add it to a Dataset'.format(args[0])
-                )
-            self.files.add(args[0])
-
-        else:
-            # Add a single file, constructed by passing the arguments through to DataFile()
-            self.files.add(Datafile(**kwargs))
+        if path_in_dataset:
+            datafile.local_path = os.path.join(self.path, path_in_dataset)
 
     def get_file_by_label(self, label):
         """Get a single datafile from a dataset by filtering for files with the provided label.
@@ -260,6 +245,11 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
         :param str|None local_directory:
         :return None:
         """
+        if not self.exists_in_cloud:
+            raise CloudLocationNotSpecified(
+                f"You can only download files from a cloud dataset. This dataset's path is {self.path!r}."
+            )
+
         local_directory = local_directory or tempfile.TemporaryDirectory().name
 
         files_and_paths = []
@@ -269,7 +259,7 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
             if not file.exists_in_cloud:
                 continue
 
-            path_relative_to_dataset = storage.path.relpath(file.cloud_path, self.cloud_path)
+            path_relative_to_dataset = storage.path.relpath(file.cloud_path, self.path)
             local_path = os.path.abspath(os.path.join(local_directory, *path_relative_to_dataset.split("/")))
             files_and_paths.append((file, local_path))
 
@@ -289,32 +279,71 @@ class Dataset(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashabl
 
         logger.info("Downloaded %r dataset to %r.", self.name, local_directory)
 
+    def to_primitive(self):
+        """Convert the dataset to a dictionary of primitives, converting its files into their paths for a lightweight
+        serialisation.
+
+        :return dict:
+        """
+        serialised_dataset = super().to_primitive()
+
+        if self.exists_in_cloud:
+            path_type = "cloud_path"
+        else:
+            path_type = "path"
+
+        serialised_dataset["files"] = sorted(getattr(datafile, path_type) for datafile in self.files)
+        return serialised_dataset
+
+    def _instantiate_datafiles(self, files):
+        """Instantiate and add the given files to a `FilterSet`.
+
+        :param iter(str|dict|octue.resources.datafile.Datafile) files:
+        :return octue.resources.filter_containers.FilterSet:
+        """
+        files_to_add = FilterSet()
+
+        for file in files:
+            if isinstance(file, Datafile):
+                files_to_add.add(file)
+            elif isinstance(file, str):
+                files_to_add.add(Datafile(path=file))
+            else:
+                files_to_add.add(Datafile.deserialise(file))
+
+        return files_to_add
+
     @staticmethod
-    def _get_dataset_metadata(cloud_path):
-        """Get the metadata for the given dataset if a dataset metadata file has previously been uploaded.
+    def _get_cloud_metadata(cloud_path):
+        """Get the cloud metadata for the given dataset if a dataset metadata file has previously been uploaded.
 
         :param str cloud_path: the path to the dataset cloud directory
         :return dict: the dataset metadata
         """
         storage_client = GoogleCloudStorageClient()
-        metadata_file_path = storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME)
+        metadata_file_path = storage.path.join(cloud_path, LOCAL_METADATA_FILENAME)
 
         if not storage_client.exists(cloud_path=metadata_file_path):
             return {}
 
         return json.loads(storage_client.download_as_string(cloud_path=metadata_file_path))
 
-    def _upload_dataset_metadata(self, cloud_path):
+    def _upload_cloud_metadata(self):
         """Upload a metadata file representing the dataset to the given cloud location.
 
-        :param str cloud_path: the path to the dataset cloud directory
         :return None:
         """
-        serialised_dataset = self.to_primitive()
-        serialised_dataset["files"] = sorted(datafile.cloud_path for datafile in self.files)
-        del serialised_dataset["path"]
+        GoogleCloudStorageClient().upload_from_string(string=self.serialise(), cloud_path=self._metadata_path)
 
-        GoogleCloudStorageClient().upload_from_string(
-            string=json.dumps(serialised_dataset),
-            cloud_path=storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME),
-        )
+    def _save_local_metadata(self):
+        """Save the dataset metadata locally in the dataset directory.
+
+        :return None:
+        """
+        os.makedirs(self.path, exist_ok=True)
+
+        existing_metadata_records = load_local_metadata_file(self._metadata_path)
+        existing_metadata_records["dataset"] = self.to_primitive()
+
+        with open(self._metadata_path, "w") as f:
+            json.dump(existing_metadata_records, f, cls=OctueJSONEncoder)

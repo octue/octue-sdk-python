@@ -6,7 +6,9 @@ import sys
 import google.api_core.exceptions
 from google import auth
 from google.cloud import secretmanager
+from jsonschema import ValidationError, validate as jsonschema_validate
 
+import twined.exceptions
 from octue.log_handlers import apply_log_handler, create_octue_formatter, get_log_record_attributes_for_environment
 from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
@@ -104,6 +106,12 @@ class Runner:
         )
         logger.debug("Inputs validated.")
 
+        for manifest_strand in self.twine.available_manifest_strands:
+            if manifest_strand == "output_manifest":
+                continue
+
+            self._validate_dataset_file_tags(manifest_kind=manifest_strand, manifest=inputs[manifest_strand])
+
         if inputs["children"] is not None:
             inputs["children"] = {
                 child["key"]: Child(name=child["key"], id=child["id"], backend=child["backend"])
@@ -111,12 +119,6 @@ class Runner:
             }
 
         outputs_and_monitors = self.twine.prepare("monitor_message", "output_values", "output_manifest", cls=CLASS_MAP)
-
-        # TODO this is hacky, we need to rearchitect the twined validation so we can do this kind of thing in there
-        outputs_and_monitors["output_manifest"] = self._update_manifest_path(
-            outputs_and_monitors.get("output_manifest", None),
-            self.output_manifest_path,
-        )
 
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
 
@@ -172,23 +174,6 @@ class Runner:
 
             return analysis
 
-    @staticmethod
-    def _update_manifest_path(manifest, pathname):
-        """Change a manifest's path to its directory if the path currently points to a JSON file. This is a quick hack
-        to stitch the new Pathable functionality in the 0.1.4 release into the CLI and runner. The way we define a
-        manifest path can be more robustly implemented as we migrate functionality into the twined library.
-
-        :param octue.resources.manifest.Manifest|None manifest:
-        :param str pathname:
-        :return octue.resources.manifest.Manifest:
-        """
-        if manifest is not None and hasattr(pathname, "endswith"):
-            if pathname.endswith(".json"):
-                manifest.path = os.path.split(pathname)[0]
-
-        # Otherwise do nothing and rely on manifest having its path variable set already
-        return manifest
-
     def _populate_environment_with_google_cloud_secrets(self):
         """Get any secrets specified in the credentials strand from Google Cloud Secret Manager and put them in the
         local environment, ready for use by the runner.
@@ -220,6 +205,31 @@ class Runner:
                 continue
 
             os.environ[credential["name"]] = secret
+
+    def _validate_dataset_file_tags(self, manifest_kind, manifest):
+        """Validate the tags of the files of each dataset in the manifest against the file tags template in the
+        corresponding dataset field in the given manifest field of the twine.
+
+        :param str manifest_kind: the kind of manifest that's being validated (so the correct schema can be accessed)
+        :param octue.resources.manifest.Manifest manifest: the manifest whose datasets' files are to be validated
+        :return None:
+        """
+        # This is the manifest schema included in the twine.json file, not the schema for `manifest.json` files.
+        manifest_schema = getattr(self.twine, manifest_kind)
+
+        for dataset_name, dataset_schema in manifest_schema["datasets"].items():
+            dataset = manifest.datasets.get(dataset_name)
+            file_tags_template = dataset_schema.get("file_tags_template")
+
+            # Allow optional datasets in future (not currently allowed by `twined`).
+            if not (dataset and file_tags_template):
+                continue
+
+            for file in dataset.files:
+                try:
+                    jsonschema_validate(instance=dict(file.tags), schema=file_tags_template)
+                except ValidationError as e:
+                    raise twined.exceptions.invalid_contents_map[manifest_kind](str(e))
 
 
 def unwrap(fcn):

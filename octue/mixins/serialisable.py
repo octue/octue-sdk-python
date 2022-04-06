@@ -56,6 +56,14 @@ class Serialisable:
 
         :return str: JSON string containing a serialised primitive version of the resource
         """
+        return json.dumps(self.to_primitive(), cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
+
+    def to_primitive(self):
+        """Convert the instance into a JSON-compatible python dictionary of its attributes as primitives. The same rules
+        as described in `serialise` apply.
+
+        :return dict:
+        """
         names_of_attributes_to_serialise = self._SERIALISE_FIELDS or (
             field_name
             for field_name in dir(self)
@@ -77,20 +85,7 @@ class Serialisable:
             else:
                 self_as_primitive[name] = attribute
 
-        # TODO this backward-and-forward conversion is very inefficient but allows us to use the same encoder for
-        #  converting the object to a dict as to strings, which ensures that nested attributes are also cast to
-        #  primitives using their `serialise` method. A more performant method would be to implement an encoder which
-        #  returns python primitives, not strings. The reason we do this is to validate outbound information the same
-        #  way as we validate incoming.
-        return json.dumps(self_as_primitive, cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
-
-    def to_primitive(self):
-        """Convert the instance into a JSON-compatible python dictionary of its attributes as primitives. The same rules
-        as described in `serialise` apply.
-
-        :return dict:
-        """
-        return json.loads(self.serialise(), cls=OctueJSONDecoder)
+        return self_as_primitive
 
     def to_file(self, filename, **kwargs):
         """Write the object to a JSON file.

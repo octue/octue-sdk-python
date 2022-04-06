@@ -4,11 +4,12 @@ import os
 import tempfile
 from unittest.mock import patch
 
-from octue import definitions, exceptions
+from octue import REPOSITORY_ROOT, exceptions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset
 from octue.resources.filter_containers import FilterSet
+from octue.utils.local_metadata import LOCAL_METADATA_FILENAME
 from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
 from tests.resources import create_dataset_with_two_files
@@ -94,22 +95,6 @@ class TestDataset(BaseTestCase):
         resource.add(Datafile(path="path-within-dataset/a_test_file.csv"))
         self.assertEqual(len(resource.files), 2)
 
-    def test_add_with_datafile_creation_shortcut(self):
-        """Ensures that when a dataset is not empty, it can be added to"""
-        resource = Dataset()
-        resource.add(path="path-within-dataset/a_test_file.csv")
-        self.assertEqual(len(resource.files), 1)
-
-    def test_add_multiple_files(self):
-        """Ensures that when a dataset is not empty, it can be added to"""
-        files = [
-            Datafile(path="path-within-dataset/a_test_file.csv"),
-            Datafile(path="path-within-dataset/a_test_file.csv"),
-        ]
-        resource = Dataset()
-        resource.add(*files)
-        self.assertEqual(len(resource.files), 2)
-
     def test_cannot_add_non_datafiles(self):
         """Ensures that exception will be raised if adding a non-datafile object"""
 
@@ -117,10 +102,8 @@ class TestDataset(BaseTestCase):
             pass
 
         resource = Dataset()
-        with self.assertRaises(exceptions.InvalidInputException) as e:
+        with self.assertRaises(exceptions.InvalidInputException):
             resource.add(NotADatafile())
-
-        self.assertIn("must be of class Datafile to add it to a Dataset", e.exception.args[0])
 
     def test_filter_catches_single_underscore_mistake(self):
         """Ensure that if the filter name contains only single underscores, an error is raised."""
@@ -260,10 +243,55 @@ class TestDataset(BaseTestCase):
         second_dataset = copy.deepcopy(first_dataset)
         self.assertEqual(first_dataset.hash_value, second_dataset.hash_value)
 
-    def test_serialise(self):
-        """Test that a dataset can be serialised."""
-        dataset = self.create_valid_dataset()
-        self.assertEqual(len(dataset.to_primitive()["files"]), 2)
+    def test_serialisation_and_deserialisation(self):
+        """Test that a dataset can be serialised and deserialised."""
+        dataset_id = "e376fb31-8f66-414d-b99f-b43395cebbf1"
+        dataset = self.create_valid_dataset(id=dataset_id, labels=["b", "a"], tags={"a": 1, "b": 2})
+
+        serialised_dataset = dataset.to_primitive()
+
+        self.assertEqual(
+            serialised_dataset,
+            {
+                "name": "test-dataset",
+                "labels": ["a", "b"],
+                "tags": {"a": 1, "b": 2},
+                "id": dataset_id,
+                "path": os.path.join(REPOSITORY_ROOT, "tests", "data", "basic_files", "configuration", "test-dataset"),
+                "files": [
+                    os.path.join(
+                        REPOSITORY_ROOT,
+                        "tests",
+                        "data",
+                        "basic_files",
+                        "configuration",
+                        "test-dataset",
+                        "path-within-dataset",
+                        "a_test_file.csv",
+                    ),
+                    os.path.join(
+                        REPOSITORY_ROOT,
+                        "tests",
+                        "data",
+                        "basic_files",
+                        "configuration",
+                        "test-dataset",
+                        "path-within-dataset",
+                        "another_test_file.csv",
+                    ),
+                ],
+            },
+        )
+
+        # Avoid saving metadata locally when deserialising.
+        serialised_dataset["save_metadata_locally"] = False
+
+        deserialised_dataset = Dataset.deserialise(serialised_dataset)
+        self.assertEqual(dataset.id, deserialised_dataset.id)
+        self.assertEqual(dataset.path, deserialised_dataset.path)
+        self.assertEqual(dataset.name, deserialised_dataset.name)
+        self.assertEqual(dataset.labels, deserialised_dataset.labels)
+        self.assertEqual(dataset.tags, deserialised_dataset.tags)
 
     def test_exists_in_cloud(self):
         """Test whether all files of a dataset are in the cloud or not can be determined."""
@@ -300,10 +328,9 @@ class TestDataset(BaseTestCase):
             for file in persisted_dataset:
                 self.assertEqual(file.path, f"gs://{TEST_BUCKET_NAME}/a_directory/{dataset.name}/{file.name}")
 
-    def test_from_cloud_with_no_datafile_metadata_file(self):
-        """Test that any cloud directory can be accessed as a dataset if it has no `dataset_metadata.json` metadata
-        file in it, the cloud dataset doesn't lose any information during serialization, and a metadata file is
-        uploaded afterwards.
+    def test_from_cloud_with_no_metadata_file(self):
+        """Test that any cloud directory can be accessed as a dataset if it has no `.octue` metadata file in it, the
+        cloud dataset doesn't lose any information during serialization, and a metadata file is uploaded afterwards.
         """
         cloud_storage_client = GoogleCloudStorageClient()
 
@@ -336,7 +363,7 @@ class TestDataset(BaseTestCase):
         # Test dataset metadata file has been uploaded.
         dataset_metadata = json.loads(
             cloud_storage_client.download_as_string(
-                cloud_path=storage.path.join(cloud_dataset.path, definitions.DATASET_METADATA_FILENAME)
+                cloud_path=storage.path.join(cloud_dataset.path, LOCAL_METADATA_FILENAME)
             )
         )
         del dataset_metadata["id"]
@@ -344,6 +371,7 @@ class TestDataset(BaseTestCase):
         self.assertEqual(
             dataset_metadata,
             {
+                "path": "gs://octue-test-bucket/my_dataset",
                 "files": [
                     "gs://octue-test-bucket/my_dataset/file_0.txt",
                     "gs://octue-test-bucket/my_dataset/file_1.txt",
@@ -354,8 +382,8 @@ class TestDataset(BaseTestCase):
             },
         )
 
-    def test_from_cloud_with_nested_dataset_and_no_datafile_json_file(self):
-        """Test that a nested dataset is loaded from the cloud correctly."""
+    def test_from_cloud_with_nested_dataset_and_no_metadata_file(self):
+        """Test that a nested dataset is loaded from the cloud correctly if it has no `.octue` metadata file in it."""
         self._create_nested_cloud_dataset()
 
         cloud_dataset = Dataset.from_cloud(cloud_path=f"gs://{TEST_BUCKET_NAME}/a_dataset", recursive=True)
@@ -370,7 +398,7 @@ class TestDataset(BaseTestCase):
         # Test dataset metadata file has been uploaded.
         dataset_metadata = json.loads(
             GoogleCloudStorageClient().download_as_string(
-                cloud_path=storage.path.join(cloud_dataset.path, definitions.DATASET_METADATA_FILENAME)
+                cloud_path=storage.path.join(cloud_dataset.path, LOCAL_METADATA_FILENAME)
             )
         )
         del dataset_metadata["id"]
@@ -384,6 +412,51 @@ class TestDataset(BaseTestCase):
                 "gs://octue-test-bucket/a_dataset/sub-directory/sub-sub-directory/sub_sub_file.txt",
             },
         )
+
+    def test_metadata_saved_locally(self):
+        """Test that metadata for a local dataset is stored locally and is used on re-instantiation of the same
+        dataset.
+        """
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            self._create_files_and_nested_subdirectories(temporary_directory)
+
+            dataset = Dataset.from_local_directory(
+                temporary_directory,
+                recursive=True,
+                id="69253db4-7972-42de-8ccc-61336a28cd50",
+                tags={"cat": "dog"},
+                labels=["animals"],
+            )
+
+            dataset_reloaded = Dataset.from_local_directory(temporary_directory)
+            self.assertEqual(dataset.id, dataset_reloaded.id)
+            self.assertEqual(dataset.tags, dataset_reloaded.tags)
+            self.assertEqual(dataset.labels, dataset_reloaded.labels)
+            self.assertEqual(dataset.hash_value, dataset_reloaded.hash_value)
+
+    # This test will pass in a near-future release.
+    #
+    # def test_local_metadata_updated(self):
+    #     """Test that metadata for a local dataset can be updated."""
+    #     with tempfile.TemporaryDirectory() as temporary_directory:
+    #         self._create_files_and_nested_subdirectories(temporary_directory)
+    #
+    #         dataset = Dataset.from_local_directory(
+    #             temporary_directory,
+    #             recursive=True,
+    #             id="69253db4-7972-42de-8ccc-61336a28cd50",
+    #             tags={"cat": "dog"},
+    #             labels=["animals"],
+    #         )
+    #
+    #         dataset_reloaded = Dataset.from_local_directory(temporary_directory)
+    #         dataset_reloaded.labels = {"fish", "mammals"}
+    #
+    #         dataset_reloaded_again = Dataset.from_local_directory(temporary_directory)
+    #         self.assertEqual(dataset_reloaded_again.id, dataset.id)
+    #         self.assertEqual(dataset_reloaded_again.tags, dataset.tags)
+    #         self.assertEqual(dataset_reloaded_again.labels, {"fish", "mammals"})
+    #         self.assertEqual(dataset_reloaded_again.hash_value, dataset.hash_value)
 
     def test_to_cloud(self):
         """Test that a dataset can be uploaded to a cloud path, including all its files and the dataset's metadata."""
@@ -406,7 +479,7 @@ class TestDataset(BaseTestCase):
 
             # Check its metadata has been uploaded.
             persisted_dataset_metadata = json.loads(
-                storage_client.download_as_string(storage.path.join(cloud_path, definitions.DATASET_METADATA_FILENAME))
+                storage_client.download_as_string(storage.path.join(cloud_path, LOCAL_METADATA_FILENAME))
             )
 
             self.assertEqual(
@@ -443,6 +516,13 @@ class TestDataset(BaseTestCase):
         }
 
         self.assertEqual(cloud_datafile_relative_paths, local_datafile_relative_paths)
+
+    def test_error_raised_if_trying_to_download_files_from_local_dataset(self):
+        """Test that an error is raised if trying to download files from a local dataset."""
+        dataset = self.create_valid_dataset()
+
+        with self.assertRaises(exceptions.CloudLocationNotSpecified):
+            dataset.download_all_files()
 
     def test_download_all_files(self):
         """Test that all files in a dataset can be downloaded with one command."""

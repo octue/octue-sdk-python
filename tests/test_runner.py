@@ -1,8 +1,14 @@
+import copy
+import json
 import os
+import tempfile
 from unittest.mock import Mock, patch
+
+from jsonschema.validators import RefResolver
 
 import twined
 from octue import Runner
+from octue.resources.datafile import Datafile
 from tests import TESTS_DIR
 from tests.base import BaseTestCase
 from tests.test_app_modules.app_class.app import App
@@ -18,7 +24,7 @@ def mock_app(analysis):
     pass
 
 
-class RunnerTestCase(BaseTestCase):
+class TestRunner(BaseTestCase):
     def test_instantiate_runner(self):
         """Ensures that runner whose twine requires configuration can be instantiated"""
         runner = Runner(app_src=".", twine="{}")
@@ -83,10 +89,8 @@ class RunnerTestCase(BaseTestCase):
         runner = Runner(app_src=mock_app, twine=twine)
 
         # Test for failure with an incorrect output
-        with self.assertRaises(twined.exceptions.InvalidValuesContents) as error:
+        with self.assertRaises(twined.exceptions.TwineValueException):
             runner.run().finalise()
-
-        self.assertIn("'n_iterations' is a required property", error.exception.args[0])
 
         # Test for success with a valid output
         def fcn(analysis):
@@ -148,8 +152,10 @@ class RunnerTestCase(BaseTestCase):
             """,
         )
 
-        analysis = runner.run()
-        self.assertIsNotNone(analysis.output_manifest)
+        # Avoid writing dataset metadata to disk so it isn't left behind by the test.
+        with patch("octue.resources.dataset.Dataset._save_local_metadata"):
+            analysis = runner.run()
+            self.assertIsNotNone(analysis.output_manifest)
 
     def test_runner_with_credentials(self):
         """Test that credentials can be used with Runner."""
@@ -233,3 +239,238 @@ class RunnerTestCase(BaseTestCase):
         """Test that apps can be provided as a module containing a function named "run"."""
         analysis = Runner(app_src=app, twine="{}").run()
         self.assertEqual(analysis.output_values, "App as a module works!")
+
+
+class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
+
+    TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE = json.dumps(
+        {
+            "input_manifest": {
+                "datasets": {
+                    "met_mast_data": {
+                        "purpose": "A dataset containing meteorological mast data",
+                        "file_tags_template": {
+                            "type": "object",
+                            "properties": {
+                                "manufacturer": {
+                                    "type": "string",
+                                },
+                                "height": {
+                                    "type": "number",
+                                },
+                                "is_recycled": {
+                                    "type": "boolean",
+                                },
+                                "number_of_blades": {
+                                    "type": "number",
+                                },
+                            },
+                            "required": [
+                                "manufacturer",
+                                "height",
+                                "is_recycled",
+                                "number_of_blades",
+                            ],
+                        },
+                    }
+                }
+            }
+        }
+    )
+
+    def test_error_raised_when_required_tags_missing_for_validate_input_manifest(self):
+        """Test that an error is raised when required tags from the file tags template for a dataset are missing when
+        validating the input manifest.
+        """
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            dataset_path = os.path.join(temporary_directory, "met_mast_data")
+
+            # Make a datafile with no tags.
+            with Datafile(os.path.join(dataset_path, "my_file_0.txt"), mode="w") as (datafile, f):
+                f.write("hello")
+
+            input_manifest = {
+                "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
+                "datasets": {
+                    "met_mast_data": dataset_path,
+                },
+            }
+
+            runner = Runner(app_src=app, twine=self.TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE)
+
+            with self.assertRaises(twined.exceptions.InvalidManifestContents):
+                runner.run(input_manifest=input_manifest)
+
+    def test_validate_input_manifest_raises_error_if_required_tags_are_not_of_required_type(self):
+        """Test that an error is raised if the required tags from the file tags template for a dataset are present but
+        are not of the required type when validating an input manifest.
+        """
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            dataset_path = os.path.join(temporary_directory, "met_mast_data")
+
+            input_manifest = {
+                "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
+                "datasets": {
+                    "met_mast_data": dataset_path,
+                },
+            }
+
+            runner = Runner(app_src=app, twine=self.TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE)
+
+            for tags in (
+                {"manufacturer": "Vestas", "height": 350, "is_recycled": False, "number_of_blades": "3"},
+                {"manufacturer": "Vestas", "height": 350, "is_recycled": "no", "number_of_blades": 3},
+                {"manufacturer": False, "height": 350, "is_recycled": "false", "number_of_blades": 3},
+            ):
+                with self.subTest(tags=tags):
+
+                    # Make a datafile with the given tags.
+                    with Datafile(
+                        path=os.path.join(dataset_path, "my_file_0.txt"),
+                        tags=tags,
+                        mode="w",
+                    ) as (datafile, f):
+                        f.write("hello")
+
+                    with self.assertRaises(twined.exceptions.InvalidManifestContents):
+                        runner.run(input_manifest=input_manifest)
+
+    def test_validate_input_manifest_with_required_tags(self):
+        """Test that validating an input manifest with required tags from the file tags template for a dataset works
+        for tags meeting the requirements.
+        """
+        runner = Runner(app_src=app, twine=self.TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE)
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            input_manifest = self._make_serialised_input_manifest_with_correct_dataset_file_tags(temporary_directory)
+            runner.run(input_manifest=input_manifest)
+
+    def test_validate_input_manifest_with_required_tags_for_remote_tag_template_schema(self):
+        """Test that a remote tag template can be used for validating tags on the datafiles in a manifest."""
+        schema_url = "https://refs.schema.octue.com/octue/my-file-type-tag-template/0.0.0.json"
+
+        twine_with_input_manifest_with_remote_tag_template = {
+            "input_manifest": {
+                "datasets": {
+                    "met_mast_data": {
+                        "purpose": "A dataset containing meteorological mast data",
+                        "file_tags_template": {"$ref": schema_url},
+                    }
+                }
+            }
+        }
+
+        remote_schema = {
+            "type": "object",
+            "properties": {
+                "manufacturer": {"type": "string"},
+                "height": {"type": "number"},
+                "is_recycled": {"type": "boolean"},
+            },
+            "required": ["manufacturer", "height", "is_recycled"],
+        }
+
+        runner = Runner(app_src=app, twine=twine_with_input_manifest_with_remote_tag_template)
+        original_resolve_from_url = copy.copy(RefResolver.resolve_from_url)
+
+        def patch_if_url_is_schema_url(instance, url):
+            """Patch the jsonschema validator `RefResolver.resolve_from_url` if the url is the schema URL, otherwise
+            leave it unpatched.
+
+            :param jsonschema.validators.RefResolver instance:
+            :param str url:
+            :return mixed:
+            """
+            if url == schema_url:
+                return remote_schema
+            else:
+                return original_resolve_from_url(instance, url)
+
+        with patch("jsonschema.validators.RefResolver.resolve_from_url", new=patch_if_url_is_schema_url):
+            with tempfile.TemporaryDirectory() as temporary_directory:
+                input_manifest = self._make_serialised_input_manifest_with_correct_dataset_file_tags(
+                    temporary_directory
+                )
+                runner.run(input_manifest=input_manifest)
+
+    def test_validate_input_manifest_with_required_tags_in_several_datasets(self):
+        """Test that required tags for different datasets' file tags templates are validated separately and correctly
+        for each dataset.
+        """
+        twine_with_input_manifest_with_required_tags_for_multiple_datasets = {
+            "input_manifest": {
+                "datasets": {
+                    "first_dataset": {
+                        "purpose": "A dataset containing meteorological mast data",
+                        "file_tags_template": {
+                            "type": "object",
+                            "properties": {"manufacturer": {"type": "string"}, "height": {"type": "number"}},
+                        },
+                    },
+                    "second_dataset": {
+                        "file_tags_template": {
+                            "type": "object",
+                            "properties": {"is_recycled": {"type": "boolean"}, "number_of_blades": {"type": "number"}},
+                        }
+                    },
+                }
+            }
+        }
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+
+            dataset_paths = (
+                os.path.join(temporary_directory, "first_dataset"),
+                os.path.join(temporary_directory, "second_dataset"),
+            )
+
+            input_manifest = {
+                "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
+                "datasets": {
+                    "first_dataset": dataset_paths[0],
+                    "second_dataset": dataset_paths[1],
+                },
+            }
+
+            with Datafile(
+                path=os.path.join(dataset_paths[0], "file_0.csv"),
+                tags={"manufacturer": "vestas", "height": 503.7},
+                mode="w",
+            ) as (datafile, f):
+                f.write("hello")
+
+            with Datafile(
+                path=os.path.join(dataset_paths[1], "file_1.csv"),
+                tags={"is_recycled": True, "number_of_blades": 3},
+                mode="w",
+            ) as (datafile, f):
+                f.write("hello")
+
+            runner = Runner(app_src=app, twine=twine_with_input_manifest_with_required_tags_for_multiple_datasets)
+            runner.run(input_manifest=input_manifest)
+
+    def _make_serialised_input_manifest_with_correct_dataset_file_tags(self, dataset_path):
+        """Make a serialised input manifest and create one dataset and its metadata on the filesystem so that, when
+        the manifest is loaded, the dataset and its metadata are also loaded. The tags on the dataset's files are
+        correct for the `TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE` twine (see the test class variable).
+
+        :param str dataset_path: the path to make the dataset at
+        :return str: the serialised input manifest
+        """
+        input_manifest = {"id": "8ead7669-8162-4f64-8cd5-4abe92509e17", "datasets": {"met_mast_data": dataset_path}}
+
+        # Make two datafiles with the correct tags for `TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE`
+        for filename in ("file_1.csv", "file_2.csv"):
+            with Datafile(
+                path=os.path.join(dataset_path, filename),
+                tags={
+                    "manufacturer": "vestas",
+                    "height": 500,
+                    "is_recycled": True,
+                    "number_of_blades": 3,
+                },
+                mode="w",
+            ) as (datafile, f):
+                f.write("hello")
+
+        return input_manifest

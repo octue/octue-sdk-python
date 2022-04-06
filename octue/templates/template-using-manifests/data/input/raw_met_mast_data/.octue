@@ -1,0 +1,19 @@
+{
+    "dataset": {
+        "id": "7ead4669-8162-4f64-8cd5-4abe92509e17",
+        "name": "meteorological mast dataset",
+        "tags": {
+            "location": 108346
+        },
+        "labels": [
+            "met",
+            "mast",
+            "wind"
+        ],
+        "files": [
+            "data/input/raw_met_mast_data/08DEC/High Res Meteorological Mast Data - 8 Dec_1.csv",
+            "data/input/raw_met_mast_data/08DEC/High Res Meteorological Mast Data - 8 Dec_2.csv",
+            "data/input/raw_met_mast_data/08DEC/meta - 8 Dec.dat"
+        ]
+    }
+}

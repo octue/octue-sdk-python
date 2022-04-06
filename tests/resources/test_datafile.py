@@ -25,7 +25,7 @@ class MyPathable(Pathable, MixinBase):
     pass
 
 
-class DatafileTestCase(BaseTestCase):
+class TestDatafile(BaseTestCase):
     def setUp(self):
         """Set up the test class by adding an example `path_from` and `path` to it.
 
@@ -266,7 +266,7 @@ class DatafileTestCase(BaseTestCase):
         datafile, _ = self.create_datafile_in_cloud(labels={"start"})
         datafile.labels = {"finish"}
 
-        with patch("octue.resources.datafile.Datafile.update_cloud_metadata") as mock:
+        with patch("octue.resources.datafile.Datafile._update_cloud_metadata") as mock:
             datafile.to_cloud(datafile.cloud_path, update_cloud_metadata=False)
             self.assertFalse(mock.called)
 
@@ -278,7 +278,7 @@ class DatafileTestCase(BaseTestCase):
 
         new_datafile = Datafile(datafile.cloud_path)
 
-        with patch("octue.resources.datafile.Datafile.update_cloud_metadata") as mock:
+        with patch("octue.resources.datafile.Datafile._update_cloud_metadata") as mock:
             new_datafile.to_cloud()
             self.assertFalse(mock.called)
 
@@ -313,7 +313,7 @@ class DatafileTestCase(BaseTestCase):
 
         new_datafile = Datafile(datafile.cloud_path)
         new_datafile.labels = {"new"}
-        new_datafile.update_cloud_metadata()
+        new_datafile._update_cloud_metadata()
 
         self.assertEqual(Datafile(datafile.cloud_path).labels, {"new"})
 
@@ -324,7 +324,7 @@ class DatafileTestCase(BaseTestCase):
         datafile = Datafile(path="hello.txt")
 
         with self.assertRaises(exceptions.CloudLocationNotSpecified):
-            datafile.update_cloud_metadata()
+            datafile._update_cloud_metadata()
 
     def test_cloud_path(self):
         """Test that the cloud path property gives the right path."""
@@ -565,6 +565,7 @@ class DatafileTestCase(BaseTestCase):
 
         finally:
             os.remove("blah.txt")
+            os.remove(".octue")
 
     def test_setting_local_path_to_path_corresponding_to_existing_file_fails(self):
         """Ensure that a datafile's local path cannot be set to an existing file's path."""
@@ -602,6 +603,7 @@ class DatafileTestCase(BaseTestCase):
 
         finally:
             os.remove("blib.txt")
+            os.remove(".octue")
 
     def test_cloud_path_property(self):
         """Test that the cloud path property returns the expected value."""
@@ -755,3 +757,49 @@ class DatafileTestCase(BaseTestCase):
                 with self.assertRaises(ImportError):
                     with datafile.open("w") as f:
                         f["dataset"] = range(10)
+
+    def test_metadata_is_saved_locally_when_in_write_mode_and_is_loaded_on_new_instantiation(self):
+        """Test that metadata for a local datafile is saved locally if in write mode and loaded in new instantiations of
+        the same file.
+        """
+        new_labels = {"yes", "no", "maybe"}
+
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            with Datafile(path=temporary_file.name, mode="w") as (datafile, f):
+                datafile.labels = new_labels
+
+            reloaded_datafile = Datafile(path=temporary_file.name)
+            self.assertEqual(reloaded_datafile.labels, new_labels)
+            self.assertEqual(reloaded_datafile.id, datafile.id)
+            self.assertEqual(reloaded_datafile.hash_value, datafile.hash_value)
+
+    def test_local_metadata_is_not_saved_locally_if_changed_in_read_mode(self):
+        """Test that local metadata for a datafile is not saved if changed in read mode."""
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            with Datafile(path=temporary_file.name, mode="r") as (datafile, f):
+                datafile.labels = {"yes", "no", "maybe"}
+
+            reloaded_datafile = Datafile(path=temporary_file.name)
+            self.assertEqual(reloaded_datafile.labels, LabelSet())
+            self.assertEqual(reloaded_datafile.hash_value, datafile.hash_value)
+
+    def test_local_metadata_is_updated_if_changed_in_write_mode(self):
+        """Test that local metadata for a datafile is updated if the datafile's metadata is updated in write mode."""
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            with Datafile(path=temporary_file.name, mode="w") as (datafile, f):
+                datafile.labels = {"yes", "no", "maybe"}
+
+            self.assertEqual(datafile.labels, {"yes", "no", "maybe"})
+            self.assertEqual(datafile.tags, {})
+
+            # Change the labels and tags.
+            with Datafile(path=temporary_file.name, mode="w") as (reloaded_datafile, f):
+                reloaded_datafile.labels = {"blah", "nah"}
+                reloaded_datafile.tags = {"my_tag": "hello"}
+
+            # Check that the local metadata for the file is updated.
+            datafile_reloaded_again = Datafile(path=temporary_file.name)
+            self.assertEqual(datafile_reloaded_again.labels, {"blah", "nah"})
+            self.assertEqual(datafile_reloaded_again.tags, {"my_tag": "hello"})
+            self.assertEqual(datafile_reloaded_again.id, datafile.id)
+            self.assertEqual(datafile_reloaded_again.hash_value, datafile.hash_value)

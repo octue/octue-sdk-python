@@ -115,16 +115,13 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         :param str bucket_name:
         :return dict: serialised strings for values and manifest data.
         """
-        serialised_strands = {}
+        serialised_strands = {"output_values": None, "output_manifest": None}
 
-        for output_strand in OUTPUT_STRANDS:
-            logger.debug("Serialising %r", output_strand)
+        if self.output_values:
+            serialised_strands["output_values"] = json.dumps(self.output_values, cls=OctueJSONEncoder)
 
-            attribute = getattr(self, output_strand)
-            if attribute is not None:
-                attribute = json.dumps(attribute, cls=OctueJSONEncoder)
-
-            serialised_strands[output_strand] = attribute
+        if self.output_manifest:
+            serialised_strands["output_manifest"] = self.output_manifest.to_primitive()
 
         logger.debug("Validating serialised output json against twine")
         self.twine.validate(**serialised_strands)

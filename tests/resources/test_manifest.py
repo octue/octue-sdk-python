@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import tempfile
+from unittest.mock import patch
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
@@ -38,20 +39,45 @@ class TestManifest(BaseTestCase):
         manifest = Manifest(datasets={"my_dataset": Dataset(files=files)})
         self.assertTrue(manifest.all_datasets_are_in_cloud)
 
-    def test_deserialise(self):
-        """Test that manifests can be deserialised."""
-        manifest = self.create_valid_manifest()
-        serialised_manifest = manifest.to_primitive()
-        deserialised_manifest = Manifest.deserialise(serialised_manifest)
+    def test_serialisation_and_deserialisation(self):
+        """Test that manifests can be serialised and deserialised."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            datasets = {
+                "my_dataset_0": Dataset(
+                    path=os.path.join(temporary_directory, "my_dataset_0"),
+                    files=[Datafile(path=os.path.join(temporary_directory, "my_dataset_0", "my_file_0.txt"))],
+                ),
+                "my_dataset_1": Dataset(
+                    path=os.path.join(temporary_directory, "my_dataset_1"),
+                    files=[Datafile(path=os.path.join(temporary_directory, "my_dataset_1", "my_file_1.txt"))],
+                ),
+            }
+
+            manifest = Manifest(datasets=datasets, id="7e0025cd-bd68-4de6-b48d-2643ebd5effd", name="my-manifest")
+
+            serialised_manifest = manifest.to_primitive()
+
+            self.assertEqual(
+                serialised_manifest,
+                {
+                    "id": manifest.id,
+                    "name": "my-manifest",
+                    "datasets": {
+                        "my_dataset_0": os.path.join(temporary_directory, "my_dataset_0"),
+                        "my_dataset_1": os.path.join(temporary_directory, "my_dataset_1"),
+                    },
+                },
+            )
+
+            deserialised_manifest = Manifest.deserialise(serialised_manifest)
 
         self.assertEqual(manifest.name, deserialised_manifest.name)
         self.assertEqual(manifest.id, deserialised_manifest.id)
-        self.assertEqual(manifest.absolute_path, deserialised_manifest.absolute_path)
 
         for key in manifest.datasets.keys():
             self.assertEqual(manifest.datasets[key].name, deserialised_manifest.datasets[key].name)
             self.assertEqual(manifest.datasets[key].id, deserialised_manifest.datasets[key].id)
-            self.assertEqual(manifest.datasets[key].absolute_path, deserialised_manifest.datasets[key].absolute_path)
+            self.assertEqual(manifest.datasets[key].path, deserialised_manifest.datasets[key].path)
 
     def test_to_cloud(self):
         """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance."""
@@ -81,7 +107,6 @@ class TestManifest(BaseTestCase):
 
             persisted_manifest = Manifest.from_cloud(cloud_path)
 
-            self.assertEqual(persisted_manifest.path, f"gs://{TEST_BUCKET_NAME}/my-directory/manifest.json")
             self.assertEqual(persisted_manifest.id, manifest.id)
             self.assertEqual(persisted_manifest.hash_value, manifest.hash_value)
             self.assertEqual(
@@ -143,12 +168,13 @@ class TestManifest(BaseTestCase):
 
     def test_instantiating_from_multiple_local_datasets(self):
         """Test instantiating a manifest from multiple local datasets."""
-        manifest = Manifest(
-            datasets={
-                "dataset_0": os.path.join("path", "to", "dataset_0"),
-                "dataset_1": os.path.join("path", "to", "dataset_1"),
-            },
-        )
+        with patch("octue.resources.dataset.Dataset._save_local_metadata"):
+            manifest = Manifest(
+                datasets={
+                    "dataset_0": os.path.join("path", "to", "dataset_0"),
+                    "dataset_1": os.path.join("path", "to", "dataset_1"),
+                },
+            )
 
         self.assertEqual({dataset.name for dataset in manifest.datasets.values()}, {"dataset_0", "dataset_1"})
 

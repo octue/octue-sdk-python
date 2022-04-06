@@ -576,7 +576,7 @@ class TestService(BaseTestCase):
         local_file = Datafile(path=temporary_local_path)
         self.assertFalse(local_file.exists_in_cloud)
 
-        manifest = Manifest(datasets={"my-local-dataset": Dataset(name="my-local-dataset", file=local_file)})
+        manifest = Manifest(datasets={"my-local-dataset": Dataset(name="my-local-dataset", files={local_file})})
 
         # Get the child to open the local file itself and return the contents as output.
         def run_function(analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message):
