@@ -23,7 +23,7 @@ def run(analysis, *args, **kwargs):
     - Add them to the output manifest
     """
     # You can use the attached logger to record debug statements, general information, warnings or errors
-    logger.info("Starting clean up of files in %s", analysis.input_manifest.absolute_path)
+    logger.info("Starting clean up of files in %s", analysis.input_manifest)
 
     # Get the configuration value for our time averaging window (or if not present, use the default specified in
     # the twine)
@@ -84,10 +84,11 @@ def run(analysis, *args, **kwargs):
     timeseries_datafile = Datafile(
         timestamp=None,
         path="cleaned.csv",
-        path_from=output_dataset,  # Tells it where it should be stored, in this case the output dataset folder
         skip_checks=True,  # We haven't created the actual file yet, so checks would definitely fail!
         labels="timeseries",
     )
+
+    output_dataset.add(timeseries_datafile, path_in_dataset="cleaned.csv")
 
     # Write the file (now we know where to write it)
     with timeseries_datafile.open("w") as fp:

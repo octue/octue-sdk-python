@@ -8,11 +8,11 @@ from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
-from octue.mixins import Hashable, Identifiable, Pathable, Serialisable
+from octue.mixins import Hashable, Identifiable, Serialisable
 from octue.resources.dataset import Dataset
 
 
-class Manifest(Pathable, Serialisable, Identifiable, Hashable):
+class Manifest(Serialisable, Identifiable, Hashable):
     """A representation of a manifest, which can contain multiple datasets This is used to manage all files coming into
     (or leaving), a data service for an analysis at the configuration, input or output stage.
 
@@ -23,23 +23,16 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
     """
 
     _ATTRIBUTES_TO_HASH = ("datasets",)
-    _SERIALISE_FIELDS = "datasets", "keys", "id", "name", "path"
 
-    def __init__(self, id=None, path=None, datasets=None, **kwargs):
+    # Paths to datasets are added to the serialisation in `Manifest.to_primitive`.
+    _SERIALISE_FIELDS = "id", "name"
+
+    def __init__(self, id=None, name=None, datasets=None, **kwargs):
         if isinstance(datasets, list):
             datasets = octue.migrations.manifest.translate_datasets_list_to_dictionary(datasets, kwargs.get("keys"))
 
-        super().__init__(id=id, path=path)
-        self.datasets = {}
-
-        # TODO The decoders aren't being used; utils.decoders.OctueJSONDecoder should be used in twined
-        #  so that resources get automatically instantiated.
-        #  Add a proper `decoder` argument  to the load_json utility in twined so that datasets, datafiles and manifests
-        #  get initialised properly, then tidy up this hackjob. Also need to allow Pathables to update ownership
-        #  (because decoders work from the bottom of the tree upwards, not top-down)
-
-        self._instantiate_datasets(datasets or {})
-        vars(self).update(**kwargs)
+        super().__init__(id=id, name=name)
+        self.datasets = self._instantiate_datasets(datasets or {})
 
     @classmethod
     def from_cloud(cls, cloud_path=None, bucket_name=None, path_to_manifest_file=None):
@@ -51,20 +44,20 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         if not cloud_path:
             cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_to_manifest_file)
 
-        bucket_name, path_to_manifest_file = storage.path.split_bucket_name_from_gs_path(cloud_path)
-
         serialised_manifest = json.loads(GoogleCloudStorageClient().download_as_string(cloud_path))
-
-        datasets = {}
-
-        for key, dataset in serialised_manifest["datasets"].items():
-            datasets[key] = Dataset.from_cloud(dataset)
 
         return Manifest(
             id=serialised_manifest["id"],
-            path=storage.path.generate_gs_path(bucket_name, path_to_manifest_file),
-            datasets=datasets,
+            datasets={key: Dataset.from_cloud(dataset) for key, dataset in serialised_manifest["datasets"].items()},
         )
+
+    @property
+    def all_datasets_are_in_cloud(self):
+        """Do all the files of all the datasets of the manifest exist in the cloud?
+
+        :return bool:
+        """
+        return all(dataset.all_files_are_in_cloud for dataset in self.datasets.values())
 
     def to_cloud(self, cloud_path=None, bucket_name=None, path_to_manifest_file=None, store_datasets=None):
         """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory.
@@ -84,24 +77,7 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
         if not cloud_path:
             cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_to_manifest_file)
 
-        datasets = {}
-
-        for key, dataset in self.datasets.items():
-            datasets[key] = dataset.cloud_path or dataset.absolute_path
-
-        serialised_manifest = self.to_primitive()
-        serialised_manifest["datasets"] = datasets
-        del serialised_manifest["path"]
-
-        GoogleCloudStorageClient().upload_from_string(string=json.dumps(serialised_manifest), cloud_path=cloud_path)
-
-    @property
-    def all_datasets_are_in_cloud(self):
-        """Do all the files of all the datasets of the manifest exist in the cloud?
-
-        :return bool:
-        """
-        return all(dataset.all_files_are_in_cloud for dataset in self.datasets.values())
+        GoogleCloudStorageClient().upload_from_string(string=json.dumps(self.to_primitive()), cloud_path=cloud_path)
 
     def get_dataset(self, key):
         """Get a dataset by its key (as defined in the twine).
@@ -135,6 +111,16 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
 
         return self
 
+    def to_primitive(self):
+        """Convert the manifest to a dictionary of primitives, converting its datasets into their paths for a
+        lightweight serialisation.
+
+        :return dict:
+        """
+        self_as_primitive = super().to_primitive()
+        self_as_primitive["datasets"] = {name: dataset.path for name, dataset in self.datasets.items()}
+        return self_as_primitive
+
     def _instantiate_datasets(self, datasets):
         """Add the given datasets to the manifest, instantiating them if needed and giving them the correct path.
         There are several possible forms the datasets can come in:
@@ -147,38 +133,41 @@ class Manifest(Pathable, Serialisable, Identifiable, Hashable):
           cloud files)
 
         :param dict(str, octue.resources.dataset.Dataset|dict|str) datasets: the datasets to add to the manifest
-        :return None:
+        :return dict:
         """
         datasets = copy.deepcopy(datasets)
+        datasets_to_add = {}
 
         for key, dataset in datasets.items():
 
             if isinstance(dataset, Dataset):
-                self.datasets[key] = dataset
+                datasets_to_add[key] = dataset
 
             else:
                 # If `dataset` is just a path to a dataset:
                 if isinstance(dataset, str):
                     if storage.path.is_qualified_cloud_path(dataset):
-                        self.datasets[key] = Dataset.from_cloud(cloud_path=dataset, recursive=True)
+                        datasets_to_add[key] = Dataset.from_cloud(cloud_path=dataset, recursive=True)
                     else:
-                        self.datasets[key] = Dataset.from_local_directory(path_to_directory=dataset, recursive=True)
+                        datasets_to_add[key] = Dataset.from_local_directory(path_to_directory=dataset, recursive=True)
 
                 # If `dataset` is a dictionary including a "path" key:
                 elif "path" in dataset:
 
                     # If the path is a cloud path:
                     if storage.path.is_qualified_cloud_path(dataset["path"]):
-                        self.datasets[key] = Dataset.from_cloud(cloud_path=dataset["path"], recursive=True)
+                        datasets_to_add[key] = Dataset.from_cloud(cloud_path=dataset["path"], recursive=True)
 
                     # If the path is local but not absolute:
                     elif not os.path.isabs(dataset["path"]):
                         path = dataset.pop("path")
-                        self.datasets[key] = Dataset(**dataset, path=path)
+                        datasets_to_add[key] = Dataset(**dataset, path=path)
 
                     # If the path is an absolute local path:
                     else:
-                        self.datasets[key] = Dataset(**dataset)
+                        datasets_to_add[key] = Dataset(**dataset)
 
                 else:
-                    self.datasets[key] = Dataset(**dataset, path=key)
+                    datasets_to_add[key] = Dataset(**dataset, path=key)
+
+        return datasets_to_add
