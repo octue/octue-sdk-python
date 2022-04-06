@@ -44,15 +44,13 @@ class TestDatafile(BaseTestCase):
 
     def create_datafile_in_cloud(
         self,
-        bucket_name=TEST_BUCKET_NAME,
-        path_in_bucket="cloud_file.txt",
+        cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "cloud_file.txt"),
         contents="some text",
         **kwargs,
     ):
         """Create a datafile in the cloud. Any metadata attributes can be set via kwargs.
 
-        :param str bucket_name:
-        :param str path_in_bucket:
+        :param str cloud_path:
         :param str contents:
         :return (octue.resources.datafile.Datafile, str):
         """
@@ -60,7 +58,7 @@ class TestDatafile(BaseTestCase):
             temporary_file.write(contents)
 
         datafile = Datafile(path=temporary_file.name, **kwargs)
-        datafile.to_cloud(cloud_path=storage.path.generate_gs_path(bucket_name, path_in_bucket))
+        datafile.to_cloud(cloud_path=cloud_path)
         return datafile, contents
 
     def test_instantiates(self):
@@ -599,9 +597,7 @@ class TestDatafile(BaseTestCase):
         cloud file as well as any local changes.
         """
         try:
-            datafile, original_contents = self.create_datafile_in_cloud(
-                bucket_name=TEST_BUCKET_NAME, path_in_bucket="cloud_file.txt"
-            )
+            datafile, original_contents = self.create_datafile_in_cloud()
             datafile.local_path = "blib.txt"
 
             self.assertEqual(datafile.cloud_path, storage.path.generate_gs_path(TEST_BUCKET_NAME, "cloud_file.txt"))
