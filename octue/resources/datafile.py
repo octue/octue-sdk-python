@@ -615,12 +615,21 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
             )
 
     def _calculate_hash(self):
-        """Calculate the hash of the file."""
-        try:
-            hash = calculate_hash(self.local_path)
-            return super()._calculate_hash(hash)
-        except FileNotFoundError:
-            return self._cloud_metadata.get("crc32c", EMPTY_STRING_HASH_VALUE)
+        """Get the hash of the datafile according to the first of the following methods that is applicable:
+
+        1. The hash of the file at its local path
+        2. If it doesn't have a local path, the hash of the file at its cloud path
+        3. If it doesn't have either of these, use the empty string hash value
+
+        :return str:
+        """
+        if self._local_path and os.path.exists(self._local_path):
+            # Calculate the hash of the file itself and then pass it to `Hashable` to include the hashes of any
+            # attributes named in `self._ATTRIBUTES_TO_HASH`.
+            hash_value = calculate_hash(self._local_path)
+            return super()._calculate_hash(hash_value)
+        else:
+            return self.cloud_hash_value or EMPTY_STRING_HASH_VALUE
 
     def _get_cloud_location(self, cloud_path=None):
         """Get the cloud location details for the bucket, allowing the keyword arguments to override any stored values.
