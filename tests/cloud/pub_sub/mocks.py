@@ -243,6 +243,7 @@ class MockService(Service):
         subscribe_to_logs=True,
         allow_local_files=False,
         question_uuid=None,
+        push_endpoint=None,
         timeout=30,
     ):
         """Put the question into the messages register, register the existence of the corresponding response topic, add
@@ -253,17 +254,20 @@ class MockService(Service):
         :param octue.resources.manifest.Manifest|None input_manifest:
         :param bool subscribe_to_logs:
         :param bool allow_local_files:
+        :param str|None question_uuid:
+        :param str|None push_endpoint:
         :param float|None timeout:
         :return MockFuture, str:
         """
         response_subscription, question_uuid = super().ask(
-            service_id,
-            input_values,
-            input_manifest,
-            subscribe_to_logs,
-            allow_local_files,
-            question_uuid,
-            timeout,
+            service_id=service_id,
+            input_values=input_values,
+            input_manifest=input_manifest,
+            subscribe_to_logs=subscribe_to_logs,
+            allow_local_files=allow_local_files,
+            question_uuid=question_uuid,
+            push_endoint=push_endpoint,
+            timeout=timeout,
         )
 
         # Ignore any errors from the answering service as they will be raised on the remote service in practice, not
