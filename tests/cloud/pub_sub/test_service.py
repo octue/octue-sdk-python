@@ -175,6 +175,22 @@ class TestService(BaseTestCase):
             with self.assertRaises(TimeoutError):
                 service.wait_for_answer(subscription=mock_subscription, timeout=0.01)
 
+    def test_error_raised_if_attempting_to_wait_for_answer_from_push_subscription(self):
+        """Test that an error is raised if attempting to wait for an answer from a push subscription."""
+        service = Service(backend=BACKEND)
+
+        mock_subscription = MockSubscription(
+            name="world",
+            topic=MockTopic(name="world", namespace="hello", service=service),
+            namespace="hello",
+            project_name=TEST_PROJECT_NAME,
+            subscriber=MockSubscriber(),
+            push_endpoint="https://example.com/endpoint",
+        )
+
+        with self.assertRaises(exceptions.PushSubscriptionCannotBePulled):
+            service.wait_for_answer(subscription=mock_subscription)
+
     def test_exceptions_in_responder_are_handled_and_sent_to_asker(self):
         """Test that exceptions raised in the responding service are handled and sent back to the asker."""
         responding_service = self.make_responding_service_with_error(
