@@ -189,7 +189,7 @@ class Service(CoolNameable):
         subscribe_to_logs=True,
         allow_local_files=False,
         question_uuid=None,
-        push_endoint=None,
+        push_endpoint=None,
         timeout=30,
     ):
         """Ask a serving Service a question (i.e. send it input values for it to run its app on). The input values must
@@ -237,7 +237,7 @@ class Service(CoolNameable):
             namespace=OCTUE_NAMESPACE,
             project_name=self.backend.project_name,
             subscriber=pubsub_v1.SubscriberClient(credentials=self._credentials),
-            push_endpoint=push_endoint,
+            push_endpoint=push_endpoint,
         )
         response_subscription.create(allow_existing=True)
 
