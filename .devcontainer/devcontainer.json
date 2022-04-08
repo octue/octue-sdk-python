@@ -2,7 +2,10 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.187.0/containers/python-3
 {
   "name": "Python 3",
-  "image": "windpioneers/gdal-python:familiar-catshark-gdal-2.4.1-python-3.8-dev",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
   // Set *default* container specific settings.json values on container create.
   "settings": {
     "austin.mode": "Wall time",
@@ -54,9 +57,9 @@
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   "forwardPorts": [80, 443, 7045, 7046, 7047, 7048, 7049, 8080],
 
-  // Use 'postCreateCommand' to run commands after the container is created.
-  // Note: Reverting to use pip requirements until we can install private dependencies in GHA with poetry
-  "postCreateCommand": "pip install pre-commit poetry && poetry config virtualenvs.create false && pip install -r requirements-dev.txt",
+  // Use 'postCreateCommand' to run commands after the container is created
+  // TODO update this to install all extras once https://github.com/python-poetry/poetry/issues/3413 is solved
+  "postCreateCommand": "poetry install --extras hdf5 --extras dataflow",
 
   // Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
   "remoteUser": "vscode",
