@@ -266,7 +266,7 @@ class MockService(Service):
             subscribe_to_logs=subscribe_to_logs,
             allow_local_files=allow_local_files,
             question_uuid=question_uuid,
-            push_endoint=push_endpoint,
+            push_endpoint=push_endpoint,
             timeout=timeout,
         )
 
