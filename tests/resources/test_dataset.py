@@ -105,6 +105,149 @@ class TestDataset(BaseTestCase):
         with self.assertRaises(exceptions.InvalidInputException):
             resource.add(NotADatafile())
 
+    def test_error_raised_if_adding_cloud_datafile_from_different_bucket_to_cloud_dataset(self):
+        """Test that an error is raised if attempting to add a cloud datafile to a cloud dataset from a different
+        bucket.
+        """
+        dataset = Dataset(path=storage.path.generate_gs_path("another-bucket", "path", "to", "dataset"))
+        datafile = Datafile(path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "datafile.dat"))
+
+        with self.assertRaises(exceptions.IncompatibleCloudLocations):
+            dataset.add(datafile)
+
+    def test_adding_cloud_datafile_to_cloud_dataset(self):
+        """Test that a cloud datafile can be added to a cloud dataset if they're from the same bucket and that it keeps
+        its original path if no `path_within_dataset` is provided.
+        """
+        dataset = Dataset(path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "dataset"))
+        datafile = Datafile(path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "datafile.dat"))
+        dataset.add(datafile)
+
+        self.assertIn(datafile, dataset)
+        self.assertEqual(
+            datafile.cloud_path, storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "datafile.dat")
+        )
+
+    def test_providing_path_when_adding_cloud_datafile_to_cloud_dataset_copies_datafile_to_path(self):
+        """Test that providing the `path_within_dataset` parameter when adding a cloud datafile to a cloud dataset
+        results in the datafile being copied to that location within the dataset.
+        """
+        dataset = Dataset(path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "dataset"))
+
+        with Datafile(path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "datafile.dat"), mode="w") as (
+            datafile,
+            f,
+        ):
+            f.write("hello")
+
+        path_in_dataset = storage.path.join("another", "path", "datafile.dat")
+        dataset.add(datafile, path_in_dataset=path_in_dataset)
+
+        self.assertIn(datafile, dataset)
+        self.assertEqual(datafile.cloud_path, storage.path.join(dataset.path, path_in_dataset))
+
+    def test_adding_local_datafile_to_cloud_dataset_uploads_it_to_dataset_root(self):
+        """Test that, when adding a local datafile to a cloud dataset and `path_in_dataset` is not provided, the
+        datafile is uploaded to the root of the dataset.
+        """
+        dataset = Dataset(path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "dataset"))
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with Datafile(path=os.path.join(temporary_directory, "path", "to", "datafile.dat"), mode="w") as (
+                datafile,
+                f,
+            ):
+                f.write("hello")
+
+            dataset.add(datafile)
+
+        self.assertIn(datafile, dataset)
+        self.assertEqual(datafile.cloud_path, storage.path.join(dataset.path, "datafile.dat"))
+
+    def test_providing_path_when_adding_local_datafile_to_cloud_dataset(self):
+        """Test that, when adding a local datafile to a cloud dataset and providing the `path_within_dataset` parameter,
+        the datafile is uploaded to that path within the dataset.
+        """
+        dataset = Dataset(path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "dataset"))
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with Datafile(path=os.path.join(temporary_directory, "path", "to", "datafile.dat"), mode="w") as (
+                datafile,
+                f,
+            ):
+                f.write("hello")
+
+            path_in_dataset = storage.path.join("another", "path", "datafile.dat")
+            dataset.add(datafile, path_in_dataset=path_in_dataset)
+
+        self.assertIn(datafile, dataset)
+        self.assertEqual(datafile.cloud_path, storage.path.join(dataset.path, path_in_dataset))
+
+    def test_adding_local_datafile_to_local_dataset(self):
+        """Test that a local datafile can be added to a local dataset and that it keeps its original path if no
+        `path_within_dataset` is provided.
+        """
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            dataset = Dataset(path=os.path.join(temporary_directory, "path", "to", "dataset"))
+            datafile = Datafile(path=os.path.join(temporary_directory, "path", "to", "datafile.dat"))
+            dataset.add(datafile)
+
+        self.assertIn(datafile, dataset)
+        self.assertEqual(datafile.local_path, os.path.join(temporary_directory, "path", "to", "datafile.dat"))
+
+    def test_providing_path_when_adding_local_datafile_to_local_dataset(self):
+        """Test that providing the `path_within_dataset` parameter when adding a local datafile to a local dataset
+        results in the datafile being copied to that location within the dataset.
+        """
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            dataset = Dataset(path=os.path.join(temporary_directory, "path", "to", "dataset"))
+
+            with Datafile(path=os.path.join(temporary_directory, "path", "to", "datafile.dat"), mode="w") as (
+                datafile,
+                f,
+            ):
+                f.write("hello")
+
+            path_in_dataset = os.path.join("another", "path", "datafile.dat")
+            dataset.add(datafile, path_in_dataset=path_in_dataset)
+
+        self.assertIn(datafile, dataset)
+        self.assertEqual(datafile.local_path, os.path.join(dataset.path, path_in_dataset))
+
+    def test_adding_cloud_datafile_to_local_dataset(self):
+        """Test that when a cloud datafile is added to a local dataset, it is downloaded to the root of the dataset."""
+        with Datafile(path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "datafile.dat"), mode="w") as (
+            datafile,
+            f,
+        ):
+            f.write("hello")
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            dataset = Dataset(path=os.path.join(temporary_directory, "path", "to", "dataset"))
+            dataset.add(datafile)
+
+        self.assertIn(datafile, dataset)
+        self.assertEqual(datafile.local_path, os.path.join(dataset.path, "datafile.dat"))
+
+    def test_providing_path_in_dataset_when_adding_cloud_datafile_to_local_dataset(self):
+        """Test that when a cloud datafile is added to a local dataset and the `path_in_dataset` parameter is provided,
+        it is downloaded to that path within the dataset.
+        """
+        with Datafile(path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "datafile.dat"), mode="w") as (
+            datafile,
+            f,
+        ):
+            f.write("hello")
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            dataset = Dataset(path=os.path.join(temporary_directory, "path", "to", "dataset"))
+
+            path_in_dataset = os.path.join("another", "path", "datafile.dat")
+            dataset.add(datafile, path_in_dataset=path_in_dataset)
+
+        self.assertIn(datafile, dataset)
+        self.assertEqual(datafile.local_path, os.path.join(dataset.path, path_in_dataset))
+
     def test_filter_catches_single_underscore_mistake(self):
         """Ensure that if the filter name contains only single underscores, an error is raised."""
         resource = Dataset(

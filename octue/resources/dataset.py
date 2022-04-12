@@ -7,7 +7,7 @@ import tempfile
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.exceptions import CloudLocationNotSpecified, InvalidInputException
+from octue.exceptions import CloudLocationNotSpecified, IncompatibleCloudLocations, InvalidInputException
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
@@ -152,6 +152,26 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         return not storage.path.is_qualified_cloud_path(self.path)
 
     @property
+    def bucket_name(self):
+        """Get the name of the bucket the dataset exists in if it exists in the cloud.
+
+        :return str|None:
+        """
+        if self.exists_in_cloud:
+            return storage.path.split_bucket_name_from_gs_path(self.path)[0]
+        return None
+
+    @property
+    def path_in_bucket(self):
+        """Get the path of the dataset in its bucket if it exists in the cloud.
+
+        :return str|None:
+        """
+        if self.exists_in_cloud:
+            return storage.path.split_bucket_name_from_gs_path(self.path)[1]
+        return None
+
+    @property
     def all_files_are_in_cloud(self):
         """Do all the files of the dataset exist in the cloud?
 
@@ -175,6 +195,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
     def __len__(self):
         return len(self.files)
+
+    def __contains__(self, item):
+        return item in self.files
 
     def to_cloud(self, cloud_path=None, bucket_name=None, output_directory=None):
         """Upload a dataset to the given cloud path.
@@ -220,15 +243,52 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :param octue.resources.datafile.Datafile datafile: the datafile to add to the dataset
         :param str|None path_in_dataset: if provided, set the datafile's local path to this path within the dataset
         :raise octue.exceptions.InvalidInputException: if the datafile is not a `Datafile` instance
+        :raise octue.exceptions.IncompatibleCloudLocations: if attempting to add a cloud datafile from one bucket to a cloud dataset from another bucket
         :return None:
         """
         if not isinstance(datafile, Datafile):
             raise InvalidInputException(f"{datafile!r} must be of type `Datafile` to add it to the dataset.")
 
-        self.files.add(datafile)
+        if self.exists_in_cloud:
 
+            # Adding a cloud datafile to a cloud dataset.
+            if datafile.exists_in_cloud:
+                if datafile.bucket_name != self.bucket_name:
+                    raise IncompatibleCloudLocations(
+                        f"Datafiles must be from the same cloud bucket as the dataset they are being added to. The "
+                        f"datafile's bucket is {datafile.bucket_name!r} while the dataset's bucket is "
+                        f"{self.bucket_name!r}. Try changing the cloud location of the datafile and try again."
+                    )
+
+                if path_in_dataset:
+                    new_path = storage.path.join(self.path, path_in_dataset)
+
+                    if datafile.cloud_path != new_path:
+                        datafile.to_cloud(new_path)
+
+                self.files.add(datafile)
+                return
+
+            # Adding a local datafile to a cloud dataset.
+            datafile.to_cloud(storage.path.join(self.path, path_in_dataset or datafile.name))
+            self.files.add(datafile)
+            return
+
+        # Adding a cloud datafile to a local dataset.
+        if datafile.exists_in_cloud:
+            datafile.download(local_path=os.path.join(self.path, path_in_dataset or datafile.name))
+            self.files.add(datafile)
+            return
+
+        # Adding a local datafile to a local dataset.
         if path_in_dataset:
-            datafile.local_path = os.path.join(self.path, path_in_dataset)
+            new_path = os.path.join(self.path, path_in_dataset)
+
+            if datafile.local_path != new_path:
+                os.makedirs(os.path.split(new_path)[0])
+                datafile.local_path = new_path
+
+        self.files.add(datafile)
 
     def get_file_by_label(self, label):
         """Get a single datafile from a dataset by filtering for files with the provided label.
