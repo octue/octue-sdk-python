@@ -42,7 +42,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     # Paths to files are added to the serialisation in `Dataset.to_primitive`.
     _SERIALISE_FIELDS = "name", "labels", "tags", "id", "path"
 
-    def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None, save_metadata_locally=True):
+    def __init__(self, files=None, name=None, id=None, path=".", tags=None, labels=None, save_metadata_locally=True):
         super().__init__(name=name, id=id, tags=tags, labels=labels)
         self.path = path
         self.files = self._instantiate_datafiles(files or [])
