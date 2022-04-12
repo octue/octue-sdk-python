@@ -16,51 +16,6 @@ from tests.resources import create_dataset_with_two_files
 
 
 class TestDataset(BaseTestCase):
-    def _create_nested_cloud_dataset(self, dataset_name="a_dataset"):
-        cloud_storage_client = GoogleCloudStorageClient()
-
-        cloud_storage_client.upload_from_string(
-            "[1, 2, 3]", cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, dataset_name, "file_0.txt")
-        )
-
-        cloud_storage_client.upload_from_string(
-            "[4, 5, 6]", cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, dataset_name, "file_1.txt")
-        )
-
-        cloud_storage_client.upload_from_string(
-            "['a', 'b', 'c']",
-            cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, dataset_name, "sub-directory/sub_file.txt"),
-        )
-
-        cloud_storage_client.upload_from_string(
-            "['blah', 'b', 'c']",
-            cloud_path=storage.path.generate_gs_path(
-                TEST_BUCKET_NAME, dataset_name, "sub-directory", "sub-sub-directory", "sub_sub_file.txt"
-            ),
-        )
-
-    def _create_files_and_nested_subdirectories(self, directory_path):
-        """Create files and nested subdirectories of files in the given directory.
-
-        :param str directory_path: the directory to create the nested structure in
-        :return list(str): the paths of the files in the directory and subdirectories
-        """
-        paths = [
-            os.path.join(directory_path, "file_0.txt"),
-            os.path.join(directory_path, "file_1.txt"),
-            os.path.join(directory_path, "sub-directory", "sub_file.txt"),
-            os.path.join(directory_path, "sub-directory", "sub-sub-directory", "sub_sub_file.txt"),
-        ]
-
-        os.makedirs(os.path.join(directory_path, "sub-directory", "sub-sub-directory"))
-
-        # Create nested files in directory.
-        for path, data in zip(paths, range(len(paths))):
-            with open(path, "w") as f:
-                f.write(str(data))
-
-        return paths
-
     def test_instantiates_with_no_args(self):
         """Ensures a Datafile instantiates using only a path and generates a uuid ID"""
         Dataset()
@@ -562,46 +517,28 @@ class TestDataset(BaseTestCase):
         """Test that metadata for a local dataset is stored locally and is used on re-instantiation of the same
         dataset.
         """
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            self._create_files_and_nested_subdirectories(temporary_directory)
+        try:
+            self.save_local_metadata_patch.stop()
 
-            dataset = Dataset.from_local_directory(
-                temporary_directory,
-                recursive=True,
-                id="69253db4-7972-42de-8ccc-61336a28cd50",
-                tags={"cat": "dog"},
-                labels=["animals"],
-            )
+            with tempfile.TemporaryDirectory() as temporary_directory:
+                self._create_files_and_nested_subdirectories(temporary_directory)
 
-            dataset_reloaded = Dataset.from_local_directory(temporary_directory)
-            self.assertEqual(dataset.id, dataset_reloaded.id)
-            self.assertEqual(dataset.tags, dataset_reloaded.tags)
-            self.assertEqual(dataset.labels, dataset_reloaded.labels)
-            self.assertEqual(dataset.hash_value, dataset_reloaded.hash_value)
+                dataset = Dataset.from_local_directory(
+                    temporary_directory,
+                    recursive=True,
+                    id="69253db4-7972-42de-8ccc-61336a28cd50",
+                    tags={"cat": "dog"},
+                    labels=["animals"],
+                )
 
-    # This test will pass in a near-future release.
-    #
-    # def test_local_metadata_updated(self):
-    #     """Test that metadata for a local dataset can be updated."""
-    #     with tempfile.TemporaryDirectory() as temporary_directory:
-    #         self._create_files_and_nested_subdirectories(temporary_directory)
-    #
-    #         dataset = Dataset.from_local_directory(
-    #             temporary_directory,
-    #             recursive=True,
-    #             id="69253db4-7972-42de-8ccc-61336a28cd50",
-    #             tags={"cat": "dog"},
-    #             labels=["animals"],
-    #         )
-    #
-    #         dataset_reloaded = Dataset.from_local_directory(temporary_directory)
-    #         dataset_reloaded.labels = {"fish", "mammals"}
-    #
-    #         dataset_reloaded_again = Dataset.from_local_directory(temporary_directory)
-    #         self.assertEqual(dataset_reloaded_again.id, dataset.id)
-    #         self.assertEqual(dataset_reloaded_again.tags, dataset.tags)
-    #         self.assertEqual(dataset_reloaded_again.labels, {"fish", "mammals"})
-    #         self.assertEqual(dataset_reloaded_again.hash_value, dataset.hash_value)
+                dataset_reloaded = Dataset.from_local_directory(temporary_directory)
+                self.assertEqual(dataset.id, dataset_reloaded.id)
+                self.assertEqual(dataset.tags, dataset_reloaded.tags)
+                self.assertEqual(dataset.labels, dataset_reloaded.labels)
+                self.assertEqual(dataset.hash_value, dataset_reloaded.hash_value)
+
+        finally:
+            self.save_local_metadata_patch.start()
 
     def test_to_cloud(self):
         """Test that a dataset can be uploaded to a cloud path, including all its files and the dataset's metadata."""
@@ -636,6 +573,30 @@ class TestDataset(BaseTestCase):
             )
 
             self.assertEqual(persisted_dataset_metadata["tags"], dataset.tags.to_primitive())
+
+    # This test will pass in a near-future release.
+    #
+    # def test_local_metadata_updated(self):
+    #     """Test that metadata for a local dataset can be updated."""
+    #     with tempfile.TemporaryDirectory() as temporary_directory:
+    #         self._create_files_and_nested_subdirectories(temporary_directory)
+    #
+    #         dataset = Dataset.from_local_directory(
+    #             temporary_directory,
+    #             recursive=True,
+    #             id="69253db4-7972-42de-8ccc-61336a28cd50",
+    #             tags={"cat": "dog"},
+    #             labels=["animals"],
+    #         )
+    #
+    #         dataset_reloaded = Dataset.from_local_directory(temporary_directory)
+    #         dataset_reloaded.labels = {"fish", "mammals"}
+    #
+    #         dataset_reloaded_again = Dataset.from_local_directory(temporary_directory)
+    #         self.assertEqual(dataset_reloaded_again.id, dataset.id)
+    #         self.assertEqual(dataset_reloaded_again.tags, dataset.tags)
+    #         self.assertEqual(dataset_reloaded_again.labels, {"fish", "mammals"})
+    #         self.assertEqual(dataset_reloaded_again.hash_value, dataset.hash_value)
 
     def test_to_cloud_with_nested_dataset_preserves_nested_structure(self):
         """Test that uploading a dataset containing datafiles in a nested directory structure to the cloud preserves
@@ -765,3 +726,65 @@ class TestDataset(BaseTestCase):
             # Check that all the files from the directory are present in the dataset.
             datafile_paths = {datafile.path for datafile in dataset.files}
             self.assertEqual(datafile_paths, set(paths))
+
+    @classmethod
+    def setUpClass(cls):
+        """Stop the `Dataset._save_local_metadata` method from creating local files during the tests.
+
+        :return None:
+        """
+        cls.save_local_metadata_patch = patch("octue.resources.dataset.Dataset._save_local_metadata")
+        cls.save_local_metadata_patch.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        """Re-enable the `Dataset._save_local_metadata` method.
+
+        :return None:
+        """
+        cls.save_local_metadata_patch.stop()
+
+    def _create_nested_cloud_dataset(self, dataset_name="a_dataset"):
+        cloud_storage_client = GoogleCloudStorageClient()
+
+        cloud_storage_client.upload_from_string(
+            "[1, 2, 3]", cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, dataset_name, "file_0.txt")
+        )
+
+        cloud_storage_client.upload_from_string(
+            "[4, 5, 6]", cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, dataset_name, "file_1.txt")
+        )
+
+        cloud_storage_client.upload_from_string(
+            "['a', 'b', 'c']",
+            cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, dataset_name, "sub-directory/sub_file.txt"),
+        )
+
+        cloud_storage_client.upload_from_string(
+            "['blah', 'b', 'c']",
+            cloud_path=storage.path.generate_gs_path(
+                TEST_BUCKET_NAME, dataset_name, "sub-directory", "sub-sub-directory", "sub_sub_file.txt"
+            ),
+        )
+
+    def _create_files_and_nested_subdirectories(self, directory_path):
+        """Create files and nested subdirectories of files in the given directory.
+
+        :param str directory_path: the directory to create the nested structure in
+        :return list(str): the paths of the files in the directory and subdirectories
+        """
+        paths = [
+            os.path.join(directory_path, "file_0.txt"),
+            os.path.join(directory_path, "file_1.txt"),
+            os.path.join(directory_path, "sub-directory", "sub_file.txt"),
+            os.path.join(directory_path, "sub-directory", "sub-sub-directory", "sub_sub_file.txt"),
+        ]
+
+        os.makedirs(os.path.join(directory_path, "sub-directory", "sub-sub-directory"))
+
+        # Create nested files in directory.
+        for path, data in zip(paths, range(len(paths))):
+            with open(path, "w") as f:
+                f.write(str(data))
+
+        return paths
