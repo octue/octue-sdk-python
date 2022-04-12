@@ -7,7 +7,7 @@ import tempfile
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.exceptions import CloudLocationNotSpecified, IncompatibleCloudLocations, InvalidInputException
+from octue.exceptions import CloudLocationNotSpecified, InvalidInputException
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
@@ -253,15 +253,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
             # Adding a cloud datafile to a cloud dataset.
             if datafile.exists_in_cloud:
-                if datafile.bucket_name != self.bucket_name:
-                    raise IncompatibleCloudLocations(
-                        f"Datafiles must be from the same cloud bucket as the dataset they are being added to. The "
-                        f"datafile's bucket is {datafile.bucket_name!r} while the dataset's bucket is "
-                        f"{self.bucket_name!r}. Try changing the cloud location of the datafile and try again."
-                    )
 
-                if path_in_dataset:
-                    new_path = storage.path.join(self.path, path_in_dataset)
+                if path_in_dataset or datafile.bucket_name != self.bucket_name:
+                    new_path = storage.path.join(self.path, path_in_dataset or datafile.name)
 
                     if datafile.cloud_path != new_path:
                         datafile.to_cloud(new_path)

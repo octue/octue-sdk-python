@@ -60,27 +60,24 @@ class TestDataset(BaseTestCase):
         with self.assertRaises(exceptions.InvalidInputException):
             resource.add(NotADatafile())
 
-    def test_error_raised_if_adding_cloud_datafile_from_different_bucket_to_cloud_dataset(self):
-        """Test that an error is raised if attempting to add a cloud datafile to a cloud dataset from a different
-        bucket.
-        """
-        dataset = Dataset(path=storage.path.generate_gs_path("another-bucket", "path", "to", "dataset"))
-        datafile = Datafile(path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "datafile.dat"))
-
-        with self.assertRaises(exceptions.IncompatibleCloudLocations):
-            dataset.add(datafile)
-
     def test_adding_cloud_datafile_to_cloud_dataset(self):
-        """Test that a cloud datafile can be added to a cloud dataset if they're from the same bucket and that it keeps
-        its original path if no `path_within_dataset` is provided.
+        """Test that a cloud datafile can be added to a cloud dataset and that it keeps its original path if no
+        `path_within_dataset` is provided.
         """
         dataset = Dataset(path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "dataset"))
-        datafile = Datafile(path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "datafile.dat"))
+
+        with Datafile(path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "datafile.dat"), mode="w") as (
+            datafile,
+            f,
+        ):
+            f.write("hello")
+
         dataset.add(datafile)
 
         self.assertIn(datafile, dataset)
         self.assertEqual(
-            datafile.cloud_path, storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "datafile.dat")
+            datafile.cloud_path,
+            storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "datafile.dat"),
         )
 
     def test_providing_path_when_adding_cloud_datafile_to_cloud_dataset_copies_datafile_to_path(self):
