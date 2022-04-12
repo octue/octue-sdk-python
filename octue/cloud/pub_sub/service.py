@@ -189,6 +189,7 @@ class Service(CoolNameable):
         subscribe_to_logs=True,
         allow_local_files=False,
         question_uuid=None,
+        push_endpoint=None,
         timeout=30,
     ):
         """Ask a serving Service a question (i.e. send it input values for it to run its app on). The input values must
@@ -202,6 +203,7 @@ class Service(CoolNameable):
         :param bool subscribe_to_logs: if `True`, subscribe to logs from the remote service and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the serving service will have access to these local files
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
+        :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here; if they should be pulled, leave this as `None`
         :param float|None timeout: time in seconds to keep retrying sending the question
         :return (octue.cloud.pub_sub.subscription.Subscription, str): the response subscription and question UUID
         """
@@ -235,6 +237,7 @@ class Service(CoolNameable):
             namespace=OCTUE_NAMESPACE,
             project_name=self.backend.project_name,
             subscriber=pubsub_v1.SubscriberClient(credentials=self._credentials),
+            push_endpoint=push_endpoint,
         )
         response_subscription.create(allow_existing=True)
 
@@ -285,6 +288,11 @@ class Service(CoolNameable):
         :raise TimeoutError: if the timeout is exceeded
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
+        if subscription.is_push_subscription:
+            raise octue.exceptions.PushSubscriptionCannotBePulled(
+                f"Cannot pull from {subscription.path!r} subscription as it is a push subscription."
+            )
+
         subscriber = pubsub_v1.SubscriberClient(credentials=self._credentials)
 
         message_handler = OrderedMessageHandler(

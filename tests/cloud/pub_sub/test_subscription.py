@@ -60,8 +60,8 @@ class TestSubscription(BaseTestCase):
         ):
             self.subscription.create(allow_existing=True)
 
-    def test_create(self):
-        """Test that creating a subscription works properly."""
+    def test_create_pull_subscription(self):
+        """Test that creating a pull subscription works properly."""
         project_name = os.environ["TEST_PROJECT_NAME"]
         service = Service(backend=GCPPubSubBackend(project_name=project_name))
         topic = Topic(name="my-topic", namespace="tests", service=service)
@@ -82,3 +82,47 @@ class TestSubscription(BaseTestCase):
         self.assertEqual(response._pb.message_retention_duration.seconds, SEVEN_DAYS)
         self.assertEqual(response._pb.retry_policy.minimum_backoff.seconds, 10)
         self.assertEqual(response._pb.retry_policy.maximum_backoff.seconds, 600)
+
+    def test_create_push_subscription(self):
+        """Test that creating a push subscription works properly."""
+        project_name = os.environ["TEST_PROJECT_NAME"]
+        service = Service(backend=GCPPubSubBackend(project_name=project_name))
+        topic = Topic(name="my-topic", namespace="tests", service=service)
+
+        subscription = Subscription(
+            name="world",
+            topic=topic,
+            namespace="hello",
+            project_name=project_name,
+            subscriber=SubscriberClient(credentials=service._credentials),
+            push_endpoint="https://example.com/endpoint",
+        )
+
+        with patch("google.pubsub_v1.SubscriberClient.create_subscription", new=MockSubscriptionCreationResponse):
+            response = subscription.create(allow_existing=True)
+
+        self.assertEqual(response._pb.ack_deadline_seconds, 60)
+        self.assertEqual(response._pb.expiration_policy.ttl.seconds, THIRTY_ONE_DAYS)
+        self.assertEqual(response._pb.message_retention_duration.seconds, SEVEN_DAYS)
+        self.assertEqual(response._pb.retry_policy.minimum_backoff.seconds, 10)
+        self.assertEqual(response._pb.retry_policy.maximum_backoff.seconds, 600)
+        self.assertEqual(response._pb.push_config.push_endpoint, "https://example.com/endpoint")
+
+    def test_is_pull_subscription(self):
+        """Test that `is_pull_subscription` is `True` and `is_push_subscription` is `False` for a pull subscription."""
+        self.assertTrue(self.subscription.is_pull_subscription)
+        self.assertFalse(self.subscription.is_push_subscription)
+
+    def test_is_push_subscription(self):
+        """Test that `is_pull_subscription` is `False` and `is_push_subscription` is `True` for a pull subscription."""
+        push_subscription = Subscription(
+            name="world",
+            topic=self.topic,
+            namespace="hello",
+            project_name=TEST_PROJECT_NAME,
+            subscriber=MockSubscriber(),
+            push_endpoint="https://example.com/endpoint",
+        )
+
+        self.assertTrue(push_subscription.is_push_subscription)
+        self.assertFalse(push_subscription.is_pull_subscription)

@@ -110,5 +110,9 @@ class CloudStorageBucketNotFound(OctueSDKException):
     """Raise if attempting to access a cloud storage bucket that cannot be found."""
 
 
+class PushSubscriptionCannotBePulled(OctueSDKException):
+    """Raise if attempting to pull a push subscription."""
+
+
 class IncompatibleCloudLocations(OctueSDKException):
     """Raise if attempting to carry out an operation on objects from incompatible cloud locations."""
