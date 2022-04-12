@@ -264,6 +264,17 @@ class GoogleCloudStorageClient:
                 if filter(blob) and not blob.name.endswith("/"):
                     yield blob
 
+    def create_signed_url(self, cloud_path, expiration=None):
+        """Create a signed URL for accessing the object at the given cloud path that expires after the given expiration
+        date or period.
+
+        :param str cloud_path: the path to the object to create the signed URL for
+        :param datetime.datetime|datetime.timedelta expiration: the datetime for the URL to expire at or the amount of time after which it should expire
+        :return str:
+        """
+        blob = self._blob(cloud_path)
+        return blob.generate_signed_url(expiration=expiration)
+
     def _strip_leading_slash(self, path):
         """Strip the leading slash from a path.
 

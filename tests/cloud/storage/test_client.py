@@ -1,10 +1,13 @@
+import datetime
 import json
 import os
 import tempfile
+import time
 from unittest.mock import patch
 
 import google.api_core.exceptions
 import google.cloud.exceptions
+import requests
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
@@ -311,3 +314,28 @@ class TestGoogleCloudStorageClient(BaseTestCase):
                 cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "does", "not", "exist.json")
             )
         )
+
+    def test_create_signed_url(self):
+        """Test that a signed URL to a cloud object can be created, used to access the file, and expired after the
+        given time.
+        """
+        cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "blah")
+        self.storage_client.upload_from_string(string="some stuff", cloud_path=cloud_path)
+
+        expiration_time = 1
+        url = self.storage_client.create_signed_url(cloud_path, expiration=datetime.timedelta(seconds=expiration_time))
+
+        # Ensure the GOOGLE_APPLICATION_CREDENTIALS environment variable isn't available.
+        with patch.dict(os.environ, clear=True):
+
+            # Test that the signed URL works.
+            response = requests.get(url)
+            self.assertEqual(requests.get(url).status_code, 200)
+            self.assertEqual(response.text, "some stuff")
+
+            # Test that the signed URL expires in the expected time.
+            time.sleep(expiration_time)
+            self.assertEqual(requests.get(url).status_code, 400)
+
+        # Check that the uploaded file is still available via the correct credentials.
+        self.assertEqual(self.storage_client.download_as_string(cloud_path), "some stuff")
