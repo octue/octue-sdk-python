@@ -4,6 +4,7 @@ import functools
 import json
 import logging
 import os
+import shutil
 import tempfile
 from urllib.parse import urlparse
 
@@ -338,11 +339,13 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
 
     @local_path.setter
     def local_path(self, path):
-        """Set the local path of the datafile to an empty path (a path not corresponding to an existing file) and
-        download the contents of the corresponding cloud file to the local path.
+        """Set the local path of the datafile and:
+        - If it exists in the cloud, download the contents of the corresponding cloud file to the new local path
+        - If it only exists locally, copy the contents of the old local path to the new local path
 
         :param str path:
-        :raise FileExistsError: if the path corresponds to an existing file
+        :raise octue.exceptions.CloudLocationNotSpecified: if `path` is `None` and the datafile doesn't exist in the cloud
+        :raise FileExistsError: if the new path corresponds to an existing local file
         :return None:
         """
         if path is None:
@@ -357,12 +360,13 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         if os.path.exists(path):
             raise FileExistsError(
                 "Only a path not corresponding to an existing file can be used. This is because the contents of the "
-                "existing cloud file will be downloaded to the new local path and would overwrite any existing file at "
-                "the given path."
+                "existing file would overwrite the existing file at the given path."
             )
 
         if self.exists_in_cloud:
             GoogleCloudStorageClient().download_to_file(local_path=path, cloud_path=self.cloud_path)
+        else:
+            shutil.copy(self._local_path, path)
 
         self._local_path = os.path.abspath(path)
 
