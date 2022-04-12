@@ -84,16 +84,16 @@ class TestDataset(BaseTestCase):
 
     def test_add_single_file_to_empty_dataset(self):
         """Ensures that when a dataset is empty, it can be added to"""
-        resource = Dataset()
-        resource.add(Datafile(path="path-within-dataset/a_test_file.csv"))
-        self.assertEqual(len(resource.files), 1)
+        dataset = Dataset(path="dataset")
+        dataset.add(Datafile(path="path-within-dataset/a_test_file.csv"))
+        self.assertEqual(len(dataset.files), 1)
 
     def test_add_single_file_to_existing_dataset(self):
         """Ensures that when a dataset is not empty, it can be added to"""
         files = [Datafile(path="path-within-dataset/a_test_file.csv")]
-        resource = Dataset(files=files, labels="one two", tags={"a": "b"})
-        resource.add(Datafile(path="path-within-dataset/a_test_file.csv"))
-        self.assertEqual(len(resource.files), 2)
+        dataset = Dataset(path="dataset", files=files, labels="one two", tags={"a": "b"})
+        dataset.add(Datafile(path="path-within-dataset/a_test_file.csv"))
+        self.assertEqual(len(dataset.files), 2)
 
     def test_cannot_add_non_datafiles(self):
         """Ensures that exception will be raised if adding a non-datafile object"""
