@@ -285,7 +285,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
             new_path = os.path.join(self.path, path_in_dataset)
 
             if datafile.local_path != new_path:
-                os.makedirs(os.path.split(new_path)[0])
+                os.makedirs(os.path.split(new_path)[0], exist_ok=True)
                 datafile.local_path = new_path
 
         self.files.add(datafile)
