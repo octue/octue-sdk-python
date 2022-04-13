@@ -614,7 +614,7 @@ class TestDataset(BaseTestCase):
         }
 
         cloud_datafile_relative_paths = {
-            storage.path.split_bucket_name_from_gs_path(datafile.path)[-1].split("my-dataset/")[-1]
+            storage.path.split_bucket_name_from_cloud_path(datafile.path)[-1].split("my-dataset/")[-1]
             for datafile in uploaded_dataset.files
         }
 
@@ -723,6 +723,26 @@ class TestDataset(BaseTestCase):
             # Check that all the files from the directory are present in the dataset.
             datafile_paths = {datafile.path for datafile in dataset.files}
             self.assertEqual(datafile_paths, set(paths))
+
+    def test_generating_signed_url_from_dataset_and_recreating_dataset_from_it(self):
+        """Test that a signed URL can be generated for a dataset that can be used to recreate/get it, its metadata, and
+        all its files.
+        """
+        dataset_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-dataset-to-sign")
+
+        with Datafile(path=storage.path.join(dataset_path, "my-file.dat"), mode="w") as (datafile, f):
+            f.write("hello")
+
+        dataset = Dataset(path=dataset_path, tags={"hello": "world"})
+        dataset.add(datafile)
+        dataset.to_cloud(dataset_path)
+        signed_url = dataset.generate_signed_url()
+
+        downloaded_dataset = Dataset.from_cloud(cloud_path=signed_url)
+        self.assertEqual(downloaded_dataset.tags, {"hello": "world"})
+
+        with downloaded_dataset.files.one() as (_, f):
+            self.assertEqual(f.read(), "hello")
 
     @classmethod
     def setUpClass(cls):
