@@ -102,12 +102,11 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
 
         self._handle_monitor_message(data)
 
-    def finalise(self, upload_to_cloud=False, cloud_path=None):
+    def finalise(self, upload_output_datasets_to=None):
         """Validate the output values and output manifest, optionally writing the output manifest to the cloud with
         signed URLs provided for its datasets.
 
-        :param bool upload_to_cloud: if `True`, upload the output datasets to the cloud
-        :param str cloud_path: the path to a cloud directory to upload the output datasets to
+        :param str|None upload_output_datasets_to: if provided, upload any output datasets to this cloud directory and update the output manifest with their locations
         :return None:
         """
         serialised_strands = {"output_values": None, "output_manifest": None}
@@ -121,11 +120,11 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         logger.info("Validating serialised output values and manifest against the twine.")
         self.twine.validate(**serialised_strands)
 
-        if not (upload_to_cloud and hasattr(self, "output_manifest")):
+        if not (upload_output_datasets_to and hasattr(self, "output_manifest")):
             return
 
         for name, dataset in self.output_manifest.datasets.items():
-            dataset.to_cloud(cloud_path=storage.path.join(cloud_path, name))
+            dataset.to_cloud(cloud_path=storage.path.join(upload_output_datasets_to, name))
             self.output_manifest.datasets[name].path = dataset.generate_signed_url()
 
     def _calculate_strand_hashes(self, strands):

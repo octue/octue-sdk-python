@@ -164,7 +164,7 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
         analysis_log_handler=global_cli_context["log_handler"],
     )
 
-    analysis.finalise(output_dir=output_dir)
+    analysis.finalise()
     return 0
 
 

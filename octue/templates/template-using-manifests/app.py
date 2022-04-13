@@ -99,7 +99,7 @@ def run(analysis, *args, **kwargs):
     # Finalise the analysis. This validates the output data and output manifest against the twine and optionally
     # uploads any datasets in the output manifest to the service's cloud bucket. Signed URLs are provided so that the
     # parent that asked the service for the analysis can access the data (until the signed URLs expire).
-    analysis.finalise(upload_to_cloud=True, cloud_path=f"gs://{TEST_BUCKET_NAME}/output/test_using_manifests_analysis")
+    analysis.finalise(upload_output_datasets_to=f"gs://{TEST_BUCKET_NAME}/output/test_using_manifests_analysis")
 
     # We're done! There's only one datafile in the output dataset, but you could create thousands more and append them
     # all :)
