@@ -741,8 +741,11 @@ class TestDataset(BaseTestCase):
         downloaded_dataset = Dataset.from_cloud(cloud_path=signed_url)
         self.assertEqual(downloaded_dataset.tags, {"hello": "world"})
 
-        with downloaded_dataset.files.one() as (_, f):
+        with downloaded_dataset.files.one() as (downloaded_datafile, f):
             self.assertEqual(f.read(), "hello")
+
+        self.assertEqual(downloaded_datafile.name, "my-file.dat")
+        self.assertEqual(downloaded_datafile.extension, "dat")
 
     @classmethod
     def setUpClass(cls):

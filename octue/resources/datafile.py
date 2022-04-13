@@ -110,7 +110,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         )
 
         self.timestamp = timestamp
-        self.extension = os.path.splitext(path)[-1].strip(".")
 
         self._local_path = None
         self._cloud_path = None
@@ -181,6 +180,14 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         :return str:
         """
         return self._name or str(os.path.split(self.path)[-1]).split("?")[0]
+
+    @property
+    def extension(self):
+        """Get the extension of the datafile.
+
+        :return str:
+        """
+        return os.path.splitext(self.name)[-1].strip(".")
 
     @property
     def cloud_path(self):
