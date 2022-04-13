@@ -271,7 +271,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         return storage_client.generate_signed_url(cloud_path=path_to_signed_metadata_file, expiration=expiration)
 
     def add(self, datafile, path_in_dataset=None):
-        """Add a datafile to the dataset.
+        """Add a datafile to the dataset. If the datafile's location is outside the dataset, it is copied to the dataset
+        root or to the `path_in_dataset` if provided.
 
         :param octue.resources.datafile.Datafile datafile: the datafile to add to the dataset
         :param str|None path_in_dataset: if provided, set the datafile's local path to this path within the dataset
