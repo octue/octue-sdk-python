@@ -184,7 +184,8 @@ class GoogleCloudStorageClient:
             cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_in_bucket)
 
         blob = self._blob(cloud_path)
-        self._create_intermediate_local_directories(local_path)
+
+        os.makedirs(os.path.abspath(os.path.dirname(local_path)), exist_ok=True)
         blob.download_to_filename(local_path, timeout=timeout)
         logger.debug("Downloaded %r from Google Cloud to %r.", blob.public_url, local_path)
 
@@ -336,16 +337,6 @@ class GoogleCloudStorageClient:
 
         blob.metadata = self._encode_metadata(metadata)
         blob.patch()
-
-    def _create_intermediate_local_directories(self, local_path):
-        """Create intermediate directories for the given path to a local file if they don't exist.
-
-        :param str local_path:
-        :return None:
-        """
-        directory = os.path.dirname(os.path.abspath(local_path))
-        if not os.path.exists(directory):
-            os.makedirs(directory)
 
     def _encode_metadata(self, metadata):
         """Encode metadata as a dictionary of JSON strings.

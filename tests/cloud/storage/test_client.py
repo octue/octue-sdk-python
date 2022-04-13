@@ -287,14 +287,6 @@ class TestGoogleCloudStorageClient(BaseTestCase):
 
         self.assertEqual(metadata["custom_metadata"], {"this": "is-not-json-encoded"})
 
-    def test_create_intermediate_local_directories(self):
-        """Test that intermediate directories are created for the given path to a file."""
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            self.storage_client._create_intermediate_local_directories(
-                os.path.join(temporary_directory, "bam", "jam", "wam.csv")
-            )
-            self.assertTrue(os.path.exists(os.path.join(temporary_directory, "bam", "jam")))
-
     def test_exists(self):
         """Test that an existing cloud file shows as existing."""
         path_to_existing_file = storage.path.generate_gs_path(TEST_BUCKET_NAME, "blah")
