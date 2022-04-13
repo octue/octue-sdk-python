@@ -1,4 +1,5 @@
 import base64
+import datetime
 import json
 import logging
 import os
@@ -10,7 +11,7 @@ from google.cloud import storage
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google_crc32c import Checksum
 
-from octue.cloud.storage.path import split_bucket_name_from_gs_path
+from octue.cloud.storage.path import split_bucket_name_from_cloud_path
 from octue.exceptions import CloudStorageBucketNotFound
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.utils.decoders import OctueJSONDecoder
@@ -129,7 +130,7 @@ class GoogleCloudStorageClient:
         if not cloud_path:
             cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_in_bucket)
 
-        bucket_name, path_in_bucket = split_bucket_name_from_gs_path(cloud_path)
+        bucket_name, path_in_bucket = split_bucket_name_from_cloud_path(cloud_path)
 
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
         blob = bucket.get_blob(blob_name=self._strip_leading_slash(path_in_bucket), timeout=timeout)
@@ -243,7 +244,7 @@ class GoogleCloudStorageClient:
         if filter is None:
             filter = lambda blob: True
 
-        bucket_name, directory_path = split_bucket_name_from_gs_path(cloud_path)
+        bucket_name, directory_path = split_bucket_name_from_cloud_path(cloud_path)
         bucket = self.client.get_bucket(bucket_or_name=bucket_name)
 
         if not directory_path.endswith("/"):
@@ -273,7 +274,13 @@ class GoogleCloudStorageClient:
         :return str:
         """
         blob = self._blob(cloud_path)
-        return blob.generate_signed_url(expiration=expiration)
+
+        if os.environ.get("STORAGE_EMULATOR_HOST"):
+            api_access_endpoint = {"api_access_endpoint": os.environ["STORAGE_EMULATOR_HOST"]}
+        else:
+            api_access_endpoint = {}
+
+        return blob.generate_signed_url(expiration=expiration or datetime.timedelta(days=30), **api_access_endpoint)
 
     def _strip_leading_slash(self, path):
         """Strip the leading slash from a path.
@@ -290,7 +297,7 @@ class GoogleCloudStorageClient:
         :raise octue.exceptions.CloudStorageBucketNotFound: if the bucket isn't found
         :return google.cloud.storage.blob.Blob:
         """
-        bucket_name, path_in_bucket = split_bucket_name_from_gs_path(cloud_path)
+        bucket_name, path_in_bucket = split_bucket_name_from_cloud_path(cloud_path)
 
         try:
             bucket = self.client.get_bucket(bucket_or_name=bucket_name)

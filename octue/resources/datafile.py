@@ -227,7 +227,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         :return str|None:
         """
         if self.cloud_path:
-            return storage.path.split_bucket_name_from_gs_path(self.cloud_path)[0]
+            return storage.path.split_bucket_name_from_cloud_path(self.cloud_path)[0]
         return None
 
     @property
@@ -237,7 +237,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         :return str|None:
         """
         if self.cloud_path:
-            return storage.path.split_bucket_name_from_gs_path(self.cloud_path)[1]
+            return storage.path.split_bucket_name_from_cloud_path(self.cloud_path)[1]
         return None
 
     @property

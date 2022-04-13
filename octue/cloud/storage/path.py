@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlparse
 
 
 CLOUD_STORAGE_PROTOCOL = "gs://"
@@ -11,6 +12,15 @@ def is_qualified_cloud_path(path):
     :return bool: `True` if the path starts with the cloud storage protocol
     """
     return path.startswith(CLOUD_STORAGE_PROTOCOL)
+
+
+def is_url(path):
+    """Determine if the given path is an HTTP/HTTPS URL.
+
+    :param str path: the path to check
+    :return bool:
+    """
+    return path.startswith("http") or path.startswith("https")
 
 
 def join(*paths):
@@ -44,14 +54,18 @@ def generate_gs_path(bucket_name, *paths):
     return CLOUD_STORAGE_PROTOCOL + join(bucket_name, paths[0].lstrip("/"), *paths[1:])
 
 
-def split_bucket_name_from_gs_path(gs_path):
-    """Split the bucket name from the path.
+def split_bucket_name_from_cloud_path(path):
+    """Split the bucket name from the path within the bucket and return both.
 
-    :param str gs_path:
-    :return (str, str):
+    :param str path: the path to split
+    :return (str, str): the bucket name and the path within the bucket
     """
-    path = strip_protocol_from_path(gs_path).split("/")
-    return path[0], join(*path[1:])
+    if is_qualified_cloud_path(path):
+        path = strip_protocol_from_path(path).split("/")
+        return path[0], join(*path[1:])
+
+    path = urlparse(path).path.split("/")
+    return path[1], join(*path[2:])
 
 
 def strip_protocol_from_path(path):
