@@ -5,6 +5,9 @@ import logging
 import os
 import tempfile
 
+import coolname
+import requests
+
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudLocationNotSpecified, InvalidInputException
@@ -19,6 +22,9 @@ from octue.utils.local_metadata import LOCAL_METADATA_FILENAME, load_local_metad
 
 
 logger = logging.getLogger(__name__)
+
+
+SIGNED_METADATA_DIRECTORY = ".signed_metadata_files"
 
 
 class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
@@ -94,7 +100,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         if not cloud_path:
             cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_to_dataset_directory)
 
-        bucket_name = storage.path.split_bucket_name_from_gs_path(cloud_path)[0]
+        bucket_name = storage.path.split_bucket_name_from_cloud_path(cloud_path)[0]
 
         dataset_metadata = cls._get_cloud_metadata(cloud_path=cloud_path)
 
@@ -158,7 +164,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :return str|None:
         """
         if self.exists_in_cloud:
-            return storage.path.split_bucket_name_from_gs_path(self.path)[0]
+            return storage.path.split_bucket_name_from_cloud_path(self.path)[0]
         return None
 
     @property
@@ -168,7 +174,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :return str|None:
         """
         if self.exists_in_cloud:
-            return storage.path.split_bucket_name_from_gs_path(self.path)[1]
+            return storage.path.split_bucket_name_from_cloud_path(self.path)[1]
         return None
 
     @property
@@ -236,6 +242,30 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         self.path = cloud_path
         self._upload_cloud_metadata()
         return cloud_path
+
+    def generate_signed_url(self, expiration=None):
+        """Generate a signed URL for the dataset. This is done by creating a uniquely named metadata file containing
+        signed URLs to the datasets' files and providing a signed URL to that metadata file.
+
+        :param datetime.datetime|datetime.timedelta|None expiration: the time/date after which the URL should expire
+        :return str: the signed URL for the dataset
+        """
+        storage_client = GoogleCloudStorageClient()
+        signed_metadata = self.to_primitive()
+
+        signed_metadata["files"] = [
+            storage_client.create_signed_url(cloud_path=datafile_path, expiration=expiration)
+            for datafile_path in signed_metadata["files"]
+        ]
+
+        path_to_signed_metadata_file = storage.path.join(self.path, SIGNED_METADATA_DIRECTORY, coolname.generate_slug())
+
+        storage_client.upload_from_string(
+            string=json.dumps(signed_metadata, cls=OctueJSONEncoder),
+            cloud_path=path_to_signed_metadata_file,
+        )
+
+        return storage_client.create_signed_url(cloud_path=path_to_signed_metadata_file, expiration=expiration)
 
     def add(self, datafile, path_in_dataset=None):
         """Add a datafile to the dataset.
@@ -380,6 +410,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :param str cloud_path: the path to the dataset cloud directory
         :return dict: the dataset metadata
         """
+        if storage.path.is_url(cloud_path):
+            return requests.get(cloud_path).json()
+
         storage_client = GoogleCloudStorageClient()
         metadata_file_path = storage.path.join(cloud_path, LOCAL_METADATA_FILENAME)
 

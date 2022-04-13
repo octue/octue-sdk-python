@@ -118,7 +118,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
         self._cloud_metadata = {}
 
-        if storage.path.is_qualified_cloud_path(self.path):
+        if storage.path.is_qualified_cloud_path(self.path) or storage.path.is_url(self.path):
             self._cloud_path = path
 
             if not self._hypothetical:
@@ -517,10 +517,14 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
     def _get_cloud_metadata(self):
         """Get the cloud metadata for the datafile.
 
-        :return dict:
+        :return None:
         """
         if not self.cloud_path:
             self._raise_cloud_location_error()
+
+        # Skip getting metadata for now if the cloud path is a signed URL.
+        if storage.path.is_url(self.cloud_path):
+            return
 
         cloud_metadata = GoogleCloudStorageClient().get_metadata(cloud_path=self.cloud_path)
 
