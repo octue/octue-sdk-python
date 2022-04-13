@@ -37,19 +37,6 @@ class TestDataset(BaseTestCase):
         iterated_files = {file for file in dataset}
         self.assertEqual(iterated_files, dataset.files)
 
-    def test_add_single_file_to_empty_dataset(self):
-        """Ensures that when a dataset is empty, it can be added to"""
-        dataset = Dataset(path="dataset")
-        dataset.add(Datafile(path="path-within-dataset/a_test_file.csv"))
-        self.assertEqual(len(dataset.files), 1)
-
-    def test_add_single_file_to_existing_dataset(self):
-        """Ensures that when a dataset is not empty, it can be added to"""
-        files = [Datafile(path="path-within-dataset/a_test_file.csv")]
-        dataset = Dataset(path="dataset", files=files, labels="one two", tags={"a": "b"})
-        dataset.add(Datafile(path="path-within-dataset/a_test_file.csv"))
-        self.assertEqual(len(dataset.files), 2)
-
     def test_cannot_add_non_datafiles(self):
         """Ensures that exception will be raised if adding a non-datafile object"""
 
@@ -136,16 +123,22 @@ class TestDataset(BaseTestCase):
         self.assertEqual(datafile.cloud_path, storage.path.join(dataset.path, path_in_dataset))
 
     def test_adding_local_datafile_to_local_dataset(self):
-        """Test that a local datafile can be added to a local dataset and that it keeps its original path if no
-        `path_within_dataset` is provided.
+        """Test that a local datafile can be added to a local dataset and that it is copied to the root of the dataset
+        if no `path_within_dataset` is provided.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
             dataset = Dataset(path=os.path.join(temporary_directory, "path", "to", "dataset"))
-            datafile = Datafile(path=os.path.join(temporary_directory, "path", "to", "datafile.dat"))
+
+            with Datafile(path=os.path.join(temporary_directory, "path", "to", "datafile.dat"), mode="w") as (
+                datafile,
+                f,
+            ):
+                f.write("hello")
+
             dataset.add(datafile)
 
         self.assertIn(datafile, dataset)
-        self.assertEqual(datafile.local_path, os.path.join(temporary_directory, "path", "to", "datafile.dat"))
+        self.assertEqual(datafile.local_path, os.path.join(dataset.path, "datafile.dat"))
 
     def test_providing_path_when_adding_local_datafile_to_local_dataset(self):
         """Test that providing the `path_within_dataset` parameter when adding a local datafile to a local dataset
