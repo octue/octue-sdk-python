@@ -3,6 +3,7 @@ import logging
 from cleaner import clean, read_csv_files, read_dat_file
 
 from octue.resources import Datafile
+from tests import TEST_BUCKET_NAME
 
 
 logger = logging.getLogger(__name__)
@@ -101,3 +102,5 @@ def run(analysis, *args, **kwargs):
     # If you're running this on your local machine, that's it - but when this code runs as an analysis in the cloud,
     # The files in the output manifest are copied into the cloud store. Their names and labels are registered in a search
     # index so your colleagues can find the dataset you've produced.
+
+    analysis.finalise(upload_to_cloud=True, cloud_path=f"gs://{TEST_BUCKET_NAME}/output/test_using_manifests_analysis")

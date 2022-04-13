@@ -6,8 +6,10 @@ import sys
 import tempfile
 import unittest
 import uuid
+from urllib.parse import urlparse
 
 from octue import REPOSITORY_ROOT, Runner
+from octue.resources.manifest import Manifest
 from octue.utils.processes import ProcessesContextManager
 
 from ..base import BaseTestCase
@@ -70,7 +72,7 @@ class TemplateAppsTestCase(BaseTestCase):
         analysis.finalise(output_dir=os.path.join("data", "output"))
 
     def test_using_manifests(self):
-        """Ensure the using-manifests template app works correctly."""
+        """Ensure the `using-manifests` template app works correctly."""
         self.set_template("template-using-manifests")
 
         runner = Runner(
@@ -81,9 +83,23 @@ class TemplateAppsTestCase(BaseTestCase):
         )
 
         analysis = runner.run(input_manifest=os.path.join("data", "input", "manifest.json"))
-        analysis.finalise()
 
+        # Check that the output files have been created.
         self.assertTrue(os.path.isfile(os.path.join("cleaned_met_mast_data", "cleaned.csv")))
+
+        # Test that the signed URLs for the dataset and its files work and can be used to reinstantiate the output
+        # manifest after serialisation.
+        downloaded_output_manifest = Manifest.deserialise(analysis.output_manifest.to_primitive())
+
+        self.assertEqual(
+            downloaded_output_manifest.datasets["cleaned_met_mast_data"].labels,
+            {"mast", "cleaned", "met"},
+        )
+
+        self.assertEqual(
+            urlparse(downloaded_output_manifest.datasets["cleaned_met_mast_data"].files.one().cloud_path).path,
+            "/octue-test-bucket/output/test_using_manifests_analysis/cleaned_met_mast_data/cleaned.csv",
+        )
 
     @unittest.skipIf(condition=os.name == "nt", reason="See issue https://github.com/octue/octue-sdk-python/issues/229")
     def test_child_services_template(self):
