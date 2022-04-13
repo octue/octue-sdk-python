@@ -2,7 +2,6 @@ import datetime
 import json
 import os
 import tempfile
-import time
 from unittest.mock import patch
 
 import google.api_core.exceptions
@@ -316,9 +315,7 @@ class TestGoogleCloudStorageClient(BaseTestCase):
         )
 
     def test_create_signed_url(self):
-        """Test that a signed URL to a cloud object can be created, used to access the file, and expired after the
-        given time.
-        """
+        """Test that a signed URL to a cloud object can be created and used to access the file."""
         cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "blah")
         self.storage_client.upload_from_string(string="some stuff", cloud_path=cloud_path)
 
@@ -332,10 +329,3 @@ class TestGoogleCloudStorageClient(BaseTestCase):
             response = requests.get(url)
             self.assertEqual(requests.get(url).status_code, 200)
             self.assertEqual(response.text, "some stuff")
-
-            # Test that the signed URL expires in the expected time.
-            time.sleep(expiration_time)
-            self.assertEqual(requests.get(url).status_code, 400)
-
-        # Check that the uploaded file is still available via the correct credentials.
-        self.assertEqual(self.storage_client.download_as_string(cloud_path), "some stuff")
