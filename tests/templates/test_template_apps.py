@@ -68,8 +68,7 @@ class TemplateAppsTestCase(BaseTestCase):
             output_manifest_path=os.path.join("data", "output", "manifest.json"),
         )
 
-        analysis = runner.run()
-        analysis.finalise(output_dir=os.path.join("data", "output"))
+        runner.run()
 
     def test_using_manifests(self):
         """Ensure the `using-manifests` template app works correctly."""
@@ -168,6 +167,5 @@ class TemplateAppsTestCase(BaseTestCase):
                     input_values=os.path.join(parent_service_path, "data", "input", "values.json"),
                 )
 
-        analysis.finalise()
         self.assertTrue("elevations" in analysis.output_values)
         self.assertTrue("wind_speeds" in analysis.output_values)

@@ -47,3 +47,4 @@ def run(analysis, *args, **kwargs):
     )
 
     analysis.output_values = {"wind_speeds": wind_speeds, "elevations": elevations}
+    analysis.finalise()
