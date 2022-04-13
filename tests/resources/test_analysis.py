@@ -1,9 +1,14 @@
 import logging
+import os
+import tempfile
 
+import twined.exceptions
+from octue.cloud import storage
+from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.analysis import HASH_FUNCTIONS, Analysis
+from tests import TEST_BUCKET_NAME
+from tests.base import BaseTestCase
 from twined import Twine
-
-from ..base import BaseTestCase
 
 
 class AnalysisTestCase(BaseTestCase):
@@ -61,3 +66,77 @@ class AnalysisTestCase(BaseTestCase):
             "Attempted to send a monitor message but no handler is specified.",
             logging_context.output[0],
         )
+
+    def test_error_raised_if_output_fails_to_validate_against_twine_in_finalise(self):
+        """Test that an error is raised if the analysis output fails to validate against the twine."""
+        analysis = Analysis(
+            twine={
+                "output_values_schema": {
+                    "type": "object",
+                    "properties": {"blah": {"type": "integer"}},
+                    "required": ["blah"],
+                }
+            },
+            output_values={"wrong": "hello"},
+        )
+
+        with self.assertRaises(twined.exceptions.InvalidValuesContents):
+            analysis.finalise()
+
+    def test_finalise_validates_output(self):
+        """Test that the `finalise` method with no other arguments just validates the output manifest and values."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            dataset_path = os.path.join(temporary_directory, "the_dataset")
+
+            with Datafile(path=os.path.join(dataset_path, "my_file.dat"), mode="w") as (datafile, f):
+                f.write("hello")
+
+            output_manifest = Manifest(datasets={"the_dataset": Dataset(path=dataset_path, files={datafile.path})})
+
+            analysis = Analysis(
+                twine={
+                    "output_values_schema": {"type": "object", "properties": {"blah": {"type": "integer"}}},
+                    "output_manifest": {"datasets": {"the_dataset": {"purpose": "testing"}}},
+                },
+                output_values={"blah": 3},
+                output_manifest=output_manifest,
+            )
+
+            analysis.finalise()
+
+    def test_finalise_with_upload(self):
+        """Test that the `finalise` method can be used to upload the output manifest's datasets to a cloud location
+        and that it updates the manifest with signed URLs for accessing them.
+        """
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            dataset_path = os.path.join(temporary_directory, "the_dataset")
+
+            with Datafile(path=os.path.join(dataset_path, "my_file.dat"), mode="w") as (datafile, f):
+                f.write("hello")
+
+            output_manifest = Manifest(
+                datasets={
+                    "the_dataset": Dataset(path=dataset_path, files={datafile.path}, labels={"one", "two", "three"})
+                }
+            )
+
+            analysis = Analysis(
+                twine={
+                    "output_values_schema": {"type": "object", "properties": {"blah": {"type": "integer"}}},
+                    "output_manifest": {"datasets": {"the_dataset": {"purpose": "testing"}}},
+                },
+                output_values={"blah": 3},
+                output_manifest=output_manifest,
+            )
+
+            analysis.finalise(upload_output_datasets_to=f"gs://{TEST_BUCKET_NAME}/datasets")
+
+        self.assertTrue(storage.path.is_url(analysis.output_manifest.datasets["the_dataset"].path))
+
+        downloaded_dataset = Dataset.from_cloud(analysis.output_manifest.datasets["the_dataset"].path)
+        self.assertEqual(downloaded_dataset.name, "the_dataset")
+        self.assertEqual(len(downloaded_dataset.files), 1)
+        self.assertEqual(downloaded_dataset.labels, {"one", "two", "three"})
+
+        with downloaded_dataset.files.one() as (downloaded_datafile, f):
+            self.assertEqual(f.read(), "hello")
