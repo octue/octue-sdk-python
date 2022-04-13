@@ -153,7 +153,7 @@ class Manifest(Serialisable, Identifiable, Hashable):
         else:
             # If `dataset` is just a path to a dataset:
             if isinstance(dataset, str):
-                if storage.path.is_qualified_cloud_path(dataset):
+                if storage.path.is_qualified_cloud_path(dataset) or storage.path.is_url(dataset):
                     return (key, Dataset.from_cloud(cloud_path=dataset, recursive=True))
                 else:
                     return (key, Dataset.from_local_directory(path_to_directory=dataset, recursive=True))
