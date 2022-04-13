@@ -230,15 +230,17 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
             """Upload a datafile to the given cloud path.
 
             :param tuple(octue.resources.datafile.Datafile, str) iterable_element:
-            :return None:
+            :return str:
             """
             datafile = iterable_element[0]
             cloud_path = iterable_element[1]
             datafile.to_cloud(cloud_path=cloud_path)
+            return datafile.cloud_path
 
         # Use multiple threads to significantly speed up file uploads by reducing latency.
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.map(upload, files_and_paths)
+            for path in executor.map(upload, files_and_paths):
+                logger.info("Uploaded datafile to %r", path)
 
         self.path = cloud_path
         self._upload_cloud_metadata()
@@ -306,12 +308,11 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
             return
 
         # Adding a local datafile to a local dataset.
-        if path_in_dataset:
-            new_path = os.path.join(self.path, path_in_dataset)
+        new_path = os.path.join(self.path, path_in_dataset or datafile.name)
 
-            if datafile.local_path != new_path:
-                os.makedirs(os.path.split(new_path)[0], exist_ok=True)
-                datafile.local_path = new_path
+        if datafile.local_path != new_path:
+            os.makedirs(os.path.split(new_path)[0], exist_ok=True)
+            datafile.local_path = new_path
 
         self.files.add(datafile)
 
