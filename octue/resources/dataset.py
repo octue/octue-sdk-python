@@ -1,5 +1,6 @@
 import concurrent.futures
 import copy
+import datetime
 import json
 import logging
 import os
@@ -243,18 +244,18 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         self._upload_cloud_metadata()
         return cloud_path
 
-    def generate_signed_url(self, expiration=None):
+    def generate_signed_url(self, expiration=datetime.timedelta(days=30)):
         """Generate a signed URL for the dataset. This is done by creating a uniquely named metadata file containing
         signed URLs to the datasets' files and providing a signed URL to that metadata file.
 
-        :param datetime.datetime|datetime.timedelta|None expiration: the time/date after which the URL should expire
+        :param datetime.datetime|datetime.timedelta expiration: the amount of time or date after which the URL should expire
         :return str: the signed URL for the dataset
         """
         storage_client = GoogleCloudStorageClient()
         signed_metadata = self.to_primitive()
 
         signed_metadata["files"] = [
-            storage_client.create_signed_url(cloud_path=datafile_path, expiration=expiration)
+            storage_client.generate_signed_url(cloud_path=datafile_path, expiration=expiration)
             for datafile_path in signed_metadata["files"]
         ]
 
@@ -265,7 +266,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
             cloud_path=path_to_signed_metadata_file,
         )
 
-        return storage_client.create_signed_url(cloud_path=path_to_signed_metadata_file, expiration=expiration)
+        return storage_client.generate_signed_url(cloud_path=path_to_signed_metadata_file, expiration=expiration)
 
     def add(self, datafile, path_in_dataset=None):
         """Add a datafile to the dataset.

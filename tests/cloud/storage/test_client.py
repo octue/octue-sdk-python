@@ -320,7 +320,9 @@ class TestGoogleCloudStorageClient(BaseTestCase):
         self.storage_client.upload_from_string(string="some stuff", cloud_path=cloud_path)
 
         expiration_time = 1
-        url = self.storage_client.create_signed_url(cloud_path, expiration=datetime.timedelta(seconds=expiration_time))
+        url = self.storage_client.generate_signed_url(
+            cloud_path, expiration=datetime.timedelta(seconds=expiration_time)
+        )
 
         # Ensure the GOOGLE_APPLICATION_CREDENTIALS environment variable isn't available.
         with patch.dict(os.environ, clear=True):
