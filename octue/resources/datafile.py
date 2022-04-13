@@ -180,7 +180,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
 
         :return str:
         """
-        return self._name or str(os.path.split(self.path)[-1])
+        return self._name or str(os.path.split(self.path)[-1]).split("?")[0]
 
     @property
     def cloud_path(self):
