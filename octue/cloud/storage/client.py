@@ -130,9 +130,7 @@ class GoogleCloudStorageClient:
         if not cloud_path:
             cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_in_bucket)
 
-        bucket_name, path_in_bucket = split_bucket_name_from_cloud_path(cloud_path)
-
-        bucket = self.client.get_bucket(bucket_or_name=bucket_name)
+        bucket, path_in_bucket = self._get_bucket_and_path_in_bucket(cloud_path)
         blob = bucket.get_blob(blob_name=self._strip_leading_slash(path_in_bucket), timeout=timeout)
 
         if blob is None:
@@ -244,8 +242,7 @@ class GoogleCloudStorageClient:
         if filter is None:
             filter = lambda blob: True
 
-        bucket_name, directory_path = split_bucket_name_from_cloud_path(cloud_path)
-        bucket = self.client.get_bucket(bucket_or_name=bucket_name)
+        bucket, directory_path = self._get_bucket_and_path_in_bucket(cloud_path)
 
         if not directory_path.endswith("/"):
             directory_path += "/"
@@ -282,20 +279,11 @@ class GoogleCloudStorageClient:
 
         return blob.generate_signed_url(expiration=expiration or datetime.timedelta(days=30), **api_access_endpoint)
 
-    def _strip_leading_slash(self, path):
-        """Strip the leading slash from a path.
+    def _get_bucket_and_path_in_bucket(self, cloud_path):
+        """Get the bucket and path within the bucket from the given cloud path.
 
-        :param str path:
-        :return str:
-        """
-        return path.lstrip("/")
-
-    def _blob(self, cloud_path=None):
-        """Instantiate a blob for the given bucket at the given path. Note that this is not synced up with Google Cloud.
-
-        :param str|None cloud_path:
-        :raise octue.exceptions.CloudStorageBucketNotFound: if the bucket isn't found
-        :return google.cloud.storage.blob.Blob:
+        :param str cloud_path: the path to get the bucket and path within the bucket from
+        :return (google.cloud.storage.bucket.Bucket, str): the bucket and path within the bucket
         """
         bucket_name, path_in_bucket = split_bucket_name_from_cloud_path(cloud_path)
 
@@ -304,7 +292,25 @@ class GoogleCloudStorageClient:
         except google.api_core.exceptions.NotFound:
             raise CloudStorageBucketNotFound(f"The bucket {bucket_name!r} was not found.") from None
 
+        return bucket, path_in_bucket
+
+    def _blob(self, cloud_path=None):
+        """Instantiate a blob for the given bucket at the given path. Note that this is not synced up with Google Cloud.
+
+        :param str|None cloud_path:
+        :raise octue.exceptions.CloudStorageBucketNotFound: if the bucket isn't found
+        :return google.cloud.storage.blob.Blob:
+        """
+        bucket, path_in_bucket = self._get_bucket_and_path_in_bucket(cloud_path)
         return bucket.blob(blob_name=self._strip_leading_slash(path_in_bucket))
+
+    def _strip_leading_slash(self, path):
+        """Strip the leading slash from a path.
+
+        :param str path:
+        :return str:
+        """
+        return path.lstrip("/")
 
     def _compute_crc32c_checksum(self, string_or_bytes):
         """Compute the CRC32 checksum of the string.
