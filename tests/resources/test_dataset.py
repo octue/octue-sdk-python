@@ -728,14 +728,17 @@ class TestDataset(BaseTestCase):
         """Test that a signed URL can be generated for a dataset that can be used to recreate/get it, its metadata, and
         all its files.
         """
-        dataset_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-dataset-to-sign")
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            dataset_local_path = os.path.join(temporary_directory, "my-dataset-to-sign")
 
-        with Datafile(path=storage.path.join(dataset_path, "my-file.dat"), mode="w") as (datafile, f):
-            f.write("hello")
+            with Datafile(path=os.path.join(dataset_local_path, "my-file.dat"), mode="w") as (datafile, f):
+                f.write("hello")
 
-        dataset = Dataset(path=dataset_path, tags={"hello": "world"})
-        dataset.add(datafile)
-        dataset.to_cloud(dataset_path)
+            dataset = Dataset(path=dataset_local_path, tags={"hello": "world"})
+            dataset.add(datafile)
+
+            dataset.to_cloud(storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-dataset-to-sign"))
+
         signed_url = dataset.generate_signed_url()
 
         downloaded_dataset = Dataset.from_cloud(cloud_path=signed_url)

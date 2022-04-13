@@ -218,7 +218,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         files_and_paths = []
 
         for datafile in self.files:
-            datafile_path_relative_to_dataset = datafile.path.split(self.path)[-1].strip(os.path.sep).strip("/")
+            datafile_path_relative_to_dataset = storage.path.relpath(datafile.local_path, self.path)
             files_and_paths.append(
                 (
                     datafile,
