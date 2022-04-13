@@ -41,7 +41,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
     Analyses are instantiated at the top level of your app/service/twin code and you can import the instantiated
     object from there (see the templates for examples)
 
-    :param twined.Twine|str twine: Twine instance or json source
+    :param twined.Twine|str|dict twine: Twine instance or json source
     :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
     :param any configuration_values: see Runner.run() for definition
     :param octue.resources.manifest.Manifest configuration_manifest: see Runner.run() for definition
@@ -117,8 +117,8 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         if self.output_manifest:
             serialised_strands["output_manifest"] = self.output_manifest.to_primitive()
 
-        logger.info("Validating serialised output values and manifest against the twine.")
         self.twine.validate(**serialised_strands)
+        logger.info("Validated output values and output manifest against the twine.")
 
         if not (upload_output_datasets_to and hasattr(self, "output_manifest")):
             return
@@ -126,6 +126,8 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         for name, dataset in self.output_manifest.datasets.items():
             dataset.to_cloud(cloud_path=storage.path.join(upload_output_datasets_to, name))
             self.output_manifest.datasets[name].path = dataset.generate_signed_url()
+
+        logger.info("Uploaded output datasets to %r.", upload_output_datasets_to)
 
     def _calculate_strand_hashes(self, strands):
         """Calculate the hashes of the strands specified in the HASH_FUNCTIONS constant.
