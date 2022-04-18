@@ -247,8 +247,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         return cloud_path
 
     def generate_signed_url(self, expiration=datetime.timedelta(days=30)):
-        """Generate a signed URL for the dataset. This is done by creating a uniquely named metadata file containing
-        signed URLs to the datasets' files and providing a signed URL to that metadata file.
+        """Generate a signed URL for the dataset. This is done by uploading a uniquely named metadata file containing
+        signed URLs to the datasets' files and returning a signed URL to that metadata file.
 
         :param datetime.datetime|datetime.timedelta expiration: the amount of time or date after which the URL should expire
         :return str: the signed URL for the dataset
