@@ -66,7 +66,6 @@ class TemplateAppsTestCase(BaseTestCase):
             app_src=self.template_path,
             twine=self.template_twine,
             configuration_values=os.path.join("data", "configuration", "configuration_values.json"),
-            output_manifest_path=os.path.join("data", "output", "manifest.json"),
         )
 
         runner.run()
@@ -79,7 +78,6 @@ class TemplateAppsTestCase(BaseTestCase):
             app_src=self.template_path,
             twine=self.template_twine,
             configuration_values=os.path.join("data", "configuration", "values.json"),
-            output_manifest_path=os.path.join("data", "output", "manifest.json"),
         )
 
         with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):

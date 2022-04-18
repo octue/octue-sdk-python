@@ -113,20 +113,11 @@ def octue_cli(id, skip_checks, logger_uri, log_level, force_reset):
     show_default=True,
     help="Directory containing input (overrides --data-dir).",
 )
-@click.option(
-    "--output-dir",
-    type=click.Path(),
-    default=None,
-    show_default=True,
-    help="Directory to write outputs as files (overrides --data-dir).",
-)
 @click.option("--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.")
-def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
+def run(app_dir, data_dir, config_dir, input_dir, twine):
     """Run an analysis on the given input data."""
     config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
     input_dir = input_dir or os.path.join(data_dir, FOLDER_DEFAULTS["input"])
-    output_dir = output_dir or os.path.join(data_dir, FOLDER_DEFAULTS["output"])
-
     twine = Twine(source=twine)
 
     (
@@ -151,7 +142,6 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
         twine=twine,
         configuration_values=configuration_values,
         configuration_manifest=configuration_manifest,
-        output_manifest_path=os.path.join(output_dir, MANIFEST_FILENAME),
         children=children,
         skip_checks=global_cli_context["skip_checks"],
     )

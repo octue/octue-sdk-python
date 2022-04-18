@@ -29,7 +29,6 @@ class Runner:
     :param str|twined.Twine twine: path to the twine file, a string containing valid twine json, or a Twine instance
     :param str|dict|_io.TextIOWrapper|None configuration_values: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|dict|_io.TextIOWrapper|None configuration_manifest: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
-    :param Union[str, path-like, None] output_manifest_path: Path where output data will be written
     :param Union[str, dict, None] children: The children strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param bool skip_checks: If true, skip the check that all files in the manifest are present on disc - this can be an extremely long process for large datasets.
     :param str|None project_name: name of Google Cloud project to get credentials from
@@ -42,13 +41,11 @@ class Runner:
         twine="twine.json",
         configuration_values=None,
         configuration_manifest=None,
-        output_manifest_path=None,
         children=None,
         skip_checks=False,
         project_name=None,
     ):
         self.app_src = app_src
-        self.output_manifest_path = output_manifest_path
         self.children = children
         self.skip_checks = skip_checks
 

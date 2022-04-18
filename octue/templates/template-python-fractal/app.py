@@ -38,7 +38,6 @@ def run(analysis, *args, **kwargs):
     """
     # You can use the attached logger to record debug statements, general information, warnings or errors
     # logger.info("The input directory is %s", analysis.input_dir)
-    # logger.info("The output directory is %s", analysis.output_dir)
     # logger.info("The tmp directory, where you can store temporary files or caches, is %s", analysis.tmp_dir)
 
     # Print statements will get logged...

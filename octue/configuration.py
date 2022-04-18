@@ -98,7 +98,6 @@ class AppConfiguration:
 
     :param str|None configuration_values: values to configure the app
     :param str|None configuration_manifest: a manifest of files to configure the app
-    :param str|None output_manifest_path: the path to give the output manifest
     :param str|None children: details of the children the app requires
     :return None:
     """
@@ -107,13 +106,11 @@ class AppConfiguration:
         self,
         configuration_values=None,
         configuration_manifest=None,
-        output_manifest_path=None,
         children=None,
         **kwargs,
     ):
         self.configuration_values = configuration_values
         self.configuration_manifest = configuration_manifest
-        self.output_manifest_path = output_manifest_path
         self.children = children
 
         if kwargs:

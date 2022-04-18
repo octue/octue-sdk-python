@@ -397,9 +397,7 @@ class TestDataset(BaseTestCase):
         self.assertTrue(Dataset(files=files).all_files_are_in_cloud)
 
     def test_from_cloud(self):
-        """Test that a Dataset in cloud storage can be accessed via (`bucket_name`, `output_directory`) and via
-        `cloud_path`.
-        """
+        """Test that a Dataset in cloud storage can be accessed via a cloud path."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             dataset = create_dataset_with_two_files(temporary_directory)
             dataset.tags = {"a": "b", "c": 1}
