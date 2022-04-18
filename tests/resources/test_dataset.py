@@ -67,7 +67,7 @@ class TestDataset(BaseTestCase):
 
     def test_adding_cloud_datafile_to_cloud_dataset_when_file_is_already_in_dataset_directory(self):
         """Test that a cloud datafile's path is kept as-is when adding it to a cloud dataset if it is already in the
-        dataset directory.
+        dataset directory and no `path_in_dataset` is provided.
         """
         dataset = Dataset(path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "dataset"))
 

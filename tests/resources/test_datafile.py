@@ -181,6 +181,7 @@ class TestDatafile(BaseTestCase):
         self.assertEqual(first_file.hash_value, second_file.hash_value)
 
     def test_hash_of_cloud_datafile_avoids_downloading_file(self):
+        """Test that getting/calculating the hash of a cloud datafile avoids downloading its contents."""
         cloud_datafile, _ = self.create_datafile_in_cloud()
         datafile_reloaded_from_cloud = Datafile(path=cloud_datafile.cloud_path)
 
