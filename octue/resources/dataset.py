@@ -277,43 +277,41 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :param octue.resources.datafile.Datafile datafile: the datafile to add to the dataset
         :param str|None path_in_dataset: if provided, set the datafile's local path to this path within the dataset
         :raise octue.exceptions.InvalidInputException: if the datafile is not a `Datafile` instance
-        :raise octue.exceptions.IncompatibleCloudLocations: if attempting to add a cloud datafile from one bucket to a cloud dataset from another bucket
         :return None:
         """
         if not isinstance(datafile, Datafile):
             raise InvalidInputException(f"{datafile!r} must be of type `Datafile` to add it to the dataset.")
 
         if self.exists_in_cloud:
+            new_cloud_path = storage.path.join(self.path, path_in_dataset or datafile.name)
 
             # Adding a cloud datafile to a cloud dataset.
             if datafile.exists_in_cloud:
 
                 if path_in_dataset or datafile.bucket_name != self.bucket_name:
-                    new_path = storage.path.join(self.path, path_in_dataset or datafile.name)
-
-                    if datafile.cloud_path != new_path:
-                        datafile.to_cloud(new_path)
+                    if datafile.cloud_path != new_cloud_path:
+                        datafile.to_cloud(new_cloud_path)
 
                 self.files.add(datafile)
                 return
 
             # Adding a local datafile to a cloud dataset.
-            datafile.to_cloud(storage.path.join(self.path, path_in_dataset or datafile.name))
+            datafile.to_cloud(new_cloud_path)
             self.files.add(datafile)
             return
 
+        new_local_path = os.path.join(self.path, path_in_dataset or datafile.name)
+
         # Adding a cloud datafile to a local dataset.
         if datafile.exists_in_cloud:
-            datafile.download(local_path=os.path.join(self.path, path_in_dataset or datafile.name))
+            datafile.download(local_path=new_local_path)
             self.files.add(datafile)
             return
 
         # Adding a local datafile to a local dataset.
-        new_path = os.path.join(self.path, path_in_dataset or datafile.name)
-
-        if datafile.local_path != new_path:
-            os.makedirs(os.path.split(new_path)[0], exist_ok=True)
-            datafile.local_path = new_path
+        if datafile.local_path != new_local_path:
+            os.makedirs(os.path.split(new_local_path)[0], exist_ok=True)
+            datafile.local_path = new_local_path
 
         self.files.add(datafile)
 
