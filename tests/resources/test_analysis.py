@@ -134,9 +134,16 @@ class AnalysisTestCase(BaseTestCase):
             with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
                 analysis.finalise(upload_output_datasets_to=f"gs://{TEST_BUCKET_NAME}/datasets")
 
-        self.assertTrue(storage.path.is_url(analysis.output_manifest.datasets["the_dataset"].path))
+        signed_url_for_dataset = analysis.output_manifest.datasets["the_dataset"].path
+        self.assertTrue(storage.path.is_url(signed_url_for_dataset))
 
-        downloaded_dataset = Dataset.from_cloud(analysis.output_manifest.datasets["the_dataset"].path)
+        self.assertTrue(
+            signed_url_for_dataset.startswith(
+                f"{self.test_result_modifier.storage_emulator_host}/{TEST_BUCKET_NAME}/datasets/the_dataset"
+            )
+        )
+
+        downloaded_dataset = Dataset.from_cloud(signed_url_for_dataset)
         self.assertEqual(downloaded_dataset.name, "the_dataset")
         self.assertEqual(len(downloaded_dataset.files), 1)
         self.assertEqual(downloaded_dataset.labels, {"one", "two", "three"})
