@@ -20,7 +20,7 @@ def is_url(path):
     :param str path: the path to check
     :return bool:
     """
-    return path.startswith("http") or path.startswith("https")
+    return path.startswith("http")
 
 
 def join(*paths):
