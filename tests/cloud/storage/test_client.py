@@ -306,15 +306,25 @@ class TestGoogleCloudStorageClient(BaseTestCase):
             )
         )
 
-    def test_create_signed_url(self):
-        """Test that a signed URL to a cloud object can be created and used to access the file."""
+    def test_generate_signed_url(self):
+        """Test that a signed URL to a cloud object can be generated and used to access the file."""
         cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "blah")
         self.storage_client.upload_from_string(string="some stuff", cloud_path=cloud_path)
 
-        expiration_time = 1
-        url = self.storage_client.generate_signed_url(
-            cloud_path, expiration=datetime.timedelta(seconds=expiration_time)
-        )
+        # Mock the signing of the URL as it can't currently be done via workload identity federation so the tests would
+        # fail.
+        with patch(
+            "google.cloud.storage.blob.Blob.generate_signed_url",
+            return_value=(
+                f"{self.test_result_modifier.storage_emulator_host}/octue-test-bucket/blah?Expires=1650277335&GoogleAcc"
+                "essId=dev-cortadocodes%40octue-amy.iam.gserviceaccount.com&Signature=UekBIUZIgjZKB8aRSTEIbj3QXDXm5fhcE"
+                "EhRneTKBJoyU7ysnhEmCXiS2Ip5rKwzBS568aFeWJQXbDPSf9Qq43N0%2FHB7QkEwJ6Y5u9S%2FTp6l5%2FqhrKHPhPCSjbJ7gmoak"
+                "sHpfDaDVVEMQTRA%2Bcq59SV2NBRsA00Ek8h73sBNPvw9JlcwNGn9gjbCUunt24ZRVvf3DEThYUZyv7Z2vInv5cbmZYbFd6bA8ahy%"
+                "2FLFdq%2F6vQibao4iOJ1yeBZKEAaLsYzmXRuZJmg19LWWNBTsiAiZqKLy%2Fn5fw6LCRAR%2B04GaL8kVpotN1sOh7tRBFedEqoJ3"
+                "fAXnztdhlJZs2m4OFLg%3D%3D"
+            ),
+        ):
+            url = self.storage_client.generate_signed_url(cloud_path, expiration=datetime.timedelta(seconds=1))
 
         # Ensure the GOOGLE_APPLICATION_CREDENTIALS environment variable isn't available.
         with patch.dict(os.environ, clear=True):
