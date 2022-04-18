@@ -1,7 +1,6 @@
 import concurrent.futures
 import copy
 import json
-import os
 import warnings
 
 import octue.migrations.manifest
@@ -164,12 +163,7 @@ class Manifest(Serialisable, Identifiable, Hashable):
             if storage.path.is_qualified_cloud_path(dataset["path"]) or storage.path.is_url(dataset["path"]):
                 return (key, Dataset.from_cloud(cloud_path=dataset["path"], recursive=True))
 
-            # If the path is local but not absolute:
-            if not os.path.isabs(dataset["path"]):
-                path = dataset.pop("path")
-                return (key, Dataset(**dataset, path=path))
-
-            # If the path is an absolute local path:
+            # If the path is local:
             return (key, Dataset(**dataset))
 
         return (key, Dataset(**dataset, path=key))
