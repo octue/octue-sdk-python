@@ -49,7 +49,7 @@ class TestDataset(BaseTestCase):
             resource.add(NotADatafile())
 
     def test_adding_cloud_datafile_to_cloud_dataset(self):
-        """Test that a cloud datafile can be added to a cloud dataset and that it keeps its original path if no
+        """Test that a cloud datafile can be added to a cloud dataset and that it's copied into the dataset root if no
         `path_within_dataset` is provided.
         """
         dataset = Dataset(path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "dataset"))
@@ -63,10 +63,21 @@ class TestDataset(BaseTestCase):
         dataset.add(datafile)
 
         self.assertIn(datafile, dataset)
-        self.assertEqual(
-            datafile.cloud_path,
-            storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "datafile.dat"),
-        )
+        self.assertEqual(datafile.cloud_path, storage.path.join(dataset.path, "datafile.dat"))
+
+    def test_adding_cloud_datafile_to_cloud_dataset_when_file_is_already_in_dataset_directory(self):
+        """Test that a cloud datafile's path is kept as-is when adding it to a cloud dataset if it is already in the
+        dataset directory.
+        """
+        dataset = Dataset(path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "path", "to", "dataset"))
+
+        with Datafile(path=storage.path.join(dataset.path, "subfolder", "datafile.dat"), mode="w") as (datafile, f):
+            f.write("hello")
+
+        dataset.add(datafile)
+
+        self.assertIn(datafile, dataset)
+        self.assertEqual(datafile.cloud_path, storage.path.join(dataset.path, "subfolder", "datafile.dat"))
 
     def test_providing_path_when_adding_cloud_datafile_to_cloud_dataset_copies_datafile_to_path(self):
         """Test that providing the `path_within_dataset` parameter when adding a cloud datafile to a cloud dataset
@@ -140,6 +151,21 @@ class TestDataset(BaseTestCase):
 
         self.assertIn(datafile, dataset)
         self.assertEqual(datafile.local_path, os.path.join(dataset.path, "datafile.dat"))
+
+    def test_adding_local_datafile_to_local_dataset_when_file_is_already_in_dataset_directory(self):
+        """Test that a local datafile's path is kept as-is when adding it to a local dataset if it is already in the
+        dataset directory.
+        """
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            dataset = Dataset(path=os.path.join(temporary_directory, "path", "to", "dataset"))
+
+            with Datafile(path=os.path.join(dataset.path, "subfolder", "datafile.dat"), mode="w") as (datafile, f):
+                f.write("hello")
+
+            dataset.add(datafile)
+
+        self.assertIn(datafile, dataset)
+        self.assertEqual(datafile.local_path, os.path.join(dataset.path, "subfolder", "datafile.dat"))
 
     def test_providing_path_when_adding_local_datafile_to_local_dataset(self):
         """Test that providing the `path_within_dataset` parameter when adding a local datafile to a local dataset

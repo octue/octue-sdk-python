@@ -285,31 +285,30 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         if self.exists_in_cloud:
             new_cloud_path = storage.path.join(self.path, path_in_dataset or datafile.name)
 
-            # Adding a cloud datafile to a cloud dataset.
+            # Add a cloud datafile to a cloud dataset.
             if datafile.exists_in_cloud:
 
-                if path_in_dataset or datafile.bucket_name != self.bucket_name:
-                    if datafile.cloud_path != new_cloud_path:
-                        datafile.to_cloud(new_cloud_path)
+                if datafile.cloud_path != new_cloud_path and not datafile.cloud_path.startswith(self.path):
+                    datafile.to_cloud(new_cloud_path)
 
                 self.files.add(datafile)
                 return
 
-            # Adding a local datafile to a cloud dataset.
+            # Add a local datafile to a cloud dataset.
             datafile.to_cloud(new_cloud_path)
             self.files.add(datafile)
             return
 
         new_local_path = os.path.join(self.path, path_in_dataset or datafile.name)
 
-        # Adding a cloud datafile to a local dataset.
+        # Add a cloud datafile to a local dataset.
         if datafile.exists_in_cloud:
             datafile.download(local_path=new_local_path)
             self.files.add(datafile)
             return
 
-        # Adding a local datafile to a local dataset.
-        if datafile.local_path != new_local_path:
+        # Add a local datafile to a local dataset.
+        if datafile.local_path != new_local_path and not datafile.local_path.startswith(self.path):
             datafile.local_path = new_local_path
 
         self.files.add(datafile)
