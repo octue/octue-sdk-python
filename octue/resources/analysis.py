@@ -103,8 +103,8 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         self._handle_monitor_message(data)
 
     def finalise(self, upload_output_datasets_to=None):
-        """Validate the output values and output manifest, optionally writing the output manifest to the cloud with
-        signed URLs provided for its datasets.
+        """Validate the output values and output manifest, optionally uploading the output manifest's datasets to the
+        cloud and updating its dataset paths to signed URLs.
 
         :param str|None upload_output_datasets_to: if provided, upload any output datasets to this cloud directory and update the output manifest with their locations
         :return None:
