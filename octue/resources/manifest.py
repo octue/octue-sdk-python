@@ -150,29 +150,26 @@ class Manifest(Serialisable, Identifiable, Hashable):
         if isinstance(dataset, Dataset):
             return (key, dataset)
 
-        else:
-            # If `dataset` is just a path to a dataset:
-            if isinstance(dataset, str):
-                if storage.path.is_qualified_cloud_path(dataset) or storage.path.is_url(dataset):
-                    return (key, Dataset.from_cloud(cloud_path=dataset, recursive=True))
-                else:
-                    return (key, Dataset.from_local_directory(path_to_directory=dataset, recursive=True))
+        # If `dataset` is just a path to a dataset:
+        if isinstance(dataset, str):
+            if storage.path.is_qualified_cloud_path(dataset) or storage.path.is_url(dataset):
+                return (key, Dataset.from_cloud(cloud_path=dataset, recursive=True))
 
-            # If `dataset` is a dictionary including a "path" key:
-            elif "path" in dataset:
+            return (key, Dataset.from_local_directory(path_to_directory=dataset, recursive=True))
 
-                # If the path is a cloud path:
-                if storage.path.is_qualified_cloud_path(dataset["path"]):
-                    return (key, Dataset.from_cloud(cloud_path=dataset["path"], recursive=True))
+        # If `dataset` is a dictionary including a "path" key:
+        if "path" in dataset:
 
-                # If the path is local but not absolute:
-                elif not os.path.isabs(dataset["path"]):
-                    path = dataset.pop("path")
-                    return (key, Dataset(**dataset, path=path))
+            # If the path is a cloud path:
+            if storage.path.is_qualified_cloud_path(dataset["path"]) or storage.path.is_url(dataset["path"]):
+                return (key, Dataset.from_cloud(cloud_path=dataset["path"], recursive=True))
 
-                # If the path is an absolute local path:
-                else:
-                    return (key, Dataset(**dataset))
+            # If the path is local but not absolute:
+            if not os.path.isabs(dataset["path"]):
+                path = dataset.pop("path")
+                return (key, Dataset(**dataset, path=path))
 
-            else:
-                return (key, Dataset(**dataset, path=key))
+            # If the path is an absolute local path:
+            return (key, Dataset(**dataset))
+
+        return (key, Dataset(**dataset, path=key))
