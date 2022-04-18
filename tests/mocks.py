@@ -1,6 +1,8 @@
 import datetime
 import io
 
+from google.cloud.storage.blob import _API_ACCESS_ENDPOINT
+
 
 class MockOpen:
     """A mock for patching `builtins.open` that returns different text streams depending on the path given to it. To
@@ -26,7 +28,7 @@ class MockOpen:
 
 
 def mock_generate_signed_url(blob, expiration=datetime.timedelta(days=30), **kwargs):
-    """Mock generating a signed URL for a Google Cloud Storage blob. Signed URLS can't currently be generated when using
+    """Mock generating a signed URL for a Google Cloud Storage blob. Signed URLs can't currently be generated when using
     workload identity federation, which we use for our CI tests.
 
     :param google.cloud.storage.blob.Blob blob:
@@ -41,5 +43,5 @@ def mock_generate_signed_url(blob, expiration=datetime.timedelta(days=30), **kwa
         f"siAiZqKLy%2Fn5fw6LCRAR%2B04GaL8kVpotN1sOh7tRBFedEqoJ3fAXnztdhlJZs2m4OFLg%3D%3D"
     )
 
-    base_url = "/".join((kwargs.get("api_access_endpoint", ""), blob.bucket.name, blob.name))
+    base_url = "/".join((kwargs.get("api_access_endpoint", _API_ACCESS_ENDPOINT), blob.bucket.name, blob.name))
     return base_url + mock_signed_query_parameter
