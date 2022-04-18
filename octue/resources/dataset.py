@@ -1,8 +1,13 @@
 import concurrent.futures
+import copy
+import datetime
 import json
 import logging
 import os
 import tempfile
+
+import coolname
+import requests
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
@@ -18,6 +23,9 @@ from octue.utils.local_metadata import LOCAL_METADATA_FILENAME, load_local_metad
 
 
 logger = logging.getLogger(__name__)
+
+
+SIGNED_METADATA_DIRECTORY = ".signed_metadata_files"
 
 
 class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
@@ -41,7 +49,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     # Paths to files are added to the serialisation in `Dataset.to_primitive`.
     _SERIALISE_FIELDS = "name", "labels", "tags", "id", "path"
 
-    def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None, save_metadata_locally=True):
+    def __init__(self, files=None, name=None, id=None, path=".", tags=None, labels=None, save_metadata_locally=True):
         super().__init__(name=name, id=id, tags=tags, labels=labels)
         self.path = path
         self.files = self._instantiate_datafiles(files or [])
@@ -93,7 +101,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         if not cloud_path:
             cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_to_dataset_directory)
 
-        bucket_name = storage.path.split_bucket_name_from_gs_path(cloud_path)[0]
+        bucket_name = storage.path.split_bucket_name_from_cloud_path(cloud_path)[0]
 
         dataset_metadata = cls._get_cloud_metadata(cloud_path=cloud_path)
 
@@ -140,7 +148,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         :return bool:
         """
-        return storage.path.is_qualified_cloud_path(self.path)
+        return storage.path.is_cloud_path(self.path)
 
     @property
     def exists_locally(self):
@@ -148,7 +156,27 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         :return bool:
         """
-        return not storage.path.is_qualified_cloud_path(self.path)
+        return not self.exists_in_cloud
+
+    @property
+    def bucket_name(self):
+        """Get the name of the bucket the dataset exists in if it exists in the cloud.
+
+        :return str|None:
+        """
+        if self.exists_in_cloud:
+            return storage.path.split_bucket_name_from_cloud_path(self.path)[0]
+        return None
+
+    @property
+    def path_in_bucket(self):
+        """Get the path of the dataset in its bucket if it exists in the cloud.
+
+        :return str|None:
+        """
+        if self.exists_in_cloud:
+            return storage.path.split_bucket_name_from_cloud_path(self.path)[1]
+        return None
 
     @property
     def all_files_are_in_cloud(self):
@@ -175,6 +203,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     def __len__(self):
         return len(self.files)
 
+    def __contains__(self, item):
+        return item in self.files
+
     def to_cloud(self, cloud_path=None, bucket_name=None, output_directory=None):
         """Upload a dataset to the given cloud path.
 
@@ -187,7 +218,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         files_and_paths = []
 
         for datafile in self.files:
-            datafile_path_relative_to_dataset = datafile.path.split(self.path)[-1].strip(os.path.sep).strip("/")
+            datafile_path_relative_to_dataset = storage.path.relpath(datafile.local_path, self.path)
             files_and_paths.append(
                 (
                     datafile,
@@ -199,22 +230,49 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
             """Upload a datafile to the given cloud path.
 
             :param tuple(octue.resources.datafile.Datafile, str) iterable_element:
-            :return None:
+            :return str:
             """
             datafile = iterable_element[0]
             cloud_path = iterable_element[1]
             datafile.to_cloud(cloud_path=cloud_path)
+            return datafile.cloud_path
 
         # Use multiple threads to significantly speed up file uploads by reducing latency.
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.map(upload, files_and_paths)
+            for path in executor.map(upload, files_and_paths):
+                logger.info("Uploaded datafile to %r.", path)
 
         self.path = cloud_path
         self._upload_cloud_metadata()
         return cloud_path
 
+    def generate_signed_url(self, expiration=datetime.timedelta(days=30)):
+        """Generate a signed URL for the dataset. This is done by uploading a uniquely named metadata file containing
+        signed URLs to the datasets' files and returning a signed URL to that metadata file.
+
+        :param datetime.datetime|datetime.timedelta expiration: the amount of time or date after which the URL should expire
+        :return str: the signed URL for the dataset
+        """
+        storage_client = GoogleCloudStorageClient()
+        signed_metadata = self.to_primitive()
+
+        signed_metadata["files"] = [
+            storage_client.generate_signed_url(cloud_path=datafile_path, expiration=expiration)
+            for datafile_path in signed_metadata["files"]
+        ]
+
+        path_to_signed_metadata_file = storage.path.join(self.path, SIGNED_METADATA_DIRECTORY, coolname.generate_slug())
+
+        storage_client.upload_from_string(
+            string=json.dumps(signed_metadata, cls=OctueJSONEncoder),
+            cloud_path=path_to_signed_metadata_file,
+        )
+
+        return storage_client.generate_signed_url(cloud_path=path_to_signed_metadata_file, expiration=expiration)
+
     def add(self, datafile, path_in_dataset=None):
-        """Add a datafile to the dataset.
+        """Add a datafile to the dataset. If the datafile's location is outside the dataset, it is copied to the dataset
+        root or to the `path_in_dataset` if provided.
 
         :param octue.resources.datafile.Datafile datafile: the datafile to add to the dataset
         :param str|None path_in_dataset: if provided, set the datafile's local path to this path within the dataset
@@ -224,10 +282,36 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         if not isinstance(datafile, Datafile):
             raise InvalidInputException(f"{datafile!r} must be of type `Datafile` to add it to the dataset.")
 
-        self.files.add(datafile)
+        if self.exists_in_cloud:
+            new_cloud_path = storage.path.join(self.path, path_in_dataset or datafile.name)
 
-        if path_in_dataset:
-            datafile.local_path = os.path.join(self.path, path_in_dataset)
+            # Add a cloud datafile to a cloud dataset.
+            if datafile.exists_in_cloud:
+
+                if datafile.cloud_path != new_cloud_path and not datafile.cloud_path.startswith(self.path):
+                    datafile.to_cloud(new_cloud_path)
+
+                self.files.add(datafile)
+                return
+
+            # Add a local datafile to a cloud dataset.
+            datafile.to_cloud(new_cloud_path)
+            self.files.add(datafile)
+            return
+
+        new_local_path = os.path.join(self.path, path_in_dataset or datafile.name)
+
+        # Add a cloud datafile to a local dataset.
+        if datafile.exists_in_cloud:
+            datafile.download(local_path=new_local_path)
+            self.files.add(datafile)
+            return
+
+        # Add a local datafile to a local dataset.
+        if datafile.local_path != new_local_path and not datafile.local_path.startswith(self.path):
+            datafile.local_path = new_local_path
+
+        self.files.add(datafile)
 
     def get_file_by_label(self, label):
         """Get a single datafile from a dataset by filtering for files with the provided label.
@@ -275,7 +359,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         # Use multiple threads to significantly speed up files downloads by reducing latency.
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.map(download, files_and_paths)
+            for path in executor.map(download, files_and_paths):
+                logger.info("Downloaded datafile to %r.", path)
 
         logger.info("Downloaded %r dataset to %r.", self.name, local_directory)
 
@@ -301,17 +386,22 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :param iter(str|dict|octue.resources.datafile.Datafile) files:
         :return octue.resources.filter_containers.FilterSet:
         """
-        files_to_add = FilterSet()
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            return FilterSet(executor.map(self._instantiate_datafile, copy.deepcopy(files)))
 
-        for file in files:
-            if isinstance(file, Datafile):
-                files_to_add.add(file)
-            elif isinstance(file, str):
-                files_to_add.add(Datafile(path=file))
-            else:
-                files_to_add.add(Datafile.deserialise(file))
+    def _instantiate_datafile(self, file):
+        """Instantiate a datafile from multiple input formats.
 
-        return files_to_add
+        :param str|dict|octue.resources.datafile.Datafile file:
+        :return octue.resources.datafile.Datafile:
+        """
+        if isinstance(file, Datafile):
+            return file
+
+        if isinstance(file, str):
+            return Datafile(path=file)
+
+        return Datafile.deserialise(file)
 
     @staticmethod
     def _get_cloud_metadata(cloud_path):
@@ -320,6 +410,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :param str cloud_path: the path to the dataset cloud directory
         :return dict: the dataset metadata
         """
+        if storage.path.is_url(cloud_path):
+            return requests.get(cloud_path).json()
+
         storage_client = GoogleCloudStorageClient()
         metadata_file_path = storage.path.join(cloud_path, LOCAL_METADATA_FILENAME)
 

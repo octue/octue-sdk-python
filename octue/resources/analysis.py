@@ -1,15 +1,12 @@
 import json
 import logging
-import warnings
 
 import twined.exceptions
 from octue.cloud import storage
-from octue.definitions import OUTPUT_STRANDS
 from octue.exceptions import InvalidMonitorMessage
 from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
 from octue.utils.encoders import OctueJSONEncoder
-from octue.utils.folders import get_file_name_from_strand
 from twined import ALL_STRANDS, Twine
 
 
@@ -44,7 +41,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
     Analyses are instantiated at the top level of your app/service/twin code and you can import the instantiated
     object from there (see the templates for examples)
 
-    :param twined.Twine|str twine: Twine instance or json source
+    :param twined.Twine|str|dict twine: Twine instance or json source
     :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
     :param any configuration_values: see Runner.run() for definition
     :param octue.resources.manifest.Manifest configuration_manifest: see Runner.run() for definition
@@ -105,15 +102,12 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
 
         self._handle_monitor_message(data)
 
-    def finalise(self, output_dir=None, save_locally=False, upload_to_cloud=False, cloud_path=None, bucket_name=None):
-        """Validate and serialise the output values and manifest, optionally writing them to files and/or the manifest
-        to the cloud.
+    def finalise(self, upload_output_datasets_to=None):
+        """Validate the output values and output manifest, optionally uploading the output manifest's datasets to the
+        cloud and updating its dataset paths to signed URLs.
 
-        :param str output_dir: path-like pointing to directory where the outputs should be saved to file (if None, files are not written)
-        :param bool save_locally:
-        :param bool upload_to_cloud:
-        :param str bucket_name:
-        :return dict: serialised strings for values and manifest data.
+        :param str|None upload_output_datasets_to: if provided, upload any output datasets to this cloud directory and update the output manifest with their locations
+        :return None:
         """
         serialised_strands = {"output_values": None, "output_manifest": None}
 
@@ -123,37 +117,17 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         if self.output_manifest:
             serialised_strands["output_manifest"] = self.output_manifest.to_primitive()
 
-        logger.debug("Validating serialised output json against twine")
         self.twine.validate(**serialised_strands)
+        logger.info("Validated output values and output manifest against the twine.")
 
-        # Optionally write the serialised strands to disk.
-        if save_locally:
-            for output_strand in OUTPUT_STRANDS:
-                if serialised_strands[output_strand] is not None:
+        if not (upload_output_datasets_to and hasattr(self, "output_manifest")):
+            return
 
-                    filename = get_file_name_from_strand(output_strand, output_dir)
-                    with open(filename, "w") as fp:
-                        fp.write(serialised_strands[output_strand])
-                    logger.debug("Wrote %r to file %r", output_strand, filename)
+        for name, dataset in self.output_manifest.datasets.items():
+            dataset.to_cloud(cloud_path=storage.path.join(upload_output_datasets_to, name))
+            self.output_manifest.datasets[name].path = dataset.generate_signed_url()
 
-        # Optionally write the manifest to Google Cloud storage.
-        if upload_to_cloud:
-            if hasattr(self, "output_manifest"):
-                if not cloud_path:
-                    warnings.warn(
-                        message=(
-                            "Using a bucket name and path in bucket will be deprecated soon. Please use `cloud_path` instead e.g."
-                            "'gs://bucket_name/path/to/file.txt'."
-                        ),
-                        category=DeprecationWarning,
-                    )
-
-                    cloud_path = storage.path.generate_gs_path(bucket_name, output_dir)
-
-                self.output_manifest.to_cloud(cloud_path)
-                logger.debug("Wrote %r to %r.", self.output_manifest, cloud_path)
-
-        return serialised_strands
+        logger.info("Uploaded output datasets to %r.", upload_output_datasets_to)
 
     def _calculate_strand_hashes(self, strands):
         """Calculate the hashes of the strands specified in the HASH_FUNCTIONS constant.

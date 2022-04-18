@@ -3,6 +3,7 @@ import logging
 from cleaner import clean, read_csv_files, read_dat_file
 
 from octue.resources import Datafile
+from tests import TEST_BUCKET_NAME
 
 
 logger = logging.getLogger(__name__)
@@ -88,14 +89,17 @@ def run(analysis, *args, **kwargs):
         labels="timeseries",
     )
 
-    output_dataset.add(timeseries_datafile, path_in_dataset="cleaned.csv")
-
     # Write the file (now we know where to write it)
     with timeseries_datafile.open("w") as fp:
         data.to_csv(path_or_buf=fp)
 
     # And finally we add it to the output
-    output_dataset.add(timeseries_datafile)
+    output_dataset.add(timeseries_datafile, path_in_dataset="cleaned.csv")
+
+    # Finalise the analysis. This validates the output data and output manifest against the twine and optionally
+    # uploads any datasets in the output manifest to the service's cloud bucket. Signed URLs are provided so that the
+    # parent that asked the service for the analysis can access the data (until the signed URLs expire).
+    analysis.finalise(upload_output_datasets_to=f"gs://{TEST_BUCKET_NAME}/output/test_using_manifests_analysis")
 
     # We're done! There's only one datafile in the output dataset, but you could create thousands more and append them
     # all :)
