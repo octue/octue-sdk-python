@@ -429,7 +429,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
 
         storage_client = GoogleCloudStorageClient()
 
-        # If the datafile's file has been changed locally, overwrite its cloud copy.
+        # If the there is no cloud file or if the datafile's file has been changed locally, overwrite its cloud copy.
         if not storage_client.exists(cloud_path) or self.cloud_hash_value != self.hash_value:
             storage_client.upload_file(
                 local_path=self.local_path,
