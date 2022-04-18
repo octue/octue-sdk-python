@@ -373,6 +373,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         if self.exists_in_cloud:
             GoogleCloudStorageClient().download_to_file(local_path=path, cloud_path=self.cloud_path)
         else:
+            os.makedirs(os.path.split(path)[0], exist_ok=True)
             shutil.copy(self._local_path, path)
 
         self._local_path = os.path.abspath(path)

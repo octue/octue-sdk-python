@@ -310,7 +310,6 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         # Adding a local datafile to a local dataset.
         if datafile.local_path != new_local_path:
-            os.makedirs(os.path.split(new_local_path)[0], exist_ok=True)
             datafile.local_path = new_local_path
 
         self.files.add(datafile)
