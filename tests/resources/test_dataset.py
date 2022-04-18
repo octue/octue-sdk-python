@@ -12,6 +12,7 @@ from octue.resources.filter_containers import FilterSet
 from octue.utils.local_metadata import LOCAL_METADATA_FILENAME
 from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
+from tests.mocks import mock_generate_signed_url
 from tests.resources import create_dataset_with_two_files
 
 
@@ -732,7 +733,8 @@ class TestDataset(BaseTestCase):
 
             dataset.to_cloud(storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-dataset-to-sign"))
 
-        signed_url = dataset.generate_signed_url()
+        with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
+            signed_url = dataset.generate_signed_url()
 
         downloaded_dataset = Dataset.from_cloud(cloud_path=signed_url)
         self.assertEqual(downloaded_dataset.tags, {"hello": "world"})

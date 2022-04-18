@@ -1,6 +1,7 @@
 import logging
 import os
 import tempfile
+from unittest.mock import patch
 
 import twined.exceptions
 from octue.cloud import storage
@@ -8,6 +9,7 @@ from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.analysis import HASH_FUNCTIONS, Analysis
 from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
+from tests.mocks import mock_generate_signed_url
 from twined import Twine
 
 
@@ -129,7 +131,8 @@ class AnalysisTestCase(BaseTestCase):
                 output_manifest=output_manifest,
             )
 
-            analysis.finalise(upload_output_datasets_to=f"gs://{TEST_BUCKET_NAME}/datasets")
+            with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
+                analysis.finalise(upload_output_datasets_to=f"gs://{TEST_BUCKET_NAME}/datasets")
 
         self.assertTrue(storage.path.is_url(analysis.output_manifest.datasets["the_dataset"].path))
 

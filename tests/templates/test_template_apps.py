@@ -6,13 +6,14 @@ import sys
 import tempfile
 import unittest
 import uuid
+from unittest.mock import patch
 from urllib.parse import urlparse
 
 from octue import REPOSITORY_ROOT, Runner
 from octue.resources.manifest import Manifest
 from octue.utils.processes import ProcessesContextManager
-
-from ..base import BaseTestCase
+from tests.base import BaseTestCase
+from tests.mocks import mock_generate_signed_url
 
 
 class TemplateAppsTestCase(BaseTestCase):
@@ -81,7 +82,8 @@ class TemplateAppsTestCase(BaseTestCase):
             output_manifest_path=os.path.join("data", "output", "manifest.json"),
         )
 
-        analysis = runner.run(input_manifest=os.path.join("data", "input", "manifest.json"))
+        with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
+            analysis = runner.run(input_manifest=os.path.join("data", "input", "manifest.json"))
 
         # Check that the output files have been created.
         self.assertTrue(os.path.isfile(os.path.join("cleaned_met_mast_data", "cleaned.csv")))
