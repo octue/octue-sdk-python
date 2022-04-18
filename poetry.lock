@@ -1358,21 +1358,14 @@ testing = ["flaky (>=3.4.0)", "freezegun (>=0.3.11)", "pytest (>=4.0.0)", "pytes
 [[package]]
 name = "twined"
 version = "0.3.1"
-description = ""
+description = "A library to help digital twins and data services talk to one another"
 category = "main"
 optional = false
 python-versions = ">=3.6"
-develop = false
 
 [package.dependencies]
 jsonschema = ">=4.4.0,<4.5.0"
 python-dotenv = "*"
-
-[package.source]
-type = "git"
-url = "https://github.com/octue/twined.git"
-reference = "enhancement/allow-datasets-to-be-optional"
-resolved_reference = "591de328dbdcdced719e25ddf29e8249ee99ce1c"
 
 [[package]]
 name = "typed-ast"
@@ -1488,7 +1481,7 @@ hdf5 = ["h5py"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7.1"
-content-hash = "2d22791a3acd7323f40af677a636a99e981c787f64f7c43554c285db95791234"
+content-hash = "2032328c0caa790c6f9aceb34ed66a1086d2d04fd6d7739019d10e10731bf64e"
 
 [metadata.files]
 apache-beam = [
@@ -2556,7 +2549,10 @@ tox = [
     {file = "tox-3.25.0-py2.py3-none-any.whl", hash = "sha256:0805727eb4d6b049de304977dfc9ce315a1938e6619c3ab9f38682bb04662a5a"},
     {file = "tox-3.25.0.tar.gz", hash = "sha256:37888f3092aa4e9f835fc8cc6dadbaaa0782651c41ef359e3a5743fcb0308160"},
 ]
-twined = []
+twined = [
+    {file = "twined-0.3.1-py3-none-any.whl", hash = "sha256:89091747f1eb9d85de66e791fc0f80ab735d7c5b78c899d3cc7a61f85c3d8be2"},
+    {file = "twined-0.3.1.tar.gz", hash = "sha256:4c25b745ca3a866fccd17f413dd35e04ddc78966b1ff1e294cb3bd2843cd44f9"},
+]
 typed-ast = [
     {file = "typed_ast-1.5.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:183b183b7771a508395d2cbffd6db67d6ad52958a5fdc99f450d954003900266"},
     {file = "typed_ast-1.5.2-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:676d051b1da67a852c0447621fdd11c4e104827417bf216092ec3e286f7da596"},
