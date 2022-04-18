@@ -5,6 +5,15 @@ from urllib.parse import urlparse
 CLOUD_STORAGE_PROTOCOL = "gs://"
 
 
+def is_cloud_path(path):
+    """Determine if the given path is either a qualified cloud path or a URL cloud path.
+
+    :param str path: the path to check
+    :return bool:
+    """
+    return is_qualified_cloud_path(path) or is_url(path)
+
+
 def is_qualified_cloud_path(path):
     """Determine if the given path is a qualified cloud path - i.e. if it begins with the cloud storage protocol.
 

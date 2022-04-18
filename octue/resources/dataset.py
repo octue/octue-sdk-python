@@ -148,7 +148,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         :return bool:
         """
-        return storage.path.is_qualified_cloud_path(self.path) or storage.path.is_url(self.path)
+        return storage.path.is_cloud_path(self.path)
 
     @property
     def exists_locally(self):

@@ -117,7 +117,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
         self._cloud_metadata = {}
 
-        if storage.path.is_qualified_cloud_path(self.path) or storage.path.is_url(self.path):
+        if storage.path.is_cloud_path(self.path):
             self._cloud_path = path
 
             if not self._hypothetical:
