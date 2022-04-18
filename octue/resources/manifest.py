@@ -123,11 +123,12 @@ class Manifest(Serialisable, Identifiable, Hashable):
 
     def _instantiate_datasets(self, datasets):
         """Add the given datasets to the manifest, instantiating them if needed and giving them the correct path.
-        There are several possible forms the datasets can come in:
-        * Instantiated Dataset instances
-        * A list of dictionaries pointing to cloud datasets
-        * Fully serialised form - includes path
-        * `manifest.json` form - does not include path
+        There are several possible forms each dataset can come in:
+        * Instantiated Dataset instance
+        * A path to a dataset
+        * Serialised form (a dictionary including a path key)
+
+        The datasets can:
         * Including datafiles that already exist
         * Including datafiles that don't yet exist or are not possessed currently (e.g. future output locations or
           cloud files)
@@ -151,19 +152,14 @@ class Manifest(Serialisable, Identifiable, Hashable):
 
         # If `dataset` is just a path to a dataset:
         if isinstance(dataset, str):
+
             if storage.path.is_qualified_cloud_path(dataset) or storage.path.is_url(dataset):
                 return (key, Dataset.from_cloud(cloud_path=dataset, recursive=True))
 
             return (key, Dataset.from_local_directory(path_to_directory=dataset, recursive=True))
 
         # If `dataset` is a dictionary including a "path" key:
-        if "path" in dataset:
+        if storage.path.is_qualified_cloud_path(dataset["path"]) or storage.path.is_url(dataset["path"]):
+            return (key, Dataset.from_cloud(cloud_path=dataset["path"], recursive=True))
 
-            # If the path is a cloud path:
-            if storage.path.is_qualified_cloud_path(dataset["path"]) or storage.path.is_url(dataset["path"]):
-                return (key, Dataset.from_cloud(cloud_path=dataset["path"], recursive=True))
-
-            # If the path is local:
-            return (key, Dataset(**dataset))
-
-        return (key, Dataset(**dataset, path=key))
+        return (key, Dataset(**dataset))
