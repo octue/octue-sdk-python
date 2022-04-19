@@ -13,6 +13,7 @@ from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudStorageBucketNotFound
 from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
+from tests.mocks import mock_generate_signed_url
 
 
 class TestGoogleCloudStorageClient(BaseTestCase):
@@ -311,7 +312,8 @@ class TestGoogleCloudStorageClient(BaseTestCase):
         cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "blah")
         self.storage_client.upload_from_string(string="some stuff", cloud_path=cloud_path)
 
-        url = self.storage_client.generate_signed_url(cloud_path, expiration=datetime.timedelta(seconds=1))
+        with patch("google.cloud.storage.blob.Blob.generate_signed_url", mock_generate_signed_url):
+            url = self.storage_client.generate_signed_url(cloud_path, expiration=datetime.timedelta(seconds=1))
 
         # Ensure the GOOGLE_APPLICATION_CREDENTIALS environment variable isn't available.
         with patch.dict(os.environ, clear=True):
