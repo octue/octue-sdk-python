@@ -240,7 +240,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         # Use multiple threads to significantly speed up file uploads by reducing latency.
         with concurrent.futures.ThreadPoolExecutor() as executor:
             for path in executor.map(upload, files_and_paths):
-                logger.info("Uploaded datafile to %r.", path)
+                logger.debug("Uploaded datafile to %r.", path)
 
         self.path = cloud_path
         self._upload_cloud_metadata()
@@ -360,7 +360,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         # Use multiple threads to significantly speed up files downloads by reducing latency.
         with concurrent.futures.ThreadPoolExecutor() as executor:
             for path in executor.map(download, files_and_paths):
-                logger.info("Downloaded datafile to %r.", path)
+                logger.debug("Downloaded datafile to %r.", path)
 
         logger.info("Downloaded %r dataset to %r.", self.name, local_directory)
 
