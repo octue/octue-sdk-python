@@ -7,6 +7,7 @@ import warnings
 
 import google.api_core.exceptions
 from google import auth
+from google.auth import compute_engine
 from google.auth.transport import requests as google_requests
 from google.cloud import storage
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
@@ -272,29 +273,26 @@ class GoogleCloudStorageClient:
         :param datetime.datetime|datetime.timedelta expiration: the datetime for the URL to expire at or the amount of time after which it should expire
         :return str:
         """
-        # blob = self._blob(cloud_path)
-
         if os.environ.get("STORAGE_EMULATOR_HOST"):
             api_access_endpoint = {"api_access_endpoint": os.environ["STORAGE_EMULATOR_HOST"]}
         else:
             api_access_endpoint = {}
 
-        from datetime import datetime, timedelta
+        auth_request = google_requests.Request()
 
-        from google.auth import compute_engine
-        from google.auth.transport import requests
+        blob = self._blob(cloud_path)
 
-        auth_request = requests.Request()
-
-        signed_blob = self._blob(cloud_path)
-        expires_at_ms = datetime.now() + timedelta(minutes=30)
-
-        # This next line is the trick!
         signing_credentials = compute_engine.IDTokenCredentials(
-            auth_request, "", service_account_email=self.client._credentials.service_account_email
+            auth_request,
+            "",
+            service_account_email=self.client._credentials.service_account_email,
         )
-        return signed_blob.generate_signed_url(
-            expires_at_ms, credentials=signing_credentials, version="v4", **api_access_endpoint
+
+        return blob.generate_signed_url(
+            expiration=expiration,
+            credentials=signing_credentials,
+            version="v4",
+            **api_access_endpoint,
         )
 
         # return blob.generate_signed_url(
@@ -304,27 +302,6 @@ class GoogleCloudStorageClient:
         #     version="v4",
         #     **api_access_endpoint,
         # )
-
-    def sign_url(self, cloud_path, expiration=datetime.timedelta(days=30)):
-        # Perform a refresh request to get the access token of the current credentials (Else, it's None)
-
-        from datetime import datetime, timedelta
-
-        import google.auth
-        from google.auth import compute_engine
-        from google.auth.transport import requests
-
-        auth_request = requests.Request()
-        credentials, project = google.auth.default()
-
-        signed_blob = self._blob(cloud_path)
-        expires_at_ms = datetime.now() + timedelta(minutes=30)
-
-        # This next line is the trick!
-        signing_credentials = compute_engine.IDTokenCredentials(
-            auth_request, "", service_account_email=credentials.service_account_email
-        )
-        return signed_blob.generate_signed_url(expires_at_ms, credentials=signing_credentials, version="v4")
 
     def _get_bucket_and_path_in_bucket(self, cloud_path):
         """Get the bucket and path within the bucket from the given cloud path.
