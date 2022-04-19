@@ -35,11 +35,11 @@ class GoogleCloudStorageClient:
         warnings.simplefilter("ignore", category=ResourceWarning)
 
         if credentials == OCTUE_MANAGED_CREDENTIALS:
-            credentials, self.project_name = auth.default()
+            self.credentials, self.project_name = auth.default()
         else:
-            credentials = credentials
+            self.credentials = credentials
 
-        self.client = storage.Client(project=self.project_name, credentials=credentials)
+        self.client = storage.Client(project=self.project_name, credentials=self.credentials)
 
     def create_bucket(self, name, location=None, allow_existing=False, timeout=_DEFAULT_TIMEOUT):
         """Create a new bucket. If the bucket already exists, and `allow_existing` is `True`, do nothing; if it is
@@ -278,7 +278,11 @@ class GoogleCloudStorageClient:
         else:
             api_access_endpoint = {}
 
-        return blob.generate_signed_url(expiration=expiration, **api_access_endpoint)
+        return blob.generate_signed_url(
+            expiration=expiration,
+            access_token=self.credentials.token,
+            **api_access_endpoint,
+        )
 
     def _get_bucket_and_path_in_bucket(self, cloud_path):
         """Get the bucket and path within the bucket from the given cloud path.
