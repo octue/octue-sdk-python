@@ -173,10 +173,11 @@ def run(app_dir, data_dir, config_dir, input_dir, twine):
 @click.option("--timeout", type=click.INT, default=None, show_default=True, help="Timeout in seconds for serving.")
 @click.option(
     "--delete-topic-and-subscription-on-exit",
+    "--rm",
     is_flag=True,
     default=False,
     show_default=True,
-    help="Delete Google Pub/Sub topics and subscriptions on exit.",
+    help="Delete the Google Pub/Sub topics and subscriptions for service on exit.",
 )
 def start(service_configuration_path, service_id, timeout, delete_topic_and_subscription_on_exit):
     """Start the service as a child to be asked questions by other services."""
