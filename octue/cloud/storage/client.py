@@ -295,14 +295,6 @@ class GoogleCloudStorageClient:
             **api_access_endpoint,
         )
 
-        # return blob.generate_signed_url(
-        #     expiration=expiration,
-        #     service_account_email=self.client._credentials.service_account_email,
-        #     access_token=self.client._credentials.token,
-        #     version="v4",
-        #     **api_access_endpoint,
-        # )
-
     def _get_bucket_and_path_in_bucket(self, cloud_path):
         """Get the bucket and path within the bucket from the given cloud path.
 
