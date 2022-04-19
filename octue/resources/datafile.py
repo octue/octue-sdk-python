@@ -403,6 +403,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._open_context_manager.__exit__(exc_type, exc_val, exc_tb)
+        del vars(self)["_open_context_manager"]
 
     def __lt__(self, other):
         if not isinstance(other, Datafile):
