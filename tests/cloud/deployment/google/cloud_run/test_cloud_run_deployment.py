@@ -4,7 +4,6 @@ from unittest import TestCase
 
 import twined.exceptions
 from octue.cloud.pub_sub.service import Service
-from octue.resources import Dataset
 from octue.resources.service_backends import GCPPubSubBackend
 
 
@@ -41,7 +40,5 @@ class TestCloudRunDeployment(TestCase):
         self.assertEqual(answer["output_values"], [1, 2, 3, 4, 5])
 
         # Check that the output dataset and its files can be accessed.
-        dataset = Dataset.from_cloud(answer["output_manifest"].datasets["example_dataset"].path)
-
-        with dataset.files.one() as (datafile, f):
+        with answer["output_manifest"].datasets["example_dataset"].files.one() as (datafile, f):
             self.assertEqual(f.read(), "This is some example service output.")
