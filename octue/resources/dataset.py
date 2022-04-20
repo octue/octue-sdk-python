@@ -138,7 +138,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
             return self._name
 
         if self.exists_in_cloud:
-            return storage.path.split(self.path)[-1]
+            return storage.path.split(self.path)[-1].split("?")[0]
 
         return os.path.split(os.path.abspath(os.path.split(self.path)[-1]))[-1]
 
