@@ -172,8 +172,8 @@ def run(app_dir, data_dir, config_dir, input_dir, twine):
 )
 @click.option("--timeout", type=click.INT, default=None, show_default=True, help="Timeout in seconds for serving.")
 @click.option(
-    "--delete-topic-and-subscription-on-exit",
     "--rm",
+    "--delete-topic-and-subscription-on-exit",
     is_flag=True,
     default=False,
     show_default=True,
