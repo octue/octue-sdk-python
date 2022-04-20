@@ -10,7 +10,6 @@ from octue.cloud.emulators import mock_generate_signed_url
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset
 from octue.resources.filter_containers import FilterSet
-from octue.utils.local_metadata import LOCAL_METADATA_FILENAME
 from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
 from tests.resources import create_dataset_with_two_files
@@ -476,11 +475,8 @@ class TestDataset(BaseTestCase):
         self.assertEqual(deserialised_dataset.hash_value, cloud_dataset.hash_value)
 
         # Test dataset metadata file has been uploaded.
-        dataset_metadata = json.loads(
-            cloud_storage_client.download_as_string(
-                cloud_path=storage.path.join(cloud_dataset.path, LOCAL_METADATA_FILENAME)
-            )
-        )
+        dataset_metadata = Dataset._get_cloud_metadata(cloud_dataset.path)
+
         del dataset_metadata["id"]
 
         self.assertEqual(
@@ -511,11 +507,7 @@ class TestDataset(BaseTestCase):
         )
 
         # Test dataset metadata file has been uploaded.
-        dataset_metadata = json.loads(
-            GoogleCloudStorageClient().download_as_string(
-                cloud_path=storage.path.join(cloud_dataset.path, LOCAL_METADATA_FILENAME)
-            )
-        )
+        dataset_metadata = Dataset._get_cloud_metadata(cloud_dataset.path)
         del dataset_metadata["id"]
 
         self.assertEqual(
@@ -575,9 +567,7 @@ class TestDataset(BaseTestCase):
             self.assertEqual(persisted_file_1, "1")
 
             # Check its metadata has been uploaded.
-            persisted_dataset_metadata = json.loads(
-                storage_client.download_as_string(storage.path.join(cloud_path, LOCAL_METADATA_FILENAME))
-            )
+            persisted_dataset_metadata = Dataset._get_cloud_metadata(cloud_path)
 
             self.assertEqual(
                 persisted_dataset_metadata["files"],

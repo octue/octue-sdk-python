@@ -408,10 +408,13 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         """Get the cloud metadata for the given dataset if a dataset metadata file has previously been uploaded.
 
         :param str cloud_path: the path to the dataset cloud directory
-        :return dict: the dataset metadata
+        :return dict: the dataset metadata or an empty dictionary if there isn't any
         """
         if storage.path.is_url(cloud_path):
-            return requests.get(cloud_path).json()
+            try:
+                return requests.get(cloud_path).json()
+            except requests.exceptions.ConnectionError:
+                return {}
 
         storage_client = GoogleCloudStorageClient()
         metadata_file_path = storage.path.join(cloud_path, LOCAL_METADATA_FILENAME)
@@ -419,14 +422,20 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         if not storage_client.exists(cloud_path=metadata_file_path):
             return {}
 
-        return json.loads(storage_client.download_as_string(cloud_path=metadata_file_path))
+        return json.loads(storage_client.download_as_string(cloud_path=metadata_file_path)).get("dataset", {})
 
     def _upload_cloud_metadata(self):
         """Upload a metadata file representing the dataset to the given cloud location.
 
         :return None:
         """
-        GoogleCloudStorageClient().upload_from_string(string=self.serialise(), cloud_path=self._metadata_path)
+        existing_metadata_records = self._get_cloud_metadata(self._metadata_path)
+        existing_metadata_records["dataset"] = self.to_primitive()
+
+        GoogleCloudStorageClient().upload_from_string(
+            string=json.dumps(existing_metadata_records, cls=OctueJSONEncoder),
+            cloud_path=self._metadata_path,
+        )
 
     def _save_local_metadata(self):
         """Save the dataset metadata locally in the dataset directory.
