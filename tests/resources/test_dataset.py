@@ -6,13 +6,13 @@ from unittest.mock import patch
 
 from octue import REPOSITORY_ROOT, exceptions
 from octue.cloud import storage
+from octue.cloud.emulators import mock_generate_signed_url
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset
 from octue.resources.filter_containers import FilterSet
 from octue.utils.local_metadata import LOCAL_METADATA_FILENAME
 from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
-from tests.mocks import mock_generate_signed_url
 from tests.resources import create_dataset_with_two_files
 
 
