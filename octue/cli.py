@@ -179,7 +179,7 @@ def run(app_dir, data_dir, config_dir, input_dir, twine):
     show_default=True,
     help="Delete the Google Pub/Sub topics and subscriptions for service on exit.",
 )
-def start(service_configuration_path, service_id, timeout, delete_topic_and_subscription_on_exit):
+def start(service_configuration_path, service_id, timeout, rm):
     """Start the service as a child to be asked questions by other services."""
     service_configuration, app_configuration = load_service_and_app_configuration(service_configuration_path)
 
@@ -215,7 +215,7 @@ def start(service_configuration_path, service_id, timeout, delete_topic_and_subs
         run_function=run_function,
     )
 
-    service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=delete_topic_and_subscription_on_exit)
+    service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=rm)
 
 
 @octue_cli.group()
