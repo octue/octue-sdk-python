@@ -83,15 +83,11 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
                 datafiles.add(Datafile(path=os.path.join(directory_path, filename)))
 
-        return Dataset(
-            path=path_to_directory,
-            files=datafiles,
-            id=dataset_metadata.get("id"),
-            name=dataset_metadata.get("name"),
-            tags=dataset_metadata.get("tags"),
-            labels=dataset_metadata.get("labels"),
-            **kwargs,
-        )
+        metadata_to_use = {
+            key: value for key, value in dataset_metadata.items() if key in {"id", "name", "tags", "labels"}
+        }
+
+        return Dataset(path=path_to_directory, files=datafiles, **metadata_to_use, **kwargs)
 
     @classmethod
     def from_cloud(cls, cloud_path=None, bucket_name=None, path_to_dataset_directory=None, recursive=False):
