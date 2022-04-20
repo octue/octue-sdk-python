@@ -17,7 +17,7 @@ from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggab
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.utils.encoders import OctueJSONEncoder
-from octue.utils.local_metadata import LOCAL_METADATA_FILENAME, load_local_metadata_file
+from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file
 
 
 logger = logging.getLogger(__name__)
@@ -67,7 +67,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :param kwargs: other keyword arguments for the `Dataset` instantiation
         :return Dataset:
         """
-        local_metadata = load_local_metadata_file(os.path.join(path_to_directory, LOCAL_METADATA_FILENAME))
+        local_metadata = load_local_metadata_file(os.path.join(path_to_directory, METADATA_FILENAME))
         dataset_metadata = local_metadata.get("dataset", {})
 
         datafiles = FilterSet()
@@ -75,7 +75,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         for level, (directory_path, _, filenames) in enumerate(os.walk(path_to_directory)):
             for filename in filenames:
 
-                if filename == LOCAL_METADATA_FILENAME:
+                if filename == METADATA_FILENAME:
                     continue
 
                 if not recursive and level > 0:
@@ -120,7 +120,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
                     cloud_path,
                     recursive=recursive,
                     filter=(
-                        lambda blob: not blob.name.endswith(LOCAL_METADATA_FILENAME)
+                        lambda blob: not blob.name.endswith(METADATA_FILENAME)
                         and not blob.name.endswith(SIGNED_METADATA_DIRECTORY)
                     ),
                 )
@@ -206,9 +206,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :return str:
         """
         if self.exists_in_cloud:
-            return storage.path.join(self.path, LOCAL_METADATA_FILENAME)
+            return storage.path.join(self.path, METADATA_FILENAME)
 
-        return os.path.join(self.path, LOCAL_METADATA_FILENAME)
+        return os.path.join(self.path, METADATA_FILENAME)
 
     def __iter__(self):
         yield from self.files
@@ -433,7 +433,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
                 return {}
 
         storage_client = GoogleCloudStorageClient()
-        metadata_file_path = storage.path.join(cloud_path, LOCAL_METADATA_FILENAME)
+        metadata_file_path = storage.path.join(cloud_path, METADATA_FILENAME)
 
         if not storage_client.exists(cloud_path=metadata_file_path):
             return {}
