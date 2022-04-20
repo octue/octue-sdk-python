@@ -27,7 +27,7 @@ class MockOpen:
         pass
 
 
-def mock_generate_signed_url(blob, expiration=datetime.timedelta(days=30), **kwargs):
+def mock_generate_signed_url(blob, expiration=datetime.timedelta(days=7), **kwargs):
     """Mock generating a signed URL for a Google Cloud Storage blob. Signed URLs can't currently be generated when using
     workload identity federation, which we use for our CI tests.
 

@@ -246,7 +246,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         self._upload_cloud_metadata()
         return cloud_path
 
-    def generate_signed_url(self, expiration=datetime.timedelta(days=30)):
+    def generate_signed_url(self, expiration=datetime.timedelta(days=7)):
         """Generate a signed URL for the dataset. This is done by uploading a uniquely named metadata file containing
         signed URLs to the datasets' files and returning a signed URL to that metadata file.
 

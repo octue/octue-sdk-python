@@ -265,7 +265,7 @@ class GoogleCloudStorageClient:
                 if filter(blob) and not blob.name.endswith("/"):
                     yield blob
 
-    def generate_signed_url(self, cloud_path, expiration=datetime.timedelta(days=30)):
+    def generate_signed_url(self, cloud_path, expiration=datetime.timedelta(days=7)):
         """Generate a signed URL for accessing the object at the given cloud path that expires after the given
         expiration date or period.
 
