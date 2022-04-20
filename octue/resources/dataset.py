@@ -16,8 +16,6 @@ from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_buc
 from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
-from octue.resources.label import LabelSet
-from octue.resources.tag import TagDict
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.local_metadata import LOCAL_METADATA_FILENAME, load_local_metadata_file
 
@@ -38,7 +36,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     :param str|None name:
     :param str|None id:
     :param str|None path:
-    :param dict|None tags:
+    :param dict|octue.resources.tags.TagDict|None tags:
     :param iter|None labels:
     :param bool save_metadata_locally: if `True` and the dataset is local, save its metadata to disk locally
     :return None:
@@ -70,10 +68,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :return Dataset:
         """
         local_metadata = load_local_metadata_file(os.path.join(path_to_directory, LOCAL_METADATA_FILENAME))
-        dataset_metadata = local_metadata.get("dataset")
-
-        if dataset_metadata:
-            return Dataset.deserialise(dataset_metadata)
+        dataset_metadata = local_metadata.get("dataset", {})
 
         datafiles = FilterSet()
 
@@ -88,11 +83,21 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
                 datafiles.add(Datafile(path=os.path.join(directory_path, filename)))
 
-        return Dataset(path=path_to_directory, files=datafiles, **kwargs)
+        return Dataset(
+            path=path_to_directory,
+            files=datafiles,
+            id=dataset_metadata.get("id"),
+            name=dataset_metadata.get("name"),
+            tags=dataset_metadata.get("tags"),
+            labels=dataset_metadata.get("labels"),
+            **kwargs,
+        )
 
     @classmethod
     def from_cloud(cls, cloud_path=None, bucket_name=None, path_to_dataset_directory=None, recursive=False):
-        """Instantiate a Dataset from Google Cloud storage.
+        """Instantiate a Dataset from Google Cloud storage. The dataset's files are collected by scanning its cloud
+        directory unless a "files" key is present in the dataset metadata, in which case the files specified there are
+        used.
 
         :param str|None cloud_path: full path to dataset directory in cloud storage (e.g. `gs://bucket_name/path/to/dataset`)
         :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained in the dataset directory
@@ -105,30 +110,35 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         dataset_metadata = cls._get_cloud_metadata(cloud_path=cloud_path)
 
-        if dataset_metadata:
-            return Dataset(
-                id=dataset_metadata.get("id"),
-                name=dataset_metadata.get("name"),
-                path=cloud_path,
-                tags=TagDict(dataset_metadata.get("tags", {})),
-                labels=LabelSet(dataset_metadata.get("labels", [])),
-                files=[Datafile(path=path) for path in dataset_metadata["files"]],
+        if "files" in dataset_metadata:
+            files = [Datafile(path=path) for path in dataset_metadata["files"]]
+
+        else:
+            files = FilterSet(
+                Datafile(path=storage.path.generate_gs_path(bucket_name, blob.name))
+                for blob in GoogleCloudStorageClient().scandir(
+                    cloud_path,
+                    recursive=recursive,
+                    filter=(
+                        lambda blob: not blob.name.endswith(LOCAL_METADATA_FILENAME)
+                        and not blob.name.endswith(SIGNED_METADATA_DIRECTORY)
+                    ),
+                )
             )
 
-        datafiles = FilterSet(
-            Datafile(path=storage.path.generate_gs_path(bucket_name, blob.name))
-            for blob in GoogleCloudStorageClient().scandir(
-                cloud_path,
-                recursive=recursive,
-                filter=(
-                    lambda blob: not blob.name.endswith(LOCAL_METADATA_FILENAME)
-                    and not blob.name.endswith(SIGNED_METADATA_DIRECTORY)
-                ),
-            )
+        dataset = Dataset(
+            path=cloud_path,
+            files=files,
+            id=dataset_metadata.get("id"),
+            name=dataset_metadata.get("name"),
+            tags=dataset_metadata.get("tags"),
+            labels=dataset_metadata.get("labels"),
         )
 
-        dataset = Dataset(path=cloud_path, files=datafiles)
-        dataset._upload_cloud_metadata()
+        # Upload dataset metadata if there wasn't any.
+        if not dataset_metadata:
+            dataset._upload_cloud_metadata()
+
         return dataset
 
     @property
@@ -367,10 +377,11 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         logger.info("Downloaded %r dataset to %r.", self.name, local_directory)
 
-    def to_primitive(self):
+    def to_primitive(self, include_files=True):
         """Convert the dataset to a dictionary of primitives, converting its files into their paths for a lightweight
         serialisation.
 
+        :param bool include_files: if `True`, include the `files` parameter in the dictionary
         :return dict:
         """
         serialised_dataset = super().to_primitive()
@@ -380,7 +391,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         else:
             path_type = "path"
 
-        serialised_dataset["files"] = sorted(getattr(datafile, path_type) for datafile in self.files)
+        if include_files:
+            serialised_dataset["files"] = sorted(getattr(datafile, path_type) for datafile in self.files)
+
         return serialised_dataset
 
     def _instantiate_datafiles(self, files):
@@ -433,7 +446,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :return None:
         """
         existing_metadata_records = self._get_cloud_metadata(self._metadata_path)
-        existing_metadata_records["dataset"] = self.to_primitive()
+        existing_metadata_records["dataset"] = self.to_primitive(include_files=False)
 
         GoogleCloudStorageClient().upload_from_string(
             string=json.dumps(existing_metadata_records, cls=OctueJSONEncoder),
@@ -448,7 +461,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         os.makedirs(self.path, exist_ok=True)
 
         existing_metadata_records = load_local_metadata_file(self._metadata_path)
-        existing_metadata_records["dataset"] = self.to_primitive()
+        existing_metadata_records["dataset"] = self.to_primitive(include_files=False)
 
         with open(self._metadata_path, "w") as f:
             json.dump(existing_metadata_records, f, cls=OctueJSONEncoder)

@@ -483,10 +483,6 @@ class TestDataset(BaseTestCase):
             dataset_metadata,
             {
                 "path": "gs://octue-test-bucket/my_dataset",
-                "files": [
-                    "gs://octue-test-bucket/my_dataset/file_0.txt",
-                    "gs://octue-test-bucket/my_dataset/file_1.txt",
-                ],
                 "labels": [],
                 "name": "my_dataset",
                 "tags": {},
@@ -511,13 +507,8 @@ class TestDataset(BaseTestCase):
         del dataset_metadata["id"]
 
         self.assertEqual(
-            set(dataset_metadata["files"]),
-            {
-                "gs://octue-test-bucket/a_dataset/file_0.txt",
-                "gs://octue-test-bucket/a_dataset/file_1.txt",
-                "gs://octue-test-bucket/a_dataset/sub-directory/sub_file.txt",
-                "gs://octue-test-bucket/a_dataset/sub-directory/sub-sub-directory/sub_sub_file.txt",
-            },
+            dataset_metadata,
+            {"name": "a_dataset", "labels": [], "tags": {}, "path": "gs://octue-test-bucket/a_dataset"},
         )
 
     def test_metadata_saved_locally(self):
@@ -538,7 +529,7 @@ class TestDataset(BaseTestCase):
                     labels=["animals"],
                 )
 
-                dataset_reloaded = Dataset.from_local_directory(temporary_directory)
+                dataset_reloaded = Dataset.from_local_directory(temporary_directory, recursive=True)
                 self.assertEqual(dataset.id, dataset_reloaded.id)
                 self.assertEqual(dataset.tags, dataset_reloaded.tags)
                 self.assertEqual(dataset.labels, dataset_reloaded.labels)
@@ -568,15 +559,6 @@ class TestDataset(BaseTestCase):
 
             # Check its metadata has been uploaded.
             persisted_dataset_metadata = Dataset._get_cloud_metadata(cloud_path)
-
-            self.assertEqual(
-                persisted_dataset_metadata["files"],
-                [
-                    f"gs://octue-test-bucket/my_datasets/{dataset.name}/file_0.txt",
-                    f"gs://octue-test-bucket/my_datasets/{dataset.name}/file_1.txt",
-                ],
-            )
-
             self.assertEqual(persisted_dataset_metadata["tags"], dataset.tags.to_primitive())
 
     # This test will pass in a near-future release.
@@ -614,16 +596,16 @@ class TestDataset(BaseTestCase):
             upload_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-dataset")
             dataset.to_cloud(cloud_path=upload_path)
 
-        uploaded_dataset = Dataset.from_cloud(cloud_path=upload_path)
+        cloud_datafile_relative_paths = {
+            blob.name.split(dataset.name)[-1].strip("/")
+            for blob in GoogleCloudStorageClient().scandir(
+                upload_path, filter=lambda blob: not blob.name.endswith(".octue")
+            )
+        }
 
         # Check that the paths relative to the dataset directory are the same in the cloud as they are locally.
         local_datafile_relative_paths = {
             path.split(temporary_directory)[-1].strip(os.path.sep).replace(os.path.sep, "/") for path in local_paths
-        }
-
-        cloud_datafile_relative_paths = {
-            storage.path.split_bucket_name_from_cloud_path(datafile.path)[-1].split("my-dataset/")[-1]
-            for datafile in uploaded_dataset.files
         }
 
         self.assertEqual(cloud_datafile_relative_paths, local_datafile_relative_paths)
