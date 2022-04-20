@@ -120,7 +120,10 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
             for blob in GoogleCloudStorageClient().scandir(
                 cloud_path,
                 recursive=recursive,
-                filter=lambda blob: not blob.name.endswith(LOCAL_METADATA_FILENAME),
+                filter=(
+                    lambda blob: not blob.name.endswith(LOCAL_METADATA_FILENAME)
+                    and not blob.name.endswith(SIGNED_METADATA_DIRECTORY)
+                ),
             )
         )
 
