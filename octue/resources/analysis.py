@@ -80,6 +80,8 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         self.children = strand_kwargs.get("children", None)
         self.monitors = strand_kwargs.get("monitors", None)
 
+        self.output_location = kwargs.pop("output_location", None)
+
         self._calculate_strand_hashes(strands=strand_kwargs)
         self._skip_checks = skip_checks
 

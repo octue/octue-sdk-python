@@ -194,6 +194,7 @@ def start(service_configuration_path, service_id, timeout, rm):
 
     run_function = functools.partial(
         runner.run,
+        output_location=app_configuration.output_location,
         analysis_log_level=global_cli_context["log_level"],
         analysis_log_handler=global_cli_context["log_handler"],
     )
