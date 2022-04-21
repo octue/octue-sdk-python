@@ -99,7 +99,7 @@ class AppConfiguration:
     :param str|None configuration_values: values to configure the app
     :param str|None configuration_manifest: a manifest of files to configure the app
     :param str|None children: details of the children the app requires
-    :param str|None output_location: the path of a cloud directory to save output datasets at
+    :param str|None output_location: the path to a cloud directory to save output datasets at
     :return None:
     """
 
