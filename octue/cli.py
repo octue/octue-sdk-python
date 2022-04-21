@@ -177,7 +177,7 @@ def run(app_dir, data_dir, config_dir, input_dir, twine):
     is_flag=True,
     default=False,
     show_default=True,
-    help="Delete the Google Pub/Sub topics and subscriptions for service on exit.",
+    help="Delete the Google Pub/Sub topic and subscription for the service on exit.",
 )
 def start(service_configuration_path, service_id, timeout, rm):
     """Start the service as a child to be asked questions by other services."""
