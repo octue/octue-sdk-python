@@ -2,9 +2,15 @@ import logging
 
 import google.api_core.exceptions
 from google.cloud.pubsub_v1 import SubscriberClient
-from google.protobuf.duration_pb2 import Duration
-from google.protobuf.field_mask_pb2 import FieldMask
-from google.pubsub_v1.types.pubsub import ExpirationPolicy, PushConfig, RetryPolicy, Subscription as _Subscription
+from google.protobuf.duration_pb2 import Duration  # noqa
+from google.protobuf.field_mask_pb2 import FieldMask  # noqa
+from google.pubsub_v1.types.pubsub import (
+    ExpirationPolicy,
+    PushConfig,
+    RetryPolicy,
+    Subscription as _Subscription,
+    UpdateSubscriptionRequest,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -121,10 +127,13 @@ class Subscription:
         :return None:
         """
         self.subscriber.update_subscription(
-            subscription=self._create_proto_message_subscription(),
-            update_mask=FieldMask(
-                paths=["ack_deadline_seconds", "message_retention_duration", "expiration_policy", "retry_policy"]
-            ),
+            request=UpdateSubscriptionRequest(
+                mapping=None,
+                subscription=self._create_proto_message_subscription(),  # noqa
+                update_mask=FieldMask(
+                    paths=["ack_deadline_seconds", "message_retention_duration", "expiration_policy", "retry_policy"]
+                ),
+            )
         )
 
     def delete(self):
@@ -163,7 +172,7 @@ class Subscription:
         :return google.pubsub_v1.types.pubsub.Subscription:
         """
         if self.push_endpoint:
-            push_config = {"push_config": PushConfig(mapping=None, push_endpoint=self.push_endpoint)}
+            push_config = {"push_config": PushConfig(mapping=None, push_endpoint=self.push_endpoint)}  # noqa
         else:
             push_config = {}
 
