@@ -110,10 +110,7 @@ def mock_generate_signed_url(blob, expiration=datetime.timedelta(days=7), **kwar
     """
     mock_signed_query_parameter = (
         f"?Expires={round((datetime.datetime.now() + expiration).timestamp())}&GoogleAccessId=my-service-account%40my-p"
-        f"roject.iam.gserviceaccount.com&Signature=UekBIUZIgjZKB8aRSTEIbj3QXDXm5fhcEEhRneTKBJoyU7ysnhEmCXiS2Ip5rKwzBS56"
-        f"8aFeWJQXbDPSf9Qq43N0%2FHB7QkEwJ6Y5u9S%2FTp6l5%2FqhrKHPhPCSjbJ7gmoaksHpfDaDVVEMQTRA%2Bcq59SV2NBRsA00Ek8h73sBNP"
-        f"vw9JlcwNGn9gjbCUunt24ZRVvf3DEThYUZyv7Z2vInv5cbmZYbFd6bA8ahy%2FLFdq%2F6vQibao4iOJ1yeBZKEAaLsYzmXRuZJmg19LWWNBT"
-        f"siAiZqKLy%2Fn5fw6LCRAR%2B04GaL8kVpotN1sOh7tRBFedEqoJ3fAXnztdhlJZs2m4OFLg%3D%3D"
+        f"roject.iam.gserviceaccount.com&Signature=mock-signature"
     )
 
     base_url = "/".join((kwargs.get("api_access_endpoint", _API_ACCESS_ENDPOINT), blob.bucket.name, blob.name))
