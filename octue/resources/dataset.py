@@ -116,8 +116,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
                     cloud_path,
                     recursive=recursive,
                     filter=(
-                        lambda blob: not blob.name.endswith(METADATA_FILENAME)
-                        and not blob.name.endswith(SIGNED_METADATA_DIRECTORY)
+                        lambda blob: (
+                            not blob.name.endswith(METADATA_FILENAME) and SIGNED_METADATA_DIRECTORY not in blob.name
+                        )
                     ),
                 )
             )
