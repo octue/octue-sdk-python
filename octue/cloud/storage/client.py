@@ -6,6 +6,7 @@ import os
 import warnings
 
 import google.api_core.exceptions
+import google.auth.exceptions
 from google import auth
 from google.auth import compute_engine
 from google.auth.transport import requests as google_requests
@@ -278,22 +279,26 @@ class GoogleCloudStorageClient:
         else:
             api_access_endpoint = {}
 
-        auth_request = google_requests.Request()
-
-        blob = self._blob(cloud_path)
-
         signing_credentials = compute_engine.IDTokenCredentials(
-            auth_request,
-            "",
+            request=google_requests.Request(),
+            target_audience="",
             service_account_email=self.client._credentials.service_account_email,
         )
 
-        return blob.generate_signed_url(
-            expiration=expiration,
-            credentials=signing_credentials,
-            version="v4",
-            **api_access_endpoint,
-        )
+        blob = self._blob(cloud_path)
+
+        try:
+            # Use compute engine credentials if running on e.g. Google Cloud Run.
+            return blob.generate_signed_url(
+                expiration=expiration,
+                credentials=signing_credentials,
+                version="v4",
+                **api_access_endpoint,
+            )
+
+        except google.auth.exceptions.RefreshError:
+            # Use service account credentials.
+            return blob.generate_signed_url(expiration=expiration, **api_access_endpoint)
 
     def _get_bucket_and_path_in_bucket(self, cloud_path):
         """Get the bucket and path within the bucket from the given cloud path.
