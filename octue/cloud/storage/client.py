@@ -282,11 +282,10 @@ class GoogleCloudStorageClient:
         blob = self._blob(cloud_path)
 
         try:
-            # Use compute engine credentials if running on e.g. Google Cloud Run.
+            # Use compute engine credentials if running on e.g. Google Cloud Run, performing a refresh request to get
+            # the access token of the credentials (otherwise it's `None`).
             credentials, _ = google.auth.default()
             request = google_requests.Request()
-
-            # Perform a refresh request to get the access token of the current credentials (otherwise it's `None`).
             credentials.refresh(request)
 
             signing_credentials = compute_engine.IDTokenCredentials(
@@ -303,7 +302,7 @@ class GoogleCloudStorageClient:
             )
 
         except google.auth.exceptions.RefreshError:
-            # Use service account credentials.
+            # Use local service account key.
             return blob.generate_signed_url(expiration=expiration, **api_access_endpoint)
 
     def _get_bucket_and_path_in_bucket(self, cloud_path):
