@@ -279,16 +279,22 @@ class GoogleCloudStorageClient:
         else:
             api_access_endpoint = {}
 
-        signing_credentials = compute_engine.IDTokenCredentials(
-            request=google_requests.Request(),
-            target_audience="",
-            service_account_email=self.client._credentials.service_account_email,
-        )
-
         blob = self._blob(cloud_path)
 
         try:
             # Use compute engine credentials if running on e.g. Google Cloud Run.
+            credentials, _ = google.auth.default()
+            request = google_requests.Request()
+
+            # Perform a refresh request to get the access token of the current credentials (otherwise it's `None`).
+            credentials.refresh(request)
+
+            signing_credentials = compute_engine.IDTokenCredentials(
+                request,
+                "",
+                service_account_email=credentials.service_account_email,
+            )
+
             return blob.generate_signed_url(
                 expiration=expiration,
                 credentials=signing_credentials,
