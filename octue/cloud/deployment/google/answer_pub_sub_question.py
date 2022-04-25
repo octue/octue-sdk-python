@@ -53,7 +53,7 @@ def answer_question(question, project_name):
             project_name=project_name,
         )
 
-        service.run_function = functools.partial(runner.run)
+        service.run_function = functools.partial(runner.run, output_location=app_configuration.output_location)
 
         service.answer(question, answer_topic=answer_topic)
         logger.info("Analysis successfully run and response sent for question %r.", question_uuid)
