@@ -228,7 +228,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         files_and_paths = []
 
         for datafile in self.files:
-            datafile_path_relative_to_dataset = storage.path.relpath(datafile.local_path, self.path)
+            datafile_path_relative_to_dataset = self._datafile_path_relative_to_self(datafile, path_type="local_path")
+
             files_and_paths.append(
                 (
                     datafile,
@@ -353,7 +354,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
             if not file.exists_in_cloud:
                 continue
 
-            path_relative_to_dataset = storage.path.relpath(file.cloud_path, self.path)
+            path_relative_to_dataset = self._datafile_path_relative_to_self(file, path_type="cloud_path")
+
             local_path = os.path.abspath(os.path.join(local_directory, *path_relative_to_dataset.split("/")))
             files_and_paths.append((file, local_path))
 
@@ -462,3 +464,22 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         with open(self._metadata_path, "w") as f:
             json.dump(existing_metadata_records, f, cls=OctueJSONEncoder)
+
+    def _datafile_path_relative_to_self(self, datafile, path_type):
+        """Get the path of the given datafile relative to the dataset.
+
+        :param octue.resources.datafile.Datafile datafile: the datafile to get the relative path for
+        :param str path_type: the datafile path type to use to calculate the relative path - one of "cloud_path" or "local_path"
+        :return str: the relative path
+        """
+        if storage.path.is_url(self.path):
+            dataset_path = self.path.split(SIGNED_METADATA_DIRECTORY)[0].strip("/")
+        else:
+            dataset_path = self.path
+
+        datafile_path = getattr(datafile, path_type)
+
+        if storage.path.is_url(datafile_path):
+            datafile_path = datafile_path.split("?")[0]
+
+        return storage.path.relpath(datafile_path, dataset_path)
