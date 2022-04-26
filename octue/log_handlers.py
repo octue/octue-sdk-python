@@ -40,6 +40,20 @@ def create_octue_formatter(
     if include_thread_name:
         extra_attributes.append("%(threadName)s")
 
+    if len(log_record_attributes) > 1:
+        extra_sections = [
+            " ".join(
+                colourise(
+                    "[" + " | ".join(attributes_section) + "]",
+                    foreground=COLOUR_PALETTE[2],
+                )
+                for attributes_section in log_record_attributes[1:]
+            )
+        ]
+
+    else:
+        extra_sections = []
+
     return logging.Formatter(
         " ".join(
             [
@@ -47,13 +61,7 @@ def create_octue_formatter(
                     "[" + " | ".join(log_record_attributes[0] + extra_attributes) + "]",
                     foreground=COLOUR_PALETTE[0],
                 ),
-                " ".join(
-                    colourise(
-                        "[" + " | ".join(attributes_section) + "]",
-                        foreground=COLOUR_PALETTE[1],
-                    )
-                    for attributes_section in log_record_attributes[1:]
-                ),
+                *extra_sections,
                 colourise("%(message)s"),
             ]
         )
