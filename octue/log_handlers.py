@@ -25,7 +25,7 @@ def create_octue_formatter(
     attributes are `["%(asctime)s", "%(levelname)s", "%(name)s"]`, the formatter would format log messages as e.g.
     `[2021-06-29 11:58:10,985 | INFO | octue.runner] This is a log message.`
 
-    :param iter(str) log_record_attributes: an iterable of log record attribute names to use as context for every log message that the formatter is applied to
+    :param log_record_attributes: any number of iterables of log record attribute names to use as context for every log message that the formatter is applied to; each iterable is interpreted as a different section by the formatter
     :param bool include_line_number: if `True`, include the line number in the log context
     :param bool include_process_name: if `True`, include the process name in the log context
     :param bool include_thread_name: if `True`, include the thread name in the log context
