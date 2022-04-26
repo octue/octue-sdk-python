@@ -167,7 +167,7 @@ class TestDeployCommand(BaseTestCase):
         """Test that an `ImportWarning` is raised if the `dataflow deploy` CLI command is used when `apache_beam` is
         not available.
         """
-        with mock.patch("octue.cli.APACHE_BEAM_PACKAGE_AVAILABLE", False):
+        with mock.patch("importlib.util.find_spec", return_value=None):
             with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
                 result = CliRunner().invoke(
                     octue_cli,

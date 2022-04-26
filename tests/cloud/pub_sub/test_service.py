@@ -364,12 +364,12 @@ class TestService(BaseTestCase):
         finish_remote_analysis_message_present = False
 
         for i, log_record in enumerate(logs_context_manager.records):
-            if "[my-super-service" in log_record.msg and "] Starting analysis." in log_record.msg:
+            if "[my-super-service" in log_record.msg and "Starting analysis." in log_record.msg:
                 start_remote_analysis_message_present = True
 
                 if (
                     "[my-super-service" in logs_context_manager.records[i + 1].msg
-                    and "] Finished analysis." in logs_context_manager.records[i + 1].msg
+                    and "Finished analysis." in logs_context_manager.records[i + 1].msg
                 ):
                     finish_remote_analysis_message_present = True
 

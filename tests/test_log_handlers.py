@@ -22,7 +22,7 @@ class TestLogging(BaseTestCase):
                 importlib.reload(sys.modules["octue"])
 
         create_octue_formatter.assert_called_with(
-            log_record_attributes=LOG_RECORD_ATTRIBUTES_WITHOUT_TIMESTAMP,
+            LOG_RECORD_ATTRIBUTES_WITHOUT_TIMESTAMP,
             include_line_number=False,
             include_process_name=False,
             include_thread_name=False,
@@ -37,7 +37,7 @@ class TestLogging(BaseTestCase):
                 importlib.reload(sys.modules["octue"])
 
         create_octue_formatter.assert_called_with(
-            log_record_attributes=LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP,
+            LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP,
             include_line_number=False,
             include_process_name=False,
             include_thread_name=False,
