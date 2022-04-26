@@ -1,3 +1,5 @@
+# The functions in this module were based on https://github.com/brutasse/rgb2ansi.
+
 import binascii
 
 
