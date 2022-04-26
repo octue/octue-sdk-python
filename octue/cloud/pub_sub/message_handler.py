@@ -57,7 +57,7 @@ class OrderedMessageHandler:
             "result": self._handle_result,
         }
 
-        self._log_message_colour = random.choice([COLOUR_PALETTE[1], COLOUR_PALETTE[3:]])
+        self._log_message_colour = random.choice([COLOUR_PALETTE[1], *COLOUR_PALETTE[3:]])
 
     def handle_messages(self, timeout=60, delivery_acknowledgement_timeout=30):
         """Pull messages and handle them in the order they were sent until a result is returned by a message handler,
