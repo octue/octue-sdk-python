@@ -77,7 +77,7 @@ class TestSubscription(BaseTestCase):
         with patch("google.pubsub_v1.SubscriberClient.create_subscription", new=MockSubscriptionCreationResponse):
             response = subscription.create(allow_existing=True)
 
-        self.assertEqual(response._pb.ack_deadline_seconds, 60)
+        self.assertEqual(response._pb.ack_deadline_seconds, 600)
         self.assertEqual(response._pb.expiration_policy.ttl.seconds, THIRTY_ONE_DAYS)
         self.assertEqual(response._pb.message_retention_duration.seconds, 600)
         self.assertEqual(response._pb.retry_policy.minimum_backoff.seconds, 10)
@@ -101,7 +101,7 @@ class TestSubscription(BaseTestCase):
         with patch("google.pubsub_v1.SubscriberClient.create_subscription", new=MockSubscriptionCreationResponse):
             response = subscription.create(allow_existing=True)
 
-        self.assertEqual(response._pb.ack_deadline_seconds, 60)
+        self.assertEqual(response._pb.ack_deadline_seconds, 600)
         self.assertEqual(response._pb.expiration_policy.ttl.seconds, THIRTY_ONE_DAYS)
         self.assertEqual(response._pb.message_retention_duration.seconds, 600)
         self.assertEqual(response._pb.retry_policy.minimum_backoff.seconds, 10)
