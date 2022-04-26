@@ -3,10 +3,16 @@ import logging.handlers
 import os
 from urllib.parse import urlparse
 
+from octue.utils.colour import colourise
+
 
 # Logging format for analysis runs. All handlers should use this logging format to make logs consistently parseable.
 LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP = ["%(asctime)s", "%(levelname)s", "%(name)s"]
 LOG_RECORD_ATTRIBUTES_WITHOUT_TIMESTAMP = LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP[1:]
+
+# "tab10" colours from Seaborn.
+COLOUR_PALETTE = ["1f77b4", "ff7f0e", "2ca02c", "d62728", "9467bd", "8c564b", "e377c2", "7f7f7f", "bcbd22", "17becf"]
+DEFAULT_FOREGROUND_COLOUR = COLOUR_PALETTE[0]
 
 
 def create_octue_formatter(
@@ -35,7 +41,13 @@ def create_octue_formatter(
     if include_thread_name:
         extra_attributes.append("%(threadName)s")
 
-    return logging.Formatter("[" + " | ".join(log_record_attributes + extra_attributes) + "]" + " %(message)s")
+    return logging.Formatter(
+        colourise(
+            "[" + " | ".join(log_record_attributes + extra_attributes) + "]",
+            foreground=DEFAULT_FOREGROUND_COLOUR,
+        )
+        + colourise(" %(message)s")
+    )
 
 
 def apply_log_handler(

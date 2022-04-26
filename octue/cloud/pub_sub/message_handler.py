@@ -1,12 +1,15 @@
 import json
 import logging
+import random
 import time
 
 from google.api_core import retry
 
 import octue.exceptions
 import twined.exceptions
+from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
+from octue.utils.colour import colourise
 from octue.utils.exceptions import create_exceptions_mapping
 
 
@@ -53,6 +56,8 @@ class OrderedMessageHandler:
             "exception": self._handle_exception,
             "result": self._handle_result,
         }
+
+        self._log_message_colour = random.choice(COLOUR_PALETTE)
 
     def handle_messages(self, timeout=60, delivery_acknowledgement_timeout=30):
         """Pull messages and handle them in the order they were sent until a result is returned by a message handler,
@@ -194,7 +199,12 @@ class OrderedMessageHandler:
         :return None:
         """
         record = logging.makeLogRecord(message["log_record"])
-        record.msg = f"[{self.service_name} | analysis-{message['analysis_id']}] {record.msg}"
+
+        record.msg = (
+            colourise(f"[{self.service_name} | analysis-{message['analysis_id']}]", foreground=self._log_message_colour)
+            + f" {record.msg}"
+        )
+
         logger.handle(record)
 
     def _handle_exception(self, message):
