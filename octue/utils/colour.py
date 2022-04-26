@@ -30,10 +30,10 @@ def _convert_colour_to_ansi(colour):
     if isinstance(colour, bytes):
         colour = list(map(int, colour))
 
-    red, green, blue = list(map(_round_color, colour))
+    red, green, blue = list(map(_round_colour, colour))
     return 16 + 36 * red + 6 * green + blue
 
 
-def _round_color(colour):
+def _round_colour(colour):
     quot = 255 / 5
     return round(colour / quot)
