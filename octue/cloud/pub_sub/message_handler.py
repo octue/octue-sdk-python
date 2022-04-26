@@ -1,6 +1,6 @@
 import json
 import logging
-import random
+import re
 import time
 
 from google.api_core import retry
@@ -57,7 +57,7 @@ class OrderedMessageHandler:
             "result": self._handle_result,
         }
 
-        self._log_message_colour = random.choice([COLOUR_PALETTE[1], *COLOUR_PALETTE[3:]])
+        self._log_message_colours = [COLOUR_PALETTE[1], *COLOUR_PALETTE[3:]]
 
     def handle_messages(self, timeout=60, delivery_acknowledgement_timeout=30):
         """Pull messages and handle them in the order they were sent until a result is returned by a message handler,
@@ -200,14 +200,25 @@ class OrderedMessageHandler:
         """
         record = logging.makeLogRecord(message["log_record"])
 
-        record.msg = (
-            colourise(
-                f"[{self.service_name} | analysis-{message['analysis_id']}]",
-                text_colour=self._log_message_colour,
-            )
-            + f" {record.msg}"
+        # Add information about the immediate child sending the message and colour it with the first colour in the
+        # colour palette.
+        immediate_child_analysis_section = colourise(
+            f"[{self.service_name} | analysis-{message['analysis_id']}]",
+            text_colour=self._log_message_colours[0],
         )
 
+        # Colour any analysis sections from children of the immediate child with the rest of the colour palette and
+        # colour the message from the furthest child white.
+        subchild_analysis_sections = [section.strip("[") for section in re.split("] ", record.msg)]
+        final_message = colourise(subchild_analysis_sections.pop(-1))
+
+        for i in range(len(subchild_analysis_sections)):
+            subchild_analysis_sections[i] = colourise(
+                "[" + subchild_analysis_sections[i] + "]",
+                text_colour=self._log_message_colours[1:][i % len(self._log_message_colours[1:])],
+            )
+
+        record.msg = " ".join([immediate_child_analysis_section, *subchild_analysis_sections, final_message])
         logger.handle(record)
 
     def _handle_exception(self, message):
