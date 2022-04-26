@@ -119,13 +119,18 @@ class Runner:
 
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
 
+        if analysis_log_handler:
+            extra_log_handlers = [analysis_log_handler]
+        else:
+            extra_log_handlers = None
+
         # Temporarily replace the root logger's handlers with a `StreamHandler` and the analysis log handler that
         # include the analysis ID in the logging metadata.
         with AnalysisLogHandlerSwitcher(
             analysis_id=analysis_id,
             logger=logging.getLogger(),
             analysis_log_level=analysis_log_level,
-            extra_log_handlers=[analysis_log_handler],
+            extra_log_handlers=extra_log_handlers,
         ):
 
             analysis = Analysis(
