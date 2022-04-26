@@ -201,7 +201,10 @@ class OrderedMessageHandler:
         record = logging.makeLogRecord(message["log_record"])
 
         record.msg = (
-            colourise(f"[{self.service_name} | analysis-{message['analysis_id']}]", foreground=self._log_message_colour)
+            colourise(
+                f"[{self.service_name} | analysis-{message['analysis_id']}]",
+                text_colour=self._log_message_colour,
+            )
             + f" {record.msg}"
         )
 

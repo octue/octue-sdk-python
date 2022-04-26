@@ -45,7 +45,7 @@ def create_octue_formatter(
             " ".join(
                 colourise(
                     "[" + " | ".join(attributes_section) + "]",
-                    foreground=COLOUR_PALETTE[2],
+                    text_colour=COLOUR_PALETTE[2],
                 )
                 for attributes_section in log_record_attributes[1:]
             )
@@ -59,7 +59,7 @@ def create_octue_formatter(
             [
                 colourise(
                     "[" + " | ".join(log_record_attributes[0] + extra_attributes) + "]",
-                    foreground=COLOUR_PALETTE[0],
+                    text_colour=COLOUR_PALETTE[0],
                 ),
                 *extra_sections,
                 colourise("%(message)s"),
