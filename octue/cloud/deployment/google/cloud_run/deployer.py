@@ -231,7 +231,6 @@ class CloudRunDeployer(BaseDeployer):
                     name=eventarc_subscription_path.split("/")[-1],
                     topic=topic,
                     project_name=self.service_configuration.project_name,
-                    ack_deadline=10,
                 )
 
                 subscription.update()

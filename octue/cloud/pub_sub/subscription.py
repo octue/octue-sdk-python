@@ -16,7 +16,6 @@ from google.pubsub_v1.types.pubsub import (
 logger = logging.getLogger(__name__)
 
 # Useful time periods in seconds.
-SEVEN_DAYS = 7 * 24 * 3600
 THIRTY_ONE_DAYS = 31 * 24 * 3600
 
 
@@ -29,7 +28,7 @@ class Subscription:
     :param str project_name: the name of the Google Cloud project that the subscription belongs to
     :param str namespace: a namespace to put before the subscription's name in its path
     :param google.pubsub_v1.services.subscriber.client.SubscriberClient|None subscriber: a Google Pub/Sub subscriber that can be used to create or delete the subscription
-    :param int ack_deadline: message acknowledgement deadline in seconds
+    :param int ack_deadline: the time in seconds after which, if the subscriber hasn't acknowledged a message, to retry sending it to the subscription
     :param int message_retention_duration: unacknowledged message retention time in seconds
     :param int|None expiration_time: number of seconds after which the subscription is deleted (infinite time if None)
     :param float minimum_retry_backoff: minimum number of seconds after the acknowledgement deadline has passed to exponentially retry delivering a message to the subscription
@@ -45,8 +44,8 @@ class Subscription:
         project_name,
         namespace="",
         subscriber=None,
-        ack_deadline=60,
-        message_retention_duration=SEVEN_DAYS,
+        ack_deadline=600,
+        message_retention_duration=600,
         expiration_time=THIRTY_ONE_DAYS,
         minimum_retry_backoff=10,
         maximum_retry_backoff=600,
