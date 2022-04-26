@@ -85,6 +85,10 @@ def apply_log_handler(
     logger = logger or logging.getLogger(name=logger_name)
     handler = handler or logging.StreamHandler()
 
+    for existing_handler in logger.handlers:
+        if type(existing_handler).__name__ == "StreamHandler" and type(handler).__name__ == "StreamHandler":
+            logger.removeHandler(existing_handler)
+
     if formatter is None:
         formatter = create_octue_formatter(
             get_log_record_attributes_for_environment(),
