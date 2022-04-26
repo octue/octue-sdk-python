@@ -12,11 +12,10 @@ LOG_RECORD_ATTRIBUTES_WITHOUT_TIMESTAMP = LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP[1
 
 # "colorblind" colour palette from seaborn/matplotlib.
 COLOUR_PALETTE = ["0173b2", "de8f05", "029e73", "d55e00", "cc78bc", "ca9161", "fbafe4", "949494", "ece133", "56b4e9"]
-DEFAULT_FOREGROUND_COLOUR = COLOUR_PALETTE[0]
 
 
 def create_octue_formatter(
-    log_record_attributes,
+    *log_record_attributes,
     include_line_number=False,
     include_process_name=False,
     include_thread_name=False,
@@ -42,11 +41,22 @@ def create_octue_formatter(
         extra_attributes.append("%(threadName)s")
 
     return logging.Formatter(
-        colourise(
-            "[" + " | ".join(log_record_attributes + extra_attributes) + "]",
-            foreground=DEFAULT_FOREGROUND_COLOUR,
+        " ".join(
+            [
+                colourise(
+                    "[" + " | ".join(log_record_attributes[0] + extra_attributes) + "]",
+                    foreground=COLOUR_PALETTE[0],
+                ),
+                " ".join(
+                    colourise(
+                        "[" + " | ".join(attributes_section) + "]",
+                        foreground=COLOUR_PALETTE[1],
+                    )
+                    for attributes_section in log_record_attributes[1:]
+                ),
+                colourise("%(message)s"),
+            ]
         )
-        + colourise(" %(message)s")
     )
 
 
@@ -72,11 +82,12 @@ def apply_log_handler(
     :param bool include_thread_name: if `True`, include the thread name in the log context
     :return logging.Handler:
     """
+    logger = logger or logging.getLogger(name=logger_name)
     handler = handler or logging.StreamHandler()
 
     if formatter is None:
         formatter = create_octue_formatter(
-            log_record_attributes=get_log_record_attributes_for_environment(),
+            get_log_record_attributes_for_environment(),
             include_line_number=include_line_number,
             include_process_name=include_process_name,
             include_thread_name=include_thread_name,
@@ -85,7 +96,6 @@ def apply_log_handler(
     handler.setFormatter(formatter)
     handler.setLevel(log_level)
 
-    logger = logger or logging.getLogger(name=logger_name)
     logger.addHandler(handler)
     logger.setLevel(log_level)
 
@@ -132,7 +142,7 @@ def get_remote_handler(
     handler = logging.handlers.SocketHandler(host=parsed_uri.hostname, port=parsed_uri.port)
 
     formatter = formatter or create_octue_formatter(
-        log_record_attributes=get_log_record_attributes_for_environment(),
+        get_log_record_attributes_for_environment(),
         include_line_number=include_line_number,
         include_process_name=include_process_name,
         include_thread_name=include_thread_name,

@@ -327,8 +327,10 @@ class AnalysisLogHandlerSwitcher:
         self._remove_log_handlers()
 
         # Add the analysis ID to the logging metadata.
-        log_record_attributes = get_log_record_attributes_for_environment() + [f"analysis-{self.analysis_id}"]
-        formatter = create_octue_formatter(log_record_attributes=log_record_attributes)
+        formatter = create_octue_formatter(
+            get_log_record_attributes_for_environment(),
+            [f"analysis-{self.analysis_id}"],
+        )
 
         # Apply a local console `StreamHandler` to the logger.
         apply_log_handler(formatter=formatter, log_level=self.analysis_log_level)
