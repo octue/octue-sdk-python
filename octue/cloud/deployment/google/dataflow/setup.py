@@ -20,7 +20,7 @@ setup(
     version="0.16.0",
     py_modules=["cli"],
     install_requires=[
-        "click>=8.1,<9",
+        "click>=7,<9",
         "coolname>=1.1,<2",
         "Flask==2.0.3",
         "google-auth>=1.27.0,<3",

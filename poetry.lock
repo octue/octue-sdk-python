@@ -1485,7 +1485,7 @@ hdf5 = ["h5py"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7.1"
-content-hash = "1f7fbe883a0e1e17161d5bc97318868c597d117b13f7dd6c8b4184e9c2a71a2a"
+content-hash = "181757c11652867cf7f127584de057ba83f6989a223f5497f99e6791eec94497"
 
 [metadata.files]
 apache-beam = [
