@@ -44,19 +44,6 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
     `Datafile.metadata` method description for the parameter names concerned) are ignored. The metadata of cloud
     datafiles can be changed using the `Datafile.update_metadata` method, but not during instantiation.
 
-    Files in a manifest look like this:
-
-        {
-          "path": "folder/subfolder/file_1.csv",
-          "extension": "csv",
-          "tags": {},
-          "labels": [],
-          "timestamp": datetime.datetime(2021, 5, 3, 18, 15, 58, 298086),
-          "id": "abff07bc-7c19-4ed5-be6d-a6546eae8e86",
-          "size_bytes": 59684813,
-          "sha-512/256": "somesha"
-        },
-
     :param str|None path: The path of this file locally or in the cloud, which may include folders or subfolders, within the dataset
     :param str|None local_path: If a cloud path is given as the `path` parameter, this is the path to an existing local file that is known to be in sync with the cloud object
     :param str|None cloud_path: If a local path is given for the `path` parameter, this is a cloud path to keep in sync with the local file
@@ -104,11 +91,10 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         )
 
         self.timestamp = timestamp
-
-        self._local_path = None
-        self._cloud_path = None
         self._hypothetical = hypothetical
         self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
+        self._local_path = None
+        self._cloud_path = None
         self._cloud_metadata = {}
 
         if storage.path.is_cloud_path(path):
@@ -538,8 +524,8 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
     def _use_cloud_metadata(self, **initialisation_parameters):
         """Populate the datafile's attributes from the metadata of the cloud object located at its path (by necessity a
-        cloud path) and project name. If there is a conflict between the cloud metadata and a given local initialisation
-        parameter, the local value is used.
+        cloud path). If there is a conflict between the cloud metadata and a given local initialisation parameter, the
+        local value is used.
 
         :param initialisation_parameters: key-value pairs of initialisation parameter names and values (provide to check for conflicts with cloud metadata)
         :return None:
