@@ -24,6 +24,7 @@ from octue.exceptions import CloudLocationNotSpecified
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
+from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file
 
@@ -141,13 +142,18 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
                 self.cloud_path = cloud_path
 
     @classmethod
-    def deserialise(cls, serialised_datafile):
-        """Deserialise a Datafile from a dictionary.
+    def deserialise(cls, serialised_datafile, from_string=False):
+        """Deserialise a Datafile from a dictionary or JSON string.
 
-        :param dict serialised_datafile:
+        :param dict|str serialised_datafile:
+        :param bool from_string:
         :return Datafile:
         """
-        serialised_datafile = copy.deepcopy(serialised_datafile)
+        if from_string:
+            serialised_datafile = json.loads(serialised_datafile, cls=OctueJSONDecoder)
+        else:
+            serialised_datafile = copy.deepcopy(serialised_datafile)
+
         cloud_metadata = serialised_datafile.pop("_cloud_metadata", {})
         datafile = Datafile(**serialised_datafile)
         datafile._cloud_metadata = cloud_metadata
