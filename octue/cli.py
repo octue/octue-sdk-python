@@ -182,12 +182,12 @@ def start(service_configuration_path, service_id, timeout, rm):
         configuration_values=app_configuration.configuration_values,
         configuration_manifest=app_configuration.configuration_manifest,
         children=app_configuration.children,
+        output_location=app_configuration.output_location,
         skip_checks=global_cli_context["skip_checks"],
     )
 
     run_function = functools.partial(
         runner.run,
-        output_location=app_configuration.output_location,
         analysis_log_level=global_cli_context["log_level"],
         analysis_log_handler=global_cli_context["log_handler"],
     )

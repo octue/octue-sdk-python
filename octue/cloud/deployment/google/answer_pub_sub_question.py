@@ -50,10 +50,11 @@ def answer_question(question, project_name):
             configuration_values=app_configuration.configuration_values,
             configuration_manifest=app_configuration.configuration_manifest,
             children=app_configuration.children,
+            output_location=app_configuration.output_location,
             project_name=project_name,
         )
 
-        service.run_function = functools.partial(runner.run, output_location=app_configuration.output_location)
+        service.run_function = functools.partial(runner.run)
 
         service.answer(question, answer_topic=answer_topic)
         logger.info("Analysis successfully run and response sent for question %r.", question_uuid)
