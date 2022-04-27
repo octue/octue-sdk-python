@@ -38,52 +38,46 @@ class TestCLI(BaseTestCase):
 class TestRunCommand(BaseTestCase):
     def test_run(self):
         """Test that an arbitrary run command can be used in the run command of the CLI."""
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            result = CliRunner().invoke(
-                octue_cli,
-                [
-                    "run",
-                    f"--app-dir={os.path.join(TESTS_DIR, 'test_app_modules', 'app_module')}",
-                    f"--twine={TWINE_FILE_PATH}",
-                    f'--config-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "configuration")}',
-                    f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
-                    f"--output-dir={temporary_directory}",
-                ],
-            )
+        result = CliRunner().invoke(
+            octue_cli,
+            [
+                "run",
+                f"--app-dir={os.path.join(TESTS_DIR, 'test_app_modules', 'app_module')}",
+                f"--twine={TWINE_FILE_PATH}",
+                f'--config-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "configuration")}',
+                f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
+            ],
+        )
 
         assert CUSTOM_APP_RUN_MESSAGE in result.output
 
     def test_run_with_data_dir(self):
         """Test that the run command of the CLI works with the --data-dir option."""
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            result = CliRunner().invoke(
-                octue_cli,
-                [
-                    "run",
-                    f"--app-dir={os.path.join(TESTS_DIR, 'test_app_modules', 'app_module')}",
-                    f"--twine={TWINE_FILE_PATH}",
-                    f'--data-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests")}',
-                    f"--output-dir={temporary_directory}",
-                ],
-            )
+        result = CliRunner().invoke(
+            octue_cli,
+            [
+                "run",
+                f"--app-dir={os.path.join(TESTS_DIR, 'test_app_modules', 'app_module')}",
+                f"--twine={TWINE_FILE_PATH}",
+                f'--data-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests")}',
+            ],
+        )
 
         assert CUSTOM_APP_RUN_MESSAGE in result.output
 
     def test_remote_logger_uri_can_be_set(self):
         """Test that remote logger URI can be set via the CLI and that this is logged locally."""
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            with mock.patch("logging.StreamHandler.emit") as mock_local_logger_emit:
-                CliRunner().invoke(
-                    octue_cli,
-                    [
-                        "--logger-uri=wss://0.0.0.1:3000",
-                        "run",
-                        f"--app-dir={TESTS_DIR}",
-                        f"--twine={TWINE_FILE_PATH}",
-                        f'--data-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests")}',
-                        f"--output-dir={temporary_directory}",
-                    ],
-                )
+        with mock.patch("logging.StreamHandler.emit") as mock_local_logger_emit:
+            CliRunner().invoke(
+                octue_cli,
+                [
+                    "--logger-uri=wss://0.0.0.1:3000",
+                    "run",
+                    f"--app-dir={TESTS_DIR}",
+                    f"--twine={TWINE_FILE_PATH}",
+                    f'--data-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests")}',
+                ],
+            )
 
             mock_local_logger_emit.assert_called()
 
@@ -173,7 +167,7 @@ class TestDeployCommand(BaseTestCase):
         """Test that an `ImportWarning` is raised if the `dataflow deploy` CLI command is used when `apache_beam` is
         not available.
         """
-        with mock.patch("octue.cli.APACHE_BEAM_PACKAGE_AVAILABLE", False):
+        with mock.patch("importlib.util.find_spec", return_value=None):
             with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
                 result = CliRunner().invoke(
                     octue_cli,

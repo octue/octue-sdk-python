@@ -38,7 +38,6 @@ def run(analysis, *args, **kwargs):
     """
     # You can use the attached logger to record debug statements, general information, warnings or errors
     # logger.info("The input directory is %s", analysis.input_dir)
-    # logger.info("The output directory is %s", analysis.output_dir)
     # logger.info("The tmp directory, where you can store temporary files or caches, is %s", analysis.tmp_dir)
 
     # Print statements will get logged...
@@ -55,3 +54,8 @@ def run(analysis, *args, **kwargs):
 
     # Run the code
     fractal(analysis)
+
+    # Finalise the analysis. This validates the output data and output manifest against the twine and optionally
+    # uploads any datasets in the output manifest to the service's cloud bucket. Signed URLs are provided so that the
+    # parent that asked the service for the analysis can access the data (until the signed URLs expire).
+    analysis.finalise()

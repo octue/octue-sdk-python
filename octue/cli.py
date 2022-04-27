@@ -20,13 +20,6 @@ from octue.runner import Runner
 from twined import Twine
 
 
-# Import the Dataflow deployer only if the `apache-beam` package is available (due to installing `octue` with the
-# `dataflow` extras option).
-APACHE_BEAM_PACKAGE_AVAILABLE = bool(importlib.util.find_spec("apache_beam"))
-
-if APACHE_BEAM_PACKAGE_AVAILABLE:
-    from octue.cloud.deployment.google.dataflow.deployer import DataflowDeployer
-
 logger = logging.getLogger(__name__)
 
 global_cli_context = {}
@@ -113,20 +106,11 @@ def octue_cli(id, skip_checks, logger_uri, log_level, force_reset):
     show_default=True,
     help="Directory containing input (overrides --data-dir).",
 )
-@click.option(
-    "--output-dir",
-    type=click.Path(),
-    default=None,
-    show_default=True,
-    help="Directory to write outputs as files (overrides --data-dir).",
-)
 @click.option("--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.")
-def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
+def run(app_dir, data_dir, config_dir, input_dir, twine):
     """Run an analysis on the given input data."""
     config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
     input_dir = input_dir or os.path.join(data_dir, FOLDER_DEFAULTS["input"])
-    output_dir = output_dir or os.path.join(data_dir, FOLDER_DEFAULTS["output"])
-
     twine = Twine(source=twine)
 
     (
@@ -151,7 +135,6 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
         twine=twine,
         configuration_values=configuration_values,
         configuration_manifest=configuration_manifest,
-        output_manifest_path=os.path.join(output_dir, MANIFEST_FILENAME),
         children=children,
         skip_checks=global_cli_context["skip_checks"],
     )
@@ -164,7 +147,7 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
         analysis_log_handler=global_cli_context["log_handler"],
     )
 
-    analysis.finalise(output_dir=output_dir)
+    analysis.finalise()
     return 0
 
 
@@ -182,13 +165,14 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
 )
 @click.option("--timeout", type=click.INT, default=None, show_default=True, help="Timeout in seconds for serving.")
 @click.option(
+    "--rm",
     "--delete-topic-and-subscription-on-exit",
     is_flag=True,
     default=False,
     show_default=True,
-    help="Delete Google Pub/Sub topics and subscriptions on exit.",
+    help="Delete the Google Pub/Sub topic and subscription for the service on exit.",
 )
-def start(service_configuration_path, service_id, timeout, delete_topic_and_subscription_on_exit):
+def start(service_configuration_path, service_id, timeout, rm):
     """Start the service as a child to be asked questions by other services."""
     service_configuration, app_configuration = load_service_and_app_configuration(service_configuration_path)
 
@@ -198,6 +182,7 @@ def start(service_configuration_path, service_id, timeout, delete_topic_and_subs
         configuration_values=app_configuration.configuration_values,
         configuration_manifest=app_configuration.configuration_manifest,
         children=app_configuration.children,
+        output_location=app_configuration.output_location,
         skip_checks=global_cli_context["skip_checks"],
     )
 
@@ -224,7 +209,7 @@ def start(service_configuration_path, service_id, timeout, delete_topic_and_subs
         run_function=run_function,
     )
 
-    service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=delete_topic_and_subscription_on_exit)
+    service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=rm)
 
 
 @octue_cli.group()
@@ -280,7 +265,11 @@ def cloud_run(octue_configuration_path, service_id, update, no_cache):
 @click.option("--image-uri", type=str, default=None, help="The actual image URI to use when creating the Dataflow job.")
 def dataflow(octue_configuration_path, service_id, no_cache, update, dataflow_job_only, image_uri):
     """Deploy an app as a Google Dataflow streaming job."""
-    if not APACHE_BEAM_PACKAGE_AVAILABLE:
+    if bool(importlib.util.find_spec("apache_beam")):
+        # Import the Dataflow deployer only if the `apache-beam` package is available (due to installing `octue` with
+        # the `dataflow` extras option).
+        from octue.cloud.deployment.google.dataflow.deployer import DataflowDeployer
+    else:
         raise ImportWarning(
             "To use this CLI command, you must install `octue` with the `dataflow` option e.g. "
             "`pip install octue[dataflow]`"

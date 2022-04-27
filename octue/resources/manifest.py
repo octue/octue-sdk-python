@@ -1,6 +1,6 @@
+import concurrent.futures
 import copy
 import json
-import os
 import warnings
 
 import octue.migrations.manifest
@@ -123,11 +123,12 @@ class Manifest(Serialisable, Identifiable, Hashable):
 
     def _instantiate_datasets(self, datasets):
         """Add the given datasets to the manifest, instantiating them if needed and giving them the correct path.
-        There are several possible forms the datasets can come in:
-        * Instantiated Dataset instances
-        * A list of dictionaries pointing to cloud datasets
-        * Fully serialised form - includes path
-        * `manifest.json` form - does not include path
+        There are several possible forms each dataset can come in:
+        * Instantiated Dataset instance
+        * A path to a dataset
+        * Serialised form (a dictionary including a path key)
+
+        The datasets can:
         * Including datafiles that already exist
         * Including datafiles that don't yet exist or are not possessed currently (e.g. future output locations or
           cloud files)
@@ -135,39 +136,30 @@ class Manifest(Serialisable, Identifiable, Hashable):
         :param dict(str, octue.resources.dataset.Dataset|dict|str) datasets: the datasets to add to the manifest
         :return dict:
         """
-        datasets = copy.deepcopy(datasets)
-        datasets_to_add = {}
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            return dict(executor.map(self._instantiate_dataset, copy.deepcopy(datasets).items()))
 
-        for key, dataset in datasets.items():
+    def _instantiate_dataset(self, key_and_dataset):
+        """Instantiate a dataset from multiple input formats.
 
-            if isinstance(dataset, Dataset):
-                datasets_to_add[key] = dataset
+        :param tuple(str, any) key_and_dataset:
+        :return tuple(str, octue.resources.dataset.Dataset):
+        """
+        key, dataset = key_and_dataset
 
-            else:
-                # If `dataset` is just a path to a dataset:
-                if isinstance(dataset, str):
-                    if storage.path.is_qualified_cloud_path(dataset):
-                        datasets_to_add[key] = Dataset.from_cloud(cloud_path=dataset, recursive=True)
-                    else:
-                        datasets_to_add[key] = Dataset.from_local_directory(path_to_directory=dataset, recursive=True)
+        if isinstance(dataset, Dataset):
+            return (key, dataset)
 
-                # If `dataset` is a dictionary including a "path" key:
-                elif "path" in dataset:
+        # If `dataset` is just a path to a dataset:
+        if isinstance(dataset, str):
 
-                    # If the path is a cloud path:
-                    if storage.path.is_qualified_cloud_path(dataset["path"]):
-                        datasets_to_add[key] = Dataset.from_cloud(cloud_path=dataset["path"], recursive=True)
+            if storage.path.is_cloud_path(dataset):
+                return (key, Dataset.from_cloud(cloud_path=dataset, recursive=True))
 
-                    # If the path is local but not absolute:
-                    elif not os.path.isabs(dataset["path"]):
-                        path = dataset.pop("path")
-                        datasets_to_add[key] = Dataset(**dataset, path=path)
+            return (key, Dataset.from_local_directory(path_to_directory=dataset, recursive=True))
 
-                    # If the path is an absolute local path:
-                    else:
-                        datasets_to_add[key] = Dataset(**dataset)
+        # If `dataset` is a dictionary including a "path" key:
+        if storage.path.is_cloud_path(dataset["path"]):
+            return (key, Dataset.from_cloud(cloud_path=dataset["path"], recursive=True))
 
-                else:
-                    datasets_to_add[key] = Dataset(**dataset, path=key)
-
-        return datasets_to_add
+        return (key, Dataset(**dataset))

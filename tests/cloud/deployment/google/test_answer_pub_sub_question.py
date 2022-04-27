@@ -64,8 +64,8 @@ class TestAnswerPubSubQuestion(TestCase):
                 "twine": "twine.json",
                 "configuration_values": None,
                 "configuration_manifest": None,
-                "output_manifest_path": None,
                 "children": None,
+                "output_location": None,
                 "project_name": "a-project-name",
             }
         )
@@ -111,8 +111,8 @@ class TestAnswerPubSubQuestion(TestCase):
                 "twine": "path/to/twine.json",
                 "configuration_values": {"hello": "configuration"},
                 "configuration_manifest": None,
-                "output_manifest_path": None,
                 "children": None,
+                "output_location": None,
                 "project_name": "a-project-name",
             }
         )

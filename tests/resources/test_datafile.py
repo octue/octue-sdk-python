@@ -1,6 +1,7 @@
 import copy
 import json
 import os
+import pickle
 import tempfile
 import uuid
 from datetime import datetime, timezone
@@ -44,23 +45,21 @@ class TestDatafile(BaseTestCase):
 
     def create_datafile_in_cloud(
         self,
-        bucket_name=TEST_BUCKET_NAME,
-        path_in_bucket="cloud_file.txt",
+        cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "cloud_file.txt"),
         contents="some text",
         **kwargs,
     ):
         """Create a datafile in the cloud. Any metadata attributes can be set via kwargs.
 
-        :param str bucket_name:
-        :param str path_in_bucket:
+        :param str cloud_path:
         :param str contents:
-        :return (octue.resources.datafile.Datafile, str, str, str):
+        :return (octue.resources.datafile.Datafile, str):
         """
         with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
             temporary_file.write(contents)
 
         datafile = Datafile(path=temporary_file.name, **kwargs)
-        datafile.to_cloud(cloud_path=storage.path.generate_gs_path(bucket_name, path_in_bucket))
+        datafile.to_cloud(cloud_path=cloud_path)
         return datafile, contents
 
     def test_instantiates(self):
@@ -173,6 +172,25 @@ class TestDatafile(BaseTestCase):
         first_file = self.create_valid_datafile()
         second_file = copy.deepcopy(first_file)
         self.assertEqual(first_file.hash_value, second_file.hash_value)
+
+    def test_hash_only_depends_on_file_contents(self):
+        """Test that the hash of a datafile depends only on its file contents and not on e.g. its name or ID."""
+        first_file = self.create_valid_datafile()
+        second_file = copy.deepcopy(first_file)
+        second_file._name = "different"
+        second_file._id = "51f62f08-112c-44cb-9468-3e856d30a7ff"
+        self.assertEqual(first_file.hash_value, second_file.hash_value)
+
+    def test_hash_of_cloud_datafile_avoids_downloading_file(self):
+        """Test that getting/calculating the hash of a cloud datafile avoids downloading its contents."""
+        cloud_datafile, _ = self.create_datafile_in_cloud()
+        datafile_reloaded_from_cloud = Datafile(path=cloud_datafile.cloud_path)
+
+        # Calculate the hashes of the datafiles and check that they're equal.
+        self.assertEqual(datafile_reloaded_from_cloud.hash_value, cloud_datafile.hash_value)
+
+        # Check that the reloaded datafile hasn't been downloaded.
+        self.assertIsNone(datafile_reloaded_from_cloud._local_path)
 
     def test_exists_in_cloud(self):
         """Test whether it can be determined that a datafile exists in the cloud or not."""
@@ -581,9 +599,7 @@ class TestDatafile(BaseTestCase):
         cloud file as well as any local changes.
         """
         try:
-            datafile, original_contents = self.create_datafile_in_cloud(
-                bucket_name=TEST_BUCKET_NAME, path_in_bucket="cloud_file.txt"
-            )
+            datafile, original_contents = self.create_datafile_in_cloud()
             datafile.local_path = "blib.txt"
 
             self.assertEqual(datafile.cloud_path, storage.path.generate_gs_path(TEST_BUCKET_NAME, "cloud_file.txt"))
@@ -803,3 +819,18 @@ class TestDatafile(BaseTestCase):
             self.assertEqual(datafile_reloaded_again.tags, {"my_tag": "hello"})
             self.assertEqual(datafile_reloaded_again.id, datafile.id)
             self.assertEqual(datafile_reloaded_again.hash_value, datafile.hash_value)
+
+    def test_pickle_datafile(self):
+        """Test that datafiles can be pickled and unpickled. This allows them to be copied by e.g. `copy.copy`."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with Datafile(path=os.path.join(temporary_directory, "my-file.dat"), mode="w") as (datafile, f):
+                f.write("hello")
+
+        picked_datafile = pickle.dumps(datafile)
+        unpickled_datafile = pickle.loads(picked_datafile)
+
+        self.assertEqual(datafile.name, unpickled_datafile.name)
+        self.assertEqual(datafile.labels, unpickled_datafile.labels)
+        self.assertEqual(datafile.tags, unpickled_datafile.tags)
+        self.assertEqual(datafile.id, unpickled_datafile.id)
+        self.assertEqual(datafile.hash_value, unpickled_datafile.hash_value)

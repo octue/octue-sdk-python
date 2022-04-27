@@ -49,8 +49,8 @@ def answer_question(question, project_name):
             twine=service_configuration.twine_path,
             configuration_values=app_configuration.configuration_values,
             configuration_manifest=app_configuration.configuration_manifest,
-            output_manifest_path=app_configuration.output_manifest_path,
             children=app_configuration.children,
+            output_location=app_configuration.output_location,
             project_name=project_name,
         )
 

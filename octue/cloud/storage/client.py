@@ -1,16 +1,20 @@
 import base64
+import datetime
 import json
 import logging
 import os
 import warnings
 
 import google.api_core.exceptions
+import google.auth.exceptions
 from google import auth
+from google.auth import compute_engine
+from google.auth.transport import requests as google_requests
 from google.cloud import storage
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google_crc32c import Checksum
 
-from octue.cloud.storage.path import split_bucket_name_from_gs_path
+from octue.cloud.storage.path import split_bucket_name_from_cloud_path
 from octue.exceptions import CloudStorageBucketNotFound
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.utils.decoders import OctueJSONDecoder
@@ -34,11 +38,11 @@ class GoogleCloudStorageClient:
         warnings.simplefilter("ignore", category=ResourceWarning)
 
         if credentials == OCTUE_MANAGED_CREDENTIALS:
-            credentials, self.project_name = auth.default()
+            self.credentials, self.project_name = auth.default()
         else:
-            credentials = credentials
+            self.credentials = credentials
 
-        self.client = storage.Client(project=self.project_name, credentials=credentials)
+        self.client = storage.Client(project=self.project_name, credentials=self.credentials)
 
     def create_bucket(self, name, location=None, allow_existing=False, timeout=_DEFAULT_TIMEOUT):
         """Create a new bucket. If the bucket already exists, and `allow_existing` is `True`, do nothing; if it is
@@ -129,9 +133,7 @@ class GoogleCloudStorageClient:
         if not cloud_path:
             cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_in_bucket)
 
-        bucket_name, path_in_bucket = split_bucket_name_from_gs_path(cloud_path)
-
-        bucket = self.client.get_bucket(bucket_or_name=bucket_name)
+        bucket, path_in_bucket = self._get_bucket_and_path_in_bucket(cloud_path)
         blob = bucket.get_blob(blob_name=self._strip_leading_slash(path_in_bucket), timeout=timeout)
 
         if blob is None:
@@ -185,7 +187,8 @@ class GoogleCloudStorageClient:
             cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_in_bucket)
 
         blob = self._blob(cloud_path)
-        self._create_intermediate_local_directories(local_path)
+
+        os.makedirs(os.path.abspath(os.path.dirname(local_path)), exist_ok=True)
         blob.download_to_filename(local_path, timeout=timeout)
         logger.debug("Downloaded %r from Google Cloud to %r.", blob.public_url, local_path)
 
@@ -243,8 +246,7 @@ class GoogleCloudStorageClient:
         if filter is None:
             filter = lambda blob: True
 
-        bucket_name, directory_path = split_bucket_name_from_gs_path(cloud_path)
-        bucket = self.client.get_bucket(bucket_or_name=bucket_name)
+        bucket, directory_path = self._get_bucket_and_path_in_bucket(cloud_path)
 
         if not directory_path.endswith("/"):
             directory_path += "/"
@@ -264,13 +266,59 @@ class GoogleCloudStorageClient:
                 if filter(blob) and not blob.name.endswith("/"):
                     yield blob
 
-    def _strip_leading_slash(self, path):
-        """Strip the leading slash from a path.
+    def generate_signed_url(self, cloud_path, expiration=datetime.timedelta(days=7)):
+        """Generate a signed URL for accessing the object at the given cloud path that expires after the given
+        expiration date or period.
 
-        :param str path:
+        :param str cloud_path: the path to the object to generate the signed URL for
+        :param datetime.datetime|datetime.timedelta expiration: the datetime for the URL to expire at or the amount of time after which it should expire
         :return str:
         """
-        return path.lstrip("/")
+        if os.environ.get("STORAGE_EMULATOR_HOST"):
+            api_access_endpoint = {"api_access_endpoint": os.environ["STORAGE_EMULATOR_HOST"]}
+        else:
+            api_access_endpoint = {}
+
+        blob = self._blob(cloud_path)
+
+        try:
+            # Use compute engine credentials if running on e.g. Google Cloud Run, performing a refresh request to get
+            # the access token of the credentials (otherwise it's `None`).
+            credentials, _ = google.auth.default()
+            request = google_requests.Request()
+            credentials.refresh(request)
+
+            signing_credentials = compute_engine.IDTokenCredentials(
+                request,
+                "",
+                service_account_email=credentials.service_account_email,
+            )
+
+            return blob.generate_signed_url(
+                expiration=expiration,
+                credentials=signing_credentials,
+                version="v4",
+                **api_access_endpoint,
+            )
+
+        except google.auth.exceptions.RefreshError:
+            # Use local service account key.
+            return blob.generate_signed_url(expiration=expiration, **api_access_endpoint)
+
+    def _get_bucket_and_path_in_bucket(self, cloud_path):
+        """Get the bucket and path within the bucket from the given cloud path.
+
+        :param str cloud_path: the path to get the bucket and path within the bucket from
+        :return (google.cloud.storage.bucket.Bucket, str): the bucket and path within the bucket
+        """
+        bucket_name, path_in_bucket = split_bucket_name_from_cloud_path(cloud_path)
+
+        try:
+            bucket = self.client.get_bucket(bucket_or_name=bucket_name)
+        except google.api_core.exceptions.NotFound:
+            raise CloudStorageBucketNotFound(f"The bucket {bucket_name!r} was not found.") from None
+
+        return bucket, path_in_bucket
 
     def _blob(self, cloud_path=None):
         """Instantiate a blob for the given bucket at the given path. Note that this is not synced up with Google Cloud.
@@ -279,14 +327,16 @@ class GoogleCloudStorageClient:
         :raise octue.exceptions.CloudStorageBucketNotFound: if the bucket isn't found
         :return google.cloud.storage.blob.Blob:
         """
-        bucket_name, path_in_bucket = split_bucket_name_from_gs_path(cloud_path)
-
-        try:
-            bucket = self.client.get_bucket(bucket_or_name=bucket_name)
-        except google.api_core.exceptions.NotFound:
-            raise CloudStorageBucketNotFound(f"The bucket {bucket_name!r} was not found.") from None
-
+        bucket, path_in_bucket = self._get_bucket_and_path_in_bucket(cloud_path)
         return bucket.blob(blob_name=self._strip_leading_slash(path_in_bucket))
+
+    def _strip_leading_slash(self, path):
+        """Strip the leading slash from a path.
+
+        :param str path:
+        :return str:
+        """
+        return path.lstrip("/")
 
     def _compute_crc32c_checksum(self, string_or_bytes):
         """Compute the CRC32 checksum of the string.
@@ -312,16 +362,6 @@ class GoogleCloudStorageClient:
 
         blob.metadata = self._encode_metadata(metadata)
         blob.patch()
-
-    def _create_intermediate_local_directories(self, local_path):
-        """Create intermediate directories for the given path to a local file if they don't exist.
-
-        :param str local_path:
-        :return None:
-        """
-        directory = os.path.dirname(os.path.abspath(local_path))
-        if not os.path.exists(directory):
-            os.makedirs(directory)
 
     def _encode_metadata(self, metadata):
         """Encode metadata as a dictionary of JSON strings.

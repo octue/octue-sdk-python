@@ -29,8 +29,8 @@ class Runner:
     :param str|twined.Twine twine: path to the twine file, a string containing valid twine json, or a Twine instance
     :param str|dict|_io.TextIOWrapper|None configuration_values: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|dict|_io.TextIOWrapper|None configuration_manifest: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
-    :param Union[str, path-like, None] output_manifest_path: Path where output data will be written
     :param Union[str, dict, None] children: The children strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
+    :param str|None output_location: the path to a cloud directory to save output datasets at
     :param bool skip_checks: If true, skip the check that all files in the manifest are present on disc - this can be an extremely long process for large datasets.
     :param str|None project_name: name of Google Cloud project to get credentials from
     :return None:
@@ -42,13 +42,12 @@ class Runner:
         twine="twine.json",
         configuration_values=None,
         configuration_manifest=None,
-        output_manifest_path=None,
         children=None,
+        output_location=None,
         skip_checks=False,
         project_name=None,
     ):
         self.app_src = app_src
-        self.output_manifest_path = output_manifest_path
         self.children = children
         self.skip_checks = skip_checks
 
@@ -64,6 +63,7 @@ class Runner:
         self.configuration = self.twine.validate(
             configuration_values=configuration_values,
             configuration_manifest=configuration_manifest,
+            output_location=output_location,
             cls=CLASS_MAP,
         )
         logger.debug("Configuration validated.")
@@ -122,13 +122,18 @@ class Runner:
 
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
 
+        if analysis_log_handler:
+            extra_log_handlers = [analysis_log_handler]
+        else:
+            extra_log_handlers = None
+
         # Temporarily replace the root logger's handlers with a `StreamHandler` and the analysis log handler that
         # include the analysis ID in the logging metadata.
         with AnalysisLogHandlerSwitcher(
             analysis_id=analysis_id,
             logger=logging.getLogger(),
             analysis_log_level=analysis_log_level,
-            extra_log_handlers=[analysis_log_handler],
+            extra_log_handlers=extra_log_handlers,
         ):
 
             analysis = Analysis(
@@ -330,8 +335,10 @@ class AnalysisLogHandlerSwitcher:
         self._remove_log_handlers()
 
         # Add the analysis ID to the logging metadata.
-        log_record_attributes = get_log_record_attributes_for_environment() + [f"analysis-{self.analysis_id}"]
-        formatter = create_octue_formatter(log_record_attributes=log_record_attributes)
+        formatter = create_octue_formatter(
+            get_log_record_attributes_for_environment(),
+            [f"analysis-{self.analysis_id}"],
+        )
 
         # Apply a local console `StreamHandler` to the logger.
         apply_log_handler(formatter=formatter, log_level=self.analysis_log_level)

@@ -6,11 +6,14 @@ import sys
 import tempfile
 import unittest
 import uuid
+from unittest.mock import patch
+from urllib.parse import urlparse
 
 from octue import REPOSITORY_ROOT, Runner
+from octue.cloud.emulators import mock_generate_signed_url
+from octue.resources.manifest import Manifest
 from octue.utils.processes import ProcessesContextManager
-
-from ..base import BaseTestCase
+from tests.base import BaseTestCase
 
 
 class TemplateAppsTestCase(BaseTestCase):
@@ -63,27 +66,39 @@ class TemplateAppsTestCase(BaseTestCase):
             app_src=self.template_path,
             twine=self.template_twine,
             configuration_values=os.path.join("data", "configuration", "configuration_values.json"),
-            output_manifest_path=os.path.join("data", "output", "manifest.json"),
         )
 
-        analysis = runner.run()
-        analysis.finalise(output_dir=os.path.join("data", "output"))
+        runner.run()
 
     def test_using_manifests(self):
-        """Ensure the using-manifests template app works correctly."""
+        """Ensure the `using-manifests` template app works correctly."""
         self.set_template("template-using-manifests")
 
         runner = Runner(
             app_src=self.template_path,
             twine=self.template_twine,
             configuration_values=os.path.join("data", "configuration", "values.json"),
-            output_manifest_path=os.path.join("data", "output", "manifest.json"),
         )
 
-        analysis = runner.run(input_manifest=os.path.join("data", "input", "manifest.json"))
-        analysis.finalise()
+        with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
+            analysis = runner.run(input_manifest=os.path.join("data", "input", "manifest.json"))
 
+        # Check that the output files have been created.
         self.assertTrue(os.path.isfile(os.path.join("cleaned_met_mast_data", "cleaned.csv")))
+
+        # Test that the signed URLs for the dataset and its files work and can be used to reinstantiate the output
+        # manifest after serialisation.
+        downloaded_output_manifest = Manifest.deserialise(analysis.output_manifest.to_primitive())
+
+        self.assertEqual(
+            downloaded_output_manifest.datasets["cleaned_met_mast_data"].labels,
+            {"mast", "cleaned", "met"},
+        )
+
+        self.assertEqual(
+            urlparse(downloaded_output_manifest.datasets["cleaned_met_mast_data"].files.one().cloud_path).path,
+            "/octue-test-bucket/output/test_using_manifests_analysis/cleaned_met_mast_data/cleaned.csv",
+        )
 
     @unittest.skipIf(condition=os.name == "nt", reason="See issue https://github.com/octue/octue-sdk-python/issues/229")
     def test_child_services_template(self):
@@ -152,6 +167,5 @@ class TemplateAppsTestCase(BaseTestCase):
                     input_values=os.path.join(parent_service_path, "data", "input", "values.json"),
                 )
 
-        analysis.finalise()
         self.assertTrue("elevations" in analysis.output_values)
         self.assertTrue("wind_speeds" in analysis.output_values)

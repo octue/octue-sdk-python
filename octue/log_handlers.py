@@ -4,13 +4,23 @@ import os
 from urllib.parse import urlparse
 
 
+if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in {"GOOGLE_CLOUD_RUN", "GOOGLE_DATAFLOW"}:
+    # Google Cloud logs don't support colour currently - provide a no-operation function.
+    colourise = lambda string, text_colour=None, background_colour=None: string
+else:
+    from octue.utils.colour import colourise
+
+
 # Logging format for analysis runs. All handlers should use this logging format to make logs consistently parseable.
 LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP = ["%(asctime)s", "%(levelname)s", "%(name)s"]
 LOG_RECORD_ATTRIBUTES_WITHOUT_TIMESTAMP = LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP[1:]
 
+# "colorblind" colour palette from seaborn/matplotlib.
+COLOUR_PALETTE = ["0173b2", "de8f05", "029e73", "d55e00", "cc78bc", "ca9161", "fbafe4", "949494", "ece133", "56b4e9"]
+
 
 def create_octue_formatter(
-    log_record_attributes,
+    *log_record_attributes,
     include_line_number=False,
     include_process_name=False,
     include_thread_name=False,
@@ -20,7 +30,7 @@ def create_octue_formatter(
     attributes are `["%(asctime)s", "%(levelname)s", "%(name)s"]`, the formatter would format log messages as e.g.
     `[2021-06-29 11:58:10,985 | INFO | octue.runner] This is a log message.`
 
-    :param iter(str) log_record_attributes: an iterable of log record attribute names to use as context for every log message that the formatter is applied to
+    :param log_record_attributes: any number of iterables of log record attribute names to use as context for every log message that the formatter is applied to; each iterable is interpreted as a different section by the formatter
     :param bool include_line_number: if `True`, include the line number in the log context
     :param bool include_process_name: if `True`, include the process name in the log context
     :param bool include_thread_name: if `True`, include the thread name in the log context
@@ -35,7 +45,32 @@ def create_octue_formatter(
     if include_thread_name:
         extra_attributes.append("%(threadName)s")
 
-    return logging.Formatter("[" + " | ".join(log_record_attributes + extra_attributes) + "]" + " %(message)s")
+    if len(log_record_attributes) > 1:
+        extra_sections = [
+            " ".join(
+                colourise(
+                    "[" + " | ".join(attributes_section) + "]",
+                    text_colour=COLOUR_PALETTE[2],
+                )
+                for attributes_section in log_record_attributes[1:]
+            )
+        ]
+
+    else:
+        extra_sections = []
+
+    return logging.Formatter(
+        " ".join(
+            [
+                colourise(
+                    "[" + " | ".join(log_record_attributes[0] + extra_attributes) + "]",
+                    text_colour=COLOUR_PALETTE[0],
+                ),
+                *extra_sections,
+                colourise("%(message)s"),
+            ]
+        )
+    )
 
 
 def apply_log_handler(
@@ -60,11 +95,16 @@ def apply_log_handler(
     :param bool include_thread_name: if `True`, include the thread name in the log context
     :return logging.Handler:
     """
+    logger = logger or logging.getLogger(name=logger_name)
     handler = handler or logging.StreamHandler()
+
+    for existing_handler in logger.handlers:
+        if type(existing_handler).__name__ == "StreamHandler" and type(handler).__name__ == "StreamHandler":
+            logger.removeHandler(existing_handler)
 
     if formatter is None:
         formatter = create_octue_formatter(
-            log_record_attributes=get_log_record_attributes_for_environment(),
+            get_log_record_attributes_for_environment(),
             include_line_number=include_line_number,
             include_process_name=include_process_name,
             include_thread_name=include_thread_name,
@@ -73,7 +113,6 @@ def apply_log_handler(
     handler.setFormatter(formatter)
     handler.setLevel(log_level)
 
-    logger = logger or logging.getLogger(name=logger_name)
     logger.addHandler(handler)
     logger.setLevel(log_level)
 
@@ -120,7 +159,7 @@ def get_remote_handler(
     handler = logging.handlers.SocketHandler(host=parsed_uri.hostname, port=parsed_uri.port)
 
     formatter = formatter or create_octue_formatter(
-        log_record_attributes=get_log_record_attributes_for_environment(),
+        get_log_record_attributes_for_environment(),
         include_line_number=include_line_number,
         include_process_name=include_process_name,
         include_thread_name=include_thread_name,

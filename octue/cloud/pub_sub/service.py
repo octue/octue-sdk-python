@@ -96,23 +96,26 @@ class Service(CoolNameable):
             future = subscriber.subscribe(subscription=subscription.path, callback=self.answer)
             logger.debug("%r is waiting for questions.", self)
 
-            with subscriber:
-                try:
-                    future.result(timeout=timeout)
-                except (TimeoutError, concurrent.futures.TimeoutError, KeyboardInterrupt):
-                    future.cancel()
+            try:
+                future.result(timeout=timeout)
+            except (TimeoutError, concurrent.futures.TimeoutError, KeyboardInterrupt):
+                future.cancel()
 
         finally:
             if delete_topic_and_subscription_on_exit:
                 try:
                     if subscription.exists():
                         subscription.delete()
+                        logger.info("Subscription deleted.")
 
                     if topic.exists():
                         topic.delete()
+                        logger.info("Topic deleted.")
 
                 except Exception:
                     logger.error("Deletion of topic and/or subscription %r failed.", topic.name)
+
+            subscriber.close()
 
     def answer(self, question, answer_topic=None, timeout=30):
         """Answer a question (i.e. run the Service's app to analyse the given data, and return the output values to the
@@ -189,6 +192,7 @@ class Service(CoolNameable):
         subscribe_to_logs=True,
         allow_local_files=False,
         question_uuid=None,
+        push_endpoint=None,
         timeout=30,
     ):
         """Ask a serving Service a question (i.e. send it input values for it to run its app on). The input values must
@@ -202,6 +206,7 @@ class Service(CoolNameable):
         :param bool subscribe_to_logs: if `True`, subscribe to logs from the remote service and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the serving service will have access to these local files
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
+        :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here; if they should be pulled, leave this as `None`
         :param float|None timeout: time in seconds to keep retrying sending the question
         :return (octue.cloud.pub_sub.subscription.Subscription, str): the response subscription and question UUID
         """
@@ -235,6 +240,7 @@ class Service(CoolNameable):
             namespace=OCTUE_NAMESPACE,
             project_name=self.backend.project_name,
             subscriber=pubsub_v1.SubscriberClient(credentials=self._credentials),
+            push_endpoint=push_endpoint,
         )
         response_subscription.create(allow_existing=True)
 
@@ -285,6 +291,11 @@ class Service(CoolNameable):
         :raise TimeoutError: if the timeout is exceeded
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
+        if subscription.is_push_subscription:
+            raise octue.exceptions.PushSubscriptionCannotBePulled(
+                f"Cannot pull from {subscription.path!r} subscription as it is a push subscription."
+            )
+
         subscriber = pubsub_v1.SubscriberClient(credentials=self._credentials)
 
         message_handler = OrderedMessageHandler(
@@ -294,31 +305,30 @@ class Service(CoolNameable):
             service_name=service_name,
         )
 
-        with subscriber:
+        try:
+            # Retry sending the question until the overall timeout is reached.
+            while not message_handler.received_delivery_acknowledgement:
 
-            try:
-                # Retry sending the question until the overall timeout is reached.
-                while not message_handler.received_delivery_acknowledgement:
+                try:
+                    return message_handler.handle_messages(
+                        timeout=timeout,
+                        delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
+                    )
 
-                    try:
-                        return message_handler.handle_messages(
-                            timeout=timeout,
-                            delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
-                        )
+                except octue.exceptions.QuestionNotDelivered:
+                    logger.info(
+                        "%r: No acknowledgement of question delivery after %fs - resending in %fs.",
+                        self,
+                        delivery_acknowledgement_timeout,
+                        retry_interval,
+                    )
 
-                    except octue.exceptions.QuestionNotDelivered:
-                        logger.info(
-                            "%r: No acknowledgement of question delivery after %fs - resending in %fs.",
-                            self,
-                            delivery_acknowledgement_timeout,
-                            retry_interval,
-                        )
+                    time.sleep(retry_interval)
+                    self.ask(**self._current_question)
 
-                        time.sleep(retry_interval)
-                        self.ask(**self._current_question)
-
-            finally:
-                subscription.delete()
+        finally:
+            subscription.delete()
+            subscriber.close()
 
     def _send_delivery_acknowledgment(self, topic, timeout=30):
         """Send an acknowledgement of question delivery to the asker.

@@ -93,9 +93,7 @@ class TestManifest(BaseTestCase):
             self.assertEqual(persisted_manifest["datasets"]["my-dataset"], "gs://octue-test-bucket/my-small-dataset")
 
     def test_from_cloud(self):
-        """Test that a Manifest can be instantiated from the cloud via (`bucket_name`, `output_directory`) and via
-        `gs_path`.
-        """
+        """Test that a Manifest can be instantiated from a cloud path."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             dataset = create_dataset_with_two_files(temporary_directory)
             dataset_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_nice_dataset")
