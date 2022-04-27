@@ -4,13 +4,8 @@ import unittest
 import yaml
 
 from octue.cloud.emulators import GoogleCloudStorageEmulatorTestResultModifier
-from octue.mixins import MixinBase, Pathable
 from octue.resources import Datafile, Dataset, Manifest
 from tests import TEST_BUCKET_NAME
-
-
-class MyPathable(Pathable, MixinBase):
-    pass
 
 
 class BaseTestCase(unittest.TestCase):

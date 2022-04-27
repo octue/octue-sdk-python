@@ -13,22 +13,16 @@ import pkg_resources
 from octue import exceptions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.mixins import MixinBase, Pathable
 from octue.resources.datafile import Datafile
 from octue.resources.label import LabelSet
 from octue.resources.tag import TagDict
 from tests import TEST_BUCKET_NAME
-
-from ..base import BaseTestCase
-
-
-class MyPathable(Pathable, MixinBase):
-    pass
+from tests.base import BaseTestCase
 
 
 class TestDatafile(BaseTestCase):
     def setUp(self):
-        """Set up the test class by adding an example `path_from` and `path` to it.
+        """Set up the test class by adding an example `path` to it.
 
         :return None:
         """
@@ -36,7 +30,7 @@ class TestDatafile(BaseTestCase):
         self.path = os.path.join("path-within-dataset", "a_test_file.csv")
 
     def create_valid_datafile(self):
-        """Create a datafile with its `path_from` and `path` attributes set to valid values.
+        """Create a datafile with its `path` attribute set to a valid value.
 
         :return octue.resources.datafile.Datafile:
         """
@@ -432,21 +426,6 @@ class TestDatafile(BaseTestCase):
         self.assertEqual(datafile.local_path, deserialised_datafile.local_path)
         self.assertEqual(datafile.hash_value, deserialised_datafile.hash_value)
         self.assertEqual(datafile.size_bytes, deserialised_datafile.size_bytes)
-
-    def test_deserialise_ignores_path_from_if_path_is_absolute(self):
-        """Test that Datafile.deserialise ignores the path_from parameter if the datafile's path is absolute."""
-        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
-            temporary_file.write("hello")
-
-        datafile = Datafile(path=temporary_file.name)
-        serialised_datafile = datafile.to_primitive()
-
-        pathable = Pathable(path=os.path.join(os.sep, "an", "absolute", "path"))
-        deserialised_datafile = Datafile.deserialise(serialised_datafile)
-
-        self.assertEqual(datafile.id, deserialised_datafile.id)
-        self.assertFalse(pathable.path in deserialised_datafile.path)
-        self.assertEqual(deserialised_datafile.path, temporary_file.name)
 
     def test_posix_timestamp(self):
         """Test that the posix timestamp property works properly."""
