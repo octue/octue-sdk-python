@@ -50,6 +50,7 @@ def answer_question(question, project_name):
             configuration_values=app_configuration.configuration_values,
             configuration_manifest=app_configuration.configuration_manifest,
             children=app_configuration.children,
+            output_location=app_configuration.output_location,
             project_name=project_name,
         )
 

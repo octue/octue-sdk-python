@@ -5,11 +5,11 @@ from unittest.mock import patch
 
 import twined.exceptions
 from octue.cloud import storage
+from octue.cloud.emulators import mock_generate_signed_url
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.analysis import HASH_FUNCTIONS, Analysis
 from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
-from tests.mocks import mock_generate_signed_url
 from twined import Twine
 
 

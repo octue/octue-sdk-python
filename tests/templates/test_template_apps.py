@@ -10,10 +10,10 @@ from unittest.mock import patch
 from urllib.parse import urlparse
 
 from octue import REPOSITORY_ROOT, Runner
+from octue.cloud.emulators import mock_generate_signed_url
 from octue.resources.manifest import Manifest
 from octue.utils.processes import ProcessesContextManager
 from tests.base import BaseTestCase
-from tests.mocks import mock_generate_signed_url
 
 
 class TemplateAppsTestCase(BaseTestCase):

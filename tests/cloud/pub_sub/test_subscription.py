@@ -5,7 +5,7 @@ import google.api_core.exceptions
 from google.pubsub_v1 import SubscriberClient
 
 from octue.cloud.pub_sub.service import Service
-from octue.cloud.pub_sub.subscription import SEVEN_DAYS, THIRTY_ONE_DAYS, Subscription
+from octue.cloud.pub_sub.subscription import THIRTY_ONE_DAYS, Subscription
 from octue.cloud.pub_sub.topic import Topic
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
@@ -77,9 +77,9 @@ class TestSubscription(BaseTestCase):
         with patch("google.pubsub_v1.SubscriberClient.create_subscription", new=MockSubscriptionCreationResponse):
             response = subscription.create(allow_existing=True)
 
-        self.assertEqual(response._pb.ack_deadline_seconds, 60)
+        self.assertEqual(response._pb.ack_deadline_seconds, 600)
         self.assertEqual(response._pb.expiration_policy.ttl.seconds, THIRTY_ONE_DAYS)
-        self.assertEqual(response._pb.message_retention_duration.seconds, SEVEN_DAYS)
+        self.assertEqual(response._pb.message_retention_duration.seconds, 600)
         self.assertEqual(response._pb.retry_policy.minimum_backoff.seconds, 10)
         self.assertEqual(response._pb.retry_policy.maximum_backoff.seconds, 600)
 
@@ -101,9 +101,9 @@ class TestSubscription(BaseTestCase):
         with patch("google.pubsub_v1.SubscriberClient.create_subscription", new=MockSubscriptionCreationResponse):
             response = subscription.create(allow_existing=True)
 
-        self.assertEqual(response._pb.ack_deadline_seconds, 60)
+        self.assertEqual(response._pb.ack_deadline_seconds, 600)
         self.assertEqual(response._pb.expiration_policy.ttl.seconds, THIRTY_ONE_DAYS)
-        self.assertEqual(response._pb.message_retention_duration.seconds, SEVEN_DAYS)
+        self.assertEqual(response._pb.message_retention_duration.seconds, 600)
         self.assertEqual(response._pb.retry_policy.minimum_backoff.seconds, 10)
         self.assertEqual(response._pb.retry_policy.maximum_backoff.seconds, 600)
         self.assertEqual(response._pb.push_config.push_endpoint, "https://example.com/endpoint")

@@ -124,6 +124,9 @@ class MockSubscriber:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def close(self):
         self.closed = True
 
     def subscribe(self, subscription, callback):

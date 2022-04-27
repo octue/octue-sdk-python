@@ -2,15 +2,20 @@ import logging
 
 import google.api_core.exceptions
 from google.cloud.pubsub_v1 import SubscriberClient
-from google.protobuf.duration_pb2 import Duration
-from google.protobuf.field_mask_pb2 import FieldMask
-from google.pubsub_v1.types.pubsub import ExpirationPolicy, PushConfig, RetryPolicy, Subscription as _Subscription
+from google.protobuf.duration_pb2 import Duration  # noqa
+from google.protobuf.field_mask_pb2 import FieldMask  # noqa
+from google.pubsub_v1.types.pubsub import (
+    ExpirationPolicy,
+    PushConfig,
+    RetryPolicy,
+    Subscription as _Subscription,
+    UpdateSubscriptionRequest,
+)
 
 
 logger = logging.getLogger(__name__)
 
 # Useful time periods in seconds.
-SEVEN_DAYS = 7 * 24 * 3600
 THIRTY_ONE_DAYS = 31 * 24 * 3600
 
 
@@ -23,7 +28,7 @@ class Subscription:
     :param str project_name: the name of the Google Cloud project that the subscription belongs to
     :param str namespace: a namespace to put before the subscription's name in its path
     :param google.pubsub_v1.services.subscriber.client.SubscriberClient|None subscriber: a Google Pub/Sub subscriber that can be used to create or delete the subscription
-    :param int ack_deadline: message acknowledgement deadline in seconds
+    :param int ack_deadline: the time in seconds after which, if the subscriber hasn't acknowledged a message, to retry sending it to the subscription
     :param int message_retention_duration: unacknowledged message retention time in seconds
     :param int|None expiration_time: number of seconds after which the subscription is deleted (infinite time if None)
     :param float minimum_retry_backoff: minimum number of seconds after the acknowledgement deadline has passed to exponentially retry delivering a message to the subscription
@@ -39,8 +44,8 @@ class Subscription:
         project_name,
         namespace="",
         subscriber=None,
-        ack_deadline=60,
-        message_retention_duration=SEVEN_DAYS,
+        ack_deadline=600,
+        message_retention_duration=600,
         expiration_time=THIRTY_ONE_DAYS,
         minimum_retry_backoff=10,
         maximum_retry_backoff=600,
@@ -121,10 +126,13 @@ class Subscription:
         :return None:
         """
         self.subscriber.update_subscription(
-            subscription=self._create_proto_message_subscription(),
-            update_mask=FieldMask(
-                paths=["ack_deadline_seconds", "message_retention_duration", "expiration_policy", "retry_policy"]
-            ),
+            request=UpdateSubscriptionRequest(
+                mapping=None,
+                subscription=self._create_proto_message_subscription(),  # noqa
+                update_mask=FieldMask(
+                    paths=["ack_deadline_seconds", "message_retention_duration", "expiration_policy", "retry_policy"]
+                ),
+            )
         )
 
     def delete(self):
@@ -163,7 +171,7 @@ class Subscription:
         :return google.pubsub_v1.types.pubsub.Subscription:
         """
         if self.push_endpoint:
-            push_config = {"push_config": PushConfig(mapping=None, push_endpoint=self.push_endpoint)}
+            push_config = {"push_config": PushConfig(mapping=None, push_endpoint=self.push_endpoint)}  # noqa
         else:
             push_config = {}
 

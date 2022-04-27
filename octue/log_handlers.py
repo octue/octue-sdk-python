@@ -3,7 +3,12 @@ import logging.handlers
 import os
 from urllib.parse import urlparse
 
-from octue.utils.colour import colourise
+
+if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in {"GOOGLE_CLOUD_RUN", "GOOGLE_DATAFLOW"}:
+    # Google Cloud logs don't support colour currently - provide a no-operation function.
+    colourise = lambda string, text_colour=None, background_colour=None: string
+else:
+    from octue.utils.colour import colourise
 
 
 # Logging format for analysis runs. All handlers should use this logging format to make logs consistently parseable.

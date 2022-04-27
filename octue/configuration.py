@@ -99,6 +99,7 @@ class AppConfiguration:
     :param str|None configuration_values: values to configure the app
     :param str|None configuration_manifest: a manifest of files to configure the app
     :param str|None children: details of the children the app requires
+    :param str|None output_location: the path to a cloud directory to save output datasets at
     :return None:
     """
 
@@ -107,11 +108,13 @@ class AppConfiguration:
         configuration_values=None,
         configuration_manifest=None,
         children=None,
+        output_location=None,
         **kwargs,
     ):
         self.configuration_values = configuration_values
         self.configuration_manifest = configuration_manifest
         self.children = children
+        self.output_location = output_location
 
         if kwargs:
             logger.warning(f"The following keyword arguments were not used by {type(self).__name__}: {kwargs!r}.")

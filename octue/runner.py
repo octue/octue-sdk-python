@@ -30,6 +30,7 @@ class Runner:
     :param str|dict|_io.TextIOWrapper|None configuration_values: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|dict|_io.TextIOWrapper|None configuration_manifest: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param Union[str, dict, None] children: The children strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
+    :param str|None output_location: the path to a cloud directory to save output datasets at
     :param bool skip_checks: If true, skip the check that all files in the manifest are present on disc - this can be an extremely long process for large datasets.
     :param str|None project_name: name of Google Cloud project to get credentials from
     :return None:
@@ -42,6 +43,7 @@ class Runner:
         configuration_values=None,
         configuration_manifest=None,
         children=None,
+        output_location=None,
         skip_checks=False,
         project_name=None,
     ):
@@ -61,6 +63,7 @@ class Runner:
         self.configuration = self.twine.validate(
             configuration_values=configuration_values,
             configuration_manifest=configuration_manifest,
+            output_location=output_location,
             cls=CLASS_MAP,
         )
         logger.debug("Configuration validated.")

@@ -96,23 +96,26 @@ class Service(CoolNameable):
             future = subscriber.subscribe(subscription=subscription.path, callback=self.answer)
             logger.debug("%r is waiting for questions.", self)
 
-            with subscriber:
-                try:
-                    future.result(timeout=timeout)
-                except (TimeoutError, concurrent.futures.TimeoutError, KeyboardInterrupt):
-                    future.cancel()
+            try:
+                future.result(timeout=timeout)
+            except (TimeoutError, concurrent.futures.TimeoutError, KeyboardInterrupt):
+                future.cancel()
 
         finally:
             if delete_topic_and_subscription_on_exit:
                 try:
                     if subscription.exists():
                         subscription.delete()
+                        logger.info("Subscription deleted.")
 
                     if topic.exists():
                         topic.delete()
+                        logger.info("Topic deleted.")
 
                 except Exception:
                     logger.error("Deletion of topic and/or subscription %r failed.", topic.name)
+
+            subscriber.close()
 
     def answer(self, question, answer_topic=None, timeout=30):
         """Answer a question (i.e. run the Service's app to analyse the given data, and return the output values to the
@@ -302,31 +305,30 @@ class Service(CoolNameable):
             service_name=service_name,
         )
 
-        with subscriber:
+        try:
+            # Retry sending the question until the overall timeout is reached.
+            while not message_handler.received_delivery_acknowledgement:
 
-            try:
-                # Retry sending the question until the overall timeout is reached.
-                while not message_handler.received_delivery_acknowledgement:
+                try:
+                    return message_handler.handle_messages(
+                        timeout=timeout,
+                        delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
+                    )
 
-                    try:
-                        return message_handler.handle_messages(
-                            timeout=timeout,
-                            delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
-                        )
+                except octue.exceptions.QuestionNotDelivered:
+                    logger.info(
+                        "%r: No acknowledgement of question delivery after %fs - resending in %fs.",
+                        self,
+                        delivery_acknowledgement_timeout,
+                        retry_interval,
+                    )
 
-                    except octue.exceptions.QuestionNotDelivered:
-                        logger.info(
-                            "%r: No acknowledgement of question delivery after %fs - resending in %fs.",
-                            self,
-                            delivery_acknowledgement_timeout,
-                            retry_interval,
-                        )
+                    time.sleep(retry_interval)
+                    self.ask(**self._current_question)
 
-                        time.sleep(retry_interval)
-                        self.ask(**self._current_question)
-
-            finally:
-                subscription.delete()
+        finally:
+            subscription.delete()
+            subscriber.close()
 
     def _send_delivery_acknowledgment(self, topic, timeout=30):
         """Send an acknowledgement of question delivery to the asker.

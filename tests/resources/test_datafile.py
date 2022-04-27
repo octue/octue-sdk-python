@@ -1,6 +1,7 @@
 import copy
 import json
 import os
+import pickle
 import tempfile
 import uuid
 from datetime import datetime, timezone
@@ -818,3 +819,18 @@ class TestDatafile(BaseTestCase):
             self.assertEqual(datafile_reloaded_again.tags, {"my_tag": "hello"})
             self.assertEqual(datafile_reloaded_again.id, datafile.id)
             self.assertEqual(datafile_reloaded_again.hash_value, datafile.hash_value)
+
+    def test_pickle_datafile(self):
+        """Test that datafiles can be pickled and unpickled. This allows them to be copied by e.g. `copy.copy`."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with Datafile(path=os.path.join(temporary_directory, "my-file.dat"), mode="w") as (datafile, f):
+                f.write("hello")
+
+        picked_datafile = pickle.dumps(datafile)
+        unpickled_datafile = pickle.loads(picked_datafile)
+
+        self.assertEqual(datafile.name, unpickled_datafile.name)
+        self.assertEqual(datafile.labels, unpickled_datafile.labels)
+        self.assertEqual(datafile.tags, unpickled_datafile.tags)
+        self.assertEqual(datafile.id, unpickled_datafile.id)
+        self.assertEqual(datafile.hash_value, unpickled_datafile.hash_value)

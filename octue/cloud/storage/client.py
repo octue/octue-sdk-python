@@ -6,7 +6,10 @@ import os
 import warnings
 
 import google.api_core.exceptions
+import google.auth.exceptions
 from google import auth
+from google.auth import compute_engine
+from google.auth.transport import requests as google_requests
 from google.cloud import storage
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google_crc32c import Checksum
@@ -35,11 +38,11 @@ class GoogleCloudStorageClient:
         warnings.simplefilter("ignore", category=ResourceWarning)
 
         if credentials == OCTUE_MANAGED_CREDENTIALS:
-            credentials, self.project_name = auth.default()
+            self.credentials, self.project_name = auth.default()
         else:
-            credentials = credentials
+            self.credentials = credentials
 
-        self.client = storage.Client(project=self.project_name, credentials=credentials)
+        self.client = storage.Client(project=self.project_name, credentials=self.credentials)
 
     def create_bucket(self, name, location=None, allow_existing=False, timeout=_DEFAULT_TIMEOUT):
         """Create a new bucket. If the bucket already exists, and `allow_existing` is `True`, do nothing; if it is
@@ -263,7 +266,7 @@ class GoogleCloudStorageClient:
                 if filter(blob) and not blob.name.endswith("/"):
                     yield blob
 
-    def generate_signed_url(self, cloud_path, expiration=datetime.timedelta(days=30)):
+    def generate_signed_url(self, cloud_path, expiration=datetime.timedelta(days=7)):
         """Generate a signed URL for accessing the object at the given cloud path that expires after the given
         expiration date or period.
 
@@ -271,14 +274,36 @@ class GoogleCloudStorageClient:
         :param datetime.datetime|datetime.timedelta expiration: the datetime for the URL to expire at or the amount of time after which it should expire
         :return str:
         """
-        blob = self._blob(cloud_path)
-
         if os.environ.get("STORAGE_EMULATOR_HOST"):
             api_access_endpoint = {"api_access_endpoint": os.environ["STORAGE_EMULATOR_HOST"]}
         else:
             api_access_endpoint = {}
 
-        return blob.generate_signed_url(expiration=expiration, **api_access_endpoint)
+        blob = self._blob(cloud_path)
+
+        try:
+            # Use compute engine credentials if running on e.g. Google Cloud Run, performing a refresh request to get
+            # the access token of the credentials (otherwise it's `None`).
+            credentials, _ = google.auth.default()
+            request = google_requests.Request()
+            credentials.refresh(request)
+
+            signing_credentials = compute_engine.IDTokenCredentials(
+                request,
+                "",
+                service_account_email=credentials.service_account_email,
+            )
+
+            return blob.generate_signed_url(
+                expiration=expiration,
+                credentials=signing_credentials,
+                version="v4",
+                **api_access_endpoint,
+            )
+
+        except google.auth.exceptions.RefreshError:
+            # Use local service account key.
+            return blob.generate_signed_url(expiration=expiration, **api_access_endpoint)
 
     def _get_bucket_and_path_in_bucket(self, cloud_path):
         """Get the bucket and path within the bucket from the given cloud path.

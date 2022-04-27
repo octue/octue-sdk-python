@@ -165,13 +165,14 @@ def run(app_dir, data_dir, config_dir, input_dir, twine):
 )
 @click.option("--timeout", type=click.INT, default=None, show_default=True, help="Timeout in seconds for serving.")
 @click.option(
+    "--rm",
     "--delete-topic-and-subscription-on-exit",
     is_flag=True,
     default=False,
     show_default=True,
-    help="Delete Google Pub/Sub topics and subscriptions on exit.",
+    help="Delete the Google Pub/Sub topic and subscription for the service on exit.",
 )
-def start(service_configuration_path, service_id, timeout, delete_topic_and_subscription_on_exit):
+def start(service_configuration_path, service_id, timeout, rm):
     """Start the service as a child to be asked questions by other services."""
     service_configuration, app_configuration = load_service_and_app_configuration(service_configuration_path)
 
@@ -181,6 +182,7 @@ def start(service_configuration_path, service_id, timeout, delete_topic_and_subs
         configuration_values=app_configuration.configuration_values,
         configuration_manifest=app_configuration.configuration_manifest,
         children=app_configuration.children,
+        output_location=app_configuration.output_location,
         skip_checks=global_cli_context["skip_checks"],
     )
 
@@ -207,7 +209,7 @@ def start(service_configuration_path, service_id, timeout, delete_topic_and_subs
         run_function=run_function,
     )
 
-    service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=delete_topic_and_subscription_on_exit)
+    service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=rm)
 
 
 @octue_cli.group()

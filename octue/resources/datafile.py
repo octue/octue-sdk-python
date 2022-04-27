@@ -26,7 +26,7 @@ from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Pathable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils import isfile
 from octue.utils.encoders import OctueJSONEncoder
-from octue.utils.local_metadata import LOCAL_METADATA_FILENAME, load_local_metadata_file
+from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file
 
 
 logger = logging.getLogger(__name__)
@@ -395,7 +395,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         if not self.exists_locally:
             return None
 
-        return os.path.join(os.path.dirname(self._local_path), LOCAL_METADATA_FILENAME)
+        return os.path.join(os.path.dirname(self._local_path), METADATA_FILENAME)
 
     def __enter__(self):
         self._open_context_manager = self.open(**self._open_attributes)
@@ -403,6 +403,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._open_context_manager.__exit__(exc_type, exc_val, exc_tb)
+        del vars(self)["_open_context_manager"]
 
     def __lt__(self, other):
         if not isinstance(other, Datafile):
