@@ -65,6 +65,7 @@ class TestAnswerPubSubQuestion(TestCase):
                 "configuration_values": None,
                 "configuration_manifest": None,
                 "children": None,
+                "output_location": None,
                 "project_name": "a-project-name",
             }
         )
@@ -111,6 +112,7 @@ class TestAnswerPubSubQuestion(TestCase):
                 "configuration_values": {"hello": "configuration"},
                 "configuration_manifest": None,
                 "children": None,
+                "output_location": None,
                 "project_name": "a-project-name",
             }
         )
