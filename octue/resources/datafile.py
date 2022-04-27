@@ -98,34 +98,9 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         self._cloud_metadata = {}
 
         if storage.path.is_cloud_path(path):
-            self._cloud_path = path
-
-            if not self._hypothetical:
-                # Collect any non-`None` metadata instantiation parameters so the user can be warned if they conflict
-                # with any metadata already on the cloud object.
-                initialisation_parameters = {}
-
-                for parameter in ("id", "timestamp", "tags", "labels"):
-                    value = locals().get(parameter)
-                    if value is not None:
-                        initialisation_parameters[parameter] = value
-
-                self._use_cloud_metadata(**initialisation_parameters)
-
-            if local_path:
-                # If there is no file at the given local path or the file is different to the one in the cloud, download
-                # the cloud file locally.
-                if not os.path.exists(local_path) or self.cloud_hash_value != calculate_hash(local_path):
-                    self.download(local_path)
-                else:
-                    self._local_path = local_path
-
+            self._instantiate_from_cloud_object(path, local_path, id=id, timestamp=timestamp, tags=tags, labels=labels)
         else:
-            self._local_path = os.path.abspath(path)
-            self._get_local_metadata()
-
-            if cloud_path:
-                self.cloud_path = cloud_path
+            self._instantiate_from_local_path(path, cloud_path)
 
     @classmethod
     def deserialise(cls, serialised_datafile, from_string=False):
@@ -494,6 +469,48 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             return metadata
 
         return {f"{OCTUE_METADATA_NAMESPACE}__{key}": value for key, value in metadata.items()}
+
+    def _instantiate_from_cloud_object(self, path, local_path, **kwargs):
+        """Instantiate the datafile from a cloud object.
+
+        :param str path: the cloud path to a cloud object
+        :param str|None local_path: a local path to use for opening or modifying the cloud object locally
+        :return None:
+        """
+        self._cloud_path = path
+
+        if not self._hypothetical:
+            # Collect any non-`None` metadata instantiation parameters so the user can be warned if they conflict
+            # with any metadata already on the cloud object.
+            initialisation_parameters = {}
+
+            for parameter in ("id", "timestamp", "tags", "labels"):
+                value = kwargs.get(parameter)
+                if value is not None:
+                    initialisation_parameters[parameter] = value
+
+            self._use_cloud_metadata(**initialisation_parameters)
+
+        if local_path:
+            # If there is no file at the given local path or the file is different to the one in the cloud, download
+            # the cloud file locally.
+            if not os.path.exists(local_path) or self.cloud_hash_value != calculate_hash(local_path):
+                self.download(local_path)
+            else:
+                self._local_path = local_path
+
+    def _instantiate_from_local_path(self, path, cloud_path):
+        """Instantiate the datafile from a local path.
+
+        :param str path: the path to a local file
+        :param str|None cloud_path: a cloud path to upload the datafile to and mirror any changes made to it locally
+        :return None:
+        """
+        self._local_path = os.path.abspath(path)
+        self._get_local_metadata()
+
+        if cloud_path:
+            self.cloud_path = cloud_path
 
     def _get_cloud_metadata(self):
         """Get the cloud metadata for the datafile.
