@@ -336,6 +336,8 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
     def local_path(self):
         """Get the local path for the datafile, downloading it from the cloud to a temporary file if necessary. If
         downloaded, the local path is added to a cache to avoid downloading again in the same runtime.
+
+        :return str:
         """
         if self._local_path:
             return self._local_path
@@ -344,6 +346,10 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
     @property
     def path(self):
+        """Alias to the `local_path` property.
+
+        :return str:
+        """
         return self.local_path
 
     @local_path.setter
