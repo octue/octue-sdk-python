@@ -82,12 +82,7 @@ def run(analysis, *args, **kwargs):
     # (by leaving local_path_prefix unspecified) but it makes sense to put it in a folder specific to this output
     # dataset - doing so avoids any race conditions arising (if other instances of this application are running at the
     # same time), and avoids storage leaks, because files get cleaned up correctly.
-    timeseries_datafile = Datafile(
-        timestamp=None,
-        path="cleaned.csv",
-        skip_checks=True,  # We haven't created the actual file yet, so checks would definitely fail!
-        labels="timeseries",
-    )
+    timeseries_datafile = Datafile(timestamp=None, path="cleaned.csv", labels="timeseries")
 
     # Write the file (now we know where to write it)
     with timeseries_datafile.open("w") as fp:

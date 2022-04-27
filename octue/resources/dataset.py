@@ -388,7 +388,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         if self.exists_in_cloud:
             path_type = "cloud_path"
         else:
-            path_type = "path"
+            path_type = "local_path"
 
         if include_files:
             serialised_dataset["files"] = sorted(getattr(datafile, path_type) for datafile in self.files)

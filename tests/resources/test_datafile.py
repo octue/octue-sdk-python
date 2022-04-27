@@ -33,7 +33,6 @@ class TestDatafile(BaseTestCase):
         :return None:
         """
         super().setUp()
-        self.path_from = MyPathable(path=os.path.join(self.data_path, "basic_files", "configuration", "test-dataset"))
         self.path = os.path.join("path-within-dataset", "a_test_file.csv")
 
     def create_valid_datafile(self):
@@ -41,7 +40,7 @@ class TestDatafile(BaseTestCase):
 
         :return octue.resources.datafile.Datafile:
         """
-        return Datafile(path_from=self.path_from, path=self.path, skip_checks=False)
+        return Datafile(path=self.path)
 
     def create_datafile_in_cloud(
         self,
@@ -107,28 +106,14 @@ class TestDatafile(BaseTestCase):
         with self.assertRaises(TypeError):
             Datafile(path="a_path") > "hello"
 
-    def test_checks_fail_when_file_doesnt_exist(self):
-        """Test that the checks fail if the file used to instantiate the datafile doesn't exist."""
-        path = "not_a_real_file.csv"
-        with self.assertRaises(exceptions.FileNotFoundException) as error:
-            Datafile(path=path, skip_checks=False)
-        self.assertIn("No file found at", error.exception.args[0])
-
-    def test_conflicting_extension_fails_check(self):
-        """Test that a conflicting extension parameter and extension on the file causes checks to fail."""
-        with self.assertRaises(exceptions.InvalidInputException) as error:
-            Datafile(path_from=self.path_from, path=self.path, skip_checks=False, extension="notcsv")
-
-        self.assertIn("Extension provided (notcsv) does not match file extension", error.exception.args[0])
-
     def test_file_attributes_accessible(self):
-        """Ensures that its possible to set the timestamp"""
-        df = self.create_valid_datafile()
-        self.assertIsInstance(df.size_bytes, int)
-        self.assertGreaterEqual(df._last_modified, 1598200190.5771205)
-        self.assertEqual("a_test_file.csv", df.name)
+        """Ensures that it's possible to set the timestamp."""
+        datafile = self.create_valid_datafile()
+        self.assertIsNone(datafile.size_bytes)
+        self.assertIsNone(datafile._last_modified)
+        self.assertEqual("a_test_file.csv", datafile.name)
 
-        df.timestamp = 0
+        datafile.timestamp = 0
 
     def test_cannot_set_calculated_file_attributes(self):
         """Ensures that calculated attributes cannot be set"""
@@ -216,8 +201,7 @@ class TestDatafile(BaseTestCase):
         GoogleCloudStorageClient().upload_from_string(string=json.dumps({"height": 32}), cloud_path=path)
 
         datafile = Datafile(path=path)
-
-        self.assertEqual(datafile.path, path)
+        self.assertEqual(datafile.cloud_path, path)
         self.assertEqual(datafile.tags, TagDict())
         self.assertEqual(datafile.labels, LabelSet())
         self.assertTrue(isinstance(datafile.size_bytes, int))
@@ -242,7 +226,7 @@ class TestDatafile(BaseTestCase):
 
         datafile = Datafile(path=path, id=datafile_id, timestamp=timestamp, tags=tags, labels=labels)
 
-        self.assertEqual(datafile.path, path)
+        self.assertEqual(datafile.cloud_path, path)
         self.assertEqual(datafile.id, datafile_id)
         self.assertEqual(datafile.timestamp, timestamp)
         self.assertEqual(datafile.tags, tags)
@@ -260,7 +244,7 @@ class TestDatafile(BaseTestCase):
         )
 
         downloaded_datafile = Datafile(path=datafile.cloud_path)
-        self.assertEqual(downloaded_datafile.path, datafile.cloud_path)
+        self.assertEqual(downloaded_datafile.cloud_path, datafile.cloud_path)
         self.assertEqual(downloaded_datafile.id, datafile.id)
         self.assertEqual(downloaded_datafile.timestamp, datafile.timestamp)
         self.assertEqual(downloaded_datafile.hash_value, datafile.hash_value)
@@ -361,7 +345,7 @@ class TestDatafile(BaseTestCase):
     def test_local_path(self):
         """Test that a file in the cloud can be temporarily downloaded and its local path returned."""
         datafile, contents = self.create_datafile_in_cloud()
-        new_datafile = Datafile(datafile.path)
+        new_datafile = Datafile(datafile.cloud_path)
 
         with open(new_datafile.local_path) as f:
             self.assertEqual(f.read(), contents)
@@ -441,31 +425,13 @@ class TestDatafile(BaseTestCase):
 
         datafile = Datafile(path=temporary_file.name)
         serialised_datafile = datafile.to_primitive()
-        deserialised_datafile = Datafile.deserialise(serialised_datafile)
 
+        deserialised_datafile = Datafile.deserialise(serialised_datafile)
         self.assertEqual(datafile.id, deserialised_datafile.id)
         self.assertEqual(datafile.name, deserialised_datafile.name)
-        self.assertEqual(datafile.path, deserialised_datafile.path)
-        self.assertEqual(datafile.absolute_path, deserialised_datafile.absolute_path)
+        self.assertEqual(datafile.local_path, deserialised_datafile.local_path)
         self.assertEqual(datafile.hash_value, deserialised_datafile.hash_value)
         self.assertEqual(datafile.size_bytes, deserialised_datafile.size_bytes)
-
-    def test_deserialise_uses_path_from_if_path_is_relative(self):
-        """Test that Datafile.deserialise uses the path_from parameter if the datafile's path is relative."""
-        with tempfile.NamedTemporaryFile("w", dir=os.getcwd(), delete=False) as temporary_file:
-            temporary_file.write("hello")
-
-        filename = os.path.split(temporary_file.name)[-1]
-        datafile = Datafile(path=filename)
-        serialised_datafile = datafile.to_primitive()
-
-        pathable = Pathable(path=os.path.join(os.sep, "an", "absolute", "path"))
-        deserialised_datafile = Datafile.deserialise(serialised_datafile, path_from=pathable)
-
-        self.assertEqual(datafile.id, deserialised_datafile.id)
-        self.assertEqual(deserialised_datafile.absolute_path, os.path.join(pathable.absolute_path, filename))
-
-        os.remove(temporary_file.name)
 
     def test_deserialise_ignores_path_from_if_path_is_absolute(self):
         """Test that Datafile.deserialise ignores the path_from parameter if the datafile's path is absolute."""
@@ -476,7 +442,7 @@ class TestDatafile(BaseTestCase):
         serialised_datafile = datafile.to_primitive()
 
         pathable = Pathable(path=os.path.join(os.sep, "an", "absolute", "path"))
-        deserialised_datafile = Datafile.deserialise(serialised_datafile, path_from=pathable)
+        deserialised_datafile = Datafile.deserialise(serialised_datafile)
 
         self.assertEqual(datafile.id, deserialised_datafile.id)
         self.assertFalse(pathable.path in deserialised_datafile.path)
@@ -619,7 +585,6 @@ class TestDatafile(BaseTestCase):
 
         finally:
             os.remove("blib.txt")
-            os.remove(".octue")
 
     def test_cloud_path_property(self):
         """Test that the cloud path property returns the expected value."""

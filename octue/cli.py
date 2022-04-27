@@ -33,13 +33,6 @@ global_cli_context = {}
     show_default=True,
     help="UUID of the analysis being undertaken. None (for local use) will cause a unique ID to be generated.",
 )
-@click.option(
-    "--skip-checks/--no-skip-checks",
-    default=False,
-    is_flag=True,
-    show_default=True,
-    help="Skips the input checking. This can be a timesaver if you already checked data directories (especially if manifests are large).",
-)
 @click.option("--logger-uri", default=None, show_default=True, help="Stream logs to a websocket at the given URI.")
 @click.option(
     "--log-level",
@@ -56,7 +49,7 @@ global_cli_context = {}
     help="Forces a reset of analysis cache and outputs [For future use, currently not implemented]",
 )
 @click.version_option(version=pkg_resources.get_distribution("octue").version)
-def octue_cli(id, skip_checks, logger_uri, log_level, force_reset):
+def octue_cli(id, logger_uri, log_level, force_reset):
     """Octue CLI, enabling a data service / digital twin to be run like a command line application.
 
     When acting in CLI mode, results are read from and written to disk (see
@@ -64,7 +57,6 @@ def octue_cli(id, skip_checks, logger_uri, log_level, force_reset):
     Once your application has run, you'll be able to find output values and manifest in your specified --output-dir.
     """
     global_cli_context["analysis_id"] = id
-    global_cli_context["skip_checks"] = skip_checks
     global_cli_context["logger_uri"] = logger_uri
     global_cli_context["log_handler"] = None
     global_cli_context["log_level"] = log_level.upper()
@@ -136,7 +128,6 @@ def run(app_dir, data_dir, config_dir, input_dir, twine):
         configuration_values=configuration_values,
         configuration_manifest=configuration_manifest,
         children=children,
-        skip_checks=global_cli_context["skip_checks"],
     )
 
     analysis = runner.run(
@@ -183,7 +174,6 @@ def start(service_configuration_path, service_id, timeout, rm):
         configuration_manifest=app_configuration.configuration_manifest,
         children=app_configuration.children,
         output_location=app_configuration.output_location,
-        skip_checks=global_cli_context["skip_checks"],
     )
 
     run_function = functools.partial(

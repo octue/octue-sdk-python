@@ -62,13 +62,12 @@ def fractal(analysis):
         timestamp=None,
         path="my_mandelbrot_file.json",  # File name including extension (and can include subfolders within the dataset)
         local_path_prefix=output_dataset.path,  # TODO set up for the right paths Destination (root of the output dataset folder on the present machine)
-        skip_checks=True,  # We haven't created the actual file yet, so it'll definitely fail checks!
         tags=tags,
         labels=labels,
     )
 
     # Actually write the contents to the file specified by the Datafile
-    with open(df.absolute_path, "w") as fp:
+    with open(df.local_path, "w") as fp:
         json.dump(
             {"data": data, "layout": layout}, fp, cls=OctueJSONEncoder
         )  # The special encoder just makes it easy to handle numpy arrays

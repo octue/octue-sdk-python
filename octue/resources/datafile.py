@@ -20,11 +20,10 @@ except ModuleNotFoundError:
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.exceptions import CloudLocationNotSpecified, FileNotFoundException, InvalidInputException
+from octue.exceptions import CloudLocationNotSpecified
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
-from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Pathable, Serialisable, Taggable
+from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
-from octue.utils import isfile
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file
 
@@ -38,7 +37,7 @@ TAGS_DEFAULT = None
 LABELS_DEFAULT = None
 
 
-class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashable, Filterable):
+class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filterable):
     """A representation of a data file on the Octue system. If the given path is a cloud path and `hypothetical` is not
     `True`, the datafile's metadata is pulled from the given cloud location, and any conflicting parameters (see the
     `Datafile.metadata` method description for the parameter names concerned) are ignored. The metadata of cloud
@@ -57,15 +56,13 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
           "sha-512/256": "somesha"
         },
 
-    :param str|None path: The path of this file locally or in the cloud, which may include folders or subfolders, within the dataset. If no path_from parameter is set, then absolute paths are acceptable, otherwise relative paths are required.
+    :param str|None path: The path of this file locally or in the cloud, which may include folders or subfolders, within the dataset
     :param str|None local_path: If a cloud path is given as the `path` parameter, this is the path to an existing local file that is known to be in sync with the cloud object
     :param str|None cloud_path: If a local path is given for the `path` parameter, this is a cloud path to keep in sync with the local file
     :param datetime.datetime|int|float|None timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when it was created but could relate to a relevant time point for the data
     :param str id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
-    :param Pathable path_from: The root Pathable object (typically a Dataset) that this Datafile's path is relative to.
     :param dict|TagDict tags: key-value pairs with string keys conforming to the Octue tag format (see TagDict)
     :param iter(str) labels: Space-separated string of labels relevant to this file
-    :param bool skip_checks:
     :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode options are the same as for the builtin open function)
     :param bool update_cloud_metadata: if using as a context manager and this is True, update the cloud metadata of the datafile when the context is exited
     :param bool hypothetical: True if the file does not actually exist or access is not available at instantiation
@@ -90,10 +87,8 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         cloud_path=None,
         timestamp=None,
         id=ID_DEFAULT,
-        path_from=None,
         tags=TAGS_DEFAULT,
         labels=LABELS_DEFAULT,
-        skip_checks=True,
         mode="r",
         update_cloud_metadata=True,
         hypothetical=False,
@@ -105,8 +100,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
             immutable_hash_value=kwargs.pop("immutable_hash_value", None),
             tags=tags,
             labels=labels,
-            path=path,
-            path_from=path_from,
         )
 
         self.timestamp = timestamp
@@ -117,7 +110,7 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
         self._cloud_metadata = {}
 
-        if storage.path.is_cloud_path(self.path):
+        if storage.path.is_cloud_path(path):
             self._cloud_path = path
 
             if not self._hypothetical:
@@ -141,35 +134,22 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
                     self._local_path = local_path
 
         else:
-            self._local_path = self.absolute_path
+            self._local_path = os.path.abspath(path)
             self._get_local_metadata()
-
-            # Run integrity checks on the file.
-            if not skip_checks:
-                self.check(**kwargs)
 
             if cloud_path:
                 self.cloud_path = cloud_path
 
     @classmethod
-    def deserialise(cls, serialised_datafile, path_from=None):
-        """Deserialise a Datafile from a dictionary. The `path_from` parameter is only used if the path in the
-        serialised Dataset is relative.
+    def deserialise(cls, serialised_datafile):
+        """Deserialise a Datafile from a dictionary.
 
         :param dict serialised_datafile:
-        :param octue.mixins.Pathable path_from:
         :return Datafile:
         """
         serialised_datafile = copy.deepcopy(serialised_datafile)
         cloud_metadata = serialised_datafile.pop("_cloud_metadata", {})
-
-        if not os.path.isabs(serialised_datafile["path"]) and not storage.path.is_qualified_cloud_path(
-            serialised_datafile["path"]
-        ):
-            datafile = Datafile(**serialised_datafile, path_from=path_from)
-        else:
-            datafile = Datafile(**serialised_datafile)
-
+        datafile = Datafile(**serialised_datafile)
         datafile._cloud_metadata = cloud_metadata
         return datafile
 
@@ -179,7 +159,13 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
 
         :return str:
         """
-        return self._name or str(os.path.split(self.path)[-1]).split("?")[0]
+        if self._name:
+            return self._name
+
+        if self.exists_in_cloud:
+            return str(storage.path.split(self.cloud_path)[-1]).split("?")[0]
+
+        return str(os.path.split(self.local_path)[-1])
 
     @property
     def extension(self):
@@ -295,9 +281,9 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
     def _last_modified(self):
         """Get the date/time the file was last modified in units of seconds since epoch (posix time).
 
-        :return float:
+        :return float|None:
         """
-        if self._path_is_in_google_cloud_storage:
+        if self.exists_in_cloud:
             last_modified = self._cloud_metadata.get("updated")
 
             if last_modified is None:
@@ -305,18 +291,24 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
 
             return last_modified.timestamp()
 
-        return os.path.getmtime(self.absolute_path)
+        try:
+            return os.path.getmtime(self.local_path)
+        except FileNotFoundError:
+            return None
 
     @property
     def size_bytes(self):
         """Get the size of the datafile in bytes.
 
-        :return float:
+        :return float|None:
         """
-        if self._path_is_in_google_cloud_storage:
+        if self.exists_in_cloud:
             return self._cloud_metadata.get("size")
 
-        return os.path.getsize(self.absolute_path)
+        try:
+            return os.path.getsize(self.local_path)
+        except FileNotFoundError:
+            return None
 
     @property
     def exists_in_cloud(self):
@@ -343,6 +335,10 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
             return self._local_path
 
         return self.download()
+
+    @property
+    def path(self):
+        return self.local_path
 
     @local_path.setter
     def local_path(self, path):
@@ -408,12 +404,12 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
     def __lt__(self, other):
         if not isinstance(other, Datafile):
             raise TypeError(f"An object of type {type(self)} cannot be compared with {type(other)}.")
-        return self.absolute_path < other.absolute_path
+        return self.name < other.name
 
     def __gt__(self, other):
         if not isinstance(other, Datafile):
             raise TypeError(f"An object of type {type(self)} cannot be compared with {type(other)}.")
-        return self.absolute_path > other.absolute_path
+        return self.name > other.name
 
     def to_cloud(self, cloud_path=None, bucket_name=None, path_in_bucket=None, update_cloud_metadata=True):
         """Upload a datafile to Google Cloud Storage.
@@ -480,28 +476,6 @@ class Datafile(Labelable, Taggable, Serialisable, Pathable, Identifiable, Hashab
         # Now use hash value of local file instead of cloud file.
         self.reset_hash()
         return self._local_path
-
-    def check(self, size_bytes=None, sha=None, last_modified=None, extension=None):
-        """Check file presence and integrity"""
-        # TODO Check consistency of size_bytes input against self.size_bytes property for a file if we have one
-        # TODO Check consistency of sha against file contents if we have a file
-        # TODO Check consistency of last_modified date
-
-        if (extension is not None) and not self.path.endswith(extension):
-            raise InvalidInputException(
-                f"Extension provided ({extension}) does not match file extension (from {self.path}). Pass extension="
-                f"None to set extension from filename automatically."
-            )
-
-        if not self.exists():
-            raise FileNotFoundException(f"No file found at {self.absolute_path}")
-
-    def exists(self):
-        """Return `True` if the datafile exists on the current system.
-
-        :return bool:
-        """
-        return isfile(self.absolute_path)
 
     def metadata(self, use_octue_namespace=True):
         """Get the datafile's metadata in a serialised form (i.e. the attributes `id`, `timestamp`, `labels`, `tags`,
@@ -693,8 +667,8 @@ class _DatafileContextManager:
     This is equivalent to the standard python:
     ```
     my_datafile = Datafile(path='subfolder/subsubfolder/my_datafile.json)
-    os.makedirs(os.path.split(my_datafile.absolute_path)[0], exist_ok=True)
-    with open(my_datafile.absolute_path, 'w') as fp:
+    os.makedirs(os.path.split(my_datafile.local_path)[0], exist_ok=True)
+    with open(my_datafile.local_path, 'w') as fp:
         fp.write("{}")
     ```
 
@@ -747,10 +721,9 @@ class _DatafileContextManager:
         if any(character in self.mode for character in self.MODIFICATION_MODES):
 
             # If the datafile is local-first, update its local metadata.
-            if not storage.path.is_qualified_cloud_path(self.datafile.path):
+            if not self.datafile.exists_in_cloud:
                 self.datafile._update_local_metadata()
-
-            if self.datafile.exists_in_cloud:
+            else:
                 self.datafile.to_cloud(update_cloud_metadata=self._update_cloud_metadata)
 
 
