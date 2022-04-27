@@ -35,7 +35,6 @@ JSON object with the following fields (all paths should be relative to the repos
 * ``configuration_manifest`` (default value: ``None``)
 * ``output_manifest`` (default value: ``None``)
 * ``children`` (default value: ``None``)
-* ``skip_checks`` (default value: ``False``)
 
 
 --------------------

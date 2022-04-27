@@ -333,7 +333,7 @@ class TestDataset(BaseTestCase):
         ]
 
         self.assertEqual(
-            Dataset(files=files).files.filter(name__icontains="txt").pop().path, FilterSet({files[1]}).pop().path
+            Dataset(files=files).files.filter(name__icontains="txt").pop().path, FilterSet({files[1]}).pop().local_path
         )
 
     def test_filter_name_filters_exclude_path(self):
@@ -440,7 +440,7 @@ class TestDataset(BaseTestCase):
             self.assertEqual({file.name for file in persisted_dataset.files}, {file.name for file in dataset.files})
 
             for file in persisted_dataset:
-                self.assertEqual(file.path, f"gs://{TEST_BUCKET_NAME}/a_directory/{dataset.name}/{file.name}")
+                self.assertEqual(file.cloud_path, f"gs://{TEST_BUCKET_NAME}/a_directory/{dataset.name}/{file.name}")
 
     def test_from_cloud_with_no_metadata_file(self):
         """Test that any cloud directory can be accessed as a dataset if it has no `.octue` metadata file in it, the
@@ -465,7 +465,7 @@ class TestDataset(BaseTestCase):
         self.assertEqual({file.name for file in cloud_dataset.files}, {"file_0.txt", "file_1.txt"})
 
         for file in cloud_dataset:
-            self.assertEqual(file.path, f"gs://{TEST_BUCKET_NAME}/my_dataset/{file.name}")
+            self.assertEqual(file.cloud_path, f"gs://{TEST_BUCKET_NAME}/my_dataset/{file.name}")
 
         # Test serialisation doesn't lose any information.
         deserialised_dataset = Dataset.deserialise(cloud_dataset.to_primitive())
@@ -701,7 +701,7 @@ class TestDataset(BaseTestCase):
             self.assertEqual(dataset.name, "my-dataset")
 
             # Check that just the top-level files from the directory are present in the dataset.
-            datafile_paths = {datafile.path for datafile in dataset.files}
+            datafile_paths = {datafile.local_path for datafile in dataset.files}
             self.assertEqual(datafile_paths, set(paths[:2]))
 
     def test_from_local_directory_recursively(self):
@@ -711,7 +711,7 @@ class TestDataset(BaseTestCase):
             dataset = Dataset.from_local_directory(temporary_directory, recursive=True)
 
             # Check that all the files from the directory are present in the dataset.
-            datafile_paths = {datafile.path for datafile in dataset.files}
+            datafile_paths = {datafile.local_path for datafile in dataset.files}
             self.assertEqual(datafile_paths, set(paths))
 
     def test_generating_signed_url_from_dataset_and_recreating_dataset_from_it(self):

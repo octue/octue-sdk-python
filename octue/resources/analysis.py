@@ -55,7 +55,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
     :return None:
     """
 
-    def __init__(self, twine, handle_monitor_message=None, skip_checks=False, **kwargs):
+    def __init__(self, twine, handle_monitor_message=None, **kwargs):
         if isinstance(twine, Twine):
             self.twine = twine
         else:
@@ -83,7 +83,6 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         self.output_location = kwargs.pop("output_location", None)
 
         self._calculate_strand_hashes(strands=strand_kwargs)
-        self._skip_checks = skip_checks
 
         super().__init__(**kwargs)
 

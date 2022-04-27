@@ -93,7 +93,9 @@ class AnalysisTestCase(BaseTestCase):
             with Datafile(path=os.path.join(dataset_path, "my_file.dat"), mode="w") as (datafile, f):
                 f.write("hello")
 
-            output_manifest = Manifest(datasets={"the_dataset": Dataset(path=dataset_path, files={datafile.path})})
+            output_manifest = Manifest(
+                datasets={"the_dataset": Dataset(path=dataset_path, files={datafile.local_path})}
+            )
 
             analysis = Analysis(
                 twine={
@@ -118,7 +120,9 @@ class AnalysisTestCase(BaseTestCase):
 
             output_manifest = Manifest(
                 datasets={
-                    "the_dataset": Dataset(path=dataset_path, files={datafile.path}, labels={"one", "two", "three"})
+                    "the_dataset": Dataset(
+                        path=dataset_path, files={datafile.local_path}, labels={"one", "two", "three"}
+                    )
                 }
             )
 
