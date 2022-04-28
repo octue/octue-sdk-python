@@ -31,11 +31,7 @@ class TestManifest(BaseTestCase):
         self.assertFalse(self.create_valid_manifest().all_datasets_are_in_cloud)
         self.assertTrue(Manifest().all_datasets_are_in_cloud)
 
-        files = [
-            Datafile(path="gs://hello/file.txt", hypothetical=True),
-            Datafile(path="gs://goodbye/file.csv", hypothetical=True),
-        ]
-
+        files = [Datafile(path="gs://hello/file.txt"), Datafile(path="gs://goodbye/file.csv")]
         manifest = Manifest(datasets={"my_dataset": Dataset(files=files)})
         self.assertTrue(manifest.all_datasets_are_in_cloud)
 

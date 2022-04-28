@@ -36,10 +36,10 @@ OCTUE_METADATA_NAMESPACE = "octue"
 
 
 class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filterable):
-    """A representation of a data file on the Octue system. If the given path is a cloud path and `hypothetical` is not
-    `True`, the datafile's metadata is pulled from the given cloud location, and any conflicting parameters (see the
-    `Datafile.metadata` method description for the parameter names concerned) are ignored. The metadata of cloud
-    datafiles can be changed using the `Datafile.update_metadata` method, but not during instantiation.
+    """A representation of a data file on the Octue system. If the given path is a cloud path, the datafile's metadata
+    is pulled from the given cloud location, and any conflicting parameters (see the `Datafile.metadata` method
+    description for the parameter names concerned) are ignored. The metadata of cloud datafiles can be changed using
+    the `Datafile.update_metadata` method, but not during instantiation.
 
     :param str|None path: The path of this file locally or in the cloud, which may include folders or subfolders, within the dataset
     :param str|None local_path: If a cloud path is given as the `path` parameter, this is the path to an existing local file that is known to be in sync with the cloud object
@@ -50,7 +50,6 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
     :param iter(str) labels: Space-separated string of labels relevant to this file
     :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode options are the same as for the builtin open function)
     :param bool update_cloud_metadata: if using as a context manager and this is True, update the cloud metadata of the datafile when the context is exited
-    :param bool hypothetical: True if the file does not actually exist or access is not available at instantiation
     :param bool ignore_stored_metadata: if `True`, ignore any metadata stored for this datafile locally or in the cloud and use whatever is given at instantiation
     :return None:
     """
@@ -77,7 +76,6 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         labels=None,
         mode="r",
         update_cloud_metadata=True,
-        hypothetical=False,
         ignore_stored_metadata=False,
         **kwargs,
     ):
@@ -90,7 +88,6 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         )
 
         self.timestamp = timestamp
-        self._hypothetical = hypothetical
         self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
         self._local_path = None
         self._cloud_path = None
@@ -497,7 +494,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         """
         self._cloud_path = path
 
-        if not self._hypothetical and not ignore_stored_metadata:
+        if not ignore_stored_metadata:
             self._use_cloud_metadata()
 
         if local_path:

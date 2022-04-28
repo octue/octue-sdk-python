@@ -174,12 +174,12 @@ class TestDatafile(BaseTestCase):
     def test_exists_in_cloud(self):
         """Test whether it can be determined that a datafile exists in the cloud or not."""
         self.assertFalse(self.create_valid_datafile().exists_in_cloud)
-        self.assertTrue(Datafile(path="gs://hello/file.txt", hypothetical=True).exists_in_cloud)
+        self.assertTrue(Datafile(path="gs://hello/file.txt").exists_in_cloud)
 
     def test_exists_locally(self):
         """Test whether it can be determined that a datafile exists locally or not."""
         self.assertTrue(self.create_valid_datafile().exists_locally)
-        self.assertFalse(Datafile(path="gs://hello/file.txt", hypothetical=True).exists_locally)
+        self.assertFalse(Datafile(path="gs://hello/file.txt").exists_locally)
 
         datafile, _ = self.create_datafile_in_cloud()
         new_datafile = Datafile(datafile.cloud_path)
@@ -567,7 +567,7 @@ class TestDatafile(BaseTestCase):
 
     def test_cloud_path_property(self):
         """Test that the cloud path property returns the expected value."""
-        datafile = Datafile(path="gs://blah/no.txt", hypothetical=True)
+        datafile = Datafile(path="gs://blah/no.txt")
         self.assertEqual(datafile.cloud_path, "gs://blah/no.txt")
 
     def test_setting_cloud_path_property(self):
@@ -642,7 +642,7 @@ class TestDatafile(BaseTestCase):
 
     def test_bucket_name_and_path_in_bucket_properties(self):
         """Test the bucket_name and path_in_bucket properties work as expected for cloud and local datafiles."""
-        datafile = Datafile(path="gs://my-bucket/directory/hello.txt", hypothetical=True)
+        datafile = Datafile(path="gs://my-bucket/directory/hello.txt")
         self.assertEqual(datafile.bucket_name, "my-bucket")
         self.assertEqual(datafile.path_in_bucket, "directory/hello.txt")
 
