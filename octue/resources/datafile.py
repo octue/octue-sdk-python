@@ -31,11 +31,8 @@ from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file
 
 logger = logging.getLogger(__name__)
 
-OCTUE_METADATA_NAMESPACE = "octue"
 
-ID_DEFAULT = None
-TAGS_DEFAULT = None
-LABELS_DEFAULT = None
+OCTUE_METADATA_NAMESPACE = "octue"
 
 
 class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filterable):
@@ -54,6 +51,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
     :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode options are the same as for the builtin open function)
     :param bool update_cloud_metadata: if using as a context manager and this is True, update the cloud metadata of the datafile when the context is exited
     :param bool hypothetical: True if the file does not actually exist or access is not available at instantiation
+    :param bool ignore_stored_metadata: if `True`, ignore any metadata stored for this datafile locally or in the cloud and use whatever is given at instantiation
     :return None:
     """
 
@@ -74,12 +72,13 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         local_path=None,
         cloud_path=None,
         timestamp=None,
-        id=ID_DEFAULT,
-        tags=TAGS_DEFAULT,
-        labels=LABELS_DEFAULT,
+        id=None,
+        tags=None,
+        labels=None,
         mode="r",
         update_cloud_metadata=True,
         hypothetical=False,
+        ignore_stored_metadata=False,
         **kwargs,
     ):
         super().__init__(
@@ -98,9 +97,24 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         self._cloud_metadata = {}
 
         if storage.path.is_cloud_path(path):
-            self._instantiate_from_cloud_object(path, local_path, id=id, timestamp=timestamp, tags=tags, labels=labels)
+            self._instantiate_from_cloud_object(path, local_path, ignore_stored_metadata=ignore_stored_metadata)
         else:
-            self._instantiate_from_local_path(path, cloud_path)
+            self._instantiate_from_local_path(path, cloud_path, ignore_stored_metadata=ignore_stored_metadata)
+
+        if ignore_stored_metadata:
+            logger.debug("Ignored stored metadata for datafile %r.", self)
+        else:
+            if self.metadata(use_octue_namespace=False, include_sdk_version=False) != {
+                "id": id,
+                "timestamp": timestamp,
+                "tags": tags,
+                "labels": labels,
+            }:
+                logger.warning(
+                    "Overriding metadata given at instantiation with stored metadata for datafile %r - set "
+                    "`ignore_stored_metadata` to `True` at instantiation to avoid this.",
+                    self,
+                )
 
     @classmethod
     def deserialise(cls, serialised_datafile, from_string=False):
@@ -410,7 +424,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
         if update_cloud_metadata:
             # If the datafile's metadata has been changed locally, update the cloud file's metadata.
-            local_metadata = self.metadata()
+            local_metadata = self.metadata(use_octue_namespace=False)
 
             if self._cloud_metadata.get("custom_metadata") != local_metadata:
                 self._update_cloud_metadata()
@@ -450,11 +464,12 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         self.reset_hash()
         return self._local_path
 
-    def metadata(self, use_octue_namespace=True):
+    def metadata(self, include_sdk_version=True, use_octue_namespace=True):
         """Get the datafile's metadata in a serialised form (i.e. the attributes `id`, `timestamp`, `labels`, `tags`,
         and `sdk_version`).
 
-        :param bool use_octue_namespace: if True, prefix metadata names with "octue__"
+        :param bool include_sdk_version: if `True`, include the `octue` version that instantiated the datafile in the metadata
+        :param bool use_octue_namespace: if `True`, prefix metadata names with "octue__"
         :return dict:
         """
         metadata = {
@@ -462,34 +477,28 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             "timestamp": self.timestamp,
             "tags": self.tags,
             "labels": self.labels,
-            "sdk_version": pkg_resources.get_distribution("octue").version,
         }
+
+        if include_sdk_version:
+            metadata["sdk_version"] = pkg_resources.get_distribution("octue").version
 
         if not use_octue_namespace:
             return metadata
 
         return {f"{OCTUE_METADATA_NAMESPACE}__{key}": value for key, value in metadata.items()}
 
-    def _instantiate_from_cloud_object(self, path, local_path, **kwargs):
+    def _instantiate_from_cloud_object(self, path, local_path, ignore_stored_metadata):
         """Instantiate the datafile from a cloud object.
 
         :param str path: the cloud path to a cloud object
         :param str|None local_path: a local path to use for opening or modifying the cloud object locally
+        :param bool ignore_stored_metadata: if `True`, don't use any metadata stored for this datafile in the cloud
         :return None:
         """
         self._cloud_path = path
 
-        if not self._hypothetical:
-            # Collect any non-`None` metadata instantiation parameters so the user can be warned if they conflict
-            # with any metadata already on the cloud object.
-            initialisation_parameters = {}
-
-            for parameter in ("id", "timestamp", "tags", "labels"):
-                value = kwargs.get(parameter)
-                if value is not None:
-                    initialisation_parameters[parameter] = value
-
-            self._use_cloud_metadata(**initialisation_parameters)
+        if not self._hypothetical and not ignore_stored_metadata:
+            self._use_cloud_metadata()
 
         if local_path:
             # If there is no file at the given local path or the file is different to the one in the cloud, download
@@ -499,21 +508,24 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             else:
                 self._local_path = local_path
 
-    def _instantiate_from_local_path(self, path, cloud_path):
+    def _instantiate_from_local_path(self, path, cloud_path, ignore_stored_metadata):
         """Instantiate the datafile from a local path.
 
         :param str path: the path to a local file
         :param str|None cloud_path: a cloud path to upload the datafile to and mirror any changes made to it locally
+        :param bool ignore_stored_metadata: if `True`, don't use any metadata stored for this datafile locally
         :return None:
         """
         self._local_path = os.path.abspath(path)
-        self._get_local_metadata()
+
+        if not ignore_stored_metadata:
+            self._get_local_metadata()
 
         if cloud_path:
             self.cloud_path = cloud_path
 
     def _get_cloud_metadata(self):
-        """Get the cloud metadata for the datafile.
+        """Get the cloud metadata for the datafile and store it without updating the datafile's metadata.
 
         :return None:
         """
@@ -527,6 +539,11 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         cloud_metadata = GoogleCloudStorageClient().get_metadata(cloud_path=self.cloud_path)
 
         if cloud_metadata:
+            cloud_metadata["custom_metadata"] = {
+                key.replace(f"{OCTUE_METADATA_NAMESPACE}__", ""): value
+                for key, value in cloud_metadata["custom_metadata"].items()
+            }
+
             self._cloud_metadata = cloud_metadata
 
     def _update_cloud_metadata(self):
@@ -539,34 +556,22 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
         GoogleCloudStorageClient().overwrite_custom_metadata(metadata=self.metadata(), cloud_path=self.cloud_path)
 
-    def _use_cloud_metadata(self, **initialisation_parameters):
-        """Populate the datafile's attributes from the metadata of the cloud object located at its path (by necessity a
-        cloud path). If there is a conflict between the cloud metadata and a given local initialisation parameter, the
-        local value is used.
+    def _use_cloud_metadata(self):
+        """Update the datafile's metadata from the metadata of the cloud object located at its path.
 
-        :param initialisation_parameters: key-value pairs of initialisation parameter names and values (provide to check for conflicts with cloud metadata)
         :return None:
         """
         self._get_cloud_metadata()
         cloud_custom_metadata = self._cloud_metadata.get("custom_metadata", {})
-        self._warn_about_attribute_conflicts(cloud_custom_metadata, **initialisation_parameters)
 
-        self._set_id(
-            initialisation_parameters.get(
-                "id", cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__id", ID_DEFAULT)
-            )
-        )
+        if "id" in cloud_custom_metadata:
+            self._set_id(cloud_custom_metadata["id"])
 
         self.immutable_hash_value = self.cloud_hash_value or EMPTY_STRING_HASH_VALUE
 
         for attribute in ("timestamp", "tags", "labels"):
-            setattr(
-                self,
-                attribute,
-                initialisation_parameters.get(
-                    attribute, cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__{attribute}")
-                ),
-            )
+            if attribute in cloud_custom_metadata:
+                setattr(self, attribute, cloud_custom_metadata[attribute])
 
     def _get_local_metadata(self):
         """Get the datafile's local metadata from the local metadata records file and apply it to the datafile instance.
@@ -601,26 +606,6 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
         with open(self._local_metadata_path, "w") as f:
             json.dump(existing_metadata_records, f, cls=OctueJSONEncoder)
-
-    def _warn_about_attribute_conflicts(self, cloud_custom_metadata, **initialisation_parameters):
-        """Raise a warning if there is a conflict between the cloud custom metadata and the given initialisation
-        parameters if the cloud value is not `None` or an empty collection.
-
-        :param dict cloud_custom_metadata:
-        :return None:
-        """
-        for attribute_name, attribute_value in initialisation_parameters.items():
-
-            cloud_metadata_value = cloud_custom_metadata.get(f"{OCTUE_METADATA_NAMESPACE}__{attribute_name}")
-
-            if cloud_metadata_value == attribute_value or not cloud_metadata_value:
-                continue
-
-            logger.warning(
-                f"The value {cloud_metadata_value!r} of the {type(self).__name__} attribute {attribute_name!r} from "
-                f"the cloud conflicts with the value given locally at instantiation {attribute_value!r}. The local "
-                f"value has been used and will overwrite the cloud value if the datafile is saved."
-            )
 
     def _calculate_hash(self):
         """Get the hash of the datafile according to the first of the following methods that is applicable:
