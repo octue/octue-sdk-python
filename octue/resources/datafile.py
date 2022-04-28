@@ -89,6 +89,8 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
                 category=DeprecationWarning,
             )
 
+            ignore_stored_metadata = kwargs["hypothetical"]
+
         super().__init__(
             id=id,
             name=kwargs.pop("name", None),
