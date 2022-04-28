@@ -166,7 +166,7 @@ class TestManifest(BaseTestCase):
 
     def test_instantiating_from_multiple_local_datasets(self):
         """Test instantiating a manifest from multiple local datasets."""
-        with patch("octue.resources.dataset.Dataset._save_local_metadata"):
+        with patch("octue.resources.dataset.Dataset.update_local_metadata"):
             manifest = Manifest(
                 datasets={
                     "dataset_0": os.path.join("path", "to", "dataset_0"),

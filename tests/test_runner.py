@@ -153,7 +153,7 @@ class TestRunner(BaseTestCase):
         )
 
         # Avoid writing dataset metadata to disk so it isn't left behind by the test.
-        with patch("octue.resources.dataset.Dataset._save_local_metadata"):
+        with patch("octue.resources.dataset.Dataset.update_local_metadata"):
             analysis = runner.run()
             self.assertIsNotNone(analysis.output_manifest)
 

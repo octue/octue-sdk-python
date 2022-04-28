@@ -516,7 +516,7 @@ class TestDataset(BaseTestCase):
         dataset.
         """
         try:
-            self.save_local_metadata_patch.stop()
+            self.update_local_metadata_patch.stop()
 
             with tempfile.TemporaryDirectory() as temporary_directory:
                 self._create_files_and_nested_subdirectories(temporary_directory)
@@ -536,7 +536,7 @@ class TestDataset(BaseTestCase):
                 self.assertEqual(dataset.hash_value, dataset_reloaded.hash_value)
 
         finally:
-            self.save_local_metadata_patch.start()
+            self.update_local_metadata_patch.start()
 
     def test_to_cloud(self):
         """Test that a dataset can be uploaded to a cloud path, including all its files and the dataset's metadata."""
@@ -743,20 +743,20 @@ class TestDataset(BaseTestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Stop the `Dataset._save_local_metadata` method from creating local files during the tests.
+        """Stop the `Dataset.update_local_metadata` method from creating local files during the tests.
 
         :return None:
         """
-        cls.save_local_metadata_patch = patch("octue.resources.dataset.Dataset._save_local_metadata")
-        cls.save_local_metadata_patch.start()
+        cls.update_local_metadata_patch = patch("octue.resources.dataset.Dataset.update_local_metadata")
+        cls.update_local_metadata_patch.start()
 
     @classmethod
     def tearDownClass(cls):
-        """Re-enable the `Dataset._save_local_metadata` method.
+        """Re-enable the `Dataset.update_local_metadata` method.
 
         :return None:
         """
-        cls.save_local_metadata_patch.stop()
+        cls.update_local_metadata_patch.stop()
 
     def _create_nested_cloud_dataset(self, dataset_name="a_dataset"):
         cloud_storage_client = GoogleCloudStorageClient()
