@@ -9,6 +9,7 @@ import tempfile
 import coolname
 import requests
 
+from octue import VERSION
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudLocationNotSpecified, InvalidInputException
@@ -436,6 +437,24 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
             serialised_dataset["files"] = sorted(getattr(datafile, path_type) for datafile in self.files)
 
         return serialised_dataset
+
+    def metadata(self, include_sdk_version=True):
+        """Get the dataset's metadata in a serialised form (i.e. the attributes `name`, `id`, `tags`, `labels`, and
+        `sdk_version`).
+
+        :return dict:
+        """
+        metadata = {
+            "name": self.name,
+            "id": self.id,
+            "tags": self.tags,
+            "labels": self.labels,
+        }
+
+        if include_sdk_version:
+            metadata["sdk_version"] = VERSION
+
+        return metadata
 
     def _instantiate_datafiles(self, files):
         """Instantiate and add the given files to a `FilterSet`.
