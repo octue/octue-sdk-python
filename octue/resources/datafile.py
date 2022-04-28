@@ -591,14 +591,8 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         if not cloud_custom_metadata:
             return
 
-        if "id" in cloud_custom_metadata:
-            self._set_id(cloud_custom_metadata["id"])
-
         self.immutable_hash_value = self.cloud_hash_value or EMPTY_STRING_HASH_VALUE
-
-        for attribute in ("timestamp", "tags", "labels"):
-            if attribute in cloud_custom_metadata:
-                setattr(self, attribute, cloud_custom_metadata[attribute])
+        self._set_metadata(cloud_custom_metadata)
 
     def _use_local_metadata(self):
         """Update the datafile's metadata from the local metadata records file. If no metadata is stored for the
@@ -612,12 +606,20 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         if not datafile_metadata:
             return
 
-        if "id" in datafile_metadata:
-            self._set_id(datafile_metadata["id"])
+        self._set_metadata(datafile_metadata)
+
+    def _set_metadata(self, metadata):
+        """Set the instance's metadata.
+
+        :param dict metadata:
+        :return None:
+        """
+        if "id" in metadata:
+            self._set_id(metadata["id"])
 
         for attribute in ("timestamp", "tags", "labels"):
-            if attribute in datafile_metadata:
-                setattr(self, attribute, datafile_metadata[attribute])
+            if attribute in metadata:
+                setattr(self, attribute, metadata[attribute])
 
     def _calculate_hash(self):
         """Get the hash of the datafile according to the first of the following methods that is applicable:
