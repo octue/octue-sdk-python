@@ -435,7 +435,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             local_metadata = self.metadata(use_octue_namespace=False)
 
             if self._cloud_metadata.get("custom_metadata") != local_metadata:
-                self._update_cloud_metadata()
+                self.update_cloud_metadata()
 
         return self.cloud_path
 
@@ -494,6 +494,31 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             return metadata
 
         return {f"{OCTUE_METADATA_NAMESPACE}__{key}": value for key, value in metadata.items()}
+
+    def update_cloud_metadata(self):
+        """Update the cloud metadata for the datafile.
+
+        :return None:
+        """
+        if not self.cloud_path:
+            self._raise_cloud_location_error()
+
+        GoogleCloudStorageClient().overwrite_custom_metadata(metadata=self.metadata(), cloud_path=self.cloud_path)
+
+    def update_local_metadata(self):
+        """Create or update the local octue metadata file with the datafile's metadata.
+
+        :return None:
+        """
+        existing_metadata_records = load_local_metadata_file(self._local_metadata_path)
+
+        if not existing_metadata_records.get("datafiles"):
+            existing_metadata_records["datafiles"] = {}
+
+        existing_metadata_records["datafiles"][self.name] = self.metadata(use_octue_namespace=False)
+
+        with open(self._local_metadata_path, "w") as f:
+            json.dump(existing_metadata_records, f, cls=OctueJSONEncoder)
 
     def _instantiate_from_cloud_object(self, path, local_path, ignore_stored_metadata):
         """Instantiate the datafile from a cloud object.
@@ -554,16 +579,6 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
             self._cloud_metadata = cloud_metadata
 
-    def _update_cloud_metadata(self):
-        """Update the cloud metadata for the datafile.
-
-        :return None:
-        """
-        if not self.cloud_path:
-            self._raise_cloud_location_error()
-
-        GoogleCloudStorageClient().overwrite_custom_metadata(metadata=self.metadata(), cloud_path=self.cloud_path)
-
     def _use_cloud_metadata(self):
         """Update the datafile's metadata from the metadata of the cloud object located at its path.
 
@@ -599,21 +614,6 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         for attribute in ("timestamp", "tags", "labels"):
             if attribute in datafile_metadata:
                 setattr(self, attribute, datafile_metadata[attribute])
-
-    def _update_local_metadata(self):
-        """Create or update the local octue metadata file with the datafile's metadata.
-
-        :return None:
-        """
-        existing_metadata_records = load_local_metadata_file(self._local_metadata_path)
-
-        if not existing_metadata_records.get("datafiles"):
-            existing_metadata_records["datafiles"] = {}
-
-        existing_metadata_records["datafiles"][self.name] = self.metadata(use_octue_namespace=False)
-
-        with open(self._local_metadata_path, "w") as f:
-            json.dump(existing_metadata_records, f, cls=OctueJSONEncoder)
 
     def _calculate_hash(self):
         """Get the hash of the datafile according to the first of the following methods that is applicable:
@@ -730,7 +730,7 @@ class _DatafileContextManager:
 
             # If the datafile is local-first, update its local metadata.
             if not self.datafile.exists_in_cloud:
-                self.datafile._update_local_metadata()
+                self.datafile.update_local_metadata()
             else:
                 self.datafile.to_cloud(update_cloud_metadata=self._update_cloud_metadata)
 
