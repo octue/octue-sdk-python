@@ -6,6 +6,7 @@ import logging
 import os
 import shutil
 import tempfile
+import warnings
 from urllib.parse import urlparse
 
 import google.api_core.exceptions
@@ -79,6 +80,15 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         ignore_stored_metadata=False,
         **kwargs,
     ):
+        if "hypothetical" in kwargs:
+            warnings.warn(
+                message=(
+                    f"The `hypothetical` parameter in `Datafile` instantiation has been deprecated. Please set "
+                    f"`ignore_stored_metadata` to {kwargs['hypothetical']} instead."
+                ),
+                category=DeprecationWarning,
+            )
+
         super().__init__(
             id=id,
             name=kwargs.pop("name", None),
