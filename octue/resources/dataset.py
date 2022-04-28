@@ -55,7 +55,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         # Save metadata locally if the dataset exists locally.
         if save_metadata_locally:
             if path and self.exists_locally:
-                self._save_local_metadata()
+                self._update_local_metadata()
 
     @classmethod
     def from_local_directory(cls, path_to_directory, recursive=False, **kwargs):
@@ -452,13 +452,12 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
             cloud_path=self._metadata_path,
         )
 
-    def _save_local_metadata(self):
-        """Save the dataset metadata locally in the dataset directory.
+    def _update_local_metadata(self):
+        """Create or update the local octue metadata file with the dataset's metadata.
 
         :return None:
         """
         os.makedirs(self.path, exist_ok=True)
-
         existing_metadata_records = load_local_metadata_file(self._metadata_path)
         existing_metadata_records["dataset"] = self.to_primitive(include_files=False)
 
