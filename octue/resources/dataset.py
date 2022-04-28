@@ -7,9 +7,9 @@ import os
 import tempfile
 
 import coolname
+import pkg_resources
 import requests
 
-from octue import VERSION
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudLocationNotSpecified, InvalidInputException
@@ -39,7 +39,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     :param str|None path:
     :param dict|octue.resources.tag.TagDict|None tags:
     :param iter(str)|octue.resources.label.LabelSet|None labels:
-    :param bool save_metadata_locally: if `True` and the dataset is local, save its metadata to disk locally
+    :param bool ignore_stored_metadata: if `True`, ignore any metadata stored for this dataset locally or in the cloud and use whatever is given at instantiation
     :return None:
     """
 
@@ -48,29 +48,41 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     # Paths to files are added to the serialisation in `Dataset.to_primitive`.
     _SERIALISE_FIELDS = "name", "labels", "tags", "id", "path"
 
-    def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None, save_metadata_locally=True):
+    def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None, ignore_stored_metadata=False):
         super().__init__(name=name, id=id, tags=tags, labels=labels)
         self.path = path or os.getcwd()
         self.files = self._instantiate_datafiles(files or [])
 
-        # Save metadata locally if the dataset exists locally.
-        if save_metadata_locally:
-            if path and self.exists_locally:
-                os.makedirs(self.path, exist_ok=True)
-                self.update_local_metadata()
+        if ignore_stored_metadata:
+            logger.debug("Ignored stored metadata for dataset %r.", self)
+        else:
+            if self.metadata(include_sdk_version=False) != {"name": name, "id": id, "tags": tags, "labels": labels}:
+                logger.warning(
+                    "Overriding metadata given at instantiation with stored metadata for dataset %r - set "
+                    "`ignore_stored_metadata` to `True` at instantiation to avoid this.",
+                    self,
+                )
 
     @classmethod
-    def from_local_directory(cls, path_to_directory, recursive=False, **kwargs):
+    def from_local_directory(cls, path_to_directory, recursive=False, ignore_stored_metadata=False, **kwargs):
         """Instantiate a Dataset from the files in the given local directory. If a dataset metadata file is present,
         that is used to decide which files are in the dataset.
 
         :param str path_to_directory: path to a local directory
         :param bool recursive: if `True`, include all files in the directory's subdirectories recursively
+        :param bool ignore_stored_metadata: if `True`, don't use any metadata stored for this dataset locally
         :param kwargs: other keyword arguments for the `Dataset` instantiation
         :return Dataset:
         """
-        local_metadata = load_local_metadata_file(os.path.join(path_to_directory, METADATA_FILENAME))
-        dataset_metadata = local_metadata.get("dataset", {})
+        if ignore_stored_metadata:
+            metadata_to_use = {}
+        else:
+            local_metadata = load_local_metadata_file(os.path.join(path_to_directory, METADATA_FILENAME))
+            dataset_metadata = local_metadata.get("dataset", {})
+
+            metadata_to_use = {
+                key: value for key, value in dataset_metadata.items() if key in {"id", "name", "tags", "labels"}
+            }
 
         datafiles = FilterSet()
 
@@ -85,20 +97,24 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
                 datafiles.add(Datafile(path=os.path.join(directory_path, filename)))
 
-        metadata_to_use = {
-            key: value for key, value in dataset_metadata.items() if key in {"id", "name", "tags", "labels"}
-        }
-
         return Dataset(path=path_to_directory, files=datafiles, **metadata_to_use, **kwargs)
 
     @classmethod
-    def from_cloud(cls, cloud_path=None, bucket_name=None, path_to_dataset_directory=None, recursive=False):
+    def from_cloud(
+        cls,
+        cloud_path=None,
+        bucket_name=None,
+        path_to_dataset_directory=None,
+        recursive=False,
+        ignore_stored_metadata=False,
+    ):
         """Instantiate a Dataset from Google Cloud storage. The dataset's files are collected by scanning its cloud
         directory unless a "files" key is present in the dataset metadata, in which case the files specified there are
         used.
 
         :param str|None cloud_path: full path to dataset directory in cloud storage (e.g. `gs://bucket_name/path/to/dataset`)
         :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained in the dataset directory
+        :param bool ignore_stored_metadata: if `True`, don't use any metadata stored for this dataset in the cloud
         :return Dataset:
         """
         if not cloud_path:
@@ -106,7 +122,10 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         bucket_name = storage.path.split_bucket_name_from_cloud_path(cloud_path)[0]
 
-        dataset_metadata = cls._get_cloud_metadata(cloud_path=cloud_path)
+        if ignore_stored_metadata:
+            dataset_metadata = {}
+        else:
+            dataset_metadata = cls._get_cloud_metadata(cloud_path=cloud_path)
 
         if "files" in dataset_metadata:
             files = [Datafile(path=path) for path in dataset_metadata["files"]]
@@ -452,7 +471,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         }
 
         if include_sdk_version:
-            metadata["sdk_version"] = VERSION
+            metadata["sdk_version"] = pkg_resources.get_distribution("octue").version
 
         return metadata
 

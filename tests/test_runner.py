@@ -152,10 +152,8 @@ class TestRunner(BaseTestCase):
             """,
         )
 
-        # Avoid writing dataset metadata to disk so it isn't left behind by the test.
-        with patch("octue.resources.dataset.Dataset.update_local_metadata"):
-            analysis = runner.run()
-            self.assertIsNotNone(analysis.output_manifest)
+        analysis = runner.run()
+        self.assertIsNotNone(analysis.output_manifest)
 
     def test_runner_with_credentials(self):
         """Test that credentials can be used with Runner."""

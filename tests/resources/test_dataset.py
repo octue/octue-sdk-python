@@ -399,9 +399,6 @@ class TestDataset(BaseTestCase):
             },
         )
 
-        # Avoid saving metadata locally when deserialising.
-        serialised_dataset["save_metadata_locally"] = False
-
         deserialised_dataset = Dataset.deserialise(serialised_dataset)
         self.assertEqual(dataset.id, deserialised_dataset.id)
         self.assertEqual(dataset.path, deserialised_dataset.path)
@@ -511,32 +508,28 @@ class TestDataset(BaseTestCase):
             {"name": "nested_dataset_with_no_metadata", "labels": [], "tags": {}, "path": dataset_path},
         )
 
-    def test_metadata_saved_locally(self):
-        """Test that metadata for a local dataset is stored locally and is used on re-instantiation of the same
+    def test_update_local_metadata(self):
+        """Test that metadata for a local dataset can be stored locally and used on re-instantiation of the same
         dataset.
         """
-        try:
-            self.update_local_metadata_patch.stop()
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            self._create_files_and_nested_subdirectories(temporary_directory)
 
-            with tempfile.TemporaryDirectory() as temporary_directory:
-                self._create_files_and_nested_subdirectories(temporary_directory)
+            dataset = Dataset.from_local_directory(
+                temporary_directory,
+                recursive=True,
+                id="69253db4-7972-42de-8ccc-61336a28cd50",
+                tags={"cat": "dog"},
+                labels=["animals"],
+            )
 
-                dataset = Dataset.from_local_directory(
-                    temporary_directory,
-                    recursive=True,
-                    id="69253db4-7972-42de-8ccc-61336a28cd50",
-                    tags={"cat": "dog"},
-                    labels=["animals"],
-                )
+            dataset.update_local_metadata()
 
-                dataset_reloaded = Dataset.from_local_directory(temporary_directory, recursive=True)
-                self.assertEqual(dataset.id, dataset_reloaded.id)
-                self.assertEqual(dataset.tags, dataset_reloaded.tags)
-                self.assertEqual(dataset.labels, dataset_reloaded.labels)
-                self.assertEqual(dataset.hash_value, dataset_reloaded.hash_value)
-
-        finally:
-            self.update_local_metadata_patch.start()
+            dataset_reloaded = Dataset.from_local_directory(temporary_directory, recursive=True)
+            self.assertEqual(dataset.id, dataset_reloaded.id)
+            self.assertEqual(dataset.tags, dataset_reloaded.tags)
+            self.assertEqual(dataset.labels, dataset_reloaded.labels)
+            self.assertEqual(dataset.hash_value, dataset_reloaded.hash_value)
 
     def test_to_cloud(self):
         """Test that a dataset can be uploaded to a cloud path, including all its files and the dataset's metadata."""
@@ -719,62 +712,33 @@ class TestDataset(BaseTestCase):
 
     def test_exiting_context_manager_of_local_dataset_updates_local_metadata(self):
         """Test that local metadata for a local dataset is updated on exit of the dataset context manager."""
-        try:
-            self.update_local_metadata_patch.stop()
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            self._create_files_and_nested_subdirectories(temporary_directory)
 
-            with tempfile.TemporaryDirectory() as temporary_directory:
-                self._create_files_and_nested_subdirectories(temporary_directory)
-
-                dataset = Dataset.from_local_directory(temporary_directory, recursive=True)
-
-                with dataset:
-                    dataset.tags = {"cat": "dog"}
-                    dataset.labels = {"animals"}
-
-                reloaded_dataset = Dataset.from_local_directory(temporary_directory, recursive=True)
-                self.assertEqual(reloaded_dataset.id, dataset.id)
-                self.assertEqual(reloaded_dataset.tags, {"cat": "dog"})
-                self.assertEqual(reloaded_dataset.labels, {"animals"})
-
-        finally:
-            self.update_local_metadata_patch.start()
-
-    def test_exiting_context_manager_of_cloud_dataset_updates_cloud_metadata(self):
-        """Test that cloud metadata for a cloud dataset is updated on exit of the dataset context manager."""
-        try:
-            self.update_local_metadata_patch.stop()
-
-            dataset_path = self._create_nested_cloud_dataset()
-            dataset = Dataset.from_cloud(dataset_path, recursive=True)
+            dataset = Dataset.from_local_directory(temporary_directory, recursive=True)
 
             with dataset:
                 dataset.tags = {"cat": "dog"}
                 dataset.labels = {"animals"}
 
-            reloaded_dataset = Dataset.from_cloud(dataset_path)
+            reloaded_dataset = Dataset.from_local_directory(temporary_directory, recursive=True)
             self.assertEqual(reloaded_dataset.id, dataset.id)
             self.assertEqual(reloaded_dataset.tags, {"cat": "dog"})
             self.assertEqual(reloaded_dataset.labels, {"animals"})
 
-        finally:
-            self.update_local_metadata_patch.start()
+    def test_exiting_context_manager_of_cloud_dataset_updates_cloud_metadata(self):
+        """Test that cloud metadata for a cloud dataset is updated on exit of the dataset context manager."""
+        dataset_path = self._create_nested_cloud_dataset()
+        dataset = Dataset.from_cloud(dataset_path, recursive=True)
 
-    @classmethod
-    def setUpClass(cls):
-        """Stop the `Dataset.update_local_metadata` method from creating local files during the tests.
+        with dataset:
+            dataset.tags = {"cat": "dog"}
+            dataset.labels = {"animals"}
 
-        :return None:
-        """
-        cls.update_local_metadata_patch = patch("octue.resources.dataset.Dataset.update_local_metadata")
-        cls.update_local_metadata_patch.start()
-
-    @classmethod
-    def tearDownClass(cls):
-        """Re-enable the `Dataset.update_local_metadata` method.
-
-        :return None:
-        """
-        cls.update_local_metadata_patch.stop()
+        reloaded_dataset = Dataset.from_cloud(dataset_path)
+        self.assertEqual(reloaded_dataset.id, dataset.id)
+        self.assertEqual(reloaded_dataset.tags, {"cat": "dog"})
+        self.assertEqual(reloaded_dataset.labels, {"animals"})
 
     def _create_nested_cloud_dataset(self, dataset_name="a_dataset"):
         """Create a dataset in cloud storage with the given name containing a nested set of files.
