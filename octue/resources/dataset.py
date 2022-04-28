@@ -307,6 +307,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         """
         existing_metadata_records = load_local_metadata_file(self._metadata_path)
         existing_metadata_records["dataset"] = self.to_primitive(include_files=False)
+        os.makedirs(self.path, exist_ok=True)
 
         with open(self._metadata_path, "w") as f:
             json.dump(existing_metadata_records, f, cls=OctueJSONEncoder)
