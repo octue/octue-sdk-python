@@ -552,7 +552,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         self._local_path = os.path.abspath(path)
 
         if not ignore_stored_metadata:
-            self._get_local_metadata()
+            self._use_local_metadata()
 
         if cloud_path:
             self.cloud_path = cloud_path
@@ -580,12 +580,16 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             self._cloud_metadata = cloud_metadata
 
     def _use_cloud_metadata(self):
-        """Update the datafile's metadata from the metadata of the cloud object located at its path.
+        """Update the datafile's metadata from the metadata of the cloud object located at its path. If no metadata is
+        stored for the datafile, do nothing.
 
         :return None:
         """
         self._get_cloud_metadata()
         cloud_custom_metadata = self._cloud_metadata.get("custom_metadata", {})
+
+        if not cloud_custom_metadata:
+            return
 
         if "id" in cloud_custom_metadata:
             self._set_id(cloud_custom_metadata["id"])
@@ -596,9 +600,9 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             if attribute in cloud_custom_metadata:
                 setattr(self, attribute, cloud_custom_metadata[attribute])
 
-    def _get_local_metadata(self):
-        """Get the datafile's local metadata from the local metadata records file and apply it to the datafile instance.
-        If no metadata is stored for the datafile, do nothing.
+    def _use_local_metadata(self):
+        """Update the datafile's metadata from the local metadata records file. If no metadata is stored for the
+        datafile, do nothing.
 
         :return None:
         """
