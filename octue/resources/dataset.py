@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import tempfile
+from urllib.parse import urljoin
 
 import coolname
 import pkg_resources
@@ -74,16 +75,6 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :param kwargs: other keyword arguments for the `Dataset` instantiation
         :return Dataset:
         """
-        if ignore_stored_metadata:
-            metadata_to_use = {}
-        else:
-            local_metadata = load_local_metadata_file(os.path.join(path_to_directory, METADATA_FILENAME))
-            dataset_metadata = local_metadata.get("dataset", {})
-
-            metadata_to_use = {
-                key: value for key, value in dataset_metadata.items() if key in {"id", "name", "tags", "labels"}
-            }
-
         datafiles = FilterSet()
 
         for level, (directory_path, _, filenames) in enumerate(os.walk(path_to_directory)):
@@ -97,7 +88,12 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
                 datafiles.add(Datafile(path=os.path.join(directory_path, filename)))
 
-        return Dataset(path=path_to_directory, files=datafiles, **metadata_to_use, **kwargs)
+        dataset = Dataset(path=path_to_directory, files=datafiles, **kwargs)
+
+        if not ignore_stored_metadata:
+            dataset._use_local_metadata()
+
+        return dataset
 
     @classmethod
     def from_cloud(
@@ -122,16 +118,13 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         bucket_name = storage.path.split_bucket_name_from_cloud_path(cloud_path)[0]
 
-        if ignore_stored_metadata:
-            dataset_metadata = {}
-        else:
-            dataset_metadata = cls._get_cloud_metadata(cloud_path=cloud_path)
+        dataset = Dataset(path=cloud_path)
 
-        if "files" in dataset_metadata:
-            files = [Datafile(path=path) for path in dataset_metadata["files"]]
+        if not ignore_stored_metadata:
+            dataset._use_cloud_metadata()
 
-        else:
-            files = FilterSet(
+        if not dataset.files:
+            dataset.files = FilterSet(
                 Datafile(path=storage.path.generate_gs_path(bucket_name, blob.name))
                 for blob in GoogleCloudStorageClient().scandir(
                     cloud_path,
@@ -143,19 +136,6 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
                     ),
                 )
             )
-
-        dataset = Dataset(
-            path=cloud_path,
-            files=files,
-            id=dataset_metadata.get("id"),
-            name=dataset_metadata.get("name"),
-            tags=dataset_metadata.get("tags"),
-            labels=dataset_metadata.get("labels"),
-        )
-
-        # Upload dataset metadata if there wasn't any.
-        if not dataset_metadata:
-            dataset.update_cloud_metadata()
 
         return dataset
 
@@ -172,6 +152,15 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
             return storage.path.split(self.path)[-1].split("?")[0]
 
         return os.path.split(os.path.abspath(os.path.split(self.path)[-1]))[-1]
+
+    @name.setter
+    def name(self, name):
+        """Set the name of the dataset.
+
+        :param str name:
+        :return None:
+        """
+        self._name = name
 
     @property
     def exists_in_cloud(self):
@@ -224,6 +213,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :return str:
         """
         if self.exists_in_cloud:
+            if storage.path.is_url(self.path):
+                return urljoin(self.path.split("?")[0], METADATA_FILENAME)
+
             return storage.path.join(self.path, METADATA_FILENAME)
 
         return os.path.join(self.path, METADATA_FILENAME)
@@ -300,7 +292,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         :return None:
         """
-        existing_metadata_records = self._get_cloud_metadata(self._metadata_path)
+        existing_metadata_records = self._get_cloud_metadata()
         existing_metadata_records["dataset"] = self.to_primitive(include_files=False)
 
         GoogleCloudStorageClient().upload_from_string(
@@ -498,26 +490,58 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         return Datafile.deserialise(file)
 
-    @staticmethod
-    def _get_cloud_metadata(cloud_path):
+    def _use_cloud_metadata(self):
+        dataset_metadata = self._get_cloud_metadata()
+
+        if not dataset_metadata:
+            return
+
+        self._set_metadata(dataset_metadata)
+        return dataset_metadata
+
+    def _get_cloud_metadata(self):
         """Get the cloud metadata for the given dataset if a dataset metadata file has previously been uploaded.
 
         :param str cloud_path: the path to the dataset cloud directory
         :return dict: the dataset metadata or an empty dictionary if there isn't any
         """
-        if storage.path.is_url(cloud_path):
+        if storage.path.is_url(self.path):
             try:
-                return requests.get(cloud_path).json()
+                return requests.get(self.path).json()
             except requests.exceptions.ConnectionError:
                 return {}
 
         storage_client = GoogleCloudStorageClient()
-        metadata_file_path = storage.path.join(cloud_path, METADATA_FILENAME)
 
-        if not storage_client.exists(cloud_path=metadata_file_path):
+        if not storage_client.exists(cloud_path=self._metadata_path):
             return {}
 
-        return json.loads(storage_client.download_as_string(cloud_path=metadata_file_path)).get("dataset", {})
+        return json.loads(storage_client.download_as_string(cloud_path=self._metadata_path)).get("dataset", {})
+
+    def _use_local_metadata(self):
+        local_metadata = load_local_metadata_file(self._metadata_path)
+        dataset_metadata = local_metadata.get("dataset", {})
+
+        if not dataset_metadata:
+            return
+
+        self._set_metadata(dataset_metadata)
+
+    def _set_metadata(self, metadata):
+        """Set the instance's metadata.
+
+        :param dict metadata:
+        :return None:
+        """
+        if "id" in metadata:
+            self._set_id(metadata["id"])
+
+        if "files" in metadata:
+            self.files = FilterSet(Datafile(path=path) for path in metadata["files"])
+
+        for attribute in ("name", "tags", "labels"):
+            if attribute in metadata:
+                setattr(self, attribute, metadata[attribute])
 
     def _datafile_path_relative_to_self(self, datafile, path_type):
         """Get the path of the given datafile relative to the dataset.
