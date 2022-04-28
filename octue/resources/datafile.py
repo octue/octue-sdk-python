@@ -596,9 +596,9 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         if "id" in datafile_metadata:
             self._set_id(datafile_metadata["id"])
 
-        for parameter in ("timestamp", "tags", "labels"):
-            if parameter in datafile_metadata:
-                setattr(self, parameter, datafile_metadata[parameter])
+        for attribute in ("timestamp", "tags", "labels"):
+            if attribute in datafile_metadata:
+                setattr(self, attribute, datafile_metadata[attribute])
 
     def _update_local_metadata(self):
         """Create or update the local octue metadata file with the datafile's metadata.
