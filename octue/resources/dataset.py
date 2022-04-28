@@ -36,8 +36,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     :param str|None name:
     :param str|None id:
     :param str|None path:
-    :param dict|octue.resources.tags.TagDict|None tags:
-    :param iter|None labels:
+    :param dict|octue.resources.tag.TagDict|None tags:
+    :param iter(str)|octue.resources.label.LabelSet|None labels:
     :param bool save_metadata_locally: if `True` and the dataset is local, save its metadata to disk locally
     :return None:
     """
@@ -56,7 +56,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         if save_metadata_locally:
             if path and self.exists_locally:
                 os.makedirs(self.path, exist_ok=True)
-                self._update_local_metadata()
+                self.update_local_metadata()
 
     @classmethod
     def from_local_directory(cls, path_to_directory, recursive=False, **kwargs):
@@ -135,7 +135,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         # Upload dataset metadata if there wasn't any.
         if not dataset_metadata:
-            dataset._update_cloud_metadata()
+            dataset.update_cloud_metadata()
 
         return dataset
 
@@ -255,8 +255,32 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
                 logger.debug("Uploaded datafile to %r.", path)
 
         self.path = cloud_path
-        self._update_cloud_metadata()
+        self.update_cloud_metadata()
         return cloud_path
+
+    def update_cloud_metadata(self):
+        """Update the cloud metadata file for the dataset.
+
+        :return None:
+        """
+        existing_metadata_records = self._get_cloud_metadata(self._metadata_path)
+        existing_metadata_records["dataset"] = self.to_primitive(include_files=False)
+
+        GoogleCloudStorageClient().upload_from_string(
+            string=json.dumps(existing_metadata_records, cls=OctueJSONEncoder),
+            cloud_path=self._metadata_path,
+        )
+
+    def update_local_metadata(self):
+        """Create or update the local octue metadata file with the dataset's metadata.
+
+        :return None:
+        """
+        existing_metadata_records = load_local_metadata_file(self._metadata_path)
+        existing_metadata_records["dataset"] = self.to_primitive(include_files=False)
+
+        with open(self._metadata_path, "w") as f:
+            json.dump(existing_metadata_records, f, cls=OctueJSONEncoder)
 
     def generate_signed_url(self, expiration=datetime.timedelta(days=7)):
         """Generate a signed URL for the dataset. This is done by uploading a uniquely named metadata file containing
@@ -439,30 +463,6 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
             return {}
 
         return json.loads(storage_client.download_as_string(cloud_path=metadata_file_path)).get("dataset", {})
-
-    def _update_cloud_metadata(self):
-        """Update the cloud metadata file for the dataset.
-
-        :return None:
-        """
-        existing_metadata_records = self._get_cloud_metadata(self._metadata_path)
-        existing_metadata_records["dataset"] = self.to_primitive(include_files=False)
-
-        GoogleCloudStorageClient().upload_from_string(
-            string=json.dumps(existing_metadata_records, cls=OctueJSONEncoder),
-            cloud_path=self._metadata_path,
-        )
-
-    def _update_local_metadata(self):
-        """Create or update the local octue metadata file with the dataset's metadata.
-
-        :return None:
-        """
-        existing_metadata_records = load_local_metadata_file(self._metadata_path)
-        existing_metadata_records["dataset"] = self.to_primitive(include_files=False)
-
-        with open(self._metadata_path, "w") as f:
-            json.dump(existing_metadata_records, f, cls=OctueJSONEncoder)
 
     def _datafile_path_relative_to_self(self, datafile, path_type):
         """Get the path of the given datafile relative to the dataset.
