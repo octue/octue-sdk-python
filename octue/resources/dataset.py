@@ -55,6 +55,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         # Save metadata locally if the dataset exists locally.
         if save_metadata_locally:
             if path and self.exists_locally:
+                os.makedirs(self.path, exist_ok=True)
                 self._update_local_metadata()
 
     @classmethod
@@ -457,7 +458,6 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         :return None:
         """
-        os.makedirs(self.path, exist_ok=True)
         existing_metadata_records = load_local_metadata_file(self._metadata_path)
         existing_metadata_records["dataset"] = self.to_primitive(include_files=False)
 
