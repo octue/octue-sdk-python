@@ -471,21 +471,6 @@ class TestDataset(BaseTestCase):
         self.assertEqual(deserialised_dataset.path, cloud_dataset.path)
         self.assertEqual(deserialised_dataset.hash_value, cloud_dataset.hash_value)
 
-        # Test dataset metadata file has been uploaded.
-        dataset_metadata = Dataset._get_cloud_metadata(cloud_dataset.path)
-
-        del dataset_metadata["id"]
-
-        self.assertEqual(
-            dataset_metadata,
-            {
-                "path": "gs://octue-test-bucket/my_dataset",
-                "labels": [],
-                "name": "my_dataset",
-                "tags": {},
-            },
-        )
-
     def test_from_cloud_with_nested_dataset_and_no_metadata_file(self):
         """Test that a nested dataset is loaded from the cloud correctly if it has no `.octue` metadata file in it."""
         dataset_path = self._create_nested_cloud_dataset(dataset_name="nested_dataset_with_no_metadata")
@@ -497,15 +482,6 @@ class TestDataset(BaseTestCase):
         self.assertEqual(
             {file.name for file in cloud_dataset.files},
             {"file_0.txt", "file_1.txt", "sub_file.txt", "sub_sub_file.txt"},
-        )
-
-        # Test dataset metadata file has been uploaded.
-        dataset_metadata = Dataset._get_cloud_metadata(dataset_path)
-        del dataset_metadata["id"]
-
-        self.assertEqual(
-            dataset_metadata,
-            {"name": "nested_dataset_with_no_metadata", "labels": [], "tags": {}, "path": dataset_path},
         )
 
     def test_update_local_metadata(self):
@@ -531,6 +507,20 @@ class TestDataset(BaseTestCase):
             self.assertEqual(dataset.labels, dataset_reloaded.labels)
             self.assertEqual(dataset.hash_value, dataset_reloaded.hash_value)
 
+    def test_update_cloud_metadata(self):
+        """Test that metadata for a cloud dataset can be stored in the cloud and used on re-instantiation of the same
+        dataset.
+        """
+        dataset_path = self._create_nested_cloud_dataset(dataset_name="blahblah")
+        dataset = Dataset.from_cloud(dataset_path)
+        dataset.update_cloud_metadata()
+
+        dataset_reloaded = Dataset.from_cloud(dataset_path)
+        self.assertEqual(dataset.id, dataset_reloaded.id)
+        self.assertEqual(dataset.tags, dataset_reloaded.tags)
+        self.assertEqual(dataset.labels, dataset_reloaded.labels)
+        self.assertEqual(dataset.hash_value, dataset_reloaded.hash_value)
+
     def test_to_cloud(self):
         """Test that a dataset can be uploaded to a cloud path, including all its files and the dataset's metadata."""
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -551,7 +541,7 @@ class TestDataset(BaseTestCase):
             self.assertEqual(persisted_file_1, "1")
 
             # Check its metadata has been uploaded.
-            persisted_dataset_metadata = Dataset._get_cloud_metadata(cloud_path)
+            persisted_dataset_metadata = dataset._get_cloud_metadata()
             self.assertEqual(persisted_dataset_metadata["tags"], dataset.tags.to_primitive())
 
     def test_to_cloud_with_nested_dataset_preserves_nested_structure(self):

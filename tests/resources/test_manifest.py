@@ -52,6 +52,9 @@ class TestManifest(BaseTestCase):
                 ),
             }
 
+            for dataset in datasets.values():
+                dataset.update_local_metadata()
+
             manifest = Manifest(datasets=datasets, id="7e0025cd-bd68-4de6-b48d-2643ebd5effd", name="my-manifest")
 
             serialised_manifest = manifest.to_primitive()
