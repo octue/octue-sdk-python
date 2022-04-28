@@ -217,6 +217,23 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     def __contains__(self, item):
         return item in self.files
 
+    def __enter__(self):
+        """Enter the dataset metadata updating context.
+
+        :return Dataset:
+        """
+        return self
+
+    def __exit__(self, *args):
+        """Update the cloud or local metadata for the dataset.
+
+        :return None:
+        """
+        if self.exists_in_cloud:
+            self.update_cloud_metadata()
+        else:
+            self.update_local_metadata()
+
     def to_cloud(self, cloud_path=None, bucket_name=None, output_directory=None):
         """Upload a dataset to the given cloud path.
 
