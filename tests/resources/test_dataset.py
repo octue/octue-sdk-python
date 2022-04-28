@@ -513,6 +513,9 @@ class TestDataset(BaseTestCase):
         """
         dataset_path = self._create_nested_cloud_dataset(dataset_name="blahblah")
         dataset = Dataset.from_cloud(dataset_path)
+        self.assertEqual(dataset.tags, {})
+
+        dataset.tags = {"some": "tags"}
         dataset.update_cloud_metadata()
 
         dataset_reloaded = Dataset.from_cloud(dataset_path)
