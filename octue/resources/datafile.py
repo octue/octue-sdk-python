@@ -18,6 +18,7 @@ try:
 except ModuleNotFoundError:
     pass
 
+from octue import VERSION
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudLocationNotSpecified
@@ -462,7 +463,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             "timestamp": self.timestamp,
             "tags": self.tags,
             "labels": self.labels,
-            "sdk_version": pkg_resources.get_distribution("octue").version,
+            "sdk_version": VERSION,
         }
 
         if not use_octue_namespace:

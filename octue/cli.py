@@ -6,9 +6,9 @@ import os
 import sys
 
 import click
-import pkg_resources
 from google import auth
 
+from octue import VERSION
 from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
 from octue.cloud.pub_sub.service import Service
 from octue.configuration import load_service_and_app_configuration
@@ -48,7 +48,7 @@ global_cli_context = {}
     show_default=True,
     help="Forces a reset of analysis cache and outputs [For future use, currently not implemented]",
 )
-@click.version_option(version=pkg_resources.get_distribution("octue").version)
+@click.version_option(version=VERSION)
 def octue_cli(id, logger_uri, log_level, force_reset):
     """Octue CLI, enabling a data service / digital twin to be run like a command line application.
 

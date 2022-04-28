@@ -1,11 +1,14 @@
 import os
 
+import pkg_resources
+
 from .log_handlers import apply_log_handler
 from .runner import Runner
 
 
 __all__ = ("Runner",)
 REPOSITORY_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+VERSION = pkg_resources.get_distribution("octue").version
 
 
 if int(os.environ.get("USE_OCTUE_LOG_HANDLER", "0")) == 1:
