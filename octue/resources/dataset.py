@@ -40,7 +40,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     :param str|None path:
     :param dict|octue.resources.tag.TagDict|None tags:
     :param iter(str)|octue.resources.label.LabelSet|None labels:
-    :param bool ignore_stored_metadata: if `True`, ignore any metadata stored for this dataset locally or in the cloud and use whatever is given at instantiation
+    :param bool hypothetical: if `True`, ignore any metadata stored for this dataset locally or in the cloud and use whatever is given at instantiation
     :return None:
     """
 
@@ -49,29 +49,29 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     # Paths to files are added to the serialisation in `Dataset.to_primitive`.
     _SERIALISE_FIELDS = "name", "labels", "tags", "id", "path"
 
-    def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None, ignore_stored_metadata=False):
+    def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None, hypothetical=False):
         super().__init__(name=name, id=id, tags=tags, labels=labels)
         self.path = path or os.getcwd()
         self.files = self._instantiate_datafiles(files or [])
 
-        if ignore_stored_metadata:
+        if hypothetical:
             logger.debug("Ignored stored metadata for dataset %r.", self)
         else:
             if self.metadata(include_sdk_version=False) != {"name": name, "id": id, "tags": tags, "labels": labels}:
                 logger.warning(
                     "Overriding metadata given at instantiation with stored metadata for dataset %r - set "
-                    "`ignore_stored_metadata` to `True` at instantiation to avoid this.",
+                    "`hypothetical` to `True` at instantiation to avoid this.",
                     self,
                 )
 
     @classmethod
-    def from_local_directory(cls, path_to_directory, recursive=False, ignore_stored_metadata=False, **kwargs):
+    def from_local_directory(cls, path_to_directory, recursive=False, hypothetical=False, **kwargs):
         """Instantiate a Dataset from the files in the given local directory. If a dataset metadata file is present,
         that is used to decide which files are in the dataset.
 
         :param str path_to_directory: path to a local directory
         :param bool recursive: if `True`, include all files in the directory's subdirectories recursively
-        :param bool ignore_stored_metadata: if `True`, don't use any metadata stored for this dataset locally
+        :param bool hypothetical: if `True`, don't use any metadata stored for this dataset locally
         :param kwargs: other keyword arguments for the `Dataset` instantiation
         :return Dataset:
         """
@@ -90,7 +90,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         dataset = Dataset(path=path_to_directory, files=datafiles, **kwargs)
 
-        if not ignore_stored_metadata:
+        if not hypothetical:
             dataset._use_local_metadata()
 
         return dataset
@@ -102,7 +102,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         bucket_name=None,
         path_to_dataset_directory=None,
         recursive=False,
-        ignore_stored_metadata=False,
+        hypothetical=False,
     ):
         """Instantiate a Dataset from Google Cloud storage. The dataset's files are collected by scanning its cloud
         directory unless a "files" key is present in the dataset metadata, in which case the files specified there are
@@ -110,7 +110,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         :param str|None cloud_path: full path to dataset directory in cloud storage (e.g. `gs://bucket_name/path/to/dataset`)
         :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained in the dataset directory
-        :param bool ignore_stored_metadata: if `True`, don't use any metadata stored for this dataset in the cloud
+        :param bool hypothetical: if `True`, don't use any metadata stored for this dataset in the cloud
         :return Dataset:
         """
         if not cloud_path:
@@ -120,7 +120,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         dataset = Dataset(path=cloud_path)
 
-        if not ignore_stored_metadata:
+        if not hypothetical:
             dataset._use_cloud_metadata()
 
         if not dataset.files:
