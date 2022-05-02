@@ -18,6 +18,8 @@ from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_buc
 from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
+from octue.resources.label import LabelSet
+from octue.resources.tag import TagDict
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file
 
@@ -57,7 +59,12 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         if hypothetical:
             logger.debug("Ignored stored metadata for dataset %r.", self)
         else:
-            if self.metadata(include_sdk_version=False) != {"name": name, "id": id, "tags": tags, "labels": labels}:
+            if self.metadata(include_sdk_version=False) != {
+                "name": name,
+                "id": id or self.id,
+                "tags": TagDict(tags),
+                "labels": LabelSet(labels),
+            }:
                 logger.warning(
                     "Overriding metadata given at instantiation with stored metadata for dataset %r - set "
                     "`hypothetical` to `True` at instantiation to avoid this.",
