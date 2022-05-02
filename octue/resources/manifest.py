@@ -164,3 +164,19 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
             return (key, Dataset.from_cloud(cloud_path=dataset["path"], recursive=True))
 
         return (key, Dataset(**dataset))
+
+    def _set_metadata(self, metadata):
+        """Set the manifest's metadata.
+
+        :param dict metadata:
+        :return None:
+        """
+        for attribute in self._METADATA_ATTRIBUTES:
+            if attribute not in metadata:
+                continue
+
+            if attribute == "id":
+                self._set_id(metadata["id"])
+                continue
+
+            setattr(self, attribute, metadata[attribute])

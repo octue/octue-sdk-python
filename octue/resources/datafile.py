@@ -591,7 +591,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         self._set_metadata(datafile_metadata)
 
     def _set_metadata(self, metadata):
-        """Set the instance's metadata.
+        """Set the datafile's metadata.
 
         :param dict metadata:
         :return None:

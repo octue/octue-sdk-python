@@ -507,7 +507,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         self._set_metadata(dataset_metadata)
 
     def _set_metadata(self, metadata):
-        """Set the instance's metadata.
+        """Set the dataset's metadata.
 
         :param dict metadata:
         :return None:

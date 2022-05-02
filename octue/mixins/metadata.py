@@ -1,3 +1,5 @@
+from abc import abstractmethod
+
 import pkg_resources
 
 
@@ -17,14 +19,10 @@ class Metadata:
 
         return metadata
 
+    @abstractmethod
     def _set_metadata(self, metadata):
         """Set the instance's metadata.
 
         :param dict metadata:
         :return None:
         """
-        for attribute in self._METADATA_ATTRIBUTES:
-            if attribute not in metadata:
-                continue
-
-            setattr(self, attribute, metadata[attribute])
