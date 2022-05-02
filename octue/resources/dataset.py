@@ -5,7 +5,6 @@ import json
 import logging
 import os
 import tempfile
-from urllib.parse import urljoin
 
 import coolname
 import requests
@@ -210,7 +209,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         """
         if self.exists_in_cloud:
             if storage.path.is_url(self.path):
-                return urljoin(self.path.split("?")[0], METADATA_FILENAME)
+                return self.path
 
             return storage.path.join(self.path, METADATA_FILENAME)
 
