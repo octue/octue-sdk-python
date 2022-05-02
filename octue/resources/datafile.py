@@ -27,6 +27,7 @@ from octue.exceptions import CloudLocationNotSpecified
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
+from octue.mixins.metadata import Metadata
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file
@@ -36,10 +37,9 @@ logger = logging.getLogger(__name__)
 
 
 OCTUE_METADATA_NAMESPACE = "octue"
-METADATA_ATTRIBUTE_NAMES = ("id", "tags", "labels", "timestamp")
 
 
-class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filterable):
+class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filterable, Metadata):
     """A representation of a data file on the Octue system. Metadata for the file is obtained from its corresponding
     cloud object or a local `.octue` metadata file, if present. If no stored metadata is available, it can be set during
     or after instantiation.
@@ -57,8 +57,10 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
     :return None:
     """
 
+    _METADATA_ATTRIBUTE_NAMES = ("id", "timestamp", "tags", "labels")
+
     _SERIALISE_FIELDS = (
-        *METADATA_ATTRIBUTE_NAMES,
+        *_METADATA_ATTRIBUTE_NAMES,
         "name",
         "path",
         "cloud_path",
@@ -469,10 +471,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         :param bool use_octue_namespace: if `True`, prefix metadata names with "octue__"
         :return dict:
         """
-        metadata = {name: getattr(self, name) for name in METADATA_ATTRIBUTE_NAMES}
-
-        if include_sdk_version:
-            metadata["sdk_version"] = pkg_resources.get_distribution("octue").version
+        metadata = super().metadata(include_sdk_version=include_sdk_version)
 
         if not use_octue_namespace:
             return metadata
@@ -598,7 +597,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         :param dict metadata:
         :return None:
         """
-        for attribute in METADATA_ATTRIBUTE_NAMES:
+        for attribute in self._METADATA_ATTRIBUTE_NAMES:
             if attribute not in metadata:
                 continue
 

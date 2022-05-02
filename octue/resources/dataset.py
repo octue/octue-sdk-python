@@ -8,7 +8,6 @@ import tempfile
 from urllib.parse import urljoin
 
 import coolname
-import pkg_resources
 import requests
 
 from octue.cloud import storage
@@ -16,6 +15,7 @@ from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudLocationNotSpecified, InvalidInputException
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
+from octue.mixins.metadata import Metadata
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.resources.label import LabelSet
@@ -28,10 +28,9 @@ logger = logging.getLogger(__name__)
 
 
 SIGNED_METADATA_DIRECTORY = ".signed_metadata_files"
-METADATA_ATTRIBUTE_NAMES = ("id", "tags", "labels", "name")
 
 
-class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
+class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadata):
     """A representation of a dataset, containing files, labels, etc.
 
     This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
@@ -48,9 +47,10 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     """
 
     _ATTRIBUTES_TO_HASH = ("files",)
+    _METADATA_ATTRIBUTE_NAMES = ("id", "name", "tags", "labels")
 
     # Paths to files are added to the serialisation in `Dataset.to_primitive`.
-    _SERIALISE_FIELDS = (*METADATA_ATTRIBUTE_NAMES, "path")
+    _SERIALISE_FIELDS = (*_METADATA_ATTRIBUTE_NAMES, "path")
 
     def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None):
         super().__init__(name=name, id=id, tags=tags, labels=labels)
@@ -447,19 +447,6 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         return serialised_dataset
 
-    def metadata(self, include_sdk_version=True):
-        """Get the dataset's metadata in a serialised form (i.e. the attributes `name`, `id`, `tags`, `labels`, and
-        `sdk_version`).
-
-        :return dict:
-        """
-        metadata = {name: getattr(self, name) for name in METADATA_ATTRIBUTE_NAMES}
-
-        if include_sdk_version:
-            metadata["sdk_version"] = pkg_resources.get_distribution("octue").version
-
-        return metadata
-
     def _instantiate_datafiles(self, files):
         """Instantiate and add the given files to a `FilterSet`.
 
@@ -529,7 +516,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         if "files" in metadata:
             self.files = FilterSet(Datafile(path=path) for path in metadata["files"])
 
-        for attribute in METADATA_ATTRIBUTE_NAMES:
+        for attribute in self._METADATA_ATTRIBUTE_NAMES:
             if attribute not in metadata:
                 continue
 
