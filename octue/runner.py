@@ -50,7 +50,7 @@ class Runner:
         self.app_src = app_src
         self.children = children
 
-        if not re.match(r"^gs://[a-z\d][a-z\d_./-]*$", output_location):
+        if output_location and not re.match(r"^gs://[a-z\d][a-z\d_./-]*$", output_location):
             raise exceptions.InvalidInputException(
                 "The output location must be a Google Cloud Storage path e.g. 'gs://bucket-name/output_directory'."
             )
