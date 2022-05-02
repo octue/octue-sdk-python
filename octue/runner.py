@@ -1,6 +1,7 @@
 import importlib
 import logging
 import os
+import re
 import sys
 
 import google.api_core.exceptions
@@ -9,6 +10,7 @@ from google.cloud import secretmanager
 from jsonschema import ValidationError, validate as jsonschema_validate
 
 import twined.exceptions
+from octue import exceptions
 from octue.log_handlers import apply_log_handler, create_octue_formatter, get_log_record_attributes_for_environment
 from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
@@ -47,6 +49,12 @@ class Runner:
     ):
         self.app_src = app_src
         self.children = children
+
+        if not re.match(r"^gs://[a-z\d][a-z\d_./-]*$", output_location):
+            raise exceptions.InvalidInputException(
+                "The output location must be a Google Cloud Storage path e.g. 'gs://bucket-name/output_directory'."
+            )
+
         self.output_location = output_location
 
         # Ensure the twine is present and instantiate it.
