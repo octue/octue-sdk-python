@@ -110,6 +110,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         path_to_dataset_directory=None,
         recursive=False,
         hypothetical=False,
+        **kwargs,
     ):
         """Instantiate a Dataset from Google Cloud storage. The dataset's files are collected by scanning its cloud
         directory unless a "files" key is present in the dataset metadata, in which case the files specified there are
@@ -118,6 +119,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :param str|None cloud_path: full path to dataset directory in cloud storage (e.g. `gs://bucket_name/path/to/dataset`)
         :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained in the dataset directory
         :param bool hypothetical: if `True`, don't use any metadata stored for this dataset in the cloud
+        :param kwargs: other keyword arguments for the `Dataset` instantiation
         :return Dataset:
         """
         if not cloud_path:
@@ -125,7 +127,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         bucket_name = storage.path.split_bucket_name_from_cloud_path(cloud_path)[0]
 
-        dataset = Dataset(path=cloud_path)
+        dataset = Dataset(path=cloud_path, **kwargs)
 
         if not hypothetical:
             dataset._use_cloud_metadata()
