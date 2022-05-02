@@ -283,7 +283,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         return cloud_path
 
     def update_cloud_metadata(self):
-        """Update the cloud metadata file for the dataset.
+        """Create or update the cloud metadata file for the dataset.
 
         :return None:
         """
@@ -468,15 +468,6 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         return Datafile.deserialise(file)
 
-    def _use_cloud_metadata(self):
-        dataset_metadata = self._get_cloud_metadata()
-
-        if not dataset_metadata:
-            return
-
-        self._set_metadata(dataset_metadata)
-        return dataset_metadata
-
     def _get_cloud_metadata(self):
         """Get the cloud metadata for the given dataset if a dataset metadata file has previously been uploaded.
 
@@ -496,7 +487,25 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         return json.loads(storage_client.download_as_string(cloud_path=self._metadata_path)).get("dataset", {})
 
+    def _use_cloud_metadata(self):
+        """Update the dataset instance's metadata from the metadata file located in its cloud directory. If no metadata
+        is stored for the dataset, do nothing.
+
+        :return None:
+        """
+        dataset_metadata = self._get_cloud_metadata()
+
+        if not dataset_metadata:
+            return
+
+        self._set_metadata(dataset_metadata)
+
     def _use_local_metadata(self):
+        """Update the dataset instance's metadata from the local metadata records file. If no metadata is stored for the
+        dataset, do nothing.
+
+        :return None:
+        """
         local_metadata = load_local_metadata_file(self._metadata_path)
         dataset_metadata = local_metadata.get("dataset", {})
 
