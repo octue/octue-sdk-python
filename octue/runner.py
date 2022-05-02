@@ -47,6 +47,7 @@ class Runner:
     ):
         self.app_src = app_src
         self.children = children
+        self.output_location = output_location
 
         # Ensure the twine is present and instantiate it.
         if isinstance(twine, Twine):
@@ -60,7 +61,6 @@ class Runner:
         self.configuration = self.twine.validate(
             configuration_values=configuration_values,
             configuration_manifest=configuration_manifest,
-            output_location=output_location,
             cls=CLASS_MAP,
         )
         logger.debug("Configuration validated.")
@@ -137,6 +137,7 @@ class Runner:
                 id=analysis_id,
                 twine=self.twine,
                 handle_monitor_message=handle_monitor_message,
+                output_location=self.output_location,
                 **self.configuration,
                 **inputs,
                 **outputs_and_monitors,
