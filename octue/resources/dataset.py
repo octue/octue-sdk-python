@@ -51,25 +51,10 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     # Paths to files are added to the serialisation in `Dataset.to_primitive`.
     _SERIALISE_FIELDS = "name", "labels", "tags", "id", "path"
 
-    def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None, hypothetical=False):
+    def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None):
         super().__init__(name=name, id=id, tags=tags, labels=labels)
         self.path = path or os.getcwd()
         self.files = self._instantiate_datafiles(files or [])
-
-        if hypothetical:
-            logger.debug("Ignored stored metadata for dataset %r.", self)
-        else:
-            if self.metadata(include_sdk_version=False) != {
-                "name": name,
-                "id": id or self.id,
-                "tags": TagDict(tags),
-                "labels": LabelSet(labels),
-            }:
-                logger.warning(
-                    "Overriding metadata given at instantiation with stored metadata for dataset %r - set "
-                    "`hypothetical` to `True` at instantiation to avoid this.",
-                    self,
-                )
 
     @classmethod
     def from_local_directory(cls, path_to_directory, recursive=False, hypothetical=False, **kwargs):
@@ -100,6 +85,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         if not hypothetical:
             dataset._use_local_metadata()
 
+        dataset._warn_about_metadata_override(hypothetical=hypothetical, **kwargs)
         return dataset
 
     @classmethod
@@ -146,6 +132,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
                 )
             )
 
+        dataset._warn_about_metadata_override(hypothetical=hypothetical, **kwargs)
         return dataset
 
     @property
@@ -571,3 +558,27 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
             datafile_path = datafile_path.split("?")[0]
 
         return storage.path.relpath(datafile_path, dataset_path)
+
+    def _warn_about_metadata_override(self, hypothetical, **kwargs):
+        """Issue a warning about instantiation metadata override if `hypothetical` is `False` and the dataset's metadata
+        is different from the provided instantiation keyword arguments.
+
+        :param bool hypothetical: if `True`, don't raise any warnings.
+        :param kwargs: the Dataset instantiation keyword arguments
+        :return None:
+        """
+        if hypothetical:
+            logger.debug("Ignored stored metadata for %r.", self)
+            return
+
+        if self.metadata(include_sdk_version=False) != {
+            "name": kwargs.get("name") or self.name,
+            "id": kwargs.get("id") or self.id,
+            "tags": TagDict(kwargs.get("tags")),
+            "labels": LabelSet(kwargs.get("labels")),
+        }:
+            logger.warning(
+                "Overriding metadata given at instantiation with stored metadata for %r - set `hypothetical` to `True` "
+                "at instantiation to avoid this.",
+                self,
+            )
