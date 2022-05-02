@@ -8,11 +8,11 @@ from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
-from octue.mixins import Hashable, Identifiable, Serialisable
+from octue.mixins import Hashable, Identifiable, Metadata, Serialisable
 from octue.resources.dataset import Dataset
 
 
-class Manifest(Serialisable, Identifiable, Hashable):
+class Manifest(Serialisable, Identifiable, Hashable, Metadata):
     """A representation of a manifest, which can contain multiple datasets This is used to manage all files coming into
     (or leaving), a data service for an analysis at the configuration, input or output stage.
 
@@ -23,9 +23,10 @@ class Manifest(Serialisable, Identifiable, Hashable):
     """
 
     _ATTRIBUTES_TO_HASH = ("datasets",)
+    _METADATA_ATTRIBUTES = ("id",)
 
     # Paths to datasets are added to the serialisation in `Manifest.to_primitive`.
-    _SERIALISE_FIELDS = "id", "name"
+    _SERIALISE_FIELDS = (*_METADATA_ATTRIBUTES, "name")
 
     def __init__(self, id=None, name=None, datasets=None, **kwargs):
         if isinstance(datasets, list):
@@ -163,3 +164,19 @@ class Manifest(Serialisable, Identifiable, Hashable):
             return (key, Dataset.from_cloud(cloud_path=dataset["path"], recursive=True))
 
         return (key, Dataset(**dataset))
+
+    def _set_metadata(self, metadata):
+        """Set the manifest's metadata.
+
+        :param dict metadata:
+        :return None:
+        """
+        for attribute in self._METADATA_ATTRIBUTES:
+            if attribute not in metadata:
+                continue
+
+            if attribute == "id":
+                self._set_id(metadata["id"])
+                continue
+
+            setattr(self, attribute, metadata[attribute])

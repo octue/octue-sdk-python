@@ -399,9 +399,6 @@ class TestDataset(BaseTestCase):
             },
         )
 
-        # Avoid saving metadata locally when deserialising.
-        serialised_dataset["save_metadata_locally"] = False
-
         deserialised_dataset = Dataset.deserialise(serialised_dataset)
         self.assertEqual(dataset.id, deserialised_dataset.id)
         self.assertEqual(dataset.path, deserialised_dataset.path)
@@ -470,69 +467,58 @@ class TestDataset(BaseTestCase):
         self.assertEqual(deserialised_dataset.path, cloud_dataset.path)
         self.assertEqual(deserialised_dataset.hash_value, cloud_dataset.hash_value)
 
-        # Test dataset metadata file has been uploaded.
-        dataset_metadata = Dataset._get_cloud_metadata(cloud_dataset.path)
-
-        del dataset_metadata["id"]
-
-        self.assertEqual(
-            dataset_metadata,
-            {
-                "path": "gs://octue-test-bucket/my_dataset",
-                "labels": [],
-                "name": "my_dataset",
-                "tags": {},
-            },
-        )
-
     def test_from_cloud_with_nested_dataset_and_no_metadata_file(self):
         """Test that a nested dataset is loaded from the cloud correctly if it has no `.octue` metadata file in it."""
-        self._create_nested_cloud_dataset()
+        dataset_path = self._create_nested_cloud_dataset(dataset_name="nested_dataset_with_no_metadata")
+        cloud_dataset = Dataset.from_cloud(cloud_path=dataset_path, recursive=True)
 
-        cloud_dataset = Dataset.from_cloud(cloud_path=f"gs://{TEST_BUCKET_NAME}/a_dataset", recursive=True)
+        self.assertEqual(cloud_dataset.path, dataset_path)
+        self.assertEqual(cloud_dataset.name, "nested_dataset_with_no_metadata")
 
-        self.assertEqual(cloud_dataset.path, f"gs://{TEST_BUCKET_NAME}/a_dataset")
-        self.assertEqual(cloud_dataset.name, "a_dataset")
         self.assertEqual(
             {file.name for file in cloud_dataset.files},
             {"file_0.txt", "file_1.txt", "sub_file.txt", "sub_sub_file.txt"},
         )
 
-        # Test dataset metadata file has been uploaded.
-        dataset_metadata = Dataset._get_cloud_metadata(cloud_dataset.path)
-        del dataset_metadata["id"]
-
-        self.assertEqual(
-            dataset_metadata,
-            {"name": "a_dataset", "labels": [], "tags": {}, "path": "gs://octue-test-bucket/a_dataset"},
-        )
-
-    def test_metadata_saved_locally(self):
-        """Test that metadata for a local dataset is stored locally and is used on re-instantiation of the same
+    def test_update_local_metadata(self):
+        """Test that metadata for a local dataset can be stored locally and used on re-instantiation of the same
         dataset.
         """
-        try:
-            self.save_local_metadata_patch.stop()
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            self._create_files_and_nested_subdirectories(temporary_directory)
 
-            with tempfile.TemporaryDirectory() as temporary_directory:
-                self._create_files_and_nested_subdirectories(temporary_directory)
+            dataset = Dataset.from_local_directory(
+                temporary_directory,
+                recursive=True,
+                id="69253db4-7972-42de-8ccc-61336a28cd50",
+                tags={"cat": "dog"},
+                labels=["animals"],
+            )
 
-                dataset = Dataset.from_local_directory(
-                    temporary_directory,
-                    recursive=True,
-                    id="69253db4-7972-42de-8ccc-61336a28cd50",
-                    tags={"cat": "dog"},
-                    labels=["animals"],
-                )
+            dataset.update_local_metadata()
 
-                dataset_reloaded = Dataset.from_local_directory(temporary_directory, recursive=True)
-                self.assertEqual(dataset.id, dataset_reloaded.id)
-                self.assertEqual(dataset.tags, dataset_reloaded.tags)
-                self.assertEqual(dataset.labels, dataset_reloaded.labels)
-                self.assertEqual(dataset.hash_value, dataset_reloaded.hash_value)
+            dataset_reloaded = Dataset.from_local_directory(temporary_directory, recursive=True)
+            self.assertEqual(dataset.id, dataset_reloaded.id)
+            self.assertEqual(dataset.tags, dataset_reloaded.tags)
+            self.assertEqual(dataset.labels, dataset_reloaded.labels)
+            self.assertEqual(dataset.hash_value, dataset_reloaded.hash_value)
 
-        finally:
-            self.save_local_metadata_patch.start()
+    def test_update_cloud_metadata(self):
+        """Test that metadata for a cloud dataset can be stored in the cloud and used on re-instantiation of the same
+        dataset.
+        """
+        dataset_path = self._create_nested_cloud_dataset(dataset_name="blahblah")
+        dataset = Dataset.from_cloud(dataset_path)
+        self.assertEqual(dataset.tags, {})
+
+        dataset.tags = {"some": "tags"}
+        dataset.update_cloud_metadata()
+
+        dataset_reloaded = Dataset.from_cloud(dataset_path)
+        self.assertEqual(dataset.id, dataset_reloaded.id)
+        self.assertEqual(dataset.tags, dataset_reloaded.tags)
+        self.assertEqual(dataset.labels, dataset_reloaded.labels)
+        self.assertEqual(dataset.hash_value, dataset_reloaded.hash_value)
 
     def test_to_cloud(self):
         """Test that a dataset can be uploaded to a cloud path, including all its files and the dataset's metadata."""
@@ -554,32 +540,8 @@ class TestDataset(BaseTestCase):
             self.assertEqual(persisted_file_1, "1")
 
             # Check its metadata has been uploaded.
-            persisted_dataset_metadata = Dataset._get_cloud_metadata(cloud_path)
+            persisted_dataset_metadata = dataset._get_cloud_metadata()
             self.assertEqual(persisted_dataset_metadata["tags"], dataset.tags.to_primitive())
-
-    # This test will pass in a near-future release.
-    #
-    # def test_local_metadata_updated(self):
-    #     """Test that metadata for a local dataset can be updated."""
-    #     with tempfile.TemporaryDirectory() as temporary_directory:
-    #         self._create_files_and_nested_subdirectories(temporary_directory)
-    #
-    #         dataset = Dataset.from_local_directory(
-    #             temporary_directory,
-    #             recursive=True,
-    #             id="69253db4-7972-42de-8ccc-61336a28cd50",
-    #             tags={"cat": "dog"},
-    #             labels=["animals"],
-    #         )
-    #
-    #         dataset_reloaded = Dataset.from_local_directory(temporary_directory)
-    #         dataset_reloaded.labels = {"fish", "mammals"}
-    #
-    #         dataset_reloaded_again = Dataset.from_local_directory(temporary_directory)
-    #         self.assertEqual(dataset_reloaded_again.id, dataset.id)
-    #         self.assertEqual(dataset_reloaded_again.tags, dataset.tags)
-    #         self.assertEqual(dataset_reloaded_again.labels, {"fish", "mammals"})
-    #         self.assertEqual(dataset_reloaded_again.hash_value, dataset.hash_value)
 
     def test_to_cloud_with_nested_dataset_preserves_nested_structure(self):
         """Test that uploading a dataset containing datafiles in a nested directory structure to the cloud preserves
@@ -640,9 +602,9 @@ class TestDataset(BaseTestCase):
 
     def test_download_all_files_from_nested_dataset(self):
         """Test that all files in a nested dataset can be downloaded with one command."""
-        self._create_nested_cloud_dataset("nested_dataset")
+        dataset_path = self._create_nested_cloud_dataset("nested_dataset")
 
-        dataset = Dataset.from_cloud(cloud_path=f"gs://{TEST_BUCKET_NAME}/nested_dataset", recursive=True)
+        dataset = Dataset.from_cloud(cloud_path=dataset_path, recursive=True)
 
         with tempfile.TemporaryDirectory() as temporary_directory:
             dataset.download_all_files(local_directory=temporary_directory)
@@ -663,9 +625,9 @@ class TestDataset(BaseTestCase):
         """Test that, when downloading all files from a nested dataset and no local directory is given, the dataset
         structure is preserved in the temporary directory used.
         """
-        self._create_nested_cloud_dataset("nested_dataset")
+        dataset_path = self._create_nested_cloud_dataset("nested_dataset")
 
-        dataset = Dataset.from_cloud(f"gs://{TEST_BUCKET_NAME}/nested_dataset", recursive=True)
+        dataset = Dataset.from_cloud(dataset_path, recursive=True)
 
         # Mock the temporary directory created in `Dataset.download_all_files` so we can access it for the test.
         temporary_directory = tempfile.TemporaryDirectory()
@@ -737,45 +699,94 @@ class TestDataset(BaseTestCase):
         self.assertEqual(downloaded_datafile.name, "my-file.dat")
         self.assertEqual(downloaded_datafile.extension, "dat")
 
-    @classmethod
-    def setUpClass(cls):
-        """Stop the `Dataset._save_local_metadata` method from creating local files during the tests.
+    def test_exiting_context_manager_of_local_dataset_updates_local_metadata(self):
+        """Test that local metadata for a local dataset is updated on exit of the dataset context manager."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            self._create_files_and_nested_subdirectories(temporary_directory)
 
-        :return None:
-        """
-        cls.save_local_metadata_patch = patch("octue.resources.dataset.Dataset._save_local_metadata")
-        cls.save_local_metadata_patch.start()
+            dataset = Dataset.from_local_directory(temporary_directory, recursive=True)
 
-    @classmethod
-    def tearDownClass(cls):
-        """Re-enable the `Dataset._save_local_metadata` method.
+            with dataset:
+                dataset.tags = {"cat": "dog"}
+                dataset.labels = {"animals"}
 
-        :return None:
-        """
-        cls.save_local_metadata_patch.stop()
+            reloaded_dataset = Dataset.from_local_directory(temporary_directory, recursive=True)
+            self.assertEqual(reloaded_dataset.id, dataset.id)
+            self.assertEqual(reloaded_dataset.tags, {"cat": "dog"})
+            self.assertEqual(reloaded_dataset.labels, {"animals"})
+
+    def test_exiting_context_manager_of_cloud_dataset_updates_cloud_metadata(self):
+        """Test that cloud metadata for a cloud dataset is updated on exit of the dataset context manager."""
+        dataset_path = self._create_nested_cloud_dataset()
+        dataset = Dataset.from_cloud(dataset_path, recursive=True)
+
+        with dataset:
+            dataset.tags = {"cat": "dog"}
+            dataset.labels = {"animals"}
+
+        reloaded_dataset = Dataset.from_cloud(dataset_path)
+        self.assertEqual(reloaded_dataset.id, dataset.id)
+        self.assertEqual(reloaded_dataset.tags, {"cat": "dog"})
+        self.assertEqual(reloaded_dataset.labels, {"animals"})
+
+    def test_stored_metadata_has_priority_over_instantiation_metadata_if_not_hypothetical(self):
+        """Test that stored metadata is used instead of instantiation metadata if `hypothetical` is `False`."""
+        cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "existing_dataset")
+
+        # Create a dataset in the cloud and set some metadata on it.
+        with Dataset.from_cloud(cloud_path) as dataset:
+            dataset.tags = {"existing": True}
+
+        # Load it separately from the cloud object and check that the stored metadata is used instead of the
+        # instantiation metadata.
+        with self.assertLogs() as logging_context:
+            reloaded_dataset = Dataset.from_cloud(cloud_path, tags={"new": "tag"})
+
+        self.assertEqual(reloaded_dataset.tags, {"existing": True})
+        self.assertIn("Overriding metadata given at instantiation with stored metadata", logging_context.output[0])
+
+    def test_instantiation_metadata_used_if_not_hypothetical_but_no_stored_metadata(self):
+        """Test that instantiation metadata is used if `hypothetical` is `False` but there's no stored metadata."""
+        cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "non_existing_dataset")
+        dataset = Dataset.from_cloud(cloud_path, tags={"new": "tag"})
+        self.assertEqual(dataset.tags, {"new": "tag"})
+
+    def test_stored_metadata_ignored_if_hypothetical_is_true(self):
+        """Test that instantiation metadata is used instead of stored metadata if `hypothetical` is `True`."""
+        cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "existing_dataset")
+
+        # Create a dataset in the cloud and set some metadata on it.
+        with Dataset.from_cloud(cloud_path) as dataset:
+            dataset.tags = {"existing": True}
+
+        # Load it separately from the cloud object and check that the instantiation metadata is used instead of the
+        # stored metadata.
+        reloaded_datafile = Dataset.from_cloud(cloud_path, tags={"new": "tag"}, hypothetical=True)
+        self.assertEqual(reloaded_datafile.tags, {"new": "tag"})
 
     def _create_nested_cloud_dataset(self, dataset_name="a_dataset"):
+        """Create a dataset in cloud storage with the given name containing a nested set of files.
+
+        :param str dataset_name: the name to give the dataset
+        :return str: the cloud path for the dataset
+        """
         cloud_storage_client = GoogleCloudStorageClient()
+        dataset_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, dataset_name)
 
-        cloud_storage_client.upload_from_string(
-            "[1, 2, 3]", cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, dataset_name, "file_0.txt")
-        )
-
-        cloud_storage_client.upload_from_string(
-            "[4, 5, 6]", cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, dataset_name, "file_1.txt")
-        )
+        cloud_storage_client.upload_from_string("[1, 2, 3]", cloud_path=storage.path.join(dataset_path, "file_0.txt"))
+        cloud_storage_client.upload_from_string("[4, 5, 6]", cloud_path=storage.path.join(dataset_path, "file_1.txt"))
 
         cloud_storage_client.upload_from_string(
             "['a', 'b', 'c']",
-            cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, dataset_name, "sub-directory/sub_file.txt"),
+            cloud_path=storage.path.join(dataset_path, "sub-directory", "sub_file.txt"),
         )
 
         cloud_storage_client.upload_from_string(
             "['blah', 'b', 'c']",
-            cloud_path=storage.path.generate_gs_path(
-                TEST_BUCKET_NAME, dataset_name, "sub-directory", "sub-sub-directory", "sub_sub_file.txt"
-            ),
+            cloud_path=storage.path.join(dataset_path, "sub-directory", "sub-sub-directory", "sub_sub_file.txt"),
         )
+
+        return dataset_path
 
     def _create_files_and_nested_subdirectories(self, directory_path):
         """Create files and nested subdirectories of files in the given directory.

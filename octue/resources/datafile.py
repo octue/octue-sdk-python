@@ -25,7 +25,7 @@ from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudLocationNotSpecified
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
-from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Serialisable, Taggable
+from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 OCTUE_METADATA_NAMESPACE = "octue"
 
 
-class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filterable):
+class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filterable, Metadata):
     """A representation of a data file on the Octue system. Metadata for the file is obtained from its corresponding
     cloud object or a local `.octue` metadata file, if present. If no stored metadata is available, it can be set during
     or after instantiation.
@@ -56,14 +56,13 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
     :return None:
     """
 
+    _METADATA_ATTRIBUTES = ("id", "timestamp", "tags", "labels")
+
     _SERIALISE_FIELDS = (
-        "id",
+        *_METADATA_ATTRIBUTES,
         "name",
         "path",
         "cloud_path",
-        "tags",
-        "labels",
-        "timestamp",
         "_cloud_metadata",
     )
 
@@ -471,15 +470,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         :param bool use_octue_namespace: if `True`, prefix metadata names with "octue__"
         :return dict:
         """
-        metadata = {
-            "id": self.id,
-            "timestamp": self.timestamp,
-            "tags": self.tags,
-            "labels": self.labels,
-        }
-
-        if include_sdk_version:
-            metadata["sdk_version"] = pkg_resources.get_distribution("octue").version
+        metadata = super().metadata(include_sdk_version=include_sdk_version)
 
         if not use_octue_namespace:
             return metadata
@@ -600,17 +591,20 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         self._set_metadata(datafile_metadata)
 
     def _set_metadata(self, metadata):
-        """Set the instance's metadata.
+        """Set the datafile's metadata.
 
         :param dict metadata:
         :return None:
         """
-        if "id" in metadata:
-            self._set_id(metadata["id"])
+        for attribute in self._METADATA_ATTRIBUTES:
+            if attribute not in metadata:
+                continue
 
-        for attribute in ("timestamp", "tags", "labels"):
-            if attribute in metadata:
-                setattr(self, attribute, metadata[attribute])
+            if attribute == "id":
+                self._set_id(metadata["id"])
+                continue
+
+            setattr(self, attribute, metadata[attribute])
 
     def _calculate_hash(self):
         """Get the hash of the datafile according to the first of the following methods that is applicable:
