@@ -25,9 +25,8 @@ from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudLocationNotSpecified
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
-from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Serialisable, Taggable
+from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
-from octue.mixins.metadata import Metadata
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file
@@ -57,10 +56,10 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
     :return None:
     """
 
-    _METADATA_ATTRIBUTE_NAMES = ("id", "timestamp", "tags", "labels")
+    _METADATA_ATTRIBUTES = ("id", "timestamp", "tags", "labels")
 
     _SERIALISE_FIELDS = (
-        *_METADATA_ATTRIBUTE_NAMES,
+        *_METADATA_ATTRIBUTES,
         "name",
         "path",
         "cloud_path",
@@ -597,7 +596,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         :param dict metadata:
         :return None:
         """
-        for attribute in self._METADATA_ATTRIBUTE_NAMES:
+        for attribute in self._METADATA_ATTRIBUTES:
             if attribute not in metadata:
                 continue
 

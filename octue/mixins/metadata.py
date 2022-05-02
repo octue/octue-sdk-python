@@ -2,7 +2,7 @@ import pkg_resources
 
 
 class Metadata:
-    _METADATA_ATTRIBUTE_NAMES = tuple()
+    _METADATA_ATTRIBUTES = tuple()
 
     def metadata(self, include_sdk_version=True):
         """Get the instance's metadata in primitive form.
@@ -10,7 +10,7 @@ class Metadata:
         :param bool include_sdk_version: if `True`, include the `octue` version that instantiated the instance in the metadata
         :return dict:
         """
-        metadata = {name: getattr(self, name) for name in self._METADATA_ATTRIBUTE_NAMES}
+        metadata = {name: getattr(self, name) for name in self._METADATA_ATTRIBUTES}
 
         if include_sdk_version:
             metadata["sdk_version"] = pkg_resources.get_distribution("octue").version
@@ -23,7 +23,7 @@ class Metadata:
         :param dict metadata:
         :return None:
         """
-        for attribute in self._METADATA_ATTRIBUTE_NAMES:
+        for attribute in self._METADATA_ATTRIBUTES:
             if attribute not in metadata:
                 continue
 

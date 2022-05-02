@@ -14,8 +14,7 @@ from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudLocationNotSpecified, InvalidInputException
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
-from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
-from octue.mixins.metadata import Metadata
+from octue.mixins import Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.resources.label import LabelSet
@@ -47,10 +46,10 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
     """
 
     _ATTRIBUTES_TO_HASH = ("files",)
-    _METADATA_ATTRIBUTE_NAMES = ("id", "name", "tags", "labels")
+    _METADATA_ATTRIBUTES = ("id", "name", "tags", "labels")
 
     # Paths to files are added to the serialisation in `Dataset.to_primitive`.
-    _SERIALISE_FIELDS = (*_METADATA_ATTRIBUTE_NAMES, "path")
+    _SERIALISE_FIELDS = (*_METADATA_ATTRIBUTES, "path")
 
     def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None):
         super().__init__(name=name, id=id, tags=tags, labels=labels)
@@ -516,7 +515,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         if "files" in metadata:
             self.files = FilterSet(Datafile(path=path) for path in metadata["files"])
 
-        for attribute in self._METADATA_ATTRIBUTE_NAMES:
+        for attribute in self._METADATA_ATTRIBUTES:
             if attribute not in metadata:
                 continue
 
