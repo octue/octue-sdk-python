@@ -516,8 +516,8 @@ class TestService(BaseTestCase):
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         files = [
-            Datafile(path="gs://my-dataset/hello.txt", project_name="blah", hypothetical=True),
-            Datafile(path="gs://my-dataset/goodbye.csv", project_name="blah", hypothetical=True),
+            Datafile(path="gs://my-dataset/hello.txt", project_name="blah"),
+            Datafile(path="gs://my-dataset/goodbye.csv", project_name="blah"),
         ]
 
         input_manifest = Manifest(datasets={"my-dataset": Dataset(files=files)}, path="gs://my-dataset")
@@ -547,8 +547,8 @@ class TestService(BaseTestCase):
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         files = [
-            Datafile(path="gs://my-dataset/hello.txt", project_name=TEST_PROJECT_NAME, hypothetical=True),
-            Datafile(path="gs://my-dataset/goodbye.csv", project_name=TEST_PROJECT_NAME, hypothetical=True),
+            Datafile(path="gs://my-dataset/hello.txt", project_name=TEST_PROJECT_NAME),
+            Datafile(path="gs://my-dataset/goodbye.csv", project_name=TEST_PROJECT_NAME),
         ]
 
         input_manifest = Manifest(datasets={"my-dataset": Dataset(files=files)}, path="gs://my-dataset")

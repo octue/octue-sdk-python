@@ -128,12 +128,16 @@ class GoogleCloudStorageClient:
 
         :param str|None cloud_path: full cloud path to file (e.g. `gs://bucket_name/path/to/file.csv`)
         :param float timeout: time in seconds to allow for the request to complete
-        :return dict:
+        :return dict|None: `None` if the bucket or file don't exist
         """
         if not cloud_path:
             cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_in_bucket)
 
-        bucket, path_in_bucket = self._get_bucket_and_path_in_bucket(cloud_path)
+        try:
+            bucket, path_in_bucket = self._get_bucket_and_path_in_bucket(cloud_path)
+        except CloudStorageBucketNotFound:
+            return None
+
         blob = bucket.get_blob(blob_name=self._strip_leading_slash(path_in_bucket), timeout=timeout)
 
         if blob is None:
