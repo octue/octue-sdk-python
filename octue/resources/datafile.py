@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 OCTUE_METADATA_NAMESPACE = "octue"
+METADATA_ATTRIBUTE_NAMES = ("id", "tags", "labels", "timestamp")
 
 
 class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filterable):
@@ -57,13 +58,10 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
     """
 
     _SERIALISE_FIELDS = (
-        "id",
+        *METADATA_ATTRIBUTE_NAMES,
         "name",
         "path",
         "cloud_path",
-        "tags",
-        "labels",
-        "timestamp",
         "_cloud_metadata",
     )
 
@@ -471,12 +469,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         :param bool use_octue_namespace: if `True`, prefix metadata names with "octue__"
         :return dict:
         """
-        metadata = {
-            "id": self.id,
-            "timestamp": self.timestamp,
-            "tags": self.tags,
-            "labels": self.labels,
-        }
+        metadata = {name: getattr(self, name) for name in METADATA_ATTRIBUTE_NAMES}
 
         if include_sdk_version:
             metadata["sdk_version"] = pkg_resources.get_distribution("octue").version
@@ -605,12 +598,15 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         :param dict metadata:
         :return None:
         """
-        if "id" in metadata:
-            self._set_id(metadata["id"])
+        for attribute in METADATA_ATTRIBUTE_NAMES:
+            if attribute not in metadata:
+                continue
 
-        for attribute in ("timestamp", "tags", "labels"):
-            if attribute in metadata:
-                setattr(self, attribute, metadata[attribute])
+            if attribute == "id":
+                self._set_id(metadata["id"])
+                continue
+
+            setattr(self, attribute, metadata[attribute])
 
     def _calculate_hash(self):
         """Get the hash of the datafile according to the first of the following methods that is applicable:

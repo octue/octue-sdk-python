@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 SIGNED_METADATA_DIRECTORY = ".signed_metadata_files"
+METADATA_ATTRIBUTE_NAMES = ("id", "tags", "labels", "name")
 
 
 class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
@@ -49,7 +50,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
     _ATTRIBUTES_TO_HASH = ("files",)
 
     # Paths to files are added to the serialisation in `Dataset.to_primitive`.
-    _SERIALISE_FIELDS = "name", "labels", "tags", "id", "path"
+    _SERIALISE_FIELDS = (*METADATA_ATTRIBUTE_NAMES, "path")
 
     def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None):
         super().__init__(name=name, id=id, tags=tags, labels=labels)
@@ -452,12 +453,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
 
         :return dict:
         """
-        metadata = {
-            "name": self.name,
-            "id": self.id,
-            "tags": self.tags,
-            "labels": self.labels,
-        }
+        metadata = {name: getattr(self, name) for name in METADATA_ATTRIBUTE_NAMES}
 
         if include_sdk_version:
             metadata["sdk_version"] = pkg_resources.get_distribution("octue").version
@@ -530,15 +526,18 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable):
         :param dict metadata:
         :return None:
         """
-        if "id" in metadata:
-            self._set_id(metadata["id"])
-
         if "files" in metadata:
             self.files = FilterSet(Datafile(path=path) for path in metadata["files"])
 
-        for attribute in ("name", "tags", "labels"):
-            if attribute in metadata:
-                setattr(self, attribute, metadata[attribute])
+        for attribute in METADATA_ATTRIBUTE_NAMES:
+            if attribute not in metadata:
+                continue
+
+            if attribute == "id":
+                self._set_id(metadata["id"])
+                continue
+
+            setattr(self, attribute, metadata[attribute])
 
     def _datafile_path_relative_to_self(self, datafile, path_type):
         """Get the path of the given datafile relative to the dataset.
