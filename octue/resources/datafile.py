@@ -12,6 +12,9 @@ import google.api_core.exceptions
 import pkg_resources
 from google_crc32c import Checksum
 
+from octue.resources.label import LabelSet
+from octue.resources.tag import TagDict
+
 
 try:
     import h5py
@@ -101,10 +104,10 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             logger.debug("Ignored stored metadata for %r.", self)
         else:
             if self.metadata(use_octue_namespace=False, include_sdk_version=False) != {
-                "id": id,
+                "id": id or self.id,
                 "timestamp": timestamp,
-                "tags": tags,
-                "labels": labels,
+                "tags": TagDict(tags),
+                "labels": LabelSet(labels),
             }:
                 logger.warning(
                     "Overriding metadata given at instantiation with stored metadata for %r - set `hypothetical` to "
