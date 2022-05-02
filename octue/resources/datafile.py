@@ -6,7 +6,6 @@ import logging
 import os
 import shutil
 import tempfile
-import warnings
 from urllib.parse import urlparse
 
 import google.api_core.exceptions
@@ -50,7 +49,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
     :param iter(str)|octue.resources.label.LabelSet|None labels: Space-separated string of labels relevant to this file
     :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode options are the same as for the builtin open function)
     :param bool update_cloud_metadata: if using as a context manager and this is `True`, update the cloud metadata of the datafile when the context is exited
-    :param bool ignore_stored_metadata: if `True`, ignore any metadata stored for this datafile locally or in the cloud and use whatever is given at instantiation
+    :param bool hypothetical: if `True`, ignore any metadata stored for this datafile locally or in the cloud and use whatever is given at instantiation
     :return None:
     """
 
@@ -76,20 +75,9 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         labels=None,
         mode="r",
         update_cloud_metadata=True,
-        ignore_stored_metadata=False,
+        hypothetical=False,
         **kwargs,
     ):
-        if "hypothetical" in kwargs:
-            warnings.warn(
-                message=(
-                    f"The `hypothetical` parameter in `Datafile` instantiation has been deprecated. Please set "
-                    f"`ignore_stored_metadata` to {kwargs['hypothetical']} instead."
-                ),
-                category=DeprecationWarning,
-            )
-
-            ignore_stored_metadata = kwargs["hypothetical"]
-
         super().__init__(
             id=id,
             name=kwargs.pop("name", None),
@@ -105,12 +93,12 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         self._cloud_metadata = {}
 
         if storage.path.is_cloud_path(path):
-            self._instantiate_from_cloud_object(path, local_path, ignore_stored_metadata=ignore_stored_metadata)
+            self._instantiate_from_cloud_object(path, local_path, ignore_stored_metadata=hypothetical)
         else:
-            self._instantiate_from_local_path(path, cloud_path, ignore_stored_metadata=ignore_stored_metadata)
+            self._instantiate_from_local_path(path, cloud_path, ignore_stored_metadata=hypothetical)
 
-        if ignore_stored_metadata:
-            logger.debug("Ignored stored metadata for datafile %r.", self)
+        if hypothetical:
+            logger.debug("Ignored stored metadata for %r.", self)
         else:
             if self.metadata(use_octue_namespace=False, include_sdk_version=False) != {
                 "id": id,
@@ -119,8 +107,8 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
                 "labels": labels,
             }:
                 logger.warning(
-                    "Overriding metadata given at instantiation with stored metadata for datafile %r - set "
-                    "`ignore_stored_metadata` to `True` at instantiation to avoid this.",
+                    "Overriding metadata given at instantiation with stored metadata for %r - set `hypothetical` to "
+                    "`True` at instantiation to avoid this.",
                     self,
                 )
 
