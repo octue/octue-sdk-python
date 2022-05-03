@@ -672,6 +672,14 @@ class TestDataset(BaseTestCase):
             datafile_paths = {datafile.local_path for datafile in dataset.files}
             self.assertEqual(datafile_paths, set(paths))
 
+    def test_error_raised_if_attempting_to_generate_signed_url_for_local_dataset(self):
+        """Test that an error is raised if trying to generate a signed URL for a local dataset."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            dataset = Dataset(path=temporary_directory, tags={"hello": "world"})
+
+            with self.assertRaises(exceptions.CloudLocationNotSpecified):
+                dataset.generate_signed_url()
+
     def test_generating_signed_url_from_dataset_and_recreating_dataset_from_it(self):
         """Test that a signed URL can be generated for a dataset that can be used to recreate/get it, its metadata, and
         all its files.

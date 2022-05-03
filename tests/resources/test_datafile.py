@@ -815,6 +815,15 @@ class TestDatafile(BaseTestCase):
         reloaded_datafile = Datafile(cloud_path, tags={"new": "tag"}, hypothetical=True)
         self.assertEqual(reloaded_datafile.tags, {"new": "tag"})
 
+    def test_error_raised_if_attempting_to_generate_signed_url_for_local_datafile(self):
+        """Test that an error is raised if trying to generate a signed URL for a local datafile."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with Datafile(path=os.path.join(temporary_directory, "my-file.dat"), mode="w") as (datafile, f):
+                f.write("I will be signed")
+
+            with self.assertRaises(exceptions.CloudLocationNotSpecified):
+                datafile.generate_signed_url()
+
     def test_generating_signed_url_from_datafile_and_recreating_datafile_from_it(self):
         """Test that a signed URL can be generated for a datafile and used to recreate the datafile without any extra
         permissions.

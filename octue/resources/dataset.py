@@ -314,6 +314,11 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         :param datetime.datetime|datetime.timedelta expiration: the amount of time or date after which the URL should expire
         :return str: the signed URL for the dataset
         """
+        if not self.exists_in_cloud:
+            raise CloudLocationNotSpecified(
+                f"{self!r} must exist in the cloud for a signed URL to be generated for it."
+            )
+
         signed_metadata = self.to_primitive()
         signed_metadata["files"] = [datafile.generate_signed_url(expiration=expiration) for datafile in self.files]
 
