@@ -34,7 +34,7 @@ python-dateutil = "^2.8"
 pyyaml = "^6"
 h5py = { version = "^3.6", optional = true }
 apache-beam = { extras = ["gcp"], version = "^2.37", optional = true }
-twined = {git = "https://github.com/octue/twined.git", rev = "revert-104-feature/add-output-location-strand"}
+twined = "^0.4.1"
 
 [tool.poetry.extras]
 hdf5 = ["h5py"]
