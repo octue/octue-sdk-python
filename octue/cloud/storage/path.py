@@ -6,16 +6,16 @@ CLOUD_STORAGE_PROTOCOL = "gs://"
 
 
 def is_cloud_path(path):
-    """Determine if the given path is either a qualified cloud path or a URL cloud path.
+    """Determine if the given path is either a cloud storage URI or a URL.
 
     :param str path: the path to check
     :return bool:
     """
-    return is_qualified_cloud_path(path) or is_url(path)
+    return is_cloud_uri(path) or is_url(path)
 
 
-def is_qualified_cloud_path(path):
-    """Determine if the given path is a qualified cloud path - i.e. if it begins with the cloud storage protocol.
+def is_cloud_uri(path):
+    """Determine if the given path is a cloud storage URI - i.e. if it begins with the cloud storage protocol.
 
     :param str path: the path to check
     :return bool: `True` if the path starts with the cloud storage protocol
@@ -24,10 +24,10 @@ def is_qualified_cloud_path(path):
 
 
 def is_url(path):
-    """Determine if the given path is an HTTP/HTTPS URL.
+    """Determine if the given path is a URL.
 
     :param str path: the path to check
-    :return bool:
+    :return bool: `True` if the path starts with "http"
     """
     return path.startswith("http")
 
@@ -45,14 +45,14 @@ def join(*paths):
     path = os.path.normpath(os.path.join(*paths)).replace("\\", "/")
 
     if path.startswith("gs:/"):
-        if not is_qualified_cloud_path(path):
+        if not is_cloud_uri(path):
             path = path.replace("gs:/", CLOUD_STORAGE_PROTOCOL)
 
     return path
 
 
 def generate_gs_path(bucket_name, *paths):
-    """Generate the Google Cloud storage path for a path in a bucket.
+    """Generate the Google Cloud Storage URI for a path in a bucket.
 
     :param str bucket_name:
     :param iter paths:
@@ -69,7 +69,7 @@ def split_bucket_name_from_cloud_path(path):
     :param str path: the path to split
     :return (str, str): the bucket name and the path within the bucket
     """
-    if is_qualified_cloud_path(path):
+    if is_cloud_uri(path):
         path = strip_protocol_from_path(path).split("/")
         return path[0], join(*path[1:])
 
@@ -83,7 +83,7 @@ def strip_protocol_from_path(path):
     :param str path:
     :return str:
     """
-    if not is_qualified_cloud_path(path):
+    if not is_cloud_path(path):
         return path
     return path.split(":")[1].lstrip("/")
 
