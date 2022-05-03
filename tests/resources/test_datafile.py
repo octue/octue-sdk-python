@@ -834,3 +834,20 @@ class TestDatafile(BaseTestCase):
         with patch.dict(os.environ, clear=True):
             with Datafile(path=signed_url) as (_, f):
                 self.assertEqual(f.read(), "I will be signed")
+
+    def test_error_raised_if_trying_to_modify_signed_url_datafile(self):
+        """Test that an error is raised if trying to modify a datafile instantiated from a signed URL."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+
+            with Datafile(path=os.path.join(temporary_directory, "my-file.dat"), mode="w") as (datafile, f):
+                f.write("I will be signed")
+
+            datafile.to_cloud(storage.path.generate_gs_path(TEST_BUCKET_NAME, "directory", "my-file.dat"))
+
+        with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
+            signed_url = datafile.generate_signed_url()
+
+        with patch.dict(os.environ, clear=True):
+            with self.assertRaises(exceptions.ReadOnlyResource):
+                with Datafile(path=signed_url, mode="w") as (_, f):
+                    f.write("Text I'm not allowed to write.")

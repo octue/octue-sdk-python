@@ -24,7 +24,7 @@ except ModuleNotFoundError:
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.exceptions import CloudLocationNotSpecified
+from octue.exceptions import CloudLocationNotSpecified, ReadOnlyResource
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
@@ -51,7 +51,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
     :param str id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
     :param dict|octue.resources.tag.TagDict|None tags: key-value pairs with string keys conforming to the Octue tag format (see TagDict)
     :param iter(str)|octue.resources.label.LabelSet|None labels: Space-separated string of labels relevant to this file
-    :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode options are the same as for the builtin open function)
+    :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode options are the same as for the builtin `open` function)
     :param bool update_cloud_metadata: if using as a context manager and this is `True`, update the cloud metadata of the datafile when the context is exited
     :param bool hypothetical: if `True`, ignore any metadata stored for this datafile locally or in the cloud and use whatever is given at instantiation
     :return None:
@@ -713,6 +713,9 @@ class _DatafileContextManager:
         :return io.TextIOWrapper:
         """
         if "w" in self.mode:
+            if self.datafile.exists_in_cloud and storage.path.is_url(self.datafile.cloud_path):
+                raise ReadOnlyResource(f"{self.datafile} is read-only. Change the open mode to 'r' to continue.")
+
             os.makedirs(os.path.split(self.datafile.local_path)[0], exist_ok=True)
 
         if self.datafile.extension == "hdf5":
