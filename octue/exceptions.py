@@ -112,3 +112,7 @@ class CloudStorageBucketNotFound(OctueSDKException):
 
 class PushSubscriptionCannotBePulled(OctueSDKException):
     """Raise if attempting to pull a push subscription."""
+
+
+class ReadOnlyResource(OctueSDKException):
+    """Raise if attempting to alter a read-only resource."""

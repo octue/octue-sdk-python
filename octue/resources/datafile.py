@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 import google.api_core.exceptions
 import pkg_resources
+import requests
 from google_crc32c import Checksum
 
 from octue.resources.label import LabelSet
@@ -23,7 +24,7 @@ except ModuleNotFoundError:
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.exceptions import CloudLocationNotSpecified
+from octue.exceptions import CloudLocationNotSpecified, ReadOnlyResource
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
@@ -50,7 +51,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
     :param str id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
     :param dict|octue.resources.tag.TagDict|None tags: key-value pairs with string keys conforming to the Octue tag format (see TagDict)
     :param iter(str)|octue.resources.label.LabelSet|None labels: Space-separated string of labels relevant to this file
-    :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode options are the same as for the builtin open function)
+    :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode options are the same as for the builtin `open` function)
     :param bool update_cloud_metadata: if using as a context manager and this is `True`, update the cloud metadata of the datafile when the context is exited
     :param bool hypothetical: if `True`, ignore any metadata stored for this datafile locally or in the cloud and use whatever is given at instantiation
     :return None:
@@ -450,13 +451,20 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         else:
             self._local_path = tempfile.NamedTemporaryFile(delete=False).name
 
-        try:
-            GoogleCloudStorageClient().download_to_file(local_path=self._local_path, cloud_path=self.cloud_path)
+        # Download from a URL.
+        if storage.path.is_url(self.cloud_path):
+            with open(self._local_path, "wb") as f:
+                f.write(requests.get(self.cloud_path).content)
 
-        except google.api_core.exceptions.NotFound as e:
-            # If in reading mode, raise an error if no file exists at the path; if in a writing mode, create a new file.
-            if self._open_attributes["mode"] == "r":
-                raise e
+        # Download from a cloud URI.
+        else:
+            try:
+                GoogleCloudStorageClient().download_to_file(local_path=self._local_path, cloud_path=self.cloud_path)
+
+            except google.api_core.exceptions.NotFound as e:
+                # If in reading mode, raise an error if no file exists at the path; if in a writing mode, create a new file.
+                if self._open_attributes["mode"] == "r":
+                    raise e
 
         # Now use hash value of local file instead of cloud file.
         self.reset_hash()
@@ -501,6 +509,19 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
         with open(self._local_metadata_path, "w") as f:
             json.dump(existing_metadata_records, f, cls=OctueJSONEncoder)
+
+    def generate_signed_url(self, expiration=datetime.timedelta(days=7)):
+        """Generate a signed URL for the datafile.
+
+        :param datetime.datetime|datetime.timedelta expiration: the amount of time or date after which the URL should expire
+        :return str: the signed URL for the datafile
+        """
+        if not self.exists_in_cloud:
+            raise CloudLocationNotSpecified(
+                f"{self!r} must exist in the cloud for a signed URL to be generated for it."
+            )
+
+        return GoogleCloudStorageClient().generate_signed_url(cloud_path=self.cloud_path, expiration=expiration)
 
     def _instantiate_from_cloud_object(self, path, local_path, ignore_stored_metadata):
         """Instantiate the datafile from a cloud object.
@@ -692,6 +713,9 @@ class _DatafileContextManager:
         :return io.TextIOWrapper:
         """
         if "w" in self.mode:
+            if self.datafile.exists_in_cloud and storage.path.is_url(self.datafile.cloud_path):
+                raise ReadOnlyResource(f"{self.datafile} is read-only. Change the open mode to 'r' to continue.")
+
             os.makedirs(os.path.split(self.datafile.local_path)[0], exist_ok=True)
 
         if self.datafile.extension == "hdf5":
