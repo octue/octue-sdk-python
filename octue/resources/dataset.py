@@ -314,15 +314,12 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         :param datetime.datetime|datetime.timedelta expiration: the amount of time or date after which the URL should expire
         :return str: the signed URL for the dataset
         """
-        storage_client = GoogleCloudStorageClient()
         signed_metadata = self.to_primitive()
-
-        signed_metadata["files"] = [
-            storage_client.generate_signed_url(cloud_path=datafile_path, expiration=expiration)
-            for datafile_path in signed_metadata["files"]
-        ]
+        signed_metadata["files"] = [datafile.generate_signed_url(expiration=expiration) for datafile in self.files]
 
         path_to_signed_metadata_file = storage.path.join(self.path, SIGNED_METADATA_DIRECTORY, coolname.generate_slug())
+
+        storage_client = GoogleCloudStorageClient()
 
         storage_client.upload_from_string(
             string=json.dumps(signed_metadata, cls=OctueJSONEncoder),

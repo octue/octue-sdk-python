@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 import google.api_core.exceptions
 import pkg_resources
+import requests
 from google_crc32c import Checksum
 
 from octue.resources.label import LabelSet
@@ -450,13 +451,20 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         else:
             self._local_path = tempfile.NamedTemporaryFile(delete=False).name
 
-        try:
-            GoogleCloudStorageClient().download_to_file(local_path=self._local_path, cloud_path=self.cloud_path)
+        # Download from a URL.
+        if storage.path.is_url(self.cloud_path):
+            with open(self._local_path, "wb") as f:
+                f.write(requests.get(self.cloud_path).content)
 
-        except google.api_core.exceptions.NotFound as e:
-            # If in reading mode, raise an error if no file exists at the path; if in a writing mode, create a new file.
-            if self._open_attributes["mode"] == "r":
-                raise e
+        # Download from a cloud URI.
+        else:
+            try:
+                GoogleCloudStorageClient().download_to_file(local_path=self._local_path, cloud_path=self.cloud_path)
+
+            except google.api_core.exceptions.NotFound as e:
+                # If in reading mode, raise an error if no file exists at the path; if in a writing mode, create a new file.
+                if self._open_attributes["mode"] == "r":
+                    raise e
 
         # Now use hash value of local file instead of cloud file.
         self.reset_hash()
@@ -501,6 +509,19 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
         with open(self._local_metadata_path, "w") as f:
             json.dump(existing_metadata_records, f, cls=OctueJSONEncoder)
+
+    def generate_signed_url(self, expiration=datetime.timedelta(days=7)):
+        """Generate a signed URL for the datafile.
+
+        :param datetime.datetime|datetime.timedelta expiration: the amount of time or date after which the URL should expire
+        :return str: the signed URL for the datafile
+        """
+        if not self.exists_in_cloud:
+            raise CloudLocationNotSpecified(
+                f"{self!r} must exist in the cloud for a signed URL to be generated for it."
+            )
+
+        return GoogleCloudStorageClient().generate_signed_url(cloud_path=self.cloud_path, expiration=expiration)
 
     def _instantiate_from_cloud_object(self, path, local_path, ignore_stored_metadata):
         """Instantiate the datafile from a cloud object.
