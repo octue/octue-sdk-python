@@ -4,7 +4,8 @@
 Datafile
 ========
 
-Key features:
+Key features
+============
 
 - Working with a datafile is the same whether it's local or in the cloud. For example, this is how to write to local and
   cloud datafiles:
@@ -13,12 +14,14 @@ Key features:
 
       # Local datafile
       datafile = Datafile("path/to/file.dat")
+
       with datafile.open("w") as f:
           f.write("Some data")
           datafile.labels.add("processed")
 
       # Cloud datafile
       datafile = Datafile("gs://my-bucket/path/to/file.dat")
+
       with datafile.open("w") as f:
           f.write("Some data")
           datafile.labels.add("processed")
@@ -26,7 +29,7 @@ Key features:
 - If you're reading or writing a cloud datafile, its content is automatically downloaded so you get low-latency data
   operations
 
-- Luckily, downloading is lazy - until you access the cloud datafile contents using the ``open`` context manager, call
+- Downloading is lazy - until you access the cloud datafile contents using the ``open`` context manager, call
   the ``download`` method, or try to get its ``local_path`` attribute, the content isn't downloaded. This makes viewing
   and filtering by the metadata of datasets of cloud datafiles quick.
 
@@ -82,8 +85,11 @@ Key features:
       >>> 'mnG7TA=='
 
 
-A ``Datafile`` is an Octue type that corresponds to a file that exists either locally, in the cloud, or both. You can
-easily check where a datafile exists by accessing the following properties:
+More information
+================
+
+Check where a datafile exists
+-----------------------------
 
 .. code-block:: python
 
@@ -91,7 +97,10 @@ easily check where a datafile exists by accessing the following properties:
     >>> True
 
     datafile.exists_in_cloud
-    >>> True
+    >>> False
+
+Representing HDF5 files
+-----------------------
 
 .. warning::
     If you want to represent HDF5 files with a ``Datafile``, you must include the extra requirements provided by the
@@ -101,20 +110,6 @@ easily check where a datafile exists by accessing the following properties:
 
         pip install octue[hdf5]
 
-A datafile has the following main attributes:
-
-- ``local_path`` - the absolute local path of the file, or ``None`` if it only exists in the cloud
-- ``cloud_path`` - the absolute path of the file in the cloud (e.g. ``gs://my-bucket/path/to/file.csv``), or ``None`` if it only exists locally
-- ``tags`` - key-value pairs of metadata relevant to this file
-- ``labels`` - a space-separated string or iterable of labels relevant to this file
-- ``timestamp`` - a posix timestamp associated with the file, in seconds since epoch, typically when it was created but could relate to a relevant time point for the data
-- ``project_name`` - the cloud project that the file's storage belongs to (so it can be accessed), or ``None`` if it only exists locally
-- ``bucket_name`` - the name of the bucket the file is in (e.g. ``my-bucket``), or ``None`` if it only exists locally
-- ``path_in_bucket`` - the datafile's path in the bucket (e.g. ``path/to/file.csv``), or ``None`` if it only exists locally
-- ``cloud_protocol`` - the protocol used to access the file in cloud storage (e.g. ``gs://``), or ``None`` if it only exists locally
-
-
--------------------------------
 Datafiles existing in the cloud
 -------------------------------
 To avoid unnecessary data transfer and costs, datafiles that only exist in the cloud are not downloaded locally until
@@ -143,9 +138,8 @@ If you want a cloud object to be permanently downloaded, you can either:
 Either way, the datafile will now exist locally as well in the cloud.
 
 
------
-Usage
------
+Usage examples
+==============
 
 The ``Datafile`` class can be used functionally or as a context manager. When used as a context manager, it is analogous
 to the builtin ``open`` function context manager. On exiting the context (the ``with`` block), it closes the datafile
