@@ -12,7 +12,7 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import os
+import subprocess
 
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -53,7 +53,7 @@ copyright = "2022, Octue Ltd"
 # built documents.
 
 # The full version, including alpha/beta/rc tags.
-release = os.getenv("RELEASE_TAG", "x.y.unknown")
+release = subprocess.check_output(["poetry", "version", "-s"]).decode().strip()
 
 # The short X.Y version.
 version = ".".join(release.split(".")[0:2])
