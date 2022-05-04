@@ -61,11 +61,10 @@ Backends
 --------
 
 The backend specifies which method of communication the child uses (e.g. Google Cloud Pub/Sub), as well as providing
-pointers to the credentials and any other parameters required to access it. Each child must have its backend
-specified explicitly, even if all children use the same one. This is to support the use case where each child uses a
-different backend. Note that backends/credentials are only needed for the children that your app explicitly contacts -
-it is the responsibility of all children to be able to contact any children they need to run their analyses (i.e.
-children can be treated as black boxes).
+any parameters required to access it. Each child must have its backend specified explicitly, even if all children use
+the same one. This is to support the use case where each child uses a different backend. Note that backends/credentials
+are only needed for the children that your app explicitly contacts - it is the responsibility of all children to be
+able to contact any children they need to run their analyses (i.e. children can be treated as black boxes).
 
 To make use of a certain child in ``app.py``, its backend configuration must be specified in ``children.json``. The only
 backend currently supported is ``GCPPubSubBackend``, which uses Google Cloud Platform's publisher/subscriber service.
@@ -86,8 +85,7 @@ To access children in ``app.py``, they must be specified in ``children.json``, w
             "id": "7b9d07fa-6bcd-4ec3-a331-69f737a15751",
             "backend": {
                 "name": "GCPPubSubBackend",
-                "project_name": "<google_cloud_project_name>",
-                "credentials_filename": "<absolute/path/to/credentials_file.json>"
+                "project_name": "<google_cloud_project_name>"
             }
         },
         {
@@ -95,8 +93,7 @@ To access children in ``app.py``, they must be specified in ``children.json``, w
             "id": "8dgd07fa-6bcd-4ec3-a331-69f737a15332",
             "backend": {
                 "name": "GCPPubSubBackend",
-                "project_name": "<google_cloud_project_name>",
-                "credentials_filename": "<absolute/path/to/credentials_file.json>"
+                "project_name": "<google_cloud_project_name>"
             }
         }
     ]

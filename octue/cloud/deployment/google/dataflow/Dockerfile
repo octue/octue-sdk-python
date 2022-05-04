@@ -1,4 +1,4 @@
-FROM apache/beam_python3.8_sdk:2.36.0
+FROM apache/beam_python3.9_sdk:2.37.0
 
 # Allow statements and log messages to immediately appear in the logs on Google Cloud.
 ENV PYTHONUNBUFFERED=1
@@ -10,7 +10,7 @@ RUN apt-get update -y && apt-get install -y --fix-missing build-essential && rm 
 
 COPY . .
 
-RUN pip install --upgrade pip && pip install -e .[dataflow]
+RUN pip install --upgrade pip && pip install -e .
 
 ENV USE_OCTUE_LOG_HANDLER=1
 ENV COMPUTE_PROVIDER=GOOGLE_DATAFLOW

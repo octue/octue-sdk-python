@@ -124,6 +124,9 @@ class MockSubscriber:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def close(self):
         self.closed = True
 
     def subscribe(self, subscription, callback):
@@ -229,8 +232,8 @@ class MockService(Service):
     :return None:
     """
 
-    def __init__(self, backend, service_id=None, run_function=None, children=None):
-        super().__init__(backend, service_id, run_function)
+    def __init__(self, backend, service_id=None, run_function=None, children=None, *args, **kwargs):
+        super().__init__(backend, service_id, run_function, *args, **kwargs)
         self.children = children or {}
         self.publisher = MockPublisher()
         self.subscriber = MockSubscriber()
@@ -242,8 +245,9 @@ class MockService(Service):
         input_manifest=None,
         subscribe_to_logs=True,
         allow_local_files=False,
-        timeout=30,
         question_uuid=None,
+        push_endpoint=None,
+        timeout=30,
     ):
         """Put the question into the messages register, register the existence of the corresponding response topic, add
         the response to the register, and return a MockFuture containing the answer subscription path.
@@ -253,11 +257,20 @@ class MockService(Service):
         :param octue.resources.manifest.Manifest|None input_manifest:
         :param bool subscribe_to_logs:
         :param bool allow_local_files:
+        :param str|None question_uuid:
+        :param str|None push_endpoint:
         :param float|None timeout:
         :return MockFuture, str:
         """
         response_subscription, question_uuid = super().ask(
-            service_id, input_values, input_manifest, subscribe_to_logs, allow_local_files, timeout, question_uuid
+            service_id=service_id,
+            input_values=input_values,
+            input_manifest=input_manifest,
+            subscribe_to_logs=subscribe_to_logs,
+            allow_local_files=allow_local_files,
+            question_uuid=question_uuid,
+            push_endpoint=push_endpoint,
+            timeout=timeout,
         )
 
         # Ignore any errors from the answering service as they will be raised on the remote service in practice, not

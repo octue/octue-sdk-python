@@ -1,10 +1,8 @@
-import json
 import re
 from collections import UserDict
 
 from octue.exceptions import InvalidTagException
 from octue.mixins import Serialisable
-from octue.utils.encoders import OctueJSONEncoder
 
 
 TAG_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_]*(?<!_)$")
@@ -44,9 +42,9 @@ class TagDict(Serialisable, UserDict):
                     f"must not start with '_'."
                 )
 
-    def serialise(self, **kwargs):
-        """Serialise a TagDict to a JSON string.
+    def to_primitive(self, **kwargs):
+        """Convert a TagDict to a python primitive.
 
         :return str:
         """
-        return json.dumps(self.data, cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
+        return self.data

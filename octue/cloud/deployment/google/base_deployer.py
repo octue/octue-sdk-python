@@ -7,6 +7,7 @@ from abc import abstractmethod
 
 import yaml
 
+from octue.configuration import ServiceConfiguration
 from octue.exceptions import DeploymentError
 
 
@@ -42,38 +43,22 @@ class BaseDeployer:
     TOTAL_NUMBER_OF_STAGES = None
 
     def __init__(self, octue_configuration_path, service_id=None, image_uri_template=None):
-        self.octue_configuration_path = octue_configuration_path
-
-        with open(self.octue_configuration_path) as f:
-            self._octue_configuration = yaml.load(f, Loader=yaml.SafeLoader)
-
-        # Only allow a single service in an `octue.yaml` file for now.
-        self._service = self._octue_configuration["services"][0]
-
-        # Required configuration file entries.
-        self.name = self._service["name"]
-        self.repository_name = self._service["repository_name"]
-        self.repository_owner = self._service["repository_owner"]
-        self.project_name = self._service["project_name"]
-        self.region = self._service["region"]
+        self.service_configuration = ServiceConfiguration.from_file(octue_configuration_path)
 
         # Generated attributes.
         self.build_trigger_description = None
         self.generated_cloud_build_configuration = None
         self.service_id = service_id or str(uuid.uuid4())
-        self.required_environment_variables = {"SERVICE_ID": self.service_id, "SERVICE_NAME": self.name}
+
+        self.required_environment_variables = {
+            "SERVICE_ID": self.service_id,
+            "SERVICE_NAME": self.service_configuration.name,
+        }
 
         self.image_uri_template = image_uri_template or (
-            f"{DOCKER_REGISTRY_URL}/{self.project_name}/{self.repository_name}/{self.name}:$SHORT_SHA"
+            f"{DOCKER_REGISTRY_URL}/{self.service_configuration.project_name}/"
+            f"{self.service_configuration.repository_name}/{self.service_configuration.name}:$SHORT_SHA"
         )
-
-        # Optional configuration file entries.
-        self.dockerfile_path = self._service.get("dockerfile_path")
-        self.provided_cloud_build_configuration_path = self._service.get("cloud_build_configuration_path")
-        self.maximum_instances = self._service.get("maximum_instances", 10)
-        self.branch_pattern = self._service.get("branch_pattern", "^main$")
-        self.environment_variables = self._service.get("environment_variables", [])
-        self.secrets = self._service.get("secrets", {})
 
     @abstractmethod
     def deploy(self, no_cache=False, update=False):
@@ -100,8 +85,8 @@ class BaseDeployer:
         :param str default_dockerfile_url: the URL to get the default `octue` Dockerfile from
         :return (list, str): the `cloudbuild.yaml` step and the path to the Dockerfile
         """
-        if self.dockerfile_path:
-            return [], self.dockerfile_path
+        if self.service_configuration.dockerfile_path:
+            return [], self.service_configuration.dockerfile_path
 
         # If no path to a dockerfile has been provided, add a step to download the default Octue service
         # Dockerfile to build the image from.
@@ -126,25 +111,25 @@ class BaseDeployer:
         available_secrets_option = {}
         build_secrets = {"build_args": "", "secret_env": {}}
 
-        if not self.secrets.get("build"):
+        if not self.service_configuration.secrets.get("build"):
             return available_secrets_option, build_secrets
 
         available_secrets_option = {
             "availableSecrets": {
                 "secretManager": [
                     {
-                        "versionName": f"projects/{self.project_name}/secrets/{secret_name}/versions/latest",
+                        "versionName": f"projects/{self.service_configuration.project_name}/secrets/{secret_name}/versions/latest",
                         "env": secret_name,
                     }
-                    for secret_name in self.secrets["build"]
+                    for secret_name in self.service_configuration.secrets["build"]
                 ]
             }
         }
 
-        build_secrets["secret_env"] = {"secretEnv": self.secrets["build"]}
+        build_secrets["secret_env"] = {"secretEnv": self.service_configuration.secrets["build"]}
 
         build_secrets["build_args"] = [
-            f"--build-arg={secret_name}=$${secret_name}" for secret_name in self.secrets["build"]
+            f"--build-arg={secret_name}=$${secret_name}" for secret_name in self.service_configuration.secrets["build"]
         ]
 
         return available_secrets_option, build_secrets
@@ -159,8 +144,10 @@ class BaseDeployer:
 
             with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
 
-                if self.provided_cloud_build_configuration_path:
-                    configuration_option = [f"--build-config={self.provided_cloud_build_configuration_path}"]
+                if self.service_configuration.provided_cloud_build_configuration_path:
+                    configuration_option = [
+                        f"--build-config={self.service_configuration.provided_cloud_build_configuration_path}"
+                    ]
 
                 else:
                     # Put the Cloud Build configuration into a temporary file so it can be used by the `gcloud` command.
@@ -171,17 +158,17 @@ class BaseDeployer:
 
                 create_trigger_command = [
                     "gcloud",
-                    f"--project={self.project_name}",
+                    f"--project={self.service_configuration.project_name}",
                     "beta",
                     "builds",
                     "triggers",
                     "create",
                     "github",
-                    f"--name={self.name}",
-                    f"--repo-name={self.repository_name}",
-                    f"--repo-owner={self.repository_owner}",
+                    f"--name={self.service_configuration.name}",
+                    f"--repo-name={self.service_configuration.repository_name}",
+                    f"--repo-owner={self.service_configuration.repository_owner}",
                     f"--description={self.build_trigger_description}",
-                    f"--branch-pattern={self.branch_pattern}",
+                    f"--branch-pattern={self.service_configuration.branch_pattern}",
                     *configuration_option,
                 ]
 
@@ -192,12 +179,12 @@ class BaseDeployer:
 
                     delete_trigger_command = [
                         "gcloud",
-                        f"--project={self.project_name}",
+                        f"--project={self.service_configuration.project_name}",
                         "beta",
                         "builds",
                         "triggers",
                         "delete",
-                        f"{self.name}",
+                        f"{self.service_configuration.name}",
                     ]
 
                     self._run_command(delete_trigger_command)
@@ -211,21 +198,21 @@ class BaseDeployer:
         :return None:
         """
         with ProgressMessage(
-            f"Running build trigger on branch {self.branch_pattern!r}",
+            f"Running build trigger on branch {self.service_configuration.branch_pattern!r}",
             3,
             self.TOTAL_NUMBER_OF_STAGES,
         ):
 
             build_command = [
                 "gcloud",
-                f"--project={self.project_name}",
+                f"--project={self.service_configuration.project_name}",
                 "--format=json",
                 "beta",
                 "builds",
                 "triggers",
                 "run",
-                self.name,
-                f"--branch={self.branch_pattern.strip('^$')}",
+                self.service_configuration.name,
+                f"--branch={self.service_configuration.branch_pattern.strip('^$')}",
             ]
 
             process = self._run_command(build_command)
@@ -241,7 +228,7 @@ class BaseDeployer:
         """
         get_build_command = [
             "gcloud",
-            f"--project={self.project_name}",
+            f"--project={self.service_configuration.project_name}",
             "--format=json",
             "builds",
             "describe",

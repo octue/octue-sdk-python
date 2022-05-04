@@ -1,6 +1,7 @@
 import copy
 import json
 import os
+import pickle
 import tempfile
 import uuid
 from datetime import datetime, timezone
@@ -11,56 +12,48 @@ import pkg_resources
 
 from octue import exceptions
 from octue.cloud import storage
+from octue.cloud.emulators import mock_generate_signed_url
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.mixins import MixinBase, Pathable
 from octue.resources.datafile import Datafile
 from octue.resources.label import LabelSet
 from octue.resources.tag import TagDict
 from tests import TEST_BUCKET_NAME
-
-from ..base import BaseTestCase
-
-
-class MyPathable(Pathable, MixinBase):
-    pass
+from tests.base import BaseTestCase
 
 
-class DatafileTestCase(BaseTestCase):
+class TestDatafile(BaseTestCase):
     def setUp(self):
-        """Set up the test class by adding an example `path_from` and `path` to it.
+        """Set up the test class by adding an example `path` to it.
 
         :return None:
         """
         super().setUp()
-        self.path_from = MyPathable(path=os.path.join(self.data_path, "basic_files", "configuration", "test-dataset"))
         self.path = os.path.join("path-within-dataset", "a_test_file.csv")
 
     def create_valid_datafile(self):
-        """Create a datafile with its `path_from` and `path` attributes set to valid values.
+        """Create a datafile with its `path` attribute set to a valid value.
 
         :return octue.resources.datafile.Datafile:
         """
-        return Datafile(path_from=self.path_from, path=self.path, skip_checks=False)
+        return Datafile(path=self.path)
 
     def create_datafile_in_cloud(
         self,
-        bucket_name=TEST_BUCKET_NAME,
-        path_in_bucket="cloud_file.txt",
+        cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "cloud_file.txt"),
         contents="some text",
         **kwargs,
     ):
         """Create a datafile in the cloud. Any metadata attributes can be set via kwargs.
 
-        :param str bucket_name:
-        :param str path_in_bucket:
+        :param str cloud_path:
         :param str contents:
-        :return (octue.resources.datafile.Datafile, str, str, str):
+        :return (octue.resources.datafile.Datafile, str):
         """
         with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
             temporary_file.write(contents)
 
         datafile = Datafile(path=temporary_file.name, **kwargs)
-        datafile.to_cloud(cloud_path=storage.path.generate_gs_path(bucket_name, path_in_bucket))
+        datafile.to_cloud(cloud_path=cloud_path)
         return datafile, contents
 
     def test_instantiates(self):
@@ -108,28 +101,14 @@ class DatafileTestCase(BaseTestCase):
         with self.assertRaises(TypeError):
             Datafile(path="a_path") > "hello"
 
-    def test_checks_fail_when_file_doesnt_exist(self):
-        """Test that the checks fail if the file used to instantiate the datafile doesn't exist."""
-        path = "not_a_real_file.csv"
-        with self.assertRaises(exceptions.FileNotFoundException) as error:
-            Datafile(path=path, skip_checks=False)
-        self.assertIn("No file found at", error.exception.args[0])
-
-    def test_conflicting_extension_fails_check(self):
-        """Test that a conflicting extension parameter and extension on the file causes checks to fail."""
-        with self.assertRaises(exceptions.InvalidInputException) as error:
-            Datafile(path_from=self.path_from, path=self.path, skip_checks=False, extension="notcsv")
-
-        self.assertIn("Extension provided (notcsv) does not match file extension", error.exception.args[0])
-
     def test_file_attributes_accessible(self):
-        """Ensures that its possible to set the timestamp"""
-        df = self.create_valid_datafile()
-        self.assertIsInstance(df.size_bytes, int)
-        self.assertGreaterEqual(df._last_modified, 1598200190.5771205)
-        self.assertEqual("a_test_file.csv", df.name)
+        """Ensures that it's possible to set the timestamp."""
+        datafile = self.create_valid_datafile()
+        self.assertIsNone(datafile.size_bytes)
+        self.assertIsNone(datafile._last_modified)
+        self.assertEqual("a_test_file.csv", datafile.name)
 
-        df.timestamp = 0
+        datafile.timestamp = 0
 
     def test_cannot_set_calculated_file_attributes(self):
         """Ensures that calculated attributes cannot be set"""
@@ -174,15 +153,34 @@ class DatafileTestCase(BaseTestCase):
         second_file = copy.deepcopy(first_file)
         self.assertEqual(first_file.hash_value, second_file.hash_value)
 
+    def test_hash_only_depends_on_file_contents(self):
+        """Test that the hash of a datafile depends only on its file contents and not on e.g. its name or ID."""
+        first_file = self.create_valid_datafile()
+        second_file = copy.deepcopy(first_file)
+        second_file._name = "different"
+        second_file._id = "51f62f08-112c-44cb-9468-3e856d30a7ff"
+        self.assertEqual(first_file.hash_value, second_file.hash_value)
+
+    def test_hash_of_cloud_datafile_avoids_downloading_file(self):
+        """Test that getting/calculating the hash of a cloud datafile avoids downloading its contents."""
+        cloud_datafile, _ = self.create_datafile_in_cloud()
+        datafile_reloaded_from_cloud = Datafile(path=cloud_datafile.cloud_path)
+
+        # Calculate the hashes of the datafiles and check that they're equal.
+        self.assertEqual(datafile_reloaded_from_cloud.hash_value, cloud_datafile.hash_value)
+
+        # Check that the reloaded datafile hasn't been downloaded.
+        self.assertIsNone(datafile_reloaded_from_cloud._local_path)
+
     def test_exists_in_cloud(self):
         """Test whether it can be determined that a datafile exists in the cloud or not."""
         self.assertFalse(self.create_valid_datafile().exists_in_cloud)
-        self.assertTrue(Datafile(path="gs://hello/file.txt", hypothetical=True).exists_in_cloud)
+        self.assertTrue(Datafile(path="gs://hello/file.txt").exists_in_cloud)
 
     def test_exists_locally(self):
         """Test whether it can be determined that a datafile exists locally or not."""
         self.assertTrue(self.create_valid_datafile().exists_locally)
-        self.assertFalse(Datafile(path="gs://hello/file.txt", hypothetical=True).exists_locally)
+        self.assertFalse(Datafile(path="gs://hello/file.txt").exists_locally)
 
         datafile, _ = self.create_datafile_in_cloud()
         new_datafile = Datafile(datafile.cloud_path)
@@ -198,8 +196,7 @@ class DatafileTestCase(BaseTestCase):
         GoogleCloudStorageClient().upload_from_string(string=json.dumps({"height": 32}), cloud_path=path)
 
         datafile = Datafile(path=path)
-
-        self.assertEqual(datafile.path, path)
+        self.assertEqual(datafile.cloud_path, path)
         self.assertEqual(datafile.tags, TagDict())
         self.assertEqual(datafile.labels, LabelSet())
         self.assertTrue(isinstance(datafile.size_bytes, int))
@@ -224,7 +221,7 @@ class DatafileTestCase(BaseTestCase):
 
         datafile = Datafile(path=path, id=datafile_id, timestamp=timestamp, tags=tags, labels=labels)
 
-        self.assertEqual(datafile.path, path)
+        self.assertEqual(datafile.cloud_path, path)
         self.assertEqual(datafile.id, datafile_id)
         self.assertEqual(datafile.timestamp, timestamp)
         self.assertEqual(datafile.tags, tags)
@@ -242,7 +239,7 @@ class DatafileTestCase(BaseTestCase):
         )
 
         downloaded_datafile = Datafile(path=datafile.cloud_path)
-        self.assertEqual(downloaded_datafile.path, datafile.cloud_path)
+        self.assertEqual(downloaded_datafile.cloud_path, datafile.cloud_path)
         self.assertEqual(downloaded_datafile.id, datafile.id)
         self.assertEqual(downloaded_datafile.timestamp, datafile.timestamp)
         self.assertEqual(downloaded_datafile.hash_value, datafile.hash_value)
@@ -343,7 +340,7 @@ class DatafileTestCase(BaseTestCase):
     def test_local_path(self):
         """Test that a file in the cloud can be temporarily downloaded and its local path returned."""
         datafile, contents = self.create_datafile_in_cloud()
-        new_datafile = Datafile(datafile.path)
+        new_datafile = Datafile(datafile.cloud_path)
 
         with open(new_datafile.local_path) as f:
             self.assertEqual(f.read(), contents)
@@ -423,46 +420,13 @@ class DatafileTestCase(BaseTestCase):
 
         datafile = Datafile(path=temporary_file.name)
         serialised_datafile = datafile.to_primitive()
-        deserialised_datafile = Datafile.deserialise(serialised_datafile)
 
+        deserialised_datafile = Datafile.deserialise(serialised_datafile)
         self.assertEqual(datafile.id, deserialised_datafile.id)
         self.assertEqual(datafile.name, deserialised_datafile.name)
-        self.assertEqual(datafile.path, deserialised_datafile.path)
-        self.assertEqual(datafile.absolute_path, deserialised_datafile.absolute_path)
+        self.assertEqual(datafile.local_path, deserialised_datafile.local_path)
         self.assertEqual(datafile.hash_value, deserialised_datafile.hash_value)
         self.assertEqual(datafile.size_bytes, deserialised_datafile.size_bytes)
-
-    def test_deserialise_uses_path_from_if_path_is_relative(self):
-        """Test that Datafile.deserialise uses the path_from parameter if the datafile's path is relative."""
-        with tempfile.NamedTemporaryFile("w", dir=os.getcwd(), delete=False) as temporary_file:
-            temporary_file.write("hello")
-
-        filename = os.path.split(temporary_file.name)[-1]
-        datafile = Datafile(path=filename)
-        serialised_datafile = datafile.to_primitive()
-
-        pathable = Pathable(path=os.path.join(os.sep, "an", "absolute", "path"))
-        deserialised_datafile = Datafile.deserialise(serialised_datafile, path_from=pathable)
-
-        self.assertEqual(datafile.id, deserialised_datafile.id)
-        self.assertEqual(deserialised_datafile.absolute_path, os.path.join(pathable.absolute_path, filename))
-
-        os.remove(temporary_file.name)
-
-    def test_deserialise_ignores_path_from_if_path_is_absolute(self):
-        """Test that Datafile.deserialise ignores the path_from parameter if the datafile's path is absolute."""
-        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
-            temporary_file.write("hello")
-
-        datafile = Datafile(path=temporary_file.name)
-        serialised_datafile = datafile.to_primitive()
-
-        pathable = Pathable(path=os.path.join(os.sep, "an", "absolute", "path"))
-        deserialised_datafile = Datafile.deserialise(serialised_datafile, path_from=pathable)
-
-        self.assertEqual(datafile.id, deserialised_datafile.id)
-        self.assertFalse(pathable.path in deserialised_datafile.path)
-        self.assertEqual(deserialised_datafile.path, temporary_file.name)
 
     def test_posix_timestamp(self):
         """Test that the posix timestamp property works properly."""
@@ -565,6 +529,7 @@ class DatafileTestCase(BaseTestCase):
 
         finally:
             os.remove("blah.txt")
+            os.remove(".octue")
 
     def test_setting_local_path_to_path_corresponding_to_existing_file_fails(self):
         """Ensure that a datafile's local path cannot be set to an existing file's path."""
@@ -580,9 +545,7 @@ class DatafileTestCase(BaseTestCase):
         cloud file as well as any local changes.
         """
         try:
-            datafile, original_contents = self.create_datafile_in_cloud(
-                bucket_name=TEST_BUCKET_NAME, path_in_bucket="cloud_file.txt"
-            )
+            datafile, original_contents = self.create_datafile_in_cloud()
             datafile.local_path = "blib.txt"
 
             self.assertEqual(datafile.cloud_path, storage.path.generate_gs_path(TEST_BUCKET_NAME, "cloud_file.txt"))
@@ -605,7 +568,7 @@ class DatafileTestCase(BaseTestCase):
 
     def test_cloud_path_property(self):
         """Test that the cloud path property returns the expected value."""
-        datafile = Datafile(path="gs://blah/no.txt", hypothetical=True)
+        datafile = Datafile(path="gs://blah/no.txt")
         self.assertEqual(datafile.cloud_path, "gs://blah/no.txt")
 
     def test_setting_cloud_path_property(self):
@@ -680,7 +643,7 @@ class DatafileTestCase(BaseTestCase):
 
     def test_bucket_name_and_path_in_bucket_properties(self):
         """Test the bucket_name and path_in_bucket properties work as expected for cloud and local datafiles."""
-        datafile = Datafile(path="gs://my-bucket/directory/hello.txt", hypothetical=True)
+        datafile = Datafile(path="gs://my-bucket/directory/hello.txt")
         self.assertEqual(datafile.bucket_name, "my-bucket")
         self.assertEqual(datafile.path_in_bucket, "directory/hello.txt")
 
@@ -755,3 +718,145 @@ class DatafileTestCase(BaseTestCase):
                 with self.assertRaises(ImportError):
                     with datafile.open("w") as f:
                         f["dataset"] = range(10)
+
+    def test_metadata_is_saved_locally_when_in_write_mode_and_is_loaded_on_new_instantiation(self):
+        """Test that metadata for a local datafile is saved locally if in write mode and loaded in new instantiations of
+        the same file.
+        """
+        new_labels = {"yes", "no", "maybe"}
+
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            with Datafile(path=temporary_file.name, mode="w") as (datafile, f):
+                datafile.labels = new_labels
+
+            reloaded_datafile = Datafile(path=temporary_file.name)
+            self.assertEqual(reloaded_datafile.labels, new_labels)
+            self.assertEqual(reloaded_datafile.id, datafile.id)
+            self.assertEqual(reloaded_datafile.hash_value, datafile.hash_value)
+
+    def test_local_metadata_is_not_saved_locally_if_changed_in_read_mode(self):
+        """Test that local metadata for a datafile is not saved if changed in read mode."""
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            with Datafile(path=temporary_file.name, mode="r") as (datafile, f):
+                datafile.labels = {"yes", "no", "maybe"}
+
+            reloaded_datafile = Datafile(path=temporary_file.name)
+            self.assertEqual(reloaded_datafile.labels, LabelSet())
+            self.assertEqual(reloaded_datafile.hash_value, datafile.hash_value)
+
+    def test_local_metadata_is_updated_if_changed_in_write_mode(self):
+        """Test that local metadata for a datafile is updated if the datafile's metadata is updated in write mode."""
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            with Datafile(path=temporary_file.name, mode="w") as (datafile, f):
+                datafile.labels = {"yes", "no", "maybe"}
+
+            self.assertEqual(datafile.labels, {"yes", "no", "maybe"})
+            self.assertEqual(datafile.tags, {})
+
+            # Change the labels and tags.
+            with Datafile(path=temporary_file.name, mode="w") as (reloaded_datafile, f):
+                reloaded_datafile.labels = {"blah", "nah"}
+                reloaded_datafile.tags = {"my_tag": "hello"}
+
+            # Check that the local metadata for the file is updated.
+            datafile_reloaded_again = Datafile(path=temporary_file.name)
+            self.assertEqual(datafile_reloaded_again.labels, {"blah", "nah"})
+            self.assertEqual(datafile_reloaded_again.tags, {"my_tag": "hello"})
+            self.assertEqual(datafile_reloaded_again.id, datafile.id)
+            self.assertEqual(datafile_reloaded_again.hash_value, datafile.hash_value)
+
+    def test_pickle_datafile(self):
+        """Test that datafiles can be pickled and unpickled. This allows them to be copied by e.g. `copy.copy`."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with Datafile(path=os.path.join(temporary_directory, "my-file.dat"), mode="w") as (datafile, f):
+                f.write("hello")
+
+        picked_datafile = pickle.dumps(datafile)
+        unpickled_datafile = pickle.loads(picked_datafile)
+
+        self.assertEqual(datafile.name, unpickled_datafile.name)
+        self.assertEqual(datafile.labels, unpickled_datafile.labels)
+        self.assertEqual(datafile.tags, unpickled_datafile.tags)
+        self.assertEqual(datafile.id, unpickled_datafile.id)
+        self.assertEqual(datafile.hash_value, unpickled_datafile.hash_value)
+
+    def test_stored_metadata_has_priority_over_instantiation_metadata_if_not_hypothetical(self):
+        """Test that stored metadata is used instead of instantiation metadata if `hypothetical` is `False`."""
+        cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "existing_datafile.dat")
+
+        # Create a datafile in the cloud and set some metadata on it.
+        with Datafile(cloud_path, mode="w") as (datafile, f):
+            datafile.tags = {"existing": True}
+
+        # Load it separately from the cloud object and check that the stored metadata is used instead of the
+        # instantiation metadata.
+        with self.assertLogs() as logging_context:
+            reloaded_datafile = Datafile(cloud_path, tags={"new": "tag"})
+
+        self.assertEqual(reloaded_datafile.tags, {"existing": True})
+        self.assertIn("Overriding metadata given at instantiation with stored metadata", logging_context.output[0])
+
+    def test_instantiation_metadata_used_if_not_hypothetical_but_no_stored_metadata(self):
+        """Test that instantiation metadata is used if `hypothetical` is `False` but there's no stored metadata."""
+        cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "non_existing_datafile.dat")
+        datafile = Datafile(cloud_path, tags={"new": "tag"})
+        self.assertEqual(datafile.tags, {"new": "tag"})
+
+    def test_stored_metadata_ignored_if_hypothetical_is_true(self):
+        """Test that instantiation metadata is used instead of stored metadata if `hypothetical` is `True`."""
+        cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "existing_datafile.dat")
+
+        # Create a datafile in the cloud and set some metadata on it.
+        with Datafile(cloud_path, mode="w") as (datafile, f):
+            datafile.tags = {"existing": True}
+
+        # Load it separately from the cloud object and check that the instantiation metadata is used instead of the
+        # stored metadata.
+        reloaded_datafile = Datafile(cloud_path, tags={"new": "tag"}, hypothetical=True)
+        self.assertEqual(reloaded_datafile.tags, {"new": "tag"})
+
+    def test_error_raised_if_attempting_to_generate_signed_url_for_local_datafile(self):
+        """Test that an error is raised if trying to generate a signed URL for a local datafile."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with Datafile(path=os.path.join(temporary_directory, "my-file.dat"), mode="w") as (datafile, f):
+                f.write("I will be signed")
+
+            with self.assertRaises(exceptions.CloudLocationNotSpecified):
+                datafile.generate_signed_url()
+
+    def test_generating_signed_url_from_datafile_and_recreating_datafile_from_it(self):
+        """Test that a signed URL can be generated for a datafile and used to recreate the datafile without any extra
+        permissions.
+        """
+        with tempfile.TemporaryDirectory() as temporary_directory:
+
+            with Datafile(path=os.path.join(temporary_directory, "my-file.dat"), mode="w") as (datafile, f):
+                f.write("I will be signed")
+
+            datafile.to_cloud(storage.path.generate_gs_path(TEST_BUCKET_NAME, "directory", "my-file.dat"))
+
+        with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
+            signed_url = datafile.generate_signed_url()
+
+        # Ensure the GOOGLE_APPLICATION_CREDENTIALS environment variable isn't available to ensure the signed URL works
+        # without any extra permissions.
+        with patch.dict(os.environ, clear=True):
+            with Datafile(path=signed_url) as (_, f):
+                self.assertEqual(f.read(), "I will be signed")
+
+    def test_error_raised_if_trying_to_modify_signed_url_datafile(self):
+        """Test that an error is raised if trying to modify a datafile instantiated from a signed URL."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+
+            with Datafile(path=os.path.join(temporary_directory, "my-file.dat"), mode="w") as (datafile, f):
+                f.write("I will be signed")
+
+            datafile.to_cloud(storage.path.generate_gs_path(TEST_BUCKET_NAME, "directory", "my-file.dat"))
+
+        with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
+            signed_url = datafile.generate_signed_url()
+
+        with patch.dict(os.environ, clear=True):
+            with self.assertRaises(exceptions.ReadOnlyResource):
+                with Datafile(path=signed_url, mode="w") as (_, f):
+                    f.write("Text I'm not allowed to write.")

@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 import tempfile
@@ -5,8 +6,10 @@ from unittest.mock import patch
 
 import google.api_core.exceptions
 import google.cloud.exceptions
+import requests
 
 from octue.cloud import storage
+from octue.cloud.emulators import mock_generate_signed_url
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudStorageBucketNotFound
 from tests import TEST_BUCKET_NAME
@@ -285,14 +288,6 @@ class TestGoogleCloudStorageClient(BaseTestCase):
 
         self.assertEqual(metadata["custom_metadata"], {"this": "is-not-json-encoded"})
 
-    def test_create_intermediate_local_directories(self):
-        """Test that intermediate directories are created for the given path to a file."""
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            self.storage_client._create_intermediate_local_directories(
-                os.path.join(temporary_directory, "bam", "jam", "wam.csv")
-            )
-            self.assertTrue(os.path.exists(os.path.join(temporary_directory, "bam", "jam")))
-
     def test_exists(self):
         """Test that an existing cloud file shows as existing."""
         path_to_existing_file = storage.path.generate_gs_path(TEST_BUCKET_NAME, "blah")
@@ -311,3 +306,19 @@ class TestGoogleCloudStorageClient(BaseTestCase):
                 cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "does", "not", "exist.json")
             )
         )
+
+    def test_generate_signed_url(self):
+        """Test that a signed URL to a cloud object can be generated and used to access the file."""
+        cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "blah")
+        self.storage_client.upload_from_string(string="some stuff", cloud_path=cloud_path)
+
+        with patch("google.cloud.storage.blob.Blob.generate_signed_url", mock_generate_signed_url):
+            url = self.storage_client.generate_signed_url(cloud_path, expiration=datetime.timedelta(seconds=1))
+
+        # Ensure the GOOGLE_APPLICATION_CREDENTIALS environment variable isn't available.
+        with patch.dict(os.environ, clear=True):
+
+            # Test that the signed URL works.
+            response = requests.get(url)
+            self.assertEqual(requests.get(url).status_code, 200)
+            self.assertEqual(response.text, "some stuff")

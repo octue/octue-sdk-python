@@ -1,7 +1,9 @@
 import logging
 import time
+from datetime import datetime
 
 import google.api_core.exceptions
+from google.pubsub_v1.types.pubsub import Topic as Topic_
 
 
 logger = logging.getLogger(__name__)
@@ -40,13 +42,20 @@ class Topic:
         :param bool allow_existing: if `False`, raise an error if a topic of this name already exists; if `True`, do nothing (the existing topic is not overwritten)
         :return None:
         """
+        posix_timestamp_with_no_decimals = str(datetime.now().timestamp()).split(".")[0]
+
         if not allow_existing:
-            self.service.publisher.create_topic(name=self.path)
+            self.service.publisher.create_topic(
+                request=Topic_(name=self.path, labels={"created": posix_timestamp_with_no_decimals})
+            )
+
             self._log_creation()
             return
 
         try:
-            self.service.publisher.create_topic(name=self.path)
+            self.service.publisher.create_topic(
+                request=Topic_(name=self.path, labels={"created": posix_timestamp_with_no_decimals})
+            )
         except google.api_core.exceptions.AlreadyExists:
             pass
         self._log_creation()

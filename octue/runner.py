@@ -1,12 +1,16 @@
 import importlib
 import logging
 import os
+import re
 import sys
 
 import google.api_core.exceptions
+from google import auth
 from google.cloud import secretmanager
+from jsonschema import ValidationError, validate as jsonschema_validate
 
-from octue.cloud.credentials import GCPCredentialsManager
+import twined.exceptions
+from octue import exceptions
 from octue.log_handlers import apply_log_handler, create_octue_formatter, get_log_record_attributes_for_environment
 from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
@@ -27,9 +31,8 @@ class Runner:
     :param str|twined.Twine twine: path to the twine file, a string containing valid twine json, or a Twine instance
     :param str|dict|_io.TextIOWrapper|None configuration_values: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|dict|_io.TextIOWrapper|None configuration_manifest: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
-    :param Union[str, path-like, None] output_manifest_path: Path where output data will be written
     :param Union[str, dict, None] children: The children strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
-    :param bool skip_checks: If true, skip the check that all files in the manifest are present on disc - this can be an extremely long process for large datasets.
+    :param str|None output_location: the path to a cloud directory to save output datasets at
     :param str|None project_name: name of Google Cloud project to get credentials from
     :return None:
     """
@@ -40,15 +43,19 @@ class Runner:
         twine="twine.json",
         configuration_values=None,
         configuration_manifest=None,
-        output_manifest_path=None,
         children=None,
-        skip_checks=False,
+        output_location=None,
         project_name=None,
     ):
         self.app_src = app_src
-        self.output_manifest_path = output_manifest_path
         self.children = children
-        self.skip_checks = skip_checks
+
+        if output_location and not re.match(r"^gs://[a-z\d][a-z\d_./-]*$", output_location):
+            raise exceptions.InvalidInputException(
+                "The output location must be a Google Cloud Storage path e.g. 'gs://bucket-name/output_directory'."
+            )
+
+        self.output_location = output_location
 
         # Ensure the twine is present and instantiate it.
         if isinstance(twine, Twine):
@@ -104,6 +111,12 @@ class Runner:
         )
         logger.debug("Inputs validated.")
 
+        for manifest_strand in self.twine.available_manifest_strands:
+            if manifest_strand == "output_manifest":
+                continue
+
+            self._validate_dataset_file_tags(manifest_kind=manifest_strand, manifest=inputs[manifest_strand])
+
         if inputs["children"] is not None:
             inputs["children"] = {
                 child["key"]: Child(name=child["key"], id=child["id"], backend=child["backend"])
@@ -112,13 +125,12 @@ class Runner:
 
         outputs_and_monitors = self.twine.prepare("monitor_message", "output_values", "output_manifest", cls=CLASS_MAP)
 
-        # TODO this is hacky, we need to rearchitect the twined validation so we can do this kind of thing in there
-        outputs_and_monitors["output_manifest"] = self._update_manifest_path(
-            outputs_and_monitors.get("output_manifest", None),
-            self.output_manifest_path,
-        )
-
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
+
+        if analysis_log_handler:
+            extra_log_handlers = [analysis_log_handler]
+        else:
+            extra_log_handlers = None
 
         # Temporarily replace the root logger's handlers with a `StreamHandler` and the analysis log handler that
         # include the analysis ID in the logging metadata.
@@ -126,14 +138,14 @@ class Runner:
             analysis_id=analysis_id,
             logger=logging.getLogger(),
             analysis_log_level=analysis_log_level,
-            extra_log_handlers=[analysis_log_handler],
+            extra_log_handlers=extra_log_handlers,
         ):
 
             analysis = Analysis(
                 id=analysis_id,
                 twine=self.twine,
                 handle_monitor_message=handle_monitor_message,
-                skip_checks=self.skip_checks,
+                output_location=self.output_location,
                 **self.configuration,
                 **inputs,
                 **outputs_and_monitors,
@@ -172,23 +184,6 @@ class Runner:
 
             return analysis
 
-    @staticmethod
-    def _update_manifest_path(manifest, pathname):
-        """Change a manifest's path to its directory if the path currently points to a JSON file. This is a quick hack
-        to stitch the new Pathable functionality in the 0.1.4 release into the CLI and runner. The way we define a
-        manifest path can be more robustly implemented as we migrate functionality into the twined library.
-
-        :param octue.resources.manifest.Manifest|None manifest:
-        :param str pathname:
-        :return octue.resources.manifest.Manifest:
-        """
-        if manifest is not None and hasattr(pathname, "endswith"):
-            if pathname.endswith(".json"):
-                manifest.path = os.path.split(pathname)[0]
-
-        # Otherwise do nothing and rely on manifest having its path variable set already
-        return manifest
-
     def _populate_environment_with_google_cloud_secrets(self):
         """Get any secrets specified in the credentials strand from Google Cloud Secret Manager and put them in the
         local environment, ready for use by the runner.
@@ -202,13 +197,11 @@ class Runner:
         if not missing_credentials:
             return
 
-        google_cloud_credentials = GCPCredentialsManager().get_credentials()
+        google_cloud_credentials, project_name = auth.default()
         secrets_client = secretmanager.SecretManagerServiceClient(credentials=google_cloud_credentials)
 
         if google_cloud_credentials is None:
             project_name = self._project_name
-        else:
-            project_name = google_cloud_credentials.project_id
 
         for credential in missing_credentials:
             secret_path = secrets_client.secret_version_path(
@@ -222,6 +215,31 @@ class Runner:
                 continue
 
             os.environ[credential["name"]] = secret
+
+    def _validate_dataset_file_tags(self, manifest_kind, manifest):
+        """Validate the tags of the files of each dataset in the manifest against the file tags template in the
+        corresponding dataset field in the given manifest field of the twine.
+
+        :param str manifest_kind: the kind of manifest that's being validated (so the correct schema can be accessed)
+        :param octue.resources.manifest.Manifest manifest: the manifest whose datasets' files are to be validated
+        :return None:
+        """
+        # This is the manifest schema included in the twine.json file, not the schema for `manifest.json` files.
+        manifest_schema = getattr(self.twine, manifest_kind)
+
+        for dataset_name, dataset_schema in manifest_schema["datasets"].items():
+            dataset = manifest.datasets.get(dataset_name)
+            file_tags_template = dataset_schema.get("file_tags_template")
+
+            # Allow optional datasets in future (not currently allowed by `twined`).
+            if not (dataset and file_tags_template):
+                continue
+
+            for file in dataset.files:
+                try:
+                    jsonschema_validate(instance=dict(file.tags), schema=file_tags_template)
+                except ValidationError as e:
+                    raise twined.exceptions.invalid_contents_map[manifest_kind](str(e))
 
 
 def unwrap(fcn):
@@ -322,8 +340,10 @@ class AnalysisLogHandlerSwitcher:
         self._remove_log_handlers()
 
         # Add the analysis ID to the logging metadata.
-        log_record_attributes = get_log_record_attributes_for_environment() + [f"analysis-{self.analysis_id}"]
-        formatter = create_octue_formatter(log_record_attributes=log_record_attributes)
+        formatter = create_octue_formatter(
+            get_log_record_attributes_for_environment(),
+            [f"analysis-{self.analysis_id}"],
+        )
 
         # Apply a local console `StreamHandler` to the logger.
         apply_log_handler(formatter=formatter, log_level=self.analysis_log_level)

@@ -22,9 +22,10 @@ class TestStorage(BaseTestCase):
     def test_split_bucket_name_from_gs_path(self):
         """Test that the bucket name can be split from the path in a gs path."""
         self.assertEqual(
-            storage.path.split_bucket_name_from_gs_path("gs://my-bucket/path/file.txt"), ("my-bucket", "path/file.txt")
+            storage.path.split_bucket_name_from_cloud_path("gs://my-bucket/path/file.txt"),
+            ("my-bucket", "path/file.txt"),
         )
-        self.assertEqual(storage.path.split_bucket_name_from_gs_path("gs://my-bucket"), ("my-bucket", ""))
+        self.assertEqual(storage.path.split_bucket_name_from_cloud_path("gs://my-bucket"), ("my-bucket", ""))
 
     def test_strip_protocol_from_path(self):
         """Test that the `gs://` protocol can be stripped from a path."""

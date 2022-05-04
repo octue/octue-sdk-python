@@ -112,3 +112,11 @@ class CloudStorageBucketNotFound(OctueSDKException):
 
 class AbandonAnalysis(OctueSDKException):
     """Raise to abandon the current analysis but remain running for new analyses."""
+
+
+class PushSubscriptionCannotBePulled(OctueSDKException):
+    """Raise if attempting to pull a push subscription."""
+
+
+class ReadOnlyResource(OctueSDKException):
+    """Raise if attempting to alter a read-only resource."""

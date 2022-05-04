@@ -10,12 +10,15 @@ from abc import ABC
 from octue import exceptions
 
 
-def get_backend(backend_name):
+def get_backend(backend_name=None):
     """Get the service backend with the given name.
 
-    :param str backend_name:
+    :param str|None backend_name: if `None`, return the `GCPPubSubBackend`
     :return ServiceBackend:
     """
+    if not backend_name:
+        return GCPPubSubBackend
+
     if backend_name not in AVAILABLE_BACKENDS:
         raise exceptions.BackendNotFound(
             f"Backend with name {backend_name} not found. Available backends are {list(AVAILABLE_BACKENDS.keys())}"
@@ -28,25 +31,25 @@ class ServiceBackend(ABC):
     """A dataclass specifying the backend for an Octue Service, including any credentials and other information it
     needs.
 
-    :param str|None credentials_environment_variable:
     :return None:
     """
-
-    def __init__(self, credentials_environment_variable):
-        self.credentials_environment_variable = credentials_environment_variable
 
 
 class GCPPubSubBackend(ServiceBackend):
     """A dataclass containing the details needed to use Google Cloud Platform Pub/Sub as a Service backend.
 
     :param str project_name:
-    :param str|None credentials_environment_variable:
     :return None:
     """
 
-    def __init__(self, project_name, credentials_environment_variable="GOOGLE_APPLICATION_CREDENTIALS"):
+    def __init__(self, project_name):
+        if project_name is None:
+            raise exceptions.CloudLocationNotSpecified(
+                "The project name must be specified for a service to connect to the correct Google Cloud Pub/Sub "
+                f"instance - it's currently {project_name!r}.",
+            )
+
         self.project_name = project_name
-        super().__init__(credentials_environment_variable)
 
     def __repr__(self):
         return f"<{type(self).__name__}(project_name={self.project_name!r})>"

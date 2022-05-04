@@ -1,3 +1,4 @@
+import copy
 import functools
 import importlib.util
 import logging
@@ -6,9 +7,11 @@ import sys
 
 import click
 import pkg_resources
+from google import auth
 
 from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
 from octue.cloud.pub_sub.service import Service
+from octue.configuration import load_service_and_app_configuration
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.exceptions import DeploymentError
 from octue.log_handlers import apply_log_handler, get_remote_handler
@@ -16,13 +19,6 @@ from octue.resources import service_backends
 from octue.runner import Runner
 from twined import Twine
 
-
-# Import the Dataflow deployer only if the `apache-beam` package is available (due to installing `octue` with the
-# `dataflow` extras option).
-APACHE_BEAM_PACKAGE_AVAILABLE = bool(importlib.util.find_spec("apache_beam"))
-
-if APACHE_BEAM_PACKAGE_AVAILABLE:
-    from octue.cloud.deployment.google.dataflow.deployer import DataflowDeployer
 
 logger = logging.getLogger(__name__)
 
@@ -36,13 +32,6 @@ global_cli_context = {}
     type=click.UUID,
     show_default=True,
     help="UUID of the analysis being undertaken. None (for local use) will cause a unique ID to be generated.",
-)
-@click.option(
-    "--skip-checks/--no-skip-checks",
-    default=False,
-    is_flag=True,
-    show_default=True,
-    help="Skips the input checking. This can be a timesaver if you already checked data directories (especially if manifests are large).",
 )
 @click.option("--logger-uri", default=None, show_default=True, help="Stream logs to a websocket at the given URI.")
 @click.option(
@@ -60,7 +49,7 @@ global_cli_context = {}
     help="Forces a reset of analysis cache and outputs [For future use, currently not implemented]",
 )
 @click.version_option(version=pkg_resources.get_distribution("octue").version)
-def octue_cli(id, skip_checks, logger_uri, log_level, force_reset):
+def octue_cli(id, logger_uri, log_level, force_reset):
     """Octue CLI, enabling a data service / digital twin to be run like a command line application.
 
     When acting in CLI mode, results are read from and written to disk (see
@@ -68,7 +57,6 @@ def octue_cli(id, skip_checks, logger_uri, log_level, force_reset):
     Once your application has run, you'll be able to find output values and manifest in your specified --output-dir.
     """
     global_cli_context["analysis_id"] = id
-    global_cli_context["skip_checks"] = skip_checks
     global_cli_context["logger_uri"] = logger_uri
     global_cli_context["log_handler"] = None
     global_cli_context["log_level"] = log_level.upper()
@@ -110,20 +98,11 @@ def octue_cli(id, skip_checks, logger_uri, log_level, force_reset):
     show_default=True,
     help="Directory containing input (overrides --data-dir).",
 )
-@click.option(
-    "--output-dir",
-    type=click.Path(),
-    default=None,
-    show_default=True,
-    help="Directory to write outputs as files (overrides --data-dir).",
-)
 @click.option("--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.")
-def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
+def run(app_dir, data_dir, config_dir, input_dir, twine):
     """Run an analysis on the given input data."""
     config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
     input_dir = input_dir or os.path.join(data_dir, FOLDER_DEFAULTS["input"])
-    output_dir = output_dir or os.path.join(data_dir, FOLDER_DEFAULTS["output"])
-
     twine = Twine(source=twine)
 
     (
@@ -148,9 +127,7 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
         twine=twine,
         configuration_values=configuration_values,
         configuration_manifest=configuration_manifest,
-        output_manifest_path=os.path.join(output_dir, MANIFEST_FILENAME),
         children=children,
-        skip_checks=global_cli_context["skip_checks"],
     )
 
     analysis = runner.run(
@@ -161,67 +138,42 @@ def run(app_dir, data_dir, config_dir, input_dir, output_dir, twine):
         analysis_log_handler=global_cli_context["log_handler"],
     )
 
-    analysis.finalise(output_dir=output_dir)
+    analysis.finalise()
     return 0
 
 
 @octue_cli.command()
 @click.option(
-    "--app-dir",
-    type=click.Path(),
-    default=".",
-    show_default=True,
-    help="Directory containing your source code (app.py)",
-)
-@click.option(
-    "--data-dir",
-    type=click.Path(),
-    default=".",
-    show_default=True,
-    help="Location of directories containing configuration values and manifest.",
-)
-@click.option(
-    "--config-dir",
-    type=click.Path(),
-    default=None,
-    show_default=True,
-    help="Directory containing configuration (overrides --data-dir).",
+    "--service-configuration-path",
+    type=click.Path(dir_okay=False),
+    default="octue.yaml",
+    help="The path to an `octue.yaml` file defining the service to start.",
 )
 @click.option(
     "--service-id",
     type=click.STRING,
     help="The unique ID of the server (this should be unique over all time and space).",
 )
-@click.option("--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.")
 @click.option("--timeout", type=click.INT, default=None, show_default=True, help="Timeout in seconds for serving.")
 @click.option(
+    "--rm",
     "--delete-topic-and-subscription-on-exit",
     is_flag=True,
     default=False,
     show_default=True,
-    help="Delete Google Pub/Sub topics and subscriptions on exit.",
+    help="Delete the Google Pub/Sub topic and subscription for the service on exit.",
 )
-def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topic_and_subscription_on_exit):
-    """Start the service as a server to be asked questions by other services."""
-    config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
-    twine = Twine(source=twine)
-
-    configuration_values, configuration_manifest, children = set_unavailable_strand_paths_to_none(
-        twine,
-        (
-            ("configuration_values", os.path.join(config_dir, VALUES_FILENAME)),
-            ("configuration_manifest", os.path.join(config_dir, MANIFEST_FILENAME)),
-            ("children", os.path.join(config_dir, CHILDREN_FILENAME)),
-        ),
-    )
+def start(service_configuration_path, service_id, timeout, rm):
+    """Start the service as a child to be asked questions by other services."""
+    service_configuration, app_configuration = load_service_and_app_configuration(service_configuration_path)
 
     runner = Runner(
-        app_src=app_dir,
-        twine=twine,
-        configuration_values=configuration_values,
-        configuration_manifest=configuration_manifest,
-        children=children,
-        skip_checks=global_cli_context["skip_checks"],
+        app_src=service_configuration.app_source_path,
+        twine=Twine(source=service_configuration.twine_path),
+        configuration_values=app_configuration.configuration_values,
+        configuration_manifest=app_configuration.configuration_manifest,
+        children=app_configuration.children,
+        output_location=app_configuration.output_location,
     )
 
     run_function = functools.partial(
@@ -230,13 +182,24 @@ def start(app_dir, data_dir, config_dir, service_id, twine, timeout, delete_topi
         analysis_log_handler=global_cli_context["log_handler"],
     )
 
-    backend_configuration_values = runner.configuration["configuration_values"]["backend"]
-    backend = service_backends.get_backend(backend_configuration_values.pop("name"))(**backend_configuration_values)
+    backend_configuration_values = (app_configuration.configuration_values or {}).get("backend")
 
-    service = Service(service_id=service_id, backend=backend, run_function=run_function)
+    if backend_configuration_values:
+        backend_configuration_values = copy.deepcopy(backend_configuration_values)
+        backend = service_backends.get_backend(backend_configuration_values.pop("name"))(**backend_configuration_values)
+    else:
+        # If no backend details are provided, use Google Pub/Sub with the default project.
+        _, project_name = auth.default()
+        backend = service_backends.get_backend()(project_name=project_name)
 
-    logger.info("Starting service with ID %r.", service.id)
-    service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=delete_topic_and_subscription_on_exit)
+    service = Service(
+        name=service_configuration.name,
+        service_id=service_id,
+        backend=backend,
+        run_function=run_function,
+    )
+
+    service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=rm)
 
 
 @octue_cli.group()
@@ -292,7 +255,11 @@ def cloud_run(octue_configuration_path, service_id, update, no_cache):
 @click.option("--image-uri", type=str, default=None, help="The actual image URI to use when creating the Dataflow job.")
 def dataflow(octue_configuration_path, service_id, no_cache, update, dataflow_job_only, image_uri):
     """Deploy an app as a Google Dataflow streaming job."""
-    if not APACHE_BEAM_PACKAGE_AVAILABLE:
+    if bool(importlib.util.find_spec("apache_beam")):
+        # Import the Dataflow deployer only if the `apache-beam` package is available (due to installing `octue` with
+        # the `dataflow` extras option).
+        from octue.cloud.deployment.google.dataflow.deployer import DataflowDeployer
+    else:
         raise ImportWarning(
             "To use this CLI command, you must install `octue` with the `dataflow` option e.g. "
             "`pip install octue[dataflow]`"

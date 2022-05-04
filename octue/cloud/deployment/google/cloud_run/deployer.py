@@ -36,13 +36,9 @@ class CloudRunDeployer(BaseDeployer):
 
     def __init__(self, octue_configuration_path, service_id=None, image_uri_template=None):
         super().__init__(octue_configuration_path, service_id, image_uri_template)
-        self.build_trigger_description = f"Build the {self.name!r} service and deploy it to Cloud Run."
-
-        # Optional configuration file entries.
-        self.concurrency = self._service.get("concurrency", 10)
-        self.memory = self._service.get("memory", "128Mi")
-        self.cpus = self._service.get("cpus", 1)
-        self.minimum_instances = self._service.get("minimum_instances", 0)
+        self.build_trigger_description = (
+            f"Build the {self.service_configuration.name!r} service and deploy it to Cloud Run."
+        )
 
     def deploy(self, no_cache=False, update=False):
         """Create a Google Cloud Build configuration from the `octue.yaml` file, create a build trigger, and run the
@@ -78,9 +74,10 @@ class CloudRunDeployer(BaseDeployer):
             self.TOTAL_NUMBER_OF_STAGES,
         ) as progress_message:
 
-            if self.provided_cloud_build_configuration_path:
+            if self.service_configuration.provided_cloud_build_configuration_path:
                 progress_message.finish_message = (
-                    f"skipped - using {self.provided_cloud_build_configuration_path!r} from repository."
+                    f"skipped - using {self.service_configuration.provided_cloud_build_configuration_path!r} from "
+                    "repository."
                 )
                 return
 
@@ -92,7 +89,10 @@ class CloudRunDeployer(BaseDeployer):
                 cache_option = []
 
             environment_variables = ",".join(
-                [f"{variable['name']}={variable['value']}" for variable in self.environment_variables]
+                [
+                    f"{variable['name']}={variable['value']}"
+                    for variable in self.service_configuration.environment_variables
+                ]
                 + [f"{name}={value}" for name, value in self.required_environment_variables.items()]
             )
 
@@ -136,17 +136,17 @@ class CloudRunDeployer(BaseDeployer):
                             "run",
                             "services",
                             "update",
-                            self.name,
+                            self.service_configuration.name,
                             "--platform=managed",
                             f"--image={self.image_uri_template}",
-                            f"--region={self.region}",
-                            f"--memory={self.memory}",
-                            f"--cpu={self.cpus}",
+                            f"--region={self.service_configuration.region}",
+                            f"--memory={self.service_configuration.memory}",
+                            f"--cpu={self.service_configuration.cpus}",
                             f"--set-env-vars={environment_variables}",
                             "--timeout=3600",
-                            f"--concurrency={self.concurrency}",
-                            f"--min-instances={self.minimum_instances}",
-                            f"--max-instances={self.maximum_instances}",
+                            f"--concurrency={self.service_configuration.concurrency}",
+                            f"--min-instances={self.service_configuration.minimum_instances}",
+                            f"--max-instances={self.service_configuration.maximum_instances}",
                             "--ingress=internal",
                         ],
                     },
@@ -164,12 +164,12 @@ class CloudRunDeployer(BaseDeployer):
         with ProgressMessage("Making service available via Pub/Sub", 4, self.TOTAL_NUMBER_OF_STAGES):
             allow_unauthenticated_messages_command = [
                 "gcloud",
-                f"--project={self.project_name}",
+                f"--project={self.service_configuration.project_name}",
                 "run",
                 "services",
                 "add-iam-policy-binding",
-                self.name,
-                f"--region={self.region}",
+                self.service_configuration.name,
+                f"--region={self.service_configuration.region}",
                 "--member=allUsers",
                 "--role=roles/run.invoker",
             ]
@@ -189,21 +189,24 @@ class CloudRunDeployer(BaseDeployer):
             5,
             self.TOTAL_NUMBER_OF_STAGES,
         ) as progress_message:
-            service = Service(backend=GCPPubSubBackend(project_name=self.project_name), service_id=self.service_id)
+            service = Service(
+                backend=GCPPubSubBackend(project_name=self.service_configuration.project_name),
+                service_id=self.service_id,
+            )
             topic = Topic(name=self.service_id, namespace=OCTUE_NAMESPACE, service=service)
             topic.create(allow_existing=True)
 
             command = [
                 "gcloud",
-                f"--project={self.project_name}",
+                f"--project={self.service_configuration.project_name}",
                 "beta",
                 "eventarc",
                 "triggers",
                 "create",
-                f"{self.name}-trigger",
+                f"{self.service_configuration.name}-trigger",
                 "--matching-criteria=type=google.cloud.pubsub.topic.v1.messagePublished",
-                f"--destination-run-service={self.name}",
-                f"--location={self.region}",
+                f"--destination-run-service={self.service_configuration.name}",
+                f"--location={self.service_configuration.region}",
                 f"--transport-topic={topic.name}",
             ]
 
@@ -213,7 +216,7 @@ class CloudRunDeployer(BaseDeployer):
                 eventarc_subscription_path = None
 
                 for subscription_path in topic.get_subscriptions():
-                    if self.name in subscription_path:
+                    if self.service_configuration.name in subscription_path:
                         eventarc_subscription_path = subscription_path
                         break
 
@@ -227,8 +230,7 @@ class CloudRunDeployer(BaseDeployer):
                 subscription = Subscription(
                     name=eventarc_subscription_path.split("/")[-1],
                     topic=topic,
-                    project_name=self.project_name,
-                    ack_deadline=10,
+                    project_name=self.service_configuration.project_name,
                 )
 
                 subscription.update()

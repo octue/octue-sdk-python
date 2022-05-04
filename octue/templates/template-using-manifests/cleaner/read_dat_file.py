@@ -18,7 +18,7 @@ def read_dat_file(file):
     :rtype: dict
     """
     # Read the file
-    with open(file.absolute_path, "r") as text_file:
+    with open(file.local_path, "r") as text_file:
         lines = text_file.readlines()
 
     # Parse the metadata

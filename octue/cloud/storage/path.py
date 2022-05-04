@@ -1,16 +1,35 @@
 import os
+from urllib.parse import urlparse
 
 
 CLOUD_STORAGE_PROTOCOL = "gs://"
 
 
-def is_qualified_cloud_path(path):
-    """Determine if the given path is a qualified cloud path - i.e. if it begins with the cloud storage protocol.
+def is_cloud_path(path):
+    """Determine if the given path is either a cloud storage URI or a URL.
+
+    :param str path: the path to check
+    :return bool:
+    """
+    return is_cloud_uri(path) or is_url(path)
+
+
+def is_cloud_uri(path):
+    """Determine if the given path is a cloud storage URI - i.e. if it begins with the cloud storage protocol.
 
     :param str path: the path to check
     :return bool: `True` if the path starts with the cloud storage protocol
     """
     return path.startswith(CLOUD_STORAGE_PROTOCOL)
+
+
+def is_url(path):
+    """Determine if the given path is a URL.
+
+    :param str path: the path to check
+    :return bool: `True` if the path starts with "http"
+    """
+    return path.startswith("http")
 
 
 def join(*paths):
@@ -26,14 +45,14 @@ def join(*paths):
     path = os.path.normpath(os.path.join(*paths)).replace("\\", "/")
 
     if path.startswith("gs:/"):
-        if not is_qualified_cloud_path(path):
+        if not is_cloud_uri(path):
             path = path.replace("gs:/", CLOUD_STORAGE_PROTOCOL)
 
     return path
 
 
 def generate_gs_path(bucket_name, *paths):
-    """Generate the Google Cloud storage path for a path in a bucket.
+    """Generate the Google Cloud Storage URI for a path in a bucket.
 
     :param str bucket_name:
     :param iter paths:
@@ -44,14 +63,18 @@ def generate_gs_path(bucket_name, *paths):
     return CLOUD_STORAGE_PROTOCOL + join(bucket_name, paths[0].lstrip("/"), *paths[1:])
 
 
-def split_bucket_name_from_gs_path(gs_path):
-    """Split the bucket name from the path.
+def split_bucket_name_from_cloud_path(path):
+    """Split the bucket name from the path within the bucket and return both.
 
-    :param str gs_path:
-    :return (str, str):
+    :param str path: the path to split
+    :return (str, str): the bucket name and the path within the bucket
     """
-    path = strip_protocol_from_path(gs_path).split("/")
-    return path[0], join(*path[1:])
+    if is_cloud_uri(path):
+        path = strip_protocol_from_path(path).split("/")
+        return path[0], join(*path[1:])
+
+    path = urlparse(path).path.split("/")
+    return path[1], join(*path[2:])
 
 
 def strip_protocol_from_path(path):
@@ -60,7 +83,7 @@ def strip_protocol_from_path(path):
     :param str path:
     :return str:
     """
-    if not is_qualified_cloud_path(path):
+    if not is_cloud_path(path):
         return path
     return path.split(":")[1].lstrip("/")
 

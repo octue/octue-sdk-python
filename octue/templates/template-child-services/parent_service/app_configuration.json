@@ -1,0 +1,20 @@
+{
+  "children": [
+    {
+      "key": "wind_speed",
+      "id": "7b9d07fa-6bcd-4ec3-a331-69f737a15751",
+      "backend": {
+        "name": "GCPPubSubBackend",
+        "project_name": "octue-amy"
+      }
+    },
+    {
+      "key": "elevation",
+      "id": "8dgd07fa-6bcd-4ec3-a331-69f737a15332",
+      "backend": {
+        "name": "GCPPubSubBackend",
+        "project_name": "octue-amy"
+      }
+    }
+  ]
+}

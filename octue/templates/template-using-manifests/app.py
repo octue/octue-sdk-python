@@ -3,6 +3,7 @@ import logging
 from cleaner import clean, read_csv_files, read_dat_file
 
 from octue.resources import Datafile
+from tests import TEST_BUCKET_NAME
 
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ def run(analysis, *args, **kwargs):
     - Add them to the output manifest
     """
     # You can use the attached logger to record debug statements, general information, warnings or errors
-    logger.info("Starting clean up of files in %s", analysis.input_manifest.absolute_path)
+    logger.info("Starting clean up of files in %s", analysis.input_manifest)
 
     # Get the configuration value for our time averaging window (or if not present, use the default specified in
     # the twine)
@@ -81,20 +82,19 @@ def run(analysis, *args, **kwargs):
     # (by leaving local_path_prefix unspecified) but it makes sense to put it in a folder specific to this output
     # dataset - doing so avoids any race conditions arising (if other instances of this application are running at the
     # same time), and avoids storage leaks, because files get cleaned up correctly.
-    timeseries_datafile = Datafile(
-        timestamp=None,
-        path="cleaned.csv",
-        path_from=output_dataset,  # Tells it where it should be stored, in this case the output dataset folder
-        skip_checks=True,  # We haven't created the actual file yet, so checks would definitely fail!
-        labels="timeseries",
-    )
+    timeseries_datafile = Datafile(timestamp=None, path="cleaned.csv", labels="timeseries")
 
     # Write the file (now we know where to write it)
     with timeseries_datafile.open("w") as fp:
         data.to_csv(path_or_buf=fp)
 
     # And finally we add it to the output
-    output_dataset.add(timeseries_datafile)
+    output_dataset.add(timeseries_datafile, path_in_dataset="cleaned.csv")
+
+    # Finalise the analysis. This validates the output data and output manifest against the twine and optionally
+    # uploads any datasets in the output manifest to the service's cloud bucket. Signed URLs are provided so that the
+    # parent that asked the service for the analysis can access the data (until the signed URLs expire).
+    analysis.finalise(upload_output_datasets_to=f"gs://{TEST_BUCKET_NAME}/output/test_using_manifests_analysis")
 
     # We're done! There's only one datafile in the output dataset, but you could create thousands more and append them
     # all :)

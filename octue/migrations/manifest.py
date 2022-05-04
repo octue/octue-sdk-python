@@ -10,13 +10,15 @@ def translate_datasets_list_to_dictionary(datasets, keys=None):
     :return dict: datasets and keys combined as a dictionary of keys mapped to datasets
     """
     keys = keys or {}
+    keys = {index: name for name, index in keys.items()}
+
     translated_datasets = {}
 
     for index, dataset in enumerate(datasets):
-        if isinstance(dataset, str):
+        try:
+            key = keys.get(index) or getattr(dataset, "name", None) or dataset.get("name") or f"dataset_{index}"
+        except AttributeError:
             key = f"dataset_{index}"
-        else:
-            key = keys.get(index) or dataset.get("name") or f"dataset_{index}"
 
         translated_datasets[key] = dataset
 

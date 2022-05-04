@@ -1,7 +1,11 @@
 import json
 import logging
+import re
 
 from google.api_core import retry
+
+
+ANSI_ESCAPE_SEQUENCES_PATTERN = r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])"
 
 
 class GooglePubSubHandler(logging.Handler):
@@ -49,14 +53,14 @@ class GooglePubSubHandler(logging.Handler):
     def _convert_log_record_to_primitives(self, log_record):
         """Convert a log record to JSON-serialisable primitives by interpolating the args into the message, and
         removing the exception info, which is potentially not JSON-serialisable. This is similar to the approach in
-        `logging.handlers.SocketHandler.makePickle`.
+        `logging.handlers.SocketHandler.makePickle`. Also strip any ANSI escape sequences from the message.
 
         :param logging.LogRecord log_record:
         :return dict:
         """
         serialised_record = vars(log_record)
 
-        serialised_record["msg"] = log_record.getMessage()
+        serialised_record["msg"] = re.compile(ANSI_ESCAPE_SEQUENCES_PATTERN).sub("", log_record.getMessage())
         serialised_record["args"] = None
         serialised_record["exc_info"] = None
         serialised_record.pop("message", None)

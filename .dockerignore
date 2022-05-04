@@ -1,6 +1,13 @@
 .DS_store
 .git
 .idea
+.vscode
 __pycache__
 env
 venv/
+.env
+.env*
+google_credentials.json
+# See: https://github.com/google-github-actions/auth/issues/123
+gha-creds-*.json
+gcp-creds-*.json

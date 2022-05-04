@@ -4,13 +4,8 @@ import unittest
 import yaml
 
 from octue.cloud.emulators import GoogleCloudStorageEmulatorTestResultModifier
-from octue.mixins import MixinBase, Pathable
 from octue.resources import Datafile, Dataset, Manifest
 from tests import TEST_BUCKET_NAME
-
-
-class MyPathable(Pathable, MixinBase):
-    pass
 
 
 class BaseTestCase(unittest.TestCase):
@@ -36,17 +31,18 @@ class BaseTestCase(unittest.TestCase):
 
         super().setUp()
 
-    def create_valid_dataset(self):
+    def create_valid_dataset(self, **kwargs):
         """Create a valid dataset with two valid datafiles (they're the same file in this case)."""
-        path_from = MyPathable(path=os.path.join(self.data_path, "basic_files", "configuration", "test-dataset"))
-        path = os.path.join("path-within-dataset", "a_test_file.csv")
+        path = os.path.join(self.data_path, "basic_files", "configuration", "test-dataset")
 
-        files = [
-            Datafile(path_from=path_from, path=path, skip_checks=False),
-            Datafile(path_from=path_from, path=path, skip_checks=False),
-        ]
-
-        return Dataset(files=files)
+        return Dataset(
+            path=path,
+            files=[
+                Datafile(path=os.path.join(path, "path-within-dataset", "a_test_file.csv")),
+                Datafile(path=os.path.join(path, "path-within-dataset", "another_test_file.csv")),
+            ],
+            **kwargs
+        )
 
     def create_valid_manifest(self):
         """Create a valid manifest with two valid datasets (they're the same dataset in this case)."""

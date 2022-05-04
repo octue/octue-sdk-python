@@ -17,6 +17,6 @@ def read_csv_files(files):
     # the cloud and/or doing this in batches.
     frames = []
     for file in files:
-        frames.append(pandas.read_csv(file.absolute_path))
+        frames.append(pandas.read_csv(file.local_path))
 
     return pandas.concat(frames)
