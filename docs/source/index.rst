@@ -2,11 +2,56 @@
 Octue SDK (Python)
 ==================
 
+A python SDK for `Octue's <https://octue.com>`_ API.
 
-We use the `GitHub Issue Tracker <https://github.com/octue/octue-sdk-python>`_
-to manage bug reports and feature requests[#f1].
+Features
+========
 
-Not all of Octue's API functionality is implemented in the SDK yet, we're actively working on improving this documentation with examples.
+**Unified cloud/local file, dataset, and manifest operations**
+
+- Create and build datasets easily
+- Organise them with timestamps, labels, and tags (i.e. arbitrary metadata)
+- Filter and combine them using this metadata
+- Store them locally or in the cloud (or both for low-latency reading/writing with cloud-guaranteed data availability)
+- Use internet/cloud-based datasets as if they were local e.g.
+
+  - ``https://example.com/important_dataset.dat``
+  - ``gs://example-bucket/important_dataset.dat``
+
+- Create manifests (a set of datasets needed for a particular analysis) to modularise your dataset input/output
+
+**Ask existing digital twins questions from anywhere**
+
+- Send them data to process from anywhere
+- Automatically have their logs, monitor messages, and any errors forwarded to you and displayed as if they were local
+- Receive their output data as JSON
+- Receive a manifest of any output datasets they produce for you to download or access as you wish
+
+**Create, run, and deploy your apps as digital twins**
+
+- No need to change your app - just wrap it
+- Use the ``octue`` CLI to run your digital twin locally or deploy it to Google Cloud Run or Google Dataflow
+- Create JSON-schema interfaces to explicitly define the form of configuration, input, and output data
+- Ask other digital twins questions as part of your app (i.e. build trees of digital twins)
+- Avoid time-consuming and confusing devops, cloud configuration, and backend maintenance
+
+**High standards, quick responses, and good intentions**
+
+- Open-source and transparent on GitHub - anyone can see the code and raise an issue
+- Automated testing, standards, releases, and deployment
+- High test coverage
+- Works on MacOS, Linux, and Windows
+- Developed not-for-profit for the renewable energy industry
+
+
+Need help, found a bug, or want to request a new feature?
+=========================================================
+We use `GitHub Issues <https://github.com/octue/octue-sdk-python/issues>`_ [#]_ to manage:
+
+- Bug reports
+- Feature requests
+- Support requests
+
 
 .. toctree::
    :maxdepth: 1
@@ -31,4 +76,4 @@ Not all of Octue's API functionality is implemented in the SDK yet, we're active
 
 .. rubric:: Footnotes
 
-.. [#f1] Bug reports and feature requests may also be made directly to your Octue support contact, or via the support pages.
+.. [#] Bug reports, feature requests and support requests, may also be made directly to your Octue support contact, or via the support pages.
