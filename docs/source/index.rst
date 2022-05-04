@@ -58,6 +58,7 @@ We use `GitHub Issues <https://github.com/octue/octue-sdk-python/issues>`_ [#]_ 
    :hidden:
 
    installation
+   data_containers
    logging
    datafile
    dataset
