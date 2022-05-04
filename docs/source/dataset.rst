@@ -4,6 +4,25 @@
 Dataset
 =======
 
+Key features:
+
+- Group all datafiles for an operation together
+- Work with local and cloud datasets in the same way
+- Instantiate a dataset from a local or cloud directory (optionally recursively) or add datafiles one by one
+
+  .. code-block::
+
+      dataset = Dataset.from_local_directory("path/to/dataset", recursive=True)
+
+      dataset = Dataset.from_cloud("gs://my-bucket/path/to/dataset", recursive=True)
+
+- Filter the datafiles in a dataset by any of their attributes (name, ID, timestamp, tags, labels, size)
+
+- Upload and download all datafiles in a dataset
+- Get a hash for a dataset which combines the datfiles' hashes and the dataset metadata
+
+
+
 A ``Dataset`` contains any number of ``Datafiles`` along with the following metadata:
 
 - ``name``
