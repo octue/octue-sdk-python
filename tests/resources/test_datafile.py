@@ -860,3 +860,43 @@ class TestDatafile(BaseTestCase):
             with self.assertRaises(exceptions.ReadOnlyResource):
                 with Datafile(path=signed_url, mode="w") as (_, f):
                     f.write("Text I'm not allowed to write.")
+
+    def test_deprecation_warning_issued_if_using_update_cloud_metadata_parameter(self):
+        """Test that a deprecation warning is issued if the `update_cloud_metadata` parameter is provided during
+        datafile instantiation and that it's translated to the `update_metadata` parameter.
+        """
+        with self.assertWarns(DeprecationWarning):
+            datafile = Datafile(path="blah.txt", update_cloud_metadata=False)
+
+        self.assertFalse(datafile._open_attributes["update_metadata"])
+
+    def test_update_metadata_with_local_datafile(self):
+        """Test the `update_metadata` method with a local datafile."""
+        with tempfile.NamedTemporaryFile() as temporary_file:
+            with Datafile(temporary_file.name, mode="w") as (datafile, f):
+                f.write("blah")
+
+            # Update the instance metadata but don't update the local stored metadata.
+            datafile.tags["hello"] = "world"
+
+            # Check the instance metadata hasn't been stored locally.
+            self.assertEqual(Datafile(temporary_file.name).tags, {})
+
+            # Update the local stored metadata and check it.
+            datafile.update_metadata()
+            self.assertEqual(Datafile(temporary_file.name).tags, {"hello": "world"})
+
+    def test_update_metadata_with_cloud_datafile(self):
+        """Test the `update_metadata` method with a cloud datafile."""
+        with Datafile(storage.path.generate_gs_path(TEST_BUCKET_NAME, "echo.txt"), mode="w") as (datafile, f):
+            f.write("blah")
+
+        # Update the instance metadata but don't update the cloud stored metadata.
+        datafile.tags["hello"] = "world"
+
+        # Check the instance metadata hasn't been stored in the cloud.
+        self.assertEqual(Datafile(datafile.cloud_path).tags, {})
+
+        # Update the cloud stored metadata and check it.
+        datafile.update_metadata()
+        self.assertEqual(Datafile(datafile.cloud_path).tags, {"hello": "world"})
