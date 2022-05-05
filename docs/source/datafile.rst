@@ -9,8 +9,8 @@ A single local or cloud file and its metadata.
 Key features
 ============
 
-Working with datafiles
-----------------------
+Work with local and cloud data
+------------------------------
 
 Working with a datafile is almost identical to using the built-in ``open`` function, and the same whether it’s local or in the cloud.
 
@@ -123,8 +123,8 @@ File hashes guarantee you have the right file. Getting the hash of datafiles is 
     >>> 'mnG7TA=='
 
 
-Check whether a datafile is local or cloud-based
-------------------------------------------------
+Check a datafile's locality
+---------------------------
 
 .. code-block:: python
 
@@ -149,8 +149,8 @@ Represent HDF5 files
         pip install octue[hdf5]
 
 
-More information on downloading cloud datafiles
------------------------------------------------
+More information on downloading
+-------------------------------
 To avoid unnecessary data transfer and costs, datafiles that only exist in the cloud are not downloaded locally until
 the ``download`` method is called on them or their ``local_path`` property is used for the first time. When either of
 these happen, the cloud object is downloaded to a temporary local file. Any changes made to the local file via the
