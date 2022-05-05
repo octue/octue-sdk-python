@@ -4,31 +4,27 @@
 Installation
 ============
 
-To use the Octue SDK from within your Octue python application, simply add:
+Add to your dependencies
+========================
+
+To use the Octue SDK in your Octue python application, simply add:
 
 .. code-block::
 
     octue==x.y.z
 
-to your ``requirements.txt`` or ``setup.py`` file, where x.y.z. is your preferred (we recommend the latest stable)
+to your ``requirements.txt`` or ``setup.py`` file, where ``x.y.z`` is your preferred (we recommend the latest stable)
 version of the SDK.
 
-If you've used the 'octue-app-python' application as your base template, you should already have the SDK installed
-(`see how it's done in the example app. <https://github.com/octue/octue-app-python>`_)
-
-
-Just want to pip install?
-=========================
-Just run
+Pip
+===
 
 .. code-block::
 
-    pip install octue
+    pip install octue==x.y.z
 
-Using Poetry?
-=============
-Just run
-
+`Poetry <https://python-poetry.org>`_
+=====================================
 .. code-block::
 
-    poetry add octue
+    poetry add octue=x.y.z
