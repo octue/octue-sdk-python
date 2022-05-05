@@ -4,21 +4,10 @@
 Datafiles, datasets, and manifests
 ==================================
 
-One of the main features of ``octue`` is to make managing scientific datasets easy. There are three main data classes
-in the SDK to make this possible.
+One of the main features of ``octue`` is making using, creating, and sharing scientific datasets easy. There are three main data classes in the SDK that do this.
 
-``Datafile``
-============
-:doc:`A single local or cloud file <datafile>` and its metadata.
+- **Datafile** - :doc:`a single local or cloud file <datafile>` and its metadata.
 
+- **Dataset** - :doc:`a set of related datafiles <dataset>` that exist in the same location, plus metadata. Typically produced by or for one operation in an analysis.
 
-``Dataset``
-===========
-:doc:`A set of related datafiles <dataset>` that exist in the same location, plus metadata. Typically produced by or
-for one operation in an analysis.
-
-
-``Manifest``
-============
-:doc:`A set of related datasets <manifest>` that exist anywhere, plus metadata. Typically produced by or for one
-analysis.
+- **Manifest** - :doc:`a set of related datasets <manifest>` that exist anywhere, plus metadata. Typically produced by or for one analysis.

@@ -4,8 +4,8 @@ Octue SDK (Python)
 
 A python SDK for `Octue's <https://octue.com>`_ API.
 
-Features
-========
+Key features
+============
 
 **Unified cloud/local file, dataset, and manifest operations**
 
@@ -33,6 +33,7 @@ Features
 - Use the ``octue`` CLI to run your digital twin locally or deploy it to Google Cloud Run or Google Dataflow
 - Create JSON-schema interfaces to explicitly define the form of configuration, input, and output data
 - Ask other digital twins questions as part of your app (i.e. build trees of digital twins)
+- Automatically display readable, colourised logs, or use your own log handler
 - Avoid time-consuming and confusing devops, cloud configuration, and backend maintenance
 
 **High standards, quick responses, and good intentions**
@@ -67,10 +68,10 @@ We use `GitHub Issues <https://github.com/octue/octue-sdk-python/issues>`_ [#]_ 
 
    installation
    data_containers
-   logging
    datafile
    dataset
    manifest
+   logging
    filter_containers
    analysis_objects
    child_services

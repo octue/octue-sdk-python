@@ -3,93 +3,128 @@
 ========
 Datafile
 ========
+A single local or cloud file and its metadata.
+
 
 Key features
 ============
 
-- Working with a datafile is the same whether it's local or in the cloud. For example, this is how to write to local and
-  cloud datafiles:
+Working with datafiles
+----------------------
 
-  .. code-block::
+Working with a datafile is almost identical to using the built-in ``open`` function, and the same whether it’s local or in the cloud.
 
-      # Local datafile
-      datafile = Datafile("path/to/file.dat")
+For example, this is how to write to a local datafile:
 
-      with datafile.open("w") as f:
-          f.write("Some data")
-          datafile.labels.add("processed")
+.. code-block:: python
 
-      # Cloud datafile
-      datafile = Datafile("gs://my-bucket/path/to/file.dat")
+    from octue.resources import Datafile
 
-      with datafile.open("w") as f:
-          f.write("Some data")
-          datafile.labels.add("processed")
+    datafile = Datafile("path/to/file.dat")
 
-- If you're reading or writing a cloud datafile, its content is automatically downloaded so you get low-latency data
-  operations
+    with datafile.open("w") as f:
+        f.write("Some data")
+        datafile.labels.add("processed")
 
-- Downloading is lazy - until you access the cloud datafile contents using the ``open`` context manager, call
-  the ``download`` method, or try to get its ``local_path`` attribute, the content isn't downloaded. This makes viewing
-  and filtering by the metadata of datasets of cloud datafiles quick.
+And this is how to write to a cloud datafile:
 
-- Need to run a CLI command on your file as part of your app?
+.. code-block:: python
 
-  .. code-block::
+    datafile = Datafile("gs://my-bucket/path/to/file.dat")
 
-      output = subprocess.check_output(["cli-app", "datafile.local_path"])
+    with datafile.open("w") as f:
+        f.write("Some data")
+        datafile.labels.add("processed")
 
-- Metadata is stored locally for local datafiles and in the cloud for cloud datafiles:
-  - ID
-  - Timestamp
-  - Arbitrary labels (strings)
-  - Arbitrary tags (key-value pairs)
-
-  These are read from the cloud object or a local ``.octue`` file on ``Datafile`` instantiation and can be accessed simply:
-
-  .. code-block::
-
-      datafile.id
-      >>> '9a1f9b26-6a48-4f2d-be80-468d3270d79b'
-
-      datafile.timestamp
-      >>> datetime.datetime(2022, 5, 4, 17, 57, 57, 136739)
-
-      datafile.labels
-      >>> {"processed"}
-
-      datafile.tags
-      >>> {"organisation": "octue", "energy": "renewable"}
-
-- Metadata can be set on the instance by setting the attributes but the cloud/local metadata stores aren't updated by
-  default. You can update them by using the ``open`` context manager or running:
-
-  .. code-block::
-
-      datafile.update_local_metadata()
-
-      datafile.update_cloud_metadata()
-
-- You can upload a local datafile to the cloud without using the ``open`` context manager if you don't need to modify
-  its contents:
-
-  .. code-block::
-
-      local_datafile.to_cloud("gs://my-bucket/my_datafile.dat", update_cloud_metadata=True)
-
-- Get the file hash of cloud and local datafiles
-
-  .. code-block::
-
-      dataset.hash_value
-      >>> 'mnG7TA=='
+All the same file modes you'd use with the built-in ``open`` are available for datafiles e.g. ``"r"`` and ``"a"``.
 
 
-More information
-================
+Automatic lazy downloading
+--------------------------
+Downloading data from cloud datafiles is automatic and lazy so you get both low-latency content read/write and quick
+metadata reads. This makes viewing and filtering by the metadata of cloud datasets and datafiles quick and avoids
+unnecessary data transfer, energy usage, and costs.
 
-Check where a datafile exists
------------------------------
+Datafile content isn't downloaded until you:
+
+- Try to read or write its contents using the ``Datafile.open`` context manager
+- Call its ``download`` method
+- Use its ``local_path`` property
+
+
+CLI command friendly
+--------------------
+Datafiles are python objects, but they represent real files that can be fed to any CLI command you like
+
+.. code-block:: python
+
+    import subprocess
+    output = subprocess.check_output(["openfast", "datafile.local_path"])
+
+
+Easy and expandable custom metadata
+-----------------------------------
+
+You can set the following metadata on a datafile:
+
+- ID
+- Timestamp
+- Arbitrary labels (a set of lowercase strings)
+- Arbitrary tags (key-value pairs)
+
+This metadata is stored locally in a ``.octue`` file for local datafiles or on the cloud objects for cloud datafiles and
+is used during ``Datafile`` instantiation. It can be accessed like this:
+
+.. code-block:: python
+
+    datafile.id
+    >>> '9a1f9b26-6a48-4f2d-be80-468d3270d79b'
+
+    datafile.timestamp
+    >>> datetime.datetime(2022, 5, 4, 17, 57, 57, 136739)
+
+    datafile.labels
+    >>> {"processed"}
+
+    datafile.tags
+    >>> {"organisation": "octue", "energy": "renewable"}
+
+You can update the metadata by setting it on the instance while inside the ``Datafile.open`` context manager.
+
+.. code-block:: python
+
+    with datafile.open("a"):
+        datafile.labels.add("updated")
+
+You can do this outside the context manager too, but you then need to call the update method:
+
+.. code-block:: python
+
+    datafile.labels.add("updated")
+    datafile.update_cloud_metadata()
+
+
+Upload an existing local datafile
+---------------------------------
+You can upload an existing local datafile to the cloud without using the ``open`` context manager if you don't need to modify its contents:
+
+.. code-block:: python
+
+    datafile.to_cloud("gs://my-bucket/my_datafile.dat", update_cloud_metadata=True)
+
+
+Get file hashes
+---------------
+File hashes guarantee you have the right file. Getting the hash of datafiles is simple:
+
+.. code-block:: python
+
+    dataset.hash_value
+    >>> 'mnG7TA=='
+
+
+Check whether a datafile is local or cloud-based
+------------------------------------------------
 
 .. code-block:: python
 
@@ -99,8 +134,11 @@ Check where a datafile exists
     datafile.exists_in_cloud
     >>> False
 
-Representing HDF5 files
------------------------
+A cloud datafile that has been downloaded will return ``True`` for both of these properties.
+
+
+Represent HDF5 files
+--------------------
 
 .. warning::
     If you want to represent HDF5 files with a ``Datafile``, you must include the extra requirements provided by the
@@ -110,15 +148,16 @@ Representing HDF5 files
 
         pip install octue[hdf5]
 
-Datafiles existing in the cloud
--------------------------------
+
+More information on downloading cloud datafiles
+-----------------------------------------------
 To avoid unnecessary data transfer and costs, datafiles that only exist in the cloud are not downloaded locally until
 the ``download`` method is called on them or their ``local_path`` property is used for the first time. When either of
 these happen, the cloud object is downloaded to a temporary local file. Any changes made to the local file via the
 ``Datafile.open`` method (which can be used analogously to the python built-in ``open`` function) are synced up with
 the cloud object. The temporary file will exist as long as the python session is running. Calling ``download`` again
 will not re-download the file as it will be up to date with any changes made locally. However, external changes to the
-cloud object will not be synced locally unless the ``local_path`` is set to ``None``, followed by the ``download``
+cloud object will not be synced locally unless the ``local_path`` is set to ``None``, followed by running the ``download``
 method again.
 
 If you want a cloud object to be permanently downloaded, you can either:

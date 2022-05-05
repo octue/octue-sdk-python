@@ -13,8 +13,8 @@ To use the Octue SDK in your Octue python application, simply add:
 
     octue==x.y.z
 
-to your ``requirements.txt`` or ``setup.py`` file, where ``x.y.z`` is your preferred (we recommend the latest stable)
-version of the SDK.
+to your ``requirements.txt`` or ``setup.py`` file, where ``x.y.z`` is your preferred version of the SDK (we recommend
+the latest stable version).
 
 Pip
 ===

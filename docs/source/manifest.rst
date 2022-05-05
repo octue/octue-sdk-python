@@ -3,6 +3,8 @@
 ========
 Manifest
 ========
+A set of related datasets that exist anywhere, plus metadata. Typically produced by or for one analysis.
+
 A manifest is a group of cloud and/or local datasets needed for an analysis. Only using cloud datasets guarantees that
 every service (with the correct permissions) that is sent the manifest will be able to access the datasets. There can be
 speed and cost benefits from using local datasets when dealing with large amounts of data, but the manifest can only

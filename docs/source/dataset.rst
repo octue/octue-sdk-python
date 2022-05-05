@@ -3,11 +3,15 @@
 =======
 Dataset
 =======
+A set of related datafiles that exist in the same location, plus metadata. Typically produced by or for one operation in an analysis.
 
-Key features:
+Key features
+============
 
 - Group all datafiles for an operation together
+
 - Work with local and cloud datasets in the same way
+
 - Instantiate a dataset from a local or cloud directory (optionally recursively) or add datafiles one by one
 
   .. code-block::
@@ -19,6 +23,7 @@ Key features:
 - Filter the datafiles in a dataset by any of their attributes (name, ID, timestamp, tags, labels, size)
 
 - Upload and download all datafiles in a dataset
+
 - Get a hash for a dataset which combines the datfiles' hashes and the dataset metadata
 
 
