@@ -53,6 +53,14 @@ We use `GitHub Issues <https://github.com/octue/octue-sdk-python/issues>`_ [#]_ 
 - Support requests
 
 
+.. rubric:: Footnotes
+
+.. [#] Bug reports, feature requests and support requests, may also be made directly to your Octue support contact, or via the support pages.
+
+
+..
+   The table of contents tree is hidden in the page content but will show up as a navigation bar for all pages.
+
 .. toctree::
    :maxdepth: 1
    :hidden:
@@ -73,8 +81,3 @@ We use `GitHub Issues <https://github.com/octue/octue-sdk-python/issues>`_ [#]_ 
    license
    version_history
    bibliography
-
-
-.. rubric:: Footnotes
-
-.. [#] Bug reports, feature requests and support requests, may also be made directly to your Octue support contact, or via the support pages.
