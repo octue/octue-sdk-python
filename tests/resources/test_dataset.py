@@ -772,6 +772,36 @@ class TestDataset(BaseTestCase):
         reloaded_datafile = Dataset.from_cloud(cloud_path, tags={"new": "tag"}, hypothetical=True)
         self.assertEqual(reloaded_datafile.tags, {"new": "tag"})
 
+    def test_update_metadata_with_local_datafile(self):
+        """Test the `update_metadata` method with a local dataset."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            dataset = Dataset.from_local_directory(temporary_directory)
+
+            # Update the instance metadata but don't update the local stored metadata.
+            dataset.tags["hello"] = "world"
+
+            # Check the instance metadata hasn't been stored locally.
+            self.assertEqual(Dataset.from_local_directory(temporary_directory).tags, {})
+
+            # Update the local stored metadata and check it.
+            dataset.update_metadata()
+            self.assertEqual(Dataset.from_local_directory(temporary_directory).tags, {"hello": "world"})
+
+    def test_update_metadata_with_cloud_datafile(self):
+        """Test the `update_metadata` method with a cloud dataset."""
+        dataset_path = self._create_nested_cloud_dataset()
+        dataset = Dataset.from_cloud(dataset_path)
+
+        # Update the instance metadata but don't update the cloud stored metadata.
+        dataset.tags["hello"] = "world"
+
+        # Check the instance metadata hasn't been stored in the cloud.
+        self.assertEqual(Dataset.from_cloud(dataset.path).tags, {})
+
+        # Update the cloud stored metadata and check it.
+        dataset.update_metadata()
+        self.assertEqual(Dataset.from_cloud(dataset.path).tags, {"hello": "world"})
+
     def _create_nested_cloud_dataset(self, dataset_name="a_dataset"):
         """Create a dataset in cloud storage with the given name containing a nested set of files.
 
