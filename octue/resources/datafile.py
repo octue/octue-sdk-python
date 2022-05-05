@@ -6,6 +6,7 @@ import logging
 import os
 import shutil
 import tempfile
+import warnings
 from urllib.parse import urlparse
 
 import google.api_core.exceptions
@@ -81,6 +82,18 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         hypothetical=False,
         **kwargs,
     ):
+        if "update_cloud_metadata" in kwargs:
+            warnings.warn(
+                message=(
+                    "The `Datafile` instantiation parameter `update_cloud_metadata` has been deprecated and renamed to "
+                    "`update_metadata`. The old name will become unavailable soon, so please update to the new one. It "
+                    "has been translated for now."
+                ),
+                category=DeprecationWarning,
+            )
+
+            update_metadata = kwargs["update_cloud_metadata"]
+
         super().__init__(
             id=id,
             name=kwargs.pop("name", None),
