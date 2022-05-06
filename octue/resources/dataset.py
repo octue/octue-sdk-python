@@ -236,10 +236,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         :return None:
         """
-        if self.exists_in_cloud:
-            self.update_cloud_metadata()
-        else:
-            self.update_local_metadata()
+        self.update_metadata()
 
     def to_cloud(self, cloud_path=None, bucket_name=None, output_directory=None):
         """Upload a dataset to the given cloud path.
@@ -281,6 +278,17 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         self.path = cloud_path
         self.update_cloud_metadata()
         return cloud_path
+
+    def update_metadata(self):
+        """If the dataset is cloud-based, update its cloud metadata; otherwise, update its local metadata.
+
+        :return None:
+        """
+        if self.exists_in_cloud:
+            self.update_cloud_metadata()
+            return
+
+        self.update_local_metadata()
 
     def update_cloud_metadata(self):
         """Create or update the cloud metadata file for the dataset.
