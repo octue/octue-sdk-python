@@ -872,7 +872,7 @@ class TestDatafile(BaseTestCase):
 
     def test_update_metadata_with_local_datafile(self):
         """Test the `update_metadata` method with a local datafile."""
-        with tempfile.NamedTemporaryFile() as temporary_file:
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with Datafile(temporary_file.name, mode="w") as (datafile, f):
                 f.write("blah")
 
