@@ -142,43 +142,6 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         return Dataset(path=cloud_path, recursive=recursive, hypothetical=hypothetical, **kwargs)
 
-    def _instantiate_from_cloud(self, path, recursive=True, hypothetical=False):
-        if not hypothetical:
-            self._use_cloud_metadata()
-
-        if not self.files:
-            bucket_name = storage.path.split_bucket_name_from_cloud_path(path)[0]
-
-            self.files = FilterSet(
-                Datafile(path=storage.path.generate_gs_path(bucket_name, blob.name))
-                for blob in GoogleCloudStorageClient().scandir(
-                    path,
-                    recursive=recursive,
-                    filter=(
-                        lambda blob: (
-                            not blob.name.endswith(METADATA_FILENAME) and SIGNED_METADATA_DIRECTORY not in blob.name
-                        )
-                    ),
-                )
-            )
-
-    def _instantiate_from_local_directory(self, path, recursive=False, hypothetical=False, **kwargs):
-        self.files = FilterSet()
-
-        for level, (directory_path, _, filenames) in enumerate(os.walk(path)):
-            for filename in filenames:
-
-                if filename == METADATA_FILENAME:
-                    continue
-
-                if not recursive and level > 0:
-                    break
-
-                self.files.add(Datafile(path=os.path.join(directory_path, filename)))
-
-        if not hypothetical:
-            self._use_local_metadata()
-
     @property
     def name(self):
         """Get the name of the dataset
@@ -499,6 +462,57 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             serialised_dataset["files"] = sorted(getattr(datafile, path_type) for datafile in self.files)
 
         return serialised_dataset
+
+    def _instantiate_from_cloud(self, path, recursive=True, hypothetical=False):
+        """Instantiate the dataset from a cloud directory.
+
+        :param str path: the cloud path to a directory in cloud storage
+        :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained within the dataset directory
+        :param bool hypothetical: if `True`, ignore any metadata stored for this dataset in the cloud and use whatever is given at instantiation
+        :return None:
+        """
+        if not hypothetical:
+            self._use_cloud_metadata()
+
+        if not self.files:
+            bucket_name = storage.path.split_bucket_name_from_cloud_path(path)[0]
+
+            self.files = FilterSet(
+                Datafile(path=storage.path.generate_gs_path(bucket_name, blob.name))
+                for blob in GoogleCloudStorageClient().scandir(
+                    path,
+                    recursive=recursive,
+                    filter=(
+                        lambda blob: (
+                            not blob.name.endswith(METADATA_FILENAME) and SIGNED_METADATA_DIRECTORY not in blob.name
+                        )
+                    ),
+                )
+            )
+
+    def _instantiate_from_local_directory(self, path, recursive=False, hypothetical=False):
+        """Instantiate the dataset from a local directory.
+
+        :param str path: the path to a local directory
+        :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained within the dataset directory
+        :param bool hypothetical: if `True`, ignore any metadata stored for this dataset locally and use whatever is given at instantiation
+        :return None:
+        """
+        self.files = FilterSet()
+
+        for level, (directory_path, _, filenames) in enumerate(os.walk(path)):
+            for filename in filenames:
+
+                if filename == METADATA_FILENAME:
+                    continue
+
+                if not recursive and level > 0:
+                    break
+
+                self.files.add(Datafile(path=os.path.join(directory_path, filename)))
+
+        if not hypothetical:
+            self._use_local_metadata()
 
     def _instantiate_datafiles(self, files):
         """Instantiate and add the given files to a `FilterSet`.
