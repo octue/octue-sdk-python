@@ -101,7 +101,7 @@ You can do this outside the context manager too, but you then need to call the u
 .. code-block:: python
 
     datafile.labels.add("updated")
-    datafile.update_cloud_metadata()
+    datafile.update_metadata()
 
 
 Upload an existing local datafile
@@ -110,7 +110,7 @@ You can upload an existing local datafile to the cloud without using the ``open`
 
 .. code-block:: python
 
-    datafile.to_cloud("gs://my-bucket/my_datafile.dat", update_cloud_metadata=True)
+    datafile.to_cloud("gs://my-bucket/my_datafile.dat", update_metadata=True)
 
 
 Get file hashes
@@ -236,7 +236,7 @@ Example B
     datafile.tags = {"manufacturer": "Vestas", "output": "1MW"}
     datafile.labels = {"new"}
 
-    datafile.to_cloud()  # Or, datafile.update_cloud_metadata()
+    datafile.to_cloud()  # Or, datafile.update_metadata()
 
 
 Example C

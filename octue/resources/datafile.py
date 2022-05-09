@@ -6,6 +6,7 @@ import logging
 import os
 import shutil
 import tempfile
+import warnings
 from urllib.parse import urlparse
 
 import google.api_core.exceptions
@@ -52,7 +53,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
     :param dict|octue.resources.tag.TagDict|None tags: key-value pairs with string keys conforming to the Octue tag format (see TagDict)
     :param iter(str)|octue.resources.label.LabelSet|None labels: Space-separated string of labels relevant to this file
     :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode options are the same as for the builtin `open` function)
-    :param bool update_cloud_metadata: if using as a context manager and this is `True`, update the cloud metadata of the datafile when the context is exited
+    :param bool update_metadata: if using as a context manager and this is `True`, update the stored metadata of the datafile when the context is exited
     :param bool hypothetical: if `True`, ignore any metadata stored for this datafile locally or in the cloud and use whatever is given at instantiation
     :return None:
     """
@@ -77,10 +78,22 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         tags=None,
         labels=None,
         mode="r",
-        update_cloud_metadata=True,
+        update_metadata=True,
         hypothetical=False,
         **kwargs,
     ):
+        if "update_cloud_metadata" in kwargs:
+            warnings.warn(
+                message=(
+                    "The `Datafile` instantiation parameter `update_cloud_metadata` has been deprecated and renamed to "
+                    "`update_metadata`. The old name will become unavailable soon, so please update to the new one. It "
+                    "has been translated for now."
+                ),
+                category=DeprecationWarning,
+            )
+
+            update_metadata = kwargs["update_cloud_metadata"]
+
         super().__init__(
             id=id,
             name=kwargs.pop("name", None),
@@ -90,7 +103,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         )
 
         self.timestamp = timestamp
-        self._open_attributes = {"mode": mode, "update_cloud_metadata": update_cloud_metadata, **kwargs}
+        self._open_attributes = {"mode": mode, "update_metadata": update_metadata, **kwargs}
         self._local_path = None
         self._cloud_path = None
         self._cloud_metadata = {}
@@ -485,6 +498,17 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
         return {f"{OCTUE_METADATA_NAMESPACE}__{key}": value for key, value in metadata.items()}
 
+    def update_metadata(self):
+        """If the datafile is cloud-based, update its cloud metadata; otherwise, update its local metadata.
+
+        :return None:
+        """
+        if self.exists_in_cloud:
+            self.update_cloud_metadata()
+            return
+
+        self.update_local_metadata()
+
     def update_cloud_metadata(self):
         """Update the cloud metadata for the datafile.
 
@@ -694,16 +718,16 @@ class _DatafileContextManager:
 
     :param octue.resources.datafile.Datafile datafile:
     :param str mode: open the datafile for reading/editing in this mode (the mode options are the same as for the builtin `open` function)
-    :param bool update_cloud_metadata: if this is True, update the cloud metadata of the datafile when the context is exited
+    :param bool update_metadata: if this is `True`, update the stored metadata of the datafile when the context is exited
     :return None:
     """
 
     MODIFICATION_MODES = {"w", "a", "x", "+", "U"}
 
-    def __init__(self, datafile, mode="r", update_cloud_metadata=True, **kwargs):
+    def __init__(self, datafile, mode="r", update_metadata=True, **kwargs):
         self.datafile = datafile
         self.mode = mode
-        self._update_cloud_metadata = update_cloud_metadata
+        self._update_metadata = update_metadata
         self.kwargs = kwargs
         self._fp = None
 
@@ -743,11 +767,11 @@ class _DatafileContextManager:
 
         if any(character in self.mode for character in self.MODIFICATION_MODES):
 
-            # If the datafile is local-first, update its local metadata.
-            if not self.datafile.exists_in_cloud:
+            if self.datafile.exists_in_cloud:
+                self.datafile.to_cloud(update_cloud_metadata=self._update_metadata)
+
+            elif self._update_metadata:
                 self.datafile.update_local_metadata()
-            else:
-                self.datafile.to_cloud(update_cloud_metadata=self._update_cloud_metadata)
 
 
 def calculate_hash(path):
