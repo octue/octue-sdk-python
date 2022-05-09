@@ -49,7 +49,7 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
 
         return Manifest(
             id=serialised_manifest["id"],
-            datasets={key: Dataset.from_cloud(dataset) for key, dataset in serialised_manifest["datasets"].items()},
+            datasets={key: Dataset(path=dataset) for key, dataset in serialised_manifest["datasets"].items()},
         )
 
     @property
@@ -153,15 +153,11 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
 
         # If `dataset` is just a path to a dataset:
         if isinstance(dataset, str):
-
-            if storage.path.is_cloud_path(dataset):
-                return (key, Dataset.from_cloud(cloud_path=dataset, recursive=True))
-
-            return (key, Dataset.from_local_directory(path_to_directory=dataset, recursive=True))
+            return (key, Dataset(path=dataset, recursive=True))
 
         # If `dataset` is a dictionary including a "path" key:
         if storage.path.is_cloud_path(dataset["path"]):
-            return (key, Dataset.from_cloud(cloud_path=dataset["path"], recursive=True))
+            return (key, Dataset(path=dataset["path"], recursive=True))
 
         return (key, Dataset(**dataset))
 
