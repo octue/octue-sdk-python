@@ -4,6 +4,8 @@ import logging
 from flask import Flask, request
 
 from octue.cloud.deployment.google.answer_pub_sub_question import answer_question
+from octue.utils.decoders import OctueJSONDecoder
+from octue.utils.encoders import OctueJSONEncoder
 
 
 logger = logging.getLogger(__name__)
@@ -63,7 +65,7 @@ def _log_bad_request_and_return_400_response(message):
 def _load_metadata_file():
     try:
         with open(".octue") as f:
-            return set(json.load(f))
+            return json.load(f, cls=OctueJSONDecoder)
 
     except Exception as e:
         logger.exception(e)
@@ -72,4 +74,4 @@ def _load_metadata_file():
 
 def _save_metadata_file(data):
     with open(".octue", "w") as f:
-        json.dump(data, f)
+        json.dump(data, f, cls=OctueJSONEncoder)
