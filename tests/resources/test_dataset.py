@@ -502,6 +502,13 @@ class TestDataset(BaseTestCase):
                     {"file_0.txt", "file_1.txt", "sub_file.txt", "sub_sub_file.txt"},
                 )
 
+    def test_from_cloud_causes_deprecation_warning(self):
+        """Test that using `Dataset.from_cloud results in a deprecation warning."""
+        dataset_path = self._create_nested_cloud_dataset(dataset_name="nested_dataset_with_no_metadata")
+
+        with self.assertWarns(DeprecationWarning):
+            Dataset.from_cloud(dataset_path)
+
     def test_update_local_metadata(self):
         """Test that metadata for a local dataset can be stored locally and used on re-instantiation of the same
         dataset.
@@ -703,6 +710,14 @@ class TestDataset(BaseTestCase):
                     # Check that all the files from the directory are present in the dataset.
                     datafile_paths = {datafile.local_path for datafile in dataset.files}
                     self.assertEqual(datafile_paths, set(paths))
+
+    def test_from_local_directory_causes_deprecation_warning(self):
+        """Test that using `Dataset.from_local_directory results in a deprecation warning."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            self._create_files_and_nested_subdirectories(temporary_directory)
+
+        with self.assertWarns(DeprecationWarning):
+            Dataset.from_local_directory(temporary_directory)
 
     def test_error_raised_if_attempting_to_generate_signed_url_for_local_dataset(self):
         """Test that an error is raised if trying to generate a signed URL for a local dataset."""

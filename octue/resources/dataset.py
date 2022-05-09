@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import tempfile
+import warnings
 
 import coolname
 import requests
@@ -74,14 +75,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             return
 
         if storage.path.is_cloud_path(self.path):
-            self._instantiate_from_cloud(cloud_path=self.path, recursive=recursive, hypothetical=hypothetical)
-
+            self._instantiate_from_cloud(path=self.path, recursive=recursive, hypothetical=hypothetical)
         else:
-            self._instantiate_from_local_directory(
-                path_to_directory=self.path,
-                recursive=recursive,
-                hypothetical=hypothetical,
-            )
+            self._instantiate_from_local_directory(path=self.path, recursive=recursive, hypothetical=hypothetical)
 
         if hypothetical:
             logger.debug("Ignored stored metadata for %r.", self)
@@ -110,6 +106,12 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         :param kwargs: other keyword arguments for the `Dataset` instantiation
         :return Dataset:
         """
+        warnings.warn(
+            "The `Dataset.from_local_directory` class method is now deprecated. Please use the `Dataset` constructor "
+            "instead, passing it the `path`, `recursive`, and `hypothetical` kwargs as necessary.",
+            category=DeprecationWarning,
+        )
+
         return Dataset(path=path_to_directory, recursive=recursive, hypothetical=hypothetical, **kwargs)
 
     @classmethod
@@ -132,22 +134,28 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         :param kwargs: other keyword arguments for the `Dataset` instantiation
         :return Dataset:
         """
+        warnings.warn(
+            "The `Dataset.from_cloud` class method is now deprecated. Please use the `Dataset` constructor instead, "
+            "passing it the `path`, `recursive`, and `hypothetical` kwargs as necessary.",
+            category=DeprecationWarning,
+        )
+
         if not cloud_path:
             cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_to_dataset_directory)
 
         return Dataset(path=cloud_path, recursive=recursive, hypothetical=hypothetical, **kwargs)
 
-    def _instantiate_from_cloud(self, cloud_path, recursive=True, hypothetical=False):
+    def _instantiate_from_cloud(self, path, recursive=True, hypothetical=False):
         if not hypothetical:
             self._use_cloud_metadata()
 
         if not self.files:
-            bucket_name = storage.path.split_bucket_name_from_cloud_path(cloud_path)[0]
+            bucket_name = storage.path.split_bucket_name_from_cloud_path(path)[0]
 
             self.files = FilterSet(
                 Datafile(path=storage.path.generate_gs_path(bucket_name, blob.name))
                 for blob in GoogleCloudStorageClient().scandir(
-                    cloud_path,
+                    path,
                     recursive=recursive,
                     filter=(
                         lambda blob: (
@@ -157,10 +165,10 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
                 )
             )
 
-    def _instantiate_from_local_directory(self, path_to_directory, recursive=False, hypothetical=False, **kwargs):
+    def _instantiate_from_local_directory(self, path, recursive=False, hypothetical=False, **kwargs):
         self.files = FilterSet()
 
-        for level, (directory_path, _, filenames) in enumerate(os.walk(path_to_directory)):
+        for level, (directory_path, _, filenames) in enumerate(os.walk(path)):
             for filename in filenames:
 
                 if filename == METADATA_FILENAME:
