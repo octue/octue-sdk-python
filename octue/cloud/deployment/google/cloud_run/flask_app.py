@@ -34,6 +34,10 @@ def index():
 
     # Acknowledge questions that are redelivered to stop further redelivery and redundant processing.
     if question_uuid in delivered_questions:
+        logger.info(
+            "This question has already been received by the service. It will now be acknowledged to prevent further "
+            "redundant redelivery."
+        )
         return ("", 204)
 
     # Otherwise add the question UUID to the set.
