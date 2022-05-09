@@ -35,8 +35,9 @@ def index():
     # Acknowledge questions that are redelivered to stop further redelivery and redundant processing.
     if question_uuid in delivered_questions:
         logger.info(
-            "This question has already been received by the service. It will now be acknowledged to prevent further "
-            "redundant redelivery."
+            "Question %r has already been received by the service. It will now be acknowledged to prevent further "
+            "redundant redelivery.",
+            question_uuid,
         )
         return ("", 204)
 
@@ -66,7 +67,7 @@ def _load_metadata_file():
 
     except Exception as e:
         logger.exception(e)
-        return []
+        return set()
 
 
 def _save_metadata_file(data):
