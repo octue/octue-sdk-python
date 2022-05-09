@@ -71,9 +71,6 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             self.files = self._instantiate_datafiles(files)
             return
 
-        if not path:
-            return
-
         if storage.path.is_cloud_path(self.path):
             self._instantiate_from_cloud(path=self.path, recursive=recursive, hypothetical=hypothetical)
         else:
@@ -482,7 +479,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             for path in executor.map(download, files_and_paths):
                 logger.debug("Downloaded datafile to %r.", path)
 
-        logger.info("Downloaded %r dataset to %r.", self.name, local_directory)
+        logger.info("Downloaded %r to %r.", self, local_directory)
 
     def to_primitive(self, include_files=True):
         """Convert the dataset to a dictionary of primitives, converting its files into their paths for a lightweight

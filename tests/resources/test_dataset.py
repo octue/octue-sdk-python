@@ -411,7 +411,9 @@ class TestDataset(BaseTestCase):
     def test_exists_in_cloud(self):
         """Test whether all files of a dataset are in the cloud or not can be determined."""
         self.assertFalse(self.create_valid_dataset().all_files_are_in_cloud)
-        self.assertTrue(Dataset().all_files_are_in_cloud)
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            self.assertTrue(Dataset(path=temporary_directory).all_files_are_in_cloud)
 
         files = [Datafile(path="gs://hello/file.txt"), Datafile(path="gs://goodbye/file.csv")]
         self.assertTrue(Dataset(files=files).all_files_are_in_cloud)
