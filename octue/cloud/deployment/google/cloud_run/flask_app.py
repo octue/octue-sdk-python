@@ -1,11 +1,9 @@
-import json
 import logging
 
 from flask import Flask, request
 
 from octue.cloud.deployment.google.answer_pub_sub_question import answer_question
-from octue.utils.decoders import OctueJSONDecoder
-from octue.utils.encoders import OctueJSONEncoder
+from octue.utils.metadata import load_local_metadata_file, save_local_metadata_file
 
 
 logger = logging.getLogger(__name__)
@@ -32,7 +30,9 @@ def index():
         return _log_bad_request_and_return_400_response("Invalid Pub/Sub message format.")
 
     question_uuid = question["attributes"]["question_uuid"]
-    delivered_questions = _load_metadata_file()
+
+    local_metadata = load_local_metadata_file()
+    delivered_questions = local_metadata.get("delivered_questions", set())
 
     # Acknowledge questions that are redelivered to stop further redelivery and redundant processing.
     if question_uuid in delivered_questions:
@@ -45,7 +45,7 @@ def index():
 
     # Otherwise add the question UUID to the set.
     delivered_questions.add(question_uuid)
-    _save_metadata_file(delivered_questions)
+    save_local_metadata_file(local_metadata)
 
     project_name = envelope["subscription"].split("/")[1]
     answer_question(question=question, project_name=project_name)
@@ -60,18 +60,3 @@ def _log_bad_request_and_return_400_response(message):
     """
     logger.error(message)
     return (f"Bad Request: {message}", 400)
-
-
-def _load_metadata_file():
-    try:
-        with open(".octue") as f:
-            return json.load(f, cls=OctueJSONDecoder)
-
-    except Exception as e:
-        logger.exception(e)
-        return set()
-
-
-def _save_metadata_file(data):
-    with open(".octue", "w") as f:
-        json.dump(data, f, cls=OctueJSONEncoder)

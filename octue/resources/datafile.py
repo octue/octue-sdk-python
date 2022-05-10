@@ -30,8 +30,7 @@ from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_buc
 from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils.decoders import OctueJSONDecoder
-from octue.utils.encoders import OctueJSONEncoder
-from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file
+from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file, save_local_metadata_file
 
 
 logger = logging.getLogger(__name__)
@@ -530,9 +529,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             existing_metadata_records["datafiles"] = {}
 
         existing_metadata_records["datafiles"][self.name] = self.metadata(use_octue_namespace=False)
-
-        with open(self._local_metadata_path, "w") as f:
-            json.dump(existing_metadata_records, f, cls=OctueJSONEncoder)
+        save_local_metadata_file(data=existing_metadata_records, path=self._local_metadata_path)
 
     def generate_signed_url(self, expiration=datetime.timedelta(days=7)):
         """Generate a signed URL for the datafile.
