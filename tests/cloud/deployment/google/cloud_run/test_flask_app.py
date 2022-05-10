@@ -48,22 +48,28 @@ class TestFlaskApp(TestCase):
 
     def test_redelivered_questions_are_acknowledged_and_ignored(self):
         """Test that redelivered questions are acknowledged and then ignored."""
-        with flask_app.app.test_client() as client:
-            with mock.patch(
-                "octue.cloud.deployment.google.cloud_run.flask_app.answer_question"
-            ) as mock_answer_question:
+        question_uuid = "fcd7aad7-dbf0-47d2-8984-220d493df2c1"
 
-                response = client.post(
-                    "/",
-                    json={
-                        "deliveryAttempt": 2,
-                        "subscription": "projects/my-project/subscriptions/my-subscription",
-                        "message": {
-                            "data": {},
-                            "attributes": {"question_uuid": str(uuid.uuid4()), "forward_logs": "1"},
-                        },
-                    },
-                )
+        with mock.patch(
+            "octue.cloud.deployment.google.cloud_run.flask_app.load_local_metadata_file",
+            return_value={"delivered_questions": {question_uuid}},
+        ):
+            with mock.patch("octue.cloud.deployment.google.cloud_run.flask_app.overwrite_local_metadata_file"):
+                with flask_app.app.test_client() as client:
+                    with mock.patch(
+                        "octue.cloud.deployment.google.cloud_run.flask_app.answer_question"
+                    ) as mock_answer_question:
+
+                        response = client.post(
+                            "/",
+                            json={
+                                "subscription": "projects/my-project/subscriptions/my-subscription",
+                                "message": {
+                                    "data": {},
+                                    "attributes": {"question_uuid": question_uuid, "forward_logs": "1"},
+                                },
+                            },
+                        )
 
         self.assertEqual(response.status_code, 204)
         mock_answer_question.assert_not_called()

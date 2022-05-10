@@ -20,7 +20,7 @@ from octue.resources.filter_containers import FilterSet
 from octue.resources.label import LabelSet
 from octue.resources.tag import TagDict
 from octue.utils.encoders import OctueJSONEncoder
-from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file
+from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file, overwrite_local_metadata_file
 
 
 logger = logging.getLogger(__name__)
@@ -319,9 +319,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         existing_metadata_records = load_local_metadata_file(self._metadata_path)
         existing_metadata_records["dataset"] = self.to_primitive(include_files=False)
         os.makedirs(self.path, exist_ok=True)
-
-        with open(self._metadata_path, "w") as f:
-            json.dump(existing_metadata_records, f, cls=OctueJSONEncoder)
+        overwrite_local_metadata_file(data=existing_metadata_records, path=self._metadata_path)
 
     def generate_signed_url(self, expiration=datetime.timedelta(days=7)):
         """Generate a signed URL for the dataset. This is done by uploading a uniquely named metadata file containing

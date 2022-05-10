@@ -268,39 +268,6 @@ class TestService(BaseTestCase):
         self.assertEqual(type(context.exception).__name__, "AnUnknownException")
         self.assertIn("This is an exception unknown to the asker.", context.exception.args[0])
 
-    def test_question_is_retried_if_delivery_acknowledgement_not_received(self):
-        """Test that a question is asked again if delivery is not acknowledged and that the re-asked question is then
-        processed.
-        """
-        child = self.make_new_child(backend=BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    child.serve()
-
-                    # Stop the child service from answering.
-                    with patch("octue.cloud.pub_sub.service.Service.answer"):
-                        subscription, _ = parent.ask(service_id=child.id, input_values={})
-
-                    # Wait for an answer and check that the question is asked again.
-                    with self.assertLogs() as logging_context:
-                        answer = parent.wait_for_answer(
-                            subscription,
-                            delivery_acknowledgement_timeout=0.01,
-                            retry_interval=0.1,
-                        )
-
-                        self.assertTrue(
-                            any(
-                                "No acknowledgement of question delivery" in log_message
-                                for log_message in logging_context.output
-                            )
-                        )
-
-        self.assertEqual(answer, {"output_values": "Hello! It worked!", "output_manifest": None})
-
     def test_ask_with_real_run_function_with_no_log_message_forwarding(self):
         """Test that a service can ask a question to another service that is serving and receive an answer. Use a real
         run function rather than a mock so that the underlying `Runner` instance is used, and check that remote log
