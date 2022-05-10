@@ -166,6 +166,14 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         self._name = name
 
     @property
+    def exists_locally(self):
+        """Return `True` if the dataset exists locally.
+
+        :return bool:
+        """
+        return not self.exists_in_cloud
+
+    @property
     def all_files_are_in_cloud(self):
         """Do all the files of the dataset exist in the cloud?
 

@@ -20,14 +20,6 @@ class CloudPathable:
         return None
 
     @property
-    def exists_locally(self):
-        """Return `True` if the instance exists locally.
-
-        :return bool:
-        """
-        return not self.exists_in_cloud
-
-    @property
     def cloud_protocol(self):
         """Get the cloud protocol of the instance if it exists in the cloud (e.g. "gs" for a cloud path of
         "gs://my-bucket/my-file.txt").
