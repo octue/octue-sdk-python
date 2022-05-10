@@ -599,6 +599,14 @@ class TestDataset(BaseTestCase):
 
         self.assertEqual(cloud_datafile_relative_paths, local_datafile_relative_paths)
 
+    def test_to_cloud_works_with_implicit_cloud_location_if_cloud_location_previously_provided(self):
+        """Test `Dataset.to_cloud` works with an implicit cloud location if the cloud location has previously been
+        provided.
+        """
+        dataset_path = self._create_nested_cloud_dataset()
+        dataset = Dataset(path=dataset_path, recursive=True)
+        dataset.to_cloud()
+
     def test_error_raised_if_trying_to_download_files_from_local_dataset(self):
         """Test that an error is raised if trying to download files from a local dataset."""
         dataset = self.create_valid_dataset()
