@@ -163,7 +163,7 @@ class Service(CoolNameable):
                 retry=retry.Retry(deadline=timeout),
             )
             topic.messages_published += 1
-            logger.info("%r responded to question %r.", self, question_uuid)
+            logger.info("%r answered question %r.", self, question_uuid)
 
         except BaseException as error:  # noqa
             self.send_exception(topic, timeout)
@@ -206,7 +206,7 @@ class Service(CoolNameable):
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here; if they should be pulled, leave this as `None`
         :param float|None timeout: time in seconds to keep retrying sending the question
-        :return (octue.cloud.pub_sub.subscription.Subscription, str): the response subscription and question UUID
+        :return (octue.cloud.pub_sub.subscription.Subscription, str): the answer subscription and question UUID
         """
         if not allow_local_files:
             if (input_manifest is not None) and (not input_manifest.all_datasets_are_in_cloud):
@@ -223,18 +223,18 @@ class Service(CoolNameable):
 
         question_uuid = question_uuid or str(uuid.uuid4())
 
-        response_topic = self.instantiate_answer_topic(question_uuid, service_id)
-        response_topic.create(allow_existing=False)
+        answer_topic = self.instantiate_answer_topic(question_uuid, service_id)
+        answer_topic.create(allow_existing=False)
 
-        response_subscription = Subscription(
-            name=response_topic.name,
-            topic=response_topic,
+        answer_subscription = Subscription(
+            name=answer_topic.name,
+            topic=answer_topic,
             namespace=OCTUE_NAMESPACE,
             project_name=self.backend.project_name,
             subscriber=pubsub_v1.SubscriberClient(credentials=self._credentials),
             push_endpoint=push_endpoint,
         )
-        response_subscription.create(allow_existing=True)
+        answer_subscription.create(allow_existing=True)
 
         serialised_input_manifest = None
         if input_manifest is not None:
@@ -249,7 +249,7 @@ class Service(CoolNameable):
         )
 
         logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
-        return response_subscription, question_uuid
+        return answer_subscription, question_uuid
 
     def wait_for_answer(
         self,
