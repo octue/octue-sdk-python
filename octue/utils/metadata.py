@@ -33,8 +33,8 @@ def load_local_metadata_file(path=METADATA_FILENAME):
             return {}
 
 
-def save_local_metadata_file(data, path=METADATA_FILENAME):
-    """Overwrite the given local metadata file with the given data.
+def overwrite_local_metadata_file(data, path=METADATA_FILENAME):
+    """Create or overwrite the given local metadata file with the given data.
 
     :param dict data:
     :param str path:

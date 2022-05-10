@@ -3,7 +3,7 @@ import logging
 from flask import Flask, request
 
 from octue.cloud.deployment.google.answer_pub_sub_question import answer_question
-from octue.utils.metadata import load_local_metadata_file, save_local_metadata_file
+from octue.utils.metadata import load_local_metadata_file, overwrite_local_metadata_file
 
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ def index():
 
     # Otherwise add the question UUID to the set.
     delivered_questions.add(question_uuid)
-    save_local_metadata_file(local_metadata)
+    overwrite_local_metadata_file(local_metadata)
 
     project_name = envelope["subscription"].split("/")[1]
     answer_question(question=question, project_name=project_name)
