@@ -5,18 +5,13 @@ from octue.exceptions import CloudLocationNotSpecified
 
 
 class CloudPathable:
+    """A mixin providing cloud-related properties and functions common to `octue` resources."""
+
     _CLOUD_PATH_ATTRIBUTE_NAME = "path"
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    @property
-    def __cloud_path(self):
-        return getattr(self, self._CLOUD_PATH_ATTRIBUTE_NAME)
 
     @property
     def exists_in_cloud(self):
-        """Return `True` if the dataset exists in the cloud.
+        """Return `True` if the instance exists in the cloud.
 
         :return bool:
         """
@@ -26,7 +21,7 @@ class CloudPathable:
 
     @property
     def exists_locally(self):
-        """Return `True` if the dataset exists locally.
+        """Return `True` if the instance exists locally.
 
         :return bool:
         """
@@ -45,7 +40,7 @@ class CloudPathable:
 
     @property
     def bucket_name(self):
-        """Get the name of the bucket the dataset exists in if it exists in the cloud.
+        """Get the name of the bucket the instance exists in if it exists in the cloud.
 
         :return str|None:
         """
@@ -55,7 +50,7 @@ class CloudPathable:
 
     @property
     def path_in_bucket(self):
-        """Get the path of the dataset in its bucket if it exists in the cloud.
+        """Get the path of the instance in its bucket if it exists in the cloud.
 
         :return str|None:
         """
@@ -68,7 +63,7 @@ class CloudPathable:
 
         :param str|None cloud_path:
         :raise octue.exceptions.CloudLocationNotSpecified: if an exact cloud location isn't provided and isn't available implicitly (i.e. the instance wasn't loaded from the cloud previously)
-        :return (str, str): project name and cloud path
+        :return str: the instance's cloud path
         """
         cloud_path = cloud_path or self.__cloud_path
 
@@ -86,5 +81,13 @@ class CloudPathable:
         """
         raise CloudLocationNotSpecified(
             f"{self!r} wasn't previously loaded from the cloud so doesn't have an implicit cloud location - please "
-            f"specify its exact location (its project name and cloud path)."
+            f"specify its cloud path."
         )
+
+    @property
+    def __cloud_path(self):
+        """Get the cloud path for the instance according to the class variable `_CLOUD_PATH_ATTRIBUTE_NAME`.
+
+        :return str:
+        """
+        return getattr(self, self._CLOUD_PATH_ATTRIBUTE_NAME)
