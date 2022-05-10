@@ -273,14 +273,6 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             return None
 
     @property
-    def exists_in_cloud(self):
-        """Return `True` if the file exists in the cloud.
-
-        :return bool:
-        """
-        return self.cloud_path is not None
-
-    @property
     def exists_locally(self):
         """Return `True` if the file exists locally.
 
