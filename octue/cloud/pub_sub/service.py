@@ -4,7 +4,6 @@ import datetime
 import functools
 import json
 import logging
-import time
 import uuid
 
 from google import auth
@@ -61,7 +60,6 @@ class Service(CoolNameable):
         self.run_function = run_function
         self._credentials = auth.default()[0]
         self.publisher = pubsub_v1.PublisherClient(credentials=self._credentials, batch_settings=BATCH_SETTINGS)
-        self._current_question = None
         super().__init__(*args, **kwargs)
 
     def __repr__(self):
@@ -223,16 +221,10 @@ class Service(CoolNameable):
         if not question_topic.exists(timeout=timeout):
             raise octue.exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
 
-        # If a question UUID is given, this is probably a retry so allow the question topic to already exist.
-        if question_uuid:
-            allow_existing_topic = True
-        else:
-            allow_existing_topic = False
-
         question_uuid = question_uuid or str(uuid.uuid4())
 
         response_topic = self.instantiate_answer_topic(question_uuid, service_id)
-        response_topic.create(allow_existing=allow_existing_topic)
+        response_topic.create(allow_existing=False)
 
         response_subscription = Subscription(
             name=response_topic.name,
@@ -256,17 +248,6 @@ class Service(CoolNameable):
             retry=retry.Retry(deadline=timeout),
         )
 
-        # Keep a record of the question asked in case it needs to be retried.
-        self._current_question = {
-            "service_id": service_id,
-            "input_values": input_values,
-            "input_manifest": input_manifest,
-            "question_uuid": question_uuid,
-            "subscribe_to_logs": subscribe_to_logs,
-            "allow_local_files": allow_local_files,
-            "timeout": timeout,
-        }
-
         logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
         return response_subscription, question_uuid
 
@@ -276,8 +257,7 @@ class Service(CoolNameable):
         handle_monitor_message=None,
         service_name="REMOTE",
         timeout=60,
-        delivery_acknowledgement_timeout=30,
-        retry_interval=5,
+        delivery_acknowledgement_timeout=120,
     ):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
@@ -286,9 +266,9 @@ class Service(CoolNameable):
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
         :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
-        :param float delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before resending the question
-        :param float retry_interval: the time in seconds to wait between question retries
+        :param float delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
         :raise TimeoutError: if the timeout is exceeded
+        :raise octue.exceptions.QuestionNotDelivered: if a delivery acknowledgement is not received in time
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
         if subscription.is_push_subscription:
@@ -306,26 +286,10 @@ class Service(CoolNameable):
         )
 
         try:
-            # Retry sending the question until the overall timeout is reached.
-            while not message_handler.received_delivery_acknowledgement:
-
-                try:
-                    return message_handler.handle_messages(
-                        timeout=timeout,
-                        delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
-                    )
-
-                except octue.exceptions.QuestionNotDelivered:
-                    logger.info(
-                        "%r: No acknowledgement of question delivery after %fs - resending in %fs.",
-                        self,
-                        delivery_acknowledgement_timeout,
-                        retry_interval,
-                    )
-
-                    time.sleep(retry_interval)
-                    self.ask(**self._current_question)
-
+            return message_handler.handle_messages(
+                timeout=timeout,
+                delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
+            )
         finally:
             subscription.delete()
             subscriber.close()
