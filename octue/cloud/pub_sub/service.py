@@ -32,9 +32,9 @@ BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_l
 
 class Service(CoolNameable):
     """A Twined service that can be used in two modes:
-    * As a server accepting questions (input values and manifests), running them through its app, and responding to the
-    requesting service with the results of the analysis.
-    * As a requester of answers from another Service in the above mode.
+    - As a child accepting questions (input values and manifests) from parents, running them through its app, and
+      responding with the results of the analysis
+    - As a parent asking questions to children in the above mode
 
     Services communicate entirely via Google Pub/Sub and can ask and/or respond to questions from any other Service that
     has a corresponding topic on Google Pub/Sub.
@@ -117,11 +117,11 @@ class Service(CoolNameable):
 
     def answer(self, question, answer_topic=None, timeout=30):
         """Answer a question (i.e. run the Service's app to analyse the given data, and return the output values to the
-        asker). Answers are published to a topic whose name is generated from the UUID sent with the question, and are
+        parent). Answers are published to a topic whose name is generated from the UUID sent with the question, and are
         in the format specified in the Service's Twine file.
 
         :param dict|Message question:
-        :param octue.cloud.pub_sub.topic.Topic|None answer_topic: provide if messages need to be sent to the asker from outside the service (e.g. in octue.cloud.deployment.google.cloud_run.flask_app)
+        :param octue.cloud.pub_sub.topic.Topic|None answer_topic: provide if messages need to be sent to the parent from outside the service (e.g. in octue.cloud.deployment.google.cloud_run.flask_app)
         :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
@@ -166,7 +166,7 @@ class Service(CoolNameable):
             logger.info("%r responded to question %r.", self, question_uuid)
 
         except BaseException as error:  # noqa
-            self.send_exception_to_asker(topic, timeout)
+            self.send_exception(topic, timeout)
             raise error
 
     def instantiate_answer_topic(self, question_uuid, service_id=None):
@@ -294,8 +294,34 @@ class Service(CoolNameable):
             subscription.delete()
             subscriber.close()
 
+    def send_exception(self, topic, timeout=30):
+        """Serialise and send the exception being handled to the parent.
+
+        :param octue.cloud.pub_sub.topic.Topic topic:
+        :param float|None timeout: time in seconds to keep retrying sending of the exception
+        :return None:
+        """
+        exception = convert_exception_to_primitives()
+        exception_message = f"Error in {self!r}: {exception['message']}"
+
+        self.publisher.publish(
+            topic=topic.path,
+            data=json.dumps(
+                {
+                    "type": "exception",
+                    "exception_type": exception["type"],
+                    "exception_message": exception_message,
+                    "traceback": exception["traceback"],
+                    "message_number": topic.messages_published,
+                }
+            ).encode(),
+            retry=retry.Retry(deadline=timeout),
+        )
+
+        topic.messages_published += 1
+
     def _send_delivery_acknowledgment(self, topic, timeout=30):
-        """Send an acknowledgement of question delivery to the asker.
+        """Send an acknowledgement of question delivery to the parent.
 
         :param octue.cloud.pub_sub.topic.Topic topic: topic to send acknowledgement to
         :param float timeout: time in seconds after which to give up sending
@@ -318,7 +344,7 @@ class Service(CoolNameable):
         topic.messages_published += 1
 
     def _send_monitor_message(self, data, topic, timeout=30):
-        """Send a monitor message to the asker.
+        """Send a monitor message to the parent.
 
         :param any data: the data to send as a monitor message
         :param octue.cloud.pub_sub.topic.Topic topic: the topic to send the message to
@@ -333,32 +359,6 @@ class Service(CoolNameable):
                 {
                     "type": "monitor_message",
                     "data": json.dumps(data),
-                    "message_number": topic.messages_published,
-                }
-            ).encode(),
-            retry=retry.Retry(deadline=timeout),
-        )
-
-        topic.messages_published += 1
-
-    def send_exception_to_asker(self, topic, timeout=30):
-        """Serialise and send the exception being handled to the asker.
-
-        :param octue.cloud.pub_sub.topic.Topic topic:
-        :param float|None timeout: time in seconds to keep retrying sending of the exception
-        :return None:
-        """
-        exception = convert_exception_to_primitives()
-        exception_message = f"Error in {self!r}: {exception['message']}"
-
-        self.publisher.publish(
-            topic=topic.path,
-            data=json.dumps(
-                {
-                    "type": "exception",
-                    "exception_type": exception["type"],
-                    "exception_message": exception_message,
-                    "traceback": exception["traceback"],
                     "message_number": topic.messages_published,
                 }
             ).encode(),
