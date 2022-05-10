@@ -14,7 +14,7 @@ from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudLocationNotSpecified, InvalidInputException
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
-from octue.mixins import Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
+from octue.mixins import CloudPathable, Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.resources.label import LabelSet
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 SIGNED_METADATA_DIRECTORY = ".signed_metadata_files"
 
 
-class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadata):
+class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadata, CloudPathable):
     """A representation of a dataset, containing files, labels, etc.
 
     This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
@@ -166,42 +166,6 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         self._name = name
 
     @property
-    def exists_in_cloud(self):
-        """Return `True` if the dataset exists in the cloud.
-
-        :return bool:
-        """
-        return storage.path.is_cloud_path(self.path)
-
-    @property
-    def exists_locally(self):
-        """Return `True` if the dataset exists locally.
-
-        :return bool:
-        """
-        return not self.exists_in_cloud
-
-    @property
-    def bucket_name(self):
-        """Get the name of the bucket the dataset exists in if it exists in the cloud.
-
-        :return str|None:
-        """
-        if self.exists_in_cloud:
-            return storage.path.split_bucket_name_from_cloud_path(self.path)[0]
-        return None
-
-    @property
-    def path_in_bucket(self):
-        """Get the path of the dataset in its bucket if it exists in the cloud.
-
-        :return str|None:
-        """
-        if self.exists_in_cloud:
-            return storage.path.split_bucket_name_from_cloud_path(self.path)[1]
-        return None
-
-    @property
     def all_files_are_in_cloud(self):
         """Do all the files of the dataset exist in the cloud?
 
@@ -253,7 +217,10 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         :return str: cloud path for dataset
         """
         if not cloud_path:
-            cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, output_directory)
+            if not (bucket_name and output_directory):
+                cloud_path = self._get_cloud_location(cloud_path)
+            else:
+                cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, output_directory)
 
         files_and_paths = []
 

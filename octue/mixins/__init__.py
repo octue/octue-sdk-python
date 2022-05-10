@@ -1,4 +1,5 @@
 from .base import MixinBase
+from .cloud_pathable import CloudPathable
 from .cool_nameable import CoolNameable
 from .filterable import Filterable
 from .hashable import Hashable
@@ -10,6 +11,7 @@ from .taggable import Taggable
 
 
 __all__ = (
+    "CloudPathable",
     "CoolNameable",
     "Filterable",
     "Hashable",
