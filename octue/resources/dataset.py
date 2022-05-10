@@ -225,7 +225,12 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         files_and_paths = []
 
         for datafile in self.files:
-            datafile_path_relative_to_dataset = self._datafile_path_relative_to_self(datafile, path_type="local_path")
+            if self.exists_in_cloud:
+                path_type = "cloud_path"
+            else:
+                path_type = "local_path"
+
+            datafile_path_relative_to_dataset = self._datafile_path_relative_to_self(datafile, path_type=path_type)
 
             files_and_paths.append(
                 (
