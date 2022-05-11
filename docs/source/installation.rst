@@ -8,14 +8,14 @@ Installation
 Pip
 ===
 
-.. code-block::
+.. code-block:: shell
 
     pip install octue==x.y.z
 
 
 `Poetry <https://python-poetry.org>`_
 =====================================
-.. code-block::
+.. code-block:: shell
 
     poetry add octue=x.y.z
 
@@ -25,7 +25,7 @@ Add to your dependencies
 
 To use the Octue SDK in your Octue python application, simply add:
 
-.. code-block::
+.. code-block:: shell
 
     octue==x.y.z
 

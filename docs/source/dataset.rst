@@ -4,7 +4,7 @@
 Dataset
 =======
 A set of related :doc:`datafiles <datafile>` that exist in the same location, plus metadata. Typically produced by or
-needed for one operation in an analysis.
+needed for an operation in an analysis.
 
 Key features
 ============
@@ -13,7 +13,7 @@ Work with local and cloud datasets
 ----------------------------------
 Instantiating a dataset is the same whether it's local or cloud-based.
 
-.. code-block::
+.. code-block:: python
 
     from octue.resources import Dataset
 
@@ -25,7 +25,7 @@ Instantiating a dataset is the same whether it's local or cloud-based.
 Upload a dataset
 ----------------
 
-.. code-block::
+.. code-block:: python
 
     dataset.to_cloud("gs://my-bucket/path/to/upload")
 
@@ -33,7 +33,7 @@ Upload a dataset
 Download a dataset
 ------------------
 
-.. code-block::
+.. code-block:: python
 
     dataset.download_all_files("path/to/download")
 

@@ -28,7 +28,7 @@ Group related datasets together
 Send datasets to a digital twin
 -------------------------------
 
-.. code-block::
+.. code-block:: python
 
     from octue.resources import Child
 
