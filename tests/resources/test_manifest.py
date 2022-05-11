@@ -88,7 +88,7 @@ class TestManifest(BaseTestCase):
             manifest.to_cloud(cloud_path)
 
             persisted_manifest = json.loads(GoogleCloudStorageClient().download_as_string(cloud_path))
-            self.assertEqual(persisted_manifest["datasets"]["my-dataset"], "gs://octue-test-bucket/my-small-dataset")
+            self.assertEqual(persisted_manifest["datasets"]["my-dataset"], f"gs://{TEST_BUCKET_NAME}/my-small-dataset")
 
     def test_from_cloud(self):
         """Test that a Manifest can be instantiated from a cloud path."""
@@ -139,7 +139,9 @@ class TestManifest(BaseTestCase):
     def test_instantiating_from_datasets_from_different_cloud_buckets(self):
         """Test instantiating a manifest from multiple datasets from different cloud buckets."""
         storage_client = GoogleCloudStorageClient()
-        storage_client.create_bucket(name=TEST_BUCKET_NAME + "-another")
+
+        extra_bucket_name = TEST_BUCKET_NAME + "-another"
+        storage_client.create_bucket(name=extra_bucket_name)
 
         storage_client.upload_from_string(
             "[1, 2, 3]",
@@ -147,20 +149,20 @@ class TestManifest(BaseTestCase):
         )
 
         storage_client.upload_from_string(
-            "[4, 5, 6]", storage.path.generate_gs_path("another-test-bucket", "my_dataset_b", "the_data.txt")
+            "[4, 5, 6]", storage.path.generate_gs_path(extra_bucket_name, "my_dataset_b", "the_data.txt")
         )
 
         manifest = Manifest(
             datasets={
                 "my_dataset_a": f"gs://{TEST_BUCKET_NAME}/my_dataset_a",
-                "my_dataset_b": "gs://another-test-bucket/my_dataset_b",
+                "my_dataset_b": f"gs://{extra_bucket_name}/my_dataset_b",
             }
         )
 
         self.assertEqual({dataset.name for dataset in manifest.datasets.values()}, {"my_dataset_a", "my_dataset_b"})
 
         files = [list(dataset.files)[0] for dataset in manifest.datasets.values()]
-        self.assertEqual({file.bucket_name for file in files}, {TEST_BUCKET_NAME, "another-test-bucket"})
+        self.assertEqual({file.bucket_name for file in files}, {TEST_BUCKET_NAME, extra_bucket_name})
 
     def test_instantiating_from_multiple_local_datasets(self):
         """Test instantiating a manifest from multiple local datasets."""

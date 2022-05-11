@@ -13,6 +13,7 @@ from octue import REPOSITORY_ROOT, Runner
 from octue.cloud.emulators import mock_generate_signed_url
 from octue.resources.manifest import Manifest
 from octue.utils.processes import ProcessesContextManager
+from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
 
 
@@ -97,7 +98,7 @@ class TemplateAppsTestCase(BaseTestCase):
 
         self.assertEqual(
             urlparse(downloaded_output_manifest.datasets["cleaned_met_mast_data"].files.one().cloud_path).path,
-            "/octue-test-bucket/output/test_using_manifests_analysis/cleaned_met_mast_data/cleaned.csv",
+            f"/{TEST_BUCKET_NAME}/output/test_using_manifests_analysis/cleaned_met_mast_data/cleaned.csv",
         )
 
     @unittest.skipIf(condition=os.name == "nt", reason="See issue https://github.com/octue/octue-sdk-python/issues/229")
