@@ -4,16 +4,18 @@
 Dataset
 =======
 A set of related :doc:`datafiles <datafile>` that exist in the same location, plus metadata. Typically produced by or
-for one operation in an analysis.
+needed for one operation in an analysis.
 
 Key features
 ============
 
 Work with local and cloud datasets
 ----------------------------------
-Instantiating a dataset is the same whether its local or cloud-based.
+Instantiating a dataset is the same whether it's local or cloud-based.
 
 .. code-block::
+
+    from octue.resources import Dataset
 
     dataset = Dataset(path="path/to/dataset", recursive=True)
 
