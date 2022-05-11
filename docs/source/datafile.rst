@@ -201,10 +201,9 @@ Example A
     from octue.resources import Datafile
 
 
-    project_name = "my-project"
     path = "gs://my-bucket/path/to/data.csv"
 
-    with Datafile(path, project_name=project_name, mode="r") as (datafile, f):
+    with Datafile(path, mode="r") as (datafile, f):
         data = f.read()
         new_metadata = metadata_calculating_function(data)
 
@@ -227,16 +226,13 @@ Example B
     from octue.resources import Datafile
 
 
-    project_name = "my-project"
-    path = "gs://my-bucket/path/to/data.csv"
-
-    datafile = Datafile(path, project_name=project_name)
+    datafile = Datafile("gs://my-bucket/path/to/data.csv")
 
     datafile.timestamp = datetime.now()
     datafile.tags = {"manufacturer": "Vestas", "output": "1MW"}
     datafile.labels = {"new"}
 
-    datafile.to_cloud()  # Or, datafile.update_metadata()
+    datafile.to_cloud(update_metadata=True)  # Or, datafile.update_metadata()
 
 
 Example C
@@ -252,10 +248,7 @@ Example C
     from octue.resources import Datafile
 
 
-    project_name = "my-project"
-    path = "gs://my-bucket/path/to/data.csv"
-
-    datafile = Datafile(path, project_name=project_name)
+    datafile = Datafile("gs://my-bucket/path/to/data.csv")
 
     with datafile.open("r") as f:
         data = f.read()
@@ -284,7 +277,7 @@ For creating new data in a new local file:
     with Datafile(path="path/to/local/file.dat", tags=tags, labels=labels, mode="w") as (datafile, f):
         f.write("This is some cleaned data.")
 
-    datafile.to_cloud(project_name="my-project", cloud_path="gs://my-bucket/path/to/data.dat")
+    datafile.to_cloud("gs://my-bucket/path/to/data.dat")
 
 
 For existing data in an existing local file:
@@ -298,4 +291,4 @@ For existing data in an existing local file:
     labels = {"Vestas"}
 
     datafile = Datafile(path="path/to/local/file.dat", tags=tags, labels=labels)
-    datafile.to_cloud(project_name="my-project", cloud_path="gs://my-bucket/path/to/data.dat")
+    datafile.to_cloud("gs://my-bucket/path/to/data.dat")
