@@ -41,6 +41,15 @@ Send datasets to a digital twin
     answer = child.ask(input_manifest=manifest)
 
 
+Receive datasets from a digital twin
+------------------------------------
+
+.. code-block:: python
+
+    answer["output_manifest"]["my_dataset"].files
+    >>> <FilterSet({<Datafile('my_file.csv')>, <Datafile('another_file.csv')>})>
+
+
 Store manifests locally
 -----------------------
 
