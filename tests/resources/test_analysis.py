@@ -147,7 +147,7 @@ class AnalysisTestCase(BaseTestCase):
             )
         )
 
-        downloaded_dataset = Dataset.from_cloud(signed_url_for_dataset)
+        downloaded_dataset = Dataset(path=signed_url_for_dataset)
         self.assertEqual(downloaded_dataset.name, "the_dataset")
         self.assertEqual(len(downloaded_dataset.files), 1)
         self.assertEqual(downloaded_dataset.labels, {"one", "two", "three"})

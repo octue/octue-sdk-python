@@ -7,7 +7,6 @@ import os
 import shutil
 import tempfile
 import warnings
-from urllib.parse import urlparse
 
 import google.api_core.exceptions
 import pkg_resources
@@ -27,11 +26,10 @@ from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudLocationNotSpecified, ReadOnlyResource
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
-from octue.mixins import Filterable, Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
+from octue.mixins import CloudPathable, Filterable, Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils.decoders import OctueJSONDecoder
-from octue.utils.encoders import OctueJSONEncoder
-from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file
+from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file, overwrite_local_metadata_file
 
 
 logger = logging.getLogger(__name__)
@@ -40,7 +38,7 @@ logger = logging.getLogger(__name__)
 OCTUE_METADATA_NAMESPACE = "octue"
 
 
-class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filterable, Metadata):
+class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filterable, Metadata, CloudPathable):
     """A representation of a data file on the Octue system. Metadata for the file is obtained from its corresponding
     cloud object or a local `.octue` metadata file, if present. If no stored metadata is available, it can be set during
     or after instantiation.
@@ -57,6 +55,8 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
     :param bool hypothetical: if `True`, ignore any metadata stored for this datafile locally or in the cloud and use whatever is given at instantiation
     :return None:
     """
+
+    _CLOUD_PATH_ATTRIBUTE_NAME = "cloud_path"
 
     _METADATA_ATTRIBUTES = ("id", "timestamp", "tags", "labels")
 
@@ -196,37 +196,6 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             self.to_cloud(cloud_path=path)
 
     @property
-    def cloud_protocol(self):
-        """Get the cloud protocol of the datafile if it exists in the cloud (e.g. "gs" for a cloud path of
-        "gs://my-bucket/my-file.txt").
-
-        :return str|None:
-        """
-        if not self.exists_in_cloud:
-            return None
-        return urlparse(self.cloud_path).scheme
-
-    @property
-    def bucket_name(self):
-        """Get the name of the bucket the datafile exists in if it exists in the cloud.
-
-        :return str|None:
-        """
-        if self.cloud_path:
-            return storage.path.split_bucket_name_from_cloud_path(self.cloud_path)[0]
-        return None
-
-    @property
-    def path_in_bucket(self):
-        """Get the path of the datafile in its bucket if it exists in the cloud.
-
-        :return str|None:
-        """
-        if self.cloud_path:
-            return storage.path.split_bucket_name_from_cloud_path(self.cloud_path)[1]
-        return None
-
-    @property
     def cloud_hash_value(self):
         """Get the hash value of the datafile according to its cloud file.
 
@@ -302,14 +271,6 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             return os.path.getsize(self.local_path)
         except FileNotFoundError:
             return None
-
-    @property
-    def exists_in_cloud(self):
-        """Return `True` if the file exists in the cloud.
-
-        :return bool:
-        """
-        return self.cloud_path is not None
 
     @property
     def exists_locally(self):
@@ -530,9 +491,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             existing_metadata_records["datafiles"] = {}
 
         existing_metadata_records["datafiles"][self.name] = self.metadata(use_octue_namespace=False)
-
-        with open(self._local_metadata_path, "w") as f:
-            json.dump(existing_metadata_records, f, cls=OctueJSONEncoder)
+        overwrite_local_metadata_file(data=existing_metadata_records, path=self._local_metadata_path)
 
     def generate_signed_url(self, expiration=datetime.timedelta(days=7)):
         """Generate a signed URL for the datafile.
@@ -667,33 +626,6 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             return super()._calculate_hash(hash_value)
         else:
             return self.cloud_hash_value or EMPTY_STRING_HASH_VALUE
-
-    def _get_cloud_location(self, cloud_path=None):
-        """Get the cloud location details for the bucket, allowing the keyword arguments to override any stored values.
-        Once the cloud location details have been determined, update the stored cloud location details.
-
-        :param str|None cloud_path:
-        :raise octue.exceptions.CloudLocationNotSpecified: if an exact cloud location isn't provided and isn't available implicitly (i.e. the Datafile wasn't loaded from the cloud previously)
-        :return (str, str): project name and cloud path
-        """
-        cloud_path = cloud_path or self.cloud_path
-
-        if not cloud_path:
-            self._raise_cloud_location_error()
-
-        self._cloud_path = cloud_path
-        return cloud_path
-
-    def _raise_cloud_location_error(self):
-        """Raise an error indicating that the cloud location of the datafile has not yet been specified.
-
-        :raise CloudLocationNotSpecified:
-        :return None:
-        """
-        raise CloudLocationNotSpecified(
-            f"{self!r} wasn't previously loaded from the cloud so doesn't have an implicit cloud location - please "
-            f"specify its exact location (its project name and cloud path)."
-        )
 
 
 class _DatafileContextManager:

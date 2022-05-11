@@ -129,7 +129,7 @@ class TestManifest(BaseTestCase):
             cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_dataset", "file_1.txt"),
         )
 
-        serialised_cloud_dataset = Dataset.from_cloud(cloud_path=f"gs://{TEST_BUCKET_NAME}/my_dataset").to_primitive()
+        serialised_cloud_dataset = Dataset(path=f"gs://{TEST_BUCKET_NAME}/my_dataset").to_primitive()
 
         manifest = Manifest(datasets={"my_dataset": serialised_cloud_dataset})
         self.assertEqual(len(manifest.datasets), 1)

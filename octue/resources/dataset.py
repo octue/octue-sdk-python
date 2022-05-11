@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import tempfile
+import warnings
 
 import coolname
 import requests
@@ -13,13 +14,13 @@ from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudLocationNotSpecified, InvalidInputException
 from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
-from octue.mixins import Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
+from octue.mixins import CloudPathable, Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.resources.label import LabelSet
 from octue.resources.tag import TagDict
 from octue.utils.encoders import OctueJSONEncoder
-from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file
+from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file, overwrite_local_metadata_file
 
 
 logger = logging.getLogger(__name__)
@@ -28,7 +29,7 @@ logger = logging.getLogger(__name__)
 SIGNED_METADATA_DIRECTORY = ".signed_metadata_files"
 
 
-class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadata):
+class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadata, CloudPathable):
     """A representation of a dataset, containing files, labels, etc.
 
     This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
@@ -40,6 +41,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
     :param str|None path:
     :param dict|octue.resources.tag.TagDict|None tags:
     :param iter(str)|octue.resources.label.LabelSet|None labels:
+    :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained within the dataset directory
     :param bool hypothetical: if `True`, ignore any metadata stored for this dataset locally or in the cloud and use whatever is given at instantiation
     :return None:
     """
@@ -50,10 +52,45 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
     # Paths to files are added to the serialisation in `Dataset.to_primitive`.
     _SERIALISE_FIELDS = (*_METADATA_ATTRIBUTES, "path")
 
-    def __init__(self, files=None, name=None, id=None, path=None, tags=None, labels=None):
+    def __init__(
+        self,
+        files=None,
+        name=None,
+        id=None,
+        path=None,
+        tags=None,
+        labels=None,
+        recursive=False,
+        hypothetical=False,
+    ):
         super().__init__(name=name, id=id, tags=tags, labels=labels)
         self.path = path or os.getcwd()
-        self.files = self._instantiate_datafiles(files or [])
+        self.files = FilterSet()
+
+        if files:
+            self.files = self._instantiate_datafiles(files)
+            return
+
+        if storage.path.is_cloud_path(self.path):
+            self._instantiate_from_cloud(path=self.path, recursive=recursive, hypothetical=hypothetical)
+        else:
+            self._instantiate_from_local_directory(path=self.path, recursive=recursive, hypothetical=hypothetical)
+
+        if hypothetical:
+            logger.debug("Ignored stored metadata for %r.", self)
+            return
+
+        if self.metadata(include_sdk_version=False) != {
+            "name": name or self.name,
+            "id": id or self.id,
+            "tags": TagDict(tags),
+            "labels": LabelSet(labels),
+        }:
+            logger.warning(
+                "Overriding metadata given at instantiation with stored metadata for %r - set `hypothetical` to `True` "
+                "at instantiation to avoid this.",
+                self,
+            )
 
     @classmethod
     def from_local_directory(cls, path_to_directory, recursive=False, hypothetical=False, **kwargs):
@@ -66,26 +103,13 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         :param kwargs: other keyword arguments for the `Dataset` instantiation
         :return Dataset:
         """
-        datafiles = FilterSet()
+        warnings.warn(
+            "The `Dataset.from_local_directory` class method is now deprecated. Please use the `Dataset` constructor "
+            "instead, passing it the `path`, `recursive`, and `hypothetical` kwargs as necessary.",
+            category=DeprecationWarning,
+        )
 
-        for level, (directory_path, _, filenames) in enumerate(os.walk(path_to_directory)):
-            for filename in filenames:
-
-                if filename == METADATA_FILENAME:
-                    continue
-
-                if not recursive and level > 0:
-                    break
-
-                datafiles.add(Datafile(path=os.path.join(directory_path, filename)))
-
-        dataset = Dataset(path=path_to_directory, files=datafiles, **kwargs)
-
-        if not hypothetical:
-            dataset._use_local_metadata()
-
-        dataset._warn_about_metadata_override(hypothetical=hypothetical, **kwargs)
-        return dataset
+        return Dataset(path=path_to_directory, recursive=recursive, hypothetical=hypothetical, **kwargs)
 
     @classmethod
     def from_cloud(
@@ -107,32 +131,16 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         :param kwargs: other keyword arguments for the `Dataset` instantiation
         :return Dataset:
         """
+        warnings.warn(
+            "The `Dataset.from_cloud` class method is now deprecated. Please use the `Dataset` constructor instead, "
+            "passing it the `path`, `recursive`, and `hypothetical` kwargs as necessary.",
+            category=DeprecationWarning,
+        )
+
         if not cloud_path:
             cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_to_dataset_directory)
 
-        bucket_name = storage.path.split_bucket_name_from_cloud_path(cloud_path)[0]
-
-        dataset = Dataset(path=cloud_path, **kwargs)
-
-        if not hypothetical:
-            dataset._use_cloud_metadata()
-
-        if not dataset.files:
-            dataset.files = FilterSet(
-                Datafile(path=storage.path.generate_gs_path(bucket_name, blob.name))
-                for blob in GoogleCloudStorageClient().scandir(
-                    cloud_path,
-                    recursive=recursive,
-                    filter=(
-                        lambda blob: (
-                            not blob.name.endswith(METADATA_FILENAME) and SIGNED_METADATA_DIRECTORY not in blob.name
-                        )
-                    ),
-                )
-            )
-
-        dataset._warn_about_metadata_override(hypothetical=hypothetical, **kwargs)
-        return dataset
+        return Dataset(path=cloud_path, recursive=recursive, hypothetical=hypothetical, **kwargs)
 
     @property
     def name(self):
@@ -158,40 +166,12 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         self._name = name
 
     @property
-    def exists_in_cloud(self):
-        """Return `True` if the dataset exists in the cloud.
-
-        :return bool:
-        """
-        return storage.path.is_cloud_path(self.path)
-
-    @property
     def exists_locally(self):
         """Return `True` if the dataset exists locally.
 
         :return bool:
         """
         return not self.exists_in_cloud
-
-    @property
-    def bucket_name(self):
-        """Get the name of the bucket the dataset exists in if it exists in the cloud.
-
-        :return str|None:
-        """
-        if self.exists_in_cloud:
-            return storage.path.split_bucket_name_from_cloud_path(self.path)[0]
-        return None
-
-    @property
-    def path_in_bucket(self):
-        """Get the path of the dataset in its bucket if it exists in the cloud.
-
-        :return str|None:
-        """
-        if self.exists_in_cloud:
-            return storage.path.split_bucket_name_from_cloud_path(self.path)[1]
-        return None
 
     @property
     def all_files_are_in_cloud(self):
@@ -245,12 +225,20 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         :return str: cloud path for dataset
         """
         if not cloud_path:
-            cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, output_directory)
+            if not (bucket_name and output_directory):
+                cloud_path = self._get_cloud_location(cloud_path)
+            else:
+                cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, output_directory)
 
         files_and_paths = []
 
         for datafile in self.files:
-            datafile_path_relative_to_dataset = self._datafile_path_relative_to_self(datafile, path_type="local_path")
+            if self.exists_in_cloud:
+                path_type = "cloud_path"
+            else:
+                path_type = "local_path"
+
+            datafile_path_relative_to_dataset = self._datafile_path_relative_to_self(datafile, path_type=path_type)
 
             files_and_paths.append(
                 (
@@ -311,9 +299,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         existing_metadata_records = load_local_metadata_file(self._metadata_path)
         existing_metadata_records["dataset"] = self.to_primitive(include_files=False)
         os.makedirs(self.path, exist_ok=True)
-
-        with open(self._metadata_path, "w") as f:
-            json.dump(existing_metadata_records, f, cls=OctueJSONEncoder)
+        overwrite_local_metadata_file(data=existing_metadata_records, path=self._metadata_path)
 
     def generate_signed_url(self, expiration=datetime.timedelta(days=7)):
         """Generate a signed URL for the dataset. This is done by uploading a uniquely named metadata file containing
@@ -434,7 +420,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             for path in executor.map(download, files_and_paths):
                 logger.debug("Downloaded datafile to %r.", path)
 
-        logger.info("Downloaded %r dataset to %r.", self.name, local_directory)
+        logger.info("Downloaded %r to %r.", self, local_directory)
 
     def to_primitive(self, include_files=True):
         """Convert the dataset to a dictionary of primitives, converting its files into their paths for a lightweight
@@ -454,6 +440,57 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             serialised_dataset["files"] = sorted(getattr(datafile, path_type) for datafile in self.files)
 
         return serialised_dataset
+
+    def _instantiate_from_cloud(self, path, recursive=True, hypothetical=False):
+        """Instantiate the dataset from a cloud directory.
+
+        :param str path: the cloud path to a directory in cloud storage
+        :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained within the dataset directory
+        :param bool hypothetical: if `True`, ignore any metadata stored for this dataset in the cloud and use whatever is given at instantiation
+        :return None:
+        """
+        if not hypothetical:
+            self._use_cloud_metadata()
+
+        if not self.files:
+            bucket_name = storage.path.split_bucket_name_from_cloud_path(path)[0]
+
+            self.files = FilterSet(
+                Datafile(path=storage.path.generate_gs_path(bucket_name, blob.name))
+                for blob in GoogleCloudStorageClient().scandir(
+                    path,
+                    recursive=recursive,
+                    filter=(
+                        lambda blob: (
+                            not blob.name.endswith(METADATA_FILENAME) and SIGNED_METADATA_DIRECTORY not in blob.name
+                        )
+                    ),
+                )
+            )
+
+    def _instantiate_from_local_directory(self, path, recursive=False, hypothetical=False):
+        """Instantiate the dataset from a local directory.
+
+        :param str path: the path to a local directory
+        :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained within the dataset directory
+        :param bool hypothetical: if `True`, ignore any metadata stored for this dataset locally and use whatever is given at instantiation
+        :return None:
+        """
+        self.files = FilterSet()
+
+        for level, (directory_path, _, filenames) in enumerate(os.walk(path)):
+            for filename in filenames:
+
+                if filename == METADATA_FILENAME:
+                    continue
+
+                if not recursive and level > 0:
+                    break
+
+                self.files.add(Datafile(path=os.path.join(directory_path, filename)))
+
+        if not hypothetical:
+            self._use_local_metadata()
 
     def _instantiate_datafiles(self, files):
         """Instantiate and add the given files to a `FilterSet`.
@@ -561,27 +598,3 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             datafile_path = datafile_path.split("?")[0]
 
         return storage.path.relpath(datafile_path, dataset_path)
-
-    def _warn_about_metadata_override(self, hypothetical, **kwargs):
-        """Issue a warning about instantiation metadata override if `hypothetical` is `False` and the dataset's metadata
-        is different from the provided instantiation keyword arguments.
-
-        :param bool hypothetical: if `True`, don't raise any warnings.
-        :param kwargs: the Dataset instantiation keyword arguments
-        :return None:
-        """
-        if hypothetical:
-            logger.debug("Ignored stored metadata for %r.", self)
-            return
-
-        if self.metadata(include_sdk_version=False) != {
-            "name": kwargs.get("name") or self.name,
-            "id": kwargs.get("id") or self.id,
-            "tags": TagDict(kwargs.get("tags")),
-            "labels": LabelSet(kwargs.get("labels")),
-        }:
-            logger.warning(
-                "Overriding metadata given at instantiation with stored metadata for %r - set `hypothetical` to `True` "
-                "at instantiation to avoid this.",
-                self,
-            )

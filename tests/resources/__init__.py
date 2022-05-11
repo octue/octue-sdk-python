@@ -15,4 +15,4 @@ def create_dataset_with_two_files(dataset_directory_path):
         with open(path, "w") as f:
             f.write(str(data))
 
-    return Dataset.from_local_directory(dataset_directory_path)
+    return Dataset(path=dataset_directory_path)
