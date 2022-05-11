@@ -119,7 +119,7 @@ File hashes guarantee you have the right file. Getting the hash of datafiles is 
 
 .. code-block:: python
 
-    dataset.hash_value
+    datafile.hash_value
     >>> 'mnG7TA=='
 
 
