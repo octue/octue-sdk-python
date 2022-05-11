@@ -139,7 +139,7 @@ class TestManifest(BaseTestCase):
     def test_instantiating_from_datasets_from_different_cloud_buckets(self):
         """Test instantiating a manifest from multiple datasets from different cloud buckets."""
         storage_client = GoogleCloudStorageClient()
-        storage_client.create_bucket(name="another-test-bucket")
+        storage_client.create_bucket(name=TEST_BUCKET_NAME + "-another")
 
         storage_client.upload_from_string(
             "[1, 2, 3]",
