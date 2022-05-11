@@ -71,6 +71,7 @@ We use `GitHub Issues <https://github.com/octue/octue-sdk-python/issues>`_ [#]_ 
    datafile
    dataset
    manifest
+   asking_questions
    logging
    filter_containers
    analysis_objects

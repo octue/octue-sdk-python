@@ -40,6 +40,8 @@ Send datasets to a digital twin
 
     answer = child.ask(input_manifest=manifest)
 
+See :doc:`here <asking_questions>` for more information.
+
 
 Receive datasets from a digital twin
 ------------------------------------
