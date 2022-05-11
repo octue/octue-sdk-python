@@ -84,7 +84,7 @@ This is where you write your app. The first requirement is that it must contain 
               self.analysis = analysis
               ...
 
-          def run():
+          def run(self):
               """A method that mutates the ``self.analysis`` attribute.
 
               :return None:
