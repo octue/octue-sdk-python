@@ -172,7 +172,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         :param str|None cloud_path: cloud path to store dataset at (e.g. `gs://bucket_name/path/to/dataset`)
         :return str: cloud path for dataset
         """
-        cloud_path = cloud_path or self._get_cloud_location(cloud_path)
+        cloud_path = self._get_cloud_location(cloud_path)
 
         files_and_paths = []
 
