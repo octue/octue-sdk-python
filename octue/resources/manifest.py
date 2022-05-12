@@ -7,7 +7,6 @@ import octue.migrations.manifest
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException
-from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import Hashable, Identifiable, Metadata, Serialisable
 from octue.resources.dataset import Dataset
 
@@ -36,15 +35,12 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
         self.datasets = self._instantiate_datasets(datasets or {})
 
     @classmethod
-    def from_cloud(cls, cloud_path=None, bucket_name=None, path_to_manifest_file=None):
+    def from_cloud(cls, cloud_path):
         """Instantiate a Manifest from Google Cloud storage.
 
-        :param str|None cloud_path: full path to manifest in cloud storage (e.g. `gs://bucket_name/path/to/manifest.json`)
+        :param str cloud_path: full path to manifest in cloud storage (e.g. `gs://bucket_name/path/to/manifest.json`)
         :return Dataset:
         """
-        if not cloud_path:
-            cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_to_manifest_file)
-
         serialised_manifest = json.loads(GoogleCloudStorageClient().download_as_string(cloud_path))
 
         return Manifest(
@@ -60,10 +56,10 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
         """
         return all(dataset.all_files_are_in_cloud for dataset in self.datasets.values())
 
-    def to_cloud(self, cloud_path=None, bucket_name=None, path_to_manifest_file=None, store_datasets=None):
+    def to_cloud(self, cloud_path, store_datasets=None):
         """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory.
 
-        :param str|None cloud_path: full path to cloud storage location to store manifest at (e.g. `gs://bucket_name/path/to/manifest.json`)
+        :param str cloud_path: full path to cloud storage location to store manifest at (e.g. `gs://bucket_name/path/to/manifest.json`)
         :return None:
         """
         if store_datasets:
@@ -74,9 +70,6 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
                 ),
                 category=DeprecationWarning,
             )
-
-        if not cloud_path:
-            cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_to_manifest_file)
 
         GoogleCloudStorageClient().upload_from_string(string=json.dumps(self.to_primitive()), cloud_path=cloud_path)
 
