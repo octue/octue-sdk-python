@@ -3,7 +3,6 @@ import copy
 import json
 import warnings
 
-import octue.migrations.manifest
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException
@@ -27,10 +26,7 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
     # Paths to datasets are added to the serialisation in `Manifest.to_primitive`.
     _SERIALISE_FIELDS = (*_METADATA_ATTRIBUTES, "name")
 
-    def __init__(self, id=None, name=None, datasets=None, **kwargs):
-        if isinstance(datasets, list):
-            datasets = octue.migrations.manifest.translate_datasets_list_to_dictionary(datasets, kwargs.get("keys"))
-
+    def __init__(self, id=None, name=None, datasets=None):
         super().__init__(id=id, name=name)
         self.datasets = self._instantiate_datasets(datasets or {})
 
