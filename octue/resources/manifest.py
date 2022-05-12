@@ -1,7 +1,6 @@
 import concurrent.futures
 import copy
 import json
-import warnings
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
@@ -52,21 +51,12 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
         """
         return all(dataset.all_files_are_in_cloud for dataset in self.datasets.values())
 
-    def to_cloud(self, cloud_path, store_datasets=None):
+    def to_cloud(self, cloud_path):
         """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory.
 
         :param str cloud_path: full path to cloud storage location to store manifest at (e.g. `gs://bucket_name/path/to/manifest.json`)
         :return None:
         """
-        if store_datasets:
-            warnings.warn(
-                message=(
-                    "The `store_datasets` parameter is no longer available - please call the `to_cloud` method on any "
-                    "datasets you wish to upload to the cloud separately."
-                ),
-                category=DeprecationWarning,
-            )
-
         GoogleCloudStorageClient().upload_from_string(string=json.dumps(self.to_primitive()), cloud_path=cloud_path)
 
     def get_dataset(self, key):
