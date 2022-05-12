@@ -6,7 +6,6 @@ import logging
 import os
 import shutil
 import tempfile
-import warnings
 
 import google.api_core.exceptions
 import pkg_resources
@@ -25,7 +24,6 @@ except ModuleNotFoundError:
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudLocationNotSpecified, ReadOnlyResource
-from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import CloudPathable, Filterable, Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils.decoders import OctueJSONDecoder
@@ -82,18 +80,6 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         hypothetical=False,
         **kwargs,
     ):
-        if "update_cloud_metadata" in kwargs:
-            warnings.warn(
-                message=(
-                    "The `Datafile` instantiation parameter `update_cloud_metadata` has been deprecated and renamed to "
-                    "`update_metadata`. The old name will become unavailable soon, so please update to the new one. It "
-                    "has been translated for now."
-                ),
-                category=DeprecationWarning,
-            )
-
-            update_metadata = kwargs["update_cloud_metadata"]
-
         super().__init__(
             id=id,
             name=kwargs.pop("name", None),
@@ -371,16 +357,13 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             raise TypeError(f"An object of type {type(self)} cannot be compared with {type(other)}.")
         return self.name > other.name
 
-    def to_cloud(self, cloud_path=None, bucket_name=None, path_in_bucket=None, update_cloud_metadata=True):
+    def to_cloud(self, cloud_path=None, update_cloud_metadata=True):
         """Upload a datafile to Google Cloud Storage.
 
         :param str|None cloud_path: full path to cloud storage location to store datafile at (e.g. `gs://bucket_name/path/to/file.csv`)
         :param bool update_cloud_metadata: if `True`, update the metadata of the datafile in the cloud at upload time
         :return str: gs:// path for datafile
         """
-        if bucket_name:
-            cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_in_bucket)
-
         cloud_path = self._get_cloud_location(cloud_path)
 
         self._get_cloud_metadata()

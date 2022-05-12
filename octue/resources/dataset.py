@@ -5,7 +5,6 @@ import json
 import logging
 import os
 import tempfile
-import warnings
 
 import coolname
 import requests
@@ -13,7 +12,6 @@ import requests
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudLocationNotSpecified, InvalidInputException
-from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import CloudPathable, Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
@@ -92,56 +90,6 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
                 self,
             )
 
-    @classmethod
-    def from_local_directory(cls, path_to_directory, recursive=False, hypothetical=False, **kwargs):
-        """Instantiate a Dataset from the files in the given local directory. If a dataset metadata file is present,
-        that is used to decide which files are in the dataset.
-
-        :param str path_to_directory: path to a local directory
-        :param bool recursive: if `True`, include all files in the directory's subdirectories recursively
-        :param bool hypothetical: if `True`, don't use any metadata stored for this dataset locally
-        :param kwargs: other keyword arguments for the `Dataset` instantiation
-        :return Dataset:
-        """
-        warnings.warn(
-            "The `Dataset.from_local_directory` class method is now deprecated. Please use the `Dataset` constructor "
-            "instead, passing it the `path`, `recursive`, and `hypothetical` kwargs as necessary.",
-            category=DeprecationWarning,
-        )
-
-        return Dataset(path=path_to_directory, recursive=recursive, hypothetical=hypothetical, **kwargs)
-
-    @classmethod
-    def from_cloud(
-        cls,
-        cloud_path=None,
-        bucket_name=None,
-        path_to_dataset_directory=None,
-        recursive=False,
-        hypothetical=False,
-        **kwargs,
-    ):
-        """Instantiate a Dataset from Google Cloud storage. The dataset's files are collected by scanning its cloud
-        directory unless a "files" key is present in the dataset metadata, in which case the files specified there are
-        used.
-
-        :param str|None cloud_path: full path to dataset directory in cloud storage (e.g. `gs://bucket_name/path/to/dataset`)
-        :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained in the dataset directory
-        :param bool hypothetical: if `True`, don't use any metadata stored for this dataset in the cloud
-        :param kwargs: other keyword arguments for the `Dataset` instantiation
-        :return Dataset:
-        """
-        warnings.warn(
-            "The `Dataset.from_cloud` class method is now deprecated. Please use the `Dataset` constructor instead, "
-            "passing it the `path`, `recursive`, and `hypothetical` kwargs as necessary.",
-            category=DeprecationWarning,
-        )
-
-        if not cloud_path:
-            cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_to_dataset_directory)
-
-        return Dataset(path=cloud_path, recursive=recursive, hypothetical=hypothetical, **kwargs)
-
     @property
     def name(self):
         """Get the name of the dataset
@@ -218,17 +166,13 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         """
         self.update_metadata()
 
-    def to_cloud(self, cloud_path=None, bucket_name=None, output_directory=None):
+    def to_cloud(self, cloud_path=None):
         """Upload a dataset to the given cloud path.
 
         :param str|None cloud_path: cloud path to store dataset at (e.g. `gs://bucket_name/path/to/dataset`)
         :return str: cloud path for dataset
         """
-        if not cloud_path:
-            if not (bucket_name and output_directory):
-                cloud_path = self._get_cloud_location(cloud_path)
-            else:
-                cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, output_directory)
+        cloud_path = self._get_cloud_location(cloud_path)
 
         files_and_paths = []
 

@@ -1,13 +1,10 @@
 import concurrent.futures
 import copy
 import json
-import warnings
 
-import octue.migrations.manifest
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException
-from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import Hashable, Identifiable, Metadata, Serialisable
 from octue.resources.dataset import Dataset
 
@@ -28,23 +25,17 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
     # Paths to datasets are added to the serialisation in `Manifest.to_primitive`.
     _SERIALISE_FIELDS = (*_METADATA_ATTRIBUTES, "name")
 
-    def __init__(self, id=None, name=None, datasets=None, **kwargs):
-        if isinstance(datasets, list):
-            datasets = octue.migrations.manifest.translate_datasets_list_to_dictionary(datasets, kwargs.get("keys"))
-
+    def __init__(self, id=None, name=None, datasets=None):
         super().__init__(id=id, name=name)
         self.datasets = self._instantiate_datasets(datasets or {})
 
     @classmethod
-    def from_cloud(cls, cloud_path=None, bucket_name=None, path_to_manifest_file=None):
+    def from_cloud(cls, cloud_path):
         """Instantiate a Manifest from Google Cloud storage.
 
-        :param str|None cloud_path: full path to manifest in cloud storage (e.g. `gs://bucket_name/path/to/manifest.json`)
+        :param str cloud_path: full path to manifest in cloud storage (e.g. `gs://bucket_name/path/to/manifest.json`)
         :return Dataset:
         """
-        if not cloud_path:
-            cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_to_manifest_file)
-
         serialised_manifest = json.loads(GoogleCloudStorageClient().download_as_string(cloud_path))
 
         return Manifest(
@@ -60,24 +51,12 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
         """
         return all(dataset.all_files_are_in_cloud for dataset in self.datasets.values())
 
-    def to_cloud(self, cloud_path=None, bucket_name=None, path_to_manifest_file=None, store_datasets=None):
+    def to_cloud(self, cloud_path):
         """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory.
 
-        :param str|None cloud_path: full path to cloud storage location to store manifest at (e.g. `gs://bucket_name/path/to/manifest.json`)
+        :param str cloud_path: full path to cloud storage location to store manifest at (e.g. `gs://bucket_name/path/to/manifest.json`)
         :return None:
         """
-        if store_datasets:
-            warnings.warn(
-                message=(
-                    "The `store_datasets` parameter is no longer available - please call the `to_cloud` method on any "
-                    "datasets you wish to upload to the cloud separately."
-                ),
-                category=DeprecationWarning,
-            )
-
-        if not cloud_path:
-            cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_to_manifest_file)
-
         GoogleCloudStorageClient().upload_from_string(string=json.dumps(self.to_primitive()), cloud_path=cloud_path)
 
     def get_dataset(self, key):

@@ -487,7 +487,7 @@ class TestService(BaseTestCase):
             Datafile(path="gs://my-dataset/goodbye.csv", project_name="blah"),
         ]
 
-        input_manifest = Manifest(datasets={"my-dataset": Dataset(files=files)}, path="gs://my-dataset")
+        input_manifest = Manifest(datasets={"my-dataset": Dataset(files=files, path="gs://my-dataset")})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
@@ -518,7 +518,7 @@ class TestService(BaseTestCase):
             Datafile(path="gs://my-dataset/goodbye.csv", project_name=TEST_PROJECT_NAME),
         ]
 
-        input_manifest = Manifest(datasets={"my-dataset": Dataset(files=files)}, path="gs://my-dataset")
+        input_manifest = Manifest(datasets={"my-dataset": Dataset(files=files, path="gs://my-dataset")})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
