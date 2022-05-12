@@ -52,26 +52,6 @@ Receive datasets from a digital twin
     >>> <FilterSet({<Datafile('my_file.csv')>, <Datafile('another_file.csv')>})>
 
 
-Store manifests locally
------------------------
-
-.. code-block:: python
-
-    with open("manifest.json", "w") as f:
-        json.dump(manifest.to_primitive(), f)
-
-    with open("manifest.json") as f:
-        reloaded_manifest = Manifest.deserialise(json.load(f))
-
-
-Store manifests in the cloud
-----------------------------
-
-.. code-block:: python
-
-    manifest.to_cloud("gs://my-bucket/path/to/manifest.json")
-
-    reloaded_manifest = Manifest.from_cloud("gs://my-bucket/path/to/my_manifest.json")
 
 
 Further information

@@ -59,7 +59,7 @@ Datafiles are python objects, but they represent real files that can be fed to a
 .. code-block:: python
 
     import subprocess
-    output = subprocess.check_output(["openfast", "datafile.local_path"])
+    output = subprocess.check_output(["openfast", datafile.local_path])
 
 
 Easy and expandable custom metadata

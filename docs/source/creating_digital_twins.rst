@@ -20,7 +20,7 @@ An Octue digital twin is defined by the following files (located in the reposito
   - This can contain any valid python, including use of any number of external packages or your own subpackages
   - It must contain at least one of the ``octue`` python app interfaces
 - A ``twine.json`` file defining your schema for configuration, input, and output values and manifests
-- A ``setup.py`` or ``requirements.txt` file specifying your app's dependencies
+- A ``setup.py`` or ``requirements.txt`` file specifying your app's dependencies
 - Optionally, a ``Dockerfile`` if your needs exceed the default ``octue`` one. For example, you may need extra system
   dependencies or access to software that isn't installable via ``pip``.
 - Optionally, an app configuration JSON file specifying, for example, any children your app depends on
