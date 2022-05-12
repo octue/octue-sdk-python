@@ -861,15 +861,6 @@ class TestDatafile(BaseTestCase):
                 with Datafile(path=signed_url, mode="w") as (_, f):
                     f.write("Text I'm not allowed to write.")
 
-    def test_deprecation_warning_issued_if_using_update_cloud_metadata_parameter(self):
-        """Test that a deprecation warning is issued if the `update_cloud_metadata` parameter is provided during
-        datafile instantiation and that it's translated to the `update_metadata` parameter.
-        """
-        with self.assertWarns(DeprecationWarning):
-            datafile = Datafile(path="blah.txt", update_cloud_metadata=False)
-
-        self.assertFalse(datafile._open_attributes["update_metadata"])
-
     def test_update_metadata_with_local_datafile(self):
         """Test the `update_metadata` method with a local datafile."""
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
