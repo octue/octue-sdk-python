@@ -41,4 +41,5 @@ def overwrite_local_metadata_file(data, path=METADATA_FILENAME):
     :return None:
     """
     with open(path, "w") as f:
-        json.dump(data, f, cls=OctueJSONEncoder)
+        json.dump(data, f, cls=OctueJSONEncoder, indent=4)
+        f.write("\n")

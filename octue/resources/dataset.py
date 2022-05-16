@@ -28,19 +28,18 @@ SIGNED_METADATA_DIRECTORY = ".signed_metadata_files"
 
 
 class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadata, CloudPathable):
-    """A representation of a dataset, containing files, labels, etc.
+    """A representation of a dataset. The default usage is to provide the path to a local or cloud directory and create
+    the dataset from the files it contains. Alternatively, the `files` parameter can be provided and only those files
+    are included. Either way, the `path` parameter should be explicitly set to something meaningful.
 
-    This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
-    list of output files (results) and their properties that will be sent back to the octue system.
-
-    :param iter(dict|octue.resources.datafile.Datafile) files: the files belonging to the dataset
-    :param str|None name:
-    :param str|None id:
-    :param str|None path:
-    :param dict|octue.resources.tag.TagDict|None tags:
-    :param iter(str)|octue.resources.label.LabelSet|None labels:
+    :param str|None path: the path to the dataset (defaults to the current working directory if none is given)
+    :param iter(str|dict|octue.resources.datafile.Datafile)|None files: the files belonging to the dataset
     :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained within the dataset directory
     :param bool hypothetical: if `True`, ignore any metadata stored for this dataset locally or in the cloud and use whatever is given at instantiation
+    :param str|None id: an optional UUID to assign to the dataset (defaults to a random UUID if none is given)
+    :param str|None name: an optional name to give to the dataset (defaults to the dataset directory name)
+    :param dict|octue.resources.tag.TagDict|None tags: key-value pairs with string keys conforming to the Octue tag format (see `TagDict`)
+    :param iter(str)|octue.resources.label.LabelSet|None labels: space-separated string of labels relevant to the dataset
     :return None:
     """
 
@@ -52,20 +51,26 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
     def __init__(
         self,
-        files=None,
-        name=None,
-        id=None,
         path=None,
-        tags=None,
-        labels=None,
+        files=None,
         recursive=False,
         hypothetical=False,
+        id=None,
+        name=None,
+        tags=None,
+        labels=None,
     ):
         super().__init__(name=name, id=id, tags=tags, labels=labels)
         self.path = path or os.getcwd()
         self.files = FilterSet()
 
         if files:
+            if not any((isinstance(files, list), isinstance(files, set), isinstance(files, tuple))):
+                raise InvalidInputException(
+                    "The `files` parameter of a `Dataset` must be an iterable of `Datafile` instances, strings, or "
+                    f"dictionaries. Received {files!r} instead."
+                )
+
             self.files = self._instantiate_datafiles(files)
             return
 
@@ -166,7 +171,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         """
         self.update_metadata()
 
-    def to_cloud(self, cloud_path=None):
+    def upload(self, cloud_path=None):
         """Upload a dataset to the given cloud path.
 
         :param str|None cloud_path: cloud path to store dataset at (e.g. `gs://bucket_name/path/to/dataset`)
@@ -191,7 +196,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
                 )
             )
 
-        def upload(iterable_element):
+        def upload_datafile(iterable_element):
             """Upload a datafile to the given cloud path.
 
             :param tuple(octue.resources.datafile.Datafile, str) iterable_element:
@@ -199,12 +204,12 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             """
             datafile = iterable_element[0]
             cloud_path = iterable_element[1]
-            datafile.to_cloud(cloud_path=cloud_path)
+            datafile.upload(cloud_path=cloud_path)
             return datafile.cloud_path
 
         # Use multiple threads to significantly speed up file uploads by reducing latency.
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            for path in executor.map(upload, files_and_paths):
+            for path in executor.map(upload_datafile, files_and_paths):
                 logger.debug("Uploaded datafile to %r.", path)
 
         self.path = cloud_path
@@ -290,13 +295,13 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             if datafile.exists_in_cloud:
 
                 if datafile.cloud_path != new_cloud_path and not datafile.cloud_path.startswith(self.path):
-                    datafile.to_cloud(new_cloud_path)
+                    datafile.upload(new_cloud_path)
 
                 self.files.add(datafile)
                 return
 
             # Add a local datafile to a cloud dataset.
-            datafile.to_cloud(new_cloud_path)
+            datafile.upload(new_cloud_path)
             self.files.add(datafile)
             return
 
@@ -323,7 +328,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         """
         return self.files.one(labels__contains=label)
 
-    def download_all_files(self, local_directory=None):
+    def download(self, local_directory=None):
         """Download all files in the dataset into the given local directory. If no path to a local directory is given,
         the files will be downloaded to temporary locations.
 
@@ -349,7 +354,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             local_path = os.path.abspath(os.path.join(local_directory, *path_relative_to_dataset.split("/")))
             files_and_paths.append((file, local_path))
 
-        def download(iterable_element):
+        def download_datafile(iterable_element):
             """Download a datafile to the given path.
 
             :param tuple(octue.resources.datafile.Datafile, str) iterable_element:
@@ -361,7 +366,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         # Use multiple threads to significantly speed up files downloads by reducing latency.
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            for path in executor.map(download, files_and_paths):
+            for path in executor.map(download_datafile, files_and_paths):
                 logger.debug("Downloaded datafile to %r.", path)
 
         logger.info("Downloaded %r to %r.", self, local_directory)

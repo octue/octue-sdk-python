@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "octue"
-version = "0.24.1"
+version = "0.25.0"
 description = "A package providing template applications for data services, and a python SDK to the Octue API."
 readme = "README.md"
 authors = ["Thomas Clark <support@octue.com>", "cortadocodes <cortado.codes@protonmail.com>"]
@@ -41,7 +41,7 @@ hdf5 = ["h5py"]
 dataflow = ["apache-beam"]
 
 [tool.poetry.scripts]
-octue-app = "octue.cli:octue_cli"
+octue = "octue.cli:octue_cli"
 
 [tool.poetry.dev-dependencies]
 # Testing

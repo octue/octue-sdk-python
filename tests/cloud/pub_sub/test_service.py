@@ -482,11 +482,7 @@ class TestService(BaseTestCase):
         child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        files = [
-            Datafile(path="gs://my-dataset/hello.txt", project_name="blah"),
-            Datafile(path="gs://my-dataset/goodbye.csv", project_name="blah"),
-        ]
-
+        files = [Datafile(path="gs://my-dataset/hello.txt"), Datafile(path="gs://my-dataset/goodbye.csv")]
         input_manifest = Manifest(datasets={"my-dataset": Dataset(files=files, path="gs://my-dataset")})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
@@ -513,11 +509,7 @@ class TestService(BaseTestCase):
         child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        files = [
-            Datafile(path="gs://my-dataset/hello.txt", project_name=TEST_PROJECT_NAME),
-            Datafile(path="gs://my-dataset/goodbye.csv", project_name=TEST_PROJECT_NAME),
-        ]
-
+        files = [Datafile(path="gs://my-dataset/hello.txt"), Datafile(path="gs://my-dataset/goodbye.csv")]
         input_manifest = Manifest(datasets={"my-dataset": Dataset(files=files, path="gs://my-dataset")})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):

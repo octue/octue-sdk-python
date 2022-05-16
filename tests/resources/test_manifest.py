@@ -81,7 +81,7 @@ class TestManifest(BaseTestCase):
         """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             dataset = create_dataset_with_two_files(temporary_directory)
-            dataset.to_cloud(cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-small-dataset"))
+            dataset.upload(cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-small-dataset"))
 
             manifest = Manifest(datasets={"my-dataset": dataset})
             cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "manifest.json")
@@ -95,7 +95,7 @@ class TestManifest(BaseTestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             dataset = create_dataset_with_two_files(temporary_directory)
             dataset_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_nice_dataset")
-            dataset.to_cloud(cloud_path=dataset_path)
+            dataset.upload(cloud_path=dataset_path)
 
             manifest = Manifest(datasets={"my-dataset": dataset})
             cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-directory", "manifest.json")

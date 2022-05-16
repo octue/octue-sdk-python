@@ -31,7 +31,7 @@ setup(
         "gunicorn>=20.1,<21",
         "python-dateutil>=2.8,<3",
         "pyyaml>=6,<7",
-        "twined>=0.4,<0.5",
+        "twined>=0.5,<0.6",
     ],
     extras_require={"hdf5": ["h5py>=3.6,<4"], "dataflow": ["apache-beam[gcp]>=2.37,<3"]},
     url="https://www.github.com/octue/octue-sdk-python",
@@ -45,7 +45,7 @@ setup(
     include_package_data=True,
     entry_points="""
     [console_scripts]
-    octue-app=octue.cli:octue_cli
+    octue=octue.cli:octue_cli
     """,
     classifiers=[
         "Development Status :: 4 - Beta",

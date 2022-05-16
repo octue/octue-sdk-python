@@ -171,7 +171,7 @@ class DataflowDeployer(BaseDeployer):
                         "id": "Deploy Dataflow job",
                         "name": OCTUE_SDK_PYTHON_IMAGE_URI,
                         "args": [
-                            "octue-app",
+                            "octue",
                             "deploy",
                             "dataflow",
                             f"--service-id={self.service_id}",
