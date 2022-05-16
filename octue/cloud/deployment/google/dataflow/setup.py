@@ -45,7 +45,7 @@ setup(
     include_package_data=True,
     entry_points="""
     [console_scripts]
-    octue-app=octue.cli:octue_cli
+    octue=octue.cli:octue_cli
     """,
     classifiers=[
         "Development Status :: 4 - Beta",

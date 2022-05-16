@@ -41,7 +41,7 @@ hdf5 = ["h5py"]
 dataflow = ["apache-beam"]
 
 [tool.poetry.scripts]
-octue-app = "octue.cli:octue_cli"
+octue = "octue.cli:octue_cli"
 
 [tool.poetry.dev-dependencies]
 # Testing

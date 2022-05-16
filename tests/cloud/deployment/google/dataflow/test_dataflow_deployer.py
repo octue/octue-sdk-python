@@ -71,7 +71,7 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
             "id": "Deploy Dataflow job",
             "name": OCTUE_SDK_PYTHON_IMAGE_URI,
             "args": [
-                "octue-app",
+                "octue",
                 "deploy",
                 "dataflow",
                 f"--service-id={SERVICE_ID}",
