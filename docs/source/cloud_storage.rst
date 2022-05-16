@@ -21,10 +21,10 @@ Assuming you have an instance of ``Datafile`` called ``my_datafile``:
 
 .. code-block:: python
 
-    my_datafile.upload(project_name=<project-name>, bucket_name=<bucket-name>, path_in_bucket=<path/in/bucket>)
-    >>> gs://<bucket-name>/<path/in/bucket>
+    my_datafile.upload("gs://bucket-name/path/in/bucket")
+    >>> 'gs://bucket-name/path/in/bucket'
 
-    downloaded_datafile = Datafile(path="gs://<bucket-name>/<path/in/bucket>, project_name=<project-name>)
+    downloaded_datafile = Datafile(path="gs://bucket-name/path/in/bucket")
 
 
 Dataset
@@ -47,10 +47,10 @@ Datasets are downloaded from their directory. Assuming you have an instance of `
 
 .. code-block:: python
 
-    my_dataset.upload(project_name=<project-name>, bucket_name=<bucket-name>, output_directory=<output-directory>)
-    >>> gs://<bucket-name>/<output-directory>/<my_dataset.name>
+    my_dataset.upload("gs://bucket-name/output-directory")
+    >>> 'gs://bucket-name/output-directory/my_dataset_name'
 
-    downloaded_dataset = Dataset.from_cloud(project_name=<project-name>, bucket_name=<bucket-name>, path_to_dataset_directory=<output-directory>/<my_dataset.name>)
+    downloaded_dataset = Dataset("gs://bucket-name/output-directory/my_dataset_name")
 
 
 Manifest
@@ -60,10 +60,10 @@ instance of ``Manifest`` called ``my_manifest``:
 
 .. code-block:: python
 
-    my_manifest.to_cloud(project_name=<project-name>, bucket_name=<bucket-name>, path_to_manifest_file=<path/to/manifest/file.json>)
-    >>> gs://<bucket-name>/<path/to/manifest/file.json>
+    my_manifest.to_cloud("gs://bucket-name/path/to/manifest/file.json")
+    >>> 'gs://bucket-name/path/to/manifest/file.json'
 
-    downloaded_manifest = Manifest.from_cloud(project_name=<project-name>, bucket_name=<bucket-name>, path_to_manifest_file=<path/to/manifest/file.json>)
+    downloaded_manifest = Manifest.from_cloud("gs://bucket-name/path/to/manifest/file.json")
 
 
 The datasets specified in a manifest can be located anywhere in any bucket as long as their paths are correct in their

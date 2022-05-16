@@ -20,7 +20,7 @@ to any of these methods.
     from octue.utils.cloud.storage.client import GoogleCloudStorageClient
 
 
-    storage_client = GoogleCloudStorageClient(project_name=<project-name>)
+    storage_client = GoogleCloudStorageClient()
 
     storage_client.upload_file(
         local_path=<path/to/file>,
