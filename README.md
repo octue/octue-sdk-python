@@ -19,7 +19,7 @@ pip install octue
 
 The command line interface (CLI) can then be accessed via:
 ```shell
-octue-app --help
+octue --help
 ```
 
 ## Developer notes
@@ -29,6 +29,10 @@ For development, run the following from the repository root, which will editably
 ```bash
 pip install -r requirements-dev.txt
 ```
+
+### Deprecated code
+When code is deprecated, it will still work but a deprecation warning will be issued with a suggestion on how to update
+it. After an adjustment period, deprecations will be removed according to the [code removal schedule](https://github.com/octue/octue-sdk-python/issues/415).
 
 ### Testing
 These environment variables need to be set to run the tests:
