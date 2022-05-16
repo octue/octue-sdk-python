@@ -13,9 +13,9 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
     """A representation of a manifest, which can contain multiple datasets This is used to manage all files coming into
     (or leaving), a data service for an analysis at the configuration, input or output stage.
 
-    :param str|None id: the UUID of the manifest (a UUID is generated if one isn't given)
-    :param str|None path: the path the manifest exists at (defaults to the current working directory)
     :param dict(str, octue.resources.dataset.Dataset|dict|str)|None datasets: a mapping of dataset names to `Dataset` instances, serialised datasets, or paths to datasets
+    :param str|None id: the UUID of the manifest (a UUID is generated if one isn't given)
+    :param str|None name: an optional name to give to the manifest
     :return None:
     """
 

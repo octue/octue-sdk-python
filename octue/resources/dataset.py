@@ -33,14 +33,14 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
     This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
     list of output files (results) and their properties that will be sent back to the octue system.
 
+    :param str|None path: the path to the dataset (defaults to the current working directory if none is given)
     :param iter(dict|octue.resources.datafile.Datafile) files: the files belonging to the dataset
-    :param str|None name:
-    :param str|None id:
-    :param str|None path:
-    :param dict|octue.resources.tag.TagDict|None tags:
-    :param iter(str)|octue.resources.label.LabelSet|None labels:
     :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained within the dataset directory
     :param bool hypothetical: if `True`, ignore any metadata stored for this dataset locally or in the cloud and use whatever is given at instantiation
+    :param str|None id: an optional UUID to assign to the dataset (defaults to a random UUID if none is given)
+    :param str|None name: an optional name to give to the dataset (defaults to the dataset directory name)
+    :param dict|octue.resources.tag.TagDict|None tags: key-value pairs with string keys conforming to the Octue tag format (see `TagDict`)
+    :param iter(str)|octue.resources.label.LabelSet|None labels: space-separated string of labels relevant to the dataset
     :return None:
     """
 
@@ -54,12 +54,12 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         self,
         path=None,
         files=None,
+        recursive=False,
+        hypothetical=False,
         id=None,
         name=None,
         tags=None,
         labels=None,
-        recursive=False,
-        hypothetical=False,
     ):
         super().__init__(name=name, id=id, tags=tags, labels=labels)
         self.path = path or os.getcwd()
