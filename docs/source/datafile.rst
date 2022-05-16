@@ -148,6 +148,12 @@ Represent HDF5 files
 
         pip install octue[hdf5]
 
+    or
+
+    .. code-block:: shell
+
+        poetry add octue -E hdf5
+
 
 More information on downloading
 -------------------------------
