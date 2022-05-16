@@ -432,7 +432,7 @@ class TestDataset(BaseTestCase):
             dataset.tags = {"a": "b", "c": 1}
 
             cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "a_directory", dataset.name)
-            dataset.to_cloud(cloud_path)
+            dataset.upload(cloud_path)
             persisted_dataset = Dataset(path=cloud_path)
 
             self.assertEqual(persisted_dataset.path, f"gs://{TEST_BUCKET_NAME}/a_directory/{dataset.name}")
@@ -540,7 +540,7 @@ class TestDataset(BaseTestCase):
 
             output_directory = "my_datasets"
             cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, output_directory, dataset.name)
-            dataset.to_cloud(cloud_path)
+            dataset.upload(cloud_path)
 
             storage_client = GoogleCloudStorageClient()
 
@@ -564,7 +564,7 @@ class TestDataset(BaseTestCase):
             dataset = Dataset(path=temporary_directory, recursive=True)
 
             upload_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-dataset")
-            dataset.to_cloud(cloud_path=upload_path)
+            dataset.upload(cloud_path=upload_path)
 
         cloud_datafile_relative_paths = {
             blob.name.split(dataset.name)[-1].strip("/")
@@ -586,7 +586,7 @@ class TestDataset(BaseTestCase):
         """
         dataset_path = self._create_nested_cloud_dataset()
         dataset = Dataset(path=dataset_path, recursive=True)
-        dataset.to_cloud()
+        dataset.upload()
 
     def test_error_raised_if_trying_to_download_files_from_local_dataset(self):
         """Test that an error is raised if trying to download files from a local dataset."""
@@ -711,7 +711,7 @@ class TestDataset(BaseTestCase):
                 f.write("hello")
 
             dataset = Dataset(path=dataset_local_path, tags={"hello": "world"})
-            dataset.to_cloud(storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-dataset-to-sign"))
+            dataset.upload(storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-dataset-to-sign"))
 
         with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
             signed_url = dataset.generate_signed_url()
