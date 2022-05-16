@@ -28,13 +28,12 @@ SIGNED_METADATA_DIRECTORY = ".signed_metadata_files"
 
 
 class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadata, CloudPathable):
-    """A representation of a dataset, containing files, labels, etc.
-
-    This is used to read a list of files (and their associated properties) into octue analysis, or to compile a
-    list of output files (results) and their properties that will be sent back to the octue system.
+    """A representation of a dataset. The default usage is to provide the path to a local or cloud directory and create
+    the dataset from the files it contains. Alternatively, the `files` parameter can be provided and only those files
+    are included. Either way, the `path` parameter should be explicitly set to something meaningful.
 
     :param str|None path: the path to the dataset (defaults to the current working directory if none is given)
-    :param iter(dict|octue.resources.datafile.Datafile) files: the files belonging to the dataset
+    :param iter(str|dict|octue.resources.datafile.Datafile)|None files: the files belonging to the dataset
     :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained within the dataset directory
     :param bool hypothetical: if `True`, ignore any metadata stored for this dataset locally or in the cloud and use whatever is given at instantiation
     :param str|None id: an optional UUID to assign to the dataset (defaults to a random UUID if none is given)
@@ -66,6 +65,12 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         self.files = FilterSet()
 
         if files:
+            if not isinstance(files, list) or not isinstance(files, set) or not isinstance(files, tuple):
+                raise InvalidInputException(
+                    "The `files` parameter of a `Dataset` must be an iterable of `Datafile` instances, strings, or "
+                    f"dictionaries. Received {files!r} instead."
+                )
+
             self.files = self._instantiate_datafiles(files)
             return
 

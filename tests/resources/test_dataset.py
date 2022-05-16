@@ -39,6 +39,13 @@ class TestDataset(BaseTestCase):
         iterated_files = {file for file in dataset}
         self.assertEqual(iterated_files, dataset.files)
 
+    def test_error_raised_if_files_invalid(self):
+        """Test that an error is raised if the `files` instantiation parameter is invalid."""
+        for invalid_files in ("some/path", {"some": "value"}):
+            with self.subTest(files=invalid_files):
+                with self.assertRaises(exceptions.InvalidInputException):
+                    Dataset(files=invalid_files)
+
     def test_cannot_add_non_datafiles(self):
         """Ensures that exception will be raised if adding a non-datafile object"""
 
