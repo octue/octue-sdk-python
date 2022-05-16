@@ -328,7 +328,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         """
         return self.files.one(labels__contains=label)
 
-    def download_all_files(self, local_directory=None):
+    def download(self, local_directory=None):
         """Download all files in the dataset into the given local directory. If no path to a local directory is given,
         the files will be downloaded to temporary locations.
 
@@ -354,7 +354,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             local_path = os.path.abspath(os.path.join(local_directory, *path_relative_to_dataset.split("/")))
             files_and_paths.append((file, local_path))
 
-        def download(iterable_element):
+        def download_datafile(iterable_element):
             """Download a datafile to the given path.
 
             :param tuple(octue.resources.datafile.Datafile, str) iterable_element:
@@ -366,7 +366,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         # Use multiple threads to significantly speed up files downloads by reducing latency.
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            for path in executor.map(download, files_and_paths):
+            for path in executor.map(download_datafile, files_and_paths):
                 logger.debug("Downloaded datafile to %r.", path)
 
         logger.info("Downloaded %r to %r.", self, local_directory)

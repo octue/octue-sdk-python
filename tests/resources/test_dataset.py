@@ -593,7 +593,7 @@ class TestDataset(BaseTestCase):
         dataset = self.create_valid_dataset()
 
         with self.assertRaises(exceptions.CloudLocationNotSpecified):
-            dataset.download_all_files()
+            dataset.download()
 
     def test_download_all_files(self):
         """Test that all files in a dataset can be downloaded with one command."""
@@ -612,7 +612,7 @@ class TestDataset(BaseTestCase):
         dataset = Dataset(path=f"gs://{TEST_BUCKET_NAME}/{dataset_name}")
 
         with tempfile.TemporaryDirectory() as temporary_directory:
-            dataset.download_all_files(local_directory=temporary_directory)
+            dataset.download(local_directory=temporary_directory)
 
             with open(os.path.join(temporary_directory, "file_0.txt")) as f:
                 self.assertEqual(f.read(), "[1, 2, 3]")
@@ -627,7 +627,7 @@ class TestDataset(BaseTestCase):
         dataset = Dataset(path=dataset_path, recursive=True)
 
         with tempfile.TemporaryDirectory() as temporary_directory:
-            dataset.download_all_files(local_directory=temporary_directory)
+            dataset.download(local_directory=temporary_directory)
 
             with open(os.path.join(temporary_directory, "file_0.txt")) as f:
                 self.assertEqual(f.read(), "[1, 2, 3]")
@@ -653,7 +653,7 @@ class TestDataset(BaseTestCase):
         temporary_directory = tempfile.TemporaryDirectory()
 
         with patch("tempfile.TemporaryDirectory", return_value=temporary_directory):
-            dataset.download_all_files()
+            dataset.download()
 
         with open(os.path.join(temporary_directory.name, "file_0.txt")) as f:
             self.assertEqual(f.read(), "[1, 2, 3]")
