@@ -65,7 +65,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         self.files = FilterSet()
 
         if files:
-            if not isinstance(files, list) or not isinstance(files, set) or not isinstance(files, tuple):
+            if not any((isinstance(files, list), isinstance(files, set), isinstance(files, tuple))):
                 raise InvalidInputException(
                     "The `files` parameter of a `Dataset` must be an iterable of `Datafile` instances, strings, or "
                     f"dictionaries. Received {files!r} instead."
