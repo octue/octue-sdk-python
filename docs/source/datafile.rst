@@ -69,8 +69,8 @@ You can set the following metadata on a datafile:
 
 - ID
 - Timestamp
-- Arbitrary labels (a set of lowercase strings)
-- Arbitrary tags (key-value pairs)
+- Labels (a set of lowercase strings)
+- Tags (a dictionary of key-value pairs)
 
 This metadata is stored locally in a ``.octue`` file for local datafiles or on the cloud objects for cloud datafiles and
 is used during ``Datafile`` instantiation. It can be accessed like this:

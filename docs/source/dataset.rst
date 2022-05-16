@@ -37,9 +37,9 @@ Download a dataset
     dataset.download("path/to/download")
 
 
-Hash datasets easily
-------------------------
-File hashes guarantee you have the right dataset. Getting the hash of datasets is simple:
+Get dataset hashes
+------------------
+File hashes guarantee you have the right dataset and ensure data consistency. Getting the hash of datasets is simple:
 
 .. code-block:: python
 
@@ -74,9 +74,9 @@ labels, size. The filtering syntax is similar to Django's.
     dataset = Dataset(
         path="blah",
         files=[
-            Datafile(path="blah/path-within-dataset/my_file.csv", labels=["one", "a", "b" "all"]),
-            Datafile(path="blah/path-within-dataset/your_file.txt", labels=["two", "a", "b", "all"),
-            Datafile(path="blah/path-within-dataset/another_file.csv", labels=["three", "all"]),
+            Datafile(path="blah/my_file.csv", labels=["one", "a", "b" "all"]),
+            Datafile(path="blah/your_file.txt", labels=["two", "a", "b", "all"),
+            Datafile(path="blah/another_file.csv", labels=["three", "all"]),
         ]
     )
 

@@ -10,7 +10,7 @@ Key features
 **Unified cloud/local file, dataset, and manifest operations**
 
 - Create and build datasets easily
-- Organise them with timestamps, labels, and tags (i.e. arbitrary metadata)
+- Organise them with timestamps, labels, and tags
 - Filter and combine them using this metadata
 - Store them locally or in the cloud (or both for low-latency reading/writing with cloud-guaranteed data availability)
 - Use internet/cloud-based datasets as if they were local e.g.
