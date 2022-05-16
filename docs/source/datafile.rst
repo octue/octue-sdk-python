@@ -207,9 +207,9 @@ Example A
     from octue.resources import Datafile
 
 
-    path = "gs://my-bucket/path/to/data.csv"
+    datafile = Datafile("gs://my-bucket/path/to/data.csv")
 
-    with Datafile(path, mode="r") as (datafile, f):
+    with datafile.open() as f:
         data = f.read()
         new_metadata = metadata_calculating_function(data)
 
@@ -256,7 +256,7 @@ Example C
 
     datafile = Datafile("gs://my-bucket/path/to/data.csv")
 
-    with datafile.open("r") as f:
+    with datafile.open() as f:
         data = f.read()
 
     metadata = datafile.metadata()
@@ -277,10 +277,13 @@ For creating new data in a new local file:
     from octue.resources import Datafile
 
 
-    tags = {"cleaned": True, "type": "linear"}
-    labels = {"Vestas"}
+    datafile = Datafile(
+        "path/to/local/file.dat",
+        tags={"cleaned": True, "type": "linear"},
+        labels={"Vestas"}
+    )
 
-    with Datafile(path="path/to/local/file.dat", tags=tags, labels=labels, mode="w") as (datafile, f):
+    with datafile.open("w") as f:
         f.write("This is some cleaned data.")
 
     datafile.upload("gs://my-bucket/path/to/data.dat")
