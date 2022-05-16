@@ -53,7 +53,7 @@ class TestDatafile(BaseTestCase):
             temporary_file.write(contents)
 
         datafile = Datafile(path=temporary_file.name, **kwargs)
-        datafile.to_cloud(cloud_path=cloud_path)
+        datafile.upload(cloud_path=cloud_path)
         return datafile, contents
 
     def test_instantiates(self):
@@ -248,60 +248,60 @@ class TestDatafile(BaseTestCase):
         self.assertEqual(downloaded_datafile.size_bytes, datafile.size_bytes)
         self.assertTrue(isinstance(downloaded_datafile._last_modified, float))
 
-    def test_to_cloud_updates_cloud_metadata(self):
+    def test_upload_updates_cloud_metadata(self):
         """Test that calling Datafile.to_cloud on a datafile that is already cloud-based updates its metadata in the
         cloud.
         """
         datafile, _ = self.create_datafile_in_cloud(labels={"start"})
         datafile.labels = {"finish"}
-        datafile.to_cloud(cloud_path=datafile.cloud_path)
+        datafile.upload(cloud_path=datafile.cloud_path)
 
         self.assertEqual(Datafile(datafile.cloud_path).labels, {"finish"})
 
-    def test_to_cloud_does_not_update_cloud_metadata_if_update_cloud_metadata_is_false(self):
+    def test_upload_does_not_update_cloud_metadata_if_update_cloud_metadata_is_false(self):
         """Test that calling Datafile.to_cloud with `update_cloud_metadata=False` doesn't update the cloud metadata."""
         datafile, _ = self.create_datafile_in_cloud(labels={"start"})
         datafile.labels = {"finish"}
 
         with patch("octue.resources.datafile.Datafile.update_cloud_metadata") as mock:
-            datafile.to_cloud(datafile.cloud_path, update_cloud_metadata=False)
+            datafile.upload(datafile.cloud_path, update_cloud_metadata=False)
             self.assertFalse(mock.called)
 
         self.assertEqual(Datafile(datafile.cloud_path).labels, {"start"})
 
-    def test_to_cloud_does_not_update_metadata_if_no_metadata_change_has_been_made(self):
+    def test_upload_does_not_update_metadata_if_no_metadata_change_has_been_made(self):
         """Test that Datafile.to_cloud does not try to update cloud metadata if no metadata change has been made."""
         datafile, _ = self.create_datafile_in_cloud(labels={"start"})
 
         new_datafile = Datafile(datafile.cloud_path)
 
         with patch("octue.resources.datafile.Datafile.update_cloud_metadata") as mock:
-            new_datafile.to_cloud()
+            new_datafile.upload()
             self.assertFalse(mock.called)
 
-    def test_to_cloud_raises_error_if_no_cloud_location_provided_and_datafile_not_from_cloud(self):
+    def test_upload_raises_error_if_no_cloud_location_provided_and_datafile_not_from_cloud(self):
         """Test that trying to send a datafile to the cloud with no cloud location provided when the datafile was not
         constructed from a cloud file results in cloud location error.
         """
         datafile = Datafile(path="hello.txt")
 
         with self.assertRaises(exceptions.CloudLocationNotSpecified):
-            datafile.to_cloud()
+            datafile.upload()
 
-    def test_to_cloud_works_with_implicit_cloud_location_if_cloud_location_previously_provided(self):
+    def test_upload_works_with_implicit_cloud_location_if_cloud_location_previously_provided(self):
         """Test datafile.to_cloud works with an implicit cloud location if the cloud location has previously been
         provided.
         """
         datafile, _ = self.create_datafile_in_cloud()
         new_datafile = Datafile(datafile.cloud_path)
-        new_datafile.to_cloud()
+        new_datafile.upload()
 
-    def test_to_cloud_does_not_try_to_update_file_if_no_change_has_been_made_locally(self):
+    def test_upload_does_not_try_to_update_file_if_no_change_has_been_made_locally(self):
         """Test that Datafile.to_cloud does not try to update cloud file if no change has been made locally."""
         datafile, _ = self.create_datafile_in_cloud(labels={"start"})
 
         with patch("octue.cloud.storage.client.GoogleCloudStorageClient.upload_file") as mock:
-            datafile.to_cloud()
+            datafile.upload()
             self.assertFalse(mock.called)
 
     def test_update_cloud_metadata(self):
@@ -515,7 +515,7 @@ class TestDatafile(BaseTestCase):
                 f.write("blah\n")
 
             cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "blah.txt")
-            datafile.to_cloud(cloud_path=cloud_path)
+            datafile.upload(cloud_path=cloud_path)
 
             self.assertEqual(datafile.local_path, os.path.abspath("blah.txt"))
             self.assertEqual(datafile.cloud_path, cloud_path)
@@ -665,7 +665,7 @@ class TestDatafile(BaseTestCase):
             deserialized_datafile = Datafile.deserialise(serialized_datafile)
             self.assertEqual(deserialized_datafile.name, "name with spaces.txt")
 
-            datafile.to_cloud(cloud_path=f"gs://{TEST_BUCKET_NAME}/name with spaces.txt")
+            datafile.upload(cloud_path=f"gs://{TEST_BUCKET_NAME}/name with spaces.txt")
 
         downloaded_datafile = Datafile(path=f"gs://{TEST_BUCKET_NAME}/name with spaces.txt")
         self.assertEqual(downloaded_datafile.name, "name with spaces.txt")
@@ -700,7 +700,7 @@ class TestDatafile(BaseTestCase):
             with datafile.open("w") as f:
                 f["dataset"] = range(10)
 
-            datafile.to_cloud(cloud_path=f"gs://{TEST_BUCKET_NAME}/my-file.hdf5")
+            datafile.upload(cloud_path=f"gs://{TEST_BUCKET_NAME}/my-file.hdf5")
 
             download_path = os.path.join(temporary_directory, "downloaded-file.hdf5")
 
@@ -833,7 +833,7 @@ class TestDatafile(BaseTestCase):
             with Datafile(path=os.path.join(temporary_directory, "my-file.dat"), mode="w") as (datafile, f):
                 f.write("I will be signed")
 
-            datafile.to_cloud(storage.path.generate_gs_path(TEST_BUCKET_NAME, "directory", "my-file.dat"))
+            datafile.upload(storage.path.generate_gs_path(TEST_BUCKET_NAME, "directory", "my-file.dat"))
 
         with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
             signed_url = datafile.generate_signed_url()
@@ -851,7 +851,7 @@ class TestDatafile(BaseTestCase):
             with Datafile(path=os.path.join(temporary_directory, "my-file.dat"), mode="w") as (datafile, f):
                 f.write("I will be signed")
 
-            datafile.to_cloud(storage.path.generate_gs_path(TEST_BUCKET_NAME, "directory", "my-file.dat"))
+            datafile.upload(storage.path.generate_gs_path(TEST_BUCKET_NAME, "directory", "my-file.dat"))
 
         with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
             signed_url = datafile.generate_signed_url()
@@ -860,15 +860,6 @@ class TestDatafile(BaseTestCase):
             with self.assertRaises(exceptions.ReadOnlyResource):
                 with Datafile(path=signed_url, mode="w") as (_, f):
                     f.write("Text I'm not allowed to write.")
-
-    def test_deprecation_warning_issued_if_using_update_cloud_metadata_parameter(self):
-        """Test that a deprecation warning is issued if the `update_cloud_metadata` parameter is provided during
-        datafile instantiation and that it's translated to the `update_metadata` parameter.
-        """
-        with self.assertWarns(DeprecationWarning):
-            datafile = Datafile(path="blah.txt", update_cloud_metadata=False)
-
-        self.assertFalse(datafile._open_attributes["update_metadata"])
 
     def test_update_metadata_with_local_datafile(self):
         """Test the `update_metadata` method with a local datafile."""

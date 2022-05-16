@@ -6,7 +6,6 @@ import logging
 import os
 import shutil
 import tempfile
-import warnings
 
 import google.api_core.exceptions
 import pkg_resources
@@ -25,7 +24,6 @@ except ModuleNotFoundError:
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudLocationNotSpecified, ReadOnlyResource
-from octue.migrations.cloud_storage import translate_bucket_name_and_path_in_bucket_to_cloud_path
 from octue.mixins import CloudPathable, Filterable, Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils.decoders import OctueJSONDecoder
@@ -47,12 +45,12 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
     :param str|None local_path: If a cloud path is given as the `path` parameter, this is the path to an existing local file that is known to be in sync with the cloud object
     :param str|None cloud_path: If a local path is given for the `path` parameter, this is a cloud path to keep in sync with the local file
     :param datetime.datetime|int|float|None timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when it was created but could relate to a relevant time point for the data
-    :param str id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
-    :param dict|octue.resources.tag.TagDict|None tags: key-value pairs with string keys conforming to the Octue tag format (see TagDict)
-    :param iter(str)|octue.resources.label.LabelSet|None labels: Space-separated string of labels relevant to this file
     :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode options are the same as for the builtin `open` function)
     :param bool update_metadata: if using as a context manager and this is `True`, update the stored metadata of the datafile when the context is exited
     :param bool hypothetical: if `True`, ignore any metadata stored for this datafile locally or in the cloud and use whatever is given at instantiation
+    :param str id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
+    :param dict|octue.resources.tag.TagDict|None tags: key-value pairs with string keys conforming to the Octue tag format (see `TagDict`)
+    :param iter(str)|octue.resources.label.LabelSet|None labels: Space-separated string of labels relevant to this file
     :return None:
     """
 
@@ -74,26 +72,14 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         local_path=None,
         cloud_path=None,
         timestamp=None,
-        id=None,
-        tags=None,
-        labels=None,
         mode="r",
         update_metadata=True,
         hypothetical=False,
+        id=None,
+        tags=None,
+        labels=None,
         **kwargs,
     ):
-        if "update_cloud_metadata" in kwargs:
-            warnings.warn(
-                message=(
-                    "The `Datafile` instantiation parameter `update_cloud_metadata` has been deprecated and renamed to "
-                    "`update_metadata`. The old name will become unavailable soon, so please update to the new one. It "
-                    "has been translated for now."
-                ),
-                category=DeprecationWarning,
-            )
-
-            update_metadata = kwargs["update_cloud_metadata"]
-
         super().__init__(
             id=id,
             name=kwargs.pop("name", None),
@@ -193,7 +179,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             self._cloud_path = None
 
         else:
-            self.to_cloud(cloud_path=path)
+            self.upload(cloud_path=path)
 
     @property
     def cloud_hash_value(self):
@@ -371,16 +357,13 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             raise TypeError(f"An object of type {type(self)} cannot be compared with {type(other)}.")
         return self.name > other.name
 
-    def to_cloud(self, cloud_path=None, bucket_name=None, path_in_bucket=None, update_cloud_metadata=True):
+    def upload(self, cloud_path=None, update_cloud_metadata=True):
         """Upload a datafile to Google Cloud Storage.
 
         :param str|None cloud_path: full path to cloud storage location to store datafile at (e.g. `gs://bucket_name/path/to/file.csv`)
         :param bool update_cloud_metadata: if `True`, update the metadata of the datafile in the cloud at upload time
         :return str: gs:// path for datafile
         """
-        if bucket_name:
-            cloud_path = translate_bucket_name_and_path_in_bucket_to_cloud_path(bucket_name, path_in_bucket)
-
         cloud_path = self._get_cloud_location(cloud_path)
 
         self._get_cloud_metadata()
@@ -700,7 +683,7 @@ class _DatafileContextManager:
         if any(character in self.mode for character in self.MODIFICATION_MODES):
 
             if self.datafile.exists_in_cloud:
-                self.datafile.to_cloud(update_cloud_metadata=self._update_metadata)
+                self.datafile.upload(update_cloud_metadata=self._update_metadata)
 
             elif self._update_metadata:
                 self.datafile.update_local_metadata()

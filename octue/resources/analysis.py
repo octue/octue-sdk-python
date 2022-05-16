@@ -125,7 +125,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
             return
 
         for name, dataset in self.output_manifest.datasets.items():
-            dataset.to_cloud(cloud_path=storage.path.join(upload_output_datasets_to, name))
+            dataset.upload(cloud_path=storage.path.join(upload_output_datasets_to, name))
             self.output_manifest.datasets[name].path = dataset.generate_signed_url()
 
         logger.info("Uploaded output datasets to %r.", upload_output_datasets_to)
