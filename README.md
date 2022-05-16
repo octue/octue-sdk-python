@@ -58,9 +58,3 @@ python3 -m unittest
 
 ## Contributing
 Take a look at our [contributing](/docs/contributing.md) page.
-
-
-Tom Clark, founder of octue
-We've been developing open-source tools to make
-it easy for normal, mortal scientists and
-engineers to easily create, use and connect

@@ -32,6 +32,7 @@ BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_l
 
 class Service(CoolNameable):
     """A Twined service that can be used in two modes:
+
     - As a child accepting questions (input values and manifests) from parents, running them through its app, and
       responding with the results of the analysis
     - As a parent asking questions to children in the above mode

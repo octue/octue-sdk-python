@@ -391,7 +391,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         """Download the file from the cloud to the given local path or a random temporary path.
 
         :param str|None local_path:
-        :raise CloudLocationNotSpecified: if the datafile does not exist in the cloud
+        :raise octue.exceptions.CloudLocationNotSpecified: if the datafile does not exist in the cloud
         :return str: path to local file
         """
         if not self.exists_in_cloud:
