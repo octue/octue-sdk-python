@@ -52,10 +52,10 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
     def __init__(
         self,
-        files=None,
-        name=None,
-        id=None,
         path=None,
+        files=None,
+        id=None,
+        name=None,
         tags=None,
         labels=None,
         recursive=False,

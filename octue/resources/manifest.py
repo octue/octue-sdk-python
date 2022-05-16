@@ -25,7 +25,7 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
     # Paths to datasets are added to the serialisation in `Manifest.to_primitive`.
     _SERIALISE_FIELDS = (*_METADATA_ATTRIBUTES, "name")
 
-    def __init__(self, id=None, name=None, datasets=None):
+    def __init__(self, datasets=None, id=None, name=None):
         super().__init__(id=id, name=name)
         self.datasets = self._instantiate_datasets(datasets or {})
 

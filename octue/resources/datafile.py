@@ -72,12 +72,12 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         local_path=None,
         cloud_path=None,
         timestamp=None,
-        id=None,
-        tags=None,
-        labels=None,
         mode="r",
         update_metadata=True,
         hypothetical=False,
+        id=None,
+        tags=None,
+        labels=None,
         **kwargs,
     ):
         super().__init__(
