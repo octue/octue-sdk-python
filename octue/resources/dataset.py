@@ -204,7 +204,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             """
             datafile = iterable_element[0]
             cloud_path = iterable_element[1]
-            datafile.to_cloud(cloud_path=cloud_path)
+            datafile.upload(cloud_path=cloud_path)
             return datafile.cloud_path
 
         # Use multiple threads to significantly speed up file uploads by reducing latency.
@@ -295,13 +295,13 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             if datafile.exists_in_cloud:
 
                 if datafile.cloud_path != new_cloud_path and not datafile.cloud_path.startswith(self.path):
-                    datafile.to_cloud(new_cloud_path)
+                    datafile.upload(new_cloud_path)
 
                 self.files.add(datafile)
                 return
 
             # Add a local datafile to a cloud dataset.
-            datafile.to_cloud(new_cloud_path)
+            datafile.upload(new_cloud_path)
             self.files.add(datafile)
             return
 

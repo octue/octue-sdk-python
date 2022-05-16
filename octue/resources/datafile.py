@@ -179,7 +179,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             self._cloud_path = None
 
         else:
-            self.to_cloud(cloud_path=path)
+            self.upload(cloud_path=path)
 
     @property
     def cloud_hash_value(self):
@@ -357,7 +357,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             raise TypeError(f"An object of type {type(self)} cannot be compared with {type(other)}.")
         return self.name > other.name
 
-    def to_cloud(self, cloud_path=None, update_cloud_metadata=True):
+    def upload(self, cloud_path=None, update_cloud_metadata=True):
         """Upload a datafile to Google Cloud Storage.
 
         :param str|None cloud_path: full path to cloud storage location to store datafile at (e.g. `gs://bucket_name/path/to/file.csv`)
@@ -683,7 +683,7 @@ class _DatafileContextManager:
         if any(character in self.mode for character in self.MODIFICATION_MODES):
 
             if self.datafile.exists_in_cloud:
-                self.datafile.to_cloud(update_cloud_metadata=self._update_metadata)
+                self.datafile.upload(update_cloud_metadata=self._update_metadata)
 
             elif self._update_metadata:
                 self.datafile.update_local_metadata()
