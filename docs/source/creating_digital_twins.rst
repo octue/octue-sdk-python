@@ -43,8 +43,8 @@ It may also need the following key-value pairs:
 - ``app_configuration_path: <path>`` - if your app needs an app configuration file that isn't in the repository root
 - ``dockerfile_path: <path>`` - if your app needs a ``Dockerfile`` that isn't in the repository root
 
-All paths should be relative to the repository root. Other valid entries can be found in the constructor of
-``octue.configuration.ServiceConfiguration``.
+All paths should be relative to the repository root. Other valid entries can be found in the
+:doc:`service configuration constructor </autoapi/octue/configuration/index>`.
 
 .. warning::
 
