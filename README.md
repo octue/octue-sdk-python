@@ -12,9 +12,13 @@ Utilities for running python based data services, digital twins and applications
 Based on the [twined](https://twined.readthedocs.io/en/latest/) library for data validation.
 
 ## Installation and usage
-For usage as a scientist or engineer, run the following command in your environment:
+For usage as a scientist or engineer, run one of the following commands in your environment:
 ```shell
 pip install octue
+```
+
+```shell
+poetry add octue
 ```
 
 The command line interface (CLI) can then be accessed via:
@@ -22,17 +26,22 @@ The command line interface (CLI) can then be accessed via:
 octue --help
 ```
 
+### Deprecated code
+When code is deprecated, it will still work but a deprecation warning will be issued with a suggestion on how to update
+it. After an adjustment period, deprecations will be removed from the codebase according to the [code removal schedule](https://github.com/octue/octue-sdk-python/issues/415).
+This constitutes a breaking change.
+
 ## Developer notes
 
 ### Installation
-For development, run the following from the repository root, which will editably install the package:
+We use [Poetry](https://python-poetry.org/) as our package manager. For development, run the following from the
+repository root, which will editably install the package:
+
 ```bash
-pip install -r requirements-dev.txt
+poetry install -E dataflow -E hdf5
 ```
 
-### Deprecated code
-When code is deprecated, it will still work but a deprecation warning will be issued with a suggestion on how to update
-it. After an adjustment period, deprecations will be removed according to the [code removal schedule](https://github.com/octue/octue-sdk-python/issues/415).
+Then run the tests to check everything's working.
 
 ### Testing
 These environment variables need to be set to run the tests:

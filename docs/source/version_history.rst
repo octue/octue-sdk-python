@@ -11,4 +11,5 @@ release notes.
 Deprecated code
 ===============
 When code is deprecated, it will still work but a deprecation warning will be issued with a suggestion on how to update
-it. After an adjustment period, deprecations will be removed according to the `code removal schedule <https://github.com/octue/octue-sdk-python/issues/415>`_.
+it. After an adjustment period, deprecations will be removed from the codebase according to the `code removal schedule <https://github.com/octue/octue-sdk-python/issues/415>`_.
+This constitutes a breaking change.
