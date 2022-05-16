@@ -110,7 +110,7 @@ You can upload an existing local datafile to the cloud without using the ``open`
 
 .. code-block:: python
 
-    datafile.to_cloud("gs://my-bucket/my_datafile.dat", update_metadata=True)
+    datafile.upload("gs://my-bucket/my_datafile.dat", update_metadata=True)
 
 
 Get file hashes
@@ -232,7 +232,7 @@ Example B
     datafile.tags = {"manufacturer": "Vestas", "output": "1MW"}
     datafile.labels = {"new"}
 
-    datafile.to_cloud(update_metadata=True)  # Or, datafile.update_metadata()
+    datafile.upload(update_metadata=True)  # Or, datafile.update_metadata()
 
 
 Example C
@@ -277,7 +277,7 @@ For creating new data in a new local file:
     with Datafile(path="path/to/local/file.dat", tags=tags, labels=labels, mode="w") as (datafile, f):
         f.write("This is some cleaned data.")
 
-    datafile.to_cloud("gs://my-bucket/path/to/data.dat")
+    datafile.upload("gs://my-bucket/path/to/data.dat")
 
 
 For existing data in an existing local file:
@@ -291,4 +291,4 @@ For existing data in an existing local file:
     labels = {"Vestas"}
 
     datafile = Datafile(path="path/to/local/file.dat", tags=tags, labels=labels)
-    datafile.to_cloud("gs://my-bucket/path/to/data.dat")
+    datafile.upload("gs://my-bucket/path/to/data.dat")

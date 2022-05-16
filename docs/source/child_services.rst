@@ -138,7 +138,7 @@ To start a service as a server, the command line interface (CLI) can be used:
 
 .. code-block:: bash
 
-    octue-app start \
+    octue start \
         --app-dir=<path/to/app_directory> \
         --twine=<path/to/twine.json> \
         --config-dir=<path/to/configuration> \
@@ -164,7 +164,7 @@ See services communicate in real time: running the child services template
 
 .. code-block:: bash
 
-    GOOGLE_APPLICATION_CREDENTIALS=</absolute/path/to/gcp_credentials.json> octue-app --log-level=debug
+    GOOGLE_APPLICATION_CREDENTIALS=</absolute/path/to/gcp_credentials.json> octue --log-level=debug
         start \
         --app-dir=octue/templates/template-child-services/elevation_service \
         --twine=octue/templates/template-child-services/elevation_service/twine.json \
@@ -176,7 +176,7 @@ See services communicate in real time: running the child services template
 
 .. code-block:: bash
 
-    GOOGLE_APPLICATION_CREDENTIALS=</absolute/path/to/gcp_credentials.json> octue-app --log-level=debug \
+    GOOGLE_APPLICATION_CREDENTIALS=</absolute/path/to/gcp_credentials.json> octue --log-level=debug \
         start \
         --app-dir=octue/templates/template-child-services/wind_speed_service \
         --twine=octue/templates/template-child-services/wind_speed_service/twine.json \
@@ -188,7 +188,7 @@ See services communicate in real time: running the child services template
 
 .. code-block:: bash
 
-    GOOGLE_APPLICATION_CREDENTIALS=</absolute/path/to/gcp_credentials.json> octue-app --log-level=debug \
+    GOOGLE_APPLICATION_CREDENTIALS=</absolute/path/to/gcp_credentials.json> octue --log-level=debug \
         run \
         --app-dir=octue/templates/template-child-services/parent_service \
         --twine=octue/templates/template-child-services/parent_service/twine.json \

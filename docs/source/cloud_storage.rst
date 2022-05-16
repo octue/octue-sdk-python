@@ -21,7 +21,7 @@ Assuming you have an instance of ``Datafile`` called ``my_datafile``:
 
 .. code-block:: python
 
-    my_datafile.to_cloud(project_name=<project-name>, bucket_name=<bucket-name>, path_in_bucket=<path/in/bucket>)
+    my_datafile.upload(project_name=<project-name>, bucket_name=<bucket-name>, path_in_bucket=<path/in/bucket>)
     >>> gs://<bucket-name>/<path/in/bucket>
 
     downloaded_datafile = Datafile(path="gs://<bucket-name>/<path/in/bucket>, project_name=<project-name>)
@@ -47,7 +47,7 @@ Datasets are downloaded from their directory. Assuming you have an instance of `
 
 .. code-block:: python
 
-    my_dataset.to_cloud(project_name=<project-name>, bucket_name=<bucket-name>, output_directory=<output-directory>)
+    my_dataset.upload(project_name=<project-name>, bucket_name=<bucket-name>, output_directory=<output-directory>)
     >>> gs://<bucket-name>/<output-directory>/<my_dataset.name>
 
     downloaded_dataset = Dataset.from_cloud(project_name=<project-name>, bucket_name=<bucket-name>, path_to_dataset_directory=<output-directory>/<my_dataset.name>)

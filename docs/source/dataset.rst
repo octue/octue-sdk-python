@@ -26,7 +26,7 @@ Upload a dataset
 
 .. code-block:: python
 
-    dataset.to_cloud("gs://my-bucket/path/to/upload")
+    dataset.upload("gs://my-bucket/path/to/upload")
 
 
 Download a dataset
@@ -34,7 +34,7 @@ Download a dataset
 
 .. code-block:: python
 
-    dataset.download_all_files("path/to/download")
+    dataset.download("path/to/download")
 
 
 Hash datasets easily
