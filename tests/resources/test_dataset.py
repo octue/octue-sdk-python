@@ -532,7 +532,7 @@ class TestDataset(BaseTestCase):
         self.assertEqual(dataset.labels, dataset_reloaded.labels)
         self.assertEqual(dataset.hash_value, dataset_reloaded.hash_value)
 
-    def test_to_cloud(self):
+    def test_upload(self):
         """Test that a dataset can be uploaded to a cloud path, including all its files and the dataset's metadata."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             dataset = create_dataset_with_two_files(temporary_directory)
@@ -555,7 +555,7 @@ class TestDataset(BaseTestCase):
             persisted_dataset_metadata = dataset._get_cloud_metadata()
             self.assertEqual(persisted_dataset_metadata["tags"], dataset.tags.to_primitive())
 
-    def test_to_cloud_with_nested_dataset_preserves_nested_structure(self):
+    def test_upload_with_nested_dataset_preserves_nested_structure(self):
         """Test that uploading a dataset containing datafiles in a nested directory structure to the cloud preserves
         this structure in the cloud.
         """
@@ -580,7 +580,7 @@ class TestDataset(BaseTestCase):
 
         self.assertEqual(cloud_datafile_relative_paths, local_datafile_relative_paths)
 
-    def test_to_cloud_works_with_implicit_cloud_location_if_cloud_location_previously_provided(self):
+    def test_upload_works_with_implicit_cloud_location_if_cloud_location_previously_provided(self):
         """Test `Dataset.to_cloud` works with an implicit cloud location if the cloud location has previously been
         provided.
         """
@@ -595,7 +595,7 @@ class TestDataset(BaseTestCase):
         with self.assertRaises(exceptions.CloudLocationNotSpecified):
             dataset.download()
 
-    def test_download_all_files(self):
+    def test_download(self):
         """Test that all files in a dataset can be downloaded with one command."""
         storage_client = GoogleCloudStorageClient()
 
@@ -620,7 +620,7 @@ class TestDataset(BaseTestCase):
             with open(os.path.join(temporary_directory, "file_1.txt")) as f:
                 self.assertEqual(f.read(), "[4, 5, 6]")
 
-    def test_download_all_files_from_nested_dataset(self):
+    def test_download_from_nested_dataset(self):
         """Test that all files in a nested dataset can be downloaded with one command."""
         dataset_path = self._create_nested_cloud_dataset()
 
@@ -641,7 +641,7 @@ class TestDataset(BaseTestCase):
             with open(os.path.join(temporary_directory, "sub-directory", "sub-sub-directory", "sub_sub_file.txt")) as f:
                 self.assertEqual(f.read(), "['blah', 'b', 'c']")
 
-    def test_download_all_files_from_nested_dataset_with_no_local_directory_given(self):
+    def test_download_from_nested_dataset_with_no_local_directory_given(self):
         """Test that, when downloading all files from a nested dataset and no local directory is given, the dataset
         structure is preserved in the temporary directory used.
         """

@@ -248,7 +248,7 @@ class TestDatafile(BaseTestCase):
         self.assertEqual(downloaded_datafile.size_bytes, datafile.size_bytes)
         self.assertTrue(isinstance(downloaded_datafile._last_modified, float))
 
-    def test_to_cloud_updates_cloud_metadata(self):
+    def test_upload_updates_cloud_metadata(self):
         """Test that calling Datafile.to_cloud on a datafile that is already cloud-based updates its metadata in the
         cloud.
         """
@@ -258,7 +258,7 @@ class TestDatafile(BaseTestCase):
 
         self.assertEqual(Datafile(datafile.cloud_path).labels, {"finish"})
 
-    def test_to_cloud_does_not_update_cloud_metadata_if_update_cloud_metadata_is_false(self):
+    def test_upload_does_not_update_cloud_metadata_if_update_cloud_metadata_is_false(self):
         """Test that calling Datafile.to_cloud with `update_cloud_metadata=False` doesn't update the cloud metadata."""
         datafile, _ = self.create_datafile_in_cloud(labels={"start"})
         datafile.labels = {"finish"}
@@ -269,7 +269,7 @@ class TestDatafile(BaseTestCase):
 
         self.assertEqual(Datafile(datafile.cloud_path).labels, {"start"})
 
-    def test_to_cloud_does_not_update_metadata_if_no_metadata_change_has_been_made(self):
+    def test_upload_does_not_update_metadata_if_no_metadata_change_has_been_made(self):
         """Test that Datafile.to_cloud does not try to update cloud metadata if no metadata change has been made."""
         datafile, _ = self.create_datafile_in_cloud(labels={"start"})
 
@@ -279,7 +279,7 @@ class TestDatafile(BaseTestCase):
             new_datafile.upload()
             self.assertFalse(mock.called)
 
-    def test_to_cloud_raises_error_if_no_cloud_location_provided_and_datafile_not_from_cloud(self):
+    def test_upload_raises_error_if_no_cloud_location_provided_and_datafile_not_from_cloud(self):
         """Test that trying to send a datafile to the cloud with no cloud location provided when the datafile was not
         constructed from a cloud file results in cloud location error.
         """
@@ -288,7 +288,7 @@ class TestDatafile(BaseTestCase):
         with self.assertRaises(exceptions.CloudLocationNotSpecified):
             datafile.upload()
 
-    def test_to_cloud_works_with_implicit_cloud_location_if_cloud_location_previously_provided(self):
+    def test_upload_works_with_implicit_cloud_location_if_cloud_location_previously_provided(self):
         """Test datafile.to_cloud works with an implicit cloud location if the cloud location has previously been
         provided.
         """
@@ -296,7 +296,7 @@ class TestDatafile(BaseTestCase):
         new_datafile = Datafile(datafile.cloud_path)
         new_datafile.upload()
 
-    def test_to_cloud_does_not_try_to_update_file_if_no_change_has_been_made_locally(self):
+    def test_upload_does_not_try_to_update_file_if_no_change_has_been_made_locally(self):
         """Test that Datafile.to_cloud does not try to update cloud file if no change has been made locally."""
         datafile, _ = self.create_datafile_in_cloud(labels={"start"})
 
