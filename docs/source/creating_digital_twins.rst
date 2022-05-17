@@ -142,3 +142,15 @@ It can contain the following keys:
 
 If an app configuration file is provided, its path must be specified in ``octue.yaml`` under the
 "app_configuration_path" key.
+
+
+Template apps
+=============
+We've created some template apps for you to look at and play around with. We recommend going through them in this order:
+
+1. The `fractal app template <https://github.com/octue/octue-sdk-python/tree/main/octue/templates/template-fractal>`_ -
+   introduces a basic Octue service that returns output values to its parent.
+2. The `using-manifests app template <https://github.com/octue/octue-sdk-python/tree/main/octue/templates/template-using-manifests>`_ -
+   introduces using a manifest of output datasets to return output files to its parent.
+3. The `child-services app template <https://github.com/octue/octue-sdk-python/tree/main/octue/templates/template-child-services>`_ -
+   introduces asking questions to child services and using their answers to form an output to return to its parent.
