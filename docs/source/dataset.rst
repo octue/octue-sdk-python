@@ -37,6 +37,44 @@ Download a dataset
     dataset.download("path/to/download")
 
 
+Easy and expandable custom metadata
+-----------------------------------
+
+You can set the following metadata on a dataset:
+
+- Name
+- Labels (a set of lowercase strings)
+- Tags (a dictionary of key-value pairs)
+
+This metadata is stored locally in a ``.octue`` file in the same directory as the dataset and is used during
+``Dataset`` instantiation. It can be accessed like this:
+
+.. code-block:: python
+
+    dataset.name
+    >>> "my-dataset"
+
+    dataset.labels
+    >>> {"processed"}
+
+    dataset.tags
+    >>> {"organisation": "octue", "energy": "renewable"}
+
+You can update the metadata by setting it on the instance while inside the ``Dataset`` context manager.
+
+.. code-block:: python
+
+    with dataset:
+        datafile.labels.add("updated")
+
+You can do this outside the context manager too, but you then need to call the update method:
+
+.. code-block:: python
+
+    dataset.labels.add("updated")
+    dataset.update_metadata()
+
+
 Get dataset hashes
 ------------------
 File hashes guarantee you have the right dataset and ensure data consistency. Getting the hash of datasets is simple:
@@ -47,6 +85,16 @@ File hashes guarantee you have the right dataset and ensure data consistency. Ge
     >>> 'uvG7TA=='
 
 A datafile's hash is a function of its datafiles' hashes and its own metadata.
+
+
+Immutable ID
+------------
+Each dataset has an immutable UUID:
+
+.. code-block:: python
+
+    dataset.id
+    >>> '9a1f9b26-6a48-4f2d-be80-468d3270d79c'
 
 
 Check a dataset's locality
