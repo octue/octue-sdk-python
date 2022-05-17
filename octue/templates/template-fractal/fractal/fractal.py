@@ -1,4 +1,7 @@
 import json
+import os
+
+import coolname
 
 from octue.resources import Datafile
 from octue.utils.encoders import OctueJSONEncoder
@@ -35,6 +38,7 @@ def fractal(analysis):
         "colorscale": analysis.configuration_values["color_scale"],
         "type": "surface",
     }
+
     layout = {
         "title": f"Mandelbrot set with {analysis.configuration_values['n_iterations']} iterations",
         "width": analysis.configuration_values["width"],
@@ -58,7 +62,8 @@ def fractal(analysis):
     # application are running at the same time) and avoids data loss.
 
     datafile = Datafile(
-        path="my_mandelbrot_file.json",  # File name including extension (and can include subfolders within the dataset)
+        # File name including extension (and can include subfolders within the dataset).
+        path=os.path.join(coolname.generate_slug(2), "my_mandelbrot_file.json"),
         tags=tags,
         labels=labels,
     )

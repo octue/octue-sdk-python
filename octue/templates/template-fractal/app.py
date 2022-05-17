@@ -6,7 +6,7 @@ from fractal import fractal
 logger = logging.getLogger(__name__)
 
 
-def run(analysis, *args, **kwargs):
+def run(analysis):
     """Your main entrypoint to run the application.
 
     This is the function that gets run each time somebody requests an analysis from the digital twin / data service.
