@@ -24,6 +24,9 @@ def run(analysis):
     - Perform a simple transformation on some of the data (as if we were doing a data cleaning process)
     - Create new files containing the cleaned data
     - Add them to the output manifest
+
+    :param octue.resources.Analysis analysis:
+    :return None:
     """
     # You can use a logger to record debug statements, general information, warnings or errors.
     logger.info("Starting clean up of files in %s", analysis.input_manifest)
