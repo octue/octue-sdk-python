@@ -44,31 +44,29 @@ def fractal(analysis):
     # We'll add some labels and tags, which will help to improve searchability and allow other apps, reports, users and
     # analyses to automatically find figures and use them.
     #
-    # Get descriptive with labels... they are whitespace-delimited. Labels are case insensitive, and accept a-z, 0-9,
-    # and hyphens which can be used literally in search and are also used to separate words in natural language search).
-    # Other special characters will be stripped. Tags are key value pairs where the values can be anything but the keys
-    # only accept a-z, 0-9, and underscores.
+    # Labels are case-insensitive, and accept a-z, 0-9, and hyphens which can be used literally in search and are also
+    # used to separate words in natural language search. Tags are key value pairs where the values can be anything but
+    # the keys only accept a-z, 0-9, and underscores.
     labels = {"complex-figure"}
-    tags = {"contents": "fractal:mandelbrot"}
+    tags = {"figure_contents": "fractal:mandelbrot"}
 
     # Get the output dataset which will be used for storing the figure file(s)
     output_dataset = analysis.output_manifest.get_dataset("fractal_figure_files")
 
-    # Create a Datafile to hold the figure. We could put it in the current directory (by leaving local_path_prefix
-    # unspecified) but it makes sense to put it in a folder specific to this output dataset - doing so avoids any race
-    # conditions arising (if other instances of this application are running at the same time), and avoids
-    # storage leaks, because files get cleaned up correctly.
-    df = Datafile(
-        timestamp=None,
+    # Create a Datafile to hold the figure. We could put it in the current directory, but it makes sense to put it in a
+    # unique folder for this output dataset - doing so avoids any race conditions arising (if other instances of this
+    # application are running at the same time) and avoids data loss.
+
+    datafile = Datafile(
         path="my_mandelbrot_file.json",  # File name including extension (and can include subfolders within the dataset)
         tags=tags,
         labels=labels,
     )
 
-    # Actually write the contents to the file specified by the Datafile
-    with df.open("w") as f:
+    # Write the data to the datafile.
+    with datafile.open("w") as f:
         # The special encoder just makes it easy to handle numpy arrays.
         json.dump({"data": data, "layout": layout}, f, cls=OctueJSONEncoder)
 
-    # And finally we add it to the output
-    output_dataset.add(df)
+    # And finally we add it to the output dataset.
+    output_dataset.add(datafile)
