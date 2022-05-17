@@ -67,7 +67,6 @@ Easy and expandable custom metadata
 
 You can set the following metadata on a datafile:
 
-- ID
 - Timestamp
 - Labels (a set of lowercase strings)
 - Tags (a dictionary of key-value pairs)
@@ -76,9 +75,6 @@ This metadata is stored locally in a ``.octue`` file for local datafiles or on t
 is used during ``Datafile`` instantiation. It can be accessed like this:
 
 .. code-block:: python
-
-    datafile.id
-    >>> '9a1f9b26-6a48-4f2d-be80-468d3270d79b'
 
     datafile.timestamp
     >>> datetime.datetime(2022, 5, 4, 17, 57, 57, 136739)
@@ -121,6 +117,16 @@ File hashes guarantee you have the right file. Getting the hash of datafiles is 
 
     datafile.hash_value
     >>> 'mnG7TA=='
+
+
+Immutable ID
+------------
+Each datafile has an immutable UUID:
+
+.. code-block:: python
+
+    datafile.id
+    >>> '9a1f9b26-6a48-4f2d-be80-468d3270d79b'
 
 
 Check a datafile's locality
