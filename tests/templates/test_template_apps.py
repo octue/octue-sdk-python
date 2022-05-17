@@ -45,9 +45,6 @@ class TemplateAppsTestCase(BaseTestCase):
         with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
             analysis = runner.run(input_manifest=os.path.join("data", "input", "manifest.json"))
 
-        # Check that the output files have been created.
-        self.assertTrue(os.path.isfile(os.path.join("cleaned_met_mast_data", "cleaned.csv")))
-
         # Test that the signed URLs for the dataset and its files work and can be used to reinstantiate the output
         # manifest after serialisation.
         downloaded_output_manifest = Manifest.deserialise(analysis.output_manifest.to_primitive())
