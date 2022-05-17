@@ -51,7 +51,10 @@ def run(analysis):
     logger.info("The maximum number of iterations will be %s.", analysis.configuration_values["n_iterations"])
 
     # Create the fractal.
-    fractal(analysis)
+    data, layout = fractal(analysis)
+
+    # Add the app's output values to the analysis.
+    analysis.output_values = {"data": data, "layout": layout}
 
     # Finalise the analysis. This validates the output data and output manifest against the twine and optionally
     # uploads any datasets in the output manifest to the service's cloud bucket. Signed URLs are provided so that the
