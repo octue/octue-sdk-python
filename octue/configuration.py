@@ -12,7 +12,7 @@ class ServiceConfiguration:
     """A class containing the details needed to configure a service.
 
     :param str name: the name to give the service
-    :param str organisation: the name of the organisation providing the service
+    :param str|None organisation: the name of the organisation providing the service
     :param str app_source_path: the path to the directory containing the app's source code
     :param str twine_path: the path to the twine file defining the schema for input, output, and configuration data for the service
     :param str|None app_configuration_path: the path to the app configuration file containing configuration data for the service; if this is `None`, the default application configuration is used

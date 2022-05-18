@@ -32,7 +32,7 @@ class Child:
         )
 
     def __repr__(self):
-        """Represent a child as a string.
+        """Represent the child as a string.
 
         :return str:
         """

@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class Runner:
-    """Runs analyses in the app framework
+    """A runner of analyses for a given service.
 
     The Runner class provides a set of configuration parameters for use by your application, together with a range of
     methods for managing input and output file parsing as well as controlling logging.
