@@ -3,8 +3,11 @@
 ========
 Manifest
 ========
-A set of related cloud and/or local :doc:`datasets <dataset>` plus metadata. Typically produced by or needed for an
-analysis.
+
+.. admonition:: Definition
+
+    A set of related cloud and/or local :doc:`datasets <dataset>` plus metadata. Typically produced by or needed for an
+    analysis.
 
 Key features
 ============

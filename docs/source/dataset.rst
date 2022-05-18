@@ -3,7 +3,10 @@
 =======
 Dataset
 =======
-A set of related :doc:`datafiles <datafile>` that exist in the same location, plus metadata.
+
+.. admonition:: Definition
+
+    A set of related :doc:`datafiles <datafile>` that exist in the same location, plus metadata.
 
 Key features
 ============

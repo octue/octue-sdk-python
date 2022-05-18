@@ -3,8 +3,10 @@
 ========
 Datafile
 ========
-A single local or cloud file and its metadata.
 
+.. admonition:: Definition
+
+    A single local or cloud file and its metadata.
 
 Key features
 ============
