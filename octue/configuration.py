@@ -52,6 +52,11 @@ class ServiceConfiguration:
         self.twine_path = twine_path
         self.app_configuration_path = app_configuration_path
 
+        if organisation:
+            self.service_id = organisation + "/" + name
+        else:
+            self.service_id = self.name
+
         # Deployed services only.
         self.repository_name = repository_name
         self.repository_owner = repository_owner
