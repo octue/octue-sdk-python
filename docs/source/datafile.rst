@@ -4,9 +4,18 @@
 Datafile
 ========
 
-.. admonition:: Definition
+.. admonition:: Definitions
 
-    A single local or cloud file and its metadata.
+    Datafile
+        A single local or cloud file and its metadata.
+
+    Locality
+        A datafile will have one of these localities:
+
+        - Cloud-based: the datafile exists only in the cloud
+        - Local: the datafile exists only on your local filesystem
+        - Cloud-based and local: a cloud-based datafile that has been downloaded locally for low-latency reading/editing etc.
+
 
 Key features
 ============
