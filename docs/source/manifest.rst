@@ -7,8 +7,14 @@ Manifest
 .. admonition:: Definitions
 
     Manifest
-        A set of related cloud and/or local :doc:`datasets <dataset>` plus metadata. Typically produced by or needed for an
-        analysis.
+        A set of related cloud and/or local :doc:`datasets <dataset>`, metadata, and helper methods. Typically produced
+        by or needed for processing by an Octue service.
+
+.. tip::
+
+    Use a manifest to send :doc:`datasets <dataset>` to an Octue service as a question (for processing) - the service
+    will send an output manifest back with its answer if the answer includes output datasets.
+
 
 Key features
 ============

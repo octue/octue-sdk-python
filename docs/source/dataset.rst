@@ -6,7 +6,19 @@ Dataset
 
 .. admonition:: Definition
 
-    A set of related :doc:`datafiles <datafile>` that exist in the same location, plus metadata.
+    Dataset
+        A set of related :doc:`datafiles <datafile>` that exist in the same location, dataset metadata, and helper
+        methods.
+
+.. tip::
+
+    Use a dataset if you want to:
+
+    - Group together a set of files that naturally relate to each other e.g. a timeseries that's been split into
+      multiple files.
+    - Add metadata to it for future sorting and filtering
+    - Include it in a :doc:`manifest <manifest>` with other datasets and send them to an Octue service for processing
+
 
 Key features
 ============

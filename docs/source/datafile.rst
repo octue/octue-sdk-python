@@ -7,15 +7,23 @@ Datafile
 .. admonition:: Definitions
 
     Datafile
-        A single local or cloud file and its metadata.
+        A single local or cloud file, its metadata, and helper methods.
 
     Locality
         A datafile will have one of these localities:
 
         - Cloud-based: the datafile exists only in the cloud
         - Local: the datafile exists only on your local filesystem
-        - Cloud-based and local: a cloud-based datafile that has been downloaded locally for low-latency reading/editing etc.
+        - Cloud-based and local: a cloud-based datafile that has been downloaded locally for low-latency reading/editing
+          etc.
 
+.. tip::
+
+    Use a datafile to work with a file if you want to:
+
+    - Read/write to local and cloud files in the same way
+    - Include it in a :doc:`dataset <dataset>` that can be sent to an Octue service for processing
+    - Add metadata to it for future sorting and filtering
 
 Key features
 ============
