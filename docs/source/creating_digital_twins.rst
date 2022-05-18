@@ -132,8 +132,11 @@ Dockerfile (optional)
 
             ----
 
-        Octue digital twins run in a Docker container if they are deployed. They can also run locally in a Docker container.
-        The SDK provides a default ``Dockerfile`` for these purposes that will work for most cases.
+        Octue digital twins run in a Docker container if they are deployed. They can also run this way locally. The SDK
+        provides a default ``Dockerfile`` for these purposes that will work for most cases:
+
+        - For deploying to `Google Cloud Run <https://github.com/octue/octue-sdk-python/blob/main/octue/cloud/deployment/google/cloud_run/Dockerfile>`_
+        - For deploying to `Google Dataflow <https://github.com/octue/octue-sdk-python/blob/main/octue/cloud/deployment/google/dataflow/Dockerfile>`_
 
         However, you may need to write and provide your own ``Dockerfile`` if your app requires:
 
