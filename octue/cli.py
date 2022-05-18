@@ -169,6 +169,7 @@ def run(app_dir, data_dir, config_dir, input_dir, twine):
 def start(service_configuration_path, service_id, timeout, rm):
     """Start the service as a child to be asked questions by other services."""
     service_configuration, app_configuration = load_service_and_app_configuration(service_configuration_path)
+    service_id = service_id or service_configuration.service_id
 
     runner = Runner(
         app_src=service_configuration.app_source_path,
@@ -177,7 +178,7 @@ def start(service_configuration_path, service_id, timeout, rm):
         configuration_manifest=app_configuration.configuration_manifest,
         children=app_configuration.children,
         output_location=app_configuration.output_location,
-        service_id=service_configuration.service_id,
+        service_id=service_id,
     )
 
     run_function = functools.partial(
@@ -197,8 +198,8 @@ def start(service_configuration_path, service_id, timeout, rm):
         backend = service_backends.get_backend()(project_name=project_name)
 
     service = Service(
-        name=service_id or service_configuration.service_id,
-        service_id=service_id or service_configuration.service_id,
+        name=service_id,
+        service_id=service_id,
         backend=backend,
         run_function=run_function,
     )
