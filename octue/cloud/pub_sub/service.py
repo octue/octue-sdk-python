@@ -40,7 +40,7 @@ class Service(CoolNameable):
     has a corresponding topic on Google Pub/Sub.
 
     :param octue.resources.service_backends.ServiceBackend backend: the object representing the type of backend the service uses
-    :param str|None service_id: the unique ID of the service (any string)
+    :param str|None service_id: a unique ID to give to the service (any string); a UUID is generated if none is given
     :param callable|None run_function: the function the service should run when it is called
     :return None:
     """
@@ -56,7 +56,7 @@ class Service(CoolNameable):
             else:
                 self.id = f"{OCTUE_NAMESPACE}.{service_id}"
 
-            self.id = self.id.replace("/", ".")
+            self.id = self._clean_service_id(self.id)
 
         self.backend = backend
         self.run_function = run_function
@@ -219,7 +219,7 @@ class Service(CoolNameable):
                 )
 
         unlinted_service_id = service_id
-        service_id = service_id.replace("/", ".")
+        service_id = self._clean_service_id(service_id)
         question_topic = Topic(name=service_id, namespace=OCTUE_NAMESPACE, service=self)
 
         if not question_topic.exists(timeout=timeout):
@@ -323,6 +323,14 @@ class Service(CoolNameable):
         )
 
         topic.messages_published += 1
+
+    def _clean_service_id(self, service_id):
+        """Replace forward slashes in the given service ID with dots.
+
+        :param str service_id: the raw service ID
+        :return str: the cleaned service ID.
+        """
+        return service_id.replace("/", ".")
 
     def _send_delivery_acknowledgment(self, topic, timeout=30):
         """Send an acknowledgement of question delivery to the parent.
