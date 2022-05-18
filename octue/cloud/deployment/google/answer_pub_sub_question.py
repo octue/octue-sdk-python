@@ -1,5 +1,6 @@
 import functools
 import logging
+import os
 
 from octue.cloud.pub_sub.service import Service
 from octue.configuration import load_service_and_app_configuration
@@ -22,10 +23,11 @@ def answer_question(question, project_name):
     :return None:
     """
     service_configuration, app_configuration = load_service_and_app_configuration(DEFAULT_SERVICE_CONFIGURATION_PATH)
+    service_id = os.environ.get("SERVICE_ID") or service_configuration.service_id
 
     service = Service(
-        name=service_configuration.service_id,
-        service_id=service_configuration.service_id,
+        name=service_id,
+        service_id=service_id,
         backend=GCPPubSubBackend(project_name=project_name),
     )
 
@@ -43,7 +45,7 @@ def answer_question(question, project_name):
             children=app_configuration.children,
             output_location=app_configuration.output_location,
             project_name=project_name,
-            service_id=service_configuration.service_id,
+            service_id=service_id,
         )
 
         service.run_function = functools.partial(runner.run)
