@@ -15,34 +15,6 @@ Anatomy of an Octue digital twin
 ================================
 An Octue digital twin is defined by the following files (located in the repository root by default):
 
-octue.yaml
-----------
-
-    .. collapse:: This defines the structure of the service - read more...
-
-            ----
-
-        This file defines the basic structure of your digital twin. It must contain at least:
-
-        .. code-block:: yaml
-
-            services:
-              - name: my-app
-
-        It may also need the following key-value pairs:
-
-        - ``app_source_path: <path>`` - if your ``app.py`` file is not in the repository root
-        - ``app_configuration_path: <path>`` - if your app needs an app configuration file that isn't in the repository root
-        - ``dockerfile_path: <path>`` - if your app needs a ``Dockerfile`` that isn't in the repository root
-
-        All paths should be relative to the repository root. Other valid entries can be found in the
-        :doc:`service configuration constructor </autoapi/octue/configuration/index>`.
-
-        .. warning::
-
-            Currently, only one service can be defined per repository, but it must still appear as a list item of the
-            "services" key.
-
 app.py
 ------
 
@@ -126,6 +98,52 @@ Dependencies file
         ``requirements.txt`` file `(read more here) <https://learnpython.com/blog/python-requirements-file/>`_ listing all the
         python packages your app depends on and the version ranges that will work with your app.
 
+octue.yaml
+----------
+
+    .. collapse:: This defines the structure of the service - read more...
+
+            ----
+
+        This file defines the basic structure of your digital twin. It must contain at least:
+
+        .. code-block:: yaml
+
+            services:
+              - name: my-app
+
+        It may also need the following key-value pairs:
+
+        - ``app_source_path: <path>`` - if your ``app.py`` file is not in the repository root
+        - ``app_configuration_path: <path>`` - if your app needs an app configuration file that isn't in the repository root
+        - ``dockerfile_path: <path>`` - if your app needs a ``Dockerfile`` that isn't in the repository root
+
+        All paths should be relative to the repository root. Other valid entries can be found in the
+        :doc:`service configuration constructor </autoapi/octue/configuration/index>`.
+
+        .. warning::
+
+            Currently, only one service can be defined per repository, but it must still appear as a list item of the
+            "services" key.
+
+App configuration file (optional)
+---------------------------------
+    .. collapse:: An optional app configuration JSON file specifying, for example, any children your app depends on - read more...
+
+            ----
+
+        If your app needs any configuration, asks questions to any other Octue digital twins, or produces output
+        datafiles/datasets, you will need to provide an app configuration. Currently, this can only take the form of JSON file.
+        It can contain the following keys:
+
+        - ``configuration_values``
+        - ``configuration_manifest``
+        - ``children``
+        - ``output_location``
+
+        If an app configuration file is provided, its path must be specified in ``octue.yaml`` under the
+        "app_configuration_path" key.
+
 Dockerfile (optional)
 ---------------------
     .. collapse:: Provide this if your needs exceed the default Octue Dockerfile - read more...
@@ -148,23 +166,6 @@ Dockerfile (optional)
 
         As always, if you need help with this, feel free to drop us a message or raise an issue!
 
-App configuration file (optional)
----------------------------------
-    .. collapse:: An optional app configuration JSON file specifying, for example, any children your app depends on - read more...
-
-            ----
-
-        If your app needs any configuration, asks questions to any other Octue digital twins, or produces output
-        datafiles/datasets, you will need to provide an app configuration. Currently, this can only take the form of JSON file.
-        It can contain the following keys:
-
-        - ``configuration_values``
-        - ``configuration_manifest``
-        - ``children``
-        - ``output_location``
-
-        If an app configuration file is provided, its path must be specified in ``octue.yaml`` under the
-        "app_configuration_path" key.
 
 Template apps
 =============
