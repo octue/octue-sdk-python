@@ -133,10 +133,17 @@ Dockerfile (optional)
             ----
 
         Octue digital twins run in a Docker container if they are deployed. They can also run locally in a Docker container.
-        The SDK provides a default ``Dockerfile`` for these purposes that will work for most cases but, if your app requires
-        non-python or system dependencies (e.g. ``openfast``, ``wget``) or private python packages, you may need to write and
-        provide your own ``Dockerfile``. If you need help with this, feel free to drop us a message or raise an issue! If you
-        do provide one, you must specify its path in ``octue.yaml`` under the ``dockerfile_path`` key.
+        The SDK provides a default ``Dockerfile`` for these purposes that will work for most cases.
+
+        However, you may need to write and provide your own ``Dockerfile`` if your app requires:
+
+        - Non-python or system dependencies (e.g. ``openfast``, ``wget``)
+        - Python dependencies that aren't installable via ``pip``
+        - Private python packages
+
+        If you do provide one, you must specify its path in ``octue.yaml`` under the ``dockerfile_path`` key.
+
+        As always, if you need help with this, feel free to drop us a message or raise an issue!
 
 App configuration file (optional)
 ---------------------------------
