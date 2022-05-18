@@ -26,6 +26,13 @@ class Child:
         backend = service_backends.get_backend(backend_type_name)(**backend)
         self._service = BACKEND_TO_SERVICE_MAPPING[backend_type_name](name=f"{self.name}-parent", backend=backend)
 
+    def __repr__(self):
+        """Represent a child as a string.
+
+        :return str:
+        """
+        return f"<{type(self).__name__}({self.name!r})>"
+
     def ask(
         self,
         input_values=None,

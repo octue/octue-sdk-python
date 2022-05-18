@@ -109,6 +109,7 @@ class TemplateAppsTestCase(BaseTestCase):
         self.set_template("template-child-services")
 
         elevation_service_path = os.path.join(self.template_path, "elevation_service")
+        elevation_service_id = f"template-child-services/elevation-service-{uuid.uuid4()}"
 
         elevation_process = subprocess.Popen(
             [
@@ -116,12 +117,14 @@ class TemplateAppsTestCase(BaseTestCase):
                 cli_path,
                 "start",
                 "--service-configuration-path=octue.yaml",
+                f"--service-id={elevation_service_id}",
                 "--delete-topic-and-subscription-on-exit",
             ],
             cwd=elevation_service_path,
         )
 
         wind_speed_service_path = os.path.join(self.template_path, "wind_speed_service")
+        wind_speed_service_id = f"template-child-services/wind-speed-service-{uuid.uuid4()}"
 
         wind_speed_process = subprocess.Popen(
             [
@@ -129,6 +132,7 @@ class TemplateAppsTestCase(BaseTestCase):
                 cli_path,
                 "start",
                 "--service-configuration-path=octue.yaml",
+                f"--service-id={wind_speed_service_id}",
                 "--delete-topic-and-subscription-on-exit",
             ],
             cwd=wind_speed_service_path,
@@ -138,6 +142,8 @@ class TemplateAppsTestCase(BaseTestCase):
 
         with open(os.path.join(parent_service_path, "app_configuration.json")) as f:
             children = json.load(f)["children"]
+            children[0]["id"] = wind_speed_service_id
+            children[1]["id"] = elevation_service_id
 
         with ProcessesContextManager(processes=(elevation_process, wind_speed_process)):
 

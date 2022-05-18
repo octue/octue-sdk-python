@@ -149,6 +149,14 @@ def run(app_dir, data_dir, config_dir, input_dir, twine):
     default="octue.yaml",
     help="The path to an `octue.yaml` file defining the service to start.",
 )
+@click.option(
+    "--service-id",
+    type=click.STRING,
+    default=None,
+    show_default=True,
+    help="A unique ID for the service (this should be unique over all time and space). If not provided, the ID is "
+    "taken from the octue.yaml file.",
+)
 @click.option("--timeout", type=click.INT, default=None, show_default=True, help="Timeout in seconds for serving.")
 @click.option(
     "--rm",
@@ -158,7 +166,7 @@ def run(app_dir, data_dir, config_dir, input_dir, twine):
     show_default=True,
     help="Delete the Google Pub/Sub topic and subscription for the service on exit.",
 )
-def start(service_configuration_path, timeout, rm):
+def start(service_configuration_path, service_id, timeout, rm):
     """Start the service as a child to be asked questions by other services."""
     service_configuration, app_configuration = load_service_and_app_configuration(service_configuration_path)
 
@@ -188,8 +196,8 @@ def start(service_configuration_path, timeout, rm):
         backend = service_backends.get_backend()(project_name=project_name)
 
     service = Service(
-        name=service_configuration.service_id,
-        service_id=service_configuration.service_id,
+        name=service_id or service_configuration.service_id,
+        service_id=service_id or service_configuration.service_id,
         backend=backend,
         run_function=run_function,
     )
