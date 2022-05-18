@@ -49,7 +49,6 @@ And this is how to write to a cloud datafile:
 
 All the same file modes you'd use with the built-in ``open`` are available for datafiles e.g. ``"r"`` and ``"a"``.
 
-
 Automatic lazy downloading
 --------------------------
 Downloading data from cloud datafiles is automatic and lazy so you get both low-latency content read/write and quick
@@ -183,30 +182,32 @@ Represent HDF5 files
 
 More information on downloading
 -------------------------------
-To avoid unnecessary data transfer and costs, datafiles that only exist in the cloud are not downloaded locally until
-the ``download`` method is called on them or their ``local_path`` property is used for the first time. When either of
-these happen, the cloud object is downloaded to a temporary local file. Any changes made to the local file via the
-``Datafile.open`` method (which can be used analogously to the python built-in ``open`` function) are synced up with
-the cloud object. The temporary file will exist as long as the python session is running. Calling ``download`` again
-will not re-download the file as it will be up to date with any changes made locally. However, external changes to the
-cloud object will not be synced locally unless the ``local_path`` is set to ``None``, followed by running the ``download``
-method again.
 
-If you want a cloud object to be permanently downloaded, you can either:
+- To avoid unnecessary data transfer and costs, cloud datafiles are not downloaded locally
+  `until necessary <datafile.html#automatic-lazy-downloading>`_.
+- When downloaded, they are downloaded by default to a temporary local file that will exist at least as long as the
+  python session is running
+- Calling ``Datafile.download`` or using ``Datafile.local_path`` again will not re-download the file
+- Any changes made to the datafile via the ``Datafile.open`` method are made to the local copy and then synced with
+  the cloud object
 
-- Set the ``local_path`` property of the datafile to the path you want the object to be downloaded to
+.. warning::
 
-  .. code-block:: python
+    External changes to cloud files will not be synced locally unless the datafile is re-instantiated.
 
-      datafile.local_path = "my/local/path.csv"
+- If you want a cloud object to be downloaded to a permanent location, you can do one of:
 
-- Use the ``download`` method with the ``local_path`` parameter set
+    .. code-block:: python
 
-  .. code-block:: python
+        datafile.download(local_path="my/local/path.csv")
 
-      datafile.download(local_path="my/local/path.csv")
+        datafile.local_path = "my/local/path.csv"
 
-Either way, the datafile will now exist locally as well in the cloud.
+- To pre-set a permanent download location on instantiation, run:
+
+    .. code-block:: python
+
+        datafile = Datafile("gs://my-bucket/path/to/file.dat", local_path="my/local/path.csv")
 
 
 Usage examples
