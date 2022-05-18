@@ -4,10 +4,11 @@
 Manifest
 ========
 
-.. admonition:: Definition
+.. admonition:: Definitions
 
-    A set of related cloud and/or local :doc:`datasets <dataset>` plus metadata. Typically produced by or needed for an
-    analysis.
+    Manifest
+        A set of related cloud and/or local :doc:`datasets <dataset>` plus metadata. Typically produced by or needed for an
+        analysis.
 
 Key features
 ============
@@ -51,10 +52,13 @@ Receive datasets from a digital twin
 
 .. code-block:: python
 
-    answer["output_manifest"]["my_dataset"].files
+    answer["output_manifest"]["an_output_dataset"].files
     >>> <FilterSet({<Datafile('my_file.csv')>, <Datafile('another_file.csv')>})>
 
+.. hint::
 
+    Datasets in an output manifest are stored in the cloud. You’ll need to keep a reference to where they are to access
+    them - the output manifest is this reference. You’ll need to use it straight away or save it to make use of it.
 
 
 Further information
