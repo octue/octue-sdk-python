@@ -4,18 +4,10 @@
 Datafile
 ========
 
-.. admonition:: Definitions
+.. admonition:: Definition
 
     Datafile
         A single local or cloud file, its metadata, and helper methods.
-
-    Locality
-        A datafile will have one of these localities:
-
-        - Cloud-based: the datafile exists only in the cloud
-        - Local: the datafile exists only on your local filesystem
-        - Cloud-based and local: a cloud-based datafile that has been downloaded locally for low-latency reading/editing
-          etc.
 
 .. tip::
 
@@ -150,6 +142,15 @@ Each datafile has an immutable UUID:
 
 Check a datafile's locality
 ---------------------------
+
+.. admonition:: Definition
+
+    Locality
+        A datafile has one of these localities:
+
+        - **Cloud-based:** it exists only in the cloud
+        - **Local:** it exists only on your local filesystem
+        - **Cloud-based and local:** it's cloud-based but has been downloaded for low-latency reading/writing
 
 .. code-block:: python
 
