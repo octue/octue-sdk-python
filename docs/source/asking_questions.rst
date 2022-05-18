@@ -10,23 +10,17 @@ Octue digital twins
 There's a growing range of live digital twins in the Octue ecosystem that you can ask questions to and get answers from.
 All of them are currently related to wind energy. Here's a quick glossary of terms before we tell you more:
 
-.. admonition:: Definition
+.. admonition:: Definitions
 
     Child
         A digital twin that you ask a question to. This name is used to reflect the tree structure of digital twins
         that forms when a question is asked.
 
-.. admonition:: Definition
-
     Asking a question
         Sending data (input values and/or an input manifest) to a child for processing/analysis.
 
-.. admonition:: Definition
-
     Receiving an answer
        Receiving data (output values and/or an output manifest) from a digital twin you asked a question to.
-
-.. admonition:: Definition
 
     Octue ecosystem
        The set of digital twins running the ``octue`` SDK as their backend. These digital twins guarantee:
