@@ -2,7 +2,6 @@ import json
 import os
 import tempfile
 import unittest.mock
-import uuid
 from unittest import mock
 
 import yaml
@@ -133,11 +132,7 @@ class TestStartCommand(BaseTestCase):
 
                             result = CliRunner().invoke(
                                 octue_cli,
-                                [
-                                    "start",
-                                    f"--service-id={uuid.uuid4()}",
-                                    "--timeout=0",
-                                ],
+                                ["start", "--timeout=0"],
                             )
 
         self.assertIsNone(result.exception)

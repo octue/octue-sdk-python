@@ -152,7 +152,10 @@ def run(app_dir, data_dir, config_dir, input_dir, twine):
 @click.option(
     "--service-id",
     type=click.STRING,
-    help="The unique ID of the server (this should be unique over all time and space).",
+    default=None,
+    show_default=True,
+    help="A unique ID for the service (this should be unique over all time and space). If not provided, the ID is "
+    "generated from the `octue.yaml` file.",
 )
 @click.option("--timeout", type=click.INT, default=None, show_default=True, help="Timeout in seconds for serving.")
 @click.option(
@@ -166,6 +169,7 @@ def run(app_dir, data_dir, config_dir, input_dir, twine):
 def start(service_configuration_path, service_id, timeout, rm):
     """Start the service as a child to be asked questions by other services."""
     service_configuration, app_configuration = load_service_and_app_configuration(service_configuration_path)
+    service_id = service_id or service_configuration.service_id
 
     runner = Runner(
         app_src=service_configuration.app_source_path,
@@ -174,6 +178,7 @@ def start(service_configuration_path, service_id, timeout, rm):
         configuration_manifest=app_configuration.configuration_manifest,
         children=app_configuration.children,
         output_location=app_configuration.output_location,
+        service_id=service_id,
     )
 
     run_function = functools.partial(
@@ -193,7 +198,7 @@ def start(service_configuration_path, service_id, timeout, rm):
         backend = service_backends.get_backend()(project_name=project_name)
 
     service = Service(
-        name=service_configuration.name,
+        name=service_id,
         service_id=service_id,
         backend=backend,
         run_function=run_function,

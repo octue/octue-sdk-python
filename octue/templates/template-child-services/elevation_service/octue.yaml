@@ -1,3 +1,4 @@
 services:
-  - name: template-child-services/elevation-service
+  - name: elevation-service
+    organisation: template-child-services
     app_configuration_path: app_configuration.json
