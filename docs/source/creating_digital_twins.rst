@@ -124,7 +124,7 @@ octue.yaml
         .. warning::
 
             Currently, only one service can be defined per repository, but it must still appear as a list item of the
-            "services" key.
+            "services" key. At some point, it will be possible to define multiple services in one repository.
 
 App configuration file (optional)
 ---------------------------------
@@ -161,6 +161,11 @@ Dockerfile (optional)
         - Non-python or system dependencies (e.g. ``openfast``, ``wget``)
         - Python dependencies that aren't installable via ``pip``
         - Private python packages
+
+        Here are two examples of a custom ``Dockerfile``:
+
+        - A TurbSim service - `uses a different base image <https://github.com/aerosense-ai/turbsim-service/blob/main/Dockerfile>`_
+        - An OpenFAST service - `includes adding system dependencies and a non-standard installation of a python package <https://github.com/aerosense-ai/openfast-aventa-service/blob/main/Dockerfile>`_
 
         If you do provide one, you must specify its path in ``octue.yaml`` under the ``dockerfile_path`` key.
 
