@@ -23,7 +23,11 @@ def answer_question(question, project_name):
     """
     service_configuration, app_configuration = load_service_and_app_configuration(DEFAULT_SERVICE_CONFIGURATION_PATH)
 
-    service = Service(service_id=service_configuration.service_id, backend=GCPPubSubBackend(project_name=project_name))
+    service = Service(
+        name=service_configuration.service_id,
+        service_id=service_configuration.service_id,
+        backend=GCPPubSubBackend(project_name=project_name),
+    )
 
     question_uuid = get_nested_attribute(question, "attributes.question_uuid")
     answer_topic = service.instantiate_answer_topic(question_uuid)

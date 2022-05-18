@@ -155,7 +155,7 @@ def run(app_dir, data_dir, config_dir, input_dir, twine):
     default=None,
     show_default=True,
     help="A unique ID for the service (this should be unique over all time and space). If not provided, the ID is "
-    "taken from the octue.yaml file.",
+    "generated from the `octue.yaml` file.",
 )
 @click.option("--timeout", type=click.INT, default=None, show_default=True, help="Timeout in seconds for serving.")
 @click.option(
