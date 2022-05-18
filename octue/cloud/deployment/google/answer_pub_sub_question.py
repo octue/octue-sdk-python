@@ -39,6 +39,7 @@ def answer_question(question, project_name):
             children=app_configuration.children,
             output_location=app_configuration.output_location,
             project_name=project_name,
+            service_id=service_configuration.service_id,
         )
 
         service.run_function = functools.partial(runner.run)

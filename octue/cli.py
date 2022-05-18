@@ -177,6 +177,7 @@ def start(service_configuration_path, service_id, timeout, rm):
         configuration_manifest=app_configuration.configuration_manifest,
         children=app_configuration.children,
         output_location=app_configuration.output_location,
+        service_id=service_configuration.service_id,
     )
 
     run_function = functools.partial(
