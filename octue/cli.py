@@ -187,14 +187,9 @@ def start(service_configuration_path, timeout, rm):
         _, project_name = auth.default()
         backend = service_backends.get_backend()(project_name=project_name)
 
-    service_name = service_configuration.name
-
-    if service_configuration.organisation:
-        service_name = service_configuration.organisation + "/" + service_name
-
     service = Service(
-        name=service_name,
-        service_id=service_name,
+        name=service_configuration.service_id,
+        service_id=service_configuration.service_id,
         backend=backend,
         run_function=run_function,
     )
