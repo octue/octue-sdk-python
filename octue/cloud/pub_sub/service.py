@@ -40,7 +40,7 @@ class Service(CoolNameable):
     has a corresponding topic on Google Pub/Sub.
 
     :param octue.resources.service_backends.ServiceBackend backend: the object representing the type of backend the service uses
-    :param str|None service_id: a string UUID optionally preceded by the octue services namespace "octue.services."
+    :param str|None service_id: the unique ID of the service (any string)
     :param callable|None run_function: the function the service should run when it is called
     :return None:
     """
@@ -55,6 +55,8 @@ class Service(CoolNameable):
                 self.id = service_id
             else:
                 self.id = f"{OCTUE_NAMESPACE}.{service_id}"
+
+            self.id = self.id.replace("/", ".")
 
         self.backend = backend
         self.run_function = run_function
@@ -73,7 +75,7 @@ class Service(CoolNameable):
         :param bool delete_topic_and_subscription_on_exit: if `True`, delete the service's topic and subscription on exit
         :return None:
         """
-        logger.info("Starting service with ID %r.", self.id)
+        logger.info("Starting %r.", self)
 
         topic = Topic(name=self.id, namespace=OCTUE_NAMESPACE, service=self)
         subscriber = pubsub_v1.SubscriberClient(credentials=self._credentials)
@@ -216,10 +218,12 @@ class Service(CoolNameable):
                     "the new cloud locations."
                 )
 
+        unlinted_service_id = service_id
+        service_id = service_id.replace("/", ".")
         question_topic = Topic(name=service_id, namespace=OCTUE_NAMESPACE, service=self)
 
         if not question_topic.exists(timeout=timeout):
-            raise octue.exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
+            raise octue.exceptions.ServiceNotFound(f"Service with ID {unlinted_service_id!r} cannot be found.")
 
         question_uuid = question_uuid or str(uuid.uuid4())
 
@@ -248,7 +252,7 @@ class Service(CoolNameable):
             retry=retry.Retry(deadline=timeout),
         )
 
-        logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
+        logger.info("%r asked a question %r to service %r.", self, question_uuid, unlinted_service_id)
         return answer_subscription, question_uuid
 
     def wait_for_answer(

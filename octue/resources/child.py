@@ -12,7 +12,7 @@ class Child:
     makes the asking of questions more intuitive for Scientists and allows easier selection of backends.
 
     :param str name: an arbitrary name to refer to the child by (used to access it in Analysis instances and give context to log messages forwarded from the child)
-    :param str id: the UUID of the child service
+    :param str id: the ID of the child service
     :param dict backend: must include the key "name" with a value of the name of the type of backend e.g. GCPPubSubBackend and key-value pairs for any other parameters the chosen backend expects
     :return None:
     """
