@@ -13,7 +13,6 @@ from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
 from octue.cloud.pub_sub.service import Service
 from octue.configuration import load_service_and_app_configuration
 from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
-from octue.exceptions import DeploymentError
 from octue.log_handlers import apply_log_handler, get_remote_handler
 from octue.resources import service_backends
 from octue.runner import Runner
@@ -224,15 +223,12 @@ def deploy():
     "--service-id",
     type=str,
     default=None,
-    help="A UUID to use for the service if a specific one is required (defaults to an automatically generated one).",
+    help="An ID to use for the service if a specific one is required (defaults to an automatically generated one).",
 )
 @click.option("--no-cache", is_flag=True, help="If provided, don't use the Docker cache.")
 @click.option("--update", is_flag=True, help="If provided, allow updates to an existing service.")
 def cloud_run(octue_configuration_path, service_id, update, no_cache):
     """Deploy an app as a Google Cloud Run service."""
-    if update and not service_id:
-        raise DeploymentError("If updating a service, you must also provide the `--service-id` argument.")
-
     CloudRunDeployer(octue_configuration_path, service_id=service_id).deploy(update=update, no_cache=no_cache)
 
 
@@ -248,7 +244,7 @@ def cloud_run(octue_configuration_path, service_id, update, no_cache):
     "--service-id",
     type=str,
     default=None,
-    help="A UUID to use for the service if a specific one is required (defaults to an automatically generated one).",
+    help="An ID to use for the service if a specific one is required (defaults to an automatically generated one).",
 )
 @click.option("--no-cache", is_flag=True, help="If provided, don't use the Docker cache when building the image.")
 @click.option("--update", is_flag=True, help="If provided, allow updates to an existing service.")
@@ -269,9 +265,6 @@ def dataflow(octue_configuration_path, service_id, no_cache, update, dataflow_jo
             "To use this CLI command, you must install `octue` with the `dataflow` option e.g. "
             "`pip install octue[dataflow]`"
         )
-
-    if update and not service_id:
-        raise DeploymentError("If updating a service, you must also provide the `--service-id` argument.")
 
     deployer = DataflowDeployer(octue_configuration_path, service_id=service_id)
 
