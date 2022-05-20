@@ -28,7 +28,7 @@ class CloudRunDeployer(BaseDeployer):
     ```
 
     :param str octue_configuration_path: the path to the `octue.yaml` file if it's not in the current working directory
-    :param str|None service_id: the UUID to give the service if a random one is not suitable
+    :param str|None service_id: an ID to give the service if the one generated from `octue.yaml` isn't sufficient
     :return None:
     """
 

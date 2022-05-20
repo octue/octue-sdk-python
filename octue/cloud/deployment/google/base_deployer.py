@@ -2,7 +2,6 @@ import json
 import subprocess
 import tempfile
 import time
-import uuid
 from abc import abstractmethod
 
 import yaml
@@ -36,7 +35,7 @@ class BaseDeployer:
     ```
 
     :param str octue_configuration_path: the path to the `octue.yaml` file if it's not in the current working directory
-    :param str|None service_id: the UUID to give the service if a random one is not suitable
+    :param str|None service_id: an ID to give the service if the one generated from `octue.yaml` isn't sufficient
     :return None:
     """
 
@@ -48,12 +47,12 @@ class BaseDeployer:
         # Generated attributes.
         self.build_trigger_description = None
         self.generated_cloud_build_configuration = None
-        self.service_id = service_id or str(uuid.uuid4())
+        self.service_id = service_id or self.service_configuration.service_id
 
-        self.required_environment_variables = {
-            "SERVICE_ID": self.service_id,
-            "SERVICE_NAME": self.service_configuration.name,
-        }
+        self.required_environment_variables = {"SERVICE_NAME": self.service_configuration.name}
+
+        if service_id:
+            self.required_environment_variables["SERVICE_ID"] = service_id
 
         self.image_uri_template = image_uri_template or (
             f"{DOCKER_REGISTRY_URL}/{self.service_configuration.project_name}/"
