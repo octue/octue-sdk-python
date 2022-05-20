@@ -37,8 +37,6 @@ OCTUE_CONFIGURATION_WITH_CLOUD_BUILD_PATH = {
     "services": [{**copy.copy(SERVICE), "cloud_build_configuration_path": "cloudbuild.yaml"}]
 }
 
-SERVICE_ID = "octue.services.0df08f9f-30ad-4db3-8029-ea584b4290b7"
-
 EXPECTED_IMAGE_NAME = (
     f"eu.gcr.io/{SERVICE['project_name']}/{SERVICE['repository_name']}/" f"{SERVICE['name']}:$SHORT_SHA"
 )
@@ -57,8 +55,8 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
             "args": [
                 "-c",
                 (
-                    f"docker build '-t' {EXPECTED_IMAGE_NAME!r} --build-arg=SERVICE_ID={SERVICE_ID} "
-                    f"--build-arg=SERVICE_NAME={SERVICE['name']} . '-f' Dockerfile"
+                    f"docker build '-t' {EXPECTED_IMAGE_NAME!r} --build-arg=SERVICE_NAME={SERVICE['name']} "
+                    ". '-f' Dockerfile"
                 ),
             ],
         },
@@ -74,7 +72,6 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
                 "octue",
                 "deploy",
                 "dataflow",
-                f"--service-id={SERVICE_ID}",
                 "--update",
                 "--dataflow-job-only",
                 f"--image-uri={EXPECTED_IMAGE_NAME}",
@@ -105,7 +102,7 @@ class TestDataflowDeployer(BaseTestCase):
         """Test that a correct Google Cloud Build configuration is generated from the given `octue.yaml` file."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
-            deployer = DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID)
+            deployer = DataflowDeployer(octue_configuration_path)
 
         deployer._generate_cloud_build_configuration()
         self.assertEqual(deployer.generated_cloud_build_configuration, EXPECTED_CLOUD_BUILD_CONFIGURATION)
@@ -114,7 +111,7 @@ class TestDataflowDeployer(BaseTestCase):
         """Test that the build trigger creation and run are requested correctly."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
-            deployer = DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID)
+            deployer = DataflowDeployer(octue_configuration_path)
 
             with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:
                 mock_build_id = "my-build-id"
@@ -174,7 +171,7 @@ class TestDataflowDeployer(BaseTestCase):
                 temporary_directory,
             )
 
-            deployer = DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID, image_uri_template="blah")
+            deployer = DataflowDeployer(octue_configuration_path, image_uri_template="blah")
 
             with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:
                 mock_build_id = "my-build-id"
@@ -231,7 +228,7 @@ class TestDataflowDeployer(BaseTestCase):
         """Test creating a streaming dataflow job directly."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
-            deployer = DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID)
+            deployer = DataflowDeployer(octue_configuration_path)
 
             with patch(
                 "octue.cloud.deployment.google.dataflow.pipeline.Topic",
@@ -258,7 +255,7 @@ class TestDataflowDeployer(BaseTestCase):
         """Test updating an existing streaming dataflow job."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
-            deployer = DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID)
+            deployer = DataflowDeployer(octue_configuration_path)
 
             with patch(
                 "octue.cloud.deployment.google.dataflow.pipeline.Topic",
@@ -284,7 +281,7 @@ class TestDataflowDeployer(BaseTestCase):
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
-            deployer = DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID)
+            deployer = DataflowDeployer(octue_configuration_path)
 
             with patch(
                 "octue.cloud.deployment.google.dataflow.pipeline.Topic",
@@ -308,7 +305,7 @@ class TestDataflowDeployer(BaseTestCase):
         """Test that a deployment error is raised if a Dataflow job already exists with the same name as the service."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
-            deployer = DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID)
+            deployer = DataflowDeployer(octue_configuration_path)
 
             with patch(
                 "octue.cloud.deployment.google.dataflow.pipeline.Topic",
@@ -332,7 +329,7 @@ class TestDataflowDeployer(BaseTestCase):
                 temporary_directory,
             )
 
-            deployer = DataflowDeployer(octue_configuration_path, service_id=SERVICE_ID)
+            deployer = DataflowDeployer(octue_configuration_path)
 
             with patch(
                 "octue.cloud.deployment.google.dataflow.pipeline.Topic",
