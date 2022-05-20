@@ -72,6 +72,7 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
                 "octue",
                 "deploy",
                 "dataflow",
+                f"--service-id={SERVICE['name']}",
                 "--update",
                 "--dataflow-job-only",
                 f"--image-uri={EXPECTED_IMAGE_NAME}",

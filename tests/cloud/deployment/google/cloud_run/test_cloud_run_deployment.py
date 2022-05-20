@@ -14,7 +14,7 @@ class TestCloudRunDeployment(TestCase):
     # This is the service ID of the example service deployed to Google Cloud Run.
     child = Child(
         name="example-cloud-run-service",
-        id="octue.services.afbf37e3-7650-4e79-bc8e-37c0c26eae13",
+        id="octue/example-service-cloud-run",
         backend={"name": "GCPPubSubBackend", "project_name": os.environ["TEST_PROJECT_NAME"]},
     )
 
