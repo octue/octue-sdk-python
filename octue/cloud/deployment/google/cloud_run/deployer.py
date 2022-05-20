@@ -54,7 +54,7 @@ class CloudRunDeployer(BaseDeployer):
         self._allow_unauthenticated_messages()
         self._create_eventarc_run_trigger(update=update)
 
-        print(f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}.")
+        print(self.success_message)
         return self.service_id
 
     def _generate_cloud_build_configuration(self, no_cache=False):

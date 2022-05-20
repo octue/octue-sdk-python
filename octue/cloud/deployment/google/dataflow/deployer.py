@@ -43,7 +43,6 @@ class DataflowDeployer(BaseDeployer):
         self.build_trigger_description = (
             f"Build the {self.service_configuration.name!r} service and deploy it to Dataflow."
         )
-        self.success_message = f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}."
 
         if not self.service_configuration.temporary_files_location:
             self.service_configuration.temporary_files_location = DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION

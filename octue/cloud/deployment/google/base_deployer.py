@@ -47,17 +47,19 @@ class BaseDeployer:
         # Generated attributes.
         self.build_trigger_description = None
         self.generated_cloud_build_configuration = None
-        self.service_id = service_id or self.service_configuration.service_id
+        self.service_id = (service_id or self.service_configuration.service_id).replace("/", ".")
 
         self.required_environment_variables = {"SERVICE_NAME": self.service_configuration.name}
 
         if service_id:
-            self.required_environment_variables["SERVICE_ID"] = service_id
+            self.required_environment_variables["SERVICE_ID"] = self.service_id
 
         self.image_uri_template = image_uri_template or (
             f"{DOCKER_REGISTRY_URL}/{self.service_configuration.project_name}/"
             f"{self.service_configuration.repository_name}/{self.service_configuration.name}:$SHORT_SHA"
         )
+
+        self.success_message = f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {service_id!r}."
 
     @abstractmethod
     def deploy(self, no_cache=False, update=False):
