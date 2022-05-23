@@ -428,8 +428,11 @@ class Service(CoolNameable):
         forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
 
         try:
-            sdk_version = packaging.version.parse(get_nested_attribute(question, "attributes.octue_sdk_version"))
+            parent_sdk_version = get_nested_attribute(question, "attributes.octue_sdk_version")
         except AttributeError:
-            sdk_version = None
+            parent_sdk_version = None
 
-        return data, question_uuid, forward_logs, sdk_version
+        if parent_sdk_version:
+            parent_sdk_version = packaging.version.parse(parent_sdk_version)
+
+        return data, question_uuid, forward_logs, parent_sdk_version
