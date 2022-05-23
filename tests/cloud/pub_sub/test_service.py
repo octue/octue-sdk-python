@@ -58,79 +58,6 @@ class TestService(BaseTestCase):
     (GCP), or a local emulator.
     """
 
-    @staticmethod
-    def make_new_child(backend, run_function_returnee, use_mock=False):
-        """Make and return a new child service that returns the given run function returnee when its run function is
-        executed.
-
-        :param octue.resources.service_backends.ServiceBackend backend:
-        :param any run_function_returnee:
-        :param bool use_mock:
-        :return tests.cloud.pub_sub.mocks.MockService:
-        """
-        run_function = (
-            lambda analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message: run_function_returnee
-        )
-
-        if use_mock:
-            return MockService(backend=backend, run_function=run_function)
-
-        return Service(backend=backend, run_function=run_function)
-
-    @staticmethod
-    def ask_question_and_wait_for_answer(
-        parent,
-        child,
-        input_values,
-        input_manifest,
-        subscribe_to_logs=True,
-        allow_local_files=False,
-        service_name="my-service",
-        question_uuid=None,
-        push_endpoint=None,
-        timeout=30,
-        delivery_acknowledgement_timeout=30,
-    ):
-        """Get a parent service to ask a question to a child service and wait for the answer.
-
-        :param tests.cloud.pub_sub.mocks.MockService parent:
-        :param tests.cloud.pub_sub.mocks.MockService child:
-        :param dict|None input_values:
-        :param octue.resources.manifest.Manifest|None input_manifest:
-        :param bool subscribe_to_logs:
-        :return dict:
-        """
-        subscription, _ = parent.ask(
-            service_id=child.id,
-            input_values=input_values,
-            input_manifest=input_manifest,
-            subscribe_to_logs=subscribe_to_logs,
-            allow_local_files=allow_local_files,
-            question_uuid=question_uuid,
-            push_endpoint=push_endpoint,
-            timeout=timeout,
-        )
-
-        return parent.wait_for_answer(
-            subscription=subscription,
-            service_name=service_name,
-            delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
-        )
-
-    def make_child_service_with_error(self, exception_to_raise):
-        """Make a mock child service that raises the given exception when its run function is executed.
-
-        :param Exception exception_to_raise:
-        :return tests.cloud.pub_sub.mocks.MockService:
-        """
-        child = self.make_new_child(BACKEND, run_function_returnee=None, use_mock=True)
-
-        def error_run_function(analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message):
-            raise exception_to_raise
-
-        child.run_function = error_run_function
-        return child
-
     def test_namespace_always_appears_in_id(self):
         """Test that the Octue service namespace always appears at the start of a service's ID whether it's explicitly
         provided or not.
@@ -597,8 +524,8 @@ class TestService(BaseTestCase):
         self.assertEqual(answer["output_values"], MockAnalysisWithOutputManifest.output_values)
         self.assertEqual(answer["output_manifest"].id, MockAnalysisWithOutputManifest.output_manifest.id)
 
-    def test_service_can_ask_multiple_questions(self):
-        """Test that a service can ask multiple questions to the same server and expect replies to them all."""
+    def test_service_can_ask_multiple_questions_to_child(self):
+        """Test that a service can ask multiple questions to the same child and expect replies to them all."""
         child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
         parent = MockService(backend=BACKEND, children={child.id: child})
 
@@ -625,8 +552,8 @@ class TestService(BaseTestCase):
                 {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
             )
 
-    def test_service_can_ask_questions_to_multiple_servers(self):
-        """Test that a service can ask questions to different servers and expect replies to them all."""
+    def test_service_can_ask_questions_to_multiple_children(self):
+        """Test that a service can ask questions to different children and expect replies to them all."""
         child_1 = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
         child_2 = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True)
 
@@ -665,7 +592,7 @@ class TestService(BaseTestCase):
             },
         )
 
-    def test_server_can_ask_its_own_child_questions(self):
+    def test_child_can_ask_its_own_child_questions(self):
         """Test that a child can contact its own child while answering a question from a parent."""
         child_of_child = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True)
 
@@ -707,7 +634,7 @@ class TestService(BaseTestCase):
             },
         )
 
-    def test_server_can_ask_its_own_children_questions(self):
+    def test_child_can_ask_its_own_children_questions(self):
         """Test that a child can contact more than one of its own children while answering a question from a parent."""
         first_child_of_child = self.make_new_child(
             BACKEND,
@@ -766,3 +693,111 @@ class TestService(BaseTestCase):
                 "output_manifest": None,
             },
         )
+
+    def test_warning_issued_if_child_and_parent_sdk_versions_incompatible(self):
+        """Test that a warning is logged if the parent and child's Octue SDK versions are potentially incompatible."""
+        child = self.make_new_child(backend=BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
+        parent = MockService(backend=BACKEND, children={child.id: child})
+
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    child.serve()
+
+                    for parent_sdk_version, child_sdk_version in (
+                        ("0.1.0", "0.2.0"),
+                        ("0.2.0", "0.1.0"),
+                        ("0.1.0", "1.1.0"),
+                        ("1.1.0", "0.1.0"),
+                    ):
+                        with self.subTest(parent_sdk_version=parent_sdk_version, child_sdk_version=child_sdk_version):
+                            with patch("pkg_resources.Distribution.version", child_sdk_version):
+                                with self.assertLogs() as logging_context:
+                                    self.ask_question_and_wait_for_answer(
+                                        parent=parent,
+                                        child=child,
+                                        input_values={"question": "What does the child of the child say?"},
+                                        input_manifest=None,
+                                        parent_sdk_version=parent_sdk_version,
+                                    )
+
+                                    self.assertIn(
+                                        f"The parent's Octue SDK version {parent_sdk_version} may not be compatible "
+                                        f"with the local Octue SDK version {child_sdk_version}",
+                                        logging_context.output[3],
+                                    )
+
+    @staticmethod
+    def make_new_child(backend, run_function_returnee, use_mock=False):
+        """Make and return a new child service that returns the given run function returnee when its run function is
+        executed.
+
+        :param octue.resources.service_backends.ServiceBackend backend:
+        :param any run_function_returnee:
+        :param bool use_mock:
+        :return tests.cloud.pub_sub.mocks.MockService:
+        """
+        run_function = (
+            lambda analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message: run_function_returnee
+        )
+
+        if use_mock:
+            return MockService(backend=backend, run_function=run_function)
+
+        return Service(backend=backend, run_function=run_function)
+
+    @staticmethod
+    def ask_question_and_wait_for_answer(
+        parent,
+        child,
+        input_values,
+        input_manifest,
+        subscribe_to_logs=True,
+        allow_local_files=False,
+        service_name="my-service",
+        question_uuid=None,
+        push_endpoint=None,
+        timeout=30,
+        delivery_acknowledgement_timeout=30,
+        parent_sdk_version=None,
+    ):
+        """Get a parent service to ask a question to a child service and wait for the answer.
+
+        :param tests.cloud.pub_sub.mocks.MockService parent:
+        :param tests.cloud.pub_sub.mocks.MockService child:
+        :param dict|None input_values:
+        :param octue.resources.manifest.Manifest|None input_manifest:
+        :param bool subscribe_to_logs:
+        :return dict:
+        """
+        subscription, _ = parent.ask(
+            service_id=child.id,
+            input_values=input_values,
+            input_manifest=input_manifest,
+            subscribe_to_logs=subscribe_to_logs,
+            allow_local_files=allow_local_files,
+            question_uuid=question_uuid,
+            push_endpoint=push_endpoint,
+            timeout=timeout,
+            parent_sdk_version=parent_sdk_version,
+        )
+
+        return parent.wait_for_answer(
+            subscription=subscription,
+            service_name=service_name,
+            delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
+        )
+
+    def make_child_service_with_error(self, exception_to_raise):
+        """Make a mock child service that raises the given exception when its run function is executed.
+
+        :param Exception exception_to_raise:
+        :return tests.cloud.pub_sub.mocks.MockService:
+        """
+        child = self.make_new_child(BACKEND, run_function_returnee=None, use_mock=True)
+
+        def error_run_function(analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message):
+            raise exception_to_raise
+
+        child.run_function = error_run_function
+        return child
