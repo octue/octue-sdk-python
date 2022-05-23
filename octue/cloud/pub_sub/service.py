@@ -6,6 +6,8 @@ import json
 import logging
 import uuid
 
+import packaging.version
+import pkg_resources
 from google import auth
 from google.api_core import retry
 from google.cloud import pubsub_v1
@@ -128,7 +130,29 @@ class Service(CoolNameable):
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
         """
-        data, question_uuid, forward_logs = self._parse_question(question)
+        data, question_uuid, forward_logs, parent_sdk_version = self._parse_question(question)
+
+        if parent_sdk_version:
+            local_sdk_version = packaging.version.parse(pkg_resources.get_distribution("octue").version)
+
+            if (
+                local_sdk_version.major != parent_sdk_version.major
+                or local_sdk_version.minor != parent_sdk_version.minor
+            ):
+                logger.warning(
+                    "The parent's Octue SDK version %s may not be compatible with the local Octue SDK version %s. "
+                    "Update them both to the latest version (or at least a version with the same major and minor "
+                    "version numbers) if possible.",
+                    parent_sdk_version,
+                    local_sdk_version,
+                )
+
+        else:
+            logger.warning(
+                "The parent couldn't be checked for compatibility with this service because it didn't send its Octue "
+                "SDK version with its question. Please update it to the latest Octue SDK version."
+            )
+
         topic = answer_topic or self.instantiate_answer_topic(question_uuid)
         self._send_delivery_acknowledgment(topic)
 
@@ -249,6 +273,7 @@ class Service(CoolNameable):
             data=json.dumps({"input_values": input_values, "input_manifest": serialised_input_manifest}).encode(),
             question_uuid=question_uuid,
             forward_logs=str(int(subscribe_to_logs)),
+            octue_sdk_version=pkg_resources.get_distribution("octue").version,
             retry=retry.Retry(deadline=timeout),
         )
 
@@ -383,7 +408,7 @@ class Service(CoolNameable):
         """Parse a question in the Google Cloud Pub/Sub or Google Cloud Run format.
 
         :param dict|Message question:
-        :return (dict, str, bool):
+        :return (dict, str, bool, packaging.version.Version|None):
         """
         try:
             # Parse question directly from Pub/Sub or Dataflow.
@@ -401,4 +426,10 @@ class Service(CoolNameable):
 
         question_uuid = get_nested_attribute(question, "attributes.question_uuid")
         forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
-        return data, question_uuid, forward_logs
+
+        try:
+            sdk_version = packaging.version.parse(get_nested_attribute(question, "attributes.octue_sdk_version"))
+        except AttributeError:
+            sdk_version = None
+
+        return data, question_uuid, forward_logs, sdk_version

@@ -90,6 +90,7 @@ class TestService(BaseTestCase):
         push_endpoint=None,
         timeout=30,
         delivery_acknowledgement_timeout=30,
+        parent_sdk_version=None,
     ):
         """Get a parent service to ask a question to a child service and wait for the answer.
 
@@ -109,6 +110,7 @@ class TestService(BaseTestCase):
             question_uuid=question_uuid,
             push_endpoint=push_endpoint,
             timeout=timeout,
+            parent_sdk_version=parent_sdk_version,
         )
 
         return parent.wait_for_answer(
@@ -766,3 +768,36 @@ class TestService(BaseTestCase):
                 "output_manifest": None,
             },
         )
+
+    def test_warning_issued_if_child_and_parent_sdk_versions_incompatible(self):
+        """Test that a warning is logged if the parent and child's Octue SDK versions are potentially incompatible."""
+        child = self.make_new_child(backend=BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
+        parent = MockService(backend=BACKEND, children={child.id: child})
+
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    child.serve()
+
+                    for parent_sdk_version, child_sdk_version in (
+                        ("0.1.0", "0.2.0"),
+                        ("0.2.0", "0.1.0"),
+                        ("0.1.0", "1.1.0"),
+                        ("1.1.0", "0.1.0"),
+                    ):
+                        with self.subTest(parent_sdk_version=parent_sdk_version, child_sdk_version=child_sdk_version):
+                            with patch("pkg_resources.Distribution.version", child_sdk_version):
+                                with self.assertLogs() as logging_context:
+                                    self.ask_question_and_wait_for_answer(
+                                        parent=parent,
+                                        child=child,
+                                        input_values={"question": "What does the child of the child say?"},
+                                        input_manifest=None,
+                                        parent_sdk_version=parent_sdk_version,
+                                    )
+
+                                    self.assertIn(
+                                        f"The parent's Octue SDK version {parent_sdk_version} may not be compatible "
+                                        f"with the local Octue SDK version {child_sdk_version}",
+                                        logging_context.output[2],
+                                    )
