@@ -132,36 +132,40 @@ class Service(CoolNameable):
         """
         data, question_uuid, forward_logs, parent_sdk_version = self._parse_question(question)
 
-        if parent_sdk_version:
-            local_sdk_version = packaging.version.parse(pkg_resources.get_distribution("octue").version)
-
-            if (
-                local_sdk_version.major != parent_sdk_version.major
-                or local_sdk_version.minor != parent_sdk_version.minor
-            ):
-                logger.warning(
-                    "The parent's Octue SDK version %s may not be compatible with the local Octue SDK version %s. "
-                    "Update them both to the latest version (or at least a version with the same major and minor "
-                    "version numbers) if possible.",
-                    parent_sdk_version,
-                    local_sdk_version,
-                )
-
-        else:
-            logger.warning(
-                "The parent couldn't be checked for compatibility with this service because it didn't send its Octue "
-                "SDK version with its question. Please update it to the latest Octue SDK version."
-            )
-
         topic = answer_topic or self.instantiate_answer_topic(question_uuid)
         self._send_delivery_acknowledgment(topic)
 
-        if forward_logs:
-            analysis_log_handler = GooglePubSubHandler(publisher=self.publisher, topic=topic, analysis_id=question_uuid)
-        else:
-            analysis_log_handler = None
-
         try:
+            if forward_logs:
+                analysis_log_handler = GooglePubSubHandler(
+                    publisher=self.publisher,
+                    topic=topic,
+                    analysis_id=question_uuid,
+                )
+            else:
+                analysis_log_handler = None
+
+            if parent_sdk_version:
+                local_sdk_version = packaging.version.parse(pkg_resources.get_distribution("octue").version)
+
+                if (
+                    local_sdk_version.major != parent_sdk_version.major
+                    or local_sdk_version.minor != parent_sdk_version.minor
+                ):
+                    logger.warning(
+                        "The parent's Octue SDK version %s may not be compatible with the local Octue SDK version %s. "
+                        "Update them both to the latest version (or at least a version with the same major and minor "
+                        "version numbers) if possible.",
+                        parent_sdk_version,
+                        local_sdk_version,
+                    )
+
+            else:
+                logger.warning(
+                    "The parent couldn't be checked for compatibility with this service because it didn't send its Octue "
+                    "SDK version with its question. Please update it to the latest Octue SDK version."
+                )
+
             analysis = self.run_function(
                 analysis_id=question_uuid,
                 input_values=data["input_values"],
