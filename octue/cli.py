@@ -86,12 +86,19 @@ def octue_cli(id, logger_uri, log_level, force_reset):
 @click.option(
     "-o",
     "--output-file",
-    type=click.Path(dir_okay=False, exists=True),
+    type=click.Path(dir_okay=False),
     default=None,
     show_default=True,
-    help="A JSON file to store the output values in.",
+    help="The path to a JSON file to store the output values in.",
 )
-def run(service_configuration_path, input_dir, output_file):
+@click.option(
+    "-m",
+    "--output-manifest-file",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="The path to a JSON file to store the output manifest in.",
+)
+def run(service_configuration_path, input_dir, output_file, output_manifest_file):
     """Run an analysis on the given input data."""
     service_configuration, app_configuration = load_service_and_app_configuration(service_configuration_path)
 
@@ -126,9 +133,19 @@ def run(service_configuration_path, input_dir, output_file):
 
     click.echo(analysis.output_values)
 
-    if output_file:
+    if analysis.output_values and output_file:
+        if not os.path.exists(os.path.dirname(output_file)):
+            os.makedirs(os.path.dirname(output_file))
+
         with open(output_file, "w") as f:
             json.dump(analysis.output_values, f, cls=OctueJSONEncoder)
+
+    if analysis.output_manifest:
+        if not os.path.exists(os.path.dirname(output_manifest_file)):
+            os.makedirs(os.path.dirname(output_manifest_file))
+
+        with open(output_manifest_file or f"output_manifest_{analysis.id}.json", "w") as f:
+            json.dump(analysis.output_manifest.to_primitive(), f, cls=OctueJSONEncoder)
 
     return 0
 

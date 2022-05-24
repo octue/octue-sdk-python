@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import tempfile
@@ -57,7 +58,7 @@ class TestRunCommand(BaseTestCase):
 
         assert json.dumps([1, 2, 3, 4]) in result.output
 
-    def test_run_with_output_file(self):
+    def test_run_with_output_values_file(self):
         """Test that the `run` CLI command runs the given service and stores the output values in a file if the `-o`
         option is given.
         """
@@ -75,6 +76,31 @@ class TestRunCommand(BaseTestCase):
 
             with open(temporary_file.name) as f:
                 self.assertEqual(json.load(f), [1, 2, 3, 4])
+
+        assert json.dumps([1, 2, 3, 4]) in result.output
+
+    def test_run_with_output_manifest(self):
+        """Test that the `run` CLI command runs the given service and stores the output manifest in a file."""
+        mock_configurations = copy.deepcopy(self.MOCK_CONFIGURATIONS)
+
+        mock_configurations[0].app_source_path = os.path.join(
+            TESTS_DIR, "test_app_modules", "app_module_with_output_manifest"
+        )
+
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            with mock.patch("octue.cli.load_service_and_app_configuration", return_value=mock_configurations):
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "run",
+                        f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
+                        "-m",
+                        temporary_file.name,
+                    ],
+                )
+
+            with open(temporary_file.name) as f:
+                self.assertIn("datasets", json.load(f))
 
         assert json.dumps([1, 2, 3, 4]) in result.output
 
