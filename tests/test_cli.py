@@ -45,7 +45,7 @@ class TestRunCommand(BaseTestCase):
     )
 
     def test_run(self):
-        """Test that the run CLI command runs the given service and outputs the output values."""
+        """Test that the `run` CLI command runs the given service and outputs the output values."""
         with mock.patch("octue.cli.load_service_and_app_configuration", return_value=self.MOCK_CONFIGURATIONS):
             result = CliRunner().invoke(
                 octue_cli,
@@ -54,6 +54,27 @@ class TestRunCommand(BaseTestCase):
                     f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
                 ],
             )
+
+        assert json.dumps([1, 2, 3, 4]) in result.output
+
+    def test_run_with_output_file(self):
+        """Test that the `run` CLI command runs the given service and stores the output values in a file if the `-o`
+        option is given.
+        """
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            with mock.patch("octue.cli.load_service_and_app_configuration", return_value=self.MOCK_CONFIGURATIONS):
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "run",
+                        f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
+                        "-o",
+                        temporary_file.name,
+                    ],
+                )
+
+            with open(temporary_file.name) as f:
+                self.assertEqual(json.load(f), [1, 2, 3, 4])
 
         assert json.dumps([1, 2, 3, 4]) in result.output
 

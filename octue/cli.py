@@ -1,6 +1,7 @@
 import copy
 import functools
 import importlib.util
+import json
 import logging
 import os
 import sys
@@ -16,6 +17,7 @@ from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
 from octue.log_handlers import apply_log_handler, get_remote_handler
 from octue.resources import service_backends
 from octue.runner import Runner
+from octue.utils.encoders import OctueJSONEncoder
 from twined import Twine
 
 
@@ -76,12 +78,20 @@ def octue_cli(id, logger_uri, log_level, force_reset):
 )
 @click.option(
     "--input-dir",
-    type=click.Path(),
+    type=click.Path(file_okay=False, exists=True),
     default=".",
     show_default=True,
     help="Directory containing input input values and/or manifest.",
 )
-def run(service_configuration_path, input_dir):
+@click.option(
+    "-o",
+    "--output-file",
+    type=click.Path(dir_okay=False, exists=True),
+    default=None,
+    show_default=True,
+    help="A JSON file to store the output values in.",
+)
+def run(service_configuration_path, input_dir, output_file):
     """Run an analysis on the given input data."""
     service_configuration, app_configuration = load_service_and_app_configuration(service_configuration_path)
 
@@ -115,6 +125,11 @@ def run(service_configuration_path, input_dir):
     )
 
     click.echo(analysis.output_values)
+
+    if output_file:
+        with open(output_file, "w") as f:
+            json.dump(analysis.output_values, f, cls=OctueJSONEncoder)
+
     return 0
 
 
