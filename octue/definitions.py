@@ -1,13 +1,5 @@
-FOLDER_DEFAULTS = {
-    "configuration": "configuration",
-    "input": "input",
-    "tmp": "tmp",
-    "output": "output",
-}
-
 VALUES_FILENAME = "values.json"
 MANIFEST_FILENAME = "manifest.json"
-CHILDREN_FILENAME = "children.json"
 
 STRAND_FILENAME_MAP = {
     "configuration_values": VALUES_FILENAME,

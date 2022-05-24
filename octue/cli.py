@@ -12,7 +12,7 @@ from google import auth
 from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
 from octue.cloud.pub_sub.service import Service
 from octue.configuration import load_service_and_app_configuration
-from octue.definitions import CHILDREN_FILENAME, FOLDER_DEFAULTS, MANIFEST_FILENAME, VALUES_FILENAME
+from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
 from octue.log_handlers import apply_log_handler, get_remote_handler
 from octue.resources import service_backends
 from octue.runner import Runner
@@ -69,64 +69,41 @@ def octue_cli(id, logger_uri, log_level, force_reset):
 
 @octue_cli.command()
 @click.option(
-    "--app-dir",
-    type=click.Path(),
-    default=".",
-    show_default=True,
-    help="Directory containing your source code (app.py)",
-)
-@click.option(
-    "--data-dir",
-    type=click.Path(),
-    default=".",
-    show_default=True,
-    help="Location of directories containing configuration values and manifest, input values and manifest, and output "
-    "directory.",
-)
-@click.option(
-    "--config-dir",
-    type=click.Path(),
-    default=None,
-    show_default=True,
-    help="Directory containing configuration (overrides --data-dir).",
+    "--service-configuration-path",
+    type=click.Path(dir_okay=False),
+    default="octue.yaml",
+    help="The path to an `octue.yaml` file defining the service to run.",
 )
 @click.option(
     "--input-dir",
     type=click.Path(),
-    default=None,
+    default=".",
     show_default=True,
-    help="Directory containing input (overrides --data-dir).",
+    help="Directory containing input input values and/or manifest.",
 )
-@click.option("--twine", type=click.Path(), default="twine.json", show_default=True, help="Location of Twine file.")
-def run(app_dir, data_dir, config_dir, input_dir, twine):
+def run(service_configuration_path, input_dir):
     """Run an analysis on the given input data."""
-    config_dir = config_dir or os.path.join(data_dir, FOLDER_DEFAULTS["configuration"])
-    input_dir = input_dir or os.path.join(data_dir, FOLDER_DEFAULTS["input"])
-    twine = Twine(source=twine)
+    service_configuration, app_configuration = load_service_and_app_configuration(service_configuration_path)
 
-    (
-        configuration_values,
-        configuration_manifest,
-        input_values,
-        input_manifest,
-        children,
-    ) = set_unavailable_strand_paths_to_none(
-        twine,
-        (
-            ("configuration_values", os.path.join(config_dir, VALUES_FILENAME)),
-            ("configuration_manifest", os.path.join(config_dir, MANIFEST_FILENAME)),
-            ("input_values", os.path.join(input_dir, VALUES_FILENAME)),
-            ("input_manifest", os.path.join(input_dir, MANIFEST_FILENAME)),
-            ("children", os.path.join(config_dir, CHILDREN_FILENAME)),
-        ),
-    )
+    input_values_path = os.path.join(input_dir, VALUES_FILENAME)
+    input_manifest_path = os.path.join(input_dir, MANIFEST_FILENAME)
+
+    input_values = None
+    input_manifest = None
+
+    if os.path.exists(input_values_path):
+        input_values = input_values_path
+
+    if os.path.exists(input_manifest_path):
+        input_manifest = input_manifest_path
 
     runner = Runner(
-        app_src=app_dir,
-        twine=twine,
-        configuration_values=configuration_values,
-        configuration_manifest=configuration_manifest,
-        children=children,
+        app_src=service_configuration.app_source_path,
+        twine=Twine(source=service_configuration.twine_path),
+        configuration_values=app_configuration.configuration_values,
+        configuration_manifest=app_configuration.configuration_manifest,
+        children=app_configuration.children,
+        output_location=app_configuration.output_location,
     )
 
     analysis = runner.run(
@@ -137,7 +114,7 @@ def run(app_dir, data_dir, config_dir, input_dir, twine):
         analysis_log_handler=global_cli_context["log_handler"],
     )
 
-    analysis.finalise()
+    click.echo(analysis.output_values)
     return 0
 
 
@@ -273,19 +250,6 @@ def dataflow(octue_configuration_path, service_id, no_cache, update, dataflow_jo
         return
 
     deployer.deploy(no_cache=no_cache, update=update)
-
-
-def set_unavailable_strand_paths_to_none(twine, strands):
-    """Set paths to unavailable strands to None, leaving the paths of available strands as they are."""
-    updated_strand_paths = []
-
-    for strand_name, strand in strands:
-        if strand_name not in twine.available_strands:
-            updated_strand_paths.append(None)
-        else:
-            updated_strand_paths.append(strand)
-
-    return updated_strand_paths
 
 
 if __name__ == "__main__":
