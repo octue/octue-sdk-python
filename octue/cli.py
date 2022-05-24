@@ -92,13 +92,19 @@ def octue_cli(id, logger_uri, log_level, force_reset):
     help="The path to a JSON file to store the output values in.",
 )
 @click.option(
-    "-m",
     "--output-manifest-file",
     type=click.Path(dir_okay=False),
     default=None,
     help="The path to a JSON file to store the output manifest in.",
 )
-def run(service_configuration_path, input_dir, output_file, output_manifest_file):
+@click.option(
+    "--monitor-messages-file",
+    type=click.Path(dir_okay=False),
+    default=None,
+    show_default=True,
+    help="The path to a JSON file to store any monitor messages received in.",
+)
+def run(service_configuration_path, input_dir, output_file, output_manifest_file, monitor_messages_file):
     """Run an analysis on the given input data."""
     service_configuration, app_configuration = load_service_and_app_configuration(service_configuration_path)
 
@@ -123,12 +129,22 @@ def run(service_configuration_path, input_dir, output_file, output_manifest_file
         output_location=app_configuration.output_location,
     )
 
+    if monitor_messages_file:
+        if not os.path.exists(os.path.dirname(monitor_messages_file)):
+            os.makedirs(os.path.dirname(monitor_messages_file))
+
+        monitor_message_handler = lambda message: _add_monitor_message_to_file(monitor_messages_file, message)
+
+    else:
+        monitor_message_handler = None
+
     analysis = runner.run(
         analysis_id=global_cli_context["analysis_id"],
         input_values=input_values,
         input_manifest=input_manifest,
         analysis_log_level=global_cli_context["log_level"],
         analysis_log_handler=global_cli_context["log_handler"],
+        handle_monitor_message=monitor_message_handler,
     )
 
     click.echo(analysis.output_values)
@@ -138,14 +154,14 @@ def run(service_configuration_path, input_dir, output_file, output_manifest_file
             os.makedirs(os.path.dirname(output_file))
 
         with open(output_file, "w") as f:
-            json.dump(analysis.output_values, f, cls=OctueJSONEncoder)
+            json.dump(analysis.output_values, f, cls=OctueJSONEncoder, indent=4)
 
     if analysis.output_manifest:
         if not os.path.exists(os.path.dirname(output_manifest_file)):
             os.makedirs(os.path.dirname(output_manifest_file))
 
         with open(output_manifest_file or f"output_manifest_{analysis.id}.json", "w") as f:
-            json.dump(analysis.output_manifest.to_primitive(), f, cls=OctueJSONEncoder)
+            json.dump(analysis.output_manifest.to_primitive(), f, cls=OctueJSONEncoder, indent=4)
 
     return 0
 
@@ -282,6 +298,28 @@ def dataflow(octue_configuration_path, service_id, no_cache, update, dataflow_jo
         return
 
     deployer.deploy(no_cache=no_cache, update=update)
+
+
+def _add_monitor_message_to_file(path, monitor_message):
+    """Add a monitor message to the file at the given path.
+
+    :param str path: the path of the file to add the monitor message to
+    :param dict monitor_message: the monitor message to add to the file
+    :return None:
+    """
+    previous_messages = []
+
+    if os.path.exists(path):
+        try:
+            with open(path) as f:
+                previous_messages = json.load(f)
+        except json.decoder.JSONDecodeError:
+            pass
+
+    previous_messages.append(monitor_message)
+
+    with open(path, "w") as f:
+        json.dump(previous_messages, f)
 
 
 if __name__ == "__main__":

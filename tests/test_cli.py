@@ -94,8 +94,7 @@ class TestRunCommand(BaseTestCase):
                     [
                         "run",
                         f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
-                        "-m",
-                        temporary_file.name,
+                        f"--output-manifest-file={temporary_file.name}",
                     ],
                 )
 
