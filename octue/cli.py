@@ -81,7 +81,8 @@ def octue_cli(id, logger_uri, log_level, force_reset):
     type=click.Path(file_okay=False, exists=True),
     default=".",
     show_default=True,
-    help="Directory containing input input values and/or manifest.",
+    help="The path to a directory containing the input values (in a file called 'values.json') and/or input manifest "
+    "(in a file called 'manifest.json').",
 )
 @click.option(
     "-o",
