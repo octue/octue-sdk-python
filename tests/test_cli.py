@@ -105,8 +105,18 @@ class TestRunCommand(BaseTestCase):
 
     def test_run_with_monitor_messages_sent_to_file(self):
         """Test that, when the `--monitor-messages-file` is provided, any monitor messages are written to it."""
+        mock_configurations = (
+            ServiceConfiguration(
+                name="test-app",
+                app_source_path=os.path.join(TESTS_DIR, "test_app_modules", "app_with_monitor_message"),
+                twine_path=TWINE_FILE_PATH,
+                app_configuration_path="blah.json",
+            ),
+            AppConfiguration(configuration_values={"n_iterations": 5}),
+        )
+
         with tempfile.NamedTemporaryFile(delete=False) as monitor_messages_file:
-            with mock.patch("octue.cli.load_service_and_app_configuration", return_value=self.MOCK_CONFIGURATIONS):
+            with mock.patch("octue.cli.load_service_and_app_configuration", return_value=mock_configurations):
                 result = CliRunner().invoke(
                     octue_cli,
                     [

@@ -1,4 +1,10 @@
 class App:
+    """A mock app.
+
+    :param octue.resources.analysis.Analysis analysis:
+    :return None:
+    """
+
     def __init__(self, analysis):
         self.analysis = analysis
 
