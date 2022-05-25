@@ -1,4 +1,3 @@
-import copy
 import json
 import os
 import tempfile
@@ -81,10 +80,14 @@ class TestRunCommand(BaseTestCase):
 
     def test_run_with_output_manifest(self):
         """Test that the `run` CLI command runs the given service and stores the output manifest in a file."""
-        mock_configurations = copy.deepcopy(self.MOCK_CONFIGURATIONS)
-
-        mock_configurations[0].app_source_path = os.path.join(
-            TESTS_DIR, "test_app_modules", "app_module_with_output_manifest"
+        mock_configurations = (
+            ServiceConfiguration(
+                name="test-app",
+                app_source_path=os.path.join(TESTS_DIR, "test_app_modules", "app_module_with_output_manifest"),
+                twine_path=TWINE_FILE_PATH,
+                app_configuration_path="blah.json",
+            ),
+            AppConfiguration(configuration_values={"n_iterations": 5}),
         )
 
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
