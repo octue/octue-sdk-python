@@ -223,7 +223,7 @@ class TestDeployCommand(BaseTestCase):
                     [
                         "deploy",
                         "dataflow",
-                        f"--octue-configuration-path={temporary_file.name}",
+                        f"--service-config={temporary_file.name}",
                     ],
                 )
 

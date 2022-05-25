@@ -71,7 +71,8 @@ def octue_cli(id, logger_uri, log_level, force_reset):
 
 @octue_cli.command()
 @click.option(
-    "--service-configuration-path",
+    "-c",
+    "--service-config",
     type=click.Path(dir_okay=False),
     default="octue.yaml",
     help="The path to an `octue.yaml` file defining the service to run.",
@@ -105,9 +106,9 @@ def octue_cli(id, logger_uri, log_level, force_reset):
     show_default=True,
     help="The path to a JSON file to store any monitor messages received in.",
 )
-def run(service_configuration_path, input_dir, output_file, output_manifest_file, monitor_messages_file):
+def run(service_config, input_dir, output_file, output_manifest_file, monitor_messages_file):
     """Run an analysis on the given input data."""
-    service_configuration, app_configuration = load_service_and_app_configuration(service_configuration_path)
+    service_configuration, app_configuration = load_service_and_app_configuration(service_config)
 
     input_values_path = os.path.join(input_dir, VALUES_FILENAME)
     input_manifest_path = os.path.join(input_dir, MANIFEST_FILENAME)
@@ -169,7 +170,8 @@ def run(service_configuration_path, input_dir, output_file, output_manifest_file
 
 @octue_cli.command()
 @click.option(
-    "--service-configuration-path",
+    "-c",
+    "--service-config",
     type=click.Path(dir_okay=False),
     default="octue.yaml",
     help="The path to an `octue.yaml` file defining the service to start.",
@@ -191,9 +193,9 @@ def run(service_configuration_path, input_dir, output_file, output_manifest_file
     show_default=True,
     help="Delete the Google Pub/Sub topic and subscription for the service on exit.",
 )
-def start(service_configuration_path, service_id, timeout, rm):
+def start(service_config, service_id, timeout, rm):
     """Start the service as a child to be asked questions by other services."""
-    service_configuration, app_configuration = load_service_and_app_configuration(service_configuration_path)
+    service_configuration, app_configuration = load_service_and_app_configuration(service_config)
     service_id = service_id or service_configuration.service_id
 
     runner = Runner(
@@ -239,11 +241,12 @@ def deploy():
 
 @deploy.command()
 @click.option(
-    "--octue-configuration-path",
+    "-c",
+    "--service-config",
     type=click.Path(exists=True, dir_okay=False),
     default="octue.yaml",
     show_default=True,
-    help="Path to an octue.yaml file.",
+    help="The path to an `octue.yaml` file defining the service to deploy.",
 )
 @click.option(
     "--service-id",
@@ -253,18 +256,19 @@ def deploy():
 )
 @click.option("--no-cache", is_flag=True, help="If provided, don't use the Docker cache.")
 @click.option("--update", is_flag=True, help="If provided, allow updates to an existing service.")
-def cloud_run(octue_configuration_path, service_id, update, no_cache):
+def cloud_run(service_config, service_id, update, no_cache):
     """Deploy an app as a Google Cloud Run service."""
-    CloudRunDeployer(octue_configuration_path, service_id=service_id).deploy(update=update, no_cache=no_cache)
+    CloudRunDeployer(service_config, service_id=service_id).deploy(update=update, no_cache=no_cache)
 
 
 @deploy.command()
 @click.option(
-    "--octue-configuration-path",
+    "-c",
+    "--service-config",
     type=click.Path(exists=True, dir_okay=False),
     default="octue.yaml",
     show_default=True,
-    help="Path to an octue.yaml file.",
+    help="The path to an `octue.yaml` file defining the service to deploy.",
 )
 @click.option(
     "--service-id",
@@ -280,7 +284,7 @@ def cloud_run(octue_configuration_path, service_id, update, no_cache):
     help="If provided, skip creating and running the build trigger and just deploy a pre-built image to Dataflow",
 )
 @click.option("--image-uri", type=str, default=None, help="The actual image URI to use when creating the Dataflow job.")
-def dataflow(octue_configuration_path, service_id, no_cache, update, dataflow_job_only, image_uri):
+def dataflow(service_config, service_id, no_cache, update, dataflow_job_only, image_uri):
     """Deploy an app as a Google Dataflow streaming job."""
     if bool(importlib.util.find_spec("apache_beam")):
         # Import the Dataflow deployer only if the `apache-beam` package is available (due to installing `octue` with
@@ -292,7 +296,7 @@ def dataflow(octue_configuration_path, service_id, no_cache, update, dataflow_jo
             "`pip install octue[dataflow]`"
         )
 
-    deployer = DataflowDeployer(octue_configuration_path, service_id=service_id)
+    deployer = DataflowDeployer(service_config, service_id=service_id)
 
     if dataflow_job_only:
         deployer.create_streaming_dataflow_job(image_uri=image_uri, update=update)
