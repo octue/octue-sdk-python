@@ -149,7 +149,7 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
         handle_monitor_message=monitor_message_handler,
     )
 
-    click.echo(analysis.output_values)
+    click.echo(json.dumps(analysis.output_values))
 
     if analysis.output_values and output_file:
         if not os.path.exists(os.path.dirname(output_file)):
