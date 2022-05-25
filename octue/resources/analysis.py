@@ -83,9 +83,17 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         self.output_location = kwargs.pop("output_location", None)
 
         self._calculate_strand_hashes(strands=strand_kwargs)
-        self.finalised = False
+        self._finalised = False
 
         super().__init__(**kwargs)
+
+    @property
+    def finalised(self):
+        """Check whether the analysis has been finalised.
+
+        :return bool:
+        """
+        return self._finalised
 
     def send_monitor_message(self, data):
         """Send a monitor message to the parent that requested the analysis.
@@ -120,7 +128,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
             serialised_strands["output_manifest"] = self.output_manifest.to_primitive()
 
         self.twine.validate(**serialised_strands)
-        self.finalised = True
+        self._finalised = True
         logger.info("Validated output values and output manifest against the twine.")
 
         if not (upload_output_datasets_to and hasattr(self, "output_manifest")):
