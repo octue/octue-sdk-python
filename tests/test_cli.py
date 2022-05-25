@@ -22,15 +22,15 @@ class TestCLI(BaseTestCase):
     def test_version(self):
         """Ensure the version command works in the CLI."""
         result = CliRunner().invoke(octue_cli, ["--version"])
-        assert "version" in result.output
+        self.assertIn("version", result.output)
 
     def test_help(self):
         """Ensure the help commands works in the CLI."""
         help_result = CliRunner().invoke(octue_cli, ["--help"])
-        assert help_result.output.startswith("Usage")
+        self.assertTrue(help_result.output.startswith("Usage"))
 
         h_result = CliRunner().invoke(octue_cli, ["-h"])
-        assert help_result.output == h_result.output
+        self.assertEqual(help_result.output, h_result.output)
 
 
 class TestRunCommand(BaseTestCase):
@@ -55,7 +55,7 @@ class TestRunCommand(BaseTestCase):
                 ],
             )
 
-        assert json.dumps([1, 2, 3, 4]) in result.output
+        self.assertIn(json.dumps({"width": 3}), result.output)
 
     def test_run_with_output_values_file(self):
         """Test that the `run` CLI command runs the given service and stores the output values in a file if the `-o`
@@ -74,9 +74,9 @@ class TestRunCommand(BaseTestCase):
                 )
 
             with open(temporary_file.name) as f:
-                self.assertEqual(json.load(f), [1, 2, 3, 4])
+                self.assertEqual(json.load(f), {"width": 3})
 
-        assert json.dumps([1, 2, 3, 4]) in result.output
+        self.assertIn(json.dumps({"width": 3}), result.output)
 
     def test_run_with_output_manifest(self):
         """Test that the `run` CLI command runs the given service and stores the output manifest in a file."""
@@ -84,10 +84,9 @@ class TestRunCommand(BaseTestCase):
             ServiceConfiguration(
                 name="test-app",
                 app_source_path=os.path.join(TESTS_DIR, "test_app_modules", "app_module_with_output_manifest"),
-                twine_path=TWINE_FILE_PATH,
-                app_configuration_path="blah.json",
+                twine_path={"input_values_schema": {}, "output_manifest": {"datasets": {}}, "output_values_schema": {}},
             ),
-            AppConfiguration(configuration_values={"n_iterations": 5}),
+            AppConfiguration(),
         )
 
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
@@ -104,7 +103,7 @@ class TestRunCommand(BaseTestCase):
             with open(temporary_file.name) as f:
                 self.assertIn("datasets", json.load(f))
 
-        assert json.dumps([1, 2, 3, 4]) in result.output
+        self.assertIn(json.dumps({"width": 3}), result.output)
 
     def test_run_with_monitor_messages_sent_to_file(self):
         """Test that, when the `--monitor-messages-file` is provided, any monitor messages are written to it."""
@@ -132,7 +131,7 @@ class TestRunCommand(BaseTestCase):
             with open(monitor_messages_file.name) as f:
                 self.assertEqual(json.load(f), [{"status": "hello"}])
 
-        assert json.dumps([1, 2, 3, 4]) in result.output
+        self.assertIn(json.dumps({"width": 3}), result.output)
 
     def test_remote_logger_uri_can_be_set(self):
         """Test that remote logger URI can be set via the CLI and that this is logged locally."""
