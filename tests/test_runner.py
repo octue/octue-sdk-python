@@ -236,7 +236,7 @@ class TestRunner(BaseTestCase):
     def test_app_can_be_provided_as_a_module_containing_function_named_run(self):
         """Test that apps can be provided as a module containing a function named "run"."""
         analysis = Runner(app_src=app, twine="{}").run()
-        self.assertEqual(analysis.output_values, "App as a module works!")
+        self.assertEqual(analysis.output_values, [1, 2, 3, 4])
 
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):

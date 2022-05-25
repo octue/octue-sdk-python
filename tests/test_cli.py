@@ -8,11 +8,11 @@ import yaml
 from click.testing import CliRunner
 
 from octue.cli import octue_cli
+from octue.configuration import AppConfiguration, ServiceConfiguration
 from tests import TESTS_DIR
 from tests.base import BaseTestCase
 from tests.cloud.pub_sub.mocks import MockService, MockSubscriber, MockSubscription, MockTopic
 from tests.mocks import MockOpen
-from tests.test_app_modules.app_module.app import CUSTOM_APP_RUN_MESSAGE
 
 
 TWINE_FILE_PATH = os.path.join(TESTS_DIR, "data", "twines", "valid_schema_twine.json")
@@ -34,50 +34,120 @@ class TestCLI(BaseTestCase):
 
 
 class TestRunCommand(BaseTestCase):
+    MOCK_CONFIGURATIONS = (
+        ServiceConfiguration(
+            name="test-app",
+            app_source_path=os.path.join(TESTS_DIR, "test_app_modules", "app_module"),
+            twine_path=TWINE_FILE_PATH,
+            app_configuration_path="blah.json",
+        ),
+        AppConfiguration(configuration_values={"n_iterations": 5}),
+    )
+
     def test_run(self):
-        """Test that an arbitrary run command can be used in the run command of the CLI."""
-        result = CliRunner().invoke(
-            octue_cli,
-            [
-                "run",
-                f"--app-dir={os.path.join(TESTS_DIR, 'test_app_modules', 'app_module')}",
-                f"--twine={TWINE_FILE_PATH}",
-                f'--config-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "configuration")}',
-                f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
-            ],
-        )
-
-        assert CUSTOM_APP_RUN_MESSAGE in result.output
-
-    def test_run_with_data_dir(self):
-        """Test that the run command of the CLI works with the --data-dir option."""
-        result = CliRunner().invoke(
-            octue_cli,
-            [
-                "run",
-                f"--app-dir={os.path.join(TESTS_DIR, 'test_app_modules', 'app_module')}",
-                f"--twine={TWINE_FILE_PATH}",
-                f'--data-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests")}',
-            ],
-        )
-
-        assert CUSTOM_APP_RUN_MESSAGE in result.output
-
-    def test_remote_logger_uri_can_be_set(self):
-        """Test that remote logger URI can be set via the CLI and that this is logged locally."""
-        with mock.patch("logging.StreamHandler.emit") as mock_local_logger_emit:
-            CliRunner().invoke(
+        """Test that the `run` CLI command runs the given service and outputs the output values."""
+        with mock.patch("octue.cli.load_service_and_app_configuration", return_value=self.MOCK_CONFIGURATIONS):
+            result = CliRunner().invoke(
                 octue_cli,
                 [
-                    "--logger-uri=wss://0.0.0.1:3000",
                     "run",
-                    f"--app-dir={TESTS_DIR}",
-                    f"--twine={TWINE_FILE_PATH}",
-                    f'--data-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests")}',
+                    f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
                 ],
             )
 
-            mock_local_logger_emit.assert_called()
+        assert json.dumps([1, 2, 3, 4]) in result.output
+
+    def test_run_with_output_values_file(self):
+        """Test that the `run` CLI command runs the given service and stores the output values in a file if the `-o`
+        option is given.
+        """
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            with mock.patch("octue.cli.load_service_and_app_configuration", return_value=self.MOCK_CONFIGURATIONS):
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "run",
+                        f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
+                        "-o",
+                        temporary_file.name,
+                    ],
+                )
+
+            with open(temporary_file.name) as f:
+                self.assertEqual(json.load(f), [1, 2, 3, 4])
+
+        assert json.dumps([1, 2, 3, 4]) in result.output
+
+    def test_run_with_output_manifest(self):
+        """Test that the `run` CLI command runs the given service and stores the output manifest in a file."""
+        mock_configurations = (
+            ServiceConfiguration(
+                name="test-app",
+                app_source_path=os.path.join(TESTS_DIR, "test_app_modules", "app_module_with_output_manifest"),
+                twine_path=TWINE_FILE_PATH,
+                app_configuration_path="blah.json",
+            ),
+            AppConfiguration(configuration_values={"n_iterations": 5}),
+        )
+
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            with mock.patch("octue.cli.load_service_and_app_configuration", return_value=mock_configurations):
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "run",
+                        f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
+                        f"--output-manifest-file={temporary_file.name}",
+                    ],
+                )
+
+            with open(temporary_file.name) as f:
+                self.assertIn("datasets", json.load(f))
+
+        assert json.dumps([1, 2, 3, 4]) in result.output
+
+    def test_run_with_monitor_messages_sent_to_file(self):
+        """Test that, when the `--monitor-messages-file` is provided, any monitor messages are written to it."""
+        mock_configurations = (
+            ServiceConfiguration(
+                name="test-app",
+                app_source_path=os.path.join(TESTS_DIR, "test_app_modules", "app_with_monitor_message"),
+                twine_path=TWINE_FILE_PATH,
+                app_configuration_path="blah.json",
+            ),
+            AppConfiguration(configuration_values={"n_iterations": 5}),
+        )
+
+        with tempfile.NamedTemporaryFile(delete=False) as monitor_messages_file:
+            with mock.patch("octue.cli.load_service_and_app_configuration", return_value=mock_configurations):
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "run",
+                        f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
+                        f"--monitor-messages-file={monitor_messages_file.name}",
+                    ],
+                )
+
+            with open(monitor_messages_file.name) as f:
+                self.assertEqual(json.load(f), [{"status": "hello"}])
+
+        assert json.dumps([1, 2, 3, 4]) in result.output
+
+    def test_remote_logger_uri_can_be_set(self):
+        """Test that remote logger URI can be set via the CLI and that this is logged locally."""
+        with mock.patch("octue.cli.load_service_and_app_configuration", return_value=self.MOCK_CONFIGURATIONS):
+            with mock.patch("logging.StreamHandler.emit") as mock_local_logger_emit:
+                CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "--logger-uri=wss://0.0.0.1:3000",
+                        "run",
+                        f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
+                    ],
+                )
+
+        mock_local_logger_emit.assert_called()
 
 
 class TestStartCommand(BaseTestCase):
@@ -156,7 +226,7 @@ class TestDeployCommand(BaseTestCase):
                     [
                         "deploy",
                         "dataflow",
-                        f"--octue-configuration-path={temporary_file.name}",
+                        f"--service-config={temporary_file.name}",
                     ],
                 )
 
