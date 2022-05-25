@@ -28,7 +28,7 @@ class Runner:
     methods for managing input and output file parsing as well as controlling logging.
 
     :param Union[AppFrom, callable, str] app_src: Either an instance of the AppFrom manager class which has a run() method, or a function which accepts a single parameter (the instantiated analysis), or a string pointing to an application folder (which should contain an 'app.py' function like the templates)
-    :param str|twined.Twine twine: path to the twine file, a string containing valid twine json, or a Twine instance
+    :param str|dict|twined.Twine twine: path to the twine file, a string containing valid twine json, or a Twine instance
     :param str|dict|_io.TextIOWrapper|None configuration_values: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|dict|_io.TextIOWrapper|None configuration_manifest: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param Union[str, dict, None] children: The children strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
@@ -189,6 +189,9 @@ class Runner:
             except Exception as e:
                 logger.error(str(e))
                 raise e
+
+            if not analysis.finalised:
+                analysis.finalise()
 
             return analysis
 
