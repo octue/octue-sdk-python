@@ -103,6 +103,24 @@ class TestRunCommand(BaseTestCase):
 
         assert json.dumps([1, 2, 3, 4]) in result.output
 
+    def test_run_with_monitor_messages_sent_to_file(self):
+        """Test that, when the `--monitor-messages-file` is provided, any monitor messages are written to it."""
+        with tempfile.NamedTemporaryFile(delete=False) as monitor_messages_file:
+            with mock.patch("octue.cli.load_service_and_app_configuration", return_value=self.MOCK_CONFIGURATIONS):
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "run",
+                        f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
+                        f"--monitor-messages-file={monitor_messages_file.name}",
+                    ],
+                )
+
+            with open(monitor_messages_file.name) as f:
+                self.assertEqual(json.load(f), [{"status": "hello"}])
+
+        assert json.dumps([1, 2, 3, 4]) in result.output
+
     def test_remote_logger_uri_can_be_set(self):
         """Test that remote logger URI can be set via the CLI and that this is logged locally."""
         with mock.patch("octue.cli.load_service_and_app_configuration", return_value=self.MOCK_CONFIGURATIONS):
