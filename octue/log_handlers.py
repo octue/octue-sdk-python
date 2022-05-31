@@ -83,7 +83,8 @@ def apply_log_handler(
     include_process_name=False,
     include_thread_name=False,
 ):
-    """Apply a log handler with the given formatter to the logger with the given name.
+    """Apply a log handler with the given formatter to the logger with the given name. By default, the default Octue log
+    handler is used on the root logger.
 
     :param str|None logger_name: the name of the logger to apply the handler to; if this and `logger` are `None`, the root logger is used
     :param logging.Logger|None logger: the logger instance to apply the handler to (takes precedence over a logger name)

@@ -81,6 +81,7 @@ We use `GitHub Issues <https://github.com/octue/octue-sdk-python/issues>`_ [#]_ 
    cloud_storage_advanced_usage
    deploying_services
    deploying_services_advanced
+   api
    license
    version_history
    bibliography
