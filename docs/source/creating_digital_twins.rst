@@ -119,7 +119,7 @@ octue.yaml
         - ``dockerfile_path: <path>`` - if your app needs a ``Dockerfile`` that isn't in the repository root
 
         All paths should be relative to the repository root. Other valid entries can be found in the
-        :doc:`service configuration constructor </autoapi/octue/configuration/index>`.
+        :mod:`ServiceConfiguration <octue.configuration.ServiceConfiguration>` constructor.
 
         .. warning::
 
@@ -143,6 +143,8 @@ App configuration file (optional)
 
         If an app configuration file is provided, its path must be specified in ``octue.yaml`` under the
         "app_configuration_path" key.
+
+        See the :mod:`AppConfiguration <octue.configuration.AppConfiguration>` constructor for more information.
 
 Dockerfile (optional)
 ---------------------

@@ -142,10 +142,11 @@ class AppConfiguration:
 
 
 def load_service_and_app_configuration(service_configuration_path):
-    """Load the service configuration from the given YAML file or return an empty one.
+    """Load the service configuration from the given YAML file and the app configuration referenced in it. If no app
+    configuration is referenced, an empty one is returned.
 
     :param str service_configuration_path: path to service configuration file
-    :return dict:
+    :return (octue.configuration.ServiceConfiguration, octue.configuration.AppConfiguration):
     """
     service_configuration = ServiceConfiguration.from_file(service_configuration_path)
     app_configuration = AppConfiguration()
