@@ -32,7 +32,7 @@ class DataflowDeployer(BaseDeployer):
     ```
 
     :param str octue_configuration_path: the path to the `octue.yaml` file if it's not in the current working directory
-    :param str|None service_id: the UUID to give the service if a random one is not suitable
+    :param str|None service_id: an ID to give the service if the one generated from `octue.yaml` isn't sufficient
     :return None:
     """
 
@@ -43,7 +43,6 @@ class DataflowDeployer(BaseDeployer):
         self.build_trigger_description = (
             f"Build the {self.service_configuration.name!r} service and deploy it to Dataflow."
         )
-        self.success_message = f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}."
 
         if not self.service_configuration.temporary_files_location:
             self.service_configuration.temporary_files_location = DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION

@@ -28,7 +28,7 @@ class CloudRunDeployer(BaseDeployer):
     ```
 
     :param str octue_configuration_path: the path to the `octue.yaml` file if it's not in the current working directory
-    :param str|None service_id: the UUID to give the service if a random one is not suitable
+    :param str|None service_id: an ID to give the service if the one generated from `octue.yaml` isn't sufficient
     :return None:
     """
 
@@ -54,7 +54,7 @@ class CloudRunDeployer(BaseDeployer):
         self._allow_unauthenticated_messages()
         self._create_eventarc_run_trigger(update=update)
 
-        print(f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}.")
+        print(self.success_message)
         return self.service_id
 
     def _generate_cloud_build_configuration(self, no_cache=False):

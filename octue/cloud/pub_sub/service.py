@@ -6,6 +6,8 @@ import json
 import logging
 import uuid
 
+import packaging.version
+import pkg_resources
 from google import auth
 from google.api_core import retry
 from google.cloud import pubsub_v1
@@ -41,7 +43,7 @@ class Service(CoolNameable):
     has a corresponding topic on Google Pub/Sub.
 
     :param octue.resources.service_backends.ServiceBackend backend: the object representing the type of backend the service uses
-    :param str|None service_id: a string UUID optionally preceded by the octue services namespace "octue.services."
+    :param str|None service_id: a unique ID to give to the service (any string); a UUID is generated if none is given
     :param callable|None run_function: the function the service should run when it is called
     :return None:
     """
@@ -56,6 +58,8 @@ class Service(CoolNameable):
                 self.id = service_id
             else:
                 self.id = f"{OCTUE_NAMESPACE}.{service_id}"
+
+            self.id = self._clean_service_id(self.id)
 
         self.backend = backend
         self.run_function = run_function
@@ -74,7 +78,7 @@ class Service(CoolNameable):
         :param bool delete_topic_and_subscription_on_exit: if `True`, delete the service's topic and subscription on exit
         :return None:
         """
-        logger.info("Starting service with ID %r.", self.id)
+        logger.info("Starting %r.", self)
 
         topic = Topic(name=self.id, namespace=OCTUE_NAMESPACE, service=self)
         subscriber = pubsub_v1.SubscriberClient(credentials=self._credentials)
@@ -127,16 +131,42 @@ class Service(CoolNameable):
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
         """
-        data, question_uuid, forward_logs = self._parse_question(question)
+        data, question_uuid, forward_logs, parent_sdk_version = self._parse_question(question)
+
         topic = answer_topic or self.instantiate_answer_topic(question_uuid)
         self._send_delivery_acknowledgment(topic)
 
-        if forward_logs:
-            analysis_log_handler = GooglePubSubHandler(publisher=self.publisher, topic=topic, analysis_id=question_uuid)
-        else:
-            analysis_log_handler = None
-
         try:
+            if forward_logs:
+                analysis_log_handler = GooglePubSubHandler(
+                    publisher=self.publisher,
+                    topic=topic,
+                    analysis_id=question_uuid,
+                )
+            else:
+                analysis_log_handler = None
+
+            if parent_sdk_version:
+                local_sdk_version = packaging.version.parse(pkg_resources.get_distribution("octue").version)
+
+                if (
+                    local_sdk_version.major != parent_sdk_version.major
+                    or local_sdk_version.minor != parent_sdk_version.minor
+                ):
+                    logger.warning(
+                        "The parent's Octue SDK version %s may not be compatible with the local Octue SDK version %s. "
+                        "Update them both to the latest version (or at least a version with the same major and minor "
+                        "version numbers) if possible.",
+                        parent_sdk_version,
+                        local_sdk_version,
+                    )
+
+            else:
+                logger.warning(
+                    "The parent couldn't be checked for compatibility with this service because it didn't send its Octue "
+                    "SDK version with its question. Please update it to the latest Octue SDK version."
+                )
+
             analysis = self.run_function(
                 analysis_id=question_uuid,
                 input_values=data["input_values"],
@@ -217,10 +247,12 @@ class Service(CoolNameable):
                     "the new cloud locations."
                 )
 
+        unlinted_service_id = service_id
+        service_id = self._clean_service_id(service_id)
         question_topic = Topic(name=service_id, namespace=OCTUE_NAMESPACE, service=self)
 
         if not question_topic.exists(timeout=timeout):
-            raise octue.exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
+            raise octue.exceptions.ServiceNotFound(f"Service with ID {unlinted_service_id!r} cannot be found.")
 
         question_uuid = question_uuid or str(uuid.uuid4())
 
@@ -246,10 +278,11 @@ class Service(CoolNameable):
             data=json.dumps({"input_values": input_values, "input_manifest": serialised_input_manifest}).encode(),
             question_uuid=question_uuid,
             forward_logs=str(int(subscribe_to_logs)),
+            octue_sdk_version=pkg_resources.get_distribution("octue").version,
             retry=retry.Retry(deadline=timeout),
         )
 
-        logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
+        logger.info("%r asked a question %r to service %r.", self, question_uuid, unlinted_service_id)
         return answer_subscription, question_uuid
 
     def wait_for_answer(
@@ -321,6 +354,14 @@ class Service(CoolNameable):
 
         topic.messages_published += 1
 
+    def _clean_service_id(self, service_id):
+        """Replace forward slashes in the given service ID with dots.
+
+        :param str service_id: the raw service ID
+        :return str: the cleaned service ID.
+        """
+        return service_id.replace("/", ".")
+
     def _send_delivery_acknowledgment(self, topic, timeout=30):
         """Send an acknowledgement of question delivery to the parent.
 
@@ -372,7 +413,7 @@ class Service(CoolNameable):
         """Parse a question in the Google Cloud Pub/Sub or Google Cloud Run format.
 
         :param dict|Message question:
-        :return (dict, str, bool):
+        :return (dict, str, bool, packaging.version.Version|None):
         """
         try:
             # Parse question directly from Pub/Sub or Dataflow.
@@ -390,4 +431,13 @@ class Service(CoolNameable):
 
         question_uuid = get_nested_attribute(question, "attributes.question_uuid")
         forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
-        return data, question_uuid, forward_logs
+
+        try:
+            parent_sdk_version = get_nested_attribute(question, "attributes.octue_sdk_version")
+        except AttributeError:
+            parent_sdk_version = None
+
+        if parent_sdk_version:
+            parent_sdk_version = packaging.version.parse(parent_sdk_version)
+
+        return data, question_uuid, forward_logs, parent_sdk_version

@@ -1,3 +1,6 @@
+from octue.resources import Manifest
+
+
 def run(analysis):
     """Run a mock analysis.
 
@@ -5,3 +8,4 @@ def run(analysis):
     :return None:
     """
     analysis.output_values = [1, 2, 3, 4]
+    analysis.output_manifest = Manifest()

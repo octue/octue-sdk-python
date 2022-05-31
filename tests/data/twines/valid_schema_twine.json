@@ -28,6 +28,14 @@
 		},
 		"required": ["height"]
 	},
+	"monitor_message_schema": {
+		"type": "object",
+		"properties": {
+			"status":{
+				"type": "string"
+			}
+		}
+	},
 	"output_values_schema": {
 		"title": "Output Values",
 		"description": "The output values strand of an example twine",

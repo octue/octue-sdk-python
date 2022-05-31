@@ -1,3 +1,4 @@
 services:
   - name: parent-service
+    organisation: template-child-services
     app_configuration_path: app_configuration.json

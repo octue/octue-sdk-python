@@ -2,6 +2,7 @@ import json
 import logging
 
 import google.api_core.exceptions
+import pkg_resources
 
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import Service
@@ -248,6 +249,7 @@ class MockService(Service):
         question_uuid=None,
         push_endpoint=None,
         timeout=30,
+        parent_sdk_version=pkg_resources.get_distribution("octue").version,
     ):
         """Put the question into the messages register, register the existence of the corresponding response topic, add
         the response to the register, and return a MockFuture containing the answer subscription path.
@@ -284,6 +286,7 @@ class MockService(Service):
                     data=json.dumps({"input_values": input_values, "input_manifest": input_manifest}).encode(),
                     question_uuid=question_uuid,
                     forward_logs=subscribe_to_logs,
+                    octue_sdk_version=parent_sdk_version,
                 )
             )
         except Exception as e:  # noqa

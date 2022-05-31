@@ -12,6 +12,7 @@ class ServiceConfiguration:
     """A class containing the details needed to configure a service.
 
     :param str name: the name to give the service
+    :param str|None organisation: the name of the organisation providing the service
     :param str app_source_path: the path to the directory containing the app's source code
     :param str twine_path: the path to the twine file defining the schema for input, output, and configuration data for the service
     :param str|None app_configuration_path: the path to the app configuration file containing configuration data for the service; if this is `None`, the default application configuration is used
@@ -21,6 +22,7 @@ class ServiceConfiguration:
     def __init__(
         self,
         name,
+        organisation=None,
         app_source_path=".",
         twine_path="twine.json",
         app_configuration_path=None,
@@ -45,9 +47,15 @@ class ServiceConfiguration:
         **kwargs,
     ):
         self.name = name
+        self.organisation = organisation
         self.app_source_path = app_source_path
         self.twine_path = twine_path
         self.app_configuration_path = app_configuration_path
+
+        if organisation:
+            self.service_id = organisation + "/" + name
+        else:
+            self.service_id = self.name
 
         # Deployed services only.
         self.repository_name = repository_name
@@ -96,9 +104,9 @@ class AppConfiguration:
     """A class containing the configuration data needed to start an app as a service. The configuration data should
     conform to the service's twine schema.
 
-    :param str|None configuration_values: values to configure the app
-    :param str|None configuration_manifest: a manifest of files to configure the app
-    :param str|None children: details of the children the app requires
+    :param str|dict|list|None configuration_values: values to configure the app
+    :param str|dict|octue.resources.Manifest|None configuration_manifest: a manifest of files to configure the app
+    :param str|None|list children: details of the children the app requires
     :param str|None output_location: the path to a cloud directory to save output datasets at
     :return None:
     """

@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class Runner:
-    """Runs analyses in the app framework
+    """A runner of analyses for a given service.
 
     The Runner class provides a set of configuration parameters for use by your application, together with a range of
     methods for managing input and output file parsing as well as controlling logging.
@@ -34,6 +34,7 @@ class Runner:
     :param Union[str, dict, None] children: The children strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|None output_location: the path to a cloud directory to save output datasets at
     :param str|None project_name: name of Google Cloud project to get credentials from
+    :param str|None service_id: the ID of the service being run
     :return None:
     """
 
@@ -46,6 +47,7 @@ class Runner:
         children=None,
         output_location=None,
         project_name=None,
+        service_id=None,
     ):
         self.app_src = app_src
         self.children = children
@@ -65,7 +67,7 @@ class Runner:
 
         logger.debug("Parsed twine with strands %r", self.twine.available_strands)
 
-        # Validate and initialise configuration data
+        # Validate and initialise configuration data.
         self.configuration = self.twine.validate(
             configuration_values=configuration_values,
             configuration_manifest=configuration_manifest,
@@ -73,6 +75,7 @@ class Runner:
         )
         logger.debug("Configuration validated.")
 
+        self.service_id = service_id
         self._project_name = project_name
 
     def run(
@@ -119,7 +122,12 @@ class Runner:
 
         if inputs["children"] is not None:
             inputs["children"] = {
-                child["key"]: Child(name=child["key"], id=child["id"], backend=child["backend"])
+                child["key"]: Child(
+                    name=child["key"],
+                    id=child["id"],
+                    backend=child["backend"],
+                    internal_service_name=self.service_id,
+                )
                 for child in inputs["children"]
             }
 
