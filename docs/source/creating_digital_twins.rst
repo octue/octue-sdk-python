@@ -162,10 +162,10 @@ Dockerfile (optional)
         - Python dependencies that aren't installable via ``pip``
         - Private python packages
 
-        Here are two examples of a custom ``Dockerfile``:
+        Here are two examples of a custom ``Dockerfile`` that use different base images:
 
-        - A TurbSim service - `uses a different base image <https://github.com/aerosense-ai/turbsim-service/blob/main/Dockerfile>`_
-        - An OpenFAST service - `includes adding system dependencies and a non-standard installation of a python package <https://github.com/aerosense-ai/openfast-aventa-service/blob/main/Dockerfile>`_
+        - `A TurbSim service <https://github.com/aerosense-ai/turbsim-service/blob/main/Dockerfile>`_
+        - `An OpenFAST service <https://github.com/aerosense-ai/openfast-service/blob/main/Dockerfile>`_
 
         If you do provide one, you must specify its path in ``octue.yaml`` under the ``dockerfile_path`` key.
 
