@@ -3,10 +3,13 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 import uuid
 from unittest.mock import patch
 from urllib.parse import urlparse
+
+import yaml
 
 from octue import REPOSITORY_ROOT, Runner
 from octue.cloud.emulators import mock_generate_signed_url
@@ -109,54 +112,68 @@ class TemplateAppsTestCase(BaseTestCase):
         self.set_template("template-child-services")
 
         elevation_service_path = os.path.join(self.template_path, "elevation_service")
-        elevation_service_id = f"template-child-services/elevation-service-{uuid.uuid4()}"
+        elevation_service_id = f"elevation-service-{uuid.uuid4()}"
 
-        elevation_process = subprocess.Popen(
-            [
-                sys.executable,
-                cli_path,
-                "start",
-                "--service-config=octue.yaml",
-                f"--service-id={elevation_service_id}",
-                "--delete-topic-and-subscription-on-exit",
-            ],
-            cwd=elevation_service_path,
-        )
+        with tempfile.NamedTemporaryFile() as elevation_service_configuration:
+            with open(os.path.join(self.template_path, "elevation_service", "octue.yaml")) as f:
+                config = yaml.load(f, Loader=yaml.SafeLoader)
+                config["services"][0]["name"] = elevation_service_id
 
-        wind_speed_service_path = os.path.join(self.template_path, "wind_speed_service")
-        wind_speed_service_id = f"template-child-services/wind-speed-service-{uuid.uuid4()}"
+            with open(elevation_service_configuration.name, "w") as f:
+                yaml.dump(config, f)
 
-        wind_speed_process = subprocess.Popen(
-            [
-                sys.executable,
-                cli_path,
-                "start",
-                "--service-config=octue.yaml",
-                f"--service-id={wind_speed_service_id}",
-                "--delete-topic-and-subscription-on-exit",
-            ],
-            cwd=wind_speed_service_path,
-        )
-
-        parent_service_path = os.path.join(self.template_path, "parent_service")
-
-        with open(os.path.join(parent_service_path, "app_configuration.json")) as f:
-            children = json.load(f)["children"]
-            children[0]["id"] = wind_speed_service_id
-            children[1]["id"] = elevation_service_id
-
-        with ProcessesContextManager(processes=(elevation_process, wind_speed_process)):
-
-            runner = Runner(
-                app_src=parent_service_path,
-                twine=os.path.join(parent_service_path, "twine.json"),
-                children=children,
-                service_id="template-child-services/parent-service",
+            elevation_process = subprocess.Popen(
+                [
+                    sys.executable,
+                    cli_path,
+                    "start",
+                    f"--service-config={elevation_service_configuration.name}",
+                    "--rm",
+                ],
+                cwd=elevation_service_path,
             )
 
-            analysis = runner.run(
-                input_values=os.path.join(parent_service_path, "data", "input", "values.json"),
-            )
+            wind_speed_service_path = os.path.join(self.template_path, "wind_speed_service")
+            wind_speed_service_id = f"wind-speed-service-{uuid.uuid4()}"
+
+            with tempfile.NamedTemporaryFile() as wind_speed_service_configuration:
+                with open(os.path.join(self.template_path, "wind_speed_service", "octue.yaml")) as f:
+                    config = yaml.load(f, Loader=yaml.SafeLoader)
+                    config["services"][0]["name"] = wind_speed_service_id
+
+                with open(wind_speed_service_configuration.name, "w") as f:
+                    yaml.dump(config, f)
+
+                wind_speed_process = subprocess.Popen(
+                    [
+                        sys.executable,
+                        cli_path,
+                        "start",
+                        f"--service-config={wind_speed_service_configuration.name}",
+                        "--rm",
+                    ],
+                    cwd=wind_speed_service_path,
+                )
+
+                parent_service_path = os.path.join(self.template_path, "parent_service")
+
+                with open(os.path.join(parent_service_path, "app_configuration.json")) as f:
+                    children = json.load(f)["children"]
+                    children[0]["id"] = wind_speed_service_id
+                    children[1]["id"] = elevation_service_id
+
+                with ProcessesContextManager(processes=(elevation_process, wind_speed_process)):
+
+                    runner = Runner(
+                        app_src=parent_service_path,
+                        twine=os.path.join(parent_service_path, "twine.json"),
+                        children=children,
+                        service_id="template-child-services/parent-service",
+                    )
+
+                    analysis = runner.run(
+                        input_values=os.path.join(parent_service_path, "data", "input", "values.json"),
+                    )
 
         self.assertTrue("elevations" in analysis.output_values)
         self.assertTrue("wind_speeds" in analysis.output_values)
