@@ -216,7 +216,6 @@ def start(service_config, timeout, rm):
         backend = service_backends.get_backend()(project_name=project_name)
 
     service = Service(
-        name=service_configuration.service_id,
         service_id=service_configuration.service_id,
         backend=backend,
         run_function=run_function,
