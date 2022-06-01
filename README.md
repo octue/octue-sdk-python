@@ -5,14 +5,17 @@
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
-# octue-sdk-python <img src="./docs/source/images/213_purple-fruit-snake-transparent.gif" alt="Purple Fruit Snake" width="100"/></span>
+# Octue Python SDK <img src="./docs/source/images/213_purple-fruit-snake-transparent.gif" alt="Purple Fruit Snake" width="100"/></span>
 
-Utilities for running python based data services, digital twins and applications. [Documentation is here!](https://octue-python-sdk.readthedocs.io/en/latest/)
+The python SDK for running [Octue](https://octue.com) data services, digital twins, and applications - get faster data
+groundwork so you have more time for the science!
 
-Based on the [twined](https://twined.readthedocs.io/en/latest/) library for data validation.
+Read the docs [here.](https://octue-python-sdk.readthedocs.io/en/latest/)
+
+Uses our [twined](https://twined.readthedocs.io/en/latest/) library for data validation.
 
 ## Installation and usage
-For usage as a scientist or engineer, run one of the following commands in your environment:
+To install, run one of:
 ```shell
 pip install octue
 ```
@@ -26,7 +29,36 @@ The command line interface (CLI) can then be accessed via:
 octue --help
 ```
 
-### Deprecated code
+```text
+Usage: octue [OPTIONS] COMMAND [ARGS]...
+
+  The CLI for the Octue SDK. Use it to start an Octue data service or digital
+  twin locally or run an analysis on one locally.
+
+  Read more in the docs: https://octue-python-sdk.readthedocs.io/en/latest/
+
+Options:
+  --id UUID                       UUID of the analysis being undertaken. None
+                                  (for local use) will cause a unique ID to be
+                                  generated.
+  --logger-uri TEXT               Stream logs to a websocket at the given URI.
+  --log-level [debug|info|warning|error]
+                                  Log level used for the analysis.  [default:
+                                  info]
+  --force-reset / --no-force-reset
+                                  Forces a reset of analysis cache and outputs
+                                  [For future use, currently not implemented]
+                                  [default: force-reset]
+  --version                       Show the version and exit.
+  -h, --help                      Show this message and exit.
+
+Commands:
+  deploy  Deploy a python app to the cloud as an Octue service or digital...
+  run     Run an analysis on the given input data using an Octue service...
+  start   Start an Octue service or digital twin locally as a child so it...
+```
+
+## Deprecated code
 When code is deprecated, it will still work but a deprecation warning will be issued with a suggestion on how to update
 it. After an adjustment period, deprecations will be removed from the codebase according to the [code removal schedule](https://github.com/octue/octue-sdk-python/issues/415).
 This constitutes a breaking change.
@@ -37,7 +69,7 @@ This constitutes a breaking change.
 We use [Poetry](https://python-poetry.org/) as our package manager. For development, run the following from the
 repository root, which will editably install the package:
 
-```bash
+```shell
 poetry install -E dataflow -E hdf5
 ```
 
@@ -49,12 +81,13 @@ These environment variables need to be set to run the tests:
 * `TEST_PROJECT_NAME=<name-of-google-cloud-project-to-run-pub-sub-tests-on>`
 
 Then, from the repository root, run
-```bash
+```shell
 python3 -m unittest
 ```
-
-**Documentation for use of the library is [here](https://octue-python-sdk.readthedocs.io). You don't need to pay attention to the following unless you plan to develop `octue-sdk-python` itself.**
-
+or
+```shell
+tox
+```
 
 ## Contributing
 Take a look at our [contributing](/docs/contributing.md) page.
