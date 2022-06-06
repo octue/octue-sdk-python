@@ -47,14 +47,12 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
 
     :param twined.Twine|dict|str twine: the twine, dictionary defining a twine, or path to "twine.json" file defining the service's data interface
     :param callable|None handle_monitor_message: an optional function for sending monitor messages to the parent that requested the analysis
-    :param any configuration_values: see ``Runner.run`` for definition
-    :param octue.resources.manifest.Manifest configuration_manifest: see ``Runner.run`` for definition
-    :param any input_values: see ``Runner.run`` for definition
-    :param octue.resources.manifest.Manifest input_manifest: see Runner.run() for definition
-    :param dict credentials: ``Runner.run`` for definition
+    :param any configuration_values: the configuration values for the analysis - this can be expressed as a python primitive (e.g. dict), a path to a JSON file, or a JSON string.
+    :param octue.resources.manifest.Manifest configuration_manifest: a manifest of configuration datasets for the analysis if required
+    :param any input_values: the input values for the analysis - this can be expressed as a python primitive (e.g. dict), a path to a JSON file, or a JSON string.
+    :param octue.resources.manifest.Manifest input_manifest: a manifest of input datasets for the analysis if required
+    :param dict children: a mapping of string key to ``Child`` instance for all the children used by the service
     :param dict monitors: see ``Runner.run`` for definition
-    :param any output_values: ``Runner.run`` for definition
-    :param octue.resources.manifest.Manifest output_manifest: see ``Runner.run`` for definition
     :param str id: Optional UUID for the analysis
     :return None:
     """
@@ -72,15 +70,14 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         # Values strands.
         self.input_values = strand_kwargs.get("input_values", None)
         self.configuration_values = strand_kwargs.get("configuration_values", None)
-        self.output_values = strand_kwargs.get("output_values", None)
+        self.output_values = None
 
         # Manifest strands.
         self.configuration_manifest = strand_kwargs.get("configuration_manifest", None)
         self.input_manifest = strand_kwargs.get("input_manifest", None)
-        self.output_manifest = strand_kwargs.get("output_manifest", None)
+        self.output_manifest = None
 
         # Other strands.
-        self.credentials = strand_kwargs.get("credentials", None)
         self.children = strand_kwargs.get("children", None)
         self.monitors = strand_kwargs.get("monitors", None)
 
