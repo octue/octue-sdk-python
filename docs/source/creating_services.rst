@@ -6,7 +6,7 @@ return answers. They can run locally on any machine or be deployed to the cloud.
 
 - The backend communication between twins uses Google Pub/Sub whether they're local or deployed
 - The deployment options are Google Cloud Run or Google Dataflow
-- The language of the entrypoint must by `python3` (you can call processes using other languages within this though)
+- The language of the entrypoint must by ```python3`` (you can call processes using other languages within this though)
 
 
 Anatomy of an Octue service
@@ -20,52 +20,51 @@ app.py
 
             ----
 
-        The ``app.py`` file:
+        This is where you write your app. The ``app.py`` file can contain any valid python, including import and use of
+        any number of external packages or your own subpackages. It has only two requirements:
 
-        - Can contain any valid python, including use of any number of external packages or your own subpackages
-        - Must contain at least one of the ``octue`` python app interfaces
+        1. It must contain exactly one of the ``octue`` python app interfaces that serves as an entrypoint to your code:
 
-        This is where you write your app. The first requirement is that it must contain exactly one of:
+            - **Option 1:** A function named ``run`` with the following signature:
 
-        - A function named ``run`` with the following signature:
+              .. code-block:: python
 
-          .. code-block:: python
+                  def run(analysis):
+                      """A function that uses input and configuration from an ``Analysis`` instance and stores any
+                      output values and output manifests on it.
 
-              def run(analysis):
-                  """A function that mutates an ``Analysis`` instance.
-
-                  :param octue.resources.Analysis analysis:
-                  :return None:
-                  """
-                  ...
-
-        - A class named ``App`` with the following signature:
-
-          .. code-block:: python
-
-              class App:
-                  """A class that takes an ``Analysis`` instance and anything else you like. It can contain any methods you
-                  like but it must also have a ``run`` method.
-
-                  :param octue.resources.Analysis analysis:
-                  :return None:
-                  """
-
-                  def __init__(self, analysis, *args, **kwargs):
-                      self.analysis = analysis
-                      ...
-
-                  def run(self):
-                      """A method that mutates the ``self.analysis`` attribute.
-
+                      :param octue.resources.Analysis analysis:
                       :return None:
                       """
                       ...
 
-                  ...
+            - **Option 2:** A class named ``App`` with the following signature:
 
-        The second requirement is that your app accesses configuration/input data from and stores output data on the
-        ``analysis`` parameter/attribute:
+              .. code-block:: python
+
+                  class App:
+                      """A class that takes an ``Analysis`` instance and anything else you like. It can contain any
+                      methods you like but it must also have a ``run`` method.
+
+                      :param octue.resources.Analysis analysis:
+                      :return None:
+                      """
+
+                      def __init__(self, analysis, *args, **kwargs):
+                          self.analysis = analysis
+                          ...
+
+                      def run(self):
+                          """A method that that uses input and configuration from an ``Analysis`` instance and stores
+                          any output values and output manifests on it.
+
+                          :return None:
+                          """
+                          ...
+
+                      ...
+
+        2. It must access configuration/input data from and store output data on the ``analysis`` parameter/attribute:
 
         - Configuration values: ``analysis.configuration_values``
         - Configuration manifest: ``analysis.configuration_manifest``
