@@ -4,7 +4,7 @@
 Child services
 ==============
 
-When a Twine file is written, there is the option to include children (child services or child digital twins) so
+When a Twine file is written, there is the option to include children (Octue child services) so
 the main/parent service can communicate with them to ask "questions". A question is a set of input values and/or an
 input manifest in the form the child's Twine specifies. When a question is asked, the parent can expect an answer,
 which is a set of output values and/or an output manifest produced by the child's analysis of the inputs (again in the

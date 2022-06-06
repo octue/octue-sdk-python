@@ -2,8 +2,17 @@
 Octue SDK (Python)
 ==================
 
-The python SDK for `Octue<https://octue.com>`_ data services, digital twins, and applications - get faster data
+The python SDK for `Octue <https://octue.com>`_ data services, digital twins, and applications - get faster data
 groundwork so you have more time for the science!
+
+.. _service_definition:
+
+.. admonition:: Definition
+
+    Octue service
+        An Octue data service, digital twin, or application that can be asked questions, process them, and send answers.
+        Octue services can communicate with each other with no extra setup.
+
 
 Key features
 ============
@@ -21,19 +30,19 @@ Key features
 
 - Create manifests (a set of datasets needed for a particular analysis) to modularise your dataset input/output
 
-**Ask existing digital twins questions from anywhere**
+**Ask existing services questions from anywhere**
 
 - Send them data to process from anywhere
 - Automatically have their logs, monitor messages, and any errors forwarded to you and displayed as if they were local
 - Receive their output data as JSON
 - Receive a manifest of any output datasets they produce for you to download or access as you wish
 
-**Create, run, and deploy your apps as digital twins**
+**Create, run, and deploy your apps as services**
 
 - No need to change your app - just wrap it
-- Use the ``octue`` CLI to run your digital twin locally or deploy it to Google Cloud Run or Google Dataflow
+- Use the ``octue`` CLI to run your service locally or deploy it to Google Cloud Run or Google Dataflow
 - Create JSON-schema interfaces to explicitly define the form of configuration, input, and output data
-- Ask other digital twins questions as part of your app (i.e. build trees of digital twins)
+- Ask other services questions as part of your app (i.e. build trees of services)
 - Automatically display readable, colourised logs, or use your own log handler
 - Avoid time-consuming and confusing devops, cloud configuration, and backend maintenance
 

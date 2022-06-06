@@ -1,9 +1,9 @@
 .. _creating_digital_twins:
 
 ======================
-Creating digital twins
+Creating services
 ======================
-One of the main features of the Octue SDK is to allow you to easily create digital twins that can accept questions and
+One of the main features of the Octue SDK is to allow you to easily create services that can accept questions and
 return answers. They can run locally on any machine or be deployed to the cloud. Currently:
 
 - The backend communication between twins uses Google Pub/Sub whether they're local or deployed
@@ -11,9 +11,9 @@ return answers. They can run locally on any machine or be deployed to the cloud.
 - The language of the entrypoint must by `python3` (you can call processes using other languages within this though)
 
 
-Anatomy of an Octue digital twin
-================================
-An Octue digital twin is defined by the following files (located in the repository root by default):
+Anatomy of an Octue service
+===========================
+An Octue service is defined by the following files (located in the repository root by default):
 
 app.py
 ------
@@ -76,7 +76,7 @@ app.py
         - Output values: ``analysis.output_values``
         - Output manifest: ``analysis.output_manifest``
 
-        This allows standardised configuration/input/output of digital twins.
+        This allows standardised configuration/input/output of services.
 
 twine.json
 ----------
@@ -105,7 +105,7 @@ octue.yaml
 
             ----
 
-        This file defines the basic structure of your digital twin. It must contain at least:
+        This file defines the basic structure of your service. It must contain at least:
 
         .. code-block:: yaml
 
@@ -132,7 +132,7 @@ App configuration file (optional)
 
             ----
 
-        If your app needs any configuration, asks questions to any other Octue digital twins, or produces output
+        If your app needs any configuration, asks questions to any other Octue services, or produces output
         datafiles/datasets, you will need to provide an app configuration. Currently, this can only take the form of JSON file.
         It can contain the following keys:
 
@@ -152,7 +152,7 @@ Dockerfile (optional)
 
             ----
 
-        Octue digital twins run in a Docker container if they are deployed. They can also run this way locally. The SDK
+        Octue services run in a Docker container if they are deployed. They can also run this way locally. The SDK
         provides a default ``Dockerfile`` for these purposes that will work for most cases:
 
         - For deploying to `Google Cloud Run <https://github.com/octue/octue-sdk-python/blob/main/octue/cloud/deployment/google/cloud_run/Dockerfile>`_

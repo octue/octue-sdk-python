@@ -35,8 +35,8 @@ Group related datasets together
     )
 
 
-Send datasets to a digital twin
--------------------------------
+Send datasets to a service
+--------------------------
 
 .. code-block:: python
 
@@ -53,8 +53,8 @@ Send datasets to a digital twin
 See :doc:`here <asking_questions>` for more information.
 
 
-Receive datasets from a digital twin
-------------------------------------
+Receive datasets from a service
+-------------------------------
 
 .. code-block:: python
 

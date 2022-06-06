@@ -1,29 +1,33 @@
 .. _asking_questions:
 
-==============================
-Asking digital twins questions
-==============================
+=========================
+Asking services questions
+=========================
 
-Octue digital twins
--------------------
+Octue services
+--------------
 
-There's a growing range of live digital twins in the Octue ecosystem that you can ask questions to and get answers from.
-All of them are currently related to wind energy. Here's a quick glossary of terms before we tell you more:
+There's a growing range of live :ref:`services <service_definition>` in the Octue ecosystem that you can ask questions
+to and get answers from. Currently, all of them are related to wind energy. Here's a quick glossary of terms before we
+tell you more:
 
 .. admonition:: Definitions
 
     Child
-        A digital twin that you ask a question to. This name is used to reflect the tree structure of digital twins
+        An Octue service that you can ask a question to. This name is used to reflect the tree structure of services
         that forms when a question is asked.
+
+    Parent
+        An Octue service that asks a question to a child.
 
     Asking a question
         Sending data (input values and/or an input manifest) to a child for processing/analysis.
 
     Receiving an answer
-       Receiving data (output values and/or an output manifest) from a digital twin you asked a question to.
+       Receiving data (output values and/or an output manifest) from a child you asked a question to.
 
     Octue ecosystem
-       The set of digital twins running the ``octue`` SDK as their backend. These digital twins guarantee:
+       The set of services running the ``octue`` SDK as their backend. These services guarantee:
 
        - Defined JSON schemas and validation for input and output data
        - An easy interface for asking them questions and receiving their answers
@@ -33,8 +37,8 @@ All of them are currently related to wind energy. Here's a quick glossary of ter
 
 How to ask a question
 ---------------------
-You can ask any digital twin a question if you have its service UUID, project name, and permissions. The question is
-formed of input values and/or an input manifest.
+You can ask any service a question if you have its service ID, project name, and permissions. The question is formed of
+input values and/or an input manifest.
 
 .. code-block:: python
 
