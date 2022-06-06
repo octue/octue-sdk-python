@@ -2,7 +2,8 @@
 Octue SDK (Python)
 ==================
 
-A python SDK for `Octue's <https://octue.com>`_ API.
+The python SDK for `Octue<https://octue.com>`_ data services, digital twins, and applications - get faster data
+groundwork so you have more time for the science!
 
 Key features
 ============
