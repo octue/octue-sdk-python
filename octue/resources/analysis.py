@@ -28,6 +28,10 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
     """A class representing a scientific or computational analysis, holding references to all configuration, input, and
     output data.
 
+    An ``Analysis`` instance is the sole argument to the ``app`` function in your ``app.py`` module. Its attributes include
+    every strand that can be possibly added to a ``Twine``, although only the strands specified in your ``twine.py`` file
+    will not be ``None``.
+
     An Analysis instance is unique to a specific computational analysis task, however large or small, run at a specific
     time. It will be created by the task runner, which will have validated incoming data already (Analysis doesn't
     do any validation).
@@ -41,16 +45,28 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
     Analyses are instantiated at the top level of your app/service/twin code and you can import the instantiated
     object from there (see the templates for examples)
 
+    All input and configuration attributes are hashed using a
+    `BLAKE3 hash <https://github.com/BLAKE3-team/BLAKE3>`_ so the inputs and configuration that produced a given output in
+    your app can always be verified. These hashes exist on the following attributes:
+
+    -   ``input_values_hash``
+    -   ``input_manifest_hash``
+    -   ``configuration_values_hash``
+    -   ``configuration_manifest_hash``
+
+    If a strand is ``None``, so will its corresponding hash attribute be. The hash of a datafile is the hash of
+    its file, while the hash of a manifest or dataset is the cumulative hash of the files it refers to.
+
     :param twined.Twine|str|dict twine: Twine instance or json source
     :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
-    :param any configuration_values: see Runner.run() for definition
-    :param octue.resources.manifest.Manifest configuration_manifest: see Runner.run() for definition
-    :param any input_values: see Runner.run() for definition
+    :param any configuration_values: see ``Runner.run`` for definition
+    :param octue.resources.manifest.Manifest configuration_manifest: see ``Runner.run`` for definition
+    :param any input_values: see ``Runner.run`` for definition
     :param octue.resources.manifest.Manifest input_manifest: see Runner.run() for definition
-    :param dict credentials: see Runner.run() for definition
-    :param dict monitors: see Runner.run() for definition
-    :param any output_values: see Runner.run() for definition
-    :param octue.resources.manifest.Manifest output_manifest: see Runner.run() for definition
+    :param dict credentials: ``Runner.run`` for definition
+    :param dict monitors: see ``Runner.run`` for definition
+    :param any output_values: ``Runner.run`` for definition
+    :param octue.resources.manifest.Manifest output_manifest: see ``Runner.run`` for definition
     :param str id: Optional UUID for the analysis
     :return None:
     """

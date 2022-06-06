@@ -11,7 +11,7 @@ return answers. They can run locally on any machine or be deployed to the cloud.
 
 Anatomy of an Octue service
 ===========================
-An Octue service is defined by the following files (located in the repository root by default):
+An Octue service is defined by the following files (located in the repository root by default).
 
 app.py
 ------
