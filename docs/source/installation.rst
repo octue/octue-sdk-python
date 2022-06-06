@@ -13,8 +13,10 @@ Pip
     pip install octue==x.y.z
 
 
-`Poetry <https://python-poetry.org>`_
-=====================================
+Poetry
+======
+Read more about Poetry `here <https://python-poetry.org>`_.
+
 .. code-block:: shell
 
     poetry add octue=x.y.z
@@ -22,8 +24,7 @@ Pip
 
 Add to your dependencies
 ========================
-
-To use the Octue SDK in your Octue python application, simply add:
+To use a specific version of the Octue SDK in your python application, simply add:
 
 .. code-block:: shell
 
