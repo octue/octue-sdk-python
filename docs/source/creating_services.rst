@@ -23,7 +23,8 @@ app.py
         This is where you write your app. The ``app.py`` file can contain any valid python, including import and use of
         any number of external packages or your own subpackages. It has only two requirements:
 
-        1. It must contain exactly one of the ``octue`` python app interfaces that serve as an entrypoint to your code:
+        1. It must contain exactly one of the ``octue`` python app interfaces that serve as an entrypoint to your code.
+           These take a single :mod:`Analysis <octue.resources.analysis.Analysis>` instance:
 
             - **Option 1:** A function named ``run`` with the following signature:
 
