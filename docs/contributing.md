@@ -96,7 +96,7 @@ we avoid getting broken documentation pushed to the main repository on any commi
 
 **If you did need to build the documentation**
 
-Install `doxgen`. On a mac, that's `brew install doxygen`; other systems may differ.
+Install `doxygen`. On a mac, that's `brew install doxygen`; other systems may differ.
 
 Install sphinx and other requirements for building the docs:
 ```
