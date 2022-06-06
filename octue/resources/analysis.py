@@ -52,7 +52,6 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
     :param any input_values: the input values for the analysis - this can be expressed as a python primitive (e.g. dict), a path to a JSON file, or a JSON string.
     :param octue.resources.manifest.Manifest input_manifest: a manifest of input datasets for the analysis if required
     :param dict children: a mapping of string key to ``Child`` instance for all the children used by the service
-    :param dict monitors: see ``Runner.run`` for definition
     :param str id: Optional UUID for the analysis
     :return None:
     """
@@ -79,7 +78,6 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
 
         # Other strands.
         self.children = strand_kwargs.get("children", None)
-        self.monitors = strand_kwargs.get("monitors", None)
 
         # Non-strands.
         self.output_location = kwargs.pop("output_location", None)
