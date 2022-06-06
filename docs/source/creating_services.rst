@@ -101,7 +101,7 @@ Dependencies file
 octue.yaml
 ----------
 
-    .. collapse:: This defines the structure of the service - read more...
+    .. collapse:: This describes the service configuration - read more...
 
             ----
 
