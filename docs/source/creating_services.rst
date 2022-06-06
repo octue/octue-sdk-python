@@ -1,8 +1,6 @@
-.. _creating_digital_twins:
-
-======================
+=================
 Creating services
-======================
+=================
 One of the main features of the Octue SDK is to allow you to easily create services that can accept questions and
 return answers. They can run locally on any machine or be deployed to the cloud. Currently:
 

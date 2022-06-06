@@ -82,7 +82,7 @@ We use `GitHub Issues <https://github.com/octue/octue-sdk-python/issues>`_ [#]_ 
    dataset
    manifest
    asking_questions
-   creating_digital_twins
+   creating_services
    logging
    filter_containers
    analysis_objects
