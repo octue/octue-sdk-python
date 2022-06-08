@@ -69,7 +69,7 @@ def create_octue_formatter(
                     text_colour=COLOUR_PALETTE[0],
                 ),
                 *extra_sections,
-                colourise("%(message)s"),
+                "%(message)s",
             ]
         )
     )
