@@ -3,8 +3,10 @@ import logging.handlers
 import os
 from urllib.parse import urlparse
 
+from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 
-if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in {"GOOGLE_CLOUD_RUN", "GOOGLE_DATAFLOW"}:
+
+if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in GOOGLE_COMPUTE_PROVIDERS:
     # Google Cloud logs don't support colour currently - provide a no-operation function.
     colourise = lambda string, text_colour=None, background_colour=None: string
 else:
@@ -67,7 +69,7 @@ def create_octue_formatter(
                     text_colour=COLOUR_PALETTE[0],
                 ),
                 *extra_sections,
-                colourise("%(message)s"),
+                "%(message)s",
             ]
         )
     )
@@ -176,7 +178,7 @@ def get_log_record_attributes_for_environment():
 
     :return list:
     """
-    if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in {"GOOGLE_CLOUD_RUN", "GOOGLE_DATAFLOW"}:
+    if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in GOOGLE_COMPUTE_PROVIDERS:
         return LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP[1:]
 
     return LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP
