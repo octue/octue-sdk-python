@@ -8,12 +8,13 @@ from google.api_core import retry
 
 import octue.exceptions
 import twined.exceptions
+from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
 from octue.utils.exceptions import create_exceptions_mapping
 
 
-if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in {"GOOGLE_CLOUD_RUN", "GOOGLE_DATAFLOW"}:
+if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in GOOGLE_COMPUTE_PROVIDERS:
     # Google Cloud logs don't support colour currently - provide a no-operation function.
     colourise = lambda string, text_colour=None, background_colour=None: string
 else:
