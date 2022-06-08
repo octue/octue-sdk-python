@@ -3,7 +3,7 @@ name = "octue"
 version = "0.27.1"
 description = "A package providing template applications for data services, and a python SDK to the Octue API."
 readme = "README.md"
-authors = ["Thomas Clark <support@octue.com>", "cortadocodes <cortado.codes@protonmail.com>"]
+authors = ["Marcus Lugg <cortado.codes@protonmail.com>", "Thomas Clark <support@octue.com>"]
 license = "MIT"
 repository = "https://www.github.com/octue/octue-sdk-python"
 packages = [{ include = "octue"}]
