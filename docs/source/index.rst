@@ -86,7 +86,6 @@ We use `GitHub Issues <https://github.com/octue/octue-sdk-python/issues>`_ [#]_ 
    logging
    filter_containers
    child_services
-   deploying_services
    deploying_services_advanced
    api
    license

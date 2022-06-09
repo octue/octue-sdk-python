@@ -187,3 +187,18 @@ We've created some template apps for you to look at and play around with. We rec
    introduces using a manifest of output datasets to return output files to its parent.
 3. The `child-services app template <https://github.com/octue/octue-sdk-python/tree/main/octue/templates/template-child-services>`_ -
    introduces asking questions to child services and using their answers to form an output to return to its parent.
+
+
+Deploying services automatically
+================================
+Automated deployment with Octue means:
+
+- Your service runs in Google Cloud, ready to accept questions from and return answers to other services.
+- You don't need to do anything to update your deployed service with new code changes - the service simply gets rebuilt
+  and re-deployed each time you push a commit to your ``main`` branch, or merge a pull request into it (other branches
+  and deployment strategies are available, but this is the default).
+- Serverless is the default - your service only runs when questions from other services are sent to it, meaning there
+  is no cost to having it deployed but not in use.
+
+To enable automated deployments, contact us so we can create a Google Cloud Build trigger linked to your git repository.
+This requires no work from you apart from authorising the connection to GitHub (or another git provider).
