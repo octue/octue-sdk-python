@@ -1,8 +1,8 @@
 .. _deploying_services_advanced:
 
-===========================================
-How to deploy a service (developer's guide)
-===========================================
+===============================================================
+How to deploy a service to Google Cloud Run (developer's guide)
+===============================================================
 This is a guide for developers that want to deploy Octue services themselves - it is not needed if Octue manages your
 services for you or if you are only asking questions to existing Octue services.
 
@@ -16,9 +16,7 @@ Deploying an Octue service to Google Cloud Run means it:
 * Will automatically build and redeploy upon the conditions you provide (e.g. pushes or merges into ``main``)
 * Will automatically start and run when Pub/Sub messages are received from the topic you created. The Pub/Sub
   messages can be sent from anywhere in the world, but the container will only run in the region you chose (you can
-  create multiple Cloud Run services in different regions for the same repository if this is a problem). The Pub/Sub
-  messages must be in the correct format (this is handled for you when ``octue.resources.child.Child`` is used to
-  communicate with your service).
+  create multiple Cloud Run services in different regions for the same repository if this is a problem).
 * Will automatically stop shortly after finishing the analyses asked for in the Pub/Sub message (although
   you can set a minimum container count so one is always running to minimise cold starts).
 
@@ -29,7 +27,7 @@ How to deploy
 
 .. image:: images/deploying_services_advanced/create_service.png
 
-2. Give your service a unique and useful name
+2. Give your service a unique name
 
 .. image:: images/deploying_services_advanced/service_name_and_region.png
 
@@ -53,12 +51,12 @@ How to deploy
 .. image:: images/deploying_services_advanced/choose_repository.png
 
 5. Click "Next", enter a regular expression for the branches you want to automatically deploy from (``main`` by default).
-   As the services will be a docker container, select "Dockerfile" and click "Save".
+   As the service will run in a docker container, select "Dockerfile" and click "Save".
 
 .. image:: images/deploying_services_advanced/choose_dockerfile.png
 
-6. Click "Next", select "Allow internal traffic only" and "Require authentication". This stops anyone without permission
-   from using the service.
+6. Click "Next". If you want your service to be private, select "Allow internal traffic only" and "Require
+   authentication". This stops anyone without permission from using the service.
 
 .. image:: images/deploying_services_advanced/set_traffic.png
 
@@ -69,15 +67,15 @@ How to deploy
 
 .. image:: images/deploying_services_advanced/create_trigger.png
 
-8. To create the topic ID, use python or similar to generate a new UUID, prefixing it with "octue.services." e.g.
-   ``octue.services.3cd3298d-90f5-4bc7-bae6-3fdbe735d42a``. Click "Create topic".
+8. The topic ID should be in the form ``octue.services.my-organisation.my-service``. Click "Create topic".
 
 9. Under "Invocation settings", click on the "Service account" menu and then "Create new service account".
 
 .. image:: images/deploying_services_advanced/create_service_account.png
 
 10. Make a new service account with a related name e.g. "my-service", then click "Create". Add the
-    "octue-service-user" and "Cloud Run Invoker" roles to the service account.
+    "octue-service-user" and "Cloud Run Invoker" roles to the service account. Contact us if the "octue-service-user"
+    role is not available.
 
 .. image:: images/deploying_services_advanced/add_roles_to_service_account.png
 
