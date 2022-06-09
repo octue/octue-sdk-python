@@ -58,6 +58,7 @@ class Service(CoolNameable):
             else:
                 self.id = f"{OCTUE_NAMESPACE}.{service_id}"
 
+            self.name = kwargs.get("name") or self.id
             self.id = self._clean_service_id(self.id)
 
         self.backend = backend

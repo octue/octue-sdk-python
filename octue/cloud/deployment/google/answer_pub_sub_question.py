@@ -26,7 +26,6 @@ def answer_question(question, project_name):
     service_id = os.environ.get("SERVICE_ID") or service_configuration.service_id
 
     service = Service(
-        name=service_id,
         service_id=service_id,
         backend=GCPPubSubBackend(project_name=project_name),
     )

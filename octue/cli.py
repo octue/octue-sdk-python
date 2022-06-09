@@ -176,14 +176,6 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
     default="octue.yaml",
     help="The path to an `octue.yaml` file defining the service to start.",
 )
-@click.option(
-    "--service-id",
-    type=click.STRING,
-    default=None,
-    show_default=True,
-    help="A unique ID for the service (this should be unique over all time and space). If not provided, the ID is "
-    "generated from the `octue.yaml` file.",
-)
 @click.option("--timeout", type=click.INT, default=None, show_default=True, help="Timeout in seconds for serving.")
 @click.option(
     "--rm",
@@ -193,10 +185,9 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
     show_default=True,
     help="Delete the Google Pub/Sub topic and subscription for the service on exit.",
 )
-def start(service_config, service_id, timeout, rm):
+def start(service_config, timeout, rm):
     """Start the service as a child to be asked questions by other services."""
     service_configuration, app_configuration = load_service_and_app_configuration(service_config)
-    service_id = service_id or service_configuration.service_id
 
     runner = Runner(
         app_src=service_configuration.app_source_path,
@@ -205,7 +196,7 @@ def start(service_config, service_id, timeout, rm):
         configuration_manifest=app_configuration.configuration_manifest,
         children=app_configuration.children,
         output_location=app_configuration.output_location,
-        service_id=service_id,
+        service_id=service_configuration.service_id,
     )
 
     run_function = functools.partial(
@@ -225,8 +216,7 @@ def start(service_config, service_id, timeout, rm):
         backend = service_backends.get_backend()(project_name=project_name)
 
     service = Service(
-        name=service_id,
-        service_id=service_id,
+        service_id=service_configuration.service_id,
         backend=backend,
         run_function=run_function,
     )
@@ -248,17 +238,11 @@ def deploy():
     show_default=True,
     help="The path to an `octue.yaml` file defining the service to deploy.",
 )
-@click.option(
-    "--service-id",
-    type=str,
-    default=None,
-    help="An ID to use for the service if a specific one is required (defaults to an automatically generated one).",
-)
 @click.option("--no-cache", is_flag=True, help="If provided, don't use the Docker cache.")
 @click.option("--update", is_flag=True, help="If provided, allow updates to an existing service.")
-def cloud_run(service_config, service_id, update, no_cache):
+def cloud_run(service_config, update, no_cache):
     """Deploy an app as a Google Cloud Run service."""
-    CloudRunDeployer(service_config, service_id=service_id).deploy(update=update, no_cache=no_cache)
+    CloudRunDeployer(service_config).deploy(update=update, no_cache=no_cache)
 
 
 @deploy.command()
@@ -270,12 +254,6 @@ def cloud_run(service_config, service_id, update, no_cache):
     show_default=True,
     help="The path to an `octue.yaml` file defining the service to deploy.",
 )
-@click.option(
-    "--service-id",
-    type=str,
-    default=None,
-    help="An ID to use for the service if a specific one is required (defaults to an automatically generated one).",
-)
 @click.option("--no-cache", is_flag=True, help="If provided, don't use the Docker cache when building the image.")
 @click.option("--update", is_flag=True, help="If provided, allow updates to an existing service.")
 @click.option(
@@ -284,7 +262,7 @@ def cloud_run(service_config, service_id, update, no_cache):
     help="If provided, skip creating and running the build trigger and just deploy a pre-built image to Dataflow",
 )
 @click.option("--image-uri", type=str, default=None, help="The actual image URI to use when creating the Dataflow job.")
-def dataflow(service_config, service_id, no_cache, update, dataflow_job_only, image_uri):
+def dataflow(service_config, no_cache, update, dataflow_job_only, image_uri):
     """Deploy an app as a Google Dataflow streaming job."""
     if bool(importlib.util.find_spec("apache_beam")):
         # Import the Dataflow deployer only if the `apache-beam` package is available (due to installing `octue` with
@@ -296,7 +274,7 @@ def dataflow(service_config, service_id, no_cache, update, dataflow_job_only, im
             "`pip install octue[dataflow]`"
         )
 
-    deployer = DataflowDeployer(service_config, service_id=service_id)
+    deployer = DataflowDeployer(service_config)
 
     if dataflow_job_only:
         deployer.create_streaming_dataflow_job(image_uri=image_uri, update=update)
