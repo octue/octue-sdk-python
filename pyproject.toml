@@ -3,7 +3,7 @@ name = "octue"
 version = "0.28.0"
 description = "A package providing template applications for data services, and a python SDK to the Octue API."
 readme = "README.md"
-authors = ["Thomas Clark <support@octue.com>", "cortadocodes <cortado.codes@protonmail.com>"]
+authors = ["Marcus Lugg <cortado.codes@protonmail.com>", "Thomas Clark <support@octue.com>"]
 license = "MIT"
 repository = "https://www.github.com/octue/octue-sdk-python"
 packages = [{ include = "octue"}]
@@ -35,6 +35,7 @@ pyyaml = "^6"
 h5py = { version = "^3.6", optional = true }
 apache-beam = { extras = ["gcp"], version = "^2.37", optional = true }
 twined = "^0.5.0"
+packaging = "^21.3"
 
 [tool.poetry.extras]
 hdf5 = ["h5py"]
