@@ -95,7 +95,7 @@ class Runner:
         :param str analysis_log_level: the level below which to ignore log messages
         :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run. Handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but should use the format defined above in LOG_FORMAT.
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
-        :return None:
+        :return octue.resources.analysis.Analysis:
         """
         if hasattr(self.twine, "credentials"):
             self._populate_environment_with_google_cloud_secrets()

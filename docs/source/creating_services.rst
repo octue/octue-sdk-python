@@ -99,6 +99,8 @@ Dependencies file
         ``requirements.txt`` file `(read more here) <https://learnpython.com/blog/python-requirements-file/>`_ listing all the
         python packages your app depends on and the version ranges that will work with your app.
 
+.. _octue_yaml:
+
 octue.yaml
 ----------
 

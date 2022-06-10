@@ -84,9 +84,10 @@ We use `GitHub Issues <https://github.com/octue/octue-sdk-python/issues>`_ [#]_ 
    manifest
    asking_questions
    creating_services
+   running_services_locally
+   deploying_services_advanced
    logging
    child_services
-   deploying_services_advanced
    api
    license
    version_history
