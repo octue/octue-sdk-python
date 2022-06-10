@@ -4,6 +4,28 @@ Available filters
 Lots of filters are available when using the ``Dataset.files.filter`` method. We've broken them down by the type of
 attribute the datafiles are being filtered by:
 
+- Numbers (e.g. ``int``, ``float``):
+    * ``is``
+    * ``is_not``
+    * ``equals``
+    * ``not_equals``
+    * ``lt``
+    * ``lte``
+    * ``gt``
+    * ``gte``
+    * ``in_range``
+    * ``not_in_range``
+
+- Iterables (e.g. ``list``, ``set``, ``tuple``, ``dictionary``):
+    * ``is``
+    * ``is_not``
+    * ``equals``
+    * ``not_equals``
+    * ``contains``
+    * ``not_contains``
+    * ``icontains``
+    * ``not_icontains``
+
 - ``bool``
     * ``is``
     * ``is_not``
@@ -79,30 +101,3 @@ attribute the datafiles are being filtered by:
     * ``second_in``
     * ``in_date_range``
     * ``in_time_range``
-
-
-Additionally, these filters are defined for the following more general types (technically, *interfaces/duck-types*).
-These interface filters are only used if the type of the attribute of the element being filtered is not found in the
-list of filters for specific types.
-
-- Numbers (e.g. ``int``, ``float``):
-    * ``is``
-    * ``is_not``
-    * ``equals``
-    * ``not_equals``
-    * ``lt``
-    * ``lte``
-    * ``gt``
-    * ``gte``
-    * ``in_range``
-    * ``not_in_range``
-
-- Iterables (e.g. ``list``, ``set``, ``tuple``, ``dictionary``):
-    * ``is``
-    * ``is_not``
-    * ``equals``
-    * ``not_equals``
-    * ``contains``
-    * ``not_contains``
-    * ``icontains``
-    * ``not_icontains``
