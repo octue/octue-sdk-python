@@ -1,8 +1,8 @@
 .. _deploying_services_advanced:
 
-===============================================================
-How to deploy a service to Google Cloud Run (developer's guide)
-===============================================================
+======================================
+Deploying services (developer's guide)
+======================================
 This is a guide for developers that want to deploy Octue services themselves - it is not needed if Octue manages your
 services for you or if you are only asking questions to existing Octue services.
 
