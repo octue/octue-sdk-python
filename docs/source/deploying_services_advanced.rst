@@ -6,6 +6,17 @@ Deploying services (developer's guide)
 This is a guide for developers that want to deploy Octue services themselves - it is not needed if Octue manages your
 services for you or if you are only asking questions to existing Octue services.
 
+.. attention::
+
+    The ``octue deploy`` CLI command can be used to deploy services automatically, but it:
+
+    - Is in alpha so may not work as intended
+    - Requires the ``gcloud`` CLI tool with ``Google Cloud SDK 367.0.0`` and ``beta 2021.12.10`` to be available
+    - Requires the correct permissions via the ``gcloud`` tool logged into a Google user account and/or with an
+      appropriate service account available
+
+    For now, we recommend `contacting us <https://www.octue.com/contact>`_ to help set up deployments for you.
+
 What deployment enables
 -----------------------
 Deploying an Octue service to Google Cloud Run means it:

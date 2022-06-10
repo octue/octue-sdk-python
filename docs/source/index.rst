@@ -66,7 +66,8 @@ We use `GitHub Issues <https://github.com/octue/octue-sdk-python/issues>`_ [#]_ 
 
 .. rubric:: Footnotes
 
-.. [#] Bug reports, feature requests and support requests, may also be made directly to your Octue support contact, or via the support pages.
+.. [#] Bug reports, feature requests and support requests, may also be made directly to your Octue support contact, or
+   via the `support pages <https://www.octue.com/contact>`_.
 
 
 ..
