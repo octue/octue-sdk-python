@@ -128,36 +128,65 @@ A dataset can only return ``True`` for one of these at a time.
 
 Filter datasets
 ---------------
-Datafiles in a dataset are stored in a ``FilterSet`` (see :doc:`here <filter_containers>` for more info), meaning they
-can be easily filtered by any attribute of the datafile instances contained e.g. name, extension, ID, timestamp, tags,
-labels, size. The filtering syntax is similar to Django's.
+Datafiles in a dataset are stored in a :mod:`FilterSet <octue.resources.filter_containers.FilterSet>`, meaning they
+can be easily filtered by any attribute of the datafiles contained e.g. name, extension, ID, timestamp, tags, labels,
+size. The filtering syntax is similar to Django's i.e.
+
+.. code-block:: shell
+
+    # Get datafiles that have an attribute that satisfies the filter.
+    dataset.files.filter(<datafile_attribute>__<filter>=<value>)
+
+    # Or, if your filter is a simple equality filter:
+    dataset.files.filter(<datafile_attribute>=<value>)
+
+Here's an example:
 
 .. code-block:: python
 
+    # Make a dataset.
     dataset = Dataset(
         path="blah",
         files=[
-            Datafile(path="blah/my_file.csv", labels=["one", "a", "b" "all"]),
-            Datafile(path="blah/your_file.txt", labels=["two", "a", "b", "all"),
-            Datafile(path="blah/another_file.csv", labels=["three", "all"]),
+            Datafile(path="my_file.csv", labels=["one", "a", "b" "all"]),
+            Datafile(path="your_file.txt", labels=["two", "a", "b", "all"),
+            Datafile(path="another_file.csv", labels=["three", "all"]),
         ]
     )
 
+    # Filter it!
     dataset.files.filter(name__starts_with="my")
     >>> <FilterSet({<Datafile('my_file.csv')>})>
 
-    dataset.files.filter(extension__equals="csv")
+    dataset.files.filter(extension="csv")
     >>> <FilterSet({<Datafile('my_file.csv')>, <Datafile('another_file.csv')>})>
 
     dataset.files.filter(labels__contains="a")
     >>> <FilterSet({<Datafile('my_file.csv')>, <Datafile('your_file.txt')>})>
 
-You can also chain filters or specify them all at the same time:
+You can also chain filters or specify them all at the same time - these two examples produce the same result:
 
 .. code-block:: python
 
-    dataset.files.filter(extension__equals="csv").filter(labels__contains="a")
+    # Chaining multiple filters.
+    dataset.files.filter(extension="csv").filter(labels__contains="a")
     >>> <FilterSet({<Datafile('my_file.csv')>})>
 
-    dataset.files.filter(extension__equals="csv", labels__contains="a")
+    # Specifying multiple filters at once.
+    dataset.files.filter(extension="csv", labels__contains="a")
     >>> <FilterSet({<Datafile('my_file.csv')>})>
+
+For the list of available filters, :doc:`click here <available_filters>`.
+
+
+Order datasets
+--------------
+A dataset can also be ordered by any of the attributes of its datafiles:
+
+.. code-block:: python
+
+    dataset.files.order_by("name")
+    >>> <FilterList([<Datafile('another_file.csv')>, <Datafile('my_file.csv')>, <Datafile(path="your_file.txt")>])>
+
+The ordering can also be carried out in reverse (i.e. descending order) by passing ``reverse=True`` as a second argument
+to the ``order_by`` method.
