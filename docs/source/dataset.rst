@@ -164,6 +164,22 @@ Here's an example:
     dataset.files.filter(labels__contains="a")
     >>> <FilterSet({<Datafile('my_file.csv')>, <Datafile('your_file.txt')>})>
 
+You can iterate through the filtered files:
+
+.. code-block:: python
+
+    for datafile in dataset.files.filter(labels__contains="a"):
+        print(datafile.name)
+    >>> 'my_file.csv'
+        'your_file.txt'
+
+If there's just one result, get it via the ``one`` method:
+
+.. code-block:: python
+
+    dataset.files.filter(name__starts_with="my").one()
+    >>> <Datafile('my_file.csv')>
+
 You can also chain filters or specify them all at the same time - these two examples produce the same result:
 
 .. code-block:: python
@@ -176,7 +192,7 @@ You can also chain filters or specify them all at the same time - these two exam
     dataset.files.filter(extension="csv", labels__contains="a")
     >>> <FilterSet({<Datafile('my_file.csv')>})>
 
-For the list of available filters, :doc:`click here <available_filters>`.
+For the full list of available filters, :doc:`click here <available_filters>`.
 
 
 Order datasets
