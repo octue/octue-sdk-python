@@ -1,4 +1,3 @@
 services:
   - name: wind-speed-service
-    organisation: template-child-services
     app_configuration_path: app_configuration.json

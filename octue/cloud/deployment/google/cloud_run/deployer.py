@@ -28,14 +28,13 @@ class CloudRunDeployer(BaseDeployer):
     ```
 
     :param str octue_configuration_path: the path to the `octue.yaml` file if it's not in the current working directory
-    :param str|None service_id: an ID to give the service if the one generated from `octue.yaml` isn't sufficient
     :return None:
     """
 
     TOTAL_NUMBER_OF_STAGES = 5
 
-    def __init__(self, octue_configuration_path, service_id=None, image_uri_template=None):
-        super().__init__(octue_configuration_path, service_id, image_uri_template)
+    def __init__(self, octue_configuration_path, image_uri_template=None):
+        super().__init__(octue_configuration_path, image_uri_template)
         self.build_trigger_description = (
             f"Build the {self.service_configuration.name!r} service and deploy it to Cloud Run."
         )

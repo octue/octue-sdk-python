@@ -382,8 +382,14 @@ class TestDatafile(BaseTestCase):
         with datafile.open("w") as f:
             f.write("hello")
 
+        # Test that the datafile's "open attributes" are updated.
+        self.assertEqual(datafile._open_attributes["mode"], "w")
+
         with datafile.open() as f:
             self.assertEqual(f.read(), "hello")
+
+        # Test that the datafile's "open attributes" are updated.
+        self.assertEqual(datafile._open_attributes["mode"], "r")
 
     def test_open_with_reading_cloud_file(self):
         """Test that a cloud datafile can be opened for reading."""
@@ -405,6 +411,9 @@ class TestDatafile(BaseTestCase):
 
             # Check that the cloud file isn't updated until the context manager is closed.
             self.assertEqual(GoogleCloudStorageClient().download_as_string(datafile.cloud_path), original_contents)
+
+            # Test that the datafile's "open attributes" are updated.
+            self.assertEqual(new_datafile._open_attributes["mode"], "w")
 
         # Check that the cloud file has now been updated.
         self.assertEqual(GoogleCloudStorageClient().download_as_string(datafile.cloud_path), new_file_contents)

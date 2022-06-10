@@ -646,6 +646,9 @@ class _DatafileContextManager:
         self.kwargs = kwargs
         self._fp = None
 
+        # Update the open mode on the datafile as it's used in `Datafile` methods.
+        self.datafile._open_attributes["mode"] = self.mode
+
     def __enter__(self):
         """Open the datafile, first downloading it from the cloud if necessary.
 

@@ -35,31 +35,27 @@ class BaseDeployer:
     ```
 
     :param str octue_configuration_path: the path to the `octue.yaml` file if it's not in the current working directory
-    :param str|None service_id: an ID to give the service if the one generated from `octue.yaml` isn't sufficient
     :return None:
     """
 
     TOTAL_NUMBER_OF_STAGES = None
 
-    def __init__(self, octue_configuration_path, service_id=None, image_uri_template=None):
+    def __init__(self, octue_configuration_path, image_uri_template=None):
         self.service_configuration = ServiceConfiguration.from_file(octue_configuration_path)
 
         # Generated attributes.
         self.build_trigger_description = None
         self.generated_cloud_build_configuration = None
-        self.service_id = (service_id or self.service_configuration.service_id).replace("/", ".")
+        self.service_id = self.service_configuration.service_id.replace("/", ".")
 
         self.required_environment_variables = {"SERVICE_NAME": self.service_configuration.name}
-
-        if service_id:
-            self.required_environment_variables["SERVICE_ID"] = self.service_id
 
         self.image_uri_template = image_uri_template or (
             f"{DOCKER_REGISTRY_URL}/{self.service_configuration.project_name}/"
             f"{self.service_configuration.repository_name}/{self.service_configuration.name}:$SHORT_SHA"
         )
 
-        self.success_message = f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {service_id!r}."
+        self.success_message = f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}."
 
     @abstractmethod
     def deploy(self, no_cache=False, update=False):
