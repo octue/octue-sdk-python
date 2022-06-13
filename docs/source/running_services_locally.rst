@@ -38,7 +38,8 @@ named ``output_manifest_<analysis_id>.json``.
 
 Via a python script
 -------------------
-Imagine a very simple app that calculates the area of a square:
+Imagine we have a simple app that calculates the area of a square. It could be run locally on a given height and width
+like this:
 
 .. code-block:: python
 
