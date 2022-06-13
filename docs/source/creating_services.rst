@@ -204,3 +204,5 @@ Automated deployment with Octue means:
 
 To enable automated deployments, contact us so we can create a Google Cloud Build trigger linked to your git repository.
 This requires no work from you apart from authorising the connection to GitHub (or another git provider).
+
+If you want to deploy services yourself, see :doc:`here <deploying_services>`.

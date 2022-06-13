@@ -85,7 +85,7 @@ We use `GitHub Issues <https://github.com/octue/octue-sdk-python/issues>`_ [#]_ 
    asking_questions
    creating_services
    running_services_locally
-   deploying_services_advanced
+   deploying_services
    logging
    child_services
    api
