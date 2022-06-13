@@ -4,10 +4,17 @@
 Datafile
 ========
 
-.. admonition:: Definition
+.. admonition:: Definitions
 
     Datafile
         A single local or cloud file, its metadata, and helper methods.
+
+    Locality
+        A datafile has one of these localities:
+
+        - **Cloud-based:** it exists only in the cloud
+        - **Local:** it exists only on your local filesystem
+        - **Cloud-based and local:** it's cloud-based but has been downloaded for low-latency reading/writing
 
 .. tip::
 
@@ -22,10 +29,8 @@ Key features
 
 Work with local and cloud data
 ------------------------------
-
-Working with a datafile is almost identical to using the built-in ``open`` function, and the same whether it’s local or in the cloud.
-
-For example, this is how to write to a local datafile:
+Working with a datafile is the same whether it's local or cloud-based. It's also almost identical to using the built-in
+python ``open`` function. For example, to write to a datafile:
 
 .. code-block:: python
 
@@ -33,13 +38,7 @@ For example, this is how to write to a local datafile:
 
     datafile = Datafile("path/to/file.dat")
 
-    with datafile.open("w") as f:
-        f.write("Some data")
-        datafile.labels.add("processed")
-
-And this is how to write to a cloud datafile:
-
-.. code-block:: python
+    # Or:
 
     datafile = Datafile("gs://my-bucket/path/to/file.dat")
 
@@ -49,8 +48,11 @@ And this is how to write to a cloud datafile:
 
 All the same file modes you'd use with the built-in ``open`` are available for datafiles e.g. ``"r"`` and ``"a"``.
 
+
 Automatic lazy downloading
 --------------------------
+Save time and bandwidth by only downloading when necessary.
+
 Downloading data from cloud datafiles is automatic and lazy so you get both low-latency content read/write and quick
 metadata reads. This makes viewing and filtering by the metadata of cloud datasets and datafiles quick and avoids
 unnecessary data transfer, energy usage, and costs.
@@ -61,10 +63,13 @@ Datafile content isn't downloaded until you:
 - Call its ``download`` method
 - Use its ``local_path`` property
 
+Read more about downloading files :doc:`here <downloading_datafiles>`.
+
 
 CLI command friendly
 --------------------
-Datafiles are python objects, but they represent real files that can be fed to any CLI command you like
+Use any command line tool on your datafiles. Datafiles are python objects, but they represent real files that can be
+fed to any CLI command you like
 
 .. code-block:: python
 
@@ -74,8 +79,7 @@ Datafiles are python objects, but they represent real files that can be fed to a
 
 Easy and expandable custom metadata
 -----------------------------------
-
-You can set the following metadata on a datafile:
+Find the needle in the haystack by making your data searchable. You can set the following metadata on a datafile:
 
 - Timestamp
 - Labels (a set of lowercase strings)
@@ -112,7 +116,8 @@ You can do this outside the context manager too, but you then need to call the u
 
 Upload an existing local datafile
 ---------------------------------
-You can upload an existing local datafile to the cloud without using the ``open`` context manager if you don't need to modify its contents:
+Back up and share your datafiles for collaboration. You can upload an existing local datafile to the cloud without
+using the ``open`` context manager if you don't need to modify its contents:
 
 .. code-block:: python
 
@@ -121,7 +126,7 @@ You can upload an existing local datafile to the cloud without using the ``open`
 
 Get file hashes
 ---------------
-File hashes guarantee you have the right file. Getting the hash of datafiles is simple:
+Make your analysis reproducible: guarantee a datafile contains exactly the same data by checking its hash.
 
 .. code-block:: python
 
@@ -141,15 +146,7 @@ Each datafile has an immutable UUID:
 
 Check a datafile's locality
 ---------------------------
-
-.. admonition:: Definition
-
-    Locality
-        A datafile has one of these localities:
-
-        - **Cloud-based:** it exists only in the cloud
-        - **Local:** it exists only on your local filesystem
-        - **Cloud-based and local:** it's cloud-based but has been downloaded for low-latency reading/writing
+Is this datafile local or in the cloud?
 
 .. code-block:: python
 
@@ -164,6 +161,7 @@ A cloud datafile that has been downloaded will return ``True`` for both of these
 
 Represent HDF5 files
 --------------------
+Support fast I/O processing and storage.
 
 .. warning::
     If you want to represent HDF5 files with a ``Datafile``, you must include the extra requirements provided by the
@@ -178,36 +176,6 @@ Represent HDF5 files
     .. code-block:: shell
 
         poetry add octue -E hdf5
-
-
-More information on downloading
--------------------------------
-
-- To avoid unnecessary data transfer and costs, cloud datafiles are not downloaded locally
-  `until necessary <datafile.html#automatic-lazy-downloading>`_.
-- When downloaded, they are downloaded by default to a temporary local file that will exist at least as long as the
-  python session is running
-- Calling ``Datafile.download`` or using ``Datafile.local_path`` again will not re-download the file
-- Any changes made to the datafile via the ``Datafile.open`` method are made to the local copy and then synced with
-  the cloud object
-
-.. warning::
-
-    External changes to cloud files will not be synced locally unless the datafile is re-instantiated.
-
-- If you want a cloud object to be downloaded to a permanent location, you can do one of:
-
-    .. code-block:: python
-
-        datafile.download(local_path="my/local/path.csv")
-
-        datafile.local_path = "my/local/path.csv"
-
-- To pre-set a permanent download location on instantiation, run:
-
-    .. code-block:: python
-
-        datafile = Datafile("gs://my-bucket/path/to/file.dat", local_path="my/local/path.csv")
 
 
 Usage examples
