@@ -14,11 +14,12 @@ tell you more:
 .. admonition:: Definitions
 
     Child
-        An Octue service that you can ask a question to. This name is used to reflect the tree structure of services
-        that forms when a question is asked.
+        An Octue service that can be asked a question. This name reflects the tree structure of services formed by the
+        service asking the question (the parent), the child it asks the question to, any children that the child asks
+        questions to as part of forming its answer, and so on.
 
     Parent
-        An Octue service that asks a question to a child.
+        An Octue service that asks a question to another Octue service (a child).
 
     Asking a question
         Sending data (input values and/or an input manifest) to a child for processing/analysis.
