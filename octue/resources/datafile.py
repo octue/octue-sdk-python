@@ -505,7 +505,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         if local_path:
             # If there is no file at the given local path or the file is different to the one in the cloud, download
             # the cloud file locally.
-            if not os.path.exists(local_path) or self.cloud_hash_value != calculate_hash(local_path):
+            if not os.path.exists(local_path) or self.cloud_hash_value != calculate_file_hash(local_path):
                 self.download(local_path)
             else:
                 self._local_path = local_path
@@ -602,10 +602,10 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
         :return str:
         """
-        if self._local_path and os.path.exists(self._local_path):
+        if self.exists_locally and os.path.exists(self._local_path):
             # Calculate the hash of the file itself and then pass it to `Hashable` to include the hashes of any
             # attributes named in `self._ATTRIBUTES_TO_HASH`.
-            hash_value = calculate_hash(self._local_path)
+            hash_value = calculate_file_hash(self._local_path)
             return super()._calculate_hash(hash_value)
         else:
             return self.cloud_hash_value or EMPTY_STRING_HASH_VALUE
@@ -692,8 +692,12 @@ class _DatafileContextManager:
                 self.datafile.update_local_metadata()
 
 
-def calculate_hash(path):
-    """Calculate the hash of the file at the given path."""
+def calculate_file_hash(path):
+    """Calculate the hash of the file at the given path.
+
+    :param str path:
+    :return google_crc32c.Checksum:
+    """
     hash = Checksum()
 
     with open(path, "rb") as f:
