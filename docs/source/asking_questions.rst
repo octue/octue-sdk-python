@@ -67,3 +67,44 @@ You can also set the following options when you call ``ask``:
 - ``handle_monitor_message`` - if provided a callable, this will handle any monitor messages from the child
 - ``question_uuid`` - if provided, the question will use this UUID instead of a generated one
 - ``timeout`` - how long in seconds to wait for an answer
+
+
+Asking a question within a service
+----------------------------------
+If you have :doc:`created your own Octue service <creating_services>` and want to ask children questions, you can do
+this more easily than above. Children are accessible from the ``analysis`` object by the keys you give them in the
+:ref:`app configuration <app_configuration>` file. For example, if your configuration file is:
+
+.. code-block:: json
+
+    {
+      "children": [
+        {
+          "key": "wind_speed",
+          "id": "template-child-services/wind-speed-service",
+          "backend": {
+            "name": "GCPPubSubBackend",
+            "project_name": "my-project"
+          }
+        },
+        {
+          "key": "elevation",
+          "id": "template-child-services/elevation-service",
+          "backend": {
+            "name": "GCPPubSubBackend",
+            "project_name": "my-project"
+          }
+        }
+      ]
+    }
+
+then you can ask the ``elevation`` service a question like this:
+
+.. code-block:: python
+
+    answer = analysis.children["elevation"].ask(input_values={"longitude": 0, "latitude": 1})
+
+See the parent service's `app configuration <https://github.com/octue/octue-sdk-python/blob/main/octue/templates/template-child-services/parent_service/app_configuration.json>`_
+and `app.py file <https://github.com/octue/octue-sdk-python/blob/main/octue/templates/template-child-services/parent_service/app.py>`_
+in the  `child-services app template <https://github.com/octue/octue-sdk-python/tree/main/octue/templates/template-child-services>`_
+to see this in action.

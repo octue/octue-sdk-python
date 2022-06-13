@@ -129,6 +129,8 @@ octue.yaml
             Currently, only one service can be defined per repository, but it must still appear as a list item of the
             "services" key. At some point, it will be possible to define multiple services in one repository.
 
+.. _app_configuration:
+
 App configuration file (optional)
 ---------------------------------
 
@@ -137,8 +139,8 @@ App configuration file (optional)
             ----
 
         If your app needs any configuration, asks questions to any other Octue services, or produces output
-        datafiles/datasets, you will need to provide an app configuration. Currently, this can only take the form of JSON file.
-        It can contain the following keys:
+        datafiles/datasets, you will need to provide an app configuration. Currently, this must take the form of a JSON
+        file. It can contain the following keys:
 
         - ``configuration_values``
         - ``configuration_manifest``
