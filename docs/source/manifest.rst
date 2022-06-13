@@ -21,6 +21,7 @@ Key features
 
 Group related datasets together
 -------------------------------
+Make a clear grouping of datasets needed for a particular analysis.
 
 .. code-block:: python
 
@@ -37,6 +38,7 @@ Group related datasets together
 
 Send datasets to a service
 --------------------------
+Get an Octue service to analyse data for you as part of a larger analysis.
 
 .. code-block:: python
 
@@ -55,6 +57,7 @@ See :doc:`here <asking_questions>` for more information.
 
 Receive datasets from a service
 -------------------------------
+Get output datasets from an Octue service from the cloud when you're ready.
 
 .. code-block:: python
 
