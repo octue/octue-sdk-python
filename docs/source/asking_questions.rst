@@ -14,9 +14,10 @@ tell you more:
 .. admonition:: Definitions
 
     Child
-        An Octue service that can be asked a question. This name reflects the tree structure of services formed by the
-        service asking the question (the parent), the child it asks the question to, any children that the child asks
-        questions to as part of forming its answer, and so on.
+        An Octue service that can be asked a question. This name reflects the tree structure of services (specifically,
+        `a DAG <https://en.wikipedia.org/wiki/Directed_acyclic_graph>`_) formed by the service asking the question (the
+        parent), the child it asks the question to, any children that the child asks questions to as part of forming
+        its answer, and so on.
 
     Parent
         An Octue service that asks a question to another Octue service (a child).
@@ -46,8 +47,7 @@ input values and/or an input manifest.
     from octue.resources import Child
 
     child = Child(
-        name="wind_speed",
-        id="4acbf2aa-54ce-4bae-b473-a062e21b3d57",
+        id="my-organisation/my-service",
         backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
     )
 
@@ -64,16 +64,31 @@ You can also set the following options when you call ``ask``:
 
 - ``subscribe_to_logs`` - if true, the child will forward its logs to you
 - ``allow_local_files`` - if true, local files/datasets are allowed in any input manifest you supply
-- ``handle_monitor_message`` - if provided a callable, this will handle any monitor messages from the child
+- ``handle_monitor_message`` - if provided a function, it will be called on any monitor messages from the child
 - ``question_uuid`` - if provided, the question will use this UUID instead of a generated one
-- ``timeout`` - how long in seconds to wait for an answer
+- ``timeout`` - how long in seconds to wait for an answer (``None`` by default - i.e. don't time out)
+
+If a child raises an exception while processing your question, the exception will always be forwarded and re-raised in
+your local service or python session. You can handle exceptions in whatever way you like.
+
+If setting a timeout, bear in mind that the question has to reach the child, the child has to run its analysis on
+the inputs sent to it (this most likely corresponds to the dominant part of the wait time), and the answer has to be
+sent back to the parent. If you're not sure how long a particular analysis might take, it's best to set the timeout to
+``None`` initially or ask the owner/maintainer of the child for an estimate.
 
 
 Asking a question within a service
 ----------------------------------
 If you have :doc:`created your own Octue service <creating_services>` and want to ask children questions, you can do
 this more easily than above. Children are accessible from the ``analysis`` object by the keys you give them in the
-:ref:`app configuration <app_configuration>` file. For example, if your configuration file is:
+:ref:`app configuration <app_configuration>` file. For example, you can ask an ``elevation`` service a question like
+this:
+
+.. code-block:: python
+
+    answer = analysis.children["elevation"].ask(input_values={"longitude": 0, "latitude": 1})
+
+if your app configuration file is:
 
 .. code-block:: json
 
@@ -98,11 +113,22 @@ this more easily than above. Children are accessible from the ``analysis`` objec
       ]
     }
 
-then you can ask the ``elevation`` service a question like this:
+and your ``twine.json`` file includes the child keys in its ``children`` field:
 
-.. code-block:: python
+.. code-block:: json
 
-    answer = analysis.children["elevation"].ask(input_values={"longitude": 0, "latitude": 1})
+    {
+        "children": [
+            {
+                "key": "wind_speed",
+                "purpose": "A service that returns the average wind speed for a given latitude and longitude.",
+            },
+            {
+                "key": "elevation",
+                "purpose": "A service that returns the elevation for a given latitude and longitude.",
+            }
+        ]
+    }
 
 See the parent service's `app configuration <https://github.com/octue/octue-sdk-python/blob/main/octue/templates/template-child-services/parent_service/app_configuration.json>`_
 and `app.py file <https://github.com/octue/octue-sdk-python/blob/main/octue/templates/template-child-services/parent_service/app.py>`_
