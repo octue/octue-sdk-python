@@ -4,11 +4,17 @@
 Dataset
 =======
 
-.. admonition:: Definition
+.. admonition:: Definitions
 
     Dataset
         A set of related :doc:`datafiles <datafile>` that exist in the same location, dataset metadata, and helper
         methods.
+
+    Locality
+        A dataset has one of these localities:
+
+        - **Cloud-based:** it exists only in the cloud
+        - **Local:** it exists only on your local filesystem
 
 .. tip::
 
@@ -25,7 +31,7 @@ Key features
 
 Work with local and cloud datasets
 ----------------------------------
-Instantiating a dataset is the same whether it's local or cloud-based.
+Working with a dataset is the same whether it's local or cloud-based.
 
 .. code-block:: python
 
@@ -38,6 +44,7 @@ Instantiating a dataset is the same whether it's local or cloud-based.
 
 Upload a dataset
 ----------------
+Back up and share your datasets for collaboration.
 
 .. code-block:: python
 
@@ -46,6 +53,7 @@ Upload a dataset
 
 Download a dataset
 ------------------
+Use a shared or public dataset or retrieve a backup.
 
 .. code-block:: python
 
@@ -54,8 +62,7 @@ Download a dataset
 
 Easy and expandable custom metadata
 -----------------------------------
-
-You can set the following metadata on a dataset:
+Find the needle in the haystack by making your data searchable. You can set the following metadata on a dataset:
 
 - Name
 - Labels (a set of lowercase strings)
@@ -92,7 +99,7 @@ You can do this outside the context manager too, but you then need to call the u
 
 Get dataset hashes
 ------------------
-File hashes guarantee you have the right dataset and ensure data consistency. Getting the hash of datasets is simple:
+Make your analysis reproducible: guarantee a dataset contains exactly the same data by checking its hash.
 
 .. code-block:: python
 
@@ -114,6 +121,7 @@ Each dataset has an immutable UUID:
 
 Check a dataset's locality
 ---------------------------
+Is this dataset local or in the cloud?
 
 .. code-block:: python
 
@@ -128,6 +136,8 @@ A dataset can only return ``True`` for one of these at a time.
 
 Filter datasets
 ---------------
+Narrow down a dataset to just the files you want to avoiding extra downloading and processing.
+
 Datafiles in a dataset are stored in a :mod:`FilterSet <octue.resources.filter_containers.FilterSet>`, meaning they
 can be easily filtered by any attribute of the datafiles contained e.g. name, extension, ID, timestamp, tags, labels,
 size. The filtering syntax is similar to Django's i.e.
