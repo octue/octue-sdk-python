@@ -11,15 +11,13 @@ class Child:
     """A class representing an Octue child service that can be asked questions. It is a convenience wrapper for
     `Service` that makes question asking more intuitive and allows easier selection of backends.
 
-    :param str name: an arbitrary name to refer to the child by (used to access it in Analysis instances and give context to log messages forwarded from the child)
     :param str id: the ID of the child
     :param dict backend: must include the key "name" with a value of the name of the type of backend e.g. "GCPPubSubBackend" and key-value pairs for any other parameters the chosen backend expects
     :param str|None internal_service_name: the name to give to the internal service used to ask questions to the child
     :return None:
     """
 
-    def __init__(self, name, id, backend, internal_service_name=None):
-        self.name = name
+    def __init__(self, id, backend, internal_service_name=None):
         self.id = id
 
         backend = copy.deepcopy(backend)
@@ -27,7 +25,7 @@ class Child:
         backend = service_backends.get_backend(backend_type_name)(**backend)
 
         self._service = BACKEND_TO_SERVICE_MAPPING[backend_type_name](
-            name=internal_service_name or f"{self.name}-parent",
+            name=internal_service_name or f"{self.id}-parent",
             backend=backend,
         )
 
@@ -36,7 +34,7 @@ class Child:
 
         :return str:
         """
-        return f"<{type(self).__name__}({self.name!r})>"
+        return f"<{type(self).__name__}({self.id!r})>"
 
     def ask(
         self,
@@ -75,6 +73,6 @@ class Child:
         return self._service.wait_for_answer(
             subscription=subscription,
             handle_monitor_message=handle_monitor_message,
-            service_name=self.name,
+            service_name=self.id,
             timeout=timeout,
         )

@@ -123,7 +123,6 @@ class Runner:
         if inputs["children"] is not None:
             inputs["children"] = {
                 child["key"]: Child(
-                    name=child["key"],
                     id=child["id"],
                     backend=child["backend"],
                     internal_service_name=self.service_id,
