@@ -69,12 +69,12 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         # Values strands.
         self.input_values = strand_kwargs.get("input_values", None)
         self.configuration_values = strand_kwargs.get("configuration_values", None)
-        self.output_values = None
+        self.output_values = strand_kwargs.get("output_values", None)
 
         # Manifest strands.
         self.configuration_manifest = strand_kwargs.get("configuration_manifest", None)
         self.input_manifest = strand_kwargs.get("input_manifest", None)
-        self.output_manifest = None
+        self.output_manifest = strand_kwargs.get("output_manifest", None)
 
         # Other strands.
         self.children = strand_kwargs.get("children", None)
