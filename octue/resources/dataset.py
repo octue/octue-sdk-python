@@ -63,6 +63,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         super().__init__(name=name, id=id, tags=tags, labels=labels)
         self.path = path or os.getcwd()
         self.files = FilterSet()
+        self._hypothetical = hypothetical
 
         if files:
             if not any((isinstance(files, list), isinstance(files, set), isinstance(files, tuple))):
@@ -75,11 +76,11 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             return
 
         if storage.path.is_cloud_path(self.path):
-            self._instantiate_from_cloud(path=self.path, recursive=recursive, hypothetical=hypothetical)
+            self._instantiate_from_cloud(path=self.path, recursive=recursive)
         else:
-            self._instantiate_from_local_directory(path=self.path, recursive=recursive, hypothetical=hypothetical)
+            self._instantiate_from_local_directory(path=self.path, recursive=recursive)
 
-        if hypothetical:
+        if self._hypothetical:
             logger.debug("Ignored stored metadata for %r.", self)
             return
 
@@ -390,22 +391,21 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         return serialised_dataset
 
-    def _instantiate_from_cloud(self, path, recursive=True, hypothetical=False):
+    def _instantiate_from_cloud(self, path, recursive=True):
         """Instantiate the dataset from a cloud directory.
 
         :param str path: the cloud path to a directory in cloud storage
         :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained within the dataset directory
-        :param bool hypothetical: if `True`, ignore any metadata stored for this dataset in the cloud and use whatever is given at instantiation
         :return None:
         """
-        if not hypothetical:
+        if not self._hypothetical:
             self._use_cloud_metadata()
 
         if not self.files:
             bucket_name = storage.path.split_bucket_name_from_cloud_path(path)[0]
 
             self.files = FilterSet(
-                Datafile(path=storage.path.generate_gs_path(bucket_name, blob.name))
+                Datafile(path=storage.path.generate_gs_path(bucket_name, blob.name), hypothetical=self._hypothetical)
                 for blob in GoogleCloudStorageClient().scandir(
                     path,
                     recursive=recursive,
@@ -417,12 +417,11 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
                 )
             )
 
-    def _instantiate_from_local_directory(self, path, recursive=False, hypothetical=False):
+    def _instantiate_from_local_directory(self, path, recursive=False):
         """Instantiate the dataset from a local directory.
 
         :param str path: the path to a local directory
         :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained within the dataset directory
-        :param bool hypothetical: if `True`, ignore any metadata stored for this dataset locally and use whatever is given at instantiation
         :return None:
         """
         self.files = FilterSet()
@@ -436,9 +435,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
                 if not recursive and level > 0:
                     break
 
-                self.files.add(Datafile(path=os.path.join(directory_path, filename)))
+                self.files.add(Datafile(path=os.path.join(directory_path, filename), hypothetical=self._hypothetical))
 
-        if not hypothetical:
+        if not self._hypothetical:
             self._use_local_metadata()
 
     def _instantiate_datafiles(self, files):
@@ -460,7 +459,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             return file
 
         if isinstance(file, str):
-            return Datafile(path=file)
+            return Datafile(path=file, hypothetical=self._hypothetical)
 
         return Datafile.deserialise(file)
 
@@ -517,6 +516,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         :return None:
         """
         if "files" in metadata:
+            # There's no need to provide the hypothetical parameter here as this method is only used for
+            # non-hypothetical datasets.
             self.files = FilterSet(Datafile(path=path) for path in metadata["files"])
 
         for attribute in self._METADATA_ATTRIBUTES:
