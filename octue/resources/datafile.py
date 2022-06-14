@@ -268,10 +268,9 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
     @property
     def local_path(self):
-        """Get the local path for the datafile, downloading it from the cloud to a temporary file if necessary. If
-        downloaded, the local path is added to a cache to avoid downloading again in the same runtime.
+        """Get the local path for the datafile, downloading it from the cloud to a temporary file if necessary.
 
-        :return str:
+        :return str: The local path of the datafile.
         """
         if self._local_path:
             return self._local_path
@@ -392,11 +391,11 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         return self.cloud_path
 
     def download(self, local_path=None):
-        """Download the file from the cloud to the given local path or a random temporary path.
+        """Download the file from the cloud to the given local path or a temporary path if none is given.
 
-        :param str|None local_path:
-        :raise octue.exceptions.CloudLocationNotSpecified: if the datafile does not exist in the cloud
-        :return str: path to local file
+        :param str|None local_path: The local path to download the datafile to. A temporary path is used if none is given.
+        :raise octue.exceptions.CloudLocationNotSpecified: If the datafile does not exist in the cloud
+        :return str: The path to the local file
         """
         if not self.exists_in_cloud:
             raise CloudLocationNotSpecified("Cannot download a file that doesn't exist in the cloud.")
