@@ -63,6 +63,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         super().__init__(name=name, id=id, tags=tags, labels=labels)
         self.path = path or os.getcwd()
         self.files = FilterSet()
+        self._recursive = recursive
         self._hypothetical = hypothetical
 
         if files:
@@ -76,9 +77,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             return
 
         if storage.path.is_cloud_path(self.path):
-            self._instantiate_from_cloud(path=self.path, recursive=recursive)
+            self._instantiate_from_cloud(path=self.path)
         else:
-            self._instantiate_from_local_directory(path=self.path, recursive=recursive)
+            self._instantiate_from_local_directory(path=self.path)
 
         if self._hypothetical:
             logger.debug("Ignored stored metadata for %r.", self)
@@ -391,11 +392,10 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         return serialised_dataset
 
-    def _instantiate_from_cloud(self, path, recursive=True):
+    def _instantiate_from_cloud(self, path):
         """Instantiate the dataset from a cloud directory.
 
         :param str path: the cloud path to a directory in cloud storage
-        :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained within the dataset directory
         :return None:
         """
         if not self._hypothetical:
@@ -408,7 +408,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
                 Datafile(path=storage.path.generate_gs_path(bucket_name, blob.name), hypothetical=self._hypothetical)
                 for blob in GoogleCloudStorageClient().scandir(
                     path,
-                    recursive=recursive,
+                    recursive=self._recursive,
                     filter=(
                         lambda blob: (
                             not blob.name.endswith(METADATA_FILENAME) and SIGNED_METADATA_DIRECTORY not in blob.name
@@ -417,11 +417,10 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
                 )
             )
 
-    def _instantiate_from_local_directory(self, path, recursive=False):
+    def _instantiate_from_local_directory(self, path):
         """Instantiate the dataset from a local directory.
 
         :param str path: the path to a local directory
-        :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained within the dataset directory
         :return None:
         """
         self.files = FilterSet()
@@ -432,7 +431,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
                 if filename == METADATA_FILENAME:
                     continue
 
-                if not recursive and level > 0:
+                if not self._recursive and level > 0:
                     break
 
                 self.files.add(Datafile(path=os.path.join(directory_path, filename), hypothetical=self._hypothetical))
