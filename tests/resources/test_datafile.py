@@ -191,10 +191,8 @@ class TestDatafile(BaseTestCase):
     def test_metadata_hash_is_different_for_same_file_but_different_metadata(self):
         """Test that the metadata hash is different for datafiles with the same files but different metadata."""
         first_file = Datafile(path=self.path, labels={"a", "b", "c"})
-
         second_file = copy.deepcopy(first_file)
         second_file.labels = {"d", "e", "f"}
-
         self.assertNotEqual(first_file.metadata_hash_value, second_file.metadata_hash_value)
 
     def test_exists_in_cloud(self):

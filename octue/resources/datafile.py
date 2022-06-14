@@ -187,9 +187,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
         :return str:
         """
-        return Hashable.hash_non_class_object(
-            self.metadata(include_id=False, include_sdk_version=False, use_octue_namespace=False)
-        )
+        return super().metadata_hash_value(use_octue_namespace=False)
 
     @property
     def cloud_hash_value(self):
@@ -446,10 +444,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         :param bool use_octue_namespace: if `True`, prefix metadata names with "octue__"
         :return dict:
         """
-        metadata = super().metadata(include_sdk_version=include_sdk_version)
-
-        if not include_id:
-            del metadata["id"]
+        metadata = super().metadata(include_sdk_version=include_sdk_version, include_id=include_id)
 
         if not use_octue_namespace:
             return metadata
