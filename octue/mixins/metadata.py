@@ -12,6 +12,7 @@ class Metadata:
     def metadata_hash_value(self, **kwargs):
         """Get the hash of the instance's metadata, not including its ID.
 
+        :param kwargs: any kwargs to use in an overridden `self.metadata` method when calculating the metadata hash value
         :return str:
         """
         return Hashable.hash_non_class_object(self.metadata(include_id=False, include_sdk_version=False, **kwargs))
@@ -22,6 +23,7 @@ class Metadata:
 
         :param bool include_id: if `True`, include the ID of the instance if it is included in `self._METADATA_ATTRIBUTES`
         :param bool include_sdk_version: if `True`, include the `octue` version that instantiated the instance
+        :param kwargs: any kwargs to use in an overridden `self.metadata` method
         :return dict:
         """
         metadata = {name: getattr(self, name) for name in self._METADATA_ATTRIBUTES}
