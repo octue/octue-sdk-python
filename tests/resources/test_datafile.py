@@ -172,6 +172,29 @@ class TestDatafile(BaseTestCase):
         # Check that the reloaded datafile hasn't been downloaded.
         self.assertIsNone(datafile_reloaded_from_cloud._local_path)
 
+    def test_metadata_hash_is_same_for_different_files_with_the_same_metadata(self):
+        """Test that the metadata hash is the same for datafiles with different files but the same metadata."""
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            first_file = Datafile(path=temporary_file.name, labels={"a", "b", "c"})
+
+            with first_file.open("w") as f:
+                f.write("hello")
+
+            with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+                second_file = Datafile(path=temporary_file.name, labels={"a", "b", "c"})
+
+                with second_file.open("w") as f:
+                    f.write("goodbye")
+
+                self.assertEqual(first_file.metadata_hash_value, second_file.metadata_hash_value)
+
+    def test_metadata_hash_is_different_for_same_file_but_different_metadata(self):
+        """Test that the metadata hash is different for datafiles with the same files but different metadata."""
+        first_file = Datafile(path=self.path, labels={"a", "b", "c"})
+        second_file = copy.deepcopy(first_file)
+        second_file.labels = {"d", "e", "f"}
+        self.assertNotEqual(first_file.metadata_hash_value, second_file.metadata_hash_value)
+
     def test_exists_in_cloud(self):
         """Test whether it can be determined that a datafile exists in the cloud or not."""
         self.assertFalse(self.create_valid_datafile().exists_in_cloud)

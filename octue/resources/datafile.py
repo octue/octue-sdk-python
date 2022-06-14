@@ -427,15 +427,16 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         self.reset_hash()
         return self._local_path
 
-    def metadata(self, include_sdk_version=True, use_octue_namespace=True):
+    def metadata(self, include_id=True, include_sdk_version=True, use_octue_namespace=True):
         """Get the datafile's metadata in a serialised form (i.e. the attributes `id`, `timestamp`, `labels`, `tags`,
         and `sdk_version`).
 
+        :param bool include_id: if `True`, include the ID of the datafile
         :param bool include_sdk_version: if `True`, include the `octue` version that instantiated the datafile in the metadata
         :param bool use_octue_namespace: if `True`, prefix metadata names with "octue__"
         :return dict:
         """
-        metadata = super().metadata(include_sdk_version=include_sdk_version)
+        metadata = super().metadata(include_sdk_version=include_sdk_version, include_id=include_id)
 
         if not use_octue_namespace:
             return metadata
@@ -592,6 +593,13 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
                 continue
 
             setattr(self, attribute, metadata[attribute])
+
+    def _metadata_hash_value(self):
+        """Get the hash of the datafile's metadata, not including its ID.
+
+        :return str:
+        """
+        return super()._metadata_hash_value(use_octue_namespace=False)
 
     def _calculate_hash(self):
         """Get the hash of the datafile according to the first of the following methods that is applicable:
