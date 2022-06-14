@@ -9,13 +9,12 @@ class Metadata:
     _METADATA_ATTRIBUTES = tuple()
 
     @property
-    def metadata_hash_value(self, **kwargs):
+    def metadata_hash_value(self):
         """Get the hash of the instance's metadata, not including its ID.
 
-        :param kwargs: any kwargs to use in an overridden `self.metadata` method when calculating the metadata hash value
         :return str:
         """
-        return Hashable.hash_non_class_object(self.metadata(include_id=False, include_sdk_version=False, **kwargs))
+        return self._metadata_hash_value()
 
     def metadata(self, include_id=True, include_sdk_version=True, **kwargs):
         """Get the instance's metadata in primitive form. The metadata is the set of attributes included in the class
@@ -35,6 +34,14 @@ class Metadata:
             del metadata["id"]
 
         return metadata
+
+    def _metadata_hash_value(self, **kwargs):
+        """Get the hash of the instance's metadata, not including its ID.
+
+        :param kwargs: any kwargs to use in an overridden `self.metadata` method when calculating the metadata hash value
+        :return str:
+        """
+        return Hashable.hash_non_class_object(self.metadata(include_id=False, include_sdk_version=False, **kwargs))
 
     @abstractmethod
     def _set_metadata(self, metadata):

@@ -182,14 +182,6 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             self.upload(cloud_path=path)
 
     @property
-    def metadata_hash_value(self):
-        """Get the hash of the datafile's metadata, not including its ID.
-
-        :return str:
-        """
-        return super().metadata_hash_value(use_octue_namespace=False)
-
-    @property
     def cloud_hash_value(self):
         """Get the hash value of the datafile according to its cloud file.
 
@@ -601,6 +593,13 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
                 continue
 
             setattr(self, attribute, metadata[attribute])
+
+    def _metadata_hash_value(self):
+        """Get the hash of the datafile's metadata, not including its ID.
+
+        :return str:
+        """
+        return super()._metadata_hash_value(use_octue_namespace=False)
 
     def _calculate_hash(self):
         """Get the hash of the datafile according to the first of the following methods that is applicable:
