@@ -6,7 +6,7 @@ Datafile
 
 .. admonition:: Definitions
 
-    Datafile
+    :mod:`Datafile <octue.resources.datafile.Datafile>`
         A single local or cloud file, its metadata, and helper methods.
 
     Locality
@@ -29,8 +29,8 @@ Key features
 
 Work with local and cloud data
 ------------------------------
-Working with a datafile is the same whether it's local or cloud-based. It's also almost identical to using the built-in
-python ``open`` function. For example, to write to a datafile:
+Working with a datafile is the same whether it's local or cloud-based. It's also almost identical to using `python
+built-in open function <https://docs.python.org/3/library/functions.html#open>`_. For example, to write to a datafile:
 
 .. code-block:: python
 
@@ -46,7 +46,8 @@ python ``open`` function. For example, to write to a datafile:
         f.write("Some data")
         datafile.labels.add("processed")
 
-All the same file modes you'd use with the built-in ``open`` are available for datafiles e.g. ``"r"`` and ``"a"``.
+All the same file modes you'd use with the `python built-in open context manager
+<https://docs.python.org/3/library/functions.html#open>`_ are available for datafiles e.g. ``"r"`` and ``"a"``.
 
 
 Automatic lazy downloading
@@ -59,9 +60,9 @@ unnecessary data transfer, energy usage, and costs.
 
 Datafile content isn't downloaded until you:
 
-- Try to read or write its contents using the ``Datafile.open`` context manager
-- Call its ``download`` method
-- Use its ``local_path`` property
+- Try to read or write its contents using the :mod:`Datafile.open <octue.resources.datafile.Datafile.open>` context manager
+- Call its :mod:`download <octue.resources.datafile.Datafile.download>` method
+- Use its :mod:`local_path <octue.resources.datafile.Datafile.local_path>` property
 
 Read more about downloading files :doc:`here <downloading_datafiles>`.
 
@@ -99,7 +100,7 @@ is used during ``Datafile`` instantiation. It can be accessed like this:
     datafile.tags
     >>> {"organisation": "octue", "energy": "renewable"}
 
-You can update the metadata by setting it on the instance while inside the ``Datafile.open`` context manager.
+You can update the metadata by setting it on the instance while inside the :mod:`Datafile.open <octue.resources.datafile.Datafile.open>` context manager.
 
 .. code-block:: python
 
@@ -117,7 +118,8 @@ You can do this outside the context manager too, but you then need to call the u
 Upload an existing local datafile
 ---------------------------------
 Back up and share your datafiles for collaboration. You can upload an existing local datafile to the cloud without
-using the ``open`` context manager if you don't need to modify its contents:
+using the :mod:`Datafile.open <octue.resources.datafile.Datafile.open>` context manager if you don't need to modify its
+contents:
 
 .. code-block:: python
 
@@ -182,8 +184,9 @@ Usage examples
 ==============
 
 The ``Datafile`` class can be used functionally or as a context manager. When used as a context manager, it is analogous
-to the builtin ``open`` function context manager. On exiting the context (the ``with`` block), it closes the datafile
-locally and, if the datafile also exists in the cloud, updates the cloud object with any data or metadata changes.
+with the `python built-in open function <https://docs.python.org/3/library/functions.html#open>`_. On exiting the context
+(the ``with`` block), it closes the datafile locally and, if the datafile also exists in the cloud, updates the cloud
+object with any data or metadata changes.
 
 
 .. image:: images/datafile_use_cases.png

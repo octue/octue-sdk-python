@@ -6,7 +6,7 @@ Dataset
 
 .. admonition:: Definitions
 
-    Dataset
+    :mod:`Dataset <octue.resources.dataset.Dataset>`
         A set of related :doc:`datafiles <datafile>` that exist in the same location, dataset metadata, and helper
         methods.
 
@@ -183,7 +183,7 @@ You can iterate through the filtered files:
     >>> 'my_file.csv'
         'your_file.txt'
 
-If there's just one result, get it via the ``one`` method:
+If there's just one result, get it via the :mod:`FilterSet.one <octue.resources.filter_containers.FilterSet.one>` method:
 
 .. code-block:: python
 
@@ -215,4 +215,4 @@ A dataset can also be ordered by any of the attributes of its datafiles:
     >>> <FilterList([<Datafile('another_file.csv')>, <Datafile('my_file.csv')>, <Datafile(path="your_file.txt")>])>
 
 The ordering can also be carried out in reverse (i.e. descending order) by passing ``reverse=True`` as a second argument
-to the ``order_by`` method.
+to the :mod:`FilterSet.order_by <octue.resources.filter_containers.FilterSet.order_by>` method.

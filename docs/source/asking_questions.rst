@@ -60,7 +60,7 @@ input values and/or an input manifest.
     >>> <FilterSet({<Datafile('my_file.csv')>, <Datafile('another_file.csv')>})>
 
 
-You can also set the following options when you call ``ask``:
+You can also set the following options when you call :mod:`Child.ask <octue.resources.child.Child.ask>`:
 
 - ``subscribe_to_logs`` - if true, the child will forward its logs to you
 - ``allow_local_files`` - if true, local files/datasets are allowed in any input manifest you supply

@@ -65,7 +65,8 @@ app.py
 
                         ...
 
-        2. It must access configuration/input data from and store output data on the ``analysis`` parameter/attribute:
+        2. It must access configuration/input data from and store output data on the :mod:`analysis
+           <octue.resources.analysis.Analysis>` parameter/attribute:
 
         - Configuration values: ``analysis.configuration_values``
         - Configuration manifest: ``analysis.configuration_manifest``

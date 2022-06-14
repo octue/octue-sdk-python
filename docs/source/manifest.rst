@@ -6,7 +6,7 @@ Manifest
 
 .. admonition:: Definitions
 
-    Manifest
+    :mod:`Manifest <octue.resources.manifest.Manifest>`
         A set of related cloud and/or local :doc:`datasets <dataset>`, metadata, and helper methods. Typically produced
         by or needed for processing by an Octue service.
 
@@ -84,8 +84,8 @@ the cloud and then download them again for each service (as would happen with cl
 .. warning::
 
      If you want to ask a child a question that includes a manifest containing one or more local datasets, you must
-     include the ``allow_local_files`` parameter. For example, if you have an analysis object with a child called
-     "wind_speed":
+     include the :mod:`allow_local_files <octue.resources.child.Child.ask>` parameter. For example, if you have an
+     analysis object with a child called "wind_speed":
 
      .. code-block:: python
 
