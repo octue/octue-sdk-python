@@ -36,7 +36,8 @@ class Metadata:
         return metadata
 
     def _metadata_hash_value(self, **kwargs):
-        """Get the hash of the instance's metadata, not including its ID.
+        """Get the hash of the instance's metadata, not including its ID. Override this method to change what kwargs
+        `self.metadata` gets.
 
         :param kwargs: any kwargs to use in an overridden `self.metadata` method when calculating the metadata hash value
         :return str:
