@@ -368,6 +368,19 @@ class TestDataset(BaseTestCase):
         second_dataset = copy.deepcopy(first_dataset)
         self.assertEqual(first_dataset.hash_value, second_dataset.hash_value)
 
+    def test_metadata_hash_is_same_for_different_datasets_with_the_same_metadata(self):
+        """Test that the metadata hash is the same for datasets with different files but the same metadata."""
+        first_dataset = Dataset(labels={"a", "b", "c"})
+        second_dataset = Dataset(files={Datafile(path="blah", hypothetical=True)}, labels={"a", "b", "c"})
+        self.assertEqual(first_dataset.metadata_hash_value, second_dataset.metadata_hash_value)
+
+    def test_metadata_hash_is_different_for_same_dataset_but_different_metadata(self):
+        """Test that the metadata hash is different for datasets with the same files but different metadata."""
+        first_dataset = self.create_valid_dataset()
+        second_dataset = copy.deepcopy(first_dataset)
+        second_dataset.labels = {"d", "e", "f"}
+        self.assertNotEqual(first_dataset.metadata_hash_value, second_dataset.metadata_hash_value)
+
     def test_serialisation_and_deserialisation(self):
         """Test that a dataset can be serialised and deserialised."""
         dataset_id = "e376fb31-8f66-414d-b99f-b43395cebbf1"
