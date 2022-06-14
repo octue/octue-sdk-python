@@ -182,6 +182,16 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             self.upload(cloud_path=path)
 
     @property
+    def metadata_hash_value(self):
+        """Get the hash of the datafile's metadata, not including its ID.
+
+        :return str:
+        """
+        return Hashable.hash_non_class_object(
+            self.metadata(include_id=False, include_sdk_version=False, use_octue_namespace=False)
+        )
+
+    @property
     def cloud_hash_value(self):
         """Get the hash value of the datafile according to its cloud file.
 
@@ -427,15 +437,19 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         self.reset_hash()
         return self._local_path
 
-    def metadata(self, include_sdk_version=True, use_octue_namespace=True):
+    def metadata(self, include_id=True, include_sdk_version=True, use_octue_namespace=True):
         """Get the datafile's metadata in a serialised form (i.e. the attributes `id`, `timestamp`, `labels`, `tags`,
         and `sdk_version`).
 
+        :param bool include_id: if `True`, include the ID of the datafile
         :param bool include_sdk_version: if `True`, include the `octue` version that instantiated the datafile in the metadata
         :param bool use_octue_namespace: if `True`, prefix metadata names with "octue__"
         :return dict:
         """
         metadata = super().metadata(include_sdk_version=include_sdk_version)
+
+        if not include_id:
+            del metadata["id"]
 
         if not use_octue_namespace:
             return metadata
