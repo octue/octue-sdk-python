@@ -322,9 +322,13 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
     @property
     def open(self):
-        """Get a context manager for handling the opening and closing of the datafile for reading/editing.
+        """Open the datafile for reading/writing. Usage is the same as the `python built-in open context manager
+        <https://docs.python.org/3/library/functions.html#open>`_ but it can only be used as a context manager e.g.
 
-        :return type: the class octue.resources.datafile._DatafileContextManager
+        .. code-block::
+
+            with datafile.open("w") as f:
+                f.write("some data")
         """
         return functools.partial(_DatafileContextManager, self)
 
@@ -621,7 +625,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
 class _DatafileContextManager:
     """A context manager for opening datafiles for reading and writing locally or from the cloud. Its usage is analogous
-    to the builtin open context manager. If opening a local datafile in write mode, the manager will attempt to
+    to the builtin `open` context manager. If opening a local datafile in write mode, the manager will attempt to
     determine if the folder path exists and, if not, will create the folder structure required to write the file.
 
     Usage:
@@ -640,8 +644,8 @@ class _DatafileContextManager:
     ```
 
     :param octue.resources.datafile.Datafile datafile:
-    :param str mode: open the datafile for reading/editing in this mode (the mode options are the same as for the builtin `open` function)
-    :param bool update_metadata: if this is `True`, update the stored metadata of the datafile when the context is exited
+    :param str mode: open the datafile for reading/editing in this mode (the mode options are the same as for the built-in ``open`` function)
+    :param bool update_metadata: if this is ``True``, update the stored metadata of the datafile when the context is exited
     :return None:
     """
 
