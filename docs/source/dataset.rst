@@ -97,16 +97,25 @@ You can do this outside the context manager too, but you then need to call the u
     dataset.update_metadata()
 
 
-Get dataset hashes
-------------------
-Make your analysis reproducible: guarantee a dataset contains exactly the same data by checking its hash.
+Get dataset and metadata hashes
+-------------------------------
+Make your analysis reproducible: guarantee a dataset contains exactly the same data as before by checking its hash.
 
 .. code-block:: python
 
     dataset.hash_value
     >>> 'uvG7TA=='
 
-A datafile's hash is a function of its datafiles' hashes and its own metadata.
+.. note::
+
+    A dataset's hash is a function of its datafiles' hashes. Datafile and dataset metadata do not affect it.
+
+You can also check that dataset metadata is the same.
+
+.. code-block:: python
+
+    dataset.metadata_hash_value
+    >>> 'DIgCHg=='
 
 
 Immutable ID

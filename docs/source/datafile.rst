@@ -126,14 +126,21 @@ contents:
     datafile.upload("gs://my-bucket/my_datafile.dat", update_metadata=True)
 
 
-Get file hashes
----------------
-Make your analysis reproducible: guarantee a datafile contains exactly the same data by checking its hash.
+Get file and metadata hashes
+----------------------------
+Make your analysis reproducible: guarantee a datafile contains exactly the same data as before by checking its hash.
 
 .. code-block:: python
 
     datafile.hash_value
     >>> 'mnG7TA=='
+
+You can also check that any metadata is the same.
+
+.. code-block:: python
+
+    datafile.metadata_hash_value
+    >>> 'DIgCHg=='
 
 
 Immutable ID
