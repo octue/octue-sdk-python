@@ -6,29 +6,31 @@
 - Documentation is automatically built by `pre-commit` but needs to be updated with any changes to public interface of the package
 
 
-## The release process
-We use continuous deployment and semantic versioning for our releases.
+## Releases
+We use continuous deployment and semantic versioning for our releases:
 - Continuous deployment - each pull request into `main` constitutes a new version
-- [Semantic versioning](https://semver.org/) supported by [Conventional Commits](https://github.com/octue/conventional-commits) to automate version numbering
-- Using Conventional Commit messages is essential for this to be automatic. We've developed a `pre-commit` check that guides and enforces this
+- [Semantic versioning](https://semver.org/) supported by [Conventional Commits](https://github.com/octue/conventional-commits) - to automate meaningful version numbering
+- Conventional Commit messages - these are essential for the above to be automated. We've developed a `pre-commit` check that guides and enforces this.
 
+
+## Pull requests
+
+### Internal developers
 1. Check out a new branch
 2. Create a pull request into the `main` branch
 3. Undertake your changes, committing and pushing to your branch
-4. Ensure that documentation is updated to match changes, and increment the changelog. **Pull requests which do not update documentation will be refused.**
+4. Ensure that documentation is updated to match your changes. **Pull requests which do not update documentation will be refused.**
 5. Ensure that test coverage is sufficient. **Pull requests that decrease test coverage without good reason will be refused.**
-6. Ensure code meets style guidelines (`pre-commit` checks will fail otherwise)
-7. Address review comments on the PR
+6. Ensure your code meets the style guidelines (`pre-commit` checks will fail otherwise)
+7. Address any review comments on the PR
 8. Ensure the version in `pyproject.toml` is correct and satisfies the GitHub workflow check
 9. Merge into `main`. A release will automatically be created on GitHub and published to PyPi and Docker Hub.
 
-
-## Opening a pull request as an external developer
-
+### External developers
 - Please [raise an issue](https://github.com/octue/octue-sdk-python/issues) (or add your $0.02 to an existing issue) so
   the maintainers know what's happening and can advise/steer you.
 
-- Create a fork of `octue-sdk-python`, undertake your changes on a new branch, (see `.pre-commit-config.yaml` for
+- Create a fork of `octue-sdk-python`, undertaking your changes on a new branch, (see `.pre-commit-config.yaml` for
   branch naming conventions). To run tests and make commits, you'll need to do something like:
   ```
   git clone <your_forked_repo_address>                          # Fetches the repo to your local machine
@@ -36,17 +38,18 @@ We use continuous deployment and semantic versioning for our releases.
   pyenv virtualenv 3.8 myenv                                    # Makes a virtual environment for you to install the dev tools into. Use any python >= 3.8
   pyenv activate myenv                                          # Activates the virtual environment so you don't affect other installations
   pip install poetry                                            # Installs the poetry package manager
-  poetry install                                                # Installs the package editably, including developer dependencies (e.g. testing and code formatting utilities)
+  poetry install -E hdf5 -E dataflow                            # Installs the package editably, including developer dependencies (e.g. testing and code formatting utilities)
   pre-commit install && pre-commit install -t commit-msg        # Installs the pre-commit hooks in the git repo
+  tox                                                           # Runs the tests
   ```
 
 - Open a pull request into the `main` branch of `octue/octue-sdk-python`.
-- Once checks have passed, test coverage of the new code is 100%, documentation is updated, and the review is passed,
-  we'll merge and release.
+- Follow the rest of the process for internal developers above.
+- Once checks have passed, test coverage of the new code is 100%, documentation is updated, and the review has passed,
+  we'll merge and release your changes.
 
 
 ## Pre-Commit
-
 You need to install pre-commit to get the hooks working. Run:
 ```
 pip install pre-commit
@@ -55,14 +58,13 @@ pre-commit install && pre-commit install -t commit-msg
 
 Once that's done, each time you make a commit, the [following checks](/.pre-commit-config.yaml) are made:
 
-- Valid GitHub repo and files
 - Code style
 - Import order
 - PEP8 compliance
 - Docstring standards
 - Documentation build
 - Branch naming convention
-- Conventional Commit message compliance
+- Conventional Commit message validity
 
 Upon failure, the commit will halt. **Re-running the commit will automatically fix most issues** except:
 
@@ -105,5 +107,5 @@ pip install -r docs/requirements.txt
 
 Run the build process:
 ```
-sphinx-build -b html docs/source docs/build
+sphinx-build -b html docs/source docs/html
 ```
