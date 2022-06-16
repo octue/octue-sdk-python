@@ -22,7 +22,7 @@ class FilterContainer(ABC):
 
     .. code-block:: python
 
-        from octue.resources import Dataset
+        from octue.resources import Datafile
 
         class FilterSet(FilterContainer, set):
             pass

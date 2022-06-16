@@ -47,11 +47,11 @@ class Child:
         timeout=20,
     ):
         """Ask the child a question and wait for its answer - i.e. send it input values and/or an input manifest and
-        wait for it to analyse them and return a result. The input values and manifest must conform to the schema in
-        the child's twine.
+        wait for it to analyse them and return output values and/or an output manifest. The input values and manifest
+        must conform to the schema in the child's twine.
 
         :param any|None input_values: any input values for the question
-        :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any files needed for the question
+        :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
         :param bool subscribe_to_logs: if `True`, subscribe to logs from the child and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will have access to these local files
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)

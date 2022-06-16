@@ -217,7 +217,7 @@ class Service(CoolNameable):
 
         :param str service_id: the ID of the child to ask the question to
         :param any|None input_values: any input values for the question
-        :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any files needed for the question
+        :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
         :param bool subscribe_to_logs: if `True`, subscribe to the child's logs and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will be able to access these local files
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not

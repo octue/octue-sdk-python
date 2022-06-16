@@ -58,7 +58,7 @@ class Serialisable:
         """Serialise the instance to a JSON string of primitives. See the ``Serialisable`` constructor for more
         information.
 
-        :return str: a JSON string containing the instances as a serialised python primitive
+        :return str: a JSON string containing the instance as a serialised python primitive
         """
         return json.dumps(self.to_primitive(), cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
 
