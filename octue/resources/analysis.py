@@ -69,8 +69,8 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         strand_kwargs = {name: kwargs.pop(name, None) for name in ALL_STRANDS}
 
         # Values strands.
-        self.input_values = strand_kwargs.get("input_values", None)
         self.configuration_values = strand_kwargs.get("configuration_values", None)
+        self.input_values = strand_kwargs.get("input_values", None)
         self.output_values = strand_kwargs.get("output_values", None)
 
         # Manifest strands.
