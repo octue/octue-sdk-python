@@ -7,28 +7,13 @@ def mandelbrot(width, height, x_range, y_range, n_iterations, c=None):
     Each iteration, the new value of a pixel is calculated as z = z^2 + c, where for a mandelbrot set (default)
     c is a function of the position in the complex plane (c = x + iy) or a optionally for a julia set, c is a constant
 
-    :parameter width: Integer width of the final fractal image in pixels
-    :type width: int
-
-    :parameter height: Integer height of the final fractal image in pixels
-    :type height: int
-
-    :parameter x_range: The range of x [min, max] for which the fractal will be drawn
-    :type x_range: Union[list of float, numpy.ndarray]
-
-    :parameter y_range: The range of y [min, max] for which the fractal will be drawn
-    :type y_range: Union[list of float, numpy.ndarray]
-
-    :parameter n_iterations: the number of iterations limit used to compute the fractal
-    :type n_iterations: int
-
-    :parameter c: Optional 2-tuple (or other iterable) containing real and complex parts of constant coefficient c.
-    Giving this argument will result in creation of a julia set, not the default mandelbrot set
-    :type c: Union[None, (float, float)]
-
-    :return: x, y, z values of pixel locations in the x, y complex plane and a corresponding heightmap z, with which
-    you can lot a fancy looking 3d fractal
-    :rtype: (numpy.ndarray, numpy.ndarray, numpy.ndarray)
+    :param int width: Integer width of the final fractal image in pixels
+    :param int height: Integer height of the final fractal image in pixels
+    :param list(float)|numpy.ndarray x_range: The range of x [min, max] for which the fractal will be drawn
+    :param list(float)|numpy.ndarray y_range: The range of y [min, max] for which the fractal will be drawn
+    :param int n_iterations: the number of iterations limit used to compute the fractal
+    :param None|(float, float) c: Optional 2-tuple (or other iterable) containing real and complex parts of constant coefficient c. Giving this argument will result in creation of a julia set, not the default mandelbrot set
+    :return (numpy.ndarray, numpy.ndarray, numpy.ndarray): x, y, z values of pixel locations in the x, y complex plane and a corresponding heightmap z, with which you can lot a fancy looking 3d fractal
     """
     # Create a linearly spaced 2d grid
     [x, y] = numpy.meshgrid(

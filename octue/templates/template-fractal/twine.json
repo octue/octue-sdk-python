@@ -60,11 +60,62 @@
 			}
 		}
 	},
-	"output_manifest": {
-		"datasets": {
-			"fractal_figure_files": {
-				"purpose": "A dataset containing .json files containing the output figures"
+	"output_values_schema": {
+		"type": "object",
+		"properties": {
+			"data": {
+				"type": "object",
+				"properties": {
+					"x": {
+						"type": "array",
+						"items": {
+							"type": "array",
+							"items": {
+								"type": "number"
+							}
+						}
+					},
+					"y": {
+						"type": "array",
+						"items": {
+							"type": "array",
+							"items": {
+								"type": "number"
+							}
+						}
+					},
+					"z": {
+						"type": "array",
+						"items": {
+							"type": "array",
+							"items": {
+								"type": "number"
+							}
+						}
+					},
+					"colorscale": {
+						"type": "string"
+					},
+					"type": {
+						"type": "string"
+					}
+				}
+			},
+			"layout": {
+				"type": "object",
+				"properties": {
+					"title": {
+						"type": "string"
+					},
+					"width": {
+						"type": "number"
+					},
+					"height": {
+						"type": "number"
+					}
+				}
 			}
-		}
+		},
+		"required": ["data", "layout"]
 	}
 }

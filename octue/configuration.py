@@ -105,7 +105,7 @@ class AppConfiguration:
     conform to the service's twine schema.
 
     :param str|dict|list|None configuration_values: values to configure the app
-    :param str|dict|octue.resources.Manifest|None configuration_manifest: a manifest of files to configure the app
+    :param str|dict|octue.resources.Manifest|None configuration_manifest: a manifest of datasets to configure the app
     :param str|None|list children: details of the children the app requires
     :param str|None output_location: the path to a cloud directory to save output datasets at
     :return None:
@@ -142,10 +142,11 @@ class AppConfiguration:
 
 
 def load_service_and_app_configuration(service_configuration_path):
-    """Load the service configuration from the given YAML file or return an empty one.
+    """Load the service configuration from the given YAML file and the app configuration referenced in it. If no app
+    configuration is referenced, an empty one is returned.
 
     :param str service_configuration_path: path to service configuration file
-    :return dict:
+    :return (octue.configuration.ServiceConfiguration, octue.configuration.AppConfiguration):
     """
     service_configuration = ServiceConfiguration.from_file(service_configuration_path)
     app_configuration = AppConfiguration()

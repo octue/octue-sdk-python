@@ -3,14 +3,12 @@
 		{
 			"key": "wind_speed",
 			"purpose": "A service that returns the average wind speed for a given latitude and longitude.",
-			"notes": "Some notes.",
-			"filters": "labels:wind_speed"
+			"notes": "Some notes."
 		},
 		{
 			"key": "elevation",
 			"purpose": "A service that returns the elevation for a given latitude and longitude.",
-			"notes": "Some notes.",
-			"filters": "labels:elevation"
+			"notes": "Some notes."
 		}
 	],
 	"input_values_schema": {

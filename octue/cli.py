@@ -51,11 +51,10 @@ global_cli_context = {}
 )
 @click.version_option(version=pkg_resources.get_distribution("octue").version)
 def octue_cli(id, logger_uri, log_level, force_reset):
-    """Octue CLI, enabling a data service / digital twin to be run like a command line application.
+    """The CLI for the Octue SDK. Use it to start an Octue data service or digital twin locally or run an analysis on
+    one locally.
 
-    When acting in CLI mode, results are read from and written to disk (see
-    https://octue-python-sdk.readthedocs.io/en/latest/ for how to run your application directly without the CLI).
-    Once your application has run, you'll be able to find output values and manifest in your specified --output-dir.
+    Read more in the docs: https://octue-python-sdk.readthedocs.io/en/latest/
     """
     global_cli_context["analysis_id"] = id
     global_cli_context["logger_uri"] = logger_uri
@@ -91,23 +90,27 @@ def octue_cli(id, logger_uri, log_level, force_reset):
     type=click.Path(dir_okay=False),
     default=None,
     show_default=True,
-    help="The path to a JSON file to store the output values in.",
+    help="The path to a JSON file to store the output values in, if required.",
 )
 @click.option(
     "--output-manifest-file",
     type=click.Path(dir_okay=False),
     default=None,
-    help="The path to a JSON file to store the output manifest in.",
+    help="The path to a JSON file to store the output manifest in. The default is 'output_manifest_<analysis_id>.json'.",
 )
 @click.option(
     "--monitor-messages-file",
     type=click.Path(dir_okay=False),
     default=None,
     show_default=True,
-    help="The path to a JSON file to store any monitor messages received in.",
+    help="The path to a JSON file in which to store any monitor messages received. Monitor messages will be ignored "
+    "if this option isn't provided.",
 )
 def run(service_config, input_dir, output_file, output_manifest_file, monitor_messages_file):
-    """Run an analysis on the given input data."""
+    """Run an analysis on the given input data using an Octue service or digital twin locally. The output values are
+    printed to `stdout`. If an output manifest is produced, it will be saved locally (see the `--output-manifest-file`
+    option).
+    """
     service_configuration, app_configuration = load_service_and_app_configuration(service_config)
 
     input_values_path = os.path.join(input_dir, VALUES_FILENAME)
@@ -176,7 +179,13 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
     default="octue.yaml",
     help="The path to an `octue.yaml` file defining the service to start.",
 )
-@click.option("--timeout", type=click.INT, default=None, show_default=True, help="Timeout in seconds for serving.")
+@click.option(
+    "--timeout",
+    type=click.INT,
+    default=None,
+    show_default=True,
+    help="A timeout in seconds after which to stop the service. The default is no timeout.",
+)
 @click.option(
     "--rm",
     "--delete-topic-and-subscription-on-exit",
@@ -186,7 +195,7 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
     help="Delete the Google Pub/Sub topic and subscription for the service on exit.",
 )
 def start(service_config, timeout, rm):
-    """Start the service as a child to be asked questions by other services."""
+    """Start an Octue service or digital twin locally as a child so it can be asked questions by other Octue services."""
     service_configuration, app_configuration = load_service_and_app_configuration(service_config)
 
     runner = Runner(
@@ -226,7 +235,7 @@ def start(service_config, timeout, rm):
 
 @octue_cli.group()
 def deploy():
-    """Deploy an app to the cloud as a service."""
+    """Deploy a python app to the cloud as an Octue service or digital twin."""
 
 
 @deploy.command()
@@ -241,7 +250,7 @@ def deploy():
 @click.option("--no-cache", is_flag=True, help="If provided, don't use the Docker cache.")
 @click.option("--update", is_flag=True, help="If provided, allow updates to an existing service.")
 def cloud_run(service_config, update, no_cache):
-    """Deploy an app as a Google Cloud Run service."""
+    """Deploy a python app to Google Cloud Run as an Octue service or digital twin."""
     CloudRunDeployer(service_config).deploy(update=update, no_cache=no_cache)
 
 
@@ -263,7 +272,7 @@ def cloud_run(service_config, update, no_cache):
 )
 @click.option("--image-uri", type=str, default=None, help="The actual image URI to use when creating the Dataflow job.")
 def dataflow(service_config, no_cache, update, dataflow_job_only, image_uri):
-    """Deploy an app as a Google Dataflow streaming job."""
+    """Deploy a python app to Google Dataflow as an Octue service or digital twin."""
     if bool(importlib.util.find_spec("apache_beam")):
         # Import the Dataflow deployer only if the `apache-beam` package is available (due to installing `octue` with
         # the `dataflow` extras option).

@@ -7,6 +7,47 @@ from octue.utils.objects import get_nested_attribute
 
 
 class FilterContainer(ABC):
+    """A mixin for containers to allow their elements to be filtered and/or ordered according to the elements'
+    attributes. Mix with a primitive python container type (e.g. list, set, dict) to get a filterable version of it.
+
+    Key points:
+    - Any attribute of a member of a filter container whose type or interface is supported can be used when filtering
+    - Filters are named as "<name_of_attribute_to_check>__<filter_action>"
+    - Multiple filters can be specified at once for chained filtering
+    - ``<name_of_attribute_to_check>`` can be a single attribute name or a double-underscore-separated string of nested
+      attribute names
+    - Nested attribute names work for real attributes as well as dictionary keys (in any combination and to any depth)
+
+    For a ``FilterContainer`` instance to work, all its members must inherit from ``octue.mixins.filterable.Filterable``.
+
+    .. code-block:: python
+
+        from octue.resources import Datafile
+
+        class FilterSet(FilterContainer, set):
+            pass
+
+        filter_set = FilterSet(
+            {
+                Datafile(path="my_file.csv", tags={"cluster": 0, "manufacturer": "Vestas"}),
+                Datafile(path="your_file.txt", tags={"cluster": 1, "manufacturer": "Vergnet"}),
+                Datafile(path="another_file.csv", tags={"cluster": 2, "manufacturer": "Enercon"})
+            }
+        )
+
+        # Single filter, non-nested attribute.
+        filter_set.filter(name__ends_with=".csv")
+        >>> <FilterSet({<Datafile('my_file.csv')>, <Datafile('another_file.csv')>})>
+
+        # Two filters, non-nested attributes.
+        filter_set.filter(name__ends_with=".csv", tags__cluster__gt=1)
+        >>> <FilterSet({<Datafile('another_file.csv')>})>
+
+        # Single filter, nested attribute.
+        filter_set.filter(tags__manufacturer__startswith("V"))
+        >>> <FilterSet({<Datafile('my_file.csv')>, <Datafile('your_file.csv')>})>
+    """
+
     def filter(self, ignore_items_without_attribute=True, **kwargs):
         """Return a new instance containing only the `Filterable`s to which the given filter criteria are `True`.
 
@@ -36,7 +77,8 @@ class FilterContainer(ABC):
 
     def order_by(self, attribute_name, check_start_value=None, check_constant_increment=None, reverse=False):
         """Order the `Filterable`s in the container by an attribute with the given name, returning them as a new
-        `FilterList` regardless of the type of filter container begun with.
+        `FilterList` regardless of the type of filter container begun with (`FilterSet`s and `FilterDict`s are
+        inherently orderless).
 
         :param str attribute_name: name of attribute (optionally nested) to order by e.g. "a", "a.b", "a.b.c"
         :param any check_start_value: if provided, check that the first item in the ordered container has the given start value for the attribute ordered by
@@ -121,6 +163,10 @@ class FilterList(FilterContainer, list):
 
 
 class FilterDict(FilterContainer, UserDict):
+    """A dictionary that is filterable by its values' attributes. Each key can be anything, but each value must be an
+    ``octue.mixins.filterable.Filterable`` instance.
+    """
+
     def filter(self, ignore_items_without_attribute=True, **kwargs):
         """Return a new instance containing only the Filterables for which the given filter criteria apply are
         satisfied.

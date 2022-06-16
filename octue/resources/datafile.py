@@ -268,10 +268,9 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
     @property
     def local_path(self):
-        """Get the local path for the datafile, downloading it from the cloud to a temporary file if necessary. If
-        downloaded, the local path is added to a cache to avoid downloading again in the same runtime.
+        """Get the local path for the datafile, downloading it from the cloud to a temporary file if necessary.
 
-        :return str:
+        :return str: The local path of the datafile.
         """
         if self._local_path:
             return self._local_path
@@ -322,9 +321,13 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
     @property
     def open(self):
-        """Get a context manager for handling the opening and closing of the datafile for reading/editing.
+        """Open the datafile for reading/writing. Usage is the same as the `python built-in open context manager
+        <https://docs.python.org/3/library/functions.html#open>`_ but it can only be used as a context manager e.g.
 
-        :return type: the class octue.resources.datafile._DatafileContextManager
+        .. code-block::
+
+            with datafile.open("w") as f:
+                f.write("some data")
         """
         return functools.partial(_DatafileContextManager, self)
 
@@ -388,11 +391,11 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         return self.cloud_path
 
     def download(self, local_path=None):
-        """Download the file from the cloud to the given local path or a random temporary path.
+        """Download the file from the cloud to the given local path or a temporary path if none is given.
 
-        :param str|None local_path:
-        :raise CloudLocationNotSpecified: if the datafile does not exist in the cloud
-        :return str: path to local file
+        :param str|None local_path: The local path to download the datafile to. A temporary path is used if none is given.
+        :raise octue.exceptions.CloudLocationNotSpecified: If the datafile does not exist in the cloud
+        :return str: The path to the local file
         """
         if not self.exists_in_cloud:
             raise CloudLocationNotSpecified("Cannot download a file that doesn't exist in the cloud.")
@@ -506,7 +509,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         if local_path:
             # If there is no file at the given local path or the file is different to the one in the cloud, download
             # the cloud file locally.
-            if not os.path.exists(local_path) or self.cloud_hash_value != calculate_hash(local_path):
+            if not os.path.exists(local_path) or self.cloud_hash_value != calculate_file_hash(local_path):
                 self.download(local_path)
             else:
                 self._local_path = local_path
@@ -610,10 +613,10 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
         :return str:
         """
-        if self._local_path and os.path.exists(self._local_path):
+        if self.exists_locally and os.path.exists(self._local_path):
             # Calculate the hash of the file itself and then pass it to `Hashable` to include the hashes of any
             # attributes named in `self._ATTRIBUTES_TO_HASH`.
-            hash_value = calculate_hash(self._local_path)
+            hash_value = calculate_file_hash(self._local_path)
             return super()._calculate_hash(hash_value)
         else:
             return self.cloud_hash_value or EMPTY_STRING_HASH_VALUE
@@ -621,7 +624,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
 class _DatafileContextManager:
     """A context manager for opening datafiles for reading and writing locally or from the cloud. Its usage is analogous
-    to the builtin open context manager. If opening a local datafile in write mode, the manager will attempt to
+    to the builtin `open` context manager. If opening a local datafile in write mode, the manager will attempt to
     determine if the folder path exists and, if not, will create the folder structure required to write the file.
 
     Usage:
@@ -640,8 +643,8 @@ class _DatafileContextManager:
     ```
 
     :param octue.resources.datafile.Datafile datafile:
-    :param str mode: open the datafile for reading/editing in this mode (the mode options are the same as for the builtin `open` function)
-    :param bool update_metadata: if this is `True`, update the stored metadata of the datafile when the context is exited
+    :param str mode: open the datafile for reading/editing in this mode (the mode options are the same as for the built-in ``open`` function)
+    :param bool update_metadata: if this is ``True``, update the stored metadata of the datafile when the context is exited
     :return None:
     """
 
@@ -700,8 +703,12 @@ class _DatafileContextManager:
                 self.datafile.update_local_metadata()
 
 
-def calculate_hash(path):
-    """Calculate the hash of the file at the given path."""
+def calculate_file_hash(path):
+    """Calculate the hash of the file at the given path.
+
+    :param str path:
+    :return google_crc32c.Checksum:
+    """
     hash = Checksum()
 
     with open(path, "rb") as f:
