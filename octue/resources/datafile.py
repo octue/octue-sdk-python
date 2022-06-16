@@ -18,7 +18,7 @@ from octue.resources.tag import TagDict
 
 try:
     import h5py
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
     pass
 
 from octue.cloud import storage
