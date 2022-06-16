@@ -51,6 +51,8 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
     :param octue.resources.manifest.Manifest configuration_manifest: a manifest of configuration datasets for the analysis if required
     :param any input_values: the input values for the analysis - this can be expressed as a python primitive (e.g. dict), a path to a JSON file, or a JSON string.
     :param octue.resources.manifest.Manifest input_manifest: a manifest of input datasets for the analysis if required
+    :param any output_values: any output values the analysis produces
+    :param octue.resources.manifest.Manifest output_manifest: a manifest of output dataset from the analysis if it produces any
     :param dict children: a mapping of string key to ``Child`` instance for all the children used by the service
     :param str id: Optional UUID for the analysis
     :return None:
