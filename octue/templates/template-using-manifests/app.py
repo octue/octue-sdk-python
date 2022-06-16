@@ -79,7 +79,7 @@ def run(analysis):
     with tempfile.TemporaryDirectory() as temporary_directory:
         timeseries_datafile = Datafile(
             path=os.path.join(temporary_directory, "cleaned.csv"),
-            labels="timeseries",
+            labels=["timeseries"],
         )
 
         # Write the file (now we know where to write it)
