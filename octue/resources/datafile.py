@@ -16,9 +16,11 @@ from octue.resources.label import LabelSet
 from octue.resources.tag import TagDict
 
 
+# The `h5py` package is only needed if dealing with HDF5 files. It's only available if the `hdf5` extra is provided
+# during installation of `octue`.
 try:
     import h5py
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
     pass
 
 from octue.cloud import storage
