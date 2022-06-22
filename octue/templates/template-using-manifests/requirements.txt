@@ -1,7 +1,7 @@
 octue==0.29.0
 
 # A numerical manipulation library
-numpy==1.21.0
+numpy==1.22.0
 
 # A library for operating on tabulated data
 pandas
