@@ -864,6 +864,7 @@ class TestDatafile(BaseTestCase):
 
             with Datafile(path=os.path.join(temporary_directory, "my-file.dat"), mode="w") as (datafile, f):
                 f.write("I will be signed")
+                datafile.tags = {"some": "metadata"}
 
             datafile.upload(storage.path.generate_gs_path(TEST_BUCKET_NAME, "directory", "my-file.dat"))
 
@@ -873,8 +874,17 @@ class TestDatafile(BaseTestCase):
         # Ensure the GOOGLE_APPLICATION_CREDENTIALS environment variable isn't available to ensure the signed URL works
         # without any extra permissions.
         with patch.dict(os.environ, clear=True):
-            with Datafile(path=signed_url) as (_, f):
+            with Datafile(path=signed_url) as (downloaded_datafile, f):
                 self.assertEqual(f.read(), "I will be signed")
+
+                # Test cloud metadata is retrieved. These assertions will be uncommented when this issue
+                # https://github.com/oittaa/gcp-storage-emulator/issues/187 with the storage emulator is resolved. See
+                # issue https://github.com/octue/octue-sdk-python/issues/489.
+
+                # self.assertEqual(downloaded_datafile.tags, {"some": "metadata"})
+                # self.assertEqual(datafile.id, downloaded_datafile.id)
+                # self.assertEqual(datafile.hash_value, downloaded_datafile.hash_value)
+                # self.assertEqual(datafile.size_bytes, downloaded_datafile.size_bytes)
 
     def test_error_raised_if_trying_to_modify_signed_url_datafile(self):
         """Test that an error is raised if trying to modify a datafile instantiated from a signed URL."""
