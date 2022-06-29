@@ -310,7 +310,7 @@ class TestGoogleCloudStorageClient(BaseTestCase):
     def test_generate_signed_url(self):
         """Test that a signed URL to a cloud object can be generated and used to access the file."""
         cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "blah")
-        self.storage_client.upload_from_string(string="some stuff", cloud_path=cloud_path)
+        self.storage_client.upload_from_string(string="some stuff", cloud_path=cloud_path, metadata={"my": "metadata"})
 
         with patch("google.cloud.storage.blob.Blob.generate_signed_url", mock_generate_signed_url):
             url = self.storage_client.generate_signed_url(cloud_path, expiration=datetime.timedelta(seconds=1))
@@ -320,5 +320,11 @@ class TestGoogleCloudStorageClient(BaseTestCase):
 
             # Test that the signed URL works.
             response = requests.get(url)
-            self.assertEqual(requests.get(url).status_code, 200)
+            self.assertEqual(response.status_code, 200)
             self.assertEqual(response.text, "some stuff")
+
+            # Check that the file's custom metadata is included in the headers. This assertion will be uncommented when
+            # this issue https://github.com/oittaa/gcp-storage-emulator/issues/187 with the storage emulator is
+            # resolved. See issue https://github.com/octue/octue-sdk-python/issues/489.
+
+            # self.assertEqual(response.headers["x-goog-meta-my"], json.dumps("metadata"))
