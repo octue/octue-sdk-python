@@ -540,11 +540,30 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         if not self.cloud_path:
             self._raise_cloud_location_error()
 
-        # Skip getting metadata for now if the cloud path is a signed URL.
         if storage.path.is_url(self.cloud_path):
-            return
+            cloud_metadata = {"custom_metadata": {}}
+            headers = requests.head(self.cloud_path).headers
 
-        cloud_metadata = GoogleCloudStorageClient().get_metadata(cloud_path=self.cloud_path)
+            # Get any Octue custom metadata from the datafile.
+            for key, value in headers.items():
+                if OCTUE_METADATA_NAMESPACE not in key:
+                    continue
+
+                # Decode custom metadata values from JSON.
+                try:
+                    value = json.loads(value, cls=OctueJSONDecoder)
+                except json.decoder.JSONDecodeError:
+                    pass
+
+                # Remove the "x-goog-meta-" prefix from custom metadata key names.
+                cloud_metadata["custom_metadata"][key.replace("x-goog-meta-", "")] = value
+
+            # Store what non-custom metadata is available from the XML headers.
+            cloud_metadata["size"] = int(headers["Content-Length"])
+            cloud_metadata["crc32c"] = headers["x-goog-hash"].split(",")[0].replace("crc32c=", "")
+
+        else:
+            cloud_metadata = GoogleCloudStorageClient().get_metadata(cloud_path=self.cloud_path)
 
         if cloud_metadata:
             cloud_metadata["custom_metadata"] = {
