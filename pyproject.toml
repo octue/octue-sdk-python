@@ -46,7 +46,7 @@ octue = "octue.cli:octue_cli"
 
 [tool.poetry.dev-dependencies]
 # Testing
-gcp-storage-emulator = "2022.02.17"
+gcp-storage-emulator = "2022.06.11"
 pytest = "^7"
 tox = "^3.23"
 # Code quality
