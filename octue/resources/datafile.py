@@ -559,8 +559,8 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
                 cloud_metadata["custom_metadata"][key.replace("x-goog-meta-", "")] = value
 
             # Store what non-custom metadata is available from the XML headers.
-            cloud_metadata["size"] = int(headers["Content-Length"])
-            cloud_metadata["crc32c"] = headers["x-goog-hash"].split(",")[0].replace("crc32c=", "")
+            cloud_metadata["size"] = int(headers.get("Content-Length"))
+            cloud_metadata["crc32c"] = headers.get("x-goog-hash", "").split(",")[0].replace("crc32c=", "")
 
         else:
             cloud_metadata = GoogleCloudStorageClient().get_metadata(cloud_path=self.cloud_path)
