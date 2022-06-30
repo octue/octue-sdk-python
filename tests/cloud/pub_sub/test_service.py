@@ -9,7 +9,7 @@ from octue.cloud.pub_sub.service import Service
 from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
-from tests import TEST_PROJECT_NAME
+from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 from tests.cloud.pub_sub.mocks import (
     DifferentMockAnalysis,
@@ -403,14 +403,22 @@ class TestService(BaseTestCase):
         )
 
     def test_ask_with_input_manifest(self):
-        """Test that a service can ask a question including an input_manifest to another service that is serving and
+        """Test that a service can ask a question including an input manifest to another service that is serving and
         receive an answer.
         """
         child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        files = [Datafile(path="gs://my-dataset/hello.txt"), Datafile(path="gs://my-dataset/goodbye.csv")]
-        input_manifest = Manifest(datasets={"my-dataset": Dataset(files=files, path="gs://my-dataset")})
+        dataset_path = f"gs://{TEST_BUCKET_NAME}/my-dataset"
+
+        input_manifest = Manifest(
+            datasets={
+                "my-dataset": Dataset(
+                    files=[f"{dataset_path}/hello.txt", f"{dataset_path}/goodbye.csv"],
+                    path=dataset_path,
+                )
+            }
+        )
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
@@ -436,8 +444,16 @@ class TestService(BaseTestCase):
         child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        files = [Datafile(path="gs://my-dataset/hello.txt"), Datafile(path="gs://my-dataset/goodbye.csv")]
-        input_manifest = Manifest(datasets={"my-dataset": Dataset(files=files, path="gs://my-dataset")})
+        dataset_path = f"gs://{TEST_BUCKET_NAME}/my-dataset"
+
+        input_manifest = Manifest(
+            datasets={
+                "my-dataset": Dataset(
+                    files=[f"{dataset_path}/hello.txt", f"{dataset_path}/goodbye.csv"],
+                    path=dataset_path,
+                )
+            }
+        )
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):

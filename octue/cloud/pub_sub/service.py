@@ -256,7 +256,9 @@ class Service(CoolNameable):
         answer_subscription.create(allow_existing=True)
 
         serialised_input_manifest = None
+
         if input_manifest is not None:
+            input_manifest.use_signed_urls_for_datasets()
             serialised_input_manifest = input_manifest.serialise()
 
         self.publisher.publish(
