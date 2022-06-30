@@ -1,12 +1,16 @@
 import concurrent.futures
 import copy
 import json
+import logging
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException
 from octue.mixins import Hashable, Identifiable, Metadata, Serialisable
 from octue.resources.dataset import Dataset
+
+
+logger = logging.getLogger(__name__)
 
 
 class Manifest(Serialisable, Identifiable, Hashable, Metadata):
@@ -50,6 +54,18 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
         :return bool:
         """
         return all(dataset.all_files_are_in_cloud for dataset in self.datasets.values())
+
+    def use_signed_urls_for_datasets(self):
+        """Generate signed URLs for any cloud datasets in the manifest and use these as their paths instead of regular
+        cloud paths. URLs will not be generated for any local datasets in the manifest.
+
+        :return None:
+        """
+        for name, dataset in self.datasets.items():
+            if dataset.exists_in_cloud:
+                self.datasets[name].path = dataset.generate_signed_url()
+
+        logger.debug("Cloud paths (cloud URIs) replaced with signed URLs in %r.", self)
 
     def to_cloud(self, cloud_path):
         """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory.
