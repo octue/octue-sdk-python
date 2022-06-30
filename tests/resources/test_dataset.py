@@ -722,6 +722,7 @@ class TestDataset(BaseTestCase):
 
             with Datafile(path=os.path.join(dataset_local_path, "my-file.dat"), mode="w") as (datafile, f):
                 f.write("hello")
+                datafile.tags = {"my": "metadata"}
 
             dataset = Dataset(path=dataset_local_path, tags={"hello": "world"})
             dataset.upload(storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-dataset-to-sign"))
@@ -737,6 +738,12 @@ class TestDataset(BaseTestCase):
 
         self.assertEqual(downloaded_datafile.name, "my-file.dat")
         self.assertEqual(downloaded_datafile.extension, "dat")
+
+        # Check that the datafile's cloud metadata is retrieved. This assertion will be uncommented when this issue
+        # https://github.com/oittaa/gcp-storage-emulator/issues/187 with the storage emulator is resolved. See issue
+        # https://github.com/octue/octue-sdk-python/issues/489.
+
+        # self.assertEqual(downloaded_datafile.tags, {"my": "metadata"})
 
     def test_exiting_context_manager_of_local_dataset_updates_local_metadata(self):
         """Test that local metadata for a local dataset is updated on exit of the dataset context manager."""

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "octue"
-version = "0.29.2"
+version = "0.29.3"
 description = "A package providing template applications for data services, and a python SDK to the Octue API."
 readme = "README.md"
 authors = ["Marcus Lugg <cortado.codes@protonmail.com>", "Thomas Clark <support@octue.com>"]
@@ -46,7 +46,7 @@ octue = "octue.cli:octue_cli"
 
 [tool.poetry.dev-dependencies]
 # Testing
-gcp-storage-emulator = "2022.02.17"
+gcp-storage-emulator = "2022.06.11"
 pytest = "^7"
 tox = "^3.23"
 # Code quality
