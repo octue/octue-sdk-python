@@ -773,6 +773,13 @@ class TestService(BaseTestCase):
         :param dict|None input_values:
         :param octue.resources.manifest.Manifest|None input_manifest:
         :param bool subscribe_to_logs:
+        :param bool allow_local_files:
+        :param str service_name:
+        :param str|None question_uuid:
+        :param callable|None push_endpoint:
+        :param int|float timeout:
+        :param int|float delivery_acknowledgement_timeout:
+        :param str|None parent_sdk_version:
         :return dict:
         """
         subscription, _ = parent.ask(
