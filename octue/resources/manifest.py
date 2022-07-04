@@ -65,7 +65,7 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
             if dataset.exists_in_cloud:
                 self.datasets[name].path = dataset.generate_signed_url()
 
-        logger.debug("Cloud paths (cloud URIs) replaced with signed URLs in %r.", self)
+        logger.debug("Cloud paths (cloud URIs) for datasets replaced with signed URLs in %r.", self)
 
     def to_cloud(self, cloud_path):
         """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory.
