@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import twined.exceptions
 from octue import Runner, exceptions
+from octue.cloud.emulators import mock_generate_signed_url
 from octue.cloud.pub_sub.service import Service
 from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Datafile, Dataset, Manifest
@@ -425,12 +426,13 @@ class TestService(BaseTestCase):
                 with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
                     child.serve()
 
-                    answer = self.ask_question_and_wait_for_answer(
-                        parent=parent,
-                        child=child,
-                        input_values={},
-                        input_manifest=input_manifest,
-                    )
+                    with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
+                        answer = self.ask_question_and_wait_for_answer(
+                            parent=parent,
+                            child=child,
+                            input_values={},
+                            input_manifest=input_manifest,
+                        )
 
         self.assertEqual(
             answer,
@@ -460,12 +462,13 @@ class TestService(BaseTestCase):
                 with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
                     child.serve()
 
-                    answer = self.ask_question_and_wait_for_answer(
-                        parent=parent,
-                        child=child,
-                        input_values=None,
-                        input_manifest=input_manifest,
-                    )
+                    with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
+                        answer = self.ask_question_and_wait_for_answer(
+                            parent=parent,
+                            child=child,
+                            input_values=None,
+                            input_manifest=input_manifest,
+                        )
 
         self.assertEqual(
             answer,
