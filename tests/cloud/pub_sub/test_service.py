@@ -5,11 +5,12 @@ from unittest.mock import patch
 
 import twined.exceptions
 from octue import Runner, exceptions
+from octue.cloud.emulators import mock_generate_signed_url
 from octue.cloud.pub_sub.service import Service
 from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
-from tests import TEST_PROJECT_NAME
+from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 from tests.cloud.pub_sub.mocks import (
     DifferentMockAnalysis,
@@ -143,7 +144,6 @@ class TestService(BaseTestCase):
                             parent=parent,
                             child=child,
                             input_values={},
-                            input_manifest=None,
                         )
 
         self.assertIn("'met_mast_id' is a required property", context.exception.args[0])
@@ -165,7 +165,6 @@ class TestService(BaseTestCase):
                             parent=parent,
                             child=child,
                             input_values={},
-                            input_manifest=None,
                         )
 
         self.assertIn("[Errno 2] No such file or directory: 'blah'", format(context.exception))
@@ -189,7 +188,6 @@ class TestService(BaseTestCase):
                             parent=parent,
                             child=child,
                             input_values={},
-                            input_manifest=None,
                         )
 
         self.assertEqual(type(context.exception).__name__, "AnUnknownException")
@@ -213,7 +211,6 @@ class TestService(BaseTestCase):
                             parent=parent,
                             child=child,
                             input_values={},
-                            input_manifest=None,
                             subscribe_to_logs=False,
                         )
 
@@ -242,7 +239,6 @@ class TestService(BaseTestCase):
                             parent=parent,
                             child=child,
                             input_values={},
-                            input_manifest=None,
                             subscribe_to_logs=True,
                             service_name="my-super-service",
                         )
@@ -297,7 +293,6 @@ class TestService(BaseTestCase):
                             parent=parent,
                             child=child,
                             input_values={},
-                            input_manifest=None,
                             subscribe_to_logs=True,
                             service_name="my-super-service",
                         )
@@ -403,26 +398,35 @@ class TestService(BaseTestCase):
         )
 
     def test_ask_with_input_manifest(self):
-        """Test that a service can ask a question including an input_manifest to another service that is serving and
+        """Test that a service can ask a question including an input manifest to another service that is serving and
         receive an answer.
         """
         child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        files = [Datafile(path="gs://my-dataset/hello.txt"), Datafile(path="gs://my-dataset/goodbye.csv")]
-        input_manifest = Manifest(datasets={"my-dataset": Dataset(files=files, path="gs://my-dataset")})
+        dataset_path = f"gs://{TEST_BUCKET_NAME}/my-dataset"
+
+        input_manifest = Manifest(
+            datasets={
+                "my-dataset": Dataset(
+                    files=[f"{dataset_path}/hello.txt", f"{dataset_path}/goodbye.csv"],
+                    path=dataset_path,
+                )
+            }
+        )
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                 with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
                     child.serve()
 
-                    answer = self.ask_question_and_wait_for_answer(
-                        parent=parent,
-                        child=child,
-                        input_values={},
-                        input_manifest=input_manifest,
-                    )
+                    with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
+                        answer = self.ask_question_and_wait_for_answer(
+                            parent=parent,
+                            child=child,
+                            input_values={},
+                            input_manifest=input_manifest,
+                        )
 
         self.assertEqual(
             answer,
@@ -436,20 +440,28 @@ class TestService(BaseTestCase):
         child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        files = [Datafile(path="gs://my-dataset/hello.txt"), Datafile(path="gs://my-dataset/goodbye.csv")]
-        input_manifest = Manifest(datasets={"my-dataset": Dataset(files=files, path="gs://my-dataset")})
+        dataset_path = f"gs://{TEST_BUCKET_NAME}/my-dataset"
+
+        input_manifest = Manifest(
+            datasets={
+                "my-dataset": Dataset(
+                    files=[f"{dataset_path}/hello.txt", f"{dataset_path}/goodbye.csv"],
+                    path=dataset_path,
+                )
+            }
+        )
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                 with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
                     child.serve()
 
-                    answer = self.ask_question_and_wait_for_answer(
-                        parent=parent,
-                        child=child,
-                        input_values=None,
-                        input_manifest=input_manifest,
-                    )
+                    with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
+                        answer = self.ask_question_and_wait_for_answer(
+                            parent=parent,
+                            child=child,
+                            input_manifest=input_manifest,
+                        )
 
         self.assertEqual(
             answer,
@@ -518,7 +530,6 @@ class TestService(BaseTestCase):
                         parent=parent,
                         child=child,
                         input_values={},
-                        input_manifest=None,
                     )
 
         self.assertEqual(answer["output_values"], MockAnalysisWithOutputManifest.output_values)
@@ -542,7 +553,6 @@ class TestService(BaseTestCase):
                                 parent=parent,
                                 child=child,
                                 input_values={},
-                                input_manifest=None,
                             )
                         )
 
@@ -569,14 +579,12 @@ class TestService(BaseTestCase):
                         parent=parent,
                         child=child_1,
                         input_values={},
-                        input_manifest=None,
                     )
 
                     answer_2 = self.ask_question_and_wait_for_answer(
                         parent=parent,
                         child=child_2,
                         input_values={},
-                        input_manifest=None,
                     )
 
         self.assertEqual(
@@ -618,7 +626,6 @@ class TestService(BaseTestCase):
                         parent=parent,
                         child=child,
                         input_values={"question": "What does the child of the child say?"},
-                        input_manifest=None,
                     )
 
         self.assertEqual(
@@ -674,7 +681,6 @@ class TestService(BaseTestCase):
                         parent=parent,
                         child=child,
                         input_values={"question": "What does the child of the child say?"},
-                        input_manifest=None,
                     )
 
         self.assertEqual(
@@ -717,7 +723,6 @@ class TestService(BaseTestCase):
                                         parent=parent,
                                         child=child,
                                         input_values={"question": "What does the child of the child say?"},
-                                        input_manifest=None,
                                         parent_sdk_version=parent_sdk_version,
                                     )
 
@@ -750,8 +755,8 @@ class TestService(BaseTestCase):
     def ask_question_and_wait_for_answer(
         parent,
         child,
-        input_values,
-        input_manifest,
+        input_values=None,
+        input_manifest=None,
         subscribe_to_logs=True,
         allow_local_files=False,
         service_name="my-service",
@@ -768,6 +773,13 @@ class TestService(BaseTestCase):
         :param dict|None input_values:
         :param octue.resources.manifest.Manifest|None input_manifest:
         :param bool subscribe_to_logs:
+        :param bool allow_local_files:
+        :param str service_name:
+        :param str|None question_uuid:
+        :param callable|None push_endpoint:
+        :param int|float timeout:
+        :param int|float delivery_acknowledgement_timeout:
+        :param str|None parent_sdk_version:
         :return dict:
         """
         subscription, _ = parent.ask(

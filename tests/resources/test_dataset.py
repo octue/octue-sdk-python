@@ -11,6 +11,7 @@ from octue.cloud import storage
 from octue.cloud.emulators import mock_generate_signed_url
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset
+from octue.resources.dataset import SIGNED_METADATA_DIRECTORY
 from octue.resources.filter_containers import FilterSet
 from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
@@ -582,7 +583,8 @@ class TestDataset(BaseTestCase):
         cloud_datafile_relative_paths = {
             blob.name.split(dataset.name)[-1].strip("/")
             for blob in GoogleCloudStorageClient().scandir(
-                upload_path, filter=lambda blob: not blob.name.endswith(".octue")
+                upload_path,
+                filter=lambda blob: not blob.name.endswith(".octue") and SIGNED_METADATA_DIRECTORY not in blob.name,
             )
         }
 
