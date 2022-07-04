@@ -144,7 +144,6 @@ class TestService(BaseTestCase):
                             parent=parent,
                             child=child,
                             input_values={},
-                            input_manifest=None,
                         )
 
         self.assertIn("'met_mast_id' is a required property", context.exception.args[0])
@@ -166,7 +165,6 @@ class TestService(BaseTestCase):
                             parent=parent,
                             child=child,
                             input_values={},
-                            input_manifest=None,
                         )
 
         self.assertIn("[Errno 2] No such file or directory: 'blah'", format(context.exception))
@@ -190,7 +188,6 @@ class TestService(BaseTestCase):
                             parent=parent,
                             child=child,
                             input_values={},
-                            input_manifest=None,
                         )
 
         self.assertEqual(type(context.exception).__name__, "AnUnknownException")
@@ -214,7 +211,6 @@ class TestService(BaseTestCase):
                             parent=parent,
                             child=child,
                             input_values={},
-                            input_manifest=None,
                             subscribe_to_logs=False,
                         )
 
@@ -243,7 +239,6 @@ class TestService(BaseTestCase):
                             parent=parent,
                             child=child,
                             input_values={},
-                            input_manifest=None,
                             subscribe_to_logs=True,
                             service_name="my-super-service",
                         )
@@ -298,7 +293,6 @@ class TestService(BaseTestCase):
                             parent=parent,
                             child=child,
                             input_values={},
-                            input_manifest=None,
                             subscribe_to_logs=True,
                             service_name="my-super-service",
                         )
@@ -466,7 +460,6 @@ class TestService(BaseTestCase):
                         answer = self.ask_question_and_wait_for_answer(
                             parent=parent,
                             child=child,
-                            input_values=None,
                             input_manifest=input_manifest,
                         )
 
@@ -537,7 +530,6 @@ class TestService(BaseTestCase):
                         parent=parent,
                         child=child,
                         input_values={},
-                        input_manifest=None,
                     )
 
         self.assertEqual(answer["output_values"], MockAnalysisWithOutputManifest.output_values)
@@ -561,7 +553,6 @@ class TestService(BaseTestCase):
                                 parent=parent,
                                 child=child,
                                 input_values={},
-                                input_manifest=None,
                             )
                         )
 
@@ -588,14 +579,12 @@ class TestService(BaseTestCase):
                         parent=parent,
                         child=child_1,
                         input_values={},
-                        input_manifest=None,
                     )
 
                     answer_2 = self.ask_question_and_wait_for_answer(
                         parent=parent,
                         child=child_2,
                         input_values={},
-                        input_manifest=None,
                     )
 
         self.assertEqual(
@@ -637,7 +626,6 @@ class TestService(BaseTestCase):
                         parent=parent,
                         child=child,
                         input_values={"question": "What does the child of the child say?"},
-                        input_manifest=None,
                     )
 
         self.assertEqual(
@@ -693,7 +681,6 @@ class TestService(BaseTestCase):
                         parent=parent,
                         child=child,
                         input_values={"question": "What does the child of the child say?"},
-                        input_manifest=None,
                     )
 
         self.assertEqual(
@@ -736,7 +723,6 @@ class TestService(BaseTestCase):
                                         parent=parent,
                                         child=child,
                                         input_values={"question": "What does the child of the child say?"},
-                                        input_manifest=None,
                                         parent_sdk_version=parent_sdk_version,
                                     )
 
@@ -769,8 +755,8 @@ class TestService(BaseTestCase):
     def ask_question_and_wait_for_answer(
         parent,
         child,
-        input_values,
-        input_manifest,
+        input_values=None,
+        input_manifest=None,
         subscribe_to_logs=True,
         allow_local_files=False,
         service_name="my-service",
