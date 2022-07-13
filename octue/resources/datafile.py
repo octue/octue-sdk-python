@@ -467,7 +467,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         if not self.cloud_path:
             self._raise_cloud_location_error()
 
-        GoogleCloudStorageClient().overwrite_custom_metadata(metadata=self.metadata(), cloud_path=self.cloud_path)
+        GoogleCloudStorageClient().overwrite_custom_metadata(self.cloud_path, metadata=self.metadata())
 
     def update_local_metadata(self):
         """Create or update the local octue metadata file with the datafile's metadata.
