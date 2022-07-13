@@ -1975,7 +1975,7 @@ hdf5 = ["h5py"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7.1"
-content-hash = "b8789d0a52b71ac767d6a3f28c42ce12c364e8963e2961bc584dc308c739eed4"
+content-hash = "dea27db657b9a4822487d4383a81fca1f5f64a14305216ce9211a4469afedbd4"
 
 [metadata.files]
 alabaster = [
