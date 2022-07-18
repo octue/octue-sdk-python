@@ -35,10 +35,10 @@ jobs:
     if: "!contains(github.event.head_commit.message, 'skipci')"
     runs-on: ${{ matrix.os }}
     env:
-      USING_COVERAGE: "3.8"
+      USING_COVERAGE: "3.9"
     strategy:
       matrix:
-        python: [3.8]
+        python: [3.9]
         os: [ubuntu-latest, windows-latest, macos-latest]
     permissions:
       id-token: write
@@ -93,7 +93,7 @@ jobs:
       - name: Test package is publishable with PyPI test server
         uses: JRubics/poetry-publish@v1.10
         with:
-          python_version: "3.8"
+          python_version: "3.9"
           pypi_token: ${{ secrets.TEST_PYPI_TOKEN }}
           repository_name: "testpypi"
           repository_url: "https://test.pypi.org/legacy/"
