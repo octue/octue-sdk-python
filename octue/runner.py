@@ -189,6 +189,9 @@ class Runner:
                 logger.error(str(e))
                 raise e
 
+            if not analysis.finalised:
+                analysis.finalise()
+
             return analysis
 
     def _populate_environment_with_google_cloud_secrets(self):

@@ -225,18 +225,45 @@ class TestRunner(BaseTestCase):
 
     def test_app_can_be_provided_as_a_class(self):
         """Test that apps can be written and provided as a class."""
-        analysis = Runner(app_src=App, twine="{}").run()
+        analysis = Runner(app_src=App, twine={"output_values_schema": {}}).run()
         self.assertEqual(analysis.output_values, "App as a class works!")
 
     def test_app_can_be_provided_as_path_to_module_containing_class_named_app(self):
         """Test that apps can be provided as a path to a module containing a class named "App"."""
-        analysis = Runner(app_src=os.path.join(TESTS_DIR, "test_app_modules", "app_class"), twine="{}").run()
+        analysis = Runner(
+            app_src=os.path.join(TESTS_DIR, "test_app_modules", "app_class"),
+            twine={"output_values_schema": {}},
+        ).run()
+
         self.assertEqual(analysis.output_values, "App as a class works!")
 
     def test_app_can_be_provided_as_a_module_containing_function_named_run(self):
         """Test that apps can be provided as a module containing a function named "run"."""
-        analysis = Runner(app_src=app, twine="{}").run()
-        self.assertEqual(analysis.output_values, [1, 2, 3, 4])
+        analysis = Runner(app_src=app, twine={"output_values_schema": {}}).run()
+        self.assertEqual(analysis.output_values, {"width": 3})
+
+    def test_analysis_finalised_by_runner_if_not_finalised_in_app(self):
+        """Test that analyses are finalised automatically if they're not finalised within their app."""
+        analysis = Runner(app_src=App, twine={"output_values_schema": {}}).run()
+        self.assertTrue(analysis.finalised)
+
+    def test_analysis_not_re_finalised_by_runner_if_finalised_in_app(self):
+        """Test that the `Analysis.finalise` method is not called again if an analysis has already been finalised."""
+
+        def app(analysis):
+            analysis.output_values = {"hello": "world"}
+
+            self.assertFalse(analysis.finalised)
+
+            # Simulate the analysis being finalised while still being able to mock `Analysis.finalise` to count how
+            # many times it's been called.
+            analysis._finalised = True
+
+        with patch("octue.resources.analysis.Analysis.finalise") as mock_finalise:
+            analysis = Runner(app_src=app, twine={"output_values_schema": {}}).run()
+
+        self.assertEqual(mock_finalise.call_count, 0)
+        self.assertTrue(analysis.finalised)
 
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
@@ -272,7 +299,8 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
                         },
                     }
                 }
-            }
+            },
+            "output_values_schema": {},
         }
     )
 
@@ -355,7 +383,8 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
                         "file_tags_template": {"$ref": schema_url},
                     }
                 }
-            }
+            },
+            "output_values_schema": {},
         }
 
         remote_schema = {
@@ -412,7 +441,8 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
                         }
                     },
                 }
-            }
+            },
+            "output_values_schema": {},
         }
 
         with tempfile.TemporaryDirectory() as temporary_directory:
