@@ -9,7 +9,7 @@ from apache_beam.runners.dataflow.internal.apiclient import DataflowJobAlreadyEx
 from octue import REPOSITORY_ROOT
 from octue.cloud.deployment.google.answer_pub_sub_question import answer_question
 from octue.cloud.pub_sub import Topic
-from octue.cloud.pub_sub.service import Service
+from octue.cloud.pub_sub.service import OCTUE_NAMESPACE, Service
 from octue.exceptions import DeploymentError
 from octue.resources.service_backends import GCPPubSubBackend
 
@@ -79,7 +79,12 @@ def create_streaming_job(
     pipeline_options = PipelineOptions.from_dictionary(pipeline_options)
     pipeline = apache_beam.Pipeline(options=pipeline_options)
 
-    service_topic = Topic(name=service_id, service=Service(backend=GCPPubSubBackend(project_name=project_name)))
+    service_topic = Topic(
+        name=service_id,
+        namespace=OCTUE_NAMESPACE,
+        service=Service(backend=GCPPubSubBackend(project_name=project_name)),
+    )
+
     service_topic.create(allow_existing=True)
 
     (
