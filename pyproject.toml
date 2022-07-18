@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "octue"
-version = "0.29.6"
+version = "0.29.7"
 description = "A package providing template applications for data services, and a python SDK to the Octue API."
 readme = "README.md"
 authors = ["Marcus Lugg <cortado.codes@protonmail.com>", "Thomas Clark <support@octue.com>"]
@@ -54,9 +54,8 @@ gcp-storage-emulator = "2022.06.11"
 pytest = "^7"
 tox = "^3.23"
 # Code quality
-flake8 = "3.8.3"
-flake8-isort = "3.0.0"
-black = "19.10b0"
+flake8 = "3.9.2"
+black = "22.6.0"
 pre-commit = "^2.17"
 coverage = "^5"
 # Template app dependencies
@@ -69,6 +68,7 @@ Sphinx = ">=4,<5"
 sphinx-rtd-theme = ">=1,<2"
 sphinx-tabs = ">=3,<4"
 sphinx-toolbox = "3.0.0"
+isort = "5.10.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

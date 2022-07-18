@@ -15,10 +15,10 @@ jobs:
     if: "github.event.pull_request.merged == true"
     runs-on: ${{ matrix.os }}
     env:
-      USING_COVERAGE: '3.8'
+      USING_COVERAGE: '3.9'
     strategy:
       matrix:
-        python: [ 3.8 ]
+        python: [ 3.9 ]
         os: [ ubuntu-latest, windows-latest, macos-latest ]
     permissions:
       id-token: write
@@ -95,7 +95,7 @@ jobs:
       - name: Build and publish latest package to PyPI
         uses: JRubics/poetry-publish@v1.10
         with:
-          python_version: "3.8"
+          python_version: "3.9"
           pypi_token: ${{ secrets.PYPI_TOKEN }}
           ignore_dev_requirements: "yes"
 
