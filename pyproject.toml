@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "octue"
-version = "0.29.6"
+version = "0.29.7"
 description = "A package providing template applications for data services, and a python SDK to the Octue API."
 readme = "README.md"
 authors = ["Marcus Lugg <cortado.codes@protonmail.com>", "Thomas Clark <support@octue.com>"]
@@ -13,7 +13,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Operating System :: OS Independent",
