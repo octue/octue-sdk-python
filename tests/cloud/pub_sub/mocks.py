@@ -248,7 +248,7 @@ class MockService(Service):
         allow_local_files=False,
         question_uuid=None,
         push_endpoint=None,
-        timeout=30,
+        timeout=86400,
         parent_sdk_version=pkg_resources.get_distribution("octue").version,
     ):
         """Put the question into the messages register, register the existence of the corresponding response topic, add
