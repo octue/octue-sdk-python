@@ -19,5 +19,11 @@ class TestDataflowDeployment(BaseTestCase):
             backend={"name": "GCPPubSubBackend", "project_name": os.environ["TEST_PROJECT_NAME"]},
         )
 
-        answer = child.ask(input_values={"n_iterations": 3})
-        self.assertEqual(answer, {"output_values": [1, 2, 3, 4, 5], "output_manifest": None})
+        answer = child.ask(input_values={"n_iterations": 3}, timeout=60)
+
+        # Check the output values.
+        self.assertEqual(answer["output_values"], [1, 2, 3, 4, 5])
+
+        # Check that the output dataset and its files can be accessed.
+        with answer["output_manifest"].datasets["example_dataset"].files.one() as (datafile, f):
+            self.assertEqual(f.read(), "This is some example service output.")
