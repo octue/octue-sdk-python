@@ -90,7 +90,8 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
 
     @property
     def finalised(self):
-        """Check whether the analysis has been finalised.
+        """Check whether the analysis has been finalised (i.e. whether its outputs have been validated and, if an output
+        manifest is produced, its datasets uploaded).
 
         :return bool:
         """
