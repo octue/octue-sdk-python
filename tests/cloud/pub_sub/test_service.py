@@ -47,7 +47,8 @@ def create_run_function():
             "input_values_schema": {
                 "type": "object",
                 "required": []
-            }
+            },
+            "output_values_schema": {}
         }
     """
 

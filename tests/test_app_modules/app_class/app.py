@@ -1,5 +1,5 @@
 class App:
-    """A mock app.
+    """A mock app that doesn't call `self.analysis.finalise`.
 
     :param octue.resources.analysis.Analysis analysis:
     :return None:
