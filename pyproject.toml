@@ -38,7 +38,8 @@ twined = "^0.5.0"
 packaging = ">=20.4,<22"
 # The following dependencies are from apache-beam[gcp]. They're provided here to a) avoid dependency resolution problems
 # and b) to reduce our total number of dependencies (we only need a small number of the dependencies the "gcp" extra
-# provides). Update these if you update apache-beam.
+# provides). Update these if you update apache-beam. See https://github.com/apache/beam/issues/21019 and
+# https://github.com/octue/octue-sdk-python/issues/492.
 cachetools = { version = ">=3.1.0,<5", optional = true }
 google-apitools = { version = ">=0.5.31,<0.5.32", optional = true }
 google-auth-httplib2 = { version = ">=0.1.0,<0.2.0", optional = true }
