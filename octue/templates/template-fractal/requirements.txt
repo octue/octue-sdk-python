@@ -1,0 +1,7 @@
+octue==0.29.0
+
+# A numerical manipulation library
+numpy==1.21.0
+
+# A library that generates pseudorandom strings of words.
+coolname==1.1.0

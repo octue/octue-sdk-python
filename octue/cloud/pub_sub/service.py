@@ -27,18 +27,19 @@ logger = logging.getLogger(__name__)
 OCTUE_NAMESPACE = "octue.services"
 ANSWERS_NAMESPACE = "answers"
 
-# Switch message batching off by setting max_messages to 1. This minimises latency and is recommended for
+# Switch message batching off by setting `max_messages` to 1. This minimises latency and is recommended for
 # microservices publishing single messages in a request-response sequence.
 BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_latency=0.01, max_messages=1)
 
 
 class Service(CoolNameable):
-    """A Twined service that can be used in two modes:
+    """An Octue service that can be used as a data service or digital twin in one of two modes:
+
     - As a child accepting questions (input values and manifests) from parents, running them through its app, and
-      responding with the results of the analysis
+      responding with an answer
     - As a parent asking questions to children in the above mode
 
-    Services communicate entirely via Google Pub/Sub and can ask and/or respond to questions from any other Service that
+    Services communicate entirely via Google Pub/Sub and can ask and/or respond to questions from any other service that
     has a corresponding topic on Google Pub/Sub.
 
     :param octue.resources.service_backends.ServiceBackend backend: the object representing the type of backend the service uses
@@ -58,6 +59,7 @@ class Service(CoolNameable):
             else:
                 self.id = f"{OCTUE_NAMESPACE}.{service_id}"
 
+            self.name = kwargs.get("name") or self.id
             self.id = self._clean_service_id(self.id)
 
         self.backend = backend
@@ -70,11 +72,11 @@ class Service(CoolNameable):
         return f"<{type(self).__name__}({self.name!r})>"
 
     def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False):
-        """Start the Service as a server, waiting to accept questions from any other Service using Google Pub/Sub on
-        the same Google Cloud Platform project. Questions are responded to asynchronously.
+        """Start the service as a child, waiting to accept questions from any other Octue service using Google Pub/Sub
+        on the same Google Cloud project. Questions are accepted, processed, and answered asynchronously.
 
-        :param float|None timeout: time in seconds after which to shut down the service
-        :param bool delete_topic_and_subscription_on_exit: if `True`, delete the service's topic and subscription on exit
+        :param float|None timeout: time in seconds after which to shut down the child
+        :param bool delete_topic_and_subscription_on_exit: if `True`, delete the child's topic and subscription on exiting serving mode
         :return None:
         """
         logger.info("Starting %r.", self)
@@ -120,12 +122,11 @@ class Service(CoolNameable):
             subscriber.close()
 
     def answer(self, question, answer_topic=None, timeout=30):
-        """Answer a question (i.e. run the Service's app to analyse the given data, and return the output values to the
-        parent). Answers are published to a topic whose name is generated from the UUID sent with the question, and are
-        in the format specified in the Service's Twine file.
+        """Answer a question from a parent - i.e. run the child's app on the given data and return the output values.
+        Answers conform to the output values and output manifest schemas specified in the child's Twine file.
 
         :param dict|Message question:
-        :param octue.cloud.pub_sub.topic.Topic|None answer_topic: provide if messages need to be sent to the parent from outside the service (e.g. in octue.cloud.deployment.google.cloud_run.flask_app)
+        :param octue.cloud.pub_sub.topic.Topic|None answer_topic: provide if messages need to be sent to the parent from outside the `Service` instance (e.g. in octue.cloud.deployment.google.cloud_run.flask_app)
         :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
@@ -199,19 +200,6 @@ class Service(CoolNameable):
             self.send_exception(topic, timeout)
             raise error
 
-    def instantiate_answer_topic(self, question_uuid, service_id=None):
-        """Instantiate the answer topic for the given question UUID for the given service ID.
-
-        :param str question_uuid:
-        :param str|None service_id: the ID of the service to ask the question to
-        :return octue.cloud.pub_sub.topic.Topic:
-        """
-        return Topic(
-            name=".".join((service_id or self.id, ANSWERS_NAMESPACE, question_uuid)),
-            namespace=OCTUE_NAMESPACE,
-            service=self,
-        )
-
     def ask(
         self,
         service_id,
@@ -223,16 +211,15 @@ class Service(CoolNameable):
         push_endpoint=None,
         timeout=30,
     ):
-        """Ask a serving Service a question (i.e. send it input values for it to run its app on). The input values must
-        be in the format specified by the serving Service's Twine file. A single-use topic and subscription are created
-        before sending the question to the serving Service - the topic is the expected publishing place for the answer
-        from the serving Service when it comes, and the subscription is set up to subscribe to this.
+        """Ask a child a question (i.e. send it input values for it to analyse and produce output values for) and return
+        a subscription to receive its answer on. The input values and manifest must conform to the schemas in the
+        child's Twine file.
 
-        :param str service_id: the UUID of the service to ask the question to
-        :param any input_values: the input values of the question
-        :param octue.resources.manifest.Manifest|None input_manifest: the input manifest of the question
-        :param bool subscribe_to_logs: if `True`, subscribe to logs from the remote service and handle them with the local log handlers
-        :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the serving service will have access to these local files
+        :param str service_id: the ID of the child to ask the question to
+        :param any|None input_values: any input values for the question
+        :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
+        :param bool subscribe_to_logs: if `True`, subscribe to the child's logs and handle them with the local log handlers
+        :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will be able to access these local files
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here; if they should be pulled, leave this as `None`
         :param float|None timeout: time in seconds to keep retrying sending the question
@@ -269,7 +256,9 @@ class Service(CoolNameable):
         answer_subscription.create(allow_existing=True)
 
         serialised_input_manifest = None
+
         if input_manifest is not None:
+            input_manifest.use_signed_urls_for_datasets()
             serialised_input_manifest = input_manifest.serialise()
 
         self.publisher.publish(
@@ -297,7 +286,7 @@ class Service(CoolNameable):
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
-        :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
+        :param str service_name: a name by which to refer to the child subscribed to (used for labelling its log messages if subscribed to)
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
         :raise TimeoutError: if the timeout is exceeded
@@ -326,6 +315,19 @@ class Service(CoolNameable):
         finally:
             subscription.delete()
             subscriber.close()
+
+    def instantiate_answer_topic(self, question_uuid, service_id=None):
+        """Instantiate the answer topic for the given question UUID and child service ID.
+
+        :param str question_uuid:
+        :param str|None service_id: the ID of the child to ask the question to
+        :return octue.cloud.pub_sub.topic.Topic:
+        """
+        return Topic(
+            name=".".join((service_id or self.id, ANSWERS_NAMESPACE, question_uuid)),
+            namespace=OCTUE_NAMESPACE,
+            service=self,
+        )
 
     def send_exception(self, topic, timeout=30):
         """Serialise and send the exception being handled to the parent.
@@ -362,7 +364,7 @@ class Service(CoolNameable):
         return service_id.replace("/", ".")
 
     def _send_delivery_acknowledgment(self, topic, timeout=30):
-        """Send an acknowledgement of question delivery to the parent.
+        """Send an acknowledgement of question receipt to the parent.
 
         :param octue.cloud.pub_sub.topic.Topic topic: topic to send acknowledgement to
         :param float timeout: time in seconds after which to give up sending

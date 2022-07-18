@@ -156,7 +156,7 @@ class TestStartCommand(BaseTestCase):
             os.path.dirname(os.path.dirname(__file__)),
             "octue",
             "templates",
-            "template-python-fractal",
+            "template-fractal",
         )
 
         class MockOpenForConfigurationFiles(MockOpen):

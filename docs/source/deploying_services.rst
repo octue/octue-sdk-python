@@ -1,45 +1,98 @@
-.. _deploying_services:
+.. _deploying_services_advanced:
 
-================================
-Deploying services automatically
-================================
+======================================
+Deploying services (developer's guide)
+======================================
+This is a guide for developers that want to deploy Octue services themselves - it is not needed if Octue manages your
+services for you or if you are only asking questions to existing Octue services.
 
-Automated deployment with Octue means:
+.. attention::
 
-* Your service runs in Google Cloud, ready to accept questions from and return answers to other services.
-* You don't need to do anything to update your deployed service with new code changes - the service simply gets rebuilt
-  and re-deployed each time you push a commit to your ``main`` branch, or merge a pull request into it (other branches
-  and deployment strategies are available, but this is the default).
-* Your service only runs when questions from other services are sent to it, meaning there is no cost to having it
-  deployed but not in use (or in low use).
+    The ``octue deploy`` CLI command can be used to deploy services automatically, but it:
 
-All you need to enable automated deployments are the following files in your repository root:
+    - Is in alpha so may not work as intended
+    - Requires the ``gcloud`` CLI tool with ``Google Cloud SDK 367.0.0`` and ``beta 2021.12.10`` to be available
+    - Requires the correct permissions via the ``gcloud`` tool logged into a Google user account and/or with an
+      appropriate service account available
 
-* A ``requirements.txt`` file that includes ``octue>=0.1.17`` and the rest of your service's dependencies
-* A ``twine.json`` file
-* A ``deployment_configuration.json`` file (optional)
+    For now, we recommend `contacting us <https://www.octue.com/contact>`_ to help set up deployments for you.
 
-Apart from that, all you need to do is contact us so we can connect your git repository as a Google Cloud Build
-trigger. This requires no work from you, apart from authorising the connection to GitHub (or another git provider).
+What deployment enables
+-----------------------
+Deploying an Octue service to Google Cloud Run means it:
 
+* Is deployed as a docker container
+* Is ready to be asked questions by any other Octue service that has the correct permissions (you can control this)
+* Can ask questions to any other Octue service for which it has the correct permissions
+* Will automatically build and redeploy upon the conditions you provide (e.g. pushes or merges into ``main``)
+* Will automatically start and run when Pub/Sub messages are received from the topic you created. The Pub/Sub
+  messages can be sent from anywhere in the world, but the container will only run in the region you chose (you can
+  create multiple Cloud Run services in different regions for the same repository if this is a problem).
+* Will automatically stop shortly after finishing the analyses asked for in the Pub/Sub message (although
+  you can set a minimum container count so one is always running to minimise cold starts).
 
------------------------------
-Deployment configuration file
------------------------------
-The ``deployment_configuration.json`` file is not required unless the defaults below do not apply. The file should be a
-JSON object with the following fields (all paths should be relative to the repository root):
+How to deploy
+-------------
+1. Ensuring you are in the desired project, go to the `Google Cloud Run <https://console.cloud.google.com/run>`_ page
+   and create a new service
 
-* ``app_dir`` (default value: ``"."``) - the path of the directory containing your ``app.py``
-* ``twine`` (default value: ``"twine.json"``) - the path of your Twine file
-* ``configuration_values`` (default value: ``None``)
-* ``configuration_manifest`` (default value: ``None``)
-* ``output_manifest`` (default value: ``None``)
-* ``children`` (default value: ``None``)
+.. image:: images/deploying_services_advanced/create_service.png
 
+2. Give your service a unique name
 
---------------------
-Advanced deployments
---------------------
-If your service requires extra system dependencies or other complexities that can't be encapsulated in a
-``requirements.txt`` file, you'll also need to write a ``Dockerfile`` of a certain form. We can provide you with a
-starting point.
+.. image:: images/deploying_services_advanced/service_name_and_region.png
+
+3. Choose a `low-carbon region <https://cloud.google.com/sustainability/region-carbon#data>`_ that supports Eventarc
+   triggers and is in a convenient geographic location for you (e.g. physically close to you for low latency or in a
+   region compatible with your data protection requirements).
+
+.. image:: images/deploying_services_advanced/low_carbon_regions.png
+
+3. Click "Next". When changes are made to the source code, we want them to be deployed automatically. So, we need to
+   connect the repository to GCP to enable this. Select "Continuously deploy new revisions from a source repository" and
+   then "Set up with cloud build".
+
+.. image:: images/deploying_services_advanced/set_up_with_cloud_build.png
+
+4. Choose your source code repository provider and the repository containing the code you'd like to deploy. You'll have
+   to give the provider permission to access the repository. If your provider isn't GitHub, BitBucket, or Google Cloud
+   Source Repositories (GCSR), you'll need to mirror the repository to GCSR before completing this step as Google Cloud
+   Build only supports these three providers currently.
+
+.. image:: images/deploying_services_advanced/choose_repository.png
+
+5. Click "Next", enter a regular expression for the branches you want to automatically deploy from (``main`` by default).
+   As the service will run in a docker container, select "Dockerfile" and click "Save".
+
+.. image:: images/deploying_services_advanced/choose_dockerfile.png
+
+6. Click "Next". If you want your service to be private, select "Allow internal traffic only" and "Require
+   authentication". This stops anyone without permission from using the service.
+
+.. image:: images/deploying_services_advanced/set_traffic.png
+
+7. The service needs a trigger to start up and respond to. We'll be using Google Pub/Sub. Click "Add eventarc trigger",
+   choose "Cloud Pub/Sub topic" as the trigger event, click on the menu called "Select a Cloud Pub/Sub topic", then
+   click "Create a topic". Any services that want to ask your service a question will publish their question to this
+   topic.
+
+.. image:: images/deploying_services_advanced/create_trigger.png
+
+8. The topic ID should be in the form ``octue.services.my-organisation.my-service``. Click "Create topic".
+
+9. Under "Invocation settings", click on the "Service account" menu and then "Create new service account".
+
+.. image:: images/deploying_services_advanced/create_service_account.png
+
+10. Make a new service account with a related name e.g. "my-service", then click "Create". Add the
+    "octue-service-user" and "Cloud Run Invoker" roles to the service account. Contact us if the "octue-service-user"
+    role is not available.
+
+.. image:: images/deploying_services_advanced/add_roles_to_service_account.png
+
+11. Click "Save" and then "Create".
+
+.. image:: images/deploying_services_advanced/save_and_create.png
+
+12. You can now view your service in the list of `Cloud Run services <https://console.cloud.google.com/run>`_ and view
+    its build trigger in the list of `Cloud Build triggers <https://console.cloud.google.com/cloud-build>`_.

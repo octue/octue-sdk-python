@@ -221,7 +221,7 @@ class TestRunner(BaseTestCase):
         with self.assertRaises(ModuleNotFoundError) as e:
             runner.run()
             self.assertTrue("No module named 'app'" in e.msg)
-            self.assertTrue(os.path.abspath(runner.app_src) in e.msg)
+            self.assertTrue(os.path.abspath(runner.app_source) in e.msg)
 
     def test_app_can_be_provided_as_a_class(self):
         """Test that apps can be written and provided as a class."""

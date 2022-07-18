@@ -2,9 +2,9 @@ import random
 
 
 def run(analysis):
-    """Run a mock analysis producing random integers as elevations.
+    """Run a mock analysis producing random integers as elevations to send to the parent.
 
-    :param octue.resources.analysis.Analysis analysis:
+    :param octue.resources.Analysis analysis:
     :return None:
     """
     analysis.output_values = [random.randint(0, 5000) for location in analysis.input_values["locations"]]

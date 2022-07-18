@@ -3,20 +3,139 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 import uuid
 from unittest.mock import patch
 from urllib.parse import urlparse
 
+import yaml
+
 from octue import REPOSITORY_ROOT, Runner
 from octue.cloud.emulators import mock_generate_signed_url
 from octue.resources.manifest import Manifest
 from octue.utils.processes import ProcessesContextManager
+from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
 
 
 class TemplateAppsTestCase(BaseTestCase):
-    """Test case that runs analyses using apps in the templates, to ensure all the examples work."""
+    """A test case that runs analyses using the template apps to ensure they work."""
+
+    def test_fractal_template_with_default_configuration(self):
+        """Ensure the `fractal` app can be configured with its default configuration and run."""
+        self.set_template("template-fractal")
+
+        runner = Runner(
+            app_src=self.template_path,
+            twine=self.template_twine,
+            configuration_values=os.path.join("data", "configuration", "configuration_values.json"),
+        )
+
+        runner.run()
+
+    def test_using_manifests_template(self):
+        """Ensure the `using-manifests` template app works correctly."""
+        self.set_template("template-using-manifests")
+
+        runner = Runner(
+            app_src=self.template_path,
+            twine=self.template_twine,
+            configuration_values=os.path.join("data", "configuration", "values.json"),
+        )
+
+        with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
+            analysis = runner.run(input_manifest=os.path.join("data", "input", "manifest.json"))
+
+        # Test that the signed URLs for the dataset and its files work and can be used to reinstantiate the output
+        # manifest after serialisation.
+        downloaded_output_manifest = Manifest.deserialise(analysis.output_manifest.to_primitive())
+
+        self.assertEqual(
+            downloaded_output_manifest.datasets["cleaned_met_mast_data"].labels,
+            {"mast", "cleaned", "met"},
+        )
+
+        self.assertEqual(
+            urlparse(downloaded_output_manifest.datasets["cleaned_met_mast_data"].files.one().cloud_path).path,
+            f"/{TEST_BUCKET_NAME}/output/test_using_manifests_analysis/cleaned_met_mast_data/cleaned.csv",
+        )
+
+    @unittest.skipIf(condition=os.name == "nt", reason="See issue https://github.com/octue/octue-sdk-python/issues/229")
+    def test_child_services_template(self):
+        """Ensure the child services template works correctly (i.e. that children can be accessed by a parent and data
+        collected from them). This template has a parent app and two children - an elevation app and wind speed app. The
+        parent sends coordinates to both children, receiving the elevation and wind speed from them at these locations.
+        """
+        cli_path = os.path.join(REPOSITORY_ROOT, "octue", "cli.py")
+        self.set_template("template-child-services")
+
+        elevation_service_path = os.path.join(self.template_path, "elevation_service")
+        elevation_service_id = f"elevation-service-{uuid.uuid4()}"
+
+        with tempfile.NamedTemporaryFile() as elevation_service_configuration:
+            with open(os.path.join(self.template_path, "elevation_service", "octue.yaml")) as f:
+                config = yaml.load(f, Loader=yaml.SafeLoader)
+                config["services"][0]["name"] = elevation_service_id
+
+            with open(elevation_service_configuration.name, "w") as f:
+                yaml.dump(config, f)
+
+            elevation_process = subprocess.Popen(
+                [
+                    sys.executable,
+                    cli_path,
+                    "start",
+                    f"--service-config={elevation_service_configuration.name}",
+                    "--rm",
+                ],
+                cwd=elevation_service_path,
+            )
+
+            wind_speed_service_path = os.path.join(self.template_path, "wind_speed_service")
+            wind_speed_service_id = f"wind-speed-service-{uuid.uuid4()}"
+
+            with tempfile.NamedTemporaryFile() as wind_speed_service_configuration:
+                with open(os.path.join(self.template_path, "wind_speed_service", "octue.yaml")) as f:
+                    config = yaml.load(f, Loader=yaml.SafeLoader)
+                    config["services"][0]["name"] = wind_speed_service_id
+
+                with open(wind_speed_service_configuration.name, "w") as f:
+                    yaml.dump(config, f)
+
+                wind_speed_process = subprocess.Popen(
+                    [
+                        sys.executable,
+                        cli_path,
+                        "start",
+                        f"--service-config={wind_speed_service_configuration.name}",
+                        "--rm",
+                    ],
+                    cwd=wind_speed_service_path,
+                )
+
+                parent_service_path = os.path.join(self.template_path, "parent_service")
+
+                with open(os.path.join(parent_service_path, "app_configuration.json")) as f:
+                    children = json.load(f)["children"]
+                    children[0]["id"] = wind_speed_service_id
+                    children[1]["id"] = elevation_service_id
+
+                with ProcessesContextManager(processes=(elevation_process, wind_speed_process)):
+
+                    runner = Runner(
+                        app_src=parent_service_path,
+                        twine=os.path.join(parent_service_path, "twine.json"),
+                        children=children,
+                        service_id="template-child-services/parent-service",
+                    )
+
+                    analysis = runner.run(
+                        input_values=os.path.join(parent_service_path, "data", "input", "values.json"),
+                    )
+
+        self.assertTrue("elevations" in analysis.output_values)
+        self.assertTrue("wind_speeds" in analysis.output_values)
 
     def setUp(self):
         """Set up the test case by adding empty attributes ready to store details about the templates.
@@ -51,112 +170,9 @@ class TemplateAppsTestCase(BaseTestCase):
         self.set_template = set_template
 
     def tearDown(self):
-        """Remove data directories manufactured"""
+        """Remove the temporary template app directories."""
         super().tearDown()
         os.chdir(self.start_path)
         for path in self.teardown_templates:
             sys.path.remove(path)
             shutil.rmtree(path)
-
-    def test_fractal_configuration(self):
-        """Ensures fractal app can be configured with its default configuration."""
-        self.set_template("template-python-fractal")
-        runner = Runner(
-            app_src=self.template_path,
-            twine=self.template_twine,
-            configuration_values=os.path.join("data", "configuration", "configuration_values.json"),
-        )
-
-        runner.run()
-
-    def test_using_manifests(self):
-        """Ensure the `using-manifests` template app works correctly."""
-        self.set_template("template-using-manifests")
-
-        runner = Runner(
-            app_src=self.template_path,
-            twine=self.template_twine,
-            configuration_values=os.path.join("data", "configuration", "values.json"),
-        )
-
-        with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
-            analysis = runner.run(input_manifest=os.path.join("data", "input", "manifest.json"))
-
-        # Check that the output files have been created.
-        self.assertTrue(os.path.isfile(os.path.join("cleaned_met_mast_data", "cleaned.csv")))
-
-        # Test that the signed URLs for the dataset and its files work and can be used to reinstantiate the output
-        # manifest after serialisation.
-        downloaded_output_manifest = Manifest.deserialise(analysis.output_manifest.to_primitive())
-
-        self.assertEqual(
-            downloaded_output_manifest.datasets["cleaned_met_mast_data"].labels,
-            {"mast", "cleaned", "met"},
-        )
-
-        self.assertEqual(
-            urlparse(downloaded_output_manifest.datasets["cleaned_met_mast_data"].files.one().cloud_path).path,
-            "/octue-test-bucket/output/test_using_manifests_analysis/cleaned_met_mast_data/cleaned.csv",
-        )
-
-    @unittest.skipIf(condition=os.name == "nt", reason="See issue https://github.com/octue/octue-sdk-python/issues/229")
-    def test_child_services_template(self):
-        """Ensure the child services template works correctly (i.e. that children can be accessed by a parent and data
-        collected from them). This template has a parent app and two children - an elevation app and wind speed app. The
-        parent sends coordinates to both children, receiving the elevation and wind speed from them at these locations.
-        """
-        cli_path = os.path.join(REPOSITORY_ROOT, "octue", "cli.py")
-        self.set_template("template-child-services")
-
-        elevation_service_path = os.path.join(self.template_path, "elevation_service")
-        elevation_service_id = f"template-child-services/elevation-service-{uuid.uuid4()}"
-
-        elevation_process = subprocess.Popen(
-            [
-                sys.executable,
-                cli_path,
-                "start",
-                "--service-config=octue.yaml",
-                f"--service-id={elevation_service_id}",
-                "--delete-topic-and-subscription-on-exit",
-            ],
-            cwd=elevation_service_path,
-        )
-
-        wind_speed_service_path = os.path.join(self.template_path, "wind_speed_service")
-        wind_speed_service_id = f"template-child-services/wind-speed-service-{uuid.uuid4()}"
-
-        wind_speed_process = subprocess.Popen(
-            [
-                sys.executable,
-                cli_path,
-                "start",
-                "--service-config=octue.yaml",
-                f"--service-id={wind_speed_service_id}",
-                "--delete-topic-and-subscription-on-exit",
-            ],
-            cwd=wind_speed_service_path,
-        )
-
-        parent_service_path = os.path.join(self.template_path, "parent_service")
-
-        with open(os.path.join(parent_service_path, "app_configuration.json")) as f:
-            children = json.load(f)["children"]
-            children[0]["id"] = wind_speed_service_id
-            children[1]["id"] = elevation_service_id
-
-        with ProcessesContextManager(processes=(elevation_process, wind_speed_process)):
-
-            runner = Runner(
-                app_src=parent_service_path,
-                twine=os.path.join(parent_service_path, "twine.json"),
-                children=children,
-                service_id="template-child-services/parent-service",
-            )
-
-            analysis = runner.run(
-                input_values=os.path.join(parent_service_path, "data", "input", "values.json"),
-            )
-
-        self.assertTrue("elevations" in analysis.output_values)
-        self.assertTrue("wind_speeds" in analysis.output_values)

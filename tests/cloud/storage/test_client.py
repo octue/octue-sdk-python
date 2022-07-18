@@ -28,21 +28,21 @@ class TestGoogleCloudStorageClient(BaseTestCase):
 
     def test_create_bucket(self):
         """Test that a bucket can be created."""
-        name = "bucket-of-sand"
+        name = TEST_BUCKET_NAME + "-of-sand"
         self.assertIsNone(self.storage_client.client.lookup_bucket(name))
         self.storage_client.create_bucket(name)
         self.assertEqual(self.storage_client.client.lookup_bucket(name).name, name)
 
     def test_create_bucket_in_non_default_location(self):
         """Test that a bucket can be created in a non-default location."""
-        name = "bucket-of-chocolate"
+        name = TEST_BUCKET_NAME + "-of-chocolate"
         self.assertIsNone(self.storage_client.client.lookup_bucket(name))
         self.storage_client.create_bucket(name, location="EUROPE-WEST2")
         self.assertEqual(self.storage_client.client.lookup_bucket(name).name, name)
 
     def test_create_bucket_when_already_exists_and_existence_allowed(self):
         """Test that a bucket isn't re-created if it already exists and pre-existence is allowed."""
-        name = "bucket-of-grass"
+        name = TEST_BUCKET_NAME + "-of-grass"
         self.storage_client.create_bucket(name)
         self.assertIsNotNone(self.storage_client.client.lookup_bucket(name))
         self.storage_client.upload_from_string("hello", storage.path.generate_gs_path(name, "file.txt"))
@@ -55,7 +55,7 @@ class TestGoogleCloudStorageClient(BaseTestCase):
         """Test that an error is raised when trying to create a bucket that already exists and pre-existence isn't
         allowed.
         """
-        name = "bucket-of-cucumbers"
+        name = TEST_BUCKET_NAME + "-of-cucumbers"
         self.storage_client.create_bucket(name)
         self.assertIsNotNone(self.storage_client.client.lookup_bucket(name))
 
@@ -310,7 +310,7 @@ class TestGoogleCloudStorageClient(BaseTestCase):
     def test_generate_signed_url(self):
         """Test that a signed URL to a cloud object can be generated and used to access the file."""
         cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "blah")
-        self.storage_client.upload_from_string(string="some stuff", cloud_path=cloud_path)
+        self.storage_client.upload_from_string(string="some stuff", cloud_path=cloud_path, metadata={"my": "metadata"})
 
         with patch("google.cloud.storage.blob.Blob.generate_signed_url", mock_generate_signed_url):
             url = self.storage_client.generate_signed_url(cloud_path, expiration=datetime.timedelta(seconds=1))
@@ -320,5 +320,11 @@ class TestGoogleCloudStorageClient(BaseTestCase):
 
             # Test that the signed URL works.
             response = requests.get(url)
-            self.assertEqual(requests.get(url).status_code, 200)
+            self.assertEqual(response.status_code, 200)
             self.assertEqual(response.text, "some stuff")
+
+            # Check that the file's custom metadata is included in the headers. This assertion will be uncommented when
+            # this issue https://github.com/oittaa/gcp-storage-emulator/issues/187 with the storage emulator is
+            # resolved. See issue https://github.com/octue/octue-sdk-python/issues/489.
+
+            # self.assertEqual(response.headers["x-goog-meta-my"], json.dumps("metadata"))

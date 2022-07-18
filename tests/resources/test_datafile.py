@@ -172,6 +172,29 @@ class TestDatafile(BaseTestCase):
         # Check that the reloaded datafile hasn't been downloaded.
         self.assertIsNone(datafile_reloaded_from_cloud._local_path)
 
+    def test_metadata_hash_is_same_for_different_files_with_the_same_metadata(self):
+        """Test that the metadata hash is the same for datafiles with different files but the same metadata."""
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            first_file = Datafile(path=temporary_file.name, labels={"a", "b", "c"})
+
+            with first_file.open("w") as f:
+                f.write("hello")
+
+            with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+                second_file = Datafile(path=temporary_file.name, labels={"a", "b", "c"})
+
+                with second_file.open("w") as f:
+                    f.write("goodbye")
+
+                self.assertEqual(first_file.metadata_hash_value, second_file.metadata_hash_value)
+
+    def test_metadata_hash_is_different_for_same_file_but_different_metadata(self):
+        """Test that the metadata hash is different for datafiles with the same files but different metadata."""
+        first_file = Datafile(path=self.path, labels={"a", "b", "c"})
+        second_file = copy.deepcopy(first_file)
+        second_file.labels = {"d", "e", "f"}
+        self.assertNotEqual(first_file.metadata_hash_value, second_file.metadata_hash_value)
+
     def test_exists_in_cloud(self):
         """Test whether it can be determined that a datafile exists in the cloud or not."""
         self.assertFalse(self.create_valid_datafile().exists_in_cloud)
@@ -382,8 +405,14 @@ class TestDatafile(BaseTestCase):
         with datafile.open("w") as f:
             f.write("hello")
 
+        # Test that the datafile's "open attributes" are updated.
+        self.assertEqual(datafile._open_attributes["mode"], "w")
+
         with datafile.open() as f:
             self.assertEqual(f.read(), "hello")
+
+        # Test that the datafile's "open attributes" are updated.
+        self.assertEqual(datafile._open_attributes["mode"], "r")
 
     def test_open_with_reading_cloud_file(self):
         """Test that a cloud datafile can be opened for reading."""
@@ -405,6 +434,9 @@ class TestDatafile(BaseTestCase):
 
             # Check that the cloud file isn't updated until the context manager is closed.
             self.assertEqual(GoogleCloudStorageClient().download_as_string(datafile.cloud_path), original_contents)
+
+            # Test that the datafile's "open attributes" are updated.
+            self.assertEqual(new_datafile._open_attributes["mode"], "w")
 
         # Check that the cloud file has now been updated.
         self.assertEqual(GoogleCloudStorageClient().download_as_string(datafile.cloud_path), new_file_contents)
@@ -832,6 +864,7 @@ class TestDatafile(BaseTestCase):
 
             with Datafile(path=os.path.join(temporary_directory, "my-file.dat"), mode="w") as (datafile, f):
                 f.write("I will be signed")
+                datafile.tags = {"some": "metadata"}
 
             datafile.upload(storage.path.generate_gs_path(TEST_BUCKET_NAME, "directory", "my-file.dat"))
 
@@ -841,8 +874,17 @@ class TestDatafile(BaseTestCase):
         # Ensure the GOOGLE_APPLICATION_CREDENTIALS environment variable isn't available to ensure the signed URL works
         # without any extra permissions.
         with patch.dict(os.environ, clear=True):
-            with Datafile(path=signed_url) as (_, f):
+            with Datafile(path=signed_url) as (downloaded_datafile, f):
                 self.assertEqual(f.read(), "I will be signed")
+
+                # Test cloud metadata is retrieved. These assertions will be uncommented when this issue
+                # https://github.com/oittaa/gcp-storage-emulator/issues/187 with the storage emulator is resolved. See
+                # issue https://github.com/octue/octue-sdk-python/issues/489.
+
+                # self.assertEqual(downloaded_datafile.tags, {"some": "metadata"})
+                # self.assertEqual(datafile.id, downloaded_datafile.id)
+                # self.assertEqual(datafile.hash_value, downloaded_datafile.hash_value)
+                # self.assertEqual(datafile.size_bytes, downloaded_datafile.size_bytes)
 
     def test_error_raised_if_trying_to_modify_signed_url_datafile(self):
         """Test that an error is raised if trying to modify a datafile instantiated from a signed URL."""

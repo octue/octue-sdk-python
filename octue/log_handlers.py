@@ -3,8 +3,10 @@ import logging.handlers
 import os
 from urllib.parse import urlparse
 
+from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 
-if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in {"GOOGLE_CLOUD_RUN", "GOOGLE_DATAFLOW"}:
+
+if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in GOOGLE_COMPUTE_PROVIDERS:
     # Google Cloud logs don't support colour currently - provide a no-operation function.
     colourise = lambda string, text_colour=None, background_colour=None: string
 else:
@@ -67,7 +69,7 @@ def create_octue_formatter(
                     text_colour=COLOUR_PALETTE[0],
                 ),
                 *extra_sections,
-                colourise("%(message)s"),
+                "%(message)s",
             ]
         )
     )
@@ -83,7 +85,8 @@ def apply_log_handler(
     include_process_name=False,
     include_thread_name=False,
 ):
-    """Apply a log handler with the given formatter to the logger with the given name.
+    """Apply a log handler with the given formatter to the logger with the given name. By default, the default Octue log
+    handler is used on the root logger.
 
     :param str|None logger_name: the name of the logger to apply the handler to; if this and `logger` are `None`, the root logger is used
     :param logging.Logger|None logger: the logger instance to apply the handler to (takes precedence over a logger name)
@@ -176,7 +179,7 @@ def get_log_record_attributes_for_environment():
 
     :return list:
     """
-    if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in {"GOOGLE_CLOUD_RUN", "GOOGLE_DATAFLOW"}:
+    if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in GOOGLE_COMPUTE_PROVIDERS:
         return LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP[1:]
 
     return LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP

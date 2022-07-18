@@ -83,8 +83,10 @@ class GoogleCloudStorageClient:
         with open(local_path, "rb") as f:
             blob.crc32c = self._compute_crc32c_checksum(f.read())
 
+        if metadata:
+            blob.metadata = self._encode_metadata(metadata)
+
         blob.upload_from_filename(filename=local_path, timeout=timeout)
-        self._overwrite_blob_custom_metadata(blob, metadata)
         logger.debug("Uploaded %r to Google Cloud at %r.", local_path, blob.public_url)
 
     def upload_from_string(self, string, cloud_path, metadata=None, timeout=_DEFAULT_TIMEOUT):
@@ -99,8 +101,11 @@ class GoogleCloudStorageClient:
         """
         blob = self._blob(cloud_path)
         blob.crc32c = self._compute_crc32c_checksum(string)
+
+        if metadata:
+            blob.metadata = self._encode_metadata(metadata)
+
         blob.upload_from_string(data=string, timeout=timeout)
-        self._overwrite_blob_custom_metadata(blob, metadata)
         logger.debug("Uploaded data to Google Cloud at %r.", blob.public_url)
 
     def get_metadata(self, cloud_path, timeout=_DEFAULT_TIMEOUT):
@@ -139,15 +144,17 @@ class GoogleCloudStorageClient:
             "custom_time": blob.custom_time,
         }
 
-    def overwrite_custom_metadata(self, metadata, cloud_path):
-        """Overwrite the custom metadata for the given cloud file.
+    def overwrite_custom_metadata(self, cloud_path, metadata=None):
+        """Overwrite the custom metadata for the given cloud file. If no metadata is given, the custom metadata is
+        erased.
 
-        :param dict metadata: key-value pairs to set as the new custom metadata
         :param str cloud_path: full cloud path to file (e.g. `gs://bucket_name/path/to/file.csv`)
+        :param dict|None metadata: key-value pairs to set as the new custom metadata
         :return None:
         """
         blob = self._blob(cloud_path)
-        self._overwrite_blob_custom_metadata(blob, metadata)
+        blob.metadata = self._encode_metadata(metadata or {})
+        blob.patch()
 
     def download_to_file(self, local_path, cloud_path, timeout=_DEFAULT_TIMEOUT):
         """Download a file to a file from a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>.
@@ -309,19 +316,6 @@ class GoogleCloudStorageClient:
 
         checksum = Checksum(string_or_bytes)
         return base64.b64encode(checksum.digest()).decode("utf-8")
-
-    def _overwrite_blob_custom_metadata(self, blob, metadata):
-        """Overwrite the custom metadata for the given blob. Note that this is synced up with Google Cloud.
-
-        :param google.cloud.storage.blob.Blob blob: Google Cloud Storage blob to update
-        :param dict metadata: key-value pairs of metadata to overwrite the blob's metadata with
-        :return None:
-        """
-        if not metadata:
-            return None
-
-        blob.metadata = self._encode_metadata(metadata)
-        blob.patch()
 
     def _encode_metadata(self, metadata):
         """Encode metadata as a dictionary of JSON strings.

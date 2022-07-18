@@ -24,14 +24,14 @@ logger = logging.getLogger(__name__)
 class Runner:
     """A runner of analyses for a given service.
 
-    The Runner class provides a set of configuration parameters for use by your application, together with a range of
-    methods for managing input and output file parsing as well as controlling logging.
+    The ``Runner`` class provides a set of configuration parameters for use by your application, together with a range
+    of methods for managing input and output file parsing as well as controlling logging.
 
-    :param Union[AppFrom, callable, str] app_src: Either an instance of the AppFrom manager class which has a run() method, or a function which accepts a single parameter (the instantiated analysis), or a string pointing to an application folder (which should contain an 'app.py' function like the templates)
-    :param str|dict|twined.Twine twine: path to the twine file, a string containing valid twine json, or a Twine instance
-    :param str|dict|_io.TextIOWrapper|None configuration_values: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
-    :param str|dict|_io.TextIOWrapper|None configuration_manifest: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
-    :param Union[str, dict, None] children: The children strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
+    :param callable|type|module|str app_src: either a function that accepts an Octue analysis, a class with a ``run`` method that accepts an Octue analysis, or a path to a directory containing an ``app.py`` file containing one of these
+    :param str|twined.Twine twine: path to the twine file, a string containing valid twine json, or a Twine instance
+    :param str|dict|None configuration_values: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
+    :param str|dict|None configuration_manifest: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
+    :param str|dict|None children: The children strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|None output_location: the path to a cloud directory to save output datasets at
     :param str|None project_name: name of Google Cloud project to get credentials from
     :param str|None service_id: the ID of the service being run
@@ -49,7 +49,7 @@ class Runner:
         project_name=None,
         service_id=None,
     ):
-        self.app_src = app_src
+        self.app_source = app_src
         self.children = children
 
         if output_location and not re.match(r"^gs://[a-z\d][a-z\d_./-]*$", output_location):
@@ -90,12 +90,12 @@ class Runner:
         """Run an analysis.
 
         :param str|None analysis_id: UUID of analysis
-        :param Union[str, dict, None] input_values: the input_values strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
-        :param Union[str, octue.resources.manifest.Manifest, None] input_manifest: The input_manifest strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
+        :param str|dict|None input_values: the input_values strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
+        :param str|octue.resources.manifest.Manifest|None input_manifest: The input_manifest strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
         :param str analysis_log_level: the level below which to ignore log messages
         :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run. Handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but should use the format defined above in LOG_FORMAT.
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
-        :return None:
+        :return octue.resources.analysis.Analysis:
         """
         if hasattr(self.twine, "credentials"):
             self._populate_environment_with_google_cloud_secrets()
@@ -123,7 +123,6 @@ class Runner:
         if inputs["children"] is not None:
             inputs["children"] = {
                 child["key"]: Child(
-                    name=child["key"],
                     id=child["id"],
                     backend=child["backend"],
                     internal_service_name=self.service_id,
@@ -162,18 +161,18 @@ class Runner:
             try:
                 # App as a class that takes "analysis" as a constructor argument and contains a method named "run" that
                 # takes no arguments.
-                if isinstance(self.app_src, type):
-                    self.app_src(analysis).run()
+                if isinstance(self.app_source, type):
+                    self.app_source(analysis).run()
 
                 # App as a module containing a function named "run" that takes "analysis" as an argument.
-                elif hasattr(self.app_src, "run"):
-                    self.app_src.run(analysis)
+                elif hasattr(self.app_source, "run"):
+                    self.app_source.run(analysis)
 
                 # App as a string path to a module containing a class named "App" or a function named "run". The same other
                 # specifications apply as described above.
-                elif isinstance(self.app_src, str):
+                elif isinstance(self.app_source, str):
 
-                    with AppFrom(self.app_src) as app:
+                    with AppFrom(self.app_source) as app:
                         if hasattr(app.app_module, "App"):
                             app.app_module.App(analysis).run()
                         else:
@@ -181,10 +180,10 @@ class Runner:
 
                 # App as a function that takes "analysis" as an argument.
                 else:
-                    self.app_src(analysis)
+                    self.app_source(analysis)
 
             except ModuleNotFoundError as e:
-                raise ModuleNotFoundError(f"{e.msg} in {os.path.abspath(self.app_src)!r}.")
+                raise ModuleNotFoundError(f"{e.msg} in {os.path.abspath(self.app_source)!r}.")
 
             except Exception as e:
                 logger.error(str(e))

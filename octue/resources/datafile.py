@@ -16,9 +16,11 @@ from octue.resources.label import LabelSet
 from octue.resources.tag import TagDict
 
 
+# The `h5py` package is only needed if dealing with HDF5 files. It's only available if the `hdf5` extra is provided
+# during installation of `octue`.
 try:
     import h5py
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
     pass
 
 from octue.cloud import storage
@@ -268,10 +270,9 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
     @property
     def local_path(self):
-        """Get the local path for the datafile, downloading it from the cloud to a temporary file if necessary. If
-        downloaded, the local path is added to a cache to avoid downloading again in the same runtime.
+        """Get the local path for the datafile, downloading it from the cloud to a temporary file if necessary.
 
-        :return str:
+        :return str: The local path of the datafile.
         """
         if self._local_path:
             return self._local_path
@@ -322,9 +323,13 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
     @property
     def open(self):
-        """Get a context manager for handling the opening and closing of the datafile for reading/editing.
+        """Open the datafile for reading/writing. Usage is the same as the `python built-in open context manager
+        <https://docs.python.org/3/library/functions.html#open>`_ but it can only be used as a context manager e.g.
 
-        :return type: the class octue.resources.datafile._DatafileContextManager
+        .. code-block::
+
+            with datafile.open("w") as f:
+                f.write("some data")
         """
         return functools.partial(_DatafileContextManager, self)
 
@@ -388,11 +393,11 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         return self.cloud_path
 
     def download(self, local_path=None):
-        """Download the file from the cloud to the given local path or a random temporary path.
+        """Download the file from the cloud to the given local path or a temporary path if none is given.
 
-        :param str|None local_path:
-        :raise CloudLocationNotSpecified: if the datafile does not exist in the cloud
-        :return str: path to local file
+        :param str|None local_path: The local path to download the datafile to. A temporary path is used if none is given.
+        :raise octue.exceptions.CloudLocationNotSpecified: If the datafile does not exist in the cloud
+        :return str: The path to the local file
         """
         if not self.exists_in_cloud:
             raise CloudLocationNotSpecified("Cannot download a file that doesn't exist in the cloud.")
@@ -427,15 +432,16 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         self.reset_hash()
         return self._local_path
 
-    def metadata(self, include_sdk_version=True, use_octue_namespace=True):
+    def metadata(self, include_id=True, include_sdk_version=True, use_octue_namespace=True):
         """Get the datafile's metadata in a serialised form (i.e. the attributes `id`, `timestamp`, `labels`, `tags`,
         and `sdk_version`).
 
+        :param bool include_id: if `True`, include the ID of the datafile
         :param bool include_sdk_version: if `True`, include the `octue` version that instantiated the datafile in the metadata
         :param bool use_octue_namespace: if `True`, prefix metadata names with "octue__"
         :return dict:
         """
-        metadata = super().metadata(include_sdk_version=include_sdk_version)
+        metadata = super().metadata(include_sdk_version=include_sdk_version, include_id=include_id)
 
         if not use_octue_namespace:
             return metadata
@@ -461,7 +467,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         if not self.cloud_path:
             self._raise_cloud_location_error()
 
-        GoogleCloudStorageClient().overwrite_custom_metadata(metadata=self.metadata(), cloud_path=self.cloud_path)
+        GoogleCloudStorageClient().overwrite_custom_metadata(self.cloud_path, metadata=self.metadata())
 
     def update_local_metadata(self):
         """Create or update the local octue metadata file with the datafile's metadata.
@@ -505,7 +511,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         if local_path:
             # If there is no file at the given local path or the file is different to the one in the cloud, download
             # the cloud file locally.
-            if not os.path.exists(local_path) or self.cloud_hash_value != calculate_hash(local_path):
+            if not os.path.exists(local_path) or self.cloud_hash_value != calculate_file_hash(local_path):
                 self.download(local_path)
             else:
                 self._local_path = local_path
@@ -534,11 +540,30 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         if not self.cloud_path:
             self._raise_cloud_location_error()
 
-        # Skip getting metadata for now if the cloud path is a signed URL.
         if storage.path.is_url(self.cloud_path):
-            return
+            cloud_metadata = {"custom_metadata": {}}
+            headers = requests.head(self.cloud_path).headers
 
-        cloud_metadata = GoogleCloudStorageClient().get_metadata(cloud_path=self.cloud_path)
+            # Get any Octue custom metadata from the datafile.
+            for key, value in headers.items():
+                if OCTUE_METADATA_NAMESPACE not in key:
+                    continue
+
+                # Decode custom metadata values from JSON.
+                try:
+                    value = json.loads(value, cls=OctueJSONDecoder)
+                except json.decoder.JSONDecodeError:
+                    pass
+
+                # Remove the "x-goog-meta-" prefix from custom metadata key names.
+                cloud_metadata["custom_metadata"][key.replace("x-goog-meta-", "")] = value
+
+            # Store what non-custom metadata is available from the XML headers.
+            cloud_metadata["size"] = int(headers.get("Content-Length"))
+            cloud_metadata["crc32c"] = headers.get("x-goog-hash", "").split(",")[0].replace("crc32c=", "")
+
+        else:
+            cloud_metadata = GoogleCloudStorageClient().get_metadata(cloud_path=self.cloud_path)
 
         if cloud_metadata:
             cloud_metadata["custom_metadata"] = {
@@ -593,6 +618,13 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
             setattr(self, attribute, metadata[attribute])
 
+    def _metadata_hash_value(self):
+        """Get the hash of the datafile's metadata, not including its ID.
+
+        :return str:
+        """
+        return super()._metadata_hash_value(use_octue_namespace=False)
+
     def _calculate_hash(self):
         """Get the hash of the datafile according to the first of the following methods that is applicable:
 
@@ -602,10 +634,10 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
         :return str:
         """
-        if self._local_path and os.path.exists(self._local_path):
+        if self.exists_locally and os.path.exists(self._local_path):
             # Calculate the hash of the file itself and then pass it to `Hashable` to include the hashes of any
             # attributes named in `self._ATTRIBUTES_TO_HASH`.
-            hash_value = calculate_hash(self._local_path)
+            hash_value = calculate_file_hash(self._local_path)
             return super()._calculate_hash(hash_value)
         else:
             return self.cloud_hash_value or EMPTY_STRING_HASH_VALUE
@@ -613,7 +645,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
 class _DatafileContextManager:
     """A context manager for opening datafiles for reading and writing locally or from the cloud. Its usage is analogous
-    to the builtin open context manager. If opening a local datafile in write mode, the manager will attempt to
+    to the builtin `open` context manager. If opening a local datafile in write mode, the manager will attempt to
     determine if the folder path exists and, if not, will create the folder structure required to write the file.
 
     Usage:
@@ -632,8 +664,8 @@ class _DatafileContextManager:
     ```
 
     :param octue.resources.datafile.Datafile datafile:
-    :param str mode: open the datafile for reading/editing in this mode (the mode options are the same as for the builtin `open` function)
-    :param bool update_metadata: if this is `True`, update the stored metadata of the datafile when the context is exited
+    :param str mode: open the datafile for reading/editing in this mode (the mode options are the same as for the built-in ``open`` function)
+    :param bool update_metadata: if this is ``True``, update the stored metadata of the datafile when the context is exited
     :return None:
     """
 
@@ -645,6 +677,9 @@ class _DatafileContextManager:
         self._update_metadata = update_metadata
         self.kwargs = kwargs
         self._fp = None
+
+        # Update the open mode on the datafile as it's used in `Datafile` methods.
+        self.datafile._open_attributes["mode"] = self.mode
 
     def __enter__(self):
         """Open the datafile, first downloading it from the cloud if necessary.
@@ -689,8 +724,12 @@ class _DatafileContextManager:
                 self.datafile.update_local_metadata()
 
 
-def calculate_hash(path):
-    """Calculate the hash of the file at the given path."""
+def calculate_file_hash(path):
+    """Calculate the hash of the file at the given path.
+
+    :param str path:
+    :return google_crc32c.Checksum:
+    """
     hash = Checksum()
 
     with open(path, "rb") as f:
