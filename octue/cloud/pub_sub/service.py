@@ -209,7 +209,7 @@ class Service(CoolNameable):
         allow_local_files=False,
         question_uuid=None,
         push_endpoint=None,
-        timeout=30,
+        timeout=86400,
     ):
         """Ask a child a question (i.e. send it input values for it to analyse and produce output values for) and return
         a subscription to receive its answer on. The input values and manifest must conform to the schemas in the

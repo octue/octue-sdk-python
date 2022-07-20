@@ -44,7 +44,7 @@ class Child:
         allow_local_files=False,
         handle_monitor_message=None,
         question_uuid=None,
-        timeout=20,
+        timeout=86400,
     ):
         """Ask the child a question and wait for its answer - i.e. send it input values and/or an input manifest and
         wait for it to analyse them and return output values and/or an output manifest. The input values and manifest

@@ -65,6 +65,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         self.files = FilterSet()
         self._recursive = recursive
         self._hypothetical = hypothetical
+        self._cloud_metadata = {}
 
         if files:
             if not any((isinstance(files, list), isinstance(files, set), isinstance(files, tuple))):
@@ -173,10 +174,11 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         """
         self.update_metadata()
 
-    def upload(self, cloud_path=None):
+    def upload(self, cloud_path=None, update_cloud_metadata=True):
         """Upload a dataset to the given cloud path.
 
         :param str|None cloud_path: cloud path to store dataset at (e.g. `gs://bucket_name/path/to/dataset`)
+        :param bool update_cloud_metadata: if `True`, update the metadata of the dataset in the cloud at upload time
         :return str: cloud path for dataset
         """
         cloud_path = self._get_cloud_location(cloud_path)
@@ -215,7 +217,14 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
                 logger.debug("Uploaded datafile to %r.", path)
 
         self.path = cloud_path
-        self.update_cloud_metadata()
+
+        if update_cloud_metadata:
+            # If the dataset's metadata has been changed locally, update it in the cloud.
+            local_metadata = self.metadata(use_octue_namespace=False)
+
+            if self._cloud_metadata != local_metadata:
+                self.update_cloud_metadata()
+
         return cloud_path
 
     def update_metadata(self):
@@ -234,11 +243,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         :return None:
         """
-        existing_metadata_records = self._get_cloud_metadata()
-        existing_metadata_records["dataset"] = self.to_primitive(include_files=False)
-
         GoogleCloudStorageClient().upload_from_string(
-            string=json.dumps(existing_metadata_records, cls=OctueJSONEncoder),
+            string=json.dumps({"dataset": self.to_primitive(include_files=False)}, cls=OctueJSONEncoder),
             cloud_path=self._metadata_path,
         )
 
@@ -465,21 +471,23 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
     def _get_cloud_metadata(self):
         """Get the cloud metadata for the given dataset if a dataset metadata file has previously been uploaded.
 
-        :param str cloud_path: the path to the dataset cloud directory
-        :return dict: the dataset metadata or an empty dictionary if there isn't any
+        :return None:
         """
         if storage.path.is_url(self.path):
             try:
-                return requests.get(self.path).json()
+                self._cloud_metadata = requests.get(self.path).json()
             except requests.exceptions.ConnectionError:
-                return {}
+                pass
+            return
 
         storage_client = GoogleCloudStorageClient()
 
         if not storage_client.exists(cloud_path=self._metadata_path):
-            return {}
+            return
 
-        return json.loads(storage_client.download_as_string(cloud_path=self._metadata_path)).get("dataset", {})
+        self._cloud_metadata = json.loads(storage_client.download_as_string(cloud_path=self._metadata_path)).get(
+            "dataset", {}
+        )
 
     def _use_cloud_metadata(self):
         """Update the dataset instance's metadata from the metadata file located in its cloud directory. If no metadata
@@ -487,12 +495,12 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         :return None:
         """
-        dataset_metadata = self._get_cloud_metadata()
+        self._get_cloud_metadata()
 
-        if not dataset_metadata:
+        if not self._cloud_metadata:
             return
 
-        self._set_metadata(dataset_metadata)
+        self._set_metadata(self._cloud_metadata)
 
     def _use_local_metadata(self):
         """Update the dataset instance's metadata from the local metadata records file. If no metadata is stored for the
