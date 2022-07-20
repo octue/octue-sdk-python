@@ -27,6 +27,9 @@ class TestStorage(BaseTestCase):
         )
         self.assertEqual(storage.path.split_bucket_name_from_cloud_path("gs://my-bucket"), ("my-bucket", ""))
 
+        # Ensure trailing slashes don't affect the result.
+        self.assertEqual(storage.path.split_bucket_name_from_cloud_path("gs://my-bucket/"), ("my-bucket", ""))
+
     def test_strip_protocol_from_path(self):
         """Test that the `gs://` protocol can be stripped from a path."""
         self.assertEqual(storage.path.strip_protocol_from_path("gs://my-bucket"), "my-bucket")
