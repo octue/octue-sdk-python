@@ -250,6 +250,30 @@ class TestGoogleCloudStorageClient(BaseTestCase):
         self.assertEqual(len(contents), 1)
         self.assertEqual(contents[0].name, storage.path.join(directory_path, self.FILENAME))
 
+    def test_scandir_on_bucket_root(self):
+        """Test that scandir works if used on the root of a bucket."""
+        bucket_name = TEST_BUCKET_NAME + "-for-scandir"
+        self.storage_client.create_bucket(name=bucket_name)
+
+        self.storage_client.upload_from_string(
+            string=json.dumps({"height": 32}),
+            cloud_path=storage.path.generate_gs_path(bucket_name, self.FILENAME),
+        )
+
+        # Add a file in a subdirectory.
+        self.storage_client.upload_from_string(
+            string=json.dumps({"height": 32}),
+            cloud_path=storage.path.generate_gs_path(bucket_name, "sub_directory", "blah.txt"),
+        )
+
+        contents = list(self.storage_client.scandir(storage.path.generate_gs_path(bucket_name)))
+        self.assertEqual(len(contents), 2)
+
+        self.assertEqual(
+            {blob.name for blob in contents},
+            {self.FILENAME, storage.path.join("sub_directory", "blah.txt")},
+        )
+
     def test_get_metadata(self):
         """Test that file metadata can be retrieved."""
         self.storage_client.upload_from_string(
