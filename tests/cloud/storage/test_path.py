@@ -81,6 +81,12 @@ class TestStorage(BaseTestCase):
         """Test that cloud paths can be split properly."""
         self.assertEqual(storage.path.split("my-bucket/a/b/c.txt"), ("my-bucket/a/b", "c.txt"))
 
+    def test_split_with_trailing_slash(self):
+        """Test that a trailing forward slash doesn't affect splitting of paths."""
+        expected_splitting = ("my-bucket/a", "b")
+        self.assertEqual(storage.path.split("my-bucket/a/b"), expected_splitting)
+        self.assertEqual(storage.path.split("my-bucket/a/b/"), expected_splitting)
+
     def test_dirname(self):
         """Test that the name of the directory of the given path can be found."""
         self.assertEqual(storage.path.dirname("a/b/c"), "a/b")

@@ -842,6 +842,12 @@ class TestDataset(BaseTestCase):
         dataset.update_metadata()
         self.assertEqual(Dataset(path=dataset.path).tags, {"hello": "world"})
 
+    def test_name_of_dataset_with_trailing_slash_is_correct(self):
+        """Test that the name of a dataset with a trailing slash is correct."""
+        cloud_path = self._create_nested_cloud_dataset("my-dataset")
+        dataset = Dataset(cloud_path + "/")
+        self.assertEqual(dataset.name, "my-dataset")
+
     def _create_nested_cloud_dataset(self, dataset_name=None):
         """Create a dataset in cloud storage with the given name containing a nested set of files.
 
