@@ -566,8 +566,8 @@ class TestDataset(BaseTestCase):
             self.assertEqual(persisted_file_1, "1")
 
             # Check its metadata has been uploaded.
-            persisted_dataset_metadata = dataset._get_cloud_metadata()
-            self.assertEqual(persisted_dataset_metadata["tags"], dataset.tags.to_primitive())
+            dataset._get_cloud_metadata()
+            self.assertEqual(dataset._cloud_metadata["tags"], dataset.tags.to_primitive())
 
     def test_upload_with_nested_dataset_preserves_nested_structure(self):
         """Test that uploading a dataset containing datafiles in a nested directory structure to the cloud preserves
