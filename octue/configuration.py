@@ -16,6 +16,7 @@ class ServiceConfiguration:
     :param str app_source_path: the path to the directory containing the app's source code
     :param str twine_path: the path to the twine file defining the schema for input, output, and configuration data for the service
     :param str|None app_configuration_path: the path to the app configuration file containing configuration data for the service; if this is `None`, the default application configuration is used
+    :param str|None crash_analytics_cloud_path: the path to a cloud directory to store crash analytics in the event that the service fails while processing a question (this includes the configuration, input values and manifest, and logs)
     :return None:
     """
 
@@ -26,6 +27,7 @@ class ServiceConfiguration:
         app_source_path=".",
         twine_path="twine.json",
         app_configuration_path=None,
+        crash_analytics_cloud_path=None,
         repository_name=None,
         repository_owner=None,
         project_name=None,
@@ -51,6 +53,7 @@ class ServiceConfiguration:
         self.app_source_path = app_source_path
         self.twine_path = twine_path
         self.app_configuration_path = app_configuration_path
+        self.crash_analytics_cloud_path = crash_analytics_cloud_path
 
         if organisation:
             self.service_id = organisation + "/" + name
