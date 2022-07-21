@@ -123,11 +123,16 @@ class Runner:
         )
         logger.debug("Inputs validated.")
 
+        inputs_and_configuration = {**self.configuration, **inputs}
+
         for manifest_strand in self.twine.available_manifest_strands:
             if manifest_strand == "output_manifest":
                 continue
 
-            self._validate_dataset_file_tags(manifest_kind=manifest_strand, manifest=inputs[manifest_strand])
+            self._validate_dataset_file_tags(
+                manifest_kind=manifest_strand,
+                manifest=inputs_and_configuration[manifest_strand],
+            )
 
         if inputs["children"] is not None:
             inputs["children"] = {
@@ -200,11 +205,10 @@ class Runner:
 
                     try:
                         self._save_crash_diagnostics_data(analysis)
+                        logger.warning("Crash diagnostics saved.")
                     except Exception as crash_diagnostics_save_error:
                         logger.error("Failed to save crash diagnostics.")
                         logger.error(str(crash_diagnostics_save_error))
-
-                    logger.warning("Crash diagnostics saved.")
 
                 logger.error(str(analysis_error))
                 raise analysis_error
@@ -301,8 +305,8 @@ class Runner:
             if getattr(analysis, manifest_type):
                 manifest = getattr(analysis, manifest_type)
 
-                for dataset in manifest:
-                    dataset.upload(storage.path.join(question_diagnostics_path, f"{manifest_type}_datasets"))
+                for name, dataset in manifest.datasets.items():
+                    dataset.upload(storage.path.join(question_diagnostics_path, f"{manifest_type}_datasets", name))
 
                 manifest.to_cloud(storage.path.join(question_diagnostics_path, f"{manifest_type}.json"))
 
