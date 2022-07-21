@@ -70,10 +70,10 @@ def split_bucket_name_from_cloud_path(path):
     :return (str, str): the bucket name and the path within the bucket
     """
     if is_cloud_uri(path):
-        path = strip_protocol_from_path(path).split("/")
+        path = strip_protocol_from_path(path).strip("/").split("/")
         return path[0], join(*path[1:])
 
-    path = urlparse(path).path.split("/")
+    path = urlparse(path).path.strip("/").split("/")
     return path[1], join(*path[2:])
 
 
@@ -103,12 +103,12 @@ def relpath(path, start):
 
 def split(path):
     """Split a path into its head and tail. `storage.path.split` (this function) is the analogue of `os.path.split` for
-    Google Cloud Storage paths.
+    Google Cloud Storage paths. Trailing slashes are ignored.
 
     :param str path:
     :return (str, str):
     """
-    paths = path.split("/")
+    paths = path.strip("/").split("/")
     return join(*paths[:-1]), paths[-1]
 
 

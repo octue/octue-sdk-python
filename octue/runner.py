@@ -91,7 +91,7 @@ class Runner:
 
         :param str|None analysis_id: UUID of analysis
         :param str|dict|None input_values: the input_values strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
-        :param str|octue.resources.manifest.Manifest|None input_manifest: The input_manifest strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
+        :param str|dict|octue.resources.manifest.Manifest|None input_manifest: The input_manifest strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
         :param str analysis_log_level: the level below which to ignore log messages
         :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run. Handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but should use the format defined above in LOG_FORMAT.
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
@@ -249,7 +249,12 @@ class Runner:
                 try:
                     jsonschema_validate(instance=dict(file.tags), schema=file_tags_template)
                 except ValidationError as e:
-                    raise twined.exceptions.invalid_contents_map[manifest_kind](str(e))
+                    message = (
+                        e.message + f" for files in the {dataset_name!r} dataset. The affected datafile is "
+                        f"{file.path!r}. Add the property to the datafile as a tag to fix this."
+                    )
+
+                    raise twined.exceptions.invalid_contents_map[manifest_kind](message)
 
 
 def unwrap(fcn):

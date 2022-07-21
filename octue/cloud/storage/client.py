@@ -215,7 +215,7 @@ class GoogleCloudStorageClient:
 
         bucket, directory_path = self._get_bucket_and_path_in_bucket(cloud_path)
 
-        if not directory_path.endswith("/"):
+        if len(directory_path) > 0 and not directory_path.endswith("/"):
             directory_path += "/"
 
         if recursive:
