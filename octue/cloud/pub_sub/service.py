@@ -131,7 +131,13 @@ class Service(CoolNameable):
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
         """
-        data, question_uuid, forward_logs, parent_sdk_version = self._parse_question(question)
+        (
+            data,
+            question_uuid,
+            forward_logs,
+            parent_sdk_version,
+            allow_save_diagnostics_data_on_crash,
+        ) = self._parse_question(question)
 
         topic = answer_topic or self.instantiate_answer_topic(question_uuid)
         self._send_delivery_acknowledgment(topic)
@@ -207,6 +213,7 @@ class Service(CoolNameable):
         input_manifest=None,
         subscribe_to_logs=True,
         allow_local_files=False,
+        allow_save_diagnostics_data_on_crash=True,
         question_uuid=None,
         push_endpoint=None,
         timeout=86400,
@@ -220,6 +227,7 @@ class Service(CoolNameable):
         :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
         :param bool subscribe_to_logs: if `True`, subscribe to the child's logs and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will be able to access these local files
+        :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved by the child if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here; if they should be pulled, leave this as `None`
         :param float|None timeout: time in seconds to keep retrying sending the question
@@ -267,6 +275,7 @@ class Service(CoolNameable):
             question_uuid=question_uuid,
             forward_logs=str(int(subscribe_to_logs)),
             octue_sdk_version=pkg_resources.get_distribution("octue").version,
+            allow_save_diagnostics_data_on_crash=str(int(allow_save_diagnostics_data_on_crash)),
             retry=retry.Retry(deadline=timeout),
         )
 
@@ -414,7 +423,7 @@ class Service(CoolNameable):
         """Parse a question in the Google Cloud Pub/Sub or Google Cloud Run format.
 
         :param dict|Message question:
-        :return (dict, str, bool, packaging.version.Version|None):
+        :return (dict, str, bool, packaging.version.Version|None, bool):
         """
         try:
             # Parse question directly from Pub/Sub or Dataflow.
@@ -438,7 +447,15 @@ class Service(CoolNameable):
         except AttributeError:
             parent_sdk_version = None
 
+        try:
+            allow_save_diagnostics_data_on_crash = get_nested_attribute(
+                question,
+                "attributes.allow_save_diagnostics_data_on_crash",
+            )
+        except AttributeError:
+            allow_save_diagnostics_data_on_crash = False
+
         if parent_sdk_version:
             parent_sdk_version = packaging.version.parse(parent_sdk_version)
 
-        return data, question_uuid, forward_logs, parent_sdk_version
+        return data, question_uuid, forward_logs, parent_sdk_version, allow_save_diagnostics_data_on_crash

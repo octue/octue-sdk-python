@@ -43,6 +43,7 @@ class Child:
         subscribe_to_logs=True,
         allow_local_files=False,
         handle_monitor_message=None,
+        allow_save_diagnostics_data_on_crash=True,
         question_uuid=None,
         timeout=86400,
     ):
@@ -55,6 +56,7 @@ class Child:
         :param bool subscribe_to_logs: if `True`, subscribe to logs from the child and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will have access to these local files
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
+        :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved by the child if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
@@ -66,6 +68,7 @@ class Child:
             input_manifest=input_manifest,
             subscribe_to_logs=subscribe_to_logs,
             allow_local_files=allow_local_files,
+            allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
             question_uuid=question_uuid,
             timeout=timeout,
         )
