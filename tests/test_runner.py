@@ -8,8 +8,10 @@ from jsonschema.validators import RefResolver
 
 import twined
 from octue import Runner, exceptions
+from octue.cloud import storage
+from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources.datafile import Datafile
-from tests import TESTS_DIR
+from tests import TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
 from tests.test_app_modules.app_class.app import App
 from tests.test_app_modules.app_module import app
@@ -264,6 +266,51 @@ class TestRunner(BaseTestCase):
 
         self.assertEqual(mock_finalise.call_count, 0)
         self.assertTrue(analysis.finalised)
+
+    def test_configuration_and_inputs_saved_on_crash(self):
+        """Test that analysis configuration and inputs are saved to the crash analytics cloud path if the app crashes
+        when the runner has been allowed to save them.
+        """
+        crash_analytics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_analytics")
+
+        def app(analysis):
+            raise ValueError("This is deliberately raised to simulate app failure.")
+
+        runner = Runner(
+            app_src=app,
+            twine={
+                "configuration_values_schema": {"properties": {}},
+                "input_values_schema": {},
+                "output_values_schema": {},
+            },
+            configuration_values={"getting": "ready"},
+            crash_analytics_cloud_path=crash_analytics_cloud_path,
+        )
+
+        analysis_id = "4b91e3f0-4492-49e3-8061-34f1942dc68a"
+
+        with self.assertRaises(ValueError):
+            runner.run(
+                analysis_id=analysis_id,
+                input_values={"hello": "world"},
+                allow_save_diagnostics_data_on_crash=True,
+            )
+
+        storage_client = GoogleCloudStorageClient()
+
+        self.assertEqual(
+            storage_client.download_as_string(
+                storage.path.join(crash_analytics_cloud_path, analysis_id, "configuration_values.json")
+            ),
+            json.dumps({"getting": "ready"}),
+        )
+
+        self.assertEqual(
+            storage_client.download_as_string(
+                storage.path.join(crash_analytics_cloud_path, analysis_id, "input_values.json")
+            ),
+            json.dumps({"hello": "world"}),
+        )
 
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
