@@ -56,7 +56,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
     :return None:
     """
 
-    _CLOUD_PATH_ATTRIBUTE_NAME = "cloud_path"
+    _CLOUD_PATH_ATTRIBUTE_NAME = "_cloud_path"
 
     _METADATA_ATTRIBUTES = ("id", "timestamp", "tags", "labels")
 

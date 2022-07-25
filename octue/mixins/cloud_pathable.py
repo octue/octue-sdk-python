@@ -62,7 +62,7 @@ class CloudPathable:
         if not cloud_path:
             self._raise_cloud_location_error()
 
-        self._cloud_path = cloud_path
+        setattr(self, self._CLOUD_PATH_ATTRIBUTE_NAME, cloud_path)
         return cloud_path
 
     def _raise_cloud_location_error(self):

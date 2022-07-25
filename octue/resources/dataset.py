@@ -181,8 +181,6 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         :param bool update_cloud_metadata: if `True`, update the metadata of the dataset in the cloud at upload time
         :return str: cloud path for dataset
         """
-        cloud_path = self._get_cloud_location(cloud_path)
-
         files_and_paths = []
 
         for datafile in self.files:
@@ -196,9 +194,11 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             files_and_paths.append(
                 (
                     datafile,
-                    storage.path.join(cloud_path, *datafile_path_relative_to_dataset.split(os.path.sep)),
+                    storage.path.join(cloud_path or self.path, *datafile_path_relative_to_dataset.split(os.path.sep)),
                 )
             )
+
+        cloud_path = self._get_cloud_location(cloud_path)
 
         def upload_datafile(iterable_element):
             """Upload a datafile to the given cloud path.

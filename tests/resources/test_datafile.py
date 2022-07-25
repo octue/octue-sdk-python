@@ -327,6 +327,17 @@ class TestDatafile(BaseTestCase):
             datafile.upload()
             self.assertFalse(mock.called)
 
+    def test_upload_to_new_location(self):
+        """Test that a datafile can be uploaded to a new cloud location."""
+        datafile, contents = self.create_datafile_in_cloud(labels={"start"})
+
+        new_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "new", "location", "cloud_file.txt")
+        datafile.upload(new_cloud_path)
+
+        with Datafile(new_cloud_path) as (datafile, f):
+            self.assertEqual(f.read(), contents)
+            self.assertEqual(datafile.labels, {"start"})
+
     def test_update_cloud_metadata(self):
         """Test that a datafile's cloud metadata can be updated."""
         datafile, _ = self.create_datafile_in_cloud()

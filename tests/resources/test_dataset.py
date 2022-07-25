@@ -603,6 +603,22 @@ class TestDataset(BaseTestCase):
         dataset = Dataset(path=dataset_path, recursive=True)
         dataset.upload()
 
+    def test_upload_to_new_location(self):
+        """Test that a dataset can be uploaded to a new cloud location."""
+        dataset_path = self._create_nested_cloud_dataset()
+        dataset = Dataset(dataset_path)
+        dataset.download()
+
+        new_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "new", "dataset", "location")
+        dataset.upload(new_cloud_path)
+
+        self.assertEqual(dataset.path, new_cloud_path)
+
+        self.assertEqual(
+            {datafile.cloud_path for datafile in dataset.files},
+            {storage.path.join(new_cloud_path, "file_0.txt"), storage.path.join(new_cloud_path, "file_1.txt")},
+        )
+
     def test_error_raised_if_trying_to_download_files_from_local_dataset(self):
         """Test that an error is raised if trying to download files from a local dataset."""
         dataset = self.create_valid_dataset()
