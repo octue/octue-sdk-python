@@ -68,7 +68,7 @@ class CloudPathable:
             self._raise_cloud_location_error()
 
         if cloud_path != self.__cloud_path:
-            logger.info("Updating cloud location for %r from %r to %r.", self, self.__cloud_path, cloud_path)
+            logger.debug("Updating cloud location for %r from %r to %r.", self, self.__cloud_path, cloud_path)
 
         setattr(self, self._CLOUD_PATH_ATTRIBUTE_NAME, cloud_path)
 
