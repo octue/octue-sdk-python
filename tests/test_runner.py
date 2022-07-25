@@ -373,6 +373,15 @@ class TestRunner(BaseTestCase):
             storage.path.join(question_crash_analytics_path, "input_manifest_datasets", "met_mast_data", "my_file.txt"),
         )
 
+        # Check the logs are uploaded.
+        with Datafile(storage.path.join(question_crash_analytics_path, "logs.txt")) as (_, f):
+            logs = f.read()
+
+        self.assertIn(
+            f"[analysis-{analysis_id}] Saving crash diagnostics to 'gs://octue-sdk-python-test-bucket/crash_analytics'.",
+            logs,
+        )
+
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
 

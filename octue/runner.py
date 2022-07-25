@@ -1,9 +1,11 @@
 import importlib
 import json
 import logging
+import logging.handlers
 import os
 import re
 import sys
+import tempfile
 
 import google.api_core.exceptions
 from google import auth
@@ -64,7 +66,13 @@ class Runner:
             )
 
         self.output_location = output_location
+
         self.crash_analytics_cloud_path = crash_analytics_cloud_path
+        self._crash_analytics_log_file_path = tempfile.NamedTemporaryFile(delete=False).name
+        self._crash_analytics_log_handler = logging.handlers.MemoryHandler(
+            capacity=10000,
+            target=logging.FileHandler(self._crash_analytics_log_file_path, delay=True),
+        )
 
         # Ensure the twine is present and instantiate it.
         if isinstance(twine, Twine):
@@ -146,12 +154,12 @@ class Runner:
 
         outputs_and_monitors = self.twine.prepare("monitor_message", "output_values", "output_manifest", cls=CLASS_MAP)
 
-        analysis_id = str(analysis_id) if analysis_id else gen_uuid()
-
         if analysis_log_handler:
-            extra_log_handlers = [analysis_log_handler]
+            extra_log_handlers = [analysis_log_handler, self._crash_analytics_log_handler]
         else:
-            extra_log_handlers = None
+            extra_log_handlers = [self._crash_analytics_log_handler]
+
+        analysis_id = str(analysis_id) if analysis_id else gen_uuid()
 
         # Temporarily replace the root logger's handlers with a `StreamHandler` and the analysis log handler that
         # include the analysis ID in the logging metadata.
@@ -292,6 +300,7 @@ class Runner:
 
         for data_type in ("configuration", "input"):
 
+            # Upload the configuration and input values.
             values_type = f"{data_type}_values"
 
             if getattr(analysis, values_type):
@@ -300,6 +309,7 @@ class Runner:
                     cloud_path=storage.path.join(question_diagnostics_path, f"{values_type}.json"),
                 )
 
+            # Upload the configuration and input manifests.
             manifest_type = f"{data_type}_manifest"
 
             if getattr(analysis, manifest_type):
@@ -309,6 +319,14 @@ class Runner:
                     dataset.upload(storage.path.join(question_diagnostics_path, f"{manifest_type}_datasets", name))
 
                 manifest.to_cloud(storage.path.join(question_diagnostics_path, f"{manifest_type}.json"))
+
+        # Upload the crash analytics log file.
+        self._crash_analytics_log_handler.flush()
+
+        storage_client.upload_file(
+            local_path=self._crash_analytics_log_file_path,
+            cloud_path=storage.path.join(question_diagnostics_path, "logs.txt"),
+        )
 
 
 def unwrap(fcn):
@@ -409,20 +427,35 @@ class AnalysisLogHandlerSwitcher:
         self._remove_log_handlers()
 
         # Add the analysis ID to the logging metadata.
-        formatter = create_octue_formatter(
+        octue_formatter = create_octue_formatter(
             get_log_record_attributes_for_environment(),
             [f"analysis-{self.analysis_id}"],
         )
 
         # Apply a local console `StreamHandler` to the logger.
-        apply_log_handler(formatter=formatter, log_level=self.analysis_log_level)
+        apply_log_handler(formatter=octue_formatter, log_level=self.analysis_log_level)
 
         if not self.extra_log_handlers:
             return
 
         # Apply any other given handlers to the logger.
         for extra_handler in self.extra_log_handlers:
-            apply_log_handler(handler=extra_handler, log_level=self.analysis_log_level, formatter=formatter)
+
+            # Apply an uncoloured log formatter to the target of any memory log handlers.
+            if type(extra_handler).__name__ == "MemoryHandler" and getattr(extra_handler, "target"):
+                apply_log_handler(
+                    handler=extra_handler.target,
+                    log_level=self.analysis_log_level,
+                    formatter=create_octue_formatter(
+                        get_log_record_attributes_for_environment(),
+                        [f"analysis-{self.analysis_id}"],
+                        use_colour=False,
+                    ),
+                )
+
+                continue
+
+            apply_log_handler(handler=extra_handler, log_level=self.analysis_log_level, formatter=octue_formatter)
 
     def __exit__(self, *args):
         """Remove the new handlers from the logger and re-add the initial handlers.
