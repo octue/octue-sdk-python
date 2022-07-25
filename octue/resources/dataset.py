@@ -198,7 +198,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
                 )
             )
 
-        cloud_path = self._get_cloud_location(cloud_path)
+        self._set_cloud_location(cloud_path)
 
         def upload_datafile(iterable_element):
             """Upload a datafile to the given cloud path.
@@ -215,8 +215,6 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         with concurrent.futures.ThreadPoolExecutor() as executor:
             for path in executor.map(upload_datafile, files_and_paths):
                 logger.debug("Uploaded datafile to %r.", path)
-
-        self.path = cloud_path
 
         if update_cloud_metadata:
             # If the dataset's metadata has been changed locally, update it in the cloud.

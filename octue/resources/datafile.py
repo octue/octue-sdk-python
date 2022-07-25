@@ -369,17 +369,17 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         :param bool update_cloud_metadata: if `True`, update the metadata of the datafile in the cloud at upload time
         :return str: gs:// path for datafile
         """
-        cloud_path = self._get_cloud_location(cloud_path)
+        self._set_cloud_location(cloud_path)
 
         self._get_cloud_metadata()
 
         storage_client = GoogleCloudStorageClient()
 
         # If the there is no cloud file or if the datafile's file has been changed locally, overwrite its cloud copy.
-        if not storage_client.exists(cloud_path) or self.cloud_hash_value != self.hash_value:
+        if not storage_client.exists(self.cloud_path) or self.cloud_hash_value != self.hash_value:
             storage_client.upload_file(
                 local_path=self.local_path,
-                cloud_path=cloud_path,
+                cloud_path=self.cloud_path,
                 metadata=self.metadata(),
             )
 
