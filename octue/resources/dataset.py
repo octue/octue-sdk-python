@@ -66,6 +66,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         self._recursive = recursive
         self._hypothetical = hypothetical
         self._cloud_metadata = {}
+        self._storage_client = GoogleCloudStorageClient()
 
         if files:
             if not any((isinstance(files, list), isinstance(files, set), isinstance(files, tuple))):
@@ -174,6 +175,12 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         """
         self.update_metadata()
 
+    def __getstate__(self):
+        attributes = vars(self)
+        # Avoid trying to pickle the unpickleable GoogleCloudStorageClient.
+        attributes.pop("_storage_client", None)
+        return attributes
+
     def upload(self, cloud_path=None, update_cloud_metadata=True):
         """Upload a dataset to the given cloud path.
 
@@ -241,7 +248,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         :return None:
         """
-        GoogleCloudStorageClient().upload_from_string(
+        self._storage_client.upload_from_string(
             string=json.dumps({"dataset": self.to_primitive(include_files=False)}, cls=OctueJSONEncoder),
             cloud_path=self._metadata_path,
         )
@@ -273,14 +280,12 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         path_to_signed_metadata_file = storage.path.join(self.path, SIGNED_METADATA_DIRECTORY, coolname.generate_slug())
 
-        storage_client = GoogleCloudStorageClient()
-
-        storage_client.upload_from_string(
+        self._storage_client.upload_from_string(
             string=json.dumps(signed_metadata, cls=OctueJSONEncoder),
             cloud_path=path_to_signed_metadata_file,
         )
 
-        return storage_client.generate_signed_url(cloud_path=path_to_signed_metadata_file, expiration=expiration)
+        return self._storage_client.generate_signed_url(cloud_path=path_to_signed_metadata_file, expiration=expiration)
 
     def add(self, datafile, path_in_dataset=None):
         """Add a datafile to the dataset. If the datafile's location is outside the dataset, it is copied to the dataset
@@ -408,7 +413,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
             self.files = FilterSet(
                 Datafile(path=storage.path.generate_gs_path(bucket_name, blob.name), hypothetical=self._hypothetical)
-                for blob in GoogleCloudStorageClient().scandir(
+                for blob in self._storage_client.scandir(
                     path,
                     recursive=self._recursive,
                     filter=(
@@ -476,12 +481,10 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
                 pass
             return
 
-        storage_client = GoogleCloudStorageClient()
-
-        if not storage_client.exists(cloud_path=self._metadata_path):
+        if not self._storage_client.exists(cloud_path=self._metadata_path):
             return
 
-        self._cloud_metadata = json.loads(storage_client.download_as_string(cloud_path=self._metadata_path)).get(
+        self._cloud_metadata = json.loads(self._storage_client.download_as_string(cloud_path=self._metadata_path)).get(
             "dataset", {}
         )
 
