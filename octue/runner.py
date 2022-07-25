@@ -208,7 +208,7 @@ class Runner:
                         logger.warning("Crash diagnostics saved.")
                     except Exception as crash_diagnostics_save_error:
                         logger.error("Failed to save crash diagnostics.")
-                        logger.error(str(crash_diagnostics_save_error))
+                        raise crash_diagnostics_save_error
 
                 logger.error(str(analysis_error))
                 raise analysis_error
@@ -306,6 +306,7 @@ class Runner:
                 manifest = getattr(analysis, manifest_type)
 
                 for name, dataset in manifest.datasets.items():
+                    dataset.download()
                     dataset.upload(storage.path.join(question_diagnostics_path, f"{manifest_type}_datasets", name))
 
                 manifest.to_cloud(storage.path.join(question_diagnostics_path, f"{manifest_type}.json"))
