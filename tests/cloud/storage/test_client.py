@@ -146,6 +146,19 @@ class TestGoogleCloudStorageClient(BaseTestCase):
             "This is a test upload.",
         )
 
+    def test_copy(self):
+        """Test that a file can be copied from one cloud location to another."""
+        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
+            temporary_file.write("This is a test upload.")
+
+        original_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, self.FILENAME)
+        self.storage_client.upload_file(local_path=temporary_file.name, cloud_path=original_cloud_path)
+
+        destination_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "file_in_new_location.txt")
+        self.storage_client.copy(original_cloud_path, destination_cloud_path)
+
+        self.assertEqual(self.storage_client.download_as_string(destination_cloud_path), "This is a test upload.")
+
     def test_delete(self):
         """Test that a file can be deleted."""
         self.storage_client.upload_from_string(

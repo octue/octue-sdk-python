@@ -182,6 +182,20 @@ class GoogleCloudStorageClient:
         logger.debug("Downloaded %r from Google Cloud to as string.", blob.public_url)
         return data.decode()
 
+    def copy(self, original_cloud_path, destination_cloud_path, timeout=_DEFAULT_TIMEOUT):
+        """Copy a cloud file to a new cloud path.
+
+        :param str original_cloud_path: the path of an existing cloud file
+        :param str destination_cloud_path: the path to copy it to
+        :param float timeout: time in seconds to allow for the request to complete
+        :return None:
+        """
+        blob = self._blob(original_cloud_path)
+        original_bucket, _ = self._get_bucket_and_path_in_bucket(original_cloud_path)
+        destination_bucket, path_in_destination_bucket = self._get_bucket_and_path_in_bucket(destination_cloud_path)
+        original_bucket.copy_blob(blob, destination_bucket, new_name=path_in_destination_bucket, timeout=timeout)
+        logger.debug("Copied %r to %r.", original_cloud_path, destination_cloud_path)
+
     def delete(self, cloud_path, timeout=_DEFAULT_TIMEOUT):
         """Delete the given file from the given bucket.
 
