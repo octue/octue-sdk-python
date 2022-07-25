@@ -10,7 +10,7 @@ if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in GOOGLE_COMPUTE_PROVIDERS:
     # Google Cloud logs don't support colour currently - provide a no-operation function.
     colourise = lambda string, text_colour=None, background_colour=None: string
 else:
-    from octue.utils.colour import colourise
+    from octue.utils.colour import colourise  # noqa
 
 
 # Logging format for analysis runs. All handlers should use this logging format to make logs consistently parseable.
@@ -26,6 +26,7 @@ def create_octue_formatter(
     include_line_number=False,
     include_process_name=False,
     include_thread_name=False,
+    use_colour=True,
 ):
     """Create a log formatter from the given log record attributes that delimits the attributes with space-padded pipes
     and encapsulates the whole log message context in square brackets before adding the message at the end. e.g. if the
@@ -36,8 +37,11 @@ def create_octue_formatter(
     :param bool include_line_number: if `True`, include the line number in the log context
     :param bool include_process_name: if `True`, include the process name in the log context
     :param bool include_thread_name: if `True`, include the thread name in the log context
+    :param bool use_colour: if `True`, use ANSI colour codes to colour the logs
     :return logging.Formatter:
     """
+    global colourise
+
     extra_attributes = []
 
     if include_line_number:
@@ -46,6 +50,9 @@ def create_octue_formatter(
         extra_attributes.append("%(processName)s")
     if include_thread_name:
         extra_attributes.append("%(threadName)s")
+
+    if not use_colour:
+        colourise = lambda string, text_colour=None, background_colour=None: string
 
     if len(log_record_attributes) > 1:
         extra_sections = [
