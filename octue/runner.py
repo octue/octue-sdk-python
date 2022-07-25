@@ -72,6 +72,7 @@ class Runner:
         self._crash_analytics_log_handler = logging.handlers.MemoryHandler(
             capacity=10000,
             target=logging.FileHandler(self._crash_analytics_log_file_path, delay=True),
+            flushOnClose=False,
         )
 
         # Ensure the twine is present and instantiate it.
