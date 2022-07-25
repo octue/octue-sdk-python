@@ -7,7 +7,6 @@ import os
 import shutil
 import tempfile
 
-import google.api_core.exceptions
 import pkg_resources
 import requests
 from google_crc32c import Checksum
@@ -25,7 +24,7 @@ except (ModuleNotFoundError, ImportError):
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.exceptions import CloudLocationNotSpecified, ReadOnlyResource
+from octue.exceptions import CloudLocationNotSpecified, FileNotFoundException, ReadOnlyResource
 from octue.mixins import CloudPathable, Filterable, Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils.decoders import OctueJSONDecoder
@@ -430,13 +429,12 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
         # Download from a cloud URI.
         else:
-            try:
+            if GoogleCloudStorageClient().exists(self.cloud_path):
                 GoogleCloudStorageClient().download_to_file(local_path=self._local_path, cloud_path=self.cloud_path)
 
-            except google.api_core.exceptions.NotFound as e:
-                # If in reading mode, raise an error if no file exists at the path; if in a writing mode, create a new file.
+            else:
                 if self._open_attributes["mode"] == "r":
-                    raise e
+                    raise FileNotFoundException("The file mode is 'r' but no file exists at %r.", self.cloud_path)
 
         # Now use hash value of local file instead of cloud file.
         self.reset_hash()
