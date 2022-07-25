@@ -369,19 +369,29 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         :param bool update_cloud_metadata: if `True`, update the metadata of the datafile in the cloud at upload time
         :return str: gs:// path for datafile
         """
-        self._set_cloud_location(cloud_path)
-
-        self._get_cloud_metadata()
-
+        original_cloud_path = self.cloud_path
         storage_client = GoogleCloudStorageClient()
 
-        # If the there is no cloud file or if the datafile's file has been changed locally, overwrite its cloud copy.
-        if not storage_client.exists(self.cloud_path) or self.cloud_hash_value != self.hash_value:
-            storage_client.upload_file(
-                local_path=self.local_path,
-                cloud_path=self.cloud_path,
-                metadata=self.metadata(),
-            )
+        self._set_cloud_location(cloud_path)
+        self._get_cloud_metadata()
+
+        # If the given cloud path is different to the current one:
+        if self.cloud_path != original_cloud_path:
+            # If there's no local copy of the datafile, copy the file at the current cloud location to the new cloud
+            # location.
+            if not self.exists_locally:
+                storage_client.copy(original_cloud_path=original_cloud_path, destination_cloud_path=self.cloud_path)
+
+            # Otherwise, just upload the local copy to the new cloud location.
+            else:
+                storage_client.upload_file(local_path=self.local_path, cloud_path=self.cloud_path)
+
+        # If the given cloud path is the same as the current one:
+        else:
+            # If there is no cloud file at the given path or if the changes have been made to the file locally compared
+            # to the cloud copy, write the local copy to the cloud location.
+            if not storage_client.exists(self.cloud_path) or self.cloud_hash_value != self.hash_value:
+                storage_client.upload_file(local_path=self.local_path, cloud_path=self.cloud_path)
 
         if update_cloud_metadata:
             # If the datafile's metadata has been changed locally, update the cloud file's metadata.

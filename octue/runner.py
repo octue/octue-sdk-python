@@ -306,7 +306,6 @@ class Runner:
                 manifest = getattr(analysis, manifest_type)
 
                 for name, dataset in manifest.datasets.items():
-                    dataset.download()
                     dataset.upload(storage.path.join(question_diagnostics_path, f"{manifest_type}_datasets", name))
 
                 manifest.to_cloud(storage.path.join(question_diagnostics_path, f"{manifest_type}.json"))
