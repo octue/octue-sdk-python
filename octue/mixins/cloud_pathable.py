@@ -1,7 +1,11 @@
+import logging
 from urllib.parse import urlparse
 
 from octue.cloud import storage
 from octue.exceptions import CloudLocationNotSpecified
+
+
+logger = logging.getLogger(__name__)
 
 
 class CloudPathable:
@@ -62,6 +66,9 @@ class CloudPathable:
 
         if not cloud_path:
             self._raise_cloud_location_error()
+
+        if cloud_path != self.__cloud_path:
+            logger.info("Updating cloud location for %r from %r to %r.", self, self.__cloud_path, cloud_path)
 
         setattr(self, self._CLOUD_PATH_ATTRIBUTE_NAME, cloud_path)
 
