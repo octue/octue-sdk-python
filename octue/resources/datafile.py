@@ -95,6 +95,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         self._local_path = None
         self._cloud_path = None
         self._cloud_metadata = {}
+        self._storage_client = GoogleCloudStorageClient()
 
         if storage.path.is_cloud_path(path):
             self._instantiate_from_cloud_object(path, local_path, ignore_stored_metadata=hypothetical)
@@ -314,7 +315,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             )
 
         if self.exists_in_cloud:
-            GoogleCloudStorageClient().download_to_file(local_path=path, cloud_path=self.cloud_path)
+            self._storage_client.download_to_file(local_path=path, cloud_path=self.cloud_path)
         else:
             os.makedirs(os.path.split(path)[0], exist_ok=True)
             shutil.copy(self._local_path, path)
@@ -362,6 +363,12 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             raise TypeError(f"An object of type {type(self)} cannot be compared with {type(other)}.")
         return self.name > other.name
 
+    def __getstate__(self):
+        attributes = vars(self)
+        # Avoid trying to pickle the unpickleable GoogleCloudStorageClient.
+        attributes.pop("_storage_client", None)
+        return attributes
+
     def upload(self, cloud_path=None, update_cloud_metadata=True):
         """Upload a datafile to Google Cloud Storage.
 
@@ -370,7 +377,6 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         :return str: gs:// path for datafile
         """
         original_cloud_path = self.cloud_path
-        storage_client = GoogleCloudStorageClient()
 
         self._set_cloud_location(cloud_path)
         self._get_cloud_metadata()
@@ -380,18 +386,21 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             # If there's no local copy of the datafile, copy the file at the current cloud location to the new cloud
             # location.
             if not self.exists_locally:
-                storage_client.copy(original_cloud_path=original_cloud_path, destination_cloud_path=self.cloud_path)
+                self._storage_client.copy(
+                    original_cloud_path=original_cloud_path,
+                    destination_cloud_path=self.cloud_path,
+                )
 
             # Otherwise, just upload the local copy to the new cloud location.
             else:
-                storage_client.upload_file(local_path=self.local_path, cloud_path=self.cloud_path)
+                self._storage_client.upload_file(local_path=self.local_path, cloud_path=self.cloud_path)
 
         # If the given cloud path is the same as the current one:
         else:
             # If there is no cloud file at the given path or if the changes have been made to the file locally compared
             # to the cloud copy, write the local copy to the cloud location.
-            if not storage_client.exists(self.cloud_path) or self.cloud_hash_value != self.hash_value:
-                storage_client.upload_file(local_path=self.local_path, cloud_path=self.cloud_path)
+            if not self._storage_client.exists(self.cloud_path) or self.cloud_hash_value != self.hash_value:
+                self._storage_client.upload_file(local_path=self.local_path, cloud_path=self.cloud_path)
 
         if update_cloud_metadata:
             # If the datafile's metadata has been changed locally, update the cloud file's metadata.
@@ -431,7 +440,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         # Download from a cloud URI.
         else:
             try:
-                GoogleCloudStorageClient().download_to_file(local_path=self._local_path, cloud_path=self.cloud_path)
+                self._storage_client.download_to_file(local_path=self._local_path, cloud_path=self.cloud_path)
 
             except google.api_core.exceptions.NotFound as e:
                 # If in reading mode, raise an error if no file exists at the path; if in a writing mode, create a new file.
@@ -477,7 +486,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         if not self.cloud_path:
             self._raise_cloud_location_error()
 
-        GoogleCloudStorageClient().overwrite_custom_metadata(self.cloud_path, metadata=self.metadata())
+        self._storage_client.overwrite_custom_metadata(self.cloud_path, metadata=self.metadata())
 
     def update_local_metadata(self):
         """Create or update the local octue metadata file with the datafile's metadata.
@@ -503,7 +512,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
                 f"{self!r} must exist in the cloud for a signed URL to be generated for it."
             )
 
-        return GoogleCloudStorageClient().generate_signed_url(cloud_path=self.cloud_path, expiration=expiration)
+        return self._storage_client.generate_signed_url(cloud_path=self.cloud_path, expiration=expiration)
 
     def _instantiate_from_cloud_object(self, path, local_path, ignore_stored_metadata):
         """Instantiate the datafile from a cloud object.
@@ -573,7 +582,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             cloud_metadata["crc32c"] = headers.get("x-goog-hash", "").split(",")[0].replace("crc32c=", "")
 
         else:
-            cloud_metadata = GoogleCloudStorageClient().get_metadata(cloud_path=self.cloud_path)
+            cloud_metadata = self._storage_client.get_metadata(cloud_path=self.cloud_path)
 
         if cloud_metadata:
             cloud_metadata["custom_metadata"] = {

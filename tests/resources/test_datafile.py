@@ -882,20 +882,17 @@ class TestDatafile(BaseTestCase):
         with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
             signed_url = datafile.generate_signed_url()
 
-        # Ensure the GOOGLE_APPLICATION_CREDENTIALS environment variable isn't available to ensure the signed URL works
-        # without any extra permissions.
-        with patch.dict(os.environ, clear=True):
-            with Datafile(path=signed_url) as (downloaded_datafile, f):
-                self.assertEqual(f.read(), "I will be signed")
+        with Datafile(path=signed_url) as (downloaded_datafile, f):
+            self.assertEqual(f.read(), "I will be signed")
 
-                # Test cloud metadata is retrieved. These assertions will be uncommented when this issue
-                # https://github.com/oittaa/gcp-storage-emulator/issues/187 with the storage emulator is resolved. See
-                # issue https://github.com/octue/octue-sdk-python/issues/489.
+            # Test cloud metadata is retrieved. These assertions will be uncommented when this issue
+            # https://github.com/oittaa/gcp-storage-emulator/issues/187 with the storage emulator is resolved. See
+            # issue https://github.com/octue/octue-sdk-python/issues/489.
 
-                # self.assertEqual(downloaded_datafile.tags, {"some": "metadata"})
-                # self.assertEqual(datafile.id, downloaded_datafile.id)
-                # self.assertEqual(datafile.hash_value, downloaded_datafile.hash_value)
-                # self.assertEqual(datafile.size_bytes, downloaded_datafile.size_bytes)
+            # self.assertEqual(downloaded_datafile.tags, {"some": "metadata"})
+            # self.assertEqual(datafile.id, downloaded_datafile.id)
+            # self.assertEqual(datafile.hash_value, downloaded_datafile.hash_value)
+            # self.assertEqual(datafile.size_bytes, downloaded_datafile.size_bytes)
 
     def test_error_raised_if_trying_to_modify_signed_url_datafile(self):
         """Test that an error is raised if trying to modify a datafile instantiated from a signed URL."""
@@ -909,10 +906,9 @@ class TestDatafile(BaseTestCase):
         with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
             signed_url = datafile.generate_signed_url()
 
-        with patch.dict(os.environ, clear=True):
-            with self.assertRaises(exceptions.ReadOnlyResource):
-                with Datafile(path=signed_url, mode="w") as (_, f):
-                    f.write("Text I'm not allowed to write.")
+        with self.assertRaises(exceptions.ReadOnlyResource):
+            with Datafile(path=signed_url, mode="w") as (_, f):
+                f.write("Text I'm not allowed to write.")
 
     def test_update_metadata_with_local_datafile(self):
         """Test the `update_metadata` method with a local datafile."""
