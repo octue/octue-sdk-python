@@ -12,6 +12,7 @@ from google import auth
 
 from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
 from octue.cloud.pub_sub.service import Service
+from octue.cloud.storage import GoogleCloudStorageClient
 from octue.configuration import load_service_and_app_configuration
 from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
 from octue.log_handlers import apply_log_handler, get_remote_handler
@@ -232,6 +233,33 @@ def start(service_config, timeout, rm):
     )
 
     service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=rm)
+
+
+@octue_cli.command()
+@click.argument(
+    "cloud_path",
+    type=str,
+)
+@click.option(
+    "--local-path",
+    type=click.Path(file_okay=False),
+    default=None,
+    help="The path to a directory to store the directory of diagnostics data in. Defaults to the analysis ID.",
+)
+def get_crash_diagnostics(cloud_path, local_path):
+    """Download crash diagnostics from the given directory in Google Cloud Storage.
+
+    CLOUD_PATH: The path to the directory in Google Cloud Storage containing the diagnostics data.
+    """
+    local_path = local_path or "."
+
+    GoogleCloudStorageClient().download_all_files(
+        local_path=local_path,
+        cloud_path=cloud_path,
+        recursive=True,
+    )
+
+    logger.info("Downloaded crash diagnostics from %r to %r.", cloud_path, local_path)
 
 
 @octue_cli.group()
