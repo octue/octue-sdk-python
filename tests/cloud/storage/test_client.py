@@ -160,7 +160,7 @@ class TestGoogleCloudStorageClient(BaseTestCase):
             directory_contents = list(os.walk(temporary_directory))
             self.assertEqual(directory_contents[0][1], [storage.path.split(dataset_path)[-1]])
             self.assertEqual(directory_contents[1][1], ["sub-directory"])
-            self.assertEqual(directory_contents[1][2], ["file_1.txt", "file_0.txt"])
+            self.assertEqual(set(directory_contents[1][2]), {"file_1.txt", "file_0.txt"})
             self.assertEqual(directory_contents[2][1], ["sub-sub-directory"])
             self.assertEqual(directory_contents[2][2], ["sub_file.txt"])
             self.assertEqual(directory_contents[3][2], ["sub_sub_file.txt"])
