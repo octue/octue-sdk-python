@@ -236,8 +236,12 @@ class MockService(Service):
     def __init__(self, backend, service_id=None, run_function=None, children=None, *args, **kwargs):
         super().__init__(backend, service_id, run_function, *args, **kwargs)
         self.children = children or {}
-        self.publisher = MockPublisher()
+        self._publisher = MockPublisher()
         self.subscriber = MockSubscriber()
+
+    @property
+    def publisher(self):
+        return self._publisher
 
     def ask(
         self,
