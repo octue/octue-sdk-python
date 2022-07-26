@@ -4,8 +4,6 @@ import os
 import tempfile
 from unittest.mock import patch
 
-import coolname
-
 from octue import REPOSITORY_ROOT, exceptions
 from octue.cloud import storage
 from octue.cloud.emulators import mock_generate_signed_url
@@ -494,7 +492,7 @@ class TestDataset(BaseTestCase):
 
     def test_from_cloud_with_nested_dataset_and_no_metadata_file(self):
         """Test that a nested dataset is loaded from the cloud correctly if it has no `.octue` metadata file in it."""
-        dataset_path = self._create_nested_cloud_dataset(dataset_name="nested_dataset_with_no_metadata")
+        dataset_path = self.create_nested_cloud_dataset(dataset_name="nested_dataset_with_no_metadata")
 
         cloud_dataset = Dataset(path=dataset_path, recursive=True)
 
@@ -533,7 +531,7 @@ class TestDataset(BaseTestCase):
         """Test that metadata for a cloud dataset can be stored in the cloud and used on re-instantiation of the same
         dataset.
         """
-        dataset_path = self._create_nested_cloud_dataset()
+        dataset_path = self.create_nested_cloud_dataset()
         dataset = Dataset(path=dataset_path)
         self.assertEqual(dataset.tags, {})
 
@@ -599,13 +597,13 @@ class TestDataset(BaseTestCase):
         """Test `Dataset.to_cloud` works with an implicit cloud location if the cloud location has previously been
         provided.
         """
-        dataset_path = self._create_nested_cloud_dataset()
+        dataset_path = self.create_nested_cloud_dataset()
         dataset = Dataset(path=dataset_path, recursive=True)
         dataset.upload()
 
     def test_upload_to_new_location(self):
         """Test that a dataset can be uploaded to a new cloud location."""
-        dataset_path = self._create_nested_cloud_dataset()
+        dataset_path = self.create_nested_cloud_dataset()
         dataset = Dataset(dataset_path)
         dataset.download()
 
@@ -653,7 +651,7 @@ class TestDataset(BaseTestCase):
 
     def test_download_from_nested_dataset(self):
         """Test that all files in a nested dataset can be downloaded with one command."""
-        dataset_path = self._create_nested_cloud_dataset()
+        dataset_path = self.create_nested_cloud_dataset()
 
         dataset = Dataset(path=dataset_path, recursive=True)
 
@@ -676,7 +674,7 @@ class TestDataset(BaseTestCase):
         """Test that, when downloading all files from a nested dataset and no local directory is given, the dataset
         structure is preserved in the temporary directory used.
         """
-        dataset_path = self._create_nested_cloud_dataset()
+        dataset_path = self.create_nested_cloud_dataset()
 
         dataset = Dataset(path=dataset_path, recursive=True)
 
@@ -781,7 +779,7 @@ class TestDataset(BaseTestCase):
 
     def test_exiting_context_manager_of_cloud_dataset_updates_cloud_metadata(self):
         """Test that cloud metadata for a cloud dataset is updated on exit of the dataset context manager."""
-        dataset_path = self._create_nested_cloud_dataset()
+        dataset_path = self.create_nested_cloud_dataset()
         dataset = Dataset(path=dataset_path, recursive=True)
 
         with dataset:
@@ -845,7 +843,7 @@ class TestDataset(BaseTestCase):
 
     def test_update_metadata_with_cloud_dataset(self):
         """Test the `update_metadata` method with a cloud dataset."""
-        dataset_path = self._create_nested_cloud_dataset()
+        dataset_path = self.create_nested_cloud_dataset()
         dataset = Dataset(path=dataset_path)
 
         # Update the instance metadata but don't update the cloud stored metadata.
@@ -860,33 +858,9 @@ class TestDataset(BaseTestCase):
 
     def test_name_of_dataset_with_trailing_slash_is_correct(self):
         """Test that the name of a dataset with a trailing slash is correct."""
-        cloud_path = self._create_nested_cloud_dataset("my-dataset")
+        cloud_path = self.create_nested_cloud_dataset("my-dataset")
         dataset = Dataset(cloud_path + "/")
         self.assertEqual(dataset.name, "my-dataset")
-
-    def _create_nested_cloud_dataset(self, dataset_name=None):
-        """Create a dataset in cloud storage with the given name containing a nested set of files.
-
-        :param str|None dataset_name: the name to give the dataset; a random name is generated if none is given
-        :return str: the cloud path for the dataset
-        """
-        cloud_storage_client = GoogleCloudStorageClient()
-        dataset_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, dataset_name or coolname.generate_slug(2))
-
-        cloud_storage_client.upload_from_string("[1, 2, 3]", cloud_path=storage.path.join(dataset_path, "file_0.txt"))
-        cloud_storage_client.upload_from_string("[4, 5, 6]", cloud_path=storage.path.join(dataset_path, "file_1.txt"))
-
-        cloud_storage_client.upload_from_string(
-            "['a', 'b', 'c']",
-            cloud_path=storage.path.join(dataset_path, "sub-directory", "sub_file.txt"),
-        )
-
-        cloud_storage_client.upload_from_string(
-            "['blah', 'b', 'c']",
-            cloud_path=storage.path.join(dataset_path, "sub-directory", "sub-sub-directory", "sub_sub_file.txt"),
-        )
-
-        return dataset_path
 
     def _create_files_and_nested_subdirectories(self, directory_path):
         """Create files and nested subdirectories of files in the given directory.

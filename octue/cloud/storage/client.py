@@ -1,4 +1,5 @@
 import base64
+import concurrent.futures
 import datetime
 import json
 import logging
@@ -10,11 +11,11 @@ import google.auth.exceptions
 from google import auth
 from google.auth import compute_engine
 from google.auth.transport import requests as google_requests
-from google.cloud import storage
+from google.cloud.storage import Client
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google_crc32c import Checksum
 
-from octue.cloud.storage.path import split_bucket_name_from_cloud_path
+from octue.cloud import storage
 from octue.exceptions import CloudStorageBucketNotFound
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
@@ -41,7 +42,7 @@ class GoogleCloudStorageClient:
         else:
             self.credentials = credentials
 
-        self.client = storage.Client(project=self.project_name, credentials=self.credentials)
+        self.client = Client(project=self.project_name, credentials=self.credentials)
 
     def create_bucket(self, name, location=None, allow_existing=False, timeout=_DEFAULT_TIMEOUT):
         """Create a new bucket. If the bucket already exists, and `allow_existing` is `True`, do nothing; if it is
@@ -170,6 +171,32 @@ class GoogleCloudStorageClient:
         blob.download_to_filename(local_path, timeout=timeout)
         logger.debug("Downloaded %r from Google Cloud to %r.", blob.public_url, local_path)
 
+    def download_all_files(self, local_path, cloud_path, recursive=False):
+        """Download all files in the given cloud storage directory into a directory of the same name within the given
+        local directory.
+
+        :param str local_path: the path to a local directory into which to download the cloud directory into
+        :param str cloud_path: the path to a directory in Google Cloud storage to download
+        :param bool recursive: if `True`, also download all files in all subdirectories of the cloud directory recursively
+        :return None:
+        """
+        bucket, _ = self._get_bucket_and_path_in_bucket(cloud_path)
+
+        cloud_and_local_paths = [
+            {
+                "cloud_path": storage.path.generate_gs_path(bucket.name, blob.name),
+                "local_path": os.path.join(local_path, blob.name),
+            }
+            for blob in self.scandir(cloud_path, recursive=recursive)
+        ]
+
+        def download_file(cloud_and_local_path):
+            self.download_to_file(cloud_and_local_path["local_path"], cloud_and_local_path["cloud_path"])
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            for path in executor.map(download_file, cloud_and_local_paths):
+                logger.debug("Downloaded file to %r.", path)
+
     def download_as_string(self, cloud_path, timeout=_DEFAULT_TIMEOUT):
         """Download a file to a string from a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>.
 
@@ -292,7 +319,7 @@ class GoogleCloudStorageClient:
         :param str cloud_path: the path to get the bucket and path within the bucket from
         :return (google.cloud.storage.bucket.Bucket, str): the bucket and path within the bucket
         """
-        bucket_name, path_in_bucket = split_bucket_name_from_cloud_path(cloud_path)
+        bucket_name, path_in_bucket = storage.path.split_bucket_name_from_cloud_path(cloud_path)
 
         try:
             bucket = self.client.get_bucket(bucket_or_name=bucket_name)

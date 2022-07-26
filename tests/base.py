@@ -1,9 +1,12 @@
 import os
 import unittest
 
+import coolname
 import yaml
 
+from octue.cloud import storage
 from octue.cloud.emulators import GoogleCloudStorageEmulatorTestResultModifier
+from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset, Manifest
 from tests import TEST_BUCKET_NAME
 
@@ -62,3 +65,27 @@ class BaseTestCase(unittest.TestCase):
             yaml.dump(octue_configuration, f)
 
         return octue_configuration_path
+
+    def create_nested_cloud_dataset(self, dataset_name=None):
+        """Create a dataset in cloud storage with the given name containing a nested set of files.
+
+        :param str|None dataset_name: the name to give the dataset; a random name is generated if none is given
+        :return str: the cloud path for the dataset
+        """
+        cloud_storage_client = GoogleCloudStorageClient()
+        dataset_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, dataset_name or coolname.generate_slug(2))
+
+        cloud_storage_client.upload_from_string("[1, 2, 3]", cloud_path=storage.path.join(dataset_path, "file_0.txt"))
+        cloud_storage_client.upload_from_string("[4, 5, 6]", cloud_path=storage.path.join(dataset_path, "file_1.txt"))
+
+        cloud_storage_client.upload_from_string(
+            "['a', 'b', 'c']",
+            cloud_path=storage.path.join(dataset_path, "sub-directory", "sub_file.txt"),
+        )
+
+        cloud_storage_client.upload_from_string(
+            "['blah', 'b', 'c']",
+            cloud_path=storage.path.join(dataset_path, "sub-directory", "sub-sub-directory", "sub_sub_file.txt"),
+        )
+
+        return dataset_path
