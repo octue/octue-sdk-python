@@ -214,7 +214,7 @@ class TestStartCommand(BaseTestCase):
 class TestGetCrashDiagnosticsCommand(BaseTestCase):
     def test_get_crash_diagnostics(self):
         """Test the get crash diagnostics CLI command."""
-        crash_analytics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_analytics")
+        crash_diagnostics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_diagnostics")
 
         def app(analysis):
             raise ValueError("This is deliberately raised to simulate app failure.")
@@ -239,7 +239,7 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
             },
             configuration_values={"getting": "ready"},
             configuration_manifest=manifests["configuration"],
-            crash_analytics_cloud_path=crash_analytics_cloud_path,
+            crash_diagnostics_cloud_path=crash_diagnostics_cloud_path,
         )
 
         analysis_id = "4b91e3f0-4492-49e3-8061-34f1942dc68a"
@@ -257,7 +257,7 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
                 octue_cli,
                 [
                     "get-crash-diagnostics",
-                    storage.path.join(crash_analytics_cloud_path, analysis_id),
+                    storage.path.join(crash_diagnostics_cloud_path, analysis_id),
                     "--local-path",
                     temporary_directory,
                 ],
@@ -267,7 +267,7 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
             self.assertEqual(result.exit_code, 0)
 
             directory_contents = list(os.walk(temporary_directory))
-            self.assertEqual(directory_contents[0][1], ["crash_analytics"])
+            self.assertEqual(directory_contents[0][1], ["crash_diagnostics"])
             self.assertEqual(directory_contents[1][1], [analysis_id])
             self.assertEqual(
                 set(directory_contents[2][1]),

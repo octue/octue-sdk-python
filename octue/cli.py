@@ -206,7 +206,7 @@ def start(service_config, timeout, rm):
         configuration_manifest=app_configuration.configuration_manifest,
         children=app_configuration.children,
         output_location=app_configuration.output_location,
-        crash_analytics_cloud_path=service_configuration.crash_analytics_cloud_path,
+        crash_diagnostics_cloud_path=service_configuration.crash_diagnostics_cloud_path,
         service_id=service_configuration.service_id,
     )
 

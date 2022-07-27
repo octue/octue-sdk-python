@@ -270,10 +270,10 @@ class TestRunner(BaseTestCase):
         self.assertTrue(analysis.finalised)
 
     def test_configuration_and_inputs_saved_on_crash(self):
-        """Test that analysis configuration and inputs are saved to the crash analytics cloud path if the app crashes
+        """Test that analysis configuration and inputs are saved to the crash diagnostics cloud path if the app crashes
         when the runner has been allowed to save them.
         """
-        crash_analytics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_analytics")
+        crash_diagnostics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_diagnostics")
 
         def app(analysis):
             raise ValueError("This is deliberately raised to simulate app failure.")
@@ -298,7 +298,7 @@ class TestRunner(BaseTestCase):
             },
             configuration_values={"getting": "ready"},
             configuration_manifest=manifests["configuration"],
-            crash_analytics_cloud_path=crash_analytics_cloud_path,
+            crash_diagnostics_cloud_path=crash_diagnostics_cloud_path,
         )
 
         analysis_id = "4b91e3f0-4492-49e3-8061-34f1942dc68a"
@@ -312,25 +312,25 @@ class TestRunner(BaseTestCase):
             )
 
         storage_client = GoogleCloudStorageClient()
-        question_crash_analytics_path = storage.path.join(crash_analytics_cloud_path, analysis_id)
+        question_crash_diagnostics_path = storage.path.join(crash_diagnostics_cloud_path, analysis_id)
 
         # Check the configuration values.
         self.assertEqual(
             storage_client.download_as_string(
-                storage.path.join(question_crash_analytics_path, "configuration_values.json")
+                storage.path.join(question_crash_diagnostics_path, "configuration_values.json")
             ),
             json.dumps({"getting": "ready"}),
         )
 
         # Check the input values.
         self.assertEqual(
-            storage_client.download_as_string(storage.path.join(question_crash_analytics_path, "input_values.json")),
+            storage_client.download_as_string(storage.path.join(question_crash_diagnostics_path, "input_values.json")),
             json.dumps({"hello": "world"}),
         )
 
         # Check the configuration manifest and dataset.
         configuration_manifest = Manifest.from_cloud(
-            storage.path.join(question_crash_analytics_path, "configuration_manifest.json")
+            storage.path.join(question_crash_diagnostics_path, "configuration_manifest.json")
         )
         configuration_dataset = configuration_manifest.datasets["met_mast_data"]
         configuration_file = configuration_dataset.files.one()
@@ -338,16 +338,16 @@ class TestRunner(BaseTestCase):
         with configuration_file.open() as f:
             self.assertEqual(f.read(), "configuration manifest data")
 
-        # Check the configuration dataset's path is in the crash analytics cloud directory.
+        # Check the configuration dataset's path is in the crash diagnostics cloud directory.
         self.assertEqual(
             configuration_dataset.path,
-            storage.path.join(question_crash_analytics_path, "configuration_manifest_datasets", "met_mast_data"),
+            storage.path.join(question_crash_diagnostics_path, "configuration_manifest_datasets", "met_mast_data"),
         )
 
         self.assertEqual(
             configuration_file.cloud_path,
             storage.path.join(
-                question_crash_analytics_path,
+                question_crash_diagnostics_path,
                 "configuration_manifest_datasets",
                 "met_mast_data",
                 "my_file.txt",
@@ -355,30 +355,32 @@ class TestRunner(BaseTestCase):
         )
 
         # Check the input manifest and dataset.
-        input_manifest = Manifest.from_cloud(storage.path.join(question_crash_analytics_path, "input_manifest.json"))
+        input_manifest = Manifest.from_cloud(storage.path.join(question_crash_diagnostics_path, "input_manifest.json"))
         input_dataset = input_manifest.datasets["met_mast_data"]
         input_file = input_dataset.files.one()
 
         with input_file.open() as f:
             self.assertEqual(f.read(), "input manifest data")
 
-        # Check the input dataset's path is in the crash analytics cloud directory.
+        # Check the input dataset's path is in the crash diagnostics cloud directory.
         self.assertEqual(
             input_dataset.path,
-            storage.path.join(question_crash_analytics_path, "input_manifest_datasets", "met_mast_data"),
+            storage.path.join(question_crash_diagnostics_path, "input_manifest_datasets", "met_mast_data"),
         )
 
         self.assertEqual(
             input_file.cloud_path,
-            storage.path.join(question_crash_analytics_path, "input_manifest_datasets", "met_mast_data", "my_file.txt"),
+            storage.path.join(
+                question_crash_diagnostics_path, "input_manifest_datasets", "met_mast_data", "my_file.txt"
+            ),
         )
 
         # Check the logs are uploaded.
-        with Datafile(storage.path.join(question_crash_analytics_path, "logs.txt")) as (_, f):
+        with Datafile(storage.path.join(question_crash_diagnostics_path, "logs.txt")) as (_, f):
             logs = f.read()
 
         self.assertIn(
-            f"[analysis-{analysis_id}] Saving crash diagnostics to 'gs://octue-sdk-python-test-bucket/crash_analytics'.",
+            f"[analysis-{analysis_id}] Saving crash diagnostics to 'gs://octue-sdk-python-test-bucket/crash_diagnostics'.",
             logs,
         )
 

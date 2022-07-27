@@ -39,7 +39,7 @@ class Runner:
     :param str|dict|None configuration_manifest: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|dict|None children: The children strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|None output_location: the path to a cloud directory to save output datasets at
-    :param str|None crash_analytics_cloud_path: the path to a cloud directory to store crash analytics in the event that the service fails while processing a question (this includes the configuration, input values and manifest, and logs)
+    :param str|None crash_diagnostics_cloud_path: the path to a cloud directory to store crash diagnostics in the event that the service fails while processing a question (this includes the configuration, input values and manifest, and logs)
     :param str|None project_name: name of Google Cloud project to get credentials from
     :param str|None service_id: the ID of the service being run
     :return None:
@@ -53,7 +53,7 @@ class Runner:
         configuration_manifest=None,
         children=None,
         output_location=None,
-        crash_analytics_cloud_path=None,
+        crash_diagnostics_cloud_path=None,
         project_name=None,
         service_id=None,
     ):
@@ -67,11 +67,11 @@ class Runner:
 
         self.output_location = output_location
 
-        self.crash_analytics_cloud_path = crash_analytics_cloud_path
-        self._crash_analytics_log_file_path = tempfile.NamedTemporaryFile(delete=False).name
-        self._crash_analytics_log_handler = logging.handlers.MemoryHandler(
+        self.crash_diagnostics_cloud_path = crash_diagnostics_cloud_path
+        self._crash_diagnostics_log_file_path = tempfile.NamedTemporaryFile(delete=False).name
+        self._crash_diagnostics_log_handler = logging.handlers.MemoryHandler(
             capacity=10000,
-            target=logging.FileHandler(self._crash_analytics_log_file_path, delay=True),
+            target=logging.FileHandler(self._crash_diagnostics_log_file_path, delay=True),
             flushOnClose=False,
         )
 
@@ -156,9 +156,9 @@ class Runner:
         outputs_and_monitors = self.twine.prepare("monitor_message", "output_values", "output_manifest", cls=CLASS_MAP)
 
         if analysis_log_handler:
-            extra_log_handlers = [analysis_log_handler, self._crash_analytics_log_handler]
+            extra_log_handlers = [analysis_log_handler, self._crash_diagnostics_log_handler]
         else:
-            extra_log_handlers = [self._crash_analytics_log_handler]
+            extra_log_handlers = [self._crash_diagnostics_log_handler]
 
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
 
@@ -210,7 +210,7 @@ class Runner:
 
             except Exception as analysis_error:
                 if allow_save_diagnostics_data_on_crash:
-                    logger.warning("Saving crash diagnostics to %r.", self.crash_analytics_cloud_path)
+                    logger.warning("Saving crash diagnostics to %r.", self.crash_diagnostics_cloud_path)
 
                     try:
                         self._save_crash_diagnostics_data(analysis)
@@ -290,14 +290,14 @@ class Runner:
                     raise twined.exceptions.invalid_contents_map[manifest_kind](message)
 
     def _save_crash_diagnostics_data(self, analysis):
-        """Save the values, manifests, and datasets for the analysis configuration and inputs to the crash analytics
+        """Save the values, manifests, and datasets for the analysis configuration and inputs to the crash diagnostics
         cloud path.
 
         :param octue.resources.analysis.Analysis analysis:
         :return None:
         """
         storage_client = GoogleCloudStorageClient()
-        question_diagnostics_path = storage.path.join(self.crash_analytics_cloud_path, analysis.id)
+        question_diagnostics_path = storage.path.join(self.crash_diagnostics_cloud_path, analysis.id)
 
         for data_type in ("configuration", "input"):
 
@@ -321,11 +321,11 @@ class Runner:
 
                 manifest.to_cloud(storage.path.join(question_diagnostics_path, f"{manifest_type}.json"))
 
-        # Upload the crash analytics log file.
-        self._crash_analytics_log_handler.flush()
+        # Upload the crash diagnostics log file.
+        self._crash_diagnostics_log_handler.flush()
 
         storage_client.upload_file(
-            local_path=self._crash_analytics_log_file_path,
+            local_path=self._crash_diagnostics_log_file_path,
             cloud_path=storage.path.join(question_diagnostics_path, "logs.txt"),
         )
 
