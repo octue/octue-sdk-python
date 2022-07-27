@@ -267,14 +267,13 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
             self.assertEqual(result.exit_code, 0)
 
             directory_contents = list(os.walk(temporary_directory))
-            self.assertEqual(directory_contents[0][1], ["crash_diagnostics"])
-            self.assertEqual(directory_contents[1][1], [analysis_id])
+            self.assertEqual(directory_contents[0][1], [analysis_id])
             self.assertEqual(
-                set(directory_contents[2][1]),
+                set(directory_contents[1][1]),
                 {"configuration_manifest_datasets", "input_manifest_datasets"},
             )
             self.assertEqual(
-                set(directory_contents[2][2]),
+                set(directory_contents[1][2]),
                 {
                     "configuration_values.json",
                     "configuration_manifest.json",
@@ -283,10 +282,10 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
                     "logs.txt",
                 },
             )
-            self.assertEqual(directory_contents[3][1], ["met_mast_data"])
-            self.assertEqual(set(directory_contents[4][2]), {"my_file.txt", ".octue"})
-            self.assertEqual(directory_contents[5][1], ["met_mast_data"])
-            self.assertEqual(set(directory_contents[6][2]), {"my_file.txt", ".octue"})
+            self.assertEqual(directory_contents[2][1], ["met_mast_data"])
+            self.assertEqual(set(directory_contents[3][2]), {"my_file.txt", ".octue"})
+            self.assertEqual(directory_contents[4][1], ["met_mast_data"])
+            self.assertEqual(set(directory_contents[5][2]), {"my_file.txt", ".octue"})
 
 
 class TestDeployCommand(BaseTestCase):

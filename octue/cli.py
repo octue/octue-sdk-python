@@ -10,6 +10,7 @@ import click
 import pkg_resources
 from google import auth
 
+from octue.cloud import storage
 from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
 from octue.cloud.pub_sub.service import Service
 from octue.cloud.storage import GoogleCloudStorageClient
@@ -252,7 +253,8 @@ def get_crash_diagnostics(cloud_path, local_path):
 
     CLOUD_PATH: The path to the directory in Google Cloud Storage containing the diagnostics data.
     """
-    local_path = local_path or "."
+    analysis_id = storage.path.split(cloud_path)[-1]
+    local_path = os.path.join((local_path or "."), analysis_id)
 
     GoogleCloudStorageClient().download_all_files(
         local_path=local_path,

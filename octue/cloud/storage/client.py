@@ -172,11 +172,10 @@ class GoogleCloudStorageClient:
         logger.debug("Downloaded %r from Google Cloud to %r.", blob.public_url, local_path)
 
     def download_all_files(self, local_path, cloud_path, recursive=False):
-        """Download all files in the given cloud storage directory into a directory of the same name within the given
-        local directory.
+        """Download all files in the given cloud storage directory into the given local directory.
 
-        :param str local_path: the path to a local directory into which to download the cloud directory into
-        :param str cloud_path: the path to a directory in Google Cloud storage to download
+        :param str local_path: the path to a local directory to download the files into
+        :param str cloud_path: the path to a cloud storage directory to download
         :param bool recursive: if `True`, also download all files in all subdirectories of the cloud directory recursively
         :return None:
         """
@@ -185,7 +184,13 @@ class GoogleCloudStorageClient:
         cloud_and_local_paths = [
             {
                 "cloud_path": storage.path.generate_gs_path(bucket.name, blob.name),
-                "local_path": os.path.join(local_path, blob.name),
+                "local_path": os.path.join(
+                    local_path,
+                    storage.path.relpath(
+                        storage.path.generate_gs_path(bucket.name, blob.name),
+                        cloud_path,
+                    ),
+                ),
             }
             for blob in self.scandir(cloud_path, recursive=recursive)
         ]
