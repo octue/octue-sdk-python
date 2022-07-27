@@ -71,7 +71,7 @@ class TestSubscription(BaseTestCase):
             topic=topic,
             namespace="hello",
             project_name=project_name,
-            subscriber=SubscriberClient(credentials=service._credentials),
+            subscriber=SubscriberClient(credentials=service.credentials),
         )
 
         with patch("google.pubsub_v1.SubscriberClient.create_subscription", new=MockSubscriptionCreationResponse):
@@ -94,7 +94,7 @@ class TestSubscription(BaseTestCase):
             topic=topic,
             namespace="hello",
             project_name=project_name,
-            subscriber=SubscriberClient(credentials=service._credentials),
+            subscriber=SubscriberClient(credentials=service.credentials),
             push_endpoint="https://example.com/endpoint",
         )
 
