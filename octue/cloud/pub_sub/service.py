@@ -205,6 +205,7 @@ class Service(CoolNameable):
                 input_manifest=data["input_manifest"],
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=functools.partial(self._send_monitor_message, topic=topic),
+                allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
             )
 
             if analysis.output_manifest is None:
