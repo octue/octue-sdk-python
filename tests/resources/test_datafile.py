@@ -273,7 +273,7 @@ class TestDatafile(BaseTestCase):
 
     def test_upload_updates_cloud_metadata(self):
         """Test that calling Datafile.to_cloud on a datafile that is already cloud-based updates its metadata in the
-        cloud.
+        cloud by default.
         """
         datafile, _ = self.create_datafile_in_cloud(labels={"start"})
         datafile.labels = {"finish"}
@@ -327,12 +327,37 @@ class TestDatafile(BaseTestCase):
             datafile.upload()
             self.assertFalse(mock.called)
 
-    def test_upload_to_new_location(self):
-        """Test that a datafile can be uploaded to a new cloud location."""
+    def test_upload_to_new_location_without_downloading_results_in_copying_file_within_cloud(self):
+        """Test that a cloud datafile can be copied to a new cloud location using the upload method without downloading
+        it first.
+        """
+        datafile, contents = self.create_datafile_in_cloud(labels={"start"})
+
+        datafile = Datafile(datafile.cloud_path)
+
+        new_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "new", "location", "cloud_file.txt")
+        with patch("octue.cloud.storage.client.GoogleCloudStorageClient.upload_file") as mock_upload_file:
+            datafile.upload(new_cloud_path)
+
+        # Check that the file was copied within Google Cloud, not uploaded.
+        mock_upload_file.assert_not_called()
+
+        with Datafile(new_cloud_path) as (datafile, f):
+            self.assertEqual(f.read(), contents)
+            self.assertEqual(datafile.labels, {"start"})
+
+    def test_upload_to_new_location_with_downloaded_datafile(self):
+        """Test that a downloaded datafile can be uploaded to a new location."""
         datafile, contents = self.create_datafile_in_cloud(labels={"start"})
 
         new_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "new", "location", "cloud_file.txt")
-        datafile.upload(new_cloud_path)
+        datafile.download()
+
+        with patch("octue.cloud.storage.client.GoogleCloudStorageClient.copy") as mock_copy:
+            datafile.upload(new_cloud_path)
+
+        # Check that the file was uploaded, not copied.
+        mock_copy.assert_not_called()
 
         with Datafile(new_cloud_path) as (datafile, f):
             self.assertEqual(f.read(), contents)

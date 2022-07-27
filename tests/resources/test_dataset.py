@@ -605,7 +605,6 @@ class TestDataset(BaseTestCase):
         """Test that a dataset can be uploaded to a new cloud location."""
         dataset_path = self.create_nested_cloud_dataset()
         dataset = Dataset(dataset_path)
-        dataset.download()
 
         new_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "new", "dataset", "location")
         dataset.upload(new_cloud_path)
