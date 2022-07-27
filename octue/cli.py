@@ -245,7 +245,7 @@ def start(service_config, timeout, rm):
     "--local-path",
     type=click.Path(file_okay=False),
     default=None,
-    help="The path to a directory to store the directory of diagnostics data in. Defaults to the analysis ID.",
+    help="The path to a directory to store the directory of diagnostics data in. Defaults to the current working directory.",
 )
 def get_crash_diagnostics(cloud_path, local_path):
     """Download crash diagnostics from the given directory in Google Cloud Storage.
