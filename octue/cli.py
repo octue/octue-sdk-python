@@ -249,7 +249,8 @@ def start(service_config, timeout, rm):
     help="The path to a directory to store the directory of diagnostics data in. Defaults to the current working directory.",
 )
 def get_crash_diagnostics(cloud_path, local_path):
-    """Download crash diagnostics from the given directory in Google Cloud Storage.
+    """Download crash diagnostics for an analysis from the given directory in Google Cloud Storage. The cloud path
+    should end in the analysis ID.
 
     CLOUD_PATH: The path to the directory in Google Cloud Storage containing the diagnostics data.
     """
