@@ -439,21 +439,35 @@ class AnalysisLogHandlerSwitcher:
         if not self.extra_log_handlers:
             return
 
+        uncoloured_octue_formatter = create_octue_formatter(
+            get_log_record_attributes_for_environment(),
+            [f"analysis-{self.analysis_id}"],
+            use_colour=False,
+        )
+
         # Apply any other given handlers to the logger.
         for extra_handler in self.extra_log_handlers:
 
-            # Apply an uncoloured log formatter to the target of any memory log handlers.
-            if type(extra_handler).__name__ == "MemoryHandler" and getattr(extra_handler, "target"):
+            # Apply an uncoloured log formatter to any file log handlers to keep them readable (i.e. to avoid the ANSI
+            # escape codes).
+            if type(extra_handler).__name__ == "FileHandler":
+                apply_log_handler(
+                    handler=extra_handler,
+                    log_level=self.analysis_log_level,
+                    formatter=uncoloured_octue_formatter,
+                )
+                continue
+
+            if (
+                type(extra_handler).__name__ == "MemoryHandler"
+                and getattr(extra_handler, "target")
+                and type(getattr(extra_handler, "target")).__name__ == "FileHandler"
+            ):
                 apply_log_handler(
                     handler=extra_handler.target,
                     log_level=self.analysis_log_level,
-                    formatter=create_octue_formatter(
-                        get_log_record_attributes_for_environment(),
-                        [f"analysis-{self.analysis_id}"],
-                        use_colour=False,
-                    ),
+                    formatter=uncoloured_octue_formatter,
                 )
-
                 continue
 
             apply_log_handler(handler=extra_handler, log_level=self.analysis_log_level, formatter=octue_formatter)
