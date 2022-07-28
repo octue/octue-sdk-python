@@ -79,3 +79,14 @@ class ChildEmulator:
                     output_values=message["content"]["output_values"],
                     output_manifest=message["content"]["output_manifest"],
                 )
+
+        # If no result message is included in the given messages, return an empty analysis.
+        return Analysis(
+            id=analysis_id,
+            twine={},
+            handle_monitor_message=handle_monitor_message,
+            input_values=input_values,
+            input_manifest=input_manifest,
+            output_values=None,
+            output_manifest=None,
+        )
