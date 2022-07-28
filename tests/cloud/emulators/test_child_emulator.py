@@ -1,5 +1,3 @@
-import logging
-
 from octue.cloud.emulators.child import ChildEmulator
 from octue.resources import Manifest
 from tests.base import BaseTestCase
@@ -9,7 +7,12 @@ class TestChildEmulator(BaseTestCase):
     def test_ask_with_result_message(self):
         """Test that result messages are returned by the emulator's ask method."""
         output_manifest = Manifest()
-        messages = [{"type": "result", "content": {"output_values": [1, 2, 3, 4], "output_manifest": output_manifest}}]
+        messages = [
+            {
+                "type": "result",
+                "content": {"output_values": [1, 2, 3, 4], "output_manifest": output_manifest},
+            },
+        ]
 
         child_emulator = ChildEmulator(
             id="emulated-child",
@@ -37,11 +40,11 @@ class TestChildEmulator(BaseTestCase):
         messages = [
             {
                 "type": "log_record",
-                "content": logging.makeLogRecord({"msg": "Starting analysis.", "levelno": 20, "levelname": "INFO"}),
+                "content": {"msg": "Starting analysis.", "levelno": 20, "levelname": "INFO"},
             },
             {
                 "type": "log_record",
-                "content": logging.makeLogRecord({"msg": "Finishing analysis.", "levelno": 20, "levelname": "INFO"}),
+                "content": {"msg": "Finishing analysis.", "levelno": 20, "levelname": "INFO"},
             },
         ]
 
@@ -59,7 +62,12 @@ class TestChildEmulator(BaseTestCase):
 
     def test_ask_with_exception(self):
         """Test that exceptions are raised by the emulator."""
-        messages = [{"type": "exception", "content": TypeError("This simulates an error in the child.")}]
+        messages = [
+            {
+                "type": "exception",
+                "content": TypeError("This simulates an error in the child."),
+            },
+        ]
 
         child_emulator = ChildEmulator(
             id="emulated-child",
@@ -78,7 +86,12 @@ class TestChildEmulator(BaseTestCase):
 
     def test_ask_with_monitor_message(self):
         """Test that monitor messages are handled by the emulator."""
-        messages = [{"type": "monitor_message", "content": "A sample monitor message."}]
+        messages = [
+            {
+                "type": "monitor_message",
+                "content": "A sample monitor message.",
+            },
+        ]
 
         child_emulator = ChildEmulator(
             id="emulated-child",

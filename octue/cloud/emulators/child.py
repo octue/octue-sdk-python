@@ -102,7 +102,7 @@ class ChildEmulator:
         """
         for message in self.messages:
             if message["type"] == "log_record":
-                logger.handle(message["content"])
+                logger.handle(logging.makeLogRecord(message["content"]))
 
             elif message["type"] == "monitor_message":
                 handle_monitor_message(message["content"])
