@@ -3,7 +3,7 @@ import unittest
 
 import yaml
 
-from octue.cloud.emulators import GoogleCloudStorageEmulatorTestResultModifier
+from octue.cloud.emulators.cloud_storage import GoogleCloudStorageEmulatorTestResultModifier
 from octue.resources import Datafile, Dataset, Manifest
 from tests import TEST_BUCKET_NAME
 
