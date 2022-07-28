@@ -1,11 +1,7 @@
 from unittest.mock import patch
 
 from octue import exceptions
-from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
-from octue.resources.service_backends import GCPPubSubBackend
-from tests import TEST_PROJECT_NAME
-from tests.base import BaseTestCase
-from tests.cloud.pub_sub.mocks import (
+from octue.cloud.emulators.pub_sub import (
     MockMessagePuller,
     MockPullResponse,
     MockService,
@@ -13,6 +9,10 @@ from tests.cloud.pub_sub.mocks import (
     MockSubscription,
     MockTopic,
 )
+from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
+from octue.resources.service_backends import GCPPubSubBackend
+from tests import TEST_PROJECT_NAME
+from tests.base import BaseTestCase
 
 
 BACKEND = GCPPubSubBackend(project_name=TEST_PROJECT_NAME)
@@ -201,7 +201,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         """
         message_handler = OrderedMessageHandler(subscriber=MockSubscriber(), subscription=self.mock_subscription)
 
-        with patch("tests.cloud.pub_sub.mocks.MockSubscriber.pull", return_value=MockPullResponse()):
+        with patch("octue.cloud.emulators.pub_sub.MockSubscriber.pull", return_value=MockPullResponse()):
             with self.assertRaises(exceptions.QuestionNotDelivered):
                 message_handler.handle_messages(delivery_acknowledgement_timeout=0)
 

@@ -1,7 +1,7 @@
 import json
 import logging
 
-import google.api_core.exceptions
+import google.api_core
 import pkg_resources
 
 from octue.cloud.pub_sub import Subscription, Topic
@@ -9,20 +9,9 @@ from octue.cloud.pub_sub.service import Service
 from octue.resources import Manifest
 
 
-MESSAGES = {}
-
-
 logger = logging.getLogger(__name__)
 
-
-def get_service_id(path):
-    """Get the service ID (e.g. octue.services.<uuid>) from a topic or subscription path (e.g.
-    projects/<project-name>/topics/octue.services.<uuid>)
-
-    :param str path:
-    :return str:
-    """
-    return path.split("/")[-1]
+MESSAGES = {}
 
 
 class MockTopic(Topic):
@@ -353,3 +342,13 @@ class MockSubscriptionCreationResponse:
 
     def __init__(self, request):
         self.__dict__ = vars(request)
+
+
+def get_service_id(path):
+    """Get the service ID (e.g. octue.services.<uuid>) from a topic or subscription path (e.g.
+    projects/<project-name>/topics/octue.services.<uuid>)
+
+    :param str path:
+    :return str:
+    """
+    return path.split("/")[-1]

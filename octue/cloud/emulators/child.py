@@ -2,8 +2,8 @@ import copy
 import logging
 from unittest.mock import patch
 
+from octue.cloud.emulators.pub_sub import MockService, MockSubscriber, MockSubscription, MockTopic
 from octue.resources import Analysis, service_backends
-from tests.cloud.pub_sub.mocks import MockService, MockSubscriber, MockSubscription, MockTopic
 
 
 logger = logging.getLogger(__name__)

@@ -8,10 +8,10 @@ import yaml
 from click.testing import CliRunner
 
 from octue.cli import octue_cli
+from octue.cloud.emulators.pub_sub import MockService, MockSubscriber, MockSubscription, MockTopic
 from octue.configuration import AppConfiguration, ServiceConfiguration
 from tests import TESTS_DIR
 from tests.base import BaseTestCase
-from tests.cloud.pub_sub.mocks import MockService, MockSubscriber, MockSubscription, MockTopic
 from tests.mocks import MockOpen
 
 
