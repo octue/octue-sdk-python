@@ -177,7 +177,11 @@ class OrderedMessageHandler:
         try:
             return self._message_handlers[message["type"]](message)
         except KeyError:
-            logger.warning("Received a message of unknown type %r.", message["type"])
+            logger.warning(
+                "%r received a message of unknown type %r.",
+                self.subscription.topic.service,
+                message["type"],
+            )
 
     def _handle_delivery_acknowledgement(self, message):
         """Mark the question as delivered to prevent resending it.
@@ -257,7 +261,11 @@ class OrderedMessageHandler:
         :param dict message:
         :return dict:
         """
-        logger.info("Received an answer to question %r.", self.subscription.topic.path.split(".")[-1])
+        logger.info(
+            "%r received an answer to question %r.",
+            self.subscription.topic.service,
+            self.subscription.topic.path.split(".")[-1],
+        )
 
         if message["output_manifest"] is None:
             output_manifest = None
