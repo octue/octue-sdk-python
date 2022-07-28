@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import twined.exceptions
 from octue import Runner, exceptions
-from octue.cloud.emulators import mock_generate_signed_url
+from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.cloud.pub_sub.service import Service
 from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Datafile, Dataset, Manifest
