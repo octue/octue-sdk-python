@@ -67,8 +67,14 @@ class TestChildEmulator(BaseTestCase):
             messages=messages,
         )
 
-        with self.assertRaises(TypeError):
+        # Test that the exception was raised.
+        with self.assertRaises(TypeError) as context:
             child_emulator.ask(input_values={"hello": "world"})
+
+        # Test that the exception was raised in the parent and not the child.
+        self.assertIn(
+            "The following traceback was captured from the remote service 'emulated-child'", format(context.exception)
+        )
 
     def test_ask_with_monitor_message(self):
         """Test that monitor messages are handled by the emulator."""
