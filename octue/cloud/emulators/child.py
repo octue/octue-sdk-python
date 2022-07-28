@@ -10,6 +10,16 @@ logger = logging.getLogger(__name__)
 
 
 class ChildEmulator:
+    """An emulator for the `Child` class that allows a list of messages to be returned for handling by the parent
+    without contacting the real child or using PubSub. Any messages a real child could produce are supported.
+
+    :param str id: the ID of the child
+    :param dict backend: must include the key "name" with a value of the name of the type of backend e.g. "GCPPubSubBackend" and key-value pairs for any other parameters the chosen backend expects
+    :param str|None internal_service_name: the name to give to the internal service used to ask questions to the child
+    :param list(dict)|None messages: the list of messages to send to the parent
+    :return None:
+    """
+
     def __init__(self, id, backend, internal_service_name=None, messages=None):
         self.id = id
         self.messages = messages or []
@@ -18,7 +28,7 @@ class ChildEmulator:
         backend_type_name = backend.pop("name")
         backend = service_backends.get_backend(backend_type_name)(**backend)
 
-        self._child = MockService(service_id=self.id, backend=backend, run_function=self.emulate_messages)
+        self._child = MockService(service_id=self.id, backend=backend, run_function=self._emulate_analysis)
 
         self._parent = MockService(
             backend=backend,
@@ -36,6 +46,21 @@ class ChildEmulator:
         question_uuid=None,
         timeout=86400,
     ):
+        """Ask the child emulator a question and wait for its answer - i.e. send it input values and/or an input
+        manifest and wait for it to analyse them and return output values and/or an output manifest. Unlike a real
+        child, the input values and manifest are not validated against the schema in the child's twine as it is only
+        available to the real child.
+
+        :param any|None input_values: any input values for the question
+        :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
+        :param bool subscribe_to_logs: if `True`, subscribe to logs from the child and handle them with the local log handlers
+        :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will have access to these local files
+        :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
+        :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
+        :param float timeout: time in seconds to wait for an answer before raising a timeout error
+        :raise TimeoutError: if the timeout is exceeded while waiting for an answer
+        :return dict: a dictionary containing the keys "output_values" and "output_manifest"
+        """
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                 with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
@@ -58,7 +83,23 @@ class ChildEmulator:
                             timeout=timeout,
                         )
 
-    def emulate_messages(self, analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message):
+    def _emulate_analysis(
+        self,
+        analysis_id,
+        input_values,
+        input_manifest,
+        analysis_log_handler,
+        handle_monitor_message,
+    ):
+        """Emulate analysis of a question by handling the messages given at instantiation in the order given.
+
+        :param str|None analysis_id: UUID of analysis
+        :param str|dict|None input_values: the input_values strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
+        :param str|dict|octue.resources.manifest.Manifest|None input_manifest: The input_manifest strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
+        :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run (this is ignored by the emulator)
+        :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
+        :return octue.resources.analysis.Analysis:
+        """
         for message in self.messages:
             if message["type"] == "log_record":
                 logger.handle(message["content"])
