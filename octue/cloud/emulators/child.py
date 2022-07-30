@@ -1,4 +1,5 @@
 import copy
+import json
 import logging
 import uuid
 from unittest.mock import patch
@@ -46,6 +47,24 @@ class ChildEmulator:
             "exception": self._handle_exception,
             "result": self._handle_result,
         }
+
+    @classmethod
+    def from_file(cls, path):
+        """Instantiate a child emulator from a JSON file at the given path. All or none of the instantiation arguments
+        can be given in the file.
+
+        :param str path: the path to a JSON file representing a child emulator
+        :return ChildEmulator:
+        """
+        with open(path) as f:
+            serialised_child_emulator = json.load(f)
+
+        return cls(
+            id=serialised_child_emulator.get("id"),
+            backend=serialised_child_emulator.get("backend"),
+            internal_service_name=serialised_child_emulator.get("internal_service_name"),
+            messages=serialised_child_emulator.get("messages"),
+        )
 
     def ask(
         self,
