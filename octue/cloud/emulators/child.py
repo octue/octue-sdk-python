@@ -1,5 +1,6 @@
 import copy
 import logging
+import uuid
 from unittest.mock import patch
 
 from octue.cloud.emulators.pub_sub import MockService, MockSubscriber, MockSubscription, MockTopic
@@ -16,18 +17,18 @@ class ChildEmulator:
     """An emulator for the `Child` class that allows a list of messages to be returned for handling by the parent
     without contacting the real child or using PubSub. Any messages a real child could produce are supported.
 
-    :param str id: the ID of the child
-    :param dict backend: must include the key "name" with a value of the name of the type of backend e.g. "GCPPubSubBackend" and key-value pairs for any other parameters the chosen backend expects
-    :param str|None internal_service_name: the name to give to the internal service used to ask questions to the child
+    :param str|None id: the ID of the child; a UUID is generated if none is provided
+    :param dict|None backend: a dictionary including the key "name" with a value of the name of the type of backend e.g. "GCPPubSubBackend" and key-value pairs for any other parameters the chosen backend expects; a mock backend is used if none is provided
+    :param str|None internal_service_name: the name to give to the internal service used to ask questions to the child; defaults to "<id>-parent"
     :param list(dict)|None messages: the list of messages to send to the parent
     :return None:
     """
 
-    def __init__(self, id, backend, internal_service_name=None, messages=None):
-        self.id = id
+    def __init__(self, id=None, backend=None, internal_service_name=None, messages=None):
+        self.id = id or str(uuid.uuid4())
         self.messages = messages or []
 
-        backend = copy.deepcopy(backend)
+        backend = copy.deepcopy(backend or {"name": "GCPPubSubBackend", "project_name": "emulated-project"})
         backend_type_name = backend.pop("name")
         backend = service_backends.get_backend(backend_type_name)(**backend)
 
