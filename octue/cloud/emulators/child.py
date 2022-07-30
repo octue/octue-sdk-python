@@ -9,6 +9,9 @@ from octue.resources import Analysis, service_backends
 logger = logging.getLogger(__name__)
 
 
+VALID_TYPES = ("log_record", "monitor_message", "exception", "result")
+
+
 class ChildEmulator:
     """An emulator for the `Child` class that allows a list of messages to be returned for handling by the parent
     without contacting the real child or using PubSub. Any messages a real child could produce are supported.
@@ -35,6 +38,13 @@ class ChildEmulator:
             service_id=internal_service_name or f"{self.id}-parent",
             children={self._child.id: self._child},
         )
+
+        self._handlers = {
+            "log_record": self._handle_log_record,
+            "monitor_message": self._handle_monitor_message,
+            "exception": self._handle_exception,
+            "result": self._handle_result,
+        }
 
     def ask(
         self,
@@ -101,25 +111,20 @@ class ChildEmulator:
         :return octue.resources.analysis.Analysis:
         """
         for message in self.messages:
-            if message["type"] == "log_record":
-                logger.handle(logging.makeLogRecord(message["content"]))
+            self._validate_message(message)
+            handler = self._handlers[message["type"]]
 
-            elif message["type"] == "monitor_message":
-                handle_monitor_message(message["content"])
+            result = handler(
+                message["content"],
+                analysis_id=analysis_id,
+                input_values=input_values,
+                input_manifest=input_manifest,
+                analysis_log_handler=analysis_log_handler,
+                handle_monitor_message=handle_monitor_message,
+            )
 
-            elif message["type"] == "exception":
-                raise message["content"]
-
-            elif message["type"] == "result":
-                return Analysis(
-                    id=analysis_id,
-                    twine={},
-                    handle_monitor_message=handle_monitor_message,
-                    input_values=input_values,
-                    input_manifest=input_manifest,
-                    output_values=message["content"]["output_values"],
-                    output_manifest=message["content"]["output_manifest"],
-                )
+            if result:
+                return result
 
         # If no result message is included in the given messages, return an empty analysis.
         return Analysis(
@@ -131,3 +136,82 @@ class ChildEmulator:
             output_values=None,
             output_manifest=None,
         )
+
+    def _validate_message(self, message):
+        """Validate the given message to ensure it can be handled.
+
+        :param dict message:
+        :raise TypeError: if the message isn't a dictionary
+        :raise ValueError: if the message doesn't contain a 'type' key and a 'content' key
+        :return None:
+        """
+        if not isinstance(message, dict):
+            raise TypeError("Each message must be a dictionary.")
+
+        if "type" not in message or "content" not in message:
+            raise ValueError(
+                f"Each message must contain a 'type' and a 'content' key. Valid types are any of {VALID_TYPES!r}."
+            )
+
+    def _handle_log_record(self, log_record_dictionary, **kwargs):
+        """Convert the given dictionary into a log record and pass it to the log handler.
+
+        :param dict log_record_dictionary: a dictionary representing a log record.
+        :param kwargs: this should be empty
+        :raise TypeError: if the message can't be converted to a log record
+        :return None:
+        """
+        try:
+            logger.handle(logging.makeLogRecord(log_record_dictionary))
+        except Exception:
+            raise TypeError(
+                "The message must be a dictionary that can be converted by `logging.makeLogRecord` to a "
+                "`logging.LogRecord instance`."
+            )
+
+    def _handle_monitor_message(self, monitor_message, **kwargs):
+        """Handle a monitor message with the given handler.
+
+        :param any monitor_message: a monitor message to be handled by the monitor message handler
+        :param kwargs: must include the "handle_monitor_message" key
+        :return None:
+        """
+        kwargs.get("handle_monitor_message")(monitor_message)
+
+    def _handle_exception(self, exception, **kwargs):
+        """Raise the given exception.
+
+        :param Exception exception: the exception to be raised
+        :param kwargs: this should be empty
+        :raise TypeError: if the given exception cannot be raised
+        :return None:
+        """
+        try:
+            raise exception
+        except TypeError as error:
+            if "exceptions must derive from BaseException" in format(error):
+                raise TypeError("The exception must be an `Exception` instance.")
+            raise error
+
+    def _handle_result(self, result, **kwargs):
+        """Return the result as an `Analysis` instance.
+
+        :param dict result: a dictionary containing an "output_values" key and an "output_manifest" key
+        :param kwargs: must contain the keys "analysis_id", "handle_monitor_message", "input_values", and "input_manifest"
+        :raise ValueError: if the result doesn't contain the "output_values" and "output_manifest" keys
+        :return octue.resources.analysis.Analysis: an `Analysis` instance containing the emulated outputs
+        """
+        try:
+            return Analysis(
+                id=kwargs["analysis_id"],
+                twine={},
+                handle_monitor_message=kwargs["handle_monitor_message"],
+                input_values=kwargs["input_values"],
+                input_manifest=kwargs["input_manifest"],
+                output_values=result["output_values"],
+                output_manifest=result["output_manifest"],
+            )
+        except Exception:
+            raise ValueError(
+                "The result must be a dictionary containing the keys 'output_values' and 'output_manifest'."
+            )
