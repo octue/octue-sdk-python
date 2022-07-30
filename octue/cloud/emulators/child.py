@@ -150,7 +150,7 @@ class ChildEmulator:
 
         if "type" not in message or "content" not in message:
             raise ValueError(
-                f"Each message must contain a 'type' and a 'content' key. Valid types are any of {VALID_TYPES!r}."
+                f"Each message must contain a 'type' and a 'content' key. The valid types are: {VALID_TYPES!r}."
             )
 
     def _handle_log_record(self, log_record_dictionary, **kwargs):
