@@ -65,7 +65,7 @@ class TestChildEmulator(BaseTestCase):
         messages = [
             {
                 "type": "exception",
-                "content": TypeError("This simulates an error in the child."),
+                "content": ValueError("This simulates an error in the child."),
             },
         ]
 
@@ -76,7 +76,7 @@ class TestChildEmulator(BaseTestCase):
         )
 
         # Test that the exception was raised.
-        with self.assertRaises(TypeError) as context:
+        with self.assertRaises(ValueError) as context:
             child_emulator.ask(input_values={"hello": "world"})
 
         # Test that the exception was raised in the parent and not the child.
