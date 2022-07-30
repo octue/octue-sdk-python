@@ -123,16 +123,36 @@ class TestChildEmulator(BaseTestCase):
 
         child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
 
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             child_emulator.ask(input_values={"hello": "world"})
+
+    def test_ask_with_exception_as_dictionary(self):
+        """Test that exceptions are raised by the emulator when provided serialised as a dictionary."""
+        messages = [
+            {
+                "type": "exception",
+                "content": {
+                    "exception_type": "ValueError",
+                    "exception_message": "This simulates an error in the child.",
+                },
+            },
+        ]
+
+        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+
+        # Test that the exception was raised.
+        with self.assertRaises(ValueError) as context:
+            child_emulator.ask(input_values={"hello": "world"})
+
+        # Test that the exception was raised in the parent and not the child.
+        self.assertIn(
+            "The following traceback was captured from the remote service 'emulated-child'", format(context.exception)
+        )
 
     def test_ask_with_exception(self):
         """Test that exceptions are raised by the emulator."""
         messages = [
-            {
-                "type": "exception",
-                "content": ValueError("This simulates an error in the child."),
-            },
+            {"type": "exception", "content": ValueError("This simulates an error in the child.")},
         ]
 
         child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)

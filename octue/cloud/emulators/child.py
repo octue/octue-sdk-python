@@ -4,12 +4,19 @@ import logging
 import uuid
 from unittest.mock import patch
 
+import octue.exceptions
+import twined.exceptions
 from octue.cloud.emulators.pub_sub import MockService, MockSubscriber, MockSubscription, MockTopic
 from octue.resources import Analysis, service_backends
+from octue.utils.exceptions import create_exceptions_mapping
 
 
 logger = logging.getLogger(__name__)
 
+
+EXCEPTIONS_MAPPING = create_exceptions_mapping(
+    globals()["__builtins__"], vars(twined.exceptions), vars(octue.exceptions)
+)
 
 VALID_TYPES = ("log_record", "monitor_message", "exception", "result")
 
@@ -193,7 +200,7 @@ class ChildEmulator:
 
         except Exception:
             raise TypeError(
-                "The message must be a dictionary that can be converted by `logging.makeLogRecord` to a "
+                "The log record must be given as a dictionary that can be converted by `logging.makeLogRecord` to a "
                 "`logging.LogRecord instance`."
             )
 
@@ -209,17 +216,26 @@ class ChildEmulator:
     def _handle_exception(self, exception, **kwargs):
         """Raise the given exception.
 
-        :param Exception exception: the exception to be raised
+        :param dict exception: the serialised exception to be raised
         :param kwargs: this should be empty
-        :raise TypeError: if the given exception cannot be raised
+        :raise ValueError: if the given exception cannot be raised
         :return None:
         """
-        try:
+        if isinstance(exception, Exception):
             raise exception
-        except TypeError as error:
-            if "exceptions must derive from BaseException" in format(error):
-                raise TypeError("The exception must be an `Exception` instance.")
-            raise error
+
+        if "exception_type" not in exception or "exception_message" not in exception:
+            raise ValueError(
+                "The exception must be given as a dictionary containing the keys 'exception_type' and "
+                "'exception_message'."
+            )
+
+        try:
+            raise EXCEPTIONS_MAPPING[exception["exception_type"]](exception["exception_message"])
+
+        # Allow unknown exception types to still be raised.
+        except KeyError:
+            raise type(exception["exception_type"], (Exception,), {})(exception["exception_message"])
 
     def _handle_result(self, result, **kwargs):
         """Return the result as an `Analysis` instance.
