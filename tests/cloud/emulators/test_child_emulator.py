@@ -4,9 +4,13 @@ from tests.base import BaseTestCase
 
 
 class TestChildEmulator(BaseTestCase):
+
+    BACKEND = {"name": "GCPPubSubBackend", "project_name": "blah"}
+
     def test_ask_with_result_message(self):
         """Test that result messages are returned by the emulator's ask method."""
         output_manifest = Manifest()
+
         messages = [
             {
                 "type": "result",
@@ -14,11 +18,7 @@ class TestChildEmulator(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(
-            id="emulated-child",
-            backend={"name": "GCPPubSubBackend", "project_name": "blah"},
-            messages=messages,
-        )
+        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
 
         result = child_emulator.ask(input_values={"hello": "world"})
         self.assertEqual(result["output_values"], [1, 2, 3, 4])
@@ -26,12 +26,7 @@ class TestChildEmulator(BaseTestCase):
 
     def test_empty_output_returned_by_ask_if_no_result_present_in_messages(self):
         """Test that an empty output is returned if no result message is present in the given messages."""
-        child_emulator = ChildEmulator(
-            id="emulated-child",
-            backend={"name": "GCPPubSubBackend", "project_name": "blah"},
-            messages=[],
-        )
-
+        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=[])
         result = child_emulator.ask(input_values={"hello": "world"})
         self.assertEqual(result, {"output_values": None, "output_manifest": None})
 
@@ -48,11 +43,7 @@ class TestChildEmulator(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(
-            id="emulated-child",
-            backend={"name": "GCPPubSubBackend", "project_name": "blah"},
-            messages=messages,
-        )
+        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
 
         with self.assertLogs() as logging_context:
             child_emulator.ask(input_values={"hello": "world"})
@@ -69,11 +60,7 @@ class TestChildEmulator(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(
-            id="emulated-child",
-            backend={"name": "GCPPubSubBackend", "project_name": "blah"},
-            messages=messages,
-        )
+        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
 
         # Test that the exception was raised.
         with self.assertRaises(ValueError) as context:
@@ -93,11 +80,7 @@ class TestChildEmulator(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(
-            id="emulated-child",
-            backend={"name": "GCPPubSubBackend", "project_name": "blah"},
-            messages=messages,
-        )
+        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
 
         monitor_messages = []
 
