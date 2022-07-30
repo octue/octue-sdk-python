@@ -88,6 +88,30 @@ class TestChildEmulator(BaseTestCase):
         self.assertIn("Starting analysis.", logging_context.output[4])
         self.assertIn("Finishing analysis.", logging_context.output[5])
 
+    def test_ask_with_logs_without_level_number_and_name(self):
+        """Test that the 'INFO' log level is used if none is provided in the log record dictionaries."""
+        messages = [
+            {
+                "type": "log_record",
+                "content": {"msg": "Starting analysis."},
+            },
+            {
+                "type": "log_record",
+                "content": {"msg": "Finishing analysis."},
+            },
+        ]
+
+        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+
+        with self.assertLogs() as logging_context:
+            child_emulator.ask(input_values={"hello": "world"})
+
+        self.assertEqual(logging_context.records[4].levelname, "INFO")
+        self.assertIn("Starting analysis.", logging_context.output[4])
+
+        self.assertEqual(logging_context.records[5].levelname, "INFO")
+        self.assertIn("Finishing analysis.", logging_context.output[5])
+
     def test_ask_with_invalid_exception(self):
         """Test that an invalid exception fails validation."""
         messages = [

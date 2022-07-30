@@ -162,7 +162,15 @@ class ChildEmulator:
         :return None:
         """
         try:
+            log_record_dictionary["levelno"] = log_record_dictionary.get("levelno") or 20
+            log_record_dictionary["levelname"] = log_record_dictionary.get("levelname") or "INFO"
+
+            log_record_dictionary["name"] = (
+                log_record_dictionary.get("name") or "octue.cloud.emulators.child.ChildEmulator"
+            )
+
             logger.handle(logging.makeLogRecord(log_record_dictionary))
+
         except Exception:
             raise TypeError(
                 "The message must be a dictionary that can be converted by `logging.makeLogRecord` to a "
