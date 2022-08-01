@@ -11,7 +11,7 @@ from octue.resources import Analysis, Manifest, service_backends
 
 logger = logging.getLogger(__name__)
 
-VALID_TYPES = ("log_record", "monitor_message", "exception", "result")
+VALID_MESSAGE_TYPES = ("log_record", "monitor_message", "exception", "result")
 
 
 class ChildEmulator:
@@ -177,7 +177,7 @@ class ChildEmulator:
 
         if "type" not in message or "content" not in message:
             raise ValueError(
-                f"Each message must contain a 'type' and a 'content' key. The valid types are: {VALID_TYPES!r}."
+                f"Each message must contain a 'type' and a 'content' key. The valid types are: {VALID_MESSAGE_TYPES!r}."
             )
 
     def _handle_log_record(self, log_record_dictionary, **kwargs):
