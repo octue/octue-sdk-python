@@ -180,6 +180,12 @@ class ChildEmulator:
                 f"Each message must contain a 'type' and a 'content' key. The valid types are: {VALID_MESSAGE_TYPES!r}."
             )
 
+        if message["type"] not in VALID_MESSAGE_TYPES:
+            raise ValueError(
+                f"{message['type']!r} is an invalid message type for the ChildEmulator. The valid types are: "
+                f"{VALID_MESSAGE_TYPES!r}."
+            )
+
     def _handle_log_record(self, log_record_dictionary, **kwargs):
         """Convert the given dictionary into a log record and pass it to the log handler.
 

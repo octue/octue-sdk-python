@@ -12,9 +12,22 @@ class TestChildEmulatorAsk(BaseTestCase):
 
     BACKEND = {"name": "GCPPubSubBackend", "project_name": "blah"}
 
-    def test_ask_with_invalid_messages(self):
-        """Test that invalid messages fail validation."""
-        messages = [{"message": "hello"}]
+    def test_ask_with_invalid_message_structure(self):
+        """Test that messages with an invalid structure fail validation."""
+        messages = [
+            {"message": "hello"},
+        ]
+
+        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+
+        with self.assertRaises(ValueError):
+            child_emulator.ask(input_values={"hello": "world"})
+
+    def test_ask_with_invalid_message_type(self):
+        """Test that messages with an invalid type fail validation."""
+        messages = [
+            {"type": "hello", "content": [1, 2, 3, 4]},
+        ]
 
         child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
 
