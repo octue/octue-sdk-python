@@ -1,0 +1,26 @@
+{
+    "id": "octue/my-child",
+    "backend": {
+        "name": "GCPPubSubBackend",
+        "project_name": "blah"
+    },
+    "internal_service_name": "my-service",
+    "messages": [
+        {
+            "type": "log_record",
+            "content": {"msg": "Starting analysis."}
+        },
+        {
+            "type": "log_record",
+            "content": {"msg": "Finishing analysis."}
+        },
+        {
+            "type": "monitor_message",
+            "content": "A sample monitor message."
+        },
+        {
+            "type": "result",
+            "content": {"output_values": [1, 2, 3, 4, 5], "output_manifest": null}
+        }
+    ]
+}

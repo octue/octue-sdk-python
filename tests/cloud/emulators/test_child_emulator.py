@@ -1,9 +1,12 @@
+import os
+
 from octue.cloud.emulators.child import ChildEmulator
 from octue.resources import Manifest
+from tests import TESTS_DIR
 from tests.base import BaseTestCase
 
 
-class TestChildEmulator(BaseTestCase):
+class TestChildEmulatorAsk(BaseTestCase):
 
     BACKEND = {"name": "GCPPubSubBackend", "project_name": "blah"}
 
@@ -152,7 +155,10 @@ class TestChildEmulator(BaseTestCase):
     def test_ask_with_exception(self):
         """Test that exceptions are raised by the emulator."""
         messages = [
-            {"type": "exception", "content": ValueError("This simulates an error in the child.")},
+            {
+                "type": "exception",
+                "content": ValueError("This simulates an error in the child."),
+            },
         ]
 
         child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
@@ -186,3 +192,83 @@ class TestChildEmulator(BaseTestCase):
 
         # Check that the monitor message handler has worked.
         self.assertEqual(monitor_messages, ["A sample monitor message."])
+
+
+class TestChildEmulatorJSONFiles(BaseTestCase):
+
+    TEST_FILES_DIRECTORY = os.path.join(TESTS_DIR, "cloud", "emulators", "valid_child_emulator_files")
+
+    def test_with_empty_file(self):
+        """Test that a child emulator can be instantiated from an empty JSON file (a JSON file with only an empty
+        object in), asked a question, and produce a trivial result.
+        """
+        child_emulator = ChildEmulator.from_file(os.path.join(self.TEST_FILES_DIRECTORY, "empty_file.json"))
+        result = child_emulator.ask(input_values={"hello": "world"})
+        self.assertEqual(result, {"output_values": None, "output_manifest": None})
+
+    def test_with_only_messages(self):
+        """Test that a child emulator can be instantiated from a JSON file containing only the messages it should
+        produce, asked a question, and produce the expected log messages, monitor messages, and result.
+        """
+        child_emulator = ChildEmulator.from_file(
+            os.path.join(self.TEST_FILES_DIRECTORY, "file_with_only_messages.json")
+        )
+        self.assertEqual(child_emulator._child.backend.project_name, "emulated-project")
+
+        monitor_messages = []
+
+        with self.assertLogs() as logging_context:
+            result = child_emulator.ask(
+                input_values={"hello": "world"},
+                handle_monitor_message=lambda value: monitor_messages.append(value),
+            )
+
+        # Check log records have been emitted.
+        self.assertIn("Starting analysis.", logging_context.output[4])
+        self.assertIn("Finishing analysis.", logging_context.output[5])
+
+        # Check monitor message has been handled.
+        self.assertEqual(monitor_messages, ["A sample monitor message."])
+
+        # Check result has been produced and received.
+        self.assertEqual(result, {"output_values": [1, 2, 3, 4, 5], "output_manifest": None})
+
+    def test_with_full_file(self):
+        """Test that a child emulator can be instantiated from a JSON file containing all its instantiation arguments,
+        asked a question, and produce the correct messages.
+        """
+        child_emulator = ChildEmulator.from_file(os.path.join(self.TEST_FILES_DIRECTORY, "full_file.json"))
+        self.assertEqual(child_emulator.id, "octue/my-child")
+        self.assertEqual(child_emulator._child.backend.project_name, "blah")
+        self.assertEqual(child_emulator._parent.name, "octue.services.my-service")
+
+        monitor_messages = []
+
+        with self.assertLogs() as logging_context:
+            result = child_emulator.ask(
+                input_values={"hello": "world"},
+                handle_monitor_message=lambda value: monitor_messages.append(value),
+            )
+
+        # Check log records have been emitted.
+        self.assertIn("Starting analysis.", logging_context.output[4])
+        self.assertIn("Finishing analysis.", logging_context.output[5])
+
+        # Check monitor message has been handled.
+        self.assertEqual(monitor_messages, ["A sample monitor message."])
+
+        # Check result has been produced and received.
+        self.assertEqual(result, {"output_values": [1, 2, 3, 4, 5], "output_manifest": None})
+
+    def test_with_exception(self):
+        """Test that a child emulator can be instantiated from a JSON file including an exception in its messages and,
+        when asked a question, produce the messages prior to the exception before raising the exception.
+        """
+        child_emulator = ChildEmulator.from_file(os.path.join(self.TEST_FILES_DIRECTORY, "file_with_exception.json"))
+
+        with self.assertLogs() as logging_context:
+            with self.assertRaises(FileNotFoundError):
+                child_emulator.ask(input_values={"hello": "world"})
+
+        # Check log records were emitted before the error was raised.
+        self.assertIn("Starting analysis.", logging_context.output[4])
