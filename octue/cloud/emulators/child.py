@@ -73,6 +73,13 @@ class ChildEmulator:
             messages=serialised_child_emulator.get("messages"),
         )
 
+    def __repr__(self):
+        """Represent a child emulator as a string.
+
+        :return str:
+        """
+        return f"<{type(self).__name__}({self.id!r})>"
+
     def ask(
         self,
         input_values=None,
