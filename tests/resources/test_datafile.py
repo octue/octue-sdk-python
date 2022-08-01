@@ -12,7 +12,7 @@ import pkg_resources
 
 from octue import exceptions
 from octue.cloud import storage
-from octue.cloud.emulators import mock_generate_signed_url
+from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources.datafile import Datafile
 from octue.resources.label import LabelSet

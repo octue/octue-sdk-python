@@ -9,7 +9,7 @@ import google.cloud.exceptions
 import requests
 
 from octue.cloud import storage
-from octue.cloud.emulators import mock_generate_signed_url
+from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudStorageBucketNotFound
 from tests import TEST_BUCKET_NAME

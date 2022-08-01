@@ -11,11 +11,11 @@ from click.testing import CliRunner
 from octue import Runner
 from octue.cli import octue_cli
 from octue.cloud import storage
+from octue.cloud.emulators.pub_sub import MockService, MockSubscriber, MockSubscription, MockTopic
 from octue.configuration import AppConfiguration, ServiceConfiguration
 from octue.resources import Datafile
 from tests import TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
-from tests.cloud.pub_sub.mocks import MockService, MockSubscriber, MockSubscription, MockTopic
 from tests.mocks import MockOpen
 
 

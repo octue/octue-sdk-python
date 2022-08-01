@@ -6,12 +6,11 @@ import time
 
 from google.api_core import retry
 
-import octue.exceptions
-import twined.exceptions
+from octue.cloud import EXCEPTIONS_MAPPING
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
+from octue.exceptions import QuestionNotDelivered
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
-from octue.utils.exceptions import create_exceptions_mapping
 
 
 if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in GOOGLE_COMPUTE_PROVIDERS:
@@ -22,10 +21,6 @@ else:
 
 
 logger = logging.getLogger(__name__)
-
-EXCEPTIONS_MAPPING = create_exceptions_mapping(
-    globals()["__builtins__"], vars(twined.exceptions), vars(octue.exceptions)
-)
 
 
 class OrderedMessageHandler:
@@ -151,7 +146,7 @@ class OrderedMessageHandler:
 
                     if not self.received_delivery_acknowledgement:
                         if run_time > delivery_acknowledgement_timeout:
-                            raise octue.exceptions.QuestionNotDelivered(
+                            raise QuestionNotDelivered(
                                 f"No delivery acknowledgement received for topic {self.subscription.topic.path!r} "
                                 f"after {delivery_acknowledgement_timeout} seconds."
                             )
@@ -177,7 +172,11 @@ class OrderedMessageHandler:
         try:
             return self._message_handlers[message["type"]](message)
         except KeyError:
-            logger.warning("Received a message of unknown type %r.", message["type"])
+            logger.warning(
+                "%r received a message of unknown type %r.",
+                self.subscription.topic.service,
+                message["type"],
+            )
 
     def _handle_delivery_acknowledgement(self, message):
         """Mark the question as delivered to prevent resending it.
@@ -245,11 +244,13 @@ class OrderedMessageHandler:
         )
 
         try:
-            raise EXCEPTIONS_MAPPING[message["exception_type"]](exception_message)
+            exception_type = EXCEPTIONS_MAPPING[message["exception_type"]]
 
         # Allow unknown exception types to still be raised.
         except KeyError:
-            raise type(message["exception_type"], (Exception,), {})(exception_message)
+            exception_type = type(message["exception_type"], (Exception,), {})
+
+        raise exception_type(exception_message)
 
     def _handle_result(self, message):
         """Convert the result to the correct form, deserialising the output manifest if it is present in the message.
@@ -257,7 +258,11 @@ class OrderedMessageHandler:
         :param dict message:
         :return dict:
         """
-        logger.info("Received an answer to question %r.", self.subscription.topic.path.split(".")[-1])
+        logger.info(
+            "%r received an answer to question %r.",
+            self.subscription.topic.service,
+            self.subscription.topic.path.split(".")[-1],
+        )
 
         if message["output_manifest"] is None:
             output_manifest = None

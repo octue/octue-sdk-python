@@ -5,14 +5,8 @@ from unittest.mock import patch
 
 import twined.exceptions
 from octue import Runner, exceptions
-from octue.cloud.emulators import mock_generate_signed_url
-from octue.cloud.pub_sub.service import Service
-from octue.exceptions import InvalidMonitorMessage
-from octue.resources import Datafile, Dataset, Manifest
-from octue.resources.service_backends import GCPPubSubBackend
-from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
-from tests.base import BaseTestCase
-from tests.cloud.pub_sub.mocks import (
+from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
+from octue.cloud.emulators.pub_sub import (
     DifferentMockAnalysis,
     MockAnalysis,
     MockAnalysisWithOutputManifest,
@@ -22,6 +16,12 @@ from tests.cloud.pub_sub.mocks import (
     MockSubscription,
     MockTopic,
 )
+from octue.cloud.pub_sub.service import Service
+from octue.exceptions import InvalidMonitorMessage
+from octue.resources import Datafile, Dataset, Manifest
+from octue.resources.service_backends import GCPPubSubBackend
+from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
+from tests.base import BaseTestCase
 
 
 logger = logging.getLogger(__name__)
@@ -762,7 +762,7 @@ class TestService(BaseTestCase):
         :param octue.resources.service_backends.ServiceBackend backend:
         :param any run_function_returnee:
         :param bool use_mock:
-        :return tests.cloud.pub_sub.mocks.MockService:
+        :return octue.cloud.emulators.pub_sub.MockService:
         """
         run_function = (
             lambda analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message, allow_save_diagnostics_data_on_crash: run_function_returnee
@@ -790,8 +790,8 @@ class TestService(BaseTestCase):
     ):
         """Get a parent service to ask a question to a child service and wait for the answer.
 
-        :param tests.cloud.pub_sub.mocks.MockService parent:
-        :param tests.cloud.pub_sub.mocks.MockService child:
+        :param octue.cloud.emulators.pub_sub.MockService parent:
+        :param octue.cloud.emulators.pub_sub.MockService child:
         :param dict|None input_values:
         :param octue.resources.manifest.Manifest|None input_manifest:
         :param bool subscribe_to_logs:
@@ -826,7 +826,7 @@ class TestService(BaseTestCase):
         """Make a mock child service that raises the given exception when its run function is executed.
 
         :param Exception exception_to_raise:
-        :return tests.cloud.pub_sub.mocks.MockService:
+        :return octue.cloud.emulators.pub_sub.MockService:
         """
         child = self.make_new_child(BACKEND, run_function_returnee=None, use_mock=True)
 
