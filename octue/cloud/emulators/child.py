@@ -130,9 +130,9 @@ class ChildEmulator:
         """Emulate analysis of a question by handling the messages given at instantiation in the order given.
 
         :param str|None analysis_id: UUID of analysis
-        :param str|dict|None input_values: the input_values strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
-        :param str|dict|octue.resources.manifest.Manifest|None input_manifest: The input_manifest strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
-        :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run (this is ignored by the emulator)
+        :param str|dict|None input_values: any input values for the question
+        :param str|dict|octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
+        :param logging.Handler|None analysis_log_handler: the `logging.Handler` instance which will be used to handle logs for this analysis run (this is ignored by the emulator)
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
         :return octue.resources.analysis.Analysis:
         """
