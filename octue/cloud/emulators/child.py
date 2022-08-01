@@ -4,19 +4,12 @@ import logging
 import uuid
 from unittest.mock import patch
 
-import octue.exceptions
-import twined.exceptions
+from octue.cloud import EXCEPTIONS_MAPPING
 from octue.cloud.emulators.pub_sub import MockService, MockSubscriber, MockSubscription, MockTopic
 from octue.resources import Analysis, Manifest, service_backends
-from octue.utils.exceptions import create_exceptions_mapping
 
 
 logger = logging.getLogger(__name__)
-
-
-EXCEPTIONS_MAPPING = create_exceptions_mapping(
-    globals()["__builtins__"], vars(twined.exceptions), vars(octue.exceptions)
-)
 
 VALID_TYPES = ("log_record", "monitor_message", "exception", "result")
 

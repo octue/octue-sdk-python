@@ -6,12 +6,11 @@ import time
 
 from google.api_core import retry
 
-import octue.exceptions
-import twined.exceptions
+from octue.cloud import EXCEPTIONS_MAPPING
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
+from octue.exceptions import QuestionNotDelivered
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
-from octue.utils.exceptions import create_exceptions_mapping
 
 
 if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in GOOGLE_COMPUTE_PROVIDERS:
@@ -22,10 +21,6 @@ else:
 
 
 logger = logging.getLogger(__name__)
-
-EXCEPTIONS_MAPPING = create_exceptions_mapping(
-    globals()["__builtins__"], vars(twined.exceptions), vars(octue.exceptions)
-)
 
 
 class OrderedMessageHandler:
@@ -151,7 +146,7 @@ class OrderedMessageHandler:
 
                     if not self.received_delivery_acknowledgement:
                         if run_time > delivery_acknowledgement_timeout:
-                            raise octue.exceptions.QuestionNotDelivered(
+                            raise QuestionNotDelivered(
                                 f"No delivery acknowledgement received for topic {self.subscription.topic.path!r} "
                                 f"after {delivery_acknowledgement_timeout} seconds."
                             )
