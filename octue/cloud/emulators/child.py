@@ -231,11 +231,13 @@ class ChildEmulator:
             )
 
         try:
-            raise EXCEPTIONS_MAPPING[exception["exception_type"]](exception["exception_message"])
+            exception_type = EXCEPTIONS_MAPPING[exception["exception_type"]]
 
         # Allow unknown exception types to still be raised.
         except KeyError:
-            raise type(exception["exception_type"], (Exception,), {})(exception["exception_message"])
+            exception_type = type(exception["exception_type"], (Exception,), {})
+
+        raise exception_type((exception["exception_message"]))
 
     def _handle_result(self, result, **kwargs):
         """Return the result as an `Analysis` instance.

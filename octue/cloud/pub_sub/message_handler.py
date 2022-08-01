@@ -249,11 +249,13 @@ class OrderedMessageHandler:
         )
 
         try:
-            raise EXCEPTIONS_MAPPING[message["exception_type"]](exception_message)
+            exception_type = EXCEPTIONS_MAPPING[message["exception_type"]]
 
         # Allow unknown exception types to still be raised.
         except KeyError:
-            raise type(message["exception_type"], (Exception,), {})(exception_message)
+            exception_type = type(message["exception_type"], (Exception,), {})
+
+        raise exception_type(exception_message)
 
     def _handle_result(self, message):
         """Convert the result to the correct form, deserialising the output manifest if it is present in the message.
