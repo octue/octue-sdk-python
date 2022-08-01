@@ -218,7 +218,7 @@ class ChildEmulator:
     def _handle_exception(self, exception, **kwargs):
         """Raise the given exception.
 
-        :param dict exception: the serialised exception to be raised
+        :param dict|Exception exception: the exception to be raised in python form or serialised form
         :param kwargs: this should be empty
         :raise ValueError: if the given exception cannot be raised
         :return None:
@@ -239,7 +239,7 @@ class ChildEmulator:
         except KeyError:
             exception_type = type(exception["exception_type"], (Exception,), {})
 
-        raise exception_type((exception["exception_message"]))
+        raise exception_type(exception["exception_message"])
 
     def _handle_result(self, result, **kwargs):
         """Return the result as an `Analysis` instance.
