@@ -15,11 +15,12 @@ VALID_MESSAGE_TYPES = ("log_record", "monitor_message", "exception", "result")
 
 
 class ChildEmulator:
-    """An emulator for the `Child` class that allows a list of messages to be returned for handling by the parent
-    without contacting the real child or using PubSub. Any messages a real child could produce are supported.
+    """An emulator for the `octue.resources.child.Child` class that sends the given messages to the parent for handling
+    without contacting the real child or using Pub/Sub. Any messages a real child could produce are supported. `Child`
+    instances can be replaced/mocked like-for-like by `ChildEmulator` without the parent knowing.
 
     :param str|None id: the ID of the child; a UUID is generated if none is provided
-    :param dict|None backend: a dictionary including the key "name" with a value of the name of the type of backend e.g. "GCPPubSubBackend" and key-value pairs for any other parameters the chosen backend expects; a mock backend is used if none is provided
+    :param dict|None backend: a dictionary including the key "name" with a value of the name of the type of backend (e.g. "GCPPubSubBackend") and key-value pairs for any other parameters the chosen backend expects; a mock backend is used if none is provided
     :param str|None internal_service_name: the name to give to the internal service used to ask questions to the child; defaults to "<id>-parent"
     :param list(dict)|None messages: the list of messages to send to the parent
     :return None:
@@ -41,7 +42,7 @@ class ChildEmulator:
             children={self._child.id: self._child},
         )
 
-        self._handlers = {
+        self._message_handlers = {
             "log_record": self._handle_log_record,
             "monitor_message": self._handle_monitor_message,
             "exception": self._handle_exception,
@@ -50,7 +51,7 @@ class ChildEmulator:
 
     @classmethod
     def from_file(cls, path):
-        """Instantiate a child emulator from a JSON file at the given path. All or none of the instantiation arguments
+        """Instantiate a child emulator from a JSON file at the given path. All/any/none of the instantiation arguments
         can be given in the file.
 
         :param str path: the path to a JSON file representing a child emulator
@@ -83,10 +84,9 @@ class ChildEmulator:
         question_uuid=None,
         timeout=86400,
     ):
-        """Ask the child emulator a question and wait for its answer - i.e. send it input values and/or an input
-        manifest and wait for it to analyse them and return output values and/or an output manifest. Unlike a real
-        child, the input values and manifest are not validated against the schema in the child's twine as it is only
-        available to the real child.
+        """Ask the child emulator a question and receive its emulated response messages. Unlike a real child, the input
+         values and manifest are not validated against the schema in the child's twine as it is only available to the
+         real child. Hence, the input values and manifest do not affect the messages returned by the emulator.
 
         :param any|None input_values: any input values for the question
         :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
@@ -100,25 +100,24 @@ class ChildEmulator:
         """
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
-                    with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                        self._child.serve()
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    self._child.serve()
 
-                        subscription, _ = self._parent.ask(
-                            service_id=self._child.id,
-                            input_values=input_values,
-                            input_manifest=input_manifest,
-                            subscribe_to_logs=subscribe_to_logs,
-                            allow_local_files=allow_local_files,
-                            question_uuid=question_uuid,
-                        )
+                    subscription, _ = self._parent.ask(
+                        service_id=self._child.id,
+                        input_values=input_values,
+                        input_manifest=input_manifest,
+                        subscribe_to_logs=subscribe_to_logs,
+                        allow_local_files=allow_local_files,
+                        question_uuid=question_uuid,
+                    )
 
-                        return self._parent.wait_for_answer(
-                            subscription,
-                            handle_monitor_message=handle_monitor_message,
-                            service_name=self.id,
-                            timeout=timeout,
-                        )
+                    return self._parent.wait_for_answer(
+                        subscription,
+                        handle_monitor_message=handle_monitor_message,
+                        service_name=self.id,
+                        timeout=timeout,
+                    )
 
     def _emulate_analysis(
         self,
@@ -139,7 +138,7 @@ class ChildEmulator:
         """
         for message in self.messages:
             self._validate_message(message)
-            handler = self._handlers[message["type"]]
+            handler = self._message_handlers[message["type"]]
 
             result = handler(
                 message["content"],
