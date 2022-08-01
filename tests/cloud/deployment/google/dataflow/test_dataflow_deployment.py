@@ -6,8 +6,8 @@ from tests.base import BaseTestCase
 
 
 @unittest.skipUnless(
-    condition=os.getenv("RUN_DEPLOYMENT_TESTS", "").lower() == "1",
-    reason="'RUN_DEPLOYMENT_TESTS' environment variable is False or not present.",
+    condition=os.getenv("RUN_DATAFLOW_DEPLOYMENT_TEST", "").lower() == "2",
+    reason="'RUN_DATAFLOW_DEPLOYMENT_TEST' environment variable is False or not present.",
 )
 class TestDataflowDeployment(BaseTestCase):
     def test_sending_question_to_dataflow_streaming_job_child(self):

@@ -1,0 +1,19 @@
+{
+    "messages": [
+        {
+            "type": "log_record",
+            "content": {"msg": "Starting analysis."}
+        },
+        {
+            "type": "exception",
+            "content": {
+                "exception_type": "FileNotFoundError",
+                "exception_message": "Blah blah blah."
+            }
+        },
+        {
+            "type": "result",
+            "content": {"output_values": [1, 2, 3, 4, 5], "output_manifest": null}
+        }
+    ]
+}

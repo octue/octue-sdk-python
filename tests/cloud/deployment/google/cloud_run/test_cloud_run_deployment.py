@@ -7,8 +7,8 @@ from octue.resources import Child
 
 
 @unittest.skipUnless(
-    condition=os.getenv("RUN_DEPLOYMENT_TESTS", "0").lower() == "1",
-    reason="'RUN_DEPLOYMENT_TESTS' environment variable is False or not present.",
+    condition=os.getenv("RUN_CLOUD_RUN_DEPLOYMENT_TEST", "0").lower() == "1",
+    reason="'RUN_CLOUD_RUN_DEPLOYMENT_TEST' environment variable is False or not present.",
 )
 class TestCloudRunDeployment(TestCase):
     # This is the service ID of the example service deployed to Google Cloud Run.

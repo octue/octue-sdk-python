@@ -1,0 +1,18 @@
+{
+    "messages": [
+        {
+            "type":  "result",
+            "content": {
+                "output_values": null,
+                "output_manifest": {
+                    "id": "04a969e9-04b4-4f35-bd30-36de6e7daea2",
+                    "name": null,
+                    "datasets": {
+                        "dataset_a": "gs://octue-sdk-python-test-bucket/dataset_a",
+                        "dataset_b": "gs://octue-sdk-python-test-bucket/dataset_b"
+                    }
+                }
+            }
+        }
+    ]
+}
