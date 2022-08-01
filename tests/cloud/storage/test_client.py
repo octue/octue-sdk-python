@@ -146,6 +146,37 @@ class TestGoogleCloudStorageClient(BaseTestCase):
             "This is a test upload.",
         )
 
+    def test_download_all_files(self):
+        """Test that all files from a directory can be downloaded together."""
+        dataset_path = self.create_nested_cloud_dataset()
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            GoogleCloudStorageClient().download_all_files(
+                local_path=temporary_directory,
+                cloud_path=dataset_path,
+                recursive=True,
+            )
+
+            directory_contents = list(os.walk(temporary_directory))
+            self.assertEqual(directory_contents[0][1], ["sub-directory"])
+            self.assertEqual(set(directory_contents[0][2]), {"file_1.txt", "file_0.txt"})
+            self.assertEqual(directory_contents[1][1], ["sub-sub-directory"])
+            self.assertEqual(directory_contents[1][2], ["sub_file.txt"])
+            self.assertEqual(directory_contents[2][2], ["sub_sub_file.txt"])
+
+    def test_copy(self):
+        """Test that a file can be copied from one cloud location to another."""
+        with tempfile.NamedTemporaryFile("w", delete=False) as temporary_file:
+            temporary_file.write("This is a test upload.")
+
+        original_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, self.FILENAME)
+        self.storage_client.upload_file(local_path=temporary_file.name, cloud_path=original_cloud_path)
+
+        destination_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "file_in_new_location.txt")
+        self.storage_client.copy(original_cloud_path, destination_cloud_path)
+
+        self.assertEqual(self.storage_client.download_as_string(destination_cloud_path), "This is a test upload.")
+
     def test_delete(self):
         """Test that a file can be deleted."""
         self.storage_client.upload_from_string(

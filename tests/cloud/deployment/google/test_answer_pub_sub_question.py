@@ -37,6 +37,7 @@ class TestAnswerPubSubQuestion(TestCase):
                 "configuration_manifest": None,
                 "children": None,
                 "output_location": None,
+                "crash_diagnostics_cloud_path": None,
                 "project_name": "a-project-name",
                 "service_id": "test-service",
             }
@@ -84,6 +85,7 @@ class TestAnswerPubSubQuestion(TestCase):
                 "configuration_manifest": None,
                 "children": None,
                 "output_location": None,
+                "crash_diagnostics_cloud_path": None,
                 "project_name": "a-project-name",
                 "service_id": "test-service",
             }

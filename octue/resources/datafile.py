@@ -7,7 +7,6 @@ import os
 import shutil
 import tempfile
 
-import google.api_core.exceptions
 import pkg_resources
 import requests
 from google_crc32c import Checksum
@@ -25,7 +24,7 @@ except (ModuleNotFoundError, ImportError):
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.exceptions import CloudLocationNotSpecified, ReadOnlyResource
+from octue.exceptions import CloudLocationNotSpecified, FileNotFoundException, ReadOnlyResource
 from octue.mixins import CloudPathable, Filterable, Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils.decoders import OctueJSONDecoder
@@ -56,7 +55,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
     :return None:
     """
 
-    _CLOUD_PATH_ATTRIBUTE_NAME = "cloud_path"
+    _CLOUD_PATH_ATTRIBUTE_NAME = "_cloud_path"
 
     _METADATA_ATTRIBUTES = ("id", "timestamp", "tags", "labels")
 
@@ -369,19 +368,29 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         :param bool update_cloud_metadata: if `True`, update the metadata of the datafile in the cloud at upload time
         :return str: gs:// path for datafile
         """
-        cloud_path = self._get_cloud_location(cloud_path)
-
-        self._get_cloud_metadata()
-
+        original_cloud_path = self.cloud_path
         storage_client = GoogleCloudStorageClient()
 
-        # If the there is no cloud file or if the datafile's file has been changed locally, overwrite its cloud copy.
-        if not storage_client.exists(cloud_path) or self.cloud_hash_value != self.hash_value:
-            storage_client.upload_file(
-                local_path=self.local_path,
-                cloud_path=cloud_path,
-                metadata=self.metadata(),
-            )
+        self._set_cloud_location(cloud_path)
+        self._get_cloud_metadata()
+
+        # If the given cloud path is different to the current one:
+        if self.cloud_path != original_cloud_path:
+            # If there's no local copy of the datafile, copy the file at the current cloud location to the new cloud
+            # location.
+            if not self.exists_locally:
+                storage_client.copy(original_cloud_path=original_cloud_path, destination_cloud_path=self.cloud_path)
+
+            # Otherwise, just upload the local copy to the new cloud location.
+            else:
+                storage_client.upload_file(local_path=self.local_path, cloud_path=self.cloud_path)
+
+        # If the given cloud path is the same as the current one:
+        else:
+            # If there is no cloud file at the given path or if the changes have been made to the file locally compared
+            # to the cloud copy, write the local copy to the cloud location.
+            if not storage_client.exists(self.cloud_path) or self.cloud_hash_value != self.hash_value:
+                storage_client.upload_file(local_path=self.local_path, cloud_path=self.cloud_path)
 
         if update_cloud_metadata:
             # If the datafile's metadata has been changed locally, update the cloud file's metadata.
@@ -420,13 +429,12 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
         # Download from a cloud URI.
         else:
-            try:
+            if GoogleCloudStorageClient().exists(self.cloud_path):
                 GoogleCloudStorageClient().download_to_file(local_path=self._local_path, cloud_path=self.cloud_path)
 
-            except google.api_core.exceptions.NotFound as e:
-                # If in reading mode, raise an error if no file exists at the path; if in a writing mode, create a new file.
+            else:
                 if self._open_attributes["mode"] == "r":
-                    raise e
+                    raise FileNotFoundException("The file mode is 'r' but no file exists at %r.", self.cloud_path)
 
         # Now use hash value of local file instead of cloud file.
         self.reset_hash()

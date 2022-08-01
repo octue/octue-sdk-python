@@ -1,4 +1,3 @@
-import functools
 import logging
 import os
 
@@ -43,11 +42,12 @@ def answer_question(question, project_name):
             configuration_manifest=app_configuration.configuration_manifest,
             children=app_configuration.children,
             output_location=app_configuration.output_location,
+            crash_diagnostics_cloud_path=service_configuration.crash_diagnostics_cloud_path,
             project_name=project_name,
             service_id=service_id,
         )
 
-        service.run_function = functools.partial(runner.run)
+        service.run_function = runner.run
 
         service.answer(question, answer_topic=answer_topic)
         logger.info("Analysis successfully run and response sent for question %r.", question_uuid)

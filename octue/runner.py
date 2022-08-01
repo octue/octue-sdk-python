@@ -1,8 +1,11 @@
 import importlib
+import json
 import logging
+import logging.handlers
 import os
 import re
 import sys
+import tempfile
 
 import google.api_core.exceptions
 from google import auth
@@ -11,10 +14,13 @@ from jsonschema import ValidationError, validate as jsonschema_validate
 
 import twined.exceptions
 from octue import exceptions
+from octue.cloud import storage
+from octue.cloud.storage import GoogleCloudStorageClient
 from octue.log_handlers import apply_log_handler, create_octue_formatter, get_log_record_attributes_for_environment
 from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.utils import gen_uuid
+from octue.utils.encoders import OctueJSONEncoder
 from twined import Twine
 
 
@@ -28,11 +34,12 @@ class Runner:
     of methods for managing input and output file parsing as well as controlling logging.
 
     :param callable|type|module|str app_src: either a function that accepts an Octue analysis, a class with a ``run`` method that accepts an Octue analysis, or a path to a directory containing an ``app.py`` file containing one of these
-    :param str|twined.Twine twine: path to the twine file, a string containing valid twine json, or a Twine instance
+    :param str|dict|twined.Twine twine: path to the twine file, a string containing valid twine json, or a Twine instance
     :param str|dict|None configuration_values: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|dict|None configuration_manifest: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|dict|None children: The children strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|None output_location: the path to a cloud directory to save output datasets at
+    :param str|None crash_diagnostics_cloud_path: the path to a cloud directory to store crash diagnostics in the event that the service fails while processing a question (this includes the configuration, input values and manifest, and logs)
     :param str|None project_name: name of Google Cloud project to get credentials from
     :param str|None service_id: the ID of the service being run
     :return None:
@@ -46,6 +53,7 @@ class Runner:
         configuration_manifest=None,
         children=None,
         output_location=None,
+        crash_diagnostics_cloud_path=None,
         project_name=None,
         service_id=None,
     ):
@@ -58,6 +66,14 @@ class Runner:
             )
 
         self.output_location = output_location
+
+        self.crash_diagnostics_cloud_path = crash_diagnostics_cloud_path
+        self._crash_diagnostics_log_file_path = tempfile.NamedTemporaryFile(delete=False).name
+        self._crash_diagnostics_log_handler = logging.handlers.MemoryHandler(
+            capacity=10000,
+            target=logging.FileHandler(self._crash_diagnostics_log_file_path, delay=True),
+            flushOnClose=False,
+        )
 
         # Ensure the twine is present and instantiate it.
         if isinstance(twine, Twine):
@@ -86,6 +102,7 @@ class Runner:
         analysis_log_level=logging.INFO,
         analysis_log_handler=None,
         handle_monitor_message=None,
+        allow_save_diagnostics_data_on_crash=False,
     ):
         """Run an analysis.
 
@@ -95,6 +112,7 @@ class Runner:
         :param str analysis_log_level: the level below which to ignore log messages
         :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run. Handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but should use the format defined above in LOG_FORMAT.
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
+        :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved if the analysis fails
         :return octue.resources.analysis.Analysis:
         """
         if hasattr(self.twine, "credentials"):
@@ -114,11 +132,16 @@ class Runner:
         )
         logger.debug("Inputs validated.")
 
+        inputs_and_configuration = {**self.configuration, **inputs}
+
         for manifest_strand in self.twine.available_manifest_strands:
             if manifest_strand == "output_manifest":
                 continue
 
-            self._validate_dataset_file_tags(manifest_kind=manifest_strand, manifest=inputs[manifest_strand])
+            self._validate_dataset_file_tags(
+                manifest_kind=manifest_strand,
+                manifest=inputs_and_configuration[manifest_strand],
+            )
 
         if inputs["children"] is not None:
             inputs["children"] = {
@@ -132,12 +155,12 @@ class Runner:
 
         outputs_and_monitors = self.twine.prepare("monitor_message", "output_values", "output_manifest", cls=CLASS_MAP)
 
-        analysis_id = str(analysis_id) if analysis_id else gen_uuid()
-
         if analysis_log_handler:
-            extra_log_handlers = [analysis_log_handler]
+            extra_log_handlers = [analysis_log_handler, self._crash_diagnostics_log_handler]
         else:
-            extra_log_handlers = None
+            extra_log_handlers = [self._crash_diagnostics_log_handler]
+
+        analysis_id = str(analysis_id) if analysis_id else gen_uuid()
 
         # Temporarily replace the root logger's handlers with a `StreamHandler` and the analysis log handler that
         # include the analysis ID in the logging metadata.
@@ -185,9 +208,19 @@ class Runner:
             except ModuleNotFoundError as e:
                 raise ModuleNotFoundError(f"{e.msg} in {os.path.abspath(self.app_source)!r}.")
 
-            except Exception as e:
-                logger.error(str(e))
-                raise e
+            except Exception as analysis_error:
+                if allow_save_diagnostics_data_on_crash:
+                    logger.warning("Saving crash diagnostics to %r.", self.crash_diagnostics_cloud_path)
+
+                    try:
+                        self._save_crash_diagnostics_data(analysis)
+                        logger.warning("Crash diagnostics saved.")
+                    except Exception as crash_diagnostics_save_error:
+                        logger.error("Failed to save crash diagnostics.")
+                        raise crash_diagnostics_save_error
+
+                logger.error(str(analysis_error))
+                raise analysis_error
 
             if not analysis.finalised:
                 analysis.finalise()
@@ -255,6 +288,46 @@ class Runner:
                     )
 
                     raise twined.exceptions.invalid_contents_map[manifest_kind](message)
+
+    def _save_crash_diagnostics_data(self, analysis):
+        """Save the values, manifests, and datasets for the analysis configuration and inputs to the crash diagnostics
+        cloud path.
+
+        :param octue.resources.analysis.Analysis analysis:
+        :return None:
+        """
+        storage_client = GoogleCloudStorageClient()
+        question_diagnostics_path = storage.path.join(self.crash_diagnostics_cloud_path, analysis.id)
+
+        for data_type in ("configuration", "input"):
+
+            # Upload the configuration and input values.
+            values_type = f"{data_type}_values"
+
+            if getattr(analysis, values_type):
+                storage_client.upload_from_string(
+                    json.dumps(getattr(analysis, values_type), cls=OctueJSONEncoder),
+                    cloud_path=storage.path.join(question_diagnostics_path, f"{values_type}.json"),
+                )
+
+            # Upload the configuration and input manifests.
+            manifest_type = f"{data_type}_manifest"
+
+            if getattr(analysis, manifest_type):
+                manifest = getattr(analysis, manifest_type)
+
+                for name, dataset in manifest.datasets.items():
+                    dataset.upload(storage.path.join(question_diagnostics_path, f"{manifest_type}_datasets", name))
+
+                manifest.to_cloud(storage.path.join(question_diagnostics_path, f"{manifest_type}.json"))
+
+        # Upload the crash diagnostics log file.
+        self._crash_diagnostics_log_handler.flush()
+
+        storage_client.upload_file(
+            local_path=self._crash_diagnostics_log_file_path,
+            cloud_path=storage.path.join(question_diagnostics_path, "logs.txt"),
+        )
 
 
 def unwrap(fcn):
@@ -355,20 +428,49 @@ class AnalysisLogHandlerSwitcher:
         self._remove_log_handlers()
 
         # Add the analysis ID to the logging metadata.
-        formatter = create_octue_formatter(
+        octue_formatter = create_octue_formatter(
             get_log_record_attributes_for_environment(),
             [f"analysis-{self.analysis_id}"],
         )
 
         # Apply a local console `StreamHandler` to the logger.
-        apply_log_handler(formatter=formatter, log_level=self.analysis_log_level)
+        apply_log_handler(formatter=octue_formatter, log_level=self.analysis_log_level)
 
         if not self.extra_log_handlers:
             return
 
+        uncoloured_octue_formatter = create_octue_formatter(
+            get_log_record_attributes_for_environment(),
+            [f"analysis-{self.analysis_id}"],
+            use_colour=False,
+        )
+
         # Apply any other given handlers to the logger.
         for extra_handler in self.extra_log_handlers:
-            apply_log_handler(handler=extra_handler, log_level=self.analysis_log_level, formatter=formatter)
+
+            # Apply an uncoloured log formatter to any file log handlers to keep them readable (i.e. to avoid the ANSI
+            # escape codes).
+            if type(extra_handler).__name__ == "FileHandler":
+                apply_log_handler(
+                    handler=extra_handler,
+                    log_level=self.analysis_log_level,
+                    formatter=uncoloured_octue_formatter,
+                )
+                continue
+
+            if (
+                type(extra_handler).__name__ == "MemoryHandler"
+                and getattr(extra_handler, "target")
+                and type(getattr(extra_handler, "target")).__name__ == "FileHandler"
+            ):
+                apply_log_handler(
+                    handler=extra_handler.target,
+                    log_level=self.analysis_log_level,
+                    formatter=uncoloured_octue_formatter,
+                )
+                continue
+
+            apply_log_handler(handler=extra_handler, log_level=self.analysis_log_level, formatter=octue_formatter)
 
     def __exit__(self, *args):
         """Remove the new handlers from the logger and re-add the initial handlers.

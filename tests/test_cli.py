@@ -2,15 +2,19 @@ import json
 import os
 import tempfile
 import unittest.mock
+import uuid
 from unittest import mock
 
 import yaml
 from click.testing import CliRunner
 
+from octue import Runner
 from octue.cli import octue_cli
+from octue.cloud import storage
 from octue.cloud.emulators.pub_sub import MockService, MockSubscriber, MockSubscription, MockTopic
 from octue.configuration import AppConfiguration, ServiceConfiguration
-from tests import TESTS_DIR
+from octue.resources import Datafile
+from tests import TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
 from tests.mocks import MockOpen
 
@@ -205,6 +209,83 @@ class TestStartCommand(BaseTestCase):
 
         self.assertIsNone(result.exception)
         self.assertEqual(result.exit_code, 0)
+
+
+class TestGetCrashDiagnosticsCommand(BaseTestCase):
+    def test_get_crash_diagnostics(self):
+        """Test the get crash diagnostics CLI command."""
+        crash_diagnostics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_diagnostics")
+
+        def app(analysis):
+            raise ValueError("This is deliberately raised to simulate app failure.")
+
+        manifests = {}
+
+        for data_type in ("configuration", "input"):
+            dataset_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_datasets", f"{data_type}_dataset")
+
+            with Datafile(storage.path.join(dataset_path, "my_file.txt"), mode="w") as (datafile, f):
+                f.write(f"{data_type} manifest data")
+
+            manifests[data_type] = {"id": str(uuid.uuid4()), "datasets": {"met_mast_data": dataset_path}}
+
+        runner = Runner(
+            app_src=app,
+            twine={
+                "configuration_values_schema": {"properties": {}},
+                "configuration_manifest": {"datasets": {}},
+                "input_values_schema": {},
+                "input_manifest": {"datasets": {}},
+            },
+            configuration_values={"getting": "ready"},
+            configuration_manifest=manifests["configuration"],
+            crash_diagnostics_cloud_path=crash_diagnostics_cloud_path,
+        )
+
+        analysis_id = "4b91e3f0-4492-49e3-8061-34f1942dc68a"
+
+        with self.assertRaises(ValueError):
+            runner.run(
+                analysis_id=analysis_id,
+                input_values={"hello": "world"},
+                input_manifest=manifests["input"],
+                allow_save_diagnostics_data_on_crash=True,
+            )
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            result = CliRunner().invoke(
+                octue_cli,
+                [
+                    "get-crash-diagnostics",
+                    storage.path.join(crash_diagnostics_cloud_path, analysis_id),
+                    "--local-path",
+                    temporary_directory,
+                ],
+            )
+
+            self.assertIsNone(result.exception)
+            self.assertEqual(result.exit_code, 0)
+
+            directory_contents = list(os.walk(temporary_directory))
+            self.assertEqual(directory_contents[0][1], [analysis_id])
+            self.assertEqual(
+                set(directory_contents[1][1]),
+                {"configuration_manifest_datasets", "input_manifest_datasets"},
+            )
+            self.assertEqual(
+                set(directory_contents[1][2]),
+                {
+                    "configuration_values.json",
+                    "configuration_manifest.json",
+                    "input_manifest.json",
+                    "input_values.json",
+                    "logs.txt",
+                },
+            )
+            self.assertEqual(directory_contents[2][1], ["met_mast_data"])
+            self.assertEqual(set(directory_contents[3][2]), {"my_file.txt", ".octue"})
+            self.assertEqual(directory_contents[4][1], ["met_mast_data"])
+            self.assertEqual(set(directory_contents[5][2]), {"my_file.txt", ".octue"})
 
 
 class TestDeployCommand(BaseTestCase):

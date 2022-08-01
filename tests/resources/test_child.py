@@ -38,7 +38,14 @@ class TestChild(BaseTestCase):
         """Test that a child can be asked multiple questions."""
         backend = GCPPubSubBackend(project_name="blah")
 
-        def run_function(analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message):
+        def run_function(
+            analysis_id,
+            input_values,
+            input_manifest,
+            analysis_log_handler,
+            handle_monitor_message,
+            allow_save_diagnostics_data_on_crash,
+        ):
             return MockAnalysis(output_values=input_values)
 
         responding_service = MockService(backend=backend, service_id="testing/wind-speed", run_function=run_function)

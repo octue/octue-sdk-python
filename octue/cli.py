@@ -10,8 +10,10 @@ import click
 import pkg_resources
 from google import auth
 
+from octue.cloud import storage
 from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
 from octue.cloud.pub_sub.service import Service
+from octue.cloud.storage import GoogleCloudStorageClient
 from octue.configuration import load_service_and_app_configuration
 from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
 from octue.log_handlers import apply_log_handler, get_remote_handler
@@ -132,6 +134,7 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
         configuration_manifest=app_configuration.configuration_manifest,
         children=app_configuration.children,
         output_location=app_configuration.output_location,
+        crash_diagnostics_cloud_path=service_configuration.crash_diagnostics_cloud_path,
     )
 
     if monitor_messages_file:
@@ -205,6 +208,7 @@ def start(service_config, timeout, rm):
         configuration_manifest=app_configuration.configuration_manifest,
         children=app_configuration.children,
         output_location=app_configuration.output_location,
+        crash_diagnostics_cloud_path=service_configuration.crash_diagnostics_cloud_path,
         service_id=service_configuration.service_id,
     )
 
@@ -231,6 +235,35 @@ def start(service_config, timeout, rm):
     )
 
     service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=rm)
+
+
+@octue_cli.command()
+@click.argument(
+    "cloud_path",
+    type=str,
+)
+@click.option(
+    "--local-path",
+    type=click.Path(file_okay=False),
+    default=None,
+    help="The path to a directory to store the directory of diagnostics data in. Defaults to the current working directory.",
+)
+def get_crash_diagnostics(cloud_path, local_path):
+    """Download crash diagnostics for an analysis from the given directory in Google Cloud Storage. The cloud path
+    should end in the analysis ID.
+
+    CLOUD_PATH: The path to the directory in Google Cloud Storage containing the diagnostics data.
+    """
+    analysis_id = storage.path.split(cloud_path)[-1]
+    local_path = os.path.join((local_path or "."), analysis_id)
+
+    GoogleCloudStorageClient().download_all_files(
+        local_path=local_path,
+        cloud_path=cloud_path,
+        recursive=True,
+    )
+
+    logger.info("Downloaded crash diagnostics from %r to %r.", cloud_path, local_path)
 
 
 @octue_cli.group()

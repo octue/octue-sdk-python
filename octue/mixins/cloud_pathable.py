@@ -1,7 +1,11 @@
+import logging
 from urllib.parse import urlparse
 
 from octue.cloud import storage
 from octue.exceptions import CloudLocationNotSpecified
+
+
+logger = logging.getLogger(__name__)
 
 
 class CloudPathable:
@@ -50,20 +54,23 @@ class CloudPathable:
             return storage.path.split_bucket_name_from_cloud_path(self.__cloud_path)[1]
         return None
 
-    def _get_cloud_location(self, cloud_path=None):
-        """Get the cloud location details for the instance.
+    def _set_cloud_location(self, cloud_path=None):
+        """Set the cloud location for the instance. If no cloud path is given, the current cloud path is used if one has
+        previously been set. Otherwise, an error is raised.
 
         :param str|None cloud_path:
         :raise octue.exceptions.CloudLocationNotSpecified: if an exact cloud location isn't provided and isn't available implicitly (i.e. the instance wasn't loaded from the cloud previously)
-        :return str: the instance's cloud path
+        :return None:
         """
         cloud_path = cloud_path or self.__cloud_path
 
         if not cloud_path:
             self._raise_cloud_location_error()
 
-        self._cloud_path = cloud_path
-        return cloud_path
+        if cloud_path != self.__cloud_path:
+            logger.debug("Updating cloud location for %r from %r to %r.", self, self.__cloud_path, cloud_path)
+
+        setattr(self, self._CLOUD_PATH_ATTRIBUTE_NAME, cloud_path)
 
     def _raise_cloud_location_error(self):
         """Raise an error indicating that the cloud location of the instance has not yet been specified.

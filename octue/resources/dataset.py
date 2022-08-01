@@ -181,9 +181,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         :param bool update_cloud_metadata: if `True`, update the metadata of the dataset in the cloud at upload time
         :return str: cloud path for dataset
         """
-        cloud_path = self._get_cloud_location(cloud_path)
-
-        files_and_paths = []
+        datafiles_and_paths = []
 
         for datafile in self.files:
             if self.exists_in_cloud:
@@ -193,30 +191,30 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
             datafile_path_relative_to_dataset = self._datafile_path_relative_to_self(datafile, path_type=path_type)
 
-            files_and_paths.append(
-                (
-                    datafile,
-                    storage.path.join(cloud_path, *datafile_path_relative_to_dataset.split(os.path.sep)),
-                )
+            datafiles_and_paths.append(
+                {
+                    "datafile": datafile,
+                    "new_cloud_path": storage.path.join(
+                        cloud_path or self.path,
+                        *datafile_path_relative_to_dataset.split(os.path.sep),
+                    ),
+                }
             )
 
-        def upload_datafile(iterable_element):
+        self._set_cloud_location(cloud_path)
+
+        def upload_datafile(datafile_and_path):
             """Upload a datafile to the given cloud path.
 
-            :param tuple(octue.resources.datafile.Datafile, str) iterable_element:
+            :param dict datafile_and_path:
             :return str:
             """
-            datafile = iterable_element[0]
-            cloud_path = iterable_element[1]
-            datafile.upload(cloud_path=cloud_path)
-            return datafile.cloud_path
+            return datafile_and_path["datafile"].upload(cloud_path=datafile_and_path["new_cloud_path"])
 
         # Use multiple threads to significantly speed up file uploads by reducing latency.
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            for path in executor.map(upload_datafile, files_and_paths):
+            for path in executor.map(upload_datafile, datafiles_and_paths):
                 logger.debug("Uploaded datafile to %r.", path)
-
-        self.path = cloud_path
 
         if update_cloud_metadata:
             # If the dataset's metadata has been changed locally, update it in the cloud.
@@ -350,7 +348,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         local_directory = local_directory or tempfile.TemporaryDirectory().name
 
-        files_and_paths = []
+        datafiles_and_paths = []
 
         for file in self.files:
 
@@ -360,21 +358,19 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             path_relative_to_dataset = self._datafile_path_relative_to_self(file, path_type="cloud_path")
 
             local_path = os.path.abspath(os.path.join(local_directory, *path_relative_to_dataset.split("/")))
-            files_and_paths.append((file, local_path))
+            datafiles_and_paths.append({"datafile": file, "local_path": local_path})
 
-        def download_datafile(iterable_element):
+        def download_datafile(datafile_and_path):
             """Download a datafile to the given path.
 
-            :param tuple(octue.resources.datafile.Datafile, str) iterable_element:
+            :param dict datafile_and_path:
             :return str:
             """
-            datafile = iterable_element[0]
-            local_path = iterable_element[1]
-            return datafile.download(local_path=local_path)
+            return datafile_and_path["datafile"].download(local_path=datafile_and_path["local_path"])
 
         # Use multiple threads to significantly speed up files downloads by reducing latency.
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            for path in executor.map(download_datafile, files_and_paths):
+            for path in executor.map(download_datafile, datafiles_and_paths):
                 logger.debug("Downloaded datafile to %r.", path)
 
         logger.info("Downloaded %r to %r.", self, local_directory)
