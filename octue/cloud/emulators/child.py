@@ -168,7 +168,7 @@ class ChildEmulator:
 
         :param dict message:
         :raise TypeError: if the message isn't a dictionary
-        :raise ValueError: if the message doesn't contain a 'type' key and a 'content' key
+        :raise ValueError: if the message doesn't contain a 'type' key and a 'content' key; if the 'type' key maps to an invalid value
         :return None:
         """
         if not isinstance(message, dict):
@@ -196,17 +196,14 @@ class ChildEmulator:
         try:
             log_record_dictionary["levelno"] = log_record_dictionary.get("levelno") or 20
             log_record_dictionary["levelname"] = log_record_dictionary.get("levelname") or "INFO"
-
-            log_record_dictionary["name"] = (
-                log_record_dictionary.get("name") or "octue.cloud.emulators.child.ChildEmulator"
-            )
+            log_record_dictionary["name"] = log_record_dictionary.get("name") or f"{__name__}.{type(self).__name__}"
 
             logger.handle(logging.makeLogRecord(log_record_dictionary))
 
         except Exception:
             raise TypeError(
                 "The log record must be given as a dictionary that can be converted by `logging.makeLogRecord` to a "
-                "`logging.LogRecord instance`."
+                "`logging.LogRecord` instance."
             )
 
     def _handle_monitor_message(self, monitor_message, **kwargs):
