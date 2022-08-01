@@ -1,8 +1,10 @@
 import os
 
+from octue.cloud import storage
 from octue.cloud.emulators.child import ChildEmulator
+from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Manifest
-from tests import TESTS_DIR
+from tests import TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
 
 
@@ -210,9 +212,8 @@ class TestChildEmulatorJSONFiles(BaseTestCase):
         """Test that a child emulator can be instantiated from a JSON file containing only the messages it should
         produce, asked a question, and produce the expected log messages, monitor messages, and result.
         """
-        child_emulator = ChildEmulator.from_file(
-            os.path.join(self.TEST_FILES_DIRECTORY, "file_with_only_messages.json")
-        )
+        emulator_file_path = os.path.join(self.TEST_FILES_DIRECTORY, "file_with_only_messages.json")
+        child_emulator = ChildEmulator.from_file(emulator_file_path)
         self.assertEqual(child_emulator._child.backend.project_name, "emulated-project")
 
         monitor_messages = []
@@ -272,3 +273,47 @@ class TestChildEmulatorJSONFiles(BaseTestCase):
 
         # Check log records were emitted before the error was raised.
         self.assertIn("Starting analysis.", logging_context.output[4])
+
+    def test_with_output_manifest(self):
+        """Test that a child emulator will return the expected output manifest when given a serialised one in a JSON
+        file.
+        """
+        emulator_file_path = os.path.join(self.TEST_FILES_DIRECTORY, "file_with_output_manifest.json")
+        child_emulator = ChildEmulator.from_file(emulator_file_path)
+
+        # Create the datasets in cloud storage.
+        storage_client = GoogleCloudStorageClient()
+
+        storage_client.upload_from_string(
+            "[1, 2, 3]",
+            storage.path.generate_gs_path(TEST_BUCKET_NAME, "dataset_a", "file_0.txt"),
+        )
+
+        storage_client.upload_from_string(
+            "[4, 5, 6]",
+            storage.path.generate_gs_path(TEST_BUCKET_NAME, "dataset_b", "the_data.txt"),
+        )
+
+        expected_output_manifest = Manifest(
+            id="04a969e9-04b4-4f35-bd30-36de6e7daea2",
+            datasets={
+                "dataset_a": f"gs://{TEST_BUCKET_NAME}/dataset_a",
+                "dataset_b": f"gs://{TEST_BUCKET_NAME}/dataset_b",
+            },
+        )
+
+        result = child_emulator.ask(input_values={"hello": "world"})
+
+        # Check that the output manifest has been produced correctly.
+        self.assertEqual(result["output_manifest"].id, expected_output_manifest.id)
+        self.assertEqual(result["output_manifest"].datasets.keys(), expected_output_manifest.datasets.keys())
+
+        self.assertEqual(
+            result["output_manifest"].datasets["dataset_a"].files.one().cloud_path,
+            expected_output_manifest.datasets["dataset_a"].files.one().cloud_path,
+        )
+
+        self.assertEqual(
+            result["output_manifest"].datasets["dataset_b"].files.one().cloud_path,
+            expected_output_manifest.datasets["dataset_b"].files.one().cloud_path,
+        )

@@ -7,7 +7,7 @@ from unittest.mock import patch
 import octue.exceptions
 import twined.exceptions
 from octue.cloud.emulators.pub_sub import MockService, MockSubscriber, MockSubscription, MockTopic
-from octue.resources import Analysis, service_backends
+from octue.resources import Analysis, Manifest, service_backends
 from octue.utils.exceptions import create_exceptions_mapping
 
 
@@ -254,6 +254,11 @@ class ChildEmulator:
         :raise ValueError: if the result doesn't contain the "output_values" and "output_manifest" keys
         :return octue.resources.analysis.Analysis: an `Analysis` instance containing the emulated outputs
         """
+        output_manifest = result.get("output_manifest")
+
+        if output_manifest and not isinstance(output_manifest, Manifest):
+            output_manifest = Manifest.deserialise(output_manifest)
+
         try:
             return Analysis(
                 id=kwargs["analysis_id"],
@@ -262,9 +267,10 @@ class ChildEmulator:
                 input_values=kwargs["input_values"],
                 input_manifest=kwargs["input_manifest"],
                 output_values=result["output_values"],
-                output_manifest=result["output_manifest"],
+                output_manifest=output_manifest,
             )
-        except Exception:
+
+        except KeyError:
             raise ValueError(
                 "The result must be a dictionary containing the keys 'output_values' and 'output_manifest'."
             )
