@@ -3,47 +3,62 @@
 ================
 Testing services
 ================
-We recommend writing automated tests for your service so anyone who wants to use it can have a high confidence in its
-quality and reliability at a glance. `Here's an example test <https://github.com/octue/example-service-cloud-run/blob/main/tests/test_app.py>`_
+We recommend writing automated tests for your service so anyone who wants to use it can have confidence in its quality
+and reliability at a glance. `Here's an example test <https://github.com/octue/example-service-cloud-run/blob/main/tests/test_app.py>`_
 for our example service.
 
-Using the Child Emulator
-========================
-If your app has children, you should emulate them during testing. This makes your tests:
-- Independent of anything external to your app code  - i.e. independent of the remote child, your internet connection, and communication between your app and the child (Google Pub/Sub)
-- Much faster - the emulation will complete in a few milliseconds as opposed to the time it takes the real child to actually run an analysis, which could be minutes, hours, or days
+Emulating children
+==================
+If your app has children, you should emulate them in your tests instead of communicating with the real ones. This makes
+your tests:
 
-The Child Emulator takes a list of messages and returns them to the parent for handling in the order given without contacting the real child or using Pub/Sub. Any messages a real child
-could produce are supported. :mod:`Child <octue.resources.child.Child>` instances can be replaced or mocked like-for-like by :mod:`ChildEmulator <octue.cloud.emulators.child.ChildEmulator>`
-instances without the parent knowing. You can provide the emulated messages in python or via a JSON file.
+- **Independent** of anything external to your app code  - i.e. independent of the remote child, your internet connection,
+  and communication between your app and the child (Google Pub/Sub).
+- **Much faster** - the emulation will complete in a few milliseconds as opposed to the time it takes the real child to
+  actually run an analysis, which could be minutes, hours, or days. Tests for our `child services template app
+  <https://github.com/octue/octue-sdk-python/tree/main/octue/templates/template-child-services>`_ run
+  around **900 times faster** when the children are emulated.
+
+The Child Emulator
+------------------
+We've written a child emulator that takes a list of messages and returns them to the parent for handling in the order
+given - without contacting the real child or using Pub/Sub. Any messages a real child can produce are supported.
+:mod:`Child <octue.resources.child.Child>` instances can be mocked like-for-like by
+:mod:`ChildEmulator <octue.cloud.emulators.child.ChildEmulator>` instances without the parent knowing. You can provide
+the emulated messages in python or via a JSON file.
 
 Message types
 -------------
-You can emulate any message type that parent services can handle. The table below shows what these are.
+You can emulate any message type that your app (the parent) can handle. The table below shows what these are.
 
 +-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
 | Message type          | Number of messages supported                                                                     | Example                                                                                                                   |
 +=======================+==================================================================================================+===========================================================================================================================+
 | ``log_record``        | Any number                                                                                       | {"type": "log_record": "content": {"msg": "Starting analysis."}}                                                          |
 +-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
-| ``monitor_message``   | Any number                                                                                       | {"type": "monitor_message": "content": "A monitor message."}                                                              |
+| ``monitor_message``   | Any number                                                                                       | {"type": "monitor_message": "content": {"progress": "35%"}}                                                               |
 +-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
 | ``exception``         | One (technically, any number, but only the first will be raised)                                 | {"type": "exception", "content": {"exception_type": "ValueError", "exception_message": "x cannot be less than 10."}}      |
 +-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
-| ``result``            | One (technically, any number, but only the first will be returned)                               | {"type": "result", "content": {"output_values": {"my": "results"}, "output_manifest", None}}                              |
+| ``result``            | One (technically, any number, but only the first will be returned)                               | {"type": "result", "content": {"output_values": {"my": "results"}, "output_manifest": None}}                              |
 +-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
 
-Any messages after a ``result`` or ``exception`` message won't be passed to the parent (your app) because execution of
-the child emulator will have ended.
+**Notes**
 
-Input/output validation
------------------------
+- Any messages after a ``result`` or ``exception`` message won't be passed to the parent because execution of the child
+  emulator will have ended.
+- The ``content`` of a ``log_record`` message is any dictionary that the ``logging.makeLogRecord`` function can convert
+  into a log record.
+- Message formats and contents are validated by :mod:`ChildEmulator <octue.cloud.emulators.child.ChildEmulator>`
+
+Input/output validation (lack of)
+---------------------------------
 Unlike a real child, the inputs given to the emulator and the outputs returned aren't validated against the schema in
-the child's twine as this is only available to the real child. Hence, the input values and manifest do not affect the
+the child's twine - this is only available to the real child. Hence, the input values and manifest do not affect the
 messages returned by the emulator, and the output values and manifest are exactly what you specify in the messages you
 give to the emulator.
 
-Instantiating a Child Emulator in python
+Instantiating a child emulator in python
 ----------------------------------------
 
 .. code-block:: python
@@ -59,11 +74,11 @@ Instantiating a Child Emulator in python
         },
         {
             "type": "log_record",
-            "content": {"msg": "Finishing analysis."},
+            "content": {"msg": "Finished analysis."},
         },
     	{
             "type": "result",
-            "content": {"output_values": [1, 2, 3, 4, 5]},
+            "content": {"output_values": [1, 2, 3, 4, 5], "output_manifest": None},
         },
     ]
 
@@ -83,10 +98,11 @@ Instantiating a Child Emulator in python
     >>> {"output_values": [1, 2, 3, 4, 5], "output_manifest": None}
 
 
-Instantiating a Child Emulator from a JSON file
+Instantiating a child emulator from a JSON file
 -----------------------------------------------
-You can provide a JSON file with just messages in or with all the constructor parameters of
-:mod:`ChildEmulator <octue.cloud.emulators.child.ChildEmulator>`. Here's an example JSON file with just the messages:
+You can provide a JSON file with either just messages in or with messages and some or all of the
+:mod:`ChildEmulator <octue.cloud.emulators.child.ChildEmulator>` constructor parameters. Here's an example JSON file
+with just the messages:
 
 .. code-block:: json
 
@@ -98,7 +114,7 @@ You can provide a JSON file with just messages in or with all the constructor pa
             },
             {
                 "type": "log_record",
-                "content": {"msg": "Finishing analysis."}
+                "content": {"msg": "Finished analysis."}
             },
             {
                 "type": "monitor_message",
@@ -111,7 +127,7 @@ You can provide a JSON file with just messages in or with all the constructor pa
         ]
     }
 
-You can instantiate a child emulator from this in python:
+You can then instantiate a child emulator from this in python:
 
 .. code-block:: python
 
@@ -127,10 +143,10 @@ You can instantiate a child emulator from this in python:
     >>> {"output_values": [1, 2, 3, 4, 5], "output_manifest": None}
 
 
-Emulating children in tests
----------------------------
-Children are emulated in tests by patching the :mod:`Child <octue.resources.child.Child>` class with
-:mod:`ChildEmulator <octue.cloud.emulators.child.ChildEmulator>`.
+Using the child emulator
+------------------------
+To emulate your children in tests, patch the :mod:`Child <octue.resources.child.Child>` class with the
+:mod:`ChildEmulator <octue.cloud.emulators.child.ChildEmulator>` class.
 
 .. code-block:: python
 
@@ -142,6 +158,8 @@ Children are emulated in tests by patching the :mod:`Child <octue.resources.chil
 
     app_directory_path = "path/to/directory_containing_app"
 
+    # You can explicitly specify your children here as shown or
+    # read the same information in from your app configuration file.
     children = [
         {
             "key": "my_child",
@@ -157,23 +175,29 @@ Children are emulated in tests by patching the :mod:`Child <octue.resources.chil
         app_src=app_directory_path,
         twine=os.path.join(app_directory_path, "twine.json"),
         children=children,
-        service_id="the-service-being-tested",
+        service_id="you/your-service",
     )
 
     emulated_children = [
         ChildEmulator(
             id="octue/my-child-service",
-            internal_service_name="the-service-being-tested",
+            internal_service_name="you/your-service",
             messages=[
-                {"type": "result", "content": {"output_values": [300], "output_manifest": None}},
+                {
+                    "type": "result",
+                    "content": {
+                        "output_values": [300],
+                        "output_manifest": None,
+                    }
+                },
             ]
         )
     ]
 
-    with patch("octue.runner.Child", side_effect=emulated_child):
+    with patch("octue.runner.Child", side_effect=emulated_children):
         analysis = runner.run(input_values={"some": "input"})
 
 
-If your app uses more than one child, simply provide more child emulators in the ``emulated_children`` list in the order
-they appear in the ``children`` list. The ``children`` list should be the same as the one in your
-:ref:`app configuration <app_configuration>` file.
+If your app uses more than one child, simply provide more child emulators in the ``emulated_children`` list. They must
+be provided in the order they appear in the ``children`` list. Note that the ``children`` list should be the same as
+the one in your :ref:`app configuration <app_configuration>` file.
