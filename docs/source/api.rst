@@ -31,6 +31,12 @@ Child
 =====
 .. autoclass:: octue.resources.child.Child
 
+
+Child emulator
+==============
+.. autoclass:: octue.cloud.emulators.child.ChildEmulator
+
+
 Filter containers
 =================
 
