@@ -127,5 +127,53 @@ You can instantiate a child emulator from this in python:
     >>> {"output_values": [1, 2, 3, 4, 5], "output_manifest": None}
 
 
-Providing emulated children to a test
--------------------------------------
+Emulating children in tests
+---------------------------
+Children are emulated in tests by patching the :mod:`Child <octue.resources.child.Child>` class with
+:mod:`ChildEmulator <octue.cloud.emulators.child.ChildEmulator>`.
+
+.. code-block:: python
+
+    from unittest.mock import patch
+
+    from octue import Runner
+    from octue.cloud.emulators import ChildEmulator
+
+
+    app_directory_path = "path/to/directory_containing_app"
+
+    children = [
+        {
+            "key": "my_child",
+            "id": "octue/my-child-service",
+            "backend": {
+                "name": "GCPPubSubBackend",
+                "project_name": "my-project"
+            }
+        },
+    ]
+
+    runner = Runner(
+        app_src=app_directory_path,
+        twine=os.path.join(app_directory_path, "twine.json"),
+        children=children,
+        service_id="the-service-being-tested",
+    )
+
+    emulated_children = [
+        ChildEmulator(
+            id="octue/my-child-service",
+            internal_service_name="the-service-being-tested",
+            messages=[
+                {"type": "result", "content": {"output_values": [300], "output_manifest": None}},
+            ]
+        )
+    ]
+
+    with patch("octue.runner.Child", side_effect=emulated_child):
+        analysis = runner.run(input_values={"some": "input"})
+
+
+If your app uses more than one child, simply provide more child emulators in the ``emulated_children`` list in the order
+they appear in the ``children`` list. The ``children`` list should be the same as the one in your
+:ref:`app configuration <app_configuration>` file.
