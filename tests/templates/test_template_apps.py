@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 import yaml
 
 from octue import REPOSITORY_ROOT, Runner
-from octue.cloud.emulators.child import ChildEmulator
+from octue.cloud.emulators import ChildEmulator
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.resources.manifest import Manifest
 from octue.utils.processes import ProcessesContextManager
