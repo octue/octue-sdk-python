@@ -198,6 +198,8 @@ To emulate your children in tests, patch the :mod:`Child <octue.resources.child.
         analysis = runner.run(input_values={"some": "input"})
 
 
-If your app uses more than one child, simply provide more child emulators in the ``emulated_children`` list. They must
-be provided in the order they appear in the ``children`` list. Note that the ``children`` list should be the same as
-the one in your :ref:`app configuration <app_configuration>` file.
+Notes:
+- If your app uses more than one child, simply provide more child emulators in the ``emulated_children`` list in the
+  order they're asked questions in your app.
+- If a given child is asked more than one question, provide a child emulator for each question asked in the same order
+  the questions are asked.
