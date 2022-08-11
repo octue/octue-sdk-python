@@ -68,12 +68,7 @@ class Runner:
         self.output_location = output_location
 
         self.crash_diagnostics_cloud_path = crash_diagnostics_cloud_path
-        self._crash_diagnostics_log_file_path = tempfile.NamedTemporaryFile(delete=False).name
-        self._crash_diagnostics_log_handler = logging.handlers.MemoryHandler(
-            capacity=10000,
-            target=logging.FileHandler(self._crash_diagnostics_log_file_path, delay=True),
-            flushOnClose=False,
-        )
+        self._crash_diagnostics_events_record_path = tempfile.NamedTemporaryFile(delete=False).name
 
         # Ensure the twine is present and instantiate it.
         if isinstance(twine, Twine):
@@ -156,9 +151,9 @@ class Runner:
         outputs_and_monitors = self.twine.prepare("monitor_message", "output_values", "output_manifest", cls=CLASS_MAP)
 
         if analysis_log_handler:
-            extra_log_handlers = [analysis_log_handler, self._crash_diagnostics_log_handler]
+            extra_log_handlers = [analysis_log_handler]
         else:
-            extra_log_handlers = [self._crash_diagnostics_log_handler]
+            extra_log_handlers = []
 
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
 
@@ -321,12 +316,10 @@ class Runner:
 
                 manifest.to_cloud(storage.path.join(question_diagnostics_path, f"{manifest_type}.json"))
 
-        # Upload the crash diagnostics log file.
-        self._crash_diagnostics_log_handler.flush()
-
+        # Upload the crash diagnostics events record.
         storage_client.upload_file(
-            local_path=self._crash_diagnostics_log_file_path,
-            cloud_path=storage.path.join(question_diagnostics_path, "logs.txt"),
+            local_path=self._crash_diagnostics_events_record_path,
+            cloud_path=storage.path.join(question_diagnostics_path, "logs.jsonl"),
         )
 
 
