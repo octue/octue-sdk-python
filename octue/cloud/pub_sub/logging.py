@@ -1,8 +1,5 @@
-import json
 import logging
 import re
-
-from google.api_core import retry
 
 
 ANSI_ESCAPE_SEQUENCES_PATTERN = r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])"
@@ -11,19 +8,19 @@ ANSI_ESCAPE_SEQUENCES_PATTERN = r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])"
 class GooglePubSubHandler(logging.Handler):
     """A log handler that publishes log records to a Google Cloud Pub/Sub topic.
 
-    :param google.cloud.pubsub_v1.PublisherClient publisher: pub/sub publisher to use to publish the log records
+    :param callable message_sender: the `_send_message` method of the service that instantiated this instance
     :param octue.cloud.pub_sub.topic.Topic topic: topic to publish log records to
     :param str analysis_id: the UUID of the analysis the instance is handling the log records for
     :param float timeout: timeout in seconds for attempting to publish each log record
     :return None:
     """
 
-    def __init__(self, publisher, topic, analysis_id, timeout=60, *args, **kwargs):
+    def __init__(self, message_sender, topic, analysis_id, timeout=60, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.topic = topic
         self.analysis_id = analysis_id
         self.timeout = timeout
-        self._publisher = publisher
+        self._send_message = message_sender
 
     def emit(self, record):
         """Serialise the log record as a dictionary and publish it to the topic.
@@ -32,20 +29,15 @@ class GooglePubSubHandler(logging.Handler):
         :return None:
         """
         try:
-            self._publisher.publish(
-                topic=self.topic.path,
-                data=json.dumps(
-                    {
-                        "type": "log_record",
-                        "log_record": self._convert_log_record_to_primitives(record),
-                        "analysis_id": self.analysis_id,
-                        "message_number": self.topic.messages_published,
-                    }
-                ).encode(),
-                retry=retry.Retry(deadline=self.timeout),
+            self._send_message(
+                {
+                    "type": "log_record",
+                    "log_record": self._convert_log_record_to_primitives(record),
+                    "analysis_id": self.analysis_id,
+                    "message_number": self.topic.messages_published,
+                },
+                topic=self.topic,
             )
-
-            self.topic.messages_published += 1
 
         except Exception:  # noqa
             self.handleError(record)

@@ -23,7 +23,7 @@ class TestGooglePubSubHandler(BaseTestCase):
         topic.create()
 
         log_record = makeLogRecord({"msg": "Starting analysis."})
-        GooglePubSubHandler(service.publisher, topic, "analysis-id").emit(log_record)
+        GooglePubSubHandler(service._send_message, topic, "analysis-id").emit(log_record)
 
         self.assertEqual(json.loads(MESSAGES[topic.name][0].data.decode())["log_record"]["msg"], "Starting analysis.")
 
@@ -47,7 +47,7 @@ class TestGooglePubSubHandler(BaseTestCase):
         )
 
         with patch("octue.cloud.emulators.pub_sub.MockPublisher.publish") as mock_publish:
-            GooglePubSubHandler(service.publisher, topic, "analysis-id").emit(record)
+            GooglePubSubHandler(service._send_message, topic, "analysis-id").emit(record)
 
         self.assertEqual(
             json.loads(mock_publish.call_args.kwargs["data"].decode())["log_record"]["msg"],
