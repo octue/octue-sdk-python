@@ -211,6 +211,7 @@ class Service(CoolNameable):
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=functools.partial(self._send_monitor_message, topic=topic),
                 allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
+                sent_messages=self._sent_messages,
             )
 
             if analysis.output_manifest is None:
@@ -412,7 +413,7 @@ class Service(CoolNameable):
         """
 
         def recording_publish_function(topic, data, *args, **kwargs):
-            self._sent_messages.append(data.decode())
+            self._sent_messages.append(json.loads(data.decode()))
             return publish_function(topic, data, *args, **kwargs)
 
         return recording_publish_function

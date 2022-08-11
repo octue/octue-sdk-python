@@ -253,6 +253,7 @@ class MockService(Service):
         :param octue.resources.manifest.Manifest|None input_manifest:
         :param bool subscribe_to_logs:
         :param bool allow_local_files:
+        :param bool allow_save_diagnostics_data_on_crash:
         :param str|None question_uuid:
         :param str|None push_endpoint:
         :param float|None timeout:
@@ -282,6 +283,7 @@ class MockService(Service):
                     question_uuid=question_uuid,
                     forward_logs=subscribe_to_logs,
                     octue_sdk_version=parent_sdk_version,
+                    allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
                 )
             )
         except Exception as e:  # noqa

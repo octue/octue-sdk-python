@@ -754,6 +754,62 @@ class TestService(BaseTestCase):
                                         logging_context.output[3],
                                     )
 
+    def test_messages_sent_to_parent_are_not_recorded_by_child_if_crash_diagnostics_not_allowed(self):
+        """Test that messages sent to the parent by the child aren't recorded by the child if crash diagnostics aren't
+        allowed.
+        """
+        child = MockService(backend=BACKEND, run_function=create_run_function())
+        parent = MockService(backend=BACKEND, children={child.id: child})
+
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    child.serve()
+
+                    self.ask_question_and_wait_for_answer(
+                        parent=parent,
+                        child=child,
+                        input_values={},
+                        subscribe_to_logs=True,
+                        allow_save_diagnostics_data_on_crash=False,
+                        service_name="my-super-service",
+                    )
+
+        # Check that the child's messages haven't been recorded.
+        self.assertEqual(child._sent_messages, [])
+
+    def test_messages_sent_to_parent_are_recorded_by_child_if_crash_diagnostics_allowed(self):
+        """Test that messages sent to the parent by the child are recorded by the child if crash diagnostics are
+        allowed.
+        """
+        child = MockService(backend=BACKEND, run_function=create_run_function())
+        parent = MockService(backend=BACKEND, children={child.id: child})
+
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
+                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
+                    child.serve()
+
+                    self.ask_question_and_wait_for_answer(
+                        parent=parent,
+                        child=child,
+                        input_values={},
+                        subscribe_to_logs=True,
+                        allow_save_diagnostics_data_on_crash=True,
+                        service_name="my-super-service",
+                    )
+
+        # Check that the child's messages have been recorded.
+        self.assertEqual(child._sent_messages[0]["type"], "delivery_acknowledgement")
+        self.assertEqual(child._sent_messages[1]["type"], "log_record")
+        self.assertEqual(child._sent_messages[2]["type"], "log_record")
+        self.assertEqual(child._sent_messages[3]["type"], "log_record")
+
+        self.assertEqual(
+            child._sent_messages[4],
+            {"type": "result", "output_values": "Hello! It worked!", "output_manifest": None, "message_number": 4},
+        )
+
     @staticmethod
     def make_new_child(backend, run_function_returnee, use_mock=False):
         """Make and return a new child service that returns the given run function returnee when its run function is
@@ -781,6 +837,7 @@ class TestService(BaseTestCase):
         input_manifest=None,
         subscribe_to_logs=True,
         allow_local_files=False,
+        allow_save_diagnostics_data_on_crash=True,
         service_name="my-service",
         question_uuid=None,
         push_endpoint=None,
@@ -796,6 +853,7 @@ class TestService(BaseTestCase):
         :param octue.resources.manifest.Manifest|None input_manifest:
         :param bool subscribe_to_logs:
         :param bool allow_local_files:
+        :param bool allow_save_diagnostics_data_on_crash:
         :param str service_name:
         :param str|None question_uuid:
         :param callable|None push_endpoint:
@@ -810,6 +868,7 @@ class TestService(BaseTestCase):
             input_manifest=input_manifest,
             subscribe_to_logs=subscribe_to_logs,
             allow_local_files=allow_local_files,
+            allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
             question_uuid=question_uuid,
             push_endpoint=push_endpoint,
             timeout=timeout,
