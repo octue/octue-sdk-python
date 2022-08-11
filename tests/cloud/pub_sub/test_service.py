@@ -5,9 +5,7 @@ from unittest.mock import patch
 
 import twined.exceptions
 from octue import Runner, exceptions
-from octue.cloud.emulators.child import ServicePatcher
-from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
-from octue.cloud.emulators.pub_sub import (
+from octue.cloud.emulators._pub_sub import (
     DifferentMockAnalysis,
     MockAnalysis,
     MockAnalysisWithOutputManifest,
@@ -17,6 +15,8 @@ from octue.cloud.emulators.pub_sub import (
     MockSubscription,
     MockTopic,
 )
+from octue.cloud.emulators.child import ServicePatcher
+from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.cloud.pub_sub.service import Service
 from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Datafile, Dataset, Manifest
@@ -756,7 +756,7 @@ class TestService(BaseTestCase):
 
         :param octue.resources.service_backends.ServiceBackend backend:
         :param any run_function_returnee:
-        :return octue.cloud.emulators.pub_sub.MockService:
+        :return octue.cloud.emulators._pub_sub.MockService:
         """
         return MockService(backend=backend, run_function=lambda *args, **kwargs: run_function_returnee)
 
@@ -764,7 +764,7 @@ class TestService(BaseTestCase):
         """Make a mock child service that raises the given exception when its run function is executed.
 
         :param Exception exception_to_raise:
-        :return octue.cloud.emulators.pub_sub.MockService:
+        :return octue.cloud.emulators._pub_sub.MockService:
         """
         child = self.make_new_child(BACKEND, run_function_returnee=None)
 
@@ -792,8 +792,8 @@ class TestService(BaseTestCase):
     ):
         """Get a parent service to ask a question to a child service and wait for the answer.
 
-        :param octue.cloud.emulators.pub_sub.MockService parent:
-        :param octue.cloud.emulators.pub_sub.MockService child:
+        :param octue.cloud.emulators._pub_sub.MockService parent:
+        :param octue.cloud.emulators._pub_sub.MockService child:
         :param dict|None input_values:
         :param octue.resources.manifest.Manifest|None input_manifest:
         :param bool subscribe_to_logs:

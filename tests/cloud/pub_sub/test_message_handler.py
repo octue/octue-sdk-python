@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from octue import exceptions
-from octue.cloud.emulators.pub_sub import (
+from octue.cloud.emulators._pub_sub import (
     MockMessagePuller,
     MockPullResponse,
     MockService,
@@ -201,7 +201,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         """
         message_handler = OrderedMessageHandler(subscriber=MockSubscriber(), subscription=self.mock_subscription)
 
-        with patch("octue.cloud.emulators.pub_sub.MockSubscriber.pull", return_value=MockPullResponse()):
+        with patch("octue.cloud.emulators._pub_sub.MockSubscriber.pull", return_value=MockPullResponse()):
             with self.assertRaises(exceptions.QuestionNotDelivered):
                 message_handler.handle_messages(delivery_acknowledgement_timeout=0)
 

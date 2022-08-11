@@ -5,7 +5,7 @@ import uuid
 from unittest.mock import patch
 
 from octue.cloud import EXCEPTIONS_MAPPING
-from octue.cloud.emulators.pub_sub import MockService, MockSubscriber, MockSubscription, MockTopic
+from octue.cloud.emulators._pub_sub import MockService, MockSubscriber, MockSubscription, MockTopic
 from octue.resources import Analysis, Manifest, service_backends
 from octue.utils.patches import MultiPatcher
 
