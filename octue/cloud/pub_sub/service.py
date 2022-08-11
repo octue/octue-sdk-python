@@ -64,6 +64,7 @@ class Service(CoolNameable):
 
         self.backend = backend
         self.run_function = run_function
+        self._sent_messages = []
         self._publisher = None
         self._credentials = None
         super().__init__(*args, **kwargs)
@@ -164,6 +165,10 @@ class Service(CoolNameable):
             parent_sdk_version,
             allow_save_diagnostics_data_on_crash,
         ) = self._parse_question(question)
+
+        # Record messages sent to child for potential diagnostics.
+        if allow_save_diagnostics_data_on_crash:
+            self.publisher.publish = self._enable_message_recording(self.publisher.publish)
 
         topic = answer_topic or self.instantiate_answer_topic(question_uuid)
         self._send_delivery_acknowledgment(topic)
@@ -398,6 +403,19 @@ class Service(CoolNameable):
         :return str: the cleaned service ID.
         """
         return service_id.replace("/", ".")
+
+    def _enable_message_recording(self, publish_function):
+        """Add message recording to a publisher client's `publish` method.
+
+        :param callable publish_function: the `publish` method of a `google.cloud.pubsub_v1.PublisherClient` instance
+        :return callable: the same method but with message recording added
+        """
+
+        def recording_publish_function(topic, data, *args, **kwargs):
+            self._sent_messages.append(data.decode())
+            return publish_function(topic, data, *args, **kwargs)
+
+        return recording_publish_function
 
     def _send_delivery_acknowledgment(self, topic, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
