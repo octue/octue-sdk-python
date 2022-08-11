@@ -402,7 +402,7 @@ class TestService(BaseTestCase):
         """Test that a service can ask a question including an input manifest to another service that is serving and
         receive an answer.
         """
-        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
+        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         dataset_path = f"gs://{TEST_BUCKET_NAME}/my-dataset"
@@ -438,7 +438,7 @@ class TestService(BaseTestCase):
         """Test that a service can ask a question including an input manifest and no input values to another service
         that is serving and receive an answer.
         """
-        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
+        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         dataset_path = f"gs://{TEST_BUCKET_NAME}/my-dataset"
@@ -519,7 +519,7 @@ class TestService(BaseTestCase):
 
     def test_ask_with_output_manifest(self):
         """Test that a service can receive an output manifest as part of the answer to a question."""
-        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysisWithOutputManifest(), use_mock=True)
+        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysisWithOutputManifest())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
@@ -538,7 +538,7 @@ class TestService(BaseTestCase):
 
     def test_service_can_ask_multiple_questions_to_child(self):
         """Test that a service can ask multiple questions to the same child and expect replies to them all."""
-        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
+        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
@@ -565,8 +565,8 @@ class TestService(BaseTestCase):
 
     def test_service_can_ask_questions_to_multiple_children(self):
         """Test that a service can ask questions to different children and expect replies to them all."""
-        child_1 = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
-        child_2 = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True)
+        child_1 = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
+        child_2 = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis())
 
         parent = MockService(backend=BACKEND, children={child_1.id: child_1, child_2.id: child_2})
 
@@ -603,7 +603,7 @@ class TestService(BaseTestCase):
 
     def test_child_can_ask_its_own_child_questions(self):
         """Test that a child can contact its own child while answering a question from a parent."""
-        child_of_child = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True)
+        child_of_child = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis())
 
         def child_run_function(analysis_id, input_values, *args, **kwargs):
             subscription, _ = child.ask(service_id=child_of_child.id, input_values=input_values)
@@ -644,13 +644,8 @@ class TestService(BaseTestCase):
 
     def test_child_can_ask_its_own_children_questions(self):
         """Test that a child can contact more than one of its own children while answering a question from a parent."""
-        first_child_of_child = self.make_new_child(
-            BACKEND,
-            run_function_returnee=DifferentMockAnalysis(),
-            use_mock=True,
-        )
-
-        second_child_of_child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
+        first_child_of_child = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis())
+        second_child_of_child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
 
         def child_run_function(analysis_id, input_values, *args, **kwargs):
             subscription_1, _ = child.ask(service_id=first_child_of_child.id, input_values=input_values)
@@ -703,7 +698,7 @@ class TestService(BaseTestCase):
 
     def test_warning_issued_if_child_and_parent_sdk_versions_incompatible(self):
         """Test that a warning is logged if the parent and child's Octue SDK versions are potentially incompatible."""
-        child = self.make_new_child(backend=BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
+        child = self.make_new_child(backend=BACKEND, run_function_returnee=MockAnalysis())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
@@ -790,21 +785,15 @@ class TestService(BaseTestCase):
         )
 
     @staticmethod
-    def make_new_child(backend, run_function_returnee, use_mock=False):
+    def make_new_child(backend, run_function_returnee):
         """Make and return a new child service that returns the given run function returnee when its run function is
         executed.
 
         :param octue.resources.service_backends.ServiceBackend backend:
         :param any run_function_returnee:
-        :param bool use_mock:
         :return octue.cloud.emulators.pub_sub.MockService:
         """
-        run_function = lambda *args, **kwargs: run_function_returnee
-
-        if use_mock:
-            return MockService(backend=backend, run_function=run_function)
-
-        return Service(backend=backend, run_function=run_function)
+        return MockService(backend=backend, run_function=lambda *args, **kwargs: run_function_returnee)
 
     @staticmethod
     def ask_question_and_wait_for_answer(
@@ -864,7 +853,7 @@ class TestService(BaseTestCase):
         :param Exception exception_to_raise:
         :return octue.cloud.emulators.pub_sub.MockService:
         """
-        child = self.make_new_child(BACKEND, run_function_returnee=None, use_mock=True)
+        child = self.make_new_child(BACKEND, run_function_returnee=None)
 
         def error_run_function(*args, **kwargs):
             raise exception_to_raise
