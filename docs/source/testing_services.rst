@@ -38,9 +38,9 @@ You can emulate any message type that your app (the parent) can handle. The tabl
 +-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
 | ``monitor_message``   | Any number                                                                                       | {"type": "monitor_message": "content": {"progress": "35%"}}                                                               |
 +-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
-| ``exception``         | One (technically, any number, but only the first will be raised)                                 | {"type": "exception", "content": {"exception_type": "ValueError", "exception_message": "x cannot be less than 10."}}      |
+| ``exception``         | One                                                                                              | {"type": "exception", "content": {"exception_type": "ValueError", "exception_message": "x cannot be less than 10."}}      |
 +-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
-| ``result``            | One (technically, any number, but only the first will be returned)                               | {"type": "result", "content": {"output_values": {"my": "results"}, "output_manifest": None}}                              |
+| ``result``            | One                                                                                              | {"type": "result", "content": {"output_values": {"my": "results"}, "output_manifest": None}}                              |
 +-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
 
 **Notes**
@@ -199,7 +199,7 @@ To emulate your children in tests, patch the :mod:`Child <octue.resources.child.
 
 
 Notes:
-- If your app uses more than one child, simply provide more child emulators in the ``emulated_children`` list in the
-  order they're asked questions in your app.
+- If your app uses more than one child, provide more child emulators in the ``emulated_children`` list in the order
+  they're asked questions in your app.
 - If a given child is asked more than one question, provide a child emulator for each question asked in the same order
   the questions are asked.
