@@ -205,14 +205,21 @@ class Runner:
 
             except Exception as analysis_error:
                 if allow_save_diagnostics_data_on_crash:
-                    logger.warning("Saving crash diagnostics to %r.", self.crash_diagnostics_cloud_path)
+                    if not self.crash_diagnostics_cloud_path:
+                        logger.warning(
+                            "Cannot save crash diagnostics as the child doesn't have a crash diagnostics cloud path "
+                            "set."
+                        )
 
-                    try:
-                        self._save_crash_diagnostics_data(analysis, sent_messages)
-                        logger.warning("Crash diagnostics saved.")
-                    except Exception as crash_diagnostics_save_error:
-                        logger.error("Failed to save crash diagnostics.")
-                        raise crash_diagnostics_save_error
+                    else:
+                        logger.warning("Saving crash diagnostics to %r.", self.crash_diagnostics_cloud_path)
+
+                        try:
+                            self._save_crash_diagnostics_data(analysis, sent_messages)
+                            logger.warning("Crash diagnostics saved.")
+                        except Exception as crash_diagnostics_save_error:
+                            logger.error("Failed to save crash diagnostics.")
+                            raise crash_diagnostics_save_error
 
                 logger.error(str(analysis_error))
                 raise analysis_error
