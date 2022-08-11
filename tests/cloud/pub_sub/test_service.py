@@ -129,7 +129,7 @@ class TestService(BaseTestCase):
 
     def test_exceptions_in_responder_are_handled_and_sent_to_asker(self):
         """Test that exceptions raised in the child service are handled and sent back to the asker."""
-        child = self.make_child_service_with_error(
+        child = self.make_new_child_with_error(
             twined.exceptions.InvalidManifestContents("'met_mast_id' is a required property")
         )
 
@@ -153,7 +153,7 @@ class TestService(BaseTestCase):
         """Test that exceptions with multiple arguments raised in the child service are handled and sent back to
         the asker.
         """
-        child = self.make_child_service_with_error(FileNotFoundError(2, "No such file or directory: 'blah'"))
+        child = self.make_new_child_with_error(FileNotFoundError(2, "No such file or directory: 'blah'"))
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
@@ -176,7 +176,7 @@ class TestService(BaseTestCase):
         class AnUnknownException(Exception):
             pass
 
-        child = self.make_child_service_with_error(AnUnknownException("This is an exception unknown to the asker."))
+        child = self.make_new_child_with_error(AnUnknownException("This is an exception unknown to the asker."))
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
@@ -795,6 +795,20 @@ class TestService(BaseTestCase):
         """
         return MockService(backend=backend, run_function=lambda *args, **kwargs: run_function_returnee)
 
+    def make_new_child_with_error(self, exception_to_raise):
+        """Make a mock child service that raises the given exception when its run function is executed.
+
+        :param Exception exception_to_raise:
+        :return octue.cloud.emulators.pub_sub.MockService:
+        """
+        child = self.make_new_child(BACKEND, run_function_returnee=None)
+
+        def error_run_function(*args, **kwargs):
+            raise exception_to_raise
+
+        child.run_function = error_run_function
+        return child
+
     @staticmethod
     def ask_question_and_wait_for_answer(
         parent,
@@ -846,17 +860,3 @@ class TestService(BaseTestCase):
             service_name=service_name,
             delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
         )
-
-    def make_child_service_with_error(self, exception_to_raise):
-        """Make a mock child service that raises the given exception when its run function is executed.
-
-        :param Exception exception_to_raise:
-        :return octue.cloud.emulators.pub_sub.MockService:
-        """
-        child = self.make_new_child(BACKEND, run_function_returnee=None)
-
-        def error_run_function(*args, **kwargs):
-            raise exception_to_raise
-
-        child.run_function = error_run_function
-        return child
