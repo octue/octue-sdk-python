@@ -303,12 +303,24 @@ class TestRunner(BaseTestCase):
 
         analysis_id = "4b91e3f0-4492-49e3-8061-34f1942dc68a"
 
+        mock_sent_messages = [
+            {"type": "delivery_acknowledgement", "delivery_time": "2022-08-11 13:02:54.775794", "message_number": 0},
+            {
+                "type": "exception",
+                "exception_type": "ValueError",
+                "exception_message": "This is deliberately raised to simulate app failure.",
+                "traceback": "",
+                "message_number": 1,
+            },
+        ]
+
         with self.assertRaises(ValueError):
             runner.run(
                 analysis_id=analysis_id,
                 input_values={"hello": "world"},
                 input_manifest=manifests["input"],
                 allow_save_diagnostics_data_on_crash=True,
+                sent_messages=mock_sent_messages,
             )
 
         storage_client = GoogleCloudStorageClient()
@@ -375,14 +387,11 @@ class TestRunner(BaseTestCase):
             ),
         )
 
-        # Check the logs are uploaded.
-        with Datafile(storage.path.join(question_crash_diagnostics_path, "logs.txt")) as (_, f):
-            logs = f.read()
+        # Check the child's messages are uploaded.
+        with Datafile(storage.path.join(question_crash_diagnostics_path, "messages.json")) as (_, f):
+            messages = json.load(f)
 
-        self.assertIn(
-            f"[analysis-{analysis_id}] Saving crash diagnostics to 'gs://octue-sdk-python-test-bucket/crash_diagnostics'.",
-            logs,
-        )
+        self.assertEqual(messages, mock_sent_messages)
 
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
