@@ -495,15 +495,7 @@ class TestService(BaseTestCase):
         manifest = Manifest(datasets={"my-local-dataset": Dataset(name="my-local-dataset", files={local_file})})
 
         # Get the child to open the local file itself and return the contents as output.
-        def run_function(
-            analysis_id,
-            input_values,
-            input_manifest,
-            analysis_log_handler,
-            handle_monitor_message,
-            allow_save_diagnostics_data_on_crash,
-            sent_messages,
-        ):
+        def run_function(*args, **kwargs):
             with open(temporary_local_path) as f:
                 return MockAnalysis(output_values=f.read())
 
@@ -613,15 +605,7 @@ class TestService(BaseTestCase):
         """Test that a child can contact its own child while answering a question from a parent."""
         child_of_child = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis(), use_mock=True)
 
-        def child_run_function(
-            analysis_id,
-            input_values,
-            input_manifest,
-            analysis_log_handler,
-            handle_monitor_message,
-            allow_save_diagnostics_data_on_crash,
-            sent_messages,
-        ):
+        def child_run_function(analysis_id, input_values, *args, **kwargs):
             subscription, _ = child.ask(service_id=child_of_child.id, input_values=input_values)
             return MockAnalysis(output_values={input_values["question"]: child.wait_for_answer(subscription)})
 
@@ -668,15 +652,7 @@ class TestService(BaseTestCase):
 
         second_child_of_child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis(), use_mock=True)
 
-        def child_run_function(
-            analysis_id,
-            input_values,
-            input_manifest,
-            analysis_log_handler,
-            handle_monitor_message,
-            allow_save_diagnostics_data_on_crash,
-            sent_messages,
-        ):
+        def child_run_function(analysis_id, input_values, *args, **kwargs):
             subscription_1, _ = child.ask(service_id=first_child_of_child.id, input_values=input_values)
             subscription_2, _ = child.ask(service_id=second_child_of_child.id, input_values=input_values)
 
@@ -823,9 +799,7 @@ class TestService(BaseTestCase):
         :param bool use_mock:
         :return octue.cloud.emulators.pub_sub.MockService:
         """
-        run_function = (
-            lambda analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message, allow_save_diagnostics_data_on_crash, sent_messages: run_function_returnee
-        )
+        run_function = lambda *args, **kwargs: run_function_returnee
 
         if use_mock:
             return MockService(backend=backend, run_function=run_function)
@@ -892,15 +866,7 @@ class TestService(BaseTestCase):
         """
         child = self.make_new_child(BACKEND, run_function_returnee=None, use_mock=True)
 
-        def error_run_function(
-            analysis_id,
-            input_values,
-            input_manifest,
-            analysis_log_handler,
-            handle_monitor_message,
-            allow_save_diagnostics_data_on_crash,
-            sent_messages,
-        ):
+        def error_run_function(*args, **kwargs):
             raise exception_to_raise
 
         child.run_function = error_run_function
