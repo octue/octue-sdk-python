@@ -502,6 +502,7 @@ class TestService(BaseTestCase):
             analysis_log_handler,
             handle_monitor_message,
             allow_save_diagnostics_data_on_crash,
+            sent_messages,
         ):
             with open(temporary_local_path) as f:
                 return MockAnalysis(output_values=f.read())
@@ -619,6 +620,7 @@ class TestService(BaseTestCase):
             analysis_log_handler,
             handle_monitor_message,
             allow_save_diagnostics_data_on_crash,
+            sent_messages,
         ):
             subscription, _ = child.ask(service_id=child_of_child.id, input_values=input_values)
             return MockAnalysis(output_values={input_values["question"]: child.wait_for_answer(subscription)})
@@ -673,6 +675,7 @@ class TestService(BaseTestCase):
             analysis_log_handler,
             handle_monitor_message,
             allow_save_diagnostics_data_on_crash,
+            sent_messages,
         ):
             subscription_1, _ = child.ask(service_id=first_child_of_child.id, input_values=input_values)
             subscription_2, _ = child.ask(service_id=second_child_of_child.id, input_values=input_values)
@@ -821,7 +824,7 @@ class TestService(BaseTestCase):
         :return octue.cloud.emulators.pub_sub.MockService:
         """
         run_function = (
-            lambda analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message, allow_save_diagnostics_data_on_crash: run_function_returnee
+            lambda analysis_id, input_values, input_manifest, analysis_log_handler, handle_monitor_message, allow_save_diagnostics_data_on_crash, sent_messages: run_function_returnee
         )
 
         if use_mock:
@@ -896,6 +899,7 @@ class TestService(BaseTestCase):
             analysis_log_handler,
             handle_monitor_message,
             allow_save_diagnostics_data_on_crash,
+            sent_messages,
         ):
             raise exception_to_raise
 

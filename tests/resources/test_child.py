@@ -45,6 +45,7 @@ class TestChild(BaseTestCase):
             analysis_log_handler,
             handle_monitor_message,
             allow_save_diagnostics_data_on_crash,
+            sent_messages,
         ):
             return MockAnalysis(output_values=input_values)
 

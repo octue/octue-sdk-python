@@ -279,7 +279,7 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
                     "configuration_manifest.json",
                     "input_manifest.json",
                     "input_values.json",
-                    "logs.txt",
+                    "messages.json",
                 },
             )
             self.assertEqual(directory_contents[2][1], ["met_mast_data"])
