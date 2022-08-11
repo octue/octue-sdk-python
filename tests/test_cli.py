@@ -11,7 +11,8 @@ from click.testing import CliRunner
 from octue import Runner
 from octue.cli import octue_cli
 from octue.cloud import storage
-from octue.cloud.emulators.pub_sub import MockService, MockSubscriber, MockSubscription, MockTopic
+from octue.cloud.emulators.child import ServicePatcher
+from octue.cloud.emulators.pub_sub import MockService
 from octue.configuration import AppConfiguration, ServiceConfiguration
 from octue.resources import Datafile
 from tests import TEST_BUCKET_NAME, TESTS_DIR
@@ -197,15 +198,9 @@ class TestStartCommand(BaseTestCase):
             }
 
         with mock.patch("octue.configuration.open", unittest.mock.mock_open(mock=MockOpenForConfigurationFiles)):
-            with mock.patch("octue.cloud.pub_sub.service.Topic", MockTopic):
-                with mock.patch("octue.cloud.pub_sub.service.Subscription", MockSubscription):
-                    with mock.patch("google.cloud.pubsub_v1.SubscriberClient", MockSubscriber):
-                        with mock.patch("octue.cli.Service", MockService):
-
-                            result = CliRunner().invoke(
-                                octue_cli,
-                                ["start", "--timeout=0"],
-                            )
+            with ServicePatcher():
+                with mock.patch("octue.cli.Service", MockService):
+                    result = CliRunner().invoke(octue_cli, ["start", "--timeout=0"])
 
         self.assertIsNone(result.exception)
         self.assertEqual(result.exit_code, 0)

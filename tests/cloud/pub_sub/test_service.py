@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import twined.exceptions
 from octue import Runner, exceptions
+from octue.cloud.emulators.child import ServicePatcher
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.cloud.emulators.pub_sub import (
     DifferentMockAnalysis,
@@ -59,6 +60,8 @@ class TestService(BaseTestCase):
     """Some of these tests require a connection to either a real Google Pub/Sub instance on Google Cloud Platform
     (GCP), or a local emulator.
     """
+
+    service_patcher = ServicePatcher()
 
     def test_namespace_always_appears_in_id(self):
         """Test that the Octue service namespace always appears at the start of a service's ID whether it's explicitly
@@ -135,17 +138,15 @@ class TestService(BaseTestCase):
 
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    child.serve()
+        with self.service_patcher:
+            child.serve()
 
-                    with self.assertRaises(twined.exceptions.InvalidManifestContents) as context:
-                        self.ask_question_and_wait_for_answer(
-                            parent=parent,
-                            child=child,
-                            input_values={},
-                        )
+            with self.assertRaises(twined.exceptions.InvalidManifestContents) as context:
+                self.ask_question_and_wait_for_answer(
+                    parent=parent,
+                    child=child,
+                    input_values={},
+                )
 
         self.assertIn("'met_mast_id' is a required property", context.exception.args[0])
 
@@ -156,17 +157,15 @@ class TestService(BaseTestCase):
         child = self.make_new_child_with_error(FileNotFoundError(2, "No such file or directory: 'blah'"))
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    child.serve()
+        with self.service_patcher:
+            child.serve()
 
-                    with self.assertRaises(FileNotFoundError) as context:
-                        self.ask_question_and_wait_for_answer(
-                            parent=parent,
-                            child=child,
-                            input_values={},
-                        )
+            with self.assertRaises(FileNotFoundError) as context:
+                self.ask_question_and_wait_for_answer(
+                    parent=parent,
+                    child=child,
+                    input_values={},
+                )
 
         self.assertIn("[Errno 2] No such file or directory: 'blah'", format(context.exception))
 
@@ -179,17 +178,15 @@ class TestService(BaseTestCase):
         child = self.make_new_child_with_error(AnUnknownException("This is an exception unknown to the asker."))
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    child.serve()
+        with self.service_patcher:
+            child.serve()
 
-                    with self.assertRaises(Exception) as context:
-                        self.ask_question_and_wait_for_answer(
-                            parent=parent,
-                            child=child,
-                            input_values={},
-                        )
+            with self.assertRaises(Exception) as context:
+                self.ask_question_and_wait_for_answer(
+                    parent=parent,
+                    child=child,
+                    input_values={},
+                )
 
         self.assertEqual(type(context.exception).__name__, "AnUnknownException")
         self.assertIn("This is an exception unknown to the asker.", context.exception.args[0])
@@ -203,17 +200,15 @@ class TestService(BaseTestCase):
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         with self.assertLogs() as logging_context:
-            with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-                with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                    with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                        child.serve()
+            with self.service_patcher:
+                child.serve()
 
-                        answer = self.ask_question_and_wait_for_answer(
-                            parent=parent,
-                            child=child,
-                            input_values={},
-                            subscribe_to_logs=False,
-                        )
+                answer = self.ask_question_and_wait_for_answer(
+                    parent=parent,
+                    child=child,
+                    input_values={},
+                    subscribe_to_logs=False,
+                )
 
         self.assertEqual(
             answer,
@@ -231,18 +226,16 @@ class TestService(BaseTestCase):
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         with self.assertLogs() as logs_context_manager:
-            with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-                with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                    with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                        child.serve()
+            with self.service_patcher:
+                child.serve()
 
-                        answer = self.ask_question_and_wait_for_answer(
-                            parent=parent,
-                            child=child,
-                            input_values={},
-                            subscribe_to_logs=True,
-                            service_name="my-super-service",
-                        )
+                answer = self.ask_question_and_wait_for_answer(
+                    parent=parent,
+                    child=child,
+                    input_values={},
+                    subscribe_to_logs=True,
+                    service_name="my-super-service",
+                )
 
         self.assertEqual(
             answer,
@@ -285,18 +278,16 @@ class TestService(BaseTestCase):
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         with self.assertLogs() as logs_context_manager:
-            with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-                with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                    with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                        child.serve()
+            with self.service_patcher:
+                child.serve()
 
-                        self.ask_question_and_wait_for_answer(
-                            parent=parent,
-                            child=child,
-                            input_values={},
-                            subscribe_to_logs=True,
-                            service_name="my-super-service",
-                        )
+                self.ask_question_and_wait_for_answer(
+                    parent=parent,
+                    child=child,
+                    input_values={},
+                    subscribe_to_logs=True,
+                    service_name="my-super-service",
+                )
 
         error_logged = False
 
@@ -335,17 +326,16 @@ class TestService(BaseTestCase):
         child = MockService(backend=BACKEND, run_function=create_run_function_with_monitoring())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    child.serve()
+        with self.service_patcher:
+            child.serve()
 
-                    subscription, _ = parent.ask(child.id, input_values={})
+            subscription, _ = parent.ask(child.id, input_values={})
+            monitoring_data = []
 
-                    monitoring_data = []
-                    parent.wait_for_answer(
-                        subscription, handle_monitor_message=lambda data: monitoring_data.append(data)
-                    )
+            parent.wait_for_answer(
+                subscription,
+                handle_monitor_message=lambda data: monitoring_data.append(data),
+            )
 
         self.assertEqual(
             monitoring_data, [{"status": "my first monitor message"}, {"status": "my second monitor message"}]
@@ -378,20 +368,17 @@ class TestService(BaseTestCase):
         child = MockService(backend=BACKEND, run_function=create_run_function_with_monitoring())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    child.serve()
+        with self.service_patcher:
+            child.serve()
 
-                    subscription, _ = parent.ask(child.id, input_values={})
+            subscription, _ = parent.ask(child.id, input_values={})
+            monitoring_data = []
 
-                    monitoring_data = []
-
-                    with self.assertRaises(InvalidMonitorMessage):
-                        parent.wait_for_answer(
-                            subscription,
-                            handle_monitor_message=lambda data: monitoring_data.append(data),
-                        )
+            with self.assertRaises(InvalidMonitorMessage):
+                parent.wait_for_answer(
+                    subscription,
+                    handle_monitor_message=lambda data: monitoring_data.append(data),
+                )
 
         self.assertEqual(
             monitoring_data,
@@ -416,18 +403,16 @@ class TestService(BaseTestCase):
             }
         )
 
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    child.serve()
+        with self.service_patcher:
+            child.serve()
 
-                    with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
-                        answer = self.ask_question_and_wait_for_answer(
-                            parent=parent,
-                            child=child,
-                            input_values={},
-                            input_manifest=input_manifest,
-                        )
+            with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
+                answer = self.ask_question_and_wait_for_answer(
+                    parent=parent,
+                    child=child,
+                    input_values={},
+                    input_manifest=input_manifest,
+                )
 
         self.assertEqual(
             answer,
@@ -452,17 +437,15 @@ class TestService(BaseTestCase):
             }
         )
 
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    child.serve()
+        with self.service_patcher:
+            child.serve()
 
-                    with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
-                        answer = self.ask_question_and_wait_for_answer(
-                            parent=parent,
-                            child=child,
-                            input_manifest=input_manifest,
-                        )
+            with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
+                answer = self.ask_question_and_wait_for_answer(
+                    parent=parent,
+                    child=child,
+                    input_manifest=input_manifest,
+                )
 
         self.assertEqual(
             answer,
@@ -502,18 +485,16 @@ class TestService(BaseTestCase):
         child = MockService(backend=BACKEND, run_function=run_function)
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    child.serve()
+        with self.service_patcher:
+            child.serve()
 
-                    answer = self.ask_question_and_wait_for_answer(
-                        parent=parent,
-                        child=child,
-                        input_values={},
-                        input_manifest=manifest,
-                        allow_local_files=True,
-                    )
+            answer = self.ask_question_and_wait_for_answer(
+                parent=parent,
+                child=child,
+                input_values={},
+                input_manifest=manifest,
+                allow_local_files=True,
+            )
 
         self.assertEqual(answer["output_values"], "This is a local file.")
 
@@ -522,16 +503,14 @@ class TestService(BaseTestCase):
         child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysisWithOutputManifest())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    child.serve()
+        with self.service_patcher:
+            child.serve()
 
-                    answer = self.ask_question_and_wait_for_answer(
-                        parent=parent,
-                        child=child,
-                        input_values={},
-                    )
+            answer = self.ask_question_and_wait_for_answer(
+                parent=parent,
+                child=child,
+                input_values={},
+            )
 
         self.assertEqual(answer["output_values"], MockAnalysisWithOutputManifest.output_values)
         self.assertEqual(answer["output_manifest"].id, MockAnalysisWithOutputManifest.output_manifest.id)
@@ -541,21 +520,19 @@ class TestService(BaseTestCase):
         child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    child.serve()
+        with self.service_patcher:
+            child.serve()
 
-                    answers = []
+            answers = []
 
-                    for i in range(5):
-                        answers.append(
-                            self.ask_question_and_wait_for_answer(
-                                parent=parent,
-                                child=child,
-                                input_values={},
-                            )
-                        )
+            for i in range(5):
+                answers.append(
+                    self.ask_question_and_wait_for_answer(
+                        parent=parent,
+                        child=child,
+                        input_values={},
+                    )
+                )
 
         for answer in answers:
             self.assertEqual(
@@ -570,23 +547,21 @@ class TestService(BaseTestCase):
 
         parent = MockService(backend=BACKEND, children={child_1.id: child_1, child_2.id: child_2})
 
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    child_1.serve()
-                    child_2.serve()
+        with self.service_patcher:
+            child_1.serve()
+            child_2.serve()
 
-                    answer_1 = self.ask_question_and_wait_for_answer(
-                        parent=parent,
-                        child=child_1,
-                        input_values={},
-                    )
+            answer_1 = self.ask_question_and_wait_for_answer(
+                parent=parent,
+                child=child_1,
+                input_values={},
+            )
 
-                    answer_2 = self.ask_question_and_wait_for_answer(
-                        parent=parent,
-                        child=child_2,
-                        input_values={},
-                    )
+            answer_2 = self.ask_question_and_wait_for_answer(
+                parent=parent,
+                child=child_2,
+                input_values={},
+            )
 
         self.assertEqual(
             answer_1,
@@ -617,17 +592,15 @@ class TestService(BaseTestCase):
 
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    child.serve()
-                    child_of_child.serve()
+        with self.service_patcher:
+            child.serve()
+            child_of_child.serve()
 
-                    answer = self.ask_question_and_wait_for_answer(
-                        parent=parent,
-                        child=child,
-                        input_values={"question": "What does the child of the child say?"},
-                    )
+            answer = self.ask_question_and_wait_for_answer(
+                parent=parent,
+                child=child,
+                input_values={"question": "What does the child of the child say?"},
+            )
 
         self.assertEqual(
             answer,
@@ -666,18 +639,16 @@ class TestService(BaseTestCase):
 
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    child.serve()
-                    first_child_of_child.serve()
-                    second_child_of_child.serve()
+        with self.service_patcher:
+            child.serve()
+            first_child_of_child.serve()
+            second_child_of_child.serve()
 
-                    answer = self.ask_question_and_wait_for_answer(
-                        parent=parent,
-                        child=child,
-                        input_values={"question": "What does the child of the child say?"},
-                    )
+            answer = self.ask_question_and_wait_for_answer(
+                parent=parent,
+                child=child,
+                input_values={"question": "What does the child of the child say?"},
+            )
 
         self.assertEqual(
             answer,
@@ -701,32 +672,30 @@ class TestService(BaseTestCase):
         child = self.make_new_child(backend=BACKEND, run_function_returnee=MockAnalysis())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    child.serve()
+        with self.service_patcher:
+            child.serve()
 
-                    for parent_sdk_version, child_sdk_version in (
-                        ("0.1.0", "0.2.0"),
-                        ("0.2.0", "0.1.0"),
-                        ("0.1.0", "1.1.0"),
-                        ("1.1.0", "0.1.0"),
-                    ):
-                        with self.subTest(parent_sdk_version=parent_sdk_version, child_sdk_version=child_sdk_version):
-                            with patch("pkg_resources.Distribution.version", child_sdk_version):
-                                with self.assertLogs() as logging_context:
-                                    self.ask_question_and_wait_for_answer(
-                                        parent=parent,
-                                        child=child,
-                                        input_values={"question": "What does the child of the child say?"},
-                                        parent_sdk_version=parent_sdk_version,
-                                    )
+            for parent_sdk_version, child_sdk_version in (
+                ("0.1.0", "0.2.0"),
+                ("0.2.0", "0.1.0"),
+                ("0.1.0", "1.1.0"),
+                ("1.1.0", "0.1.0"),
+            ):
+                with self.subTest(parent_sdk_version=parent_sdk_version, child_sdk_version=child_sdk_version):
+                    with patch("pkg_resources.Distribution.version", child_sdk_version):
+                        with self.assertLogs() as logging_context:
+                            self.ask_question_and_wait_for_answer(
+                                parent=parent,
+                                child=child,
+                                input_values={"question": "What does the child of the child say?"},
+                                parent_sdk_version=parent_sdk_version,
+                            )
 
-                                    self.assertIn(
-                                        f"The parent's Octue SDK version {parent_sdk_version} may not be compatible "
-                                        f"with the local Octue SDK version {child_sdk_version}",
-                                        logging_context.output[3],
-                                    )
+                            self.assertIn(
+                                f"The parent's Octue SDK version {parent_sdk_version} may not be compatible "
+                                f"with the local Octue SDK version {child_sdk_version}",
+                                logging_context.output[3],
+                            )
 
     def test_messages_sent_to_parent_are_not_recorded_by_child_if_crash_diagnostics_not_allowed(self):
         """Test that messages sent to the parent by the child aren't recorded by the child if crash diagnostics aren't
@@ -735,19 +704,17 @@ class TestService(BaseTestCase):
         child = MockService(backend=BACKEND, run_function=create_run_function())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    child.serve()
+        with self.service_patcher:
+            child.serve()
 
-                    self.ask_question_and_wait_for_answer(
-                        parent=parent,
-                        child=child,
-                        input_values={},
-                        subscribe_to_logs=True,
-                        allow_save_diagnostics_data_on_crash=False,
-                        service_name="my-super-service",
-                    )
+            self.ask_question_and_wait_for_answer(
+                parent=parent,
+                child=child,
+                input_values={},
+                subscribe_to_logs=True,
+                allow_save_diagnostics_data_on_crash=False,
+                service_name="my-super-service",
+            )
 
         # Check that the child's messages haven't been recorded.
         self.assertEqual(child._sent_messages, [])
@@ -759,19 +726,17 @@ class TestService(BaseTestCase):
         child = MockService(backend=BACKEND, run_function=create_run_function())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    child.serve()
+        with self.service_patcher:
+            child.serve()
 
-                    self.ask_question_and_wait_for_answer(
-                        parent=parent,
-                        child=child,
-                        input_values={},
-                        subscribe_to_logs=True,
-                        allow_save_diagnostics_data_on_crash=True,
-                        service_name="my-super-service",
-                    )
+            self.ask_question_and_wait_for_answer(
+                parent=parent,
+                child=child,
+                input_values={},
+                subscribe_to_logs=True,
+                allow_save_diagnostics_data_on_crash=True,
+                service_name="my-super-service",
+            )
 
         # Check that the child's messages have been recorded.
         self.assertEqual(child._sent_messages[0]["type"], "delivery_acknowledgement")

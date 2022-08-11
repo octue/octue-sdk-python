@@ -7,6 +7,7 @@ from unittest.mock import patch
 from octue.cloud import EXCEPTIONS_MAPPING
 from octue.cloud.emulators.pub_sub import MockService, MockSubscriber, MockSubscription, MockTopic
 from octue.resources import Analysis, Manifest, service_backends
+from octue.utils.patches import MultiPatcher
 
 
 logger = logging.getLogger(__name__)
@@ -98,26 +99,24 @@ class ChildEmulator:
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
         :return dict: a dictionary containing the keys "output_values" and "output_manifest"
         """
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    self._child.serve()
+        with ServicePatcher():
+            self._child.serve()
 
-                    subscription, _ = self._parent.ask(
-                        service_id=self._child.id,
-                        input_values=input_values,
-                        input_manifest=input_manifest,
-                        subscribe_to_logs=subscribe_to_logs,
-                        allow_local_files=allow_local_files,
-                        question_uuid=question_uuid,
-                    )
+            subscription, _ = self._parent.ask(
+                service_id=self._child.id,
+                input_values=input_values,
+                input_manifest=input_manifest,
+                subscribe_to_logs=subscribe_to_logs,
+                allow_local_files=allow_local_files,
+                question_uuid=question_uuid,
+            )
 
-                    return self._parent.wait_for_answer(
-                        subscription,
-                        handle_monitor_message=handle_monitor_message,
-                        service_name=self.id,
-                        timeout=timeout,
-                    )
+            return self._parent.wait_for_answer(
+                subscription,
+                handle_monitor_message=handle_monitor_message,
+                service_name=self.id,
+                timeout=timeout,
+            )
 
     def _emulate_analysis(
         self,
@@ -275,3 +274,19 @@ class ChildEmulator:
             raise ValueError(
                 "The result must be a dictionary containing the keys 'output_values' and 'output_manifest'."
             )
+
+
+class ServicePatcher(MultiPatcher):
+    """A multi-patcher that provides the patches needed to run mock services.
+
+    :return None:
+    """
+
+    def __init__(self):
+        super().__init__(
+            patches=[
+                patch("octue.cloud.pub_sub.service.Topic", new=MockTopic),
+                patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription),
+                patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber),
+            ]
+        )

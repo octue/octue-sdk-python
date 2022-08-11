@@ -3,7 +3,8 @@ from unittest.mock import patch
 
 from google.auth.exceptions import DefaultCredentialsError
 
-from octue.cloud.emulators.pub_sub import MockAnalysis, MockService, MockSubscriber, MockSubscription, MockTopic
+from octue.cloud.emulators.child import ServicePatcher
+from octue.cloud.emulators.pub_sub import MockAnalysis, MockService, MockSubscriber, MockSubscription
 from octue.resources.child import Child
 from octue.resources.service_backends import GCPPubSubBackend
 from tests.base import BaseTestCase
@@ -36,33 +37,23 @@ class TestChild(BaseTestCase):
 
     def test_child_can_be_asked_multiple_questions(self):
         """Test that a child can be asked multiple questions."""
-        backend = GCPPubSubBackend(project_name="blah")
 
-        def run_function(
-            analysis_id,
-            input_values,
-            input_manifest,
-            analysis_log_handler,
-            handle_monitor_message,
-            allow_save_diagnostics_data_on_crash,
-            sent_messages,
-        ):
+        def run_function(analysis_id, input_values, *args, **kwargs):
             return MockAnalysis(output_values=input_values)
 
-        responding_service = MockService(backend=backend, service_id="testing/wind-speed", run_function=run_function)
+        responding_service = MockService(
+            backend=GCPPubSubBackend(project_name="blah"),
+            service_id="testing/wind-speed",
+            run_function=run_function,
+        )
 
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
-                    with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                        responding_service.serve()
+        with ServicePatcher():
+            with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
+                responding_service.serve()
 
-                        child = Child(
-                            id=responding_service.id,
-                            backend={"name": "GCPPubSubBackend", "project_name": "blah"},
-                        )
+                child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_name": "blah"})
 
-                        # Make sure the child's underlying mock service knows how to access the mock responding service.
-                        child._service.children[responding_service.id] = responding_service
-                        self.assertEqual(child.ask([1, 2, 3, 4])["output_values"], [1, 2, 3, 4])
-                        self.assertEqual(child.ask([5, 6, 7, 8])["output_values"], [5, 6, 7, 8])
+                # Make sure the child's underlying mock service knows how to access the mock responding service.
+                child._service.children[responding_service.id] = responding_service
+                self.assertEqual(child.ask([1, 2, 3, 4])["output_values"], [1, 2, 3, 4])
+                self.assertEqual(child.ask([5, 6, 7, 8])["output_values"], [5, 6, 7, 8])
