@@ -107,7 +107,7 @@ class Runner:
         :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run. Handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but should use the format defined above in LOG_FORMAT.
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
         :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved if the analysis fails
-        :param list|None sent_messages: the list of messages sent by the service running this runner (this should update in real time) to save if crash diagnostics saving is enabled
+        :param list|None sent_messages: the list of messages sent by the service running this runner (this should update in real time) to save if crash diagnostics are enabled
         :return octue.resources.analysis.Analysis:
         """
         if hasattr(self.twine, "credentials"):
@@ -296,7 +296,7 @@ class Runner:
         cloud path.
 
         :param octue.resources.analysis.Analysis analysis:
-        :param list|None sent_messages: the list of messages sent by the service running this runner (this should update in real time) to save if crash diagnostics saving is enabled
+        :param list|None sent_messages: the list of messages sent by the service running this runner (this should update in real time) to save if crash diagnostics are enabled
         :return None:
         """
         storage_client = GoogleCloudStorageClient()
