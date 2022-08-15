@@ -34,22 +34,23 @@ You can emulate any message type that your app (the parent) can handle. The tabl
 +-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
 | Message type          | Number of messages supported                                                                     | Example                                                                                                                   |
 +=======================+==================================================================================================+===========================================================================================================================+
-| ``log_record``        | Any number                                                                                       | {"type": "log_record": "content": {"msg": "Starting analysis."}}                                                          |
+| ``log_record``        | Any number                                                                                       | {"type": "log_record": "log_record": {"msg": "Starting analysis."}}                                                       |
 +-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
-| ``monitor_message``   | Any number                                                                                       | {"type": "monitor_message": "content": {"progress": "35%"}}                                                               |
+| ``monitor_message``   | Any number                                                                                       | {"type": "monitor_message": "data": '{"progress": "35%"}'}                                                                |
 +-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
-| ``exception``         | One                                                                                              | {"type": "exception", "content": {"exception_type": "ValueError", "exception_message": "x cannot be less than 10."}}      |
+| ``exception``         | One                                                                                              | {"type": "exception", "exception_type": "ValueError", "exception_message": "x cannot be less than 10."}                   |
 +-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
-| ``result``            | One                                                                                              | {"type": "result", "content": {"output_values": {"my": "results"}, "output_manifest": None}}                              |
+| ``result``            | One                                                                                              | {"type": "result", "output_values": {"my": "results"}, "output_manifest": None}                                           |
 +-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
 
 **Notes**
 
+- Message formats and contents are validated by :mod:`ChildEmulator <octue.cloud.emulators.child.ChildEmulator>`
+- The ``log_record`` key of a ``log_record`` message is any dictionary that the ``logging.makeLogRecord`` function can
+  convert into a log record.
+- The ``data`` key of a ``monitor_message`` message must be a JSON-serialised string
 - Any messages after a ``result`` or ``exception`` message won't be passed to the parent because execution of the child
   emulator will have ended.
-- The ``content`` of a ``log_record`` message is any dictionary that the ``logging.makeLogRecord`` function can convert
-  into a log record.
-- Message formats and contents are validated by :mod:`ChildEmulator <octue.cloud.emulators.child.ChildEmulator>`
 
 Input/output validation (lack of)
 ---------------------------------
@@ -66,19 +67,20 @@ Instantiating a child emulator in python
     messages = [
         {
             "type": "log_record",
-            "content": {"msg": "Starting analysis."},
+            "log_record": {"msg": "Starting analysis."},
         },
         {
             "type": "monitor_message",
-            "content": {"progress": "35%"},
+            "data": '{"progress": "35%"}',
         },
         {
             "type": "log_record",
-            "content": {"msg": "Finished analysis."},
+            "log_record": {"msg": "Finished analysis."},
         },
     	{
             "type": "result",
-            "content": {"output_values": [1, 2, 3, 4, 5], "output_manifest": None},
+            "output_values": [1, 2, 3, 4, 5],
+            "output_manifest": None,
         },
     ]
 
@@ -110,19 +112,20 @@ with just the messages:
         "messages": [
             {
                 "type": "log_record",
-                "content": {"msg": "Starting analysis."}
+                "log_record": {"msg": "Starting analysis."}
             },
             {
                 "type": "log_record",
-                "content": {"msg": "Finished analysis."}
+                "log_record": {"msg": "Finished analysis."}
             },
             {
                 "type": "monitor_message",
-                "content": {"progress": "35%"}
+                "data": "{\"progress\": \"35%\"}"
             },
             {
                 "type": "result",
-                "content": {"output_values": [1, 2, 3, 4, 5], "output_manifest": null}
+                "output_values": [1, 2, 3, 4, 5],
+                "output_manifest": null
             }
         ]
     }
@@ -185,10 +188,8 @@ To emulate your children in tests, patch the :mod:`Child <octue.resources.child.
             messages=[
                 {
                     "type": "result",
-                    "content": {
-                        "output_values": [300],
-                        "output_manifest": None,
-                    }
+                    "output_values": [300],
+                    "output_manifest": None,
                 },
             ]
         )
