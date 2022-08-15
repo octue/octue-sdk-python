@@ -146,8 +146,8 @@ class TestChildEmulatorAsk(BaseTestCase):
         with self.assertRaises(ValueError):
             child_emulator.ask(input_values={"hello": "world"})
 
-    def test_ask_with_exception_as_dictionary(self):
-        """Test that exceptions are raised by the emulator when provided serialised as a dictionary."""
+    def test_ask_with_exception(self):
+        """Test that exceptions are raised by the emulator."""
         messages = [
             {
                 "type": "exception",

@@ -245,7 +245,7 @@ class ChildEmulator:
 
         # Allow unknown exception types to still be raised.
         except KeyError:
-            exception_type = type(message["exception_type"], (Exception,), {})
+            exception_type = type(message["exception_type"], (Exception,), message.get("traceback", {}))
 
         raise exception_type(message["exception_message"])
 
