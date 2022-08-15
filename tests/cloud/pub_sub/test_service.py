@@ -172,7 +172,7 @@ class TestService(BaseTestCase):
         run function rather than a mock so that the underlying `Runner` instance is used, and check that remote log
         messages aren't forwarded to the local logger.
         """
-        child = MockService(backend=BACKEND, run_function=self._create_run_function())
+        child = MockService(backend=BACKEND, run_function=self.create_run_function())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         with self.assertLogs() as logging_context:
@@ -198,7 +198,7 @@ class TestService(BaseTestCase):
         run function rather than a mock so that the underlying `Runner` instance is used, and check that remote log
         messages are forwarded to the local logger.
         """
-        child = MockService(backend=BACKEND, run_function=self._create_run_function())
+        child = MockService(backend=BACKEND, run_function=self.create_run_function())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         with self.assertLogs() as logs_context_manager:
@@ -677,7 +677,7 @@ class TestService(BaseTestCase):
         """Test that messages sent to the parent by the child aren't recorded by the child if crash diagnostics aren't
         allowed.
         """
-        child = MockService(backend=BACKEND, run_function=self._create_run_function())
+        child = MockService(backend=BACKEND, run_function=self.create_run_function())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         with self.service_patcher:
@@ -699,7 +699,7 @@ class TestService(BaseTestCase):
         """Test that messages sent to the parent by the child are recorded by the child if crash diagnostics are
         allowed.
         """
-        child = MockService(backend=BACKEND, run_function=self._create_run_function())
+        child = MockService(backend=BACKEND, run_function=self.create_run_function())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         with self.service_patcher:
@@ -727,7 +727,7 @@ class TestService(BaseTestCase):
 
     def test_child_messages_can_be_recorded_by_parent(self):
         """Test that the parent can record messages it receives from its child to a JSON file."""
-        child = MockService(backend=BACKEND, run_function=self._create_run_function())
+        child = MockService(backend=BACKEND, run_function=self.create_run_function())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         with self.service_patcher:
@@ -865,7 +865,7 @@ class TestService(BaseTestCase):
         )
 
     @staticmethod
-    def _create_run_function():
+    def create_run_function():
         """Create a run function that sends log messages back to the parent and gives a simple output value.
 
         :return callable: the run function
