@@ -12,8 +12,6 @@ from octue.utils.patches import MultiPatcher
 
 logger = logging.getLogger(__name__)
 
-VALID_MESSAGE_TYPES = ("log_record", "monitor_message", "exception", "result")
-
 
 class ChildEmulator:
     """An emulator for the `octue.resources.child.Child` class that sends the given messages to the parent for handling
@@ -49,6 +47,8 @@ class ChildEmulator:
             "exception": self._handle_exception,
             "result": self._handle_result,
         }
+
+        self._valid_message_types = set(self._message_handlers.keys())
 
     @classmethod
     def from_file(cls, path):
@@ -183,12 +183,14 @@ class ChildEmulator:
             raise TypeError("Each message must be a dictionary.")
 
         if "type" not in message:
-            raise ValueError(f"Each message must contain a 'type' key mapping to one of: {VALID_MESSAGE_TYPES!r}.")
+            raise ValueError(
+                f"Each message must contain a 'type' key mapping to one of: {self._valid_message_types!r}."
+            )
 
-        if message["type"] not in VALID_MESSAGE_TYPES:
+        if message["type"] not in self._valid_message_types:
             raise ValueError(
                 f"{message['type']!r} is an invalid message type for the ChildEmulator. The valid types are: "
-                f"{VALID_MESSAGE_TYPES!r}."
+                f"{self._valid_message_types!r}."
             )
 
     def _handle_log_record(self, message, **kwargs):
@@ -204,11 +206,10 @@ class ChildEmulator:
         except KeyError:
             raise ValueError("Log record messages must include a 'log_record' key.")
 
-        log_record["levelno"] = log_record.get("levelno", 20)
-        log_record["levelname"] = log_record.get("levelname", "INFO")
-        log_record["name"] = log_record.get("name", f"{__name__}.{type(self).__name__}")
-
         try:
+            log_record["levelno"] = log_record.get("levelno", 20)
+            log_record["levelname"] = log_record.get("levelname", "INFO")
+            log_record["name"] = log_record.get("name", f"{__name__}.{type(self).__name__}")
             logger.handle(logging.makeLogRecord(log_record))
 
         except Exception:
