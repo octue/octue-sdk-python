@@ -1,3 +1,4 @@
+import json
 import logging
 import tempfile
 import uuid
@@ -724,6 +725,65 @@ class TestService(BaseTestCase):
             {"type": "result", "output_values": "Hello! It worked!", "output_manifest": None, "message_number": 4},
         )
 
+    def test_child_messages_can_be_recorded_by_parent(self):
+        """Test that the parent can record messages it receives from its child to a JSON file."""
+        child = MockService(backend=BACKEND, run_function=self._create_run_function())
+        parent = MockService(backend=BACKEND, children={child.id: child})
+
+        with self.service_patcher:
+            child.serve()
+
+            with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+                self.ask_question_and_wait_for_answer(
+                    parent=parent,
+                    child=child,
+                    input_values={},
+                    subscribe_to_logs=True,
+                    record_messages_to=temporary_file.name,
+                    service_name="my-super-service",
+                )
+
+                with open(temporary_file.name) as f:
+                    recorded_messages = json.load(f)
+
+        # Check that the child's messages have been recorded by the parent.
+        self.assertEqual(recorded_messages[0]["type"], "delivery_acknowledgement")
+        self.assertEqual(recorded_messages[1]["type"], "log_record")
+        self.assertEqual(recorded_messages[2]["type"], "log_record")
+        self.assertEqual(recorded_messages[3]["type"], "log_record")
+
+        self.assertEqual(
+            recorded_messages[4],
+            {"type": "result", "output_values": "Hello! It worked!", "output_manifest": None, "message_number": 4},
+        )
+
+    def test_child_exception_message_can_be_recorded_by_parent(self):
+        """Test that the parent can record exceptions raised by the child."""
+        child = self.make_new_child_with_error(ValueError("Oh no."))
+        parent = MockService(backend=BACKEND, children={child.id: child})
+
+        with self.service_patcher:
+            child.serve()
+
+            with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+                with self.assertRaises(ValueError):
+                    self.ask_question_and_wait_for_answer(
+                        parent=parent,
+                        child=child,
+                        input_values={},
+                        subscribe_to_logs=True,
+                        record_messages_to=temporary_file.name,
+                        service_name="my-super-service",
+                    )
+
+                with open(temporary_file.name) as f:
+                    recorded_messages = json.load(f)
+
+        # Check that the child's messages have been recorded by the parent.
+        self.assertEqual(recorded_messages[0]["type"], "delivery_acknowledgement")
+        self.assertEqual(recorded_messages[1]["type"], "exception")
+        self.assertIn("Oh no.", recorded_messages[1]["exception_message"])
+
     @staticmethod
     def make_new_child(backend, run_function_returnee):
         """Make and return a new child service that returns the given run function returnee when its run function is
@@ -757,6 +817,7 @@ class TestService(BaseTestCase):
         input_manifest=None,
         subscribe_to_logs=True,
         allow_local_files=False,
+        record_messages_to=None,
         allow_save_diagnostics_data_on_crash=True,
         service_name="my-service",
         question_uuid=None,
@@ -773,6 +834,7 @@ class TestService(BaseTestCase):
         :param octue.resources.manifest.Manifest|None input_manifest:
         :param bool subscribe_to_logs:
         :param bool allow_local_files:
+        :param str|None record_messages_to:
         :param bool allow_save_diagnostics_data_on_crash:
         :param str service_name:
         :param str|None question_uuid:
@@ -797,6 +859,7 @@ class TestService(BaseTestCase):
 
         return parent.wait_for_answer(
             subscription=subscription,
+            record_messages_to=record_messages_to,
             service_name=service_name,
             delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
         )
