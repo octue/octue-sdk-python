@@ -1,10 +1,13 @@
 import json
 import os
+import tempfile
 
 from octue.cloud import storage
-from octue.cloud.emulators.child import ChildEmulator
+from octue.cloud.emulators._pub_sub import MockService
+from octue.cloud.emulators.child import ChildEmulator, ServicePatcher
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Manifest
+from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
 
@@ -187,6 +190,34 @@ class TestChildEmulatorAsk(BaseTestCase):
 
         # Check that the monitor message handler has worked.
         self.assertEqual(monitor_messages, ["A sample monitor message."])
+
+    def test_messages_recorded_from_real_child_can_be_used_in_child_emulator(self):
+        """Test that messages recorded from a real child can be used as emulated messages in a child emulator (i.e. test
+        that the message format is unified between `Service` and `ChildEmulator`).
+        """
+        backend = GCPPubSubBackend(project_name="my-project")
+
+        def error_run_function(*args, **kwargs):
+            raise OSError("Oh no. Some error has been raised for testing.")
+
+        child = MockService(backend=backend, run_function=error_run_function)
+        parent = MockService(backend=backend, children={child.id: child})
+
+        with ServicePatcher():
+            child.serve()
+
+            with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+                with self.assertRaises(OSError):
+                    subscription, _ = parent.ask(service_id=child.id, input_values={})
+                    parent.wait_for_answer(subscription=subscription, record_messages_to=temporary_file.name)
+
+                with open(temporary_file.name) as f:
+                    recorded_messages = json.load(f)
+
+        child_emulator = ChildEmulator(messages=recorded_messages)
+
+        with self.assertRaises(OSError):
+            child_emulator.ask(input_values={})
 
 
 class TestChildEmulatorJSONFiles(BaseTestCase):
