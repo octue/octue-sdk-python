@@ -232,7 +232,7 @@ class ChildEmulator:
     def _handle_monitor_message(self, message, **kwargs):
         """Handle a monitor message with the given handler.
 
-        :param dict message: a dictionary containing a "data" key mapping to a JSON-encoded string that represents a monitor message. This monitor message will then be handled by the monitor message handler
+        :param dict message: a dictionary containing a "data" key mapped to a JSON-encoded string representing a monitor message. This monitor message will be handled by the monitor message handler
         :param kwargs: must include the "handle_monitor_message" key
         :return None:
         """
