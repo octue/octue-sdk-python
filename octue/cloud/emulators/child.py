@@ -202,7 +202,7 @@ class ChildEmulator:
         :param kwargs: this should be empty
         :return None:
         """
-        logger.debug("Delivery acknowledgement messages are ignored by the ChildEmulator.")
+        logger.warning("Delivery acknowledgement messages are ignored by the ChildEmulator.")
 
     def _handle_log_record(self, message, **kwargs):
         """Convert the given message into a log record and pass it to the log handler.
