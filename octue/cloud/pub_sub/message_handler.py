@@ -103,10 +103,11 @@ class OrderedMessageHandler:
             try:
                 while self._waiting_messages:
                     message = self._waiting_messages.pop(self._previous_message_number + 1)
-                    result = self._handle_message(message)
 
                     if self.record_messages_to:
                         recorded_messages.append(message)
+
+                    result = self._handle_message(message)
 
                     if result is not None:
                         return result
