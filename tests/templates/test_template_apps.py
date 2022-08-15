@@ -158,15 +158,15 @@ class TemplateAppsTestCase(BaseTestCase):
                 id="template-child-services/wind-speed-service",
                 internal_service_name=runner.service_id,
                 messages=[
-                    {"type": "log_record", "content": {"msg": "This is an emulated child log message."}},
-                    {"type": "result", "content": {"output_values": [10], "output_manifest": None}},
+                    {"type": "log_record", "log_record": {"msg": "This is an emulated child log message."}},
+                    {"type": "result", "output_values": [10], "output_manifest": None},
                 ],
             ),
             ChildEmulator(
                 id="template-child-services/elevation-service",
                 internal_service_name=runner.service_id,
                 messages=[
-                    {"type": "result", "content": {"output_values": [300], "output_manifest": None}},
+                    {"type": "result", "output_values": [300], "output_manifest": None},
                 ],
             ),
         ]

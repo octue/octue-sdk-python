@@ -147,7 +147,7 @@ class ChildEmulator:
             handler = self._message_handlers[message["type"]]
 
             result = handler(
-                message["content"],
+                message,
                 analysis_id=analysis_id,
                 input_values=input_values,
                 input_manifest=input_manifest,
@@ -176,16 +176,14 @@ class ChildEmulator:
 
         :param dict message:
         :raise TypeError: if the message isn't a dictionary
-        :raise ValueError: if the message doesn't contain a 'type' key and a 'content' key; if the 'type' key maps to an invalid value
+        :raise ValueError: if the message doesn't contain a 'type' key or if the 'type' key maps to an invalid value
         :return None:
         """
         if not isinstance(message, dict):
             raise TypeError("Each message must be a dictionary.")
 
-        if "type" not in message or "content" not in message:
-            raise ValueError(
-                f"Each message must contain a 'type' and a 'content' key. The valid types are: {VALID_MESSAGE_TYPES!r}."
-            )
+        if "type" not in message:
+            raise ValueError(f"Each message must contain a 'type' key mapping to one of: {VALID_MESSAGE_TYPES!r}.")
 
         if message["type"] not in VALID_MESSAGE_TYPES:
             raise ValueError(
@@ -193,71 +191,73 @@ class ChildEmulator:
                 f"{VALID_MESSAGE_TYPES!r}."
             )
 
-    def _handle_log_record(self, log_record_dictionary, **kwargs):
-        """Convert the given dictionary into a log record and pass it to the log handler.
+    def _handle_log_record(self, message, **kwargs):
+        """Convert the given message into a log record and pass it to the log handler.
 
-        :param dict log_record_dictionary: a dictionary representing a log record.
+        :param dict message: a dictionary containing a "log_record" key whose value is a dictionary representing a log record
         :param kwargs: this should be empty
         :raise TypeError: if the message can't be converted to a log record
         :return None:
         """
         try:
-            log_record_dictionary["levelno"] = log_record_dictionary.get("levelno") or 20
-            log_record_dictionary["levelname"] = log_record_dictionary.get("levelname") or "INFO"
-            log_record_dictionary["name"] = log_record_dictionary.get("name") or f"{__name__}.{type(self).__name__}"
+            log_record = message["log_record"]
+        except KeyError:
+            raise ValueError("Log record messages must include a 'log_record' key.")
 
-            logger.handle(logging.makeLogRecord(log_record_dictionary))
+        log_record["levelno"] = log_record.get("levelno", 20)
+        log_record["levelname"] = log_record.get("levelname", "INFO")
+        log_record["name"] = log_record.get("name", f"{__name__}.{type(self).__name__}")
+
+        try:
+            logger.handle(logging.makeLogRecord(log_record))
 
         except Exception:
             raise TypeError(
-                "The log record must be given as a dictionary that can be converted by `logging.makeLogRecord` to a "
-                "`logging.LogRecord` instance."
+                "The 'log_record' key in a log record message must map to a dictionary that can be converted by "
+                "`logging.makeLogRecord` to a `logging.LogRecord` instance."
             )
 
-    def _handle_monitor_message(self, monitor_message, **kwargs):
+    def _handle_monitor_message(self, message, **kwargs):
         """Handle a monitor message with the given handler.
 
-        :param any monitor_message: a monitor message to be handled by the monitor message handler
+        :param dict message: a dictionary containing a "data" key mapping to a JSON-encoded string that represents a monitor message. This monitor message will then be handled by the monitor message handler
         :param kwargs: must include the "handle_monitor_message" key
         :return None:
         """
-        kwargs.get("handle_monitor_message")(monitor_message)
+        kwargs.get("handle_monitor_message")(json.loads(message["data"]))
 
-    def _handle_exception(self, exception, **kwargs):
+    def _handle_exception(self, message, **kwargs):
         """Raise the given exception.
 
-        :param dict|Exception exception: the exception to be raised in python form or serialised form
+        :param dict message: a dictionary representing the exception to be raised; it must include the "exception_type" and "exception_message" keys
         :param kwargs: this should be empty
         :raise ValueError: if the given exception cannot be raised
         :return None:
         """
-        if isinstance(exception, Exception):
-            raise exception
-
-        if "exception_type" not in exception or "exception_message" not in exception:
+        if "exception_type" not in message or "exception_message" not in message:
             raise ValueError(
                 "The exception must be given as a dictionary containing the keys 'exception_type' and "
                 "'exception_message'."
             )
 
         try:
-            exception_type = EXCEPTIONS_MAPPING[exception["exception_type"]]
+            exception_type = EXCEPTIONS_MAPPING[message["exception_type"]]
 
         # Allow unknown exception types to still be raised.
         except KeyError:
-            exception_type = type(exception["exception_type"], (Exception,), {})
+            exception_type = type(message["exception_type"], (Exception,), {})
 
-        raise exception_type(exception["exception_message"])
+        raise exception_type(message["exception_message"])
 
-    def _handle_result(self, result, **kwargs):
+    def _handle_result(self, message, **kwargs):
         """Return the result as an `Analysis` instance.
 
-        :param dict result: a dictionary containing an "output_values" key and an "output_manifest" key
+        :param dict message: a dictionary containing an "output_values" key and an "output_manifest" key
         :param kwargs: must contain the keys "analysis_id", "handle_monitor_message", "input_values", and "input_manifest"
         :raise ValueError: if the result doesn't contain the "output_values" and "output_manifest" keys
         :return octue.resources.analysis.Analysis: an `Analysis` instance containing the emulated outputs
         """
-        output_manifest = result.get("output_manifest")
+        output_manifest = message.get("output_manifest")
 
         if output_manifest and not isinstance(output_manifest, Manifest):
             output_manifest = Manifest.deserialise(output_manifest)
@@ -269,13 +269,13 @@ class ChildEmulator:
                 handle_monitor_message=kwargs["handle_monitor_message"],
                 input_values=kwargs["input_values"],
                 input_manifest=kwargs["input_manifest"],
-                output_values=result["output_values"],
+                output_values=message["output_values"],
                 output_manifest=output_manifest,
             )
 
         except KeyError:
             raise ValueError(
-                "The result must be a dictionary containing the keys 'output_values' and 'output_manifest'."
+                "Result messages must be dictionaries containing the keys 'output_values' and 'output_manifest'."
             )
 
 
