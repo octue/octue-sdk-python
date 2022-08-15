@@ -29,8 +29,9 @@ class OrderedMessageHandler:
     :param google.pubsub_v1.services.subscriber.client.SubscriberClient subscriber: a Google Pub/Sub subscriber
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
     :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
+    :param str|None record_messages_to: if given a path to a JSON file, received messages are saved to it
     :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
-    :param dict|None message_handlers: a mapping of message handler names to callables that handle each type of message
+    :param dict|None message_handlers: a mapping of message type names to callables that handle each type of message. The handlers should not mutate the messages.
     :return None:
     """
 
@@ -39,12 +40,14 @@ class OrderedMessageHandler:
         subscriber,
         subscription,
         handle_monitor_message=None,
+        record_messages_to=None,
         service_name="REMOTE",
         message_handlers=None,
     ):
         self.subscriber = subscriber
         self.subscription = subscription
         self.handle_monitor_message = handle_monitor_message
+        self.record_messages_to = record_messages_to
         self.service_name = service_name
 
         self.received_delivery_acknowledgement = None
@@ -75,6 +78,7 @@ class OrderedMessageHandler:
         self._waiting_messages = {}
         self._previous_message_number = -1
 
+        recorded_messages = []
         pull_timeout = None
 
         while True:
@@ -101,11 +105,19 @@ class OrderedMessageHandler:
                     message = self._waiting_messages.pop(self._previous_message_number + 1)
                     result = self._handle_message(message)
 
+                    if self.record_messages_to:
+                        recorded_messages.append(message)
+
                     if result is not None:
                         return result
 
             except KeyError:
                 pass
+
+            finally:
+                if self.record_messages_to:
+                    with open(self.record_messages_to, "w") as f:
+                        json.dump(recorded_messages, f)
 
     def _pull_message(self, timeout, delivery_acknowledgement_timeout):
         """Pull a message from the subscription, raising a `TimeoutError` if the timeout is exceeded before succeeding.

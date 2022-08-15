@@ -318,6 +318,7 @@ class Service(CoolNameable):
         self,
         subscription,
         handle_monitor_message=None,
+        record_messages_to=None,
         service_name="REMOTE",
         timeout=60,
         delivery_acknowledgement_timeout=120,
@@ -327,6 +328,7 @@ class Service(CoolNameable):
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
+        :param str|None record_messages_to: if given a path to a JSON file, messages received in response to the question are saved to it
         :param str service_name: a name by which to refer to the child subscribed to (used for labelling its log messages if subscribed to)
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
@@ -346,6 +348,7 @@ class Service(CoolNameable):
             subscription=subscription,
             handle_monitor_message=handle_monitor_message,
             service_name=service_name,
+            record_messages_to=record_messages_to,
         )
 
         try:
