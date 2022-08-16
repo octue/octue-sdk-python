@@ -1,4 +1,6 @@
 import os
+import random
+import time
 from unittest.mock import patch
 
 from google.auth.exceptions import DefaultCredentialsError
@@ -38,13 +40,13 @@ class TestChild(BaseTestCase):
     def test_child_can_be_asked_multiple_questions(self):
         """Test that a child can be asked multiple questions."""
 
-        def run_function(analysis_id, input_values, *args, **kwargs):
+        def mock_run_function(analysis_id, input_values, *args, **kwargs):
             return MockAnalysis(output_values=input_values)
 
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
             service_id="testing/wind-speed",
-            run_function=run_function,
+            run_function=mock_run_function,
         )
 
         with ServicePatcher():
@@ -57,3 +59,38 @@ class TestChild(BaseTestCase):
                 child._service.children[responding_service.id] = responding_service
                 self.assertEqual(child.ask([1, 2, 3, 4])["output_values"], [1, 2, 3, 4])
                 self.assertEqual(child.ask([5, 6, 7, 8])["output_values"], [5, 6, 7, 8])
+
+    def test_child_can_be_asked_questions_in_parallel(self):
+        """Test that a child can be asked multiple questions in parallel and receive the answers in the correct order."""
+
+        def mock_run_function(analysis_id, input_values, *args, **kwargs):
+            time.sleep(random.randint(0, 2))
+            return MockAnalysis(output_values=input_values)
+
+        responding_service = MockService(
+            backend=GCPPubSubBackend(project_name="blah"),
+            service_id="testing/wind-speed",
+            run_function=mock_run_function,
+        )
+
+        with ServicePatcher():
+            with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
+                responding_service.serve()
+
+                child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_name": "blah"})
+
+                # Make sure the child's underlying mock service knows how to access the mock responding service.
+                child._service.children[responding_service.id] = responding_service
+
+                answers = child.ask_multiple(
+                    {"input_values": [1, 2, 3, 4]},
+                    {"input_values": [5, 6, 7, 8]},
+                )
+
+                self.assertEqual(
+                    answers,
+                    [
+                        {"output_values": [1, 2, 3, 4], "output_manifest": None},
+                        {"output_values": [5, 6, 7, 8], "output_manifest": None},
+                    ],
+                )

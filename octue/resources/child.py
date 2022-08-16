@@ -1,3 +1,4 @@
+import concurrent.futures
 import copy
 
 from octue.cloud.pub_sub.service import Service
@@ -82,3 +83,17 @@ class Child:
             service_name=self.id,
             timeout=timeout,
         )
+
+    def ask_multiple(self, *questions):
+        """Ask the child multiple questions in parallel and wait for the answers. Each question should be provided as a
+        dictionary of `Child.ask` keyword arguments.
+
+        :param questions: any number of questions provided as dictionaries of arguments to the `Child.ask` method
+        :return list: the answers to the questions in the same order as the questions
+        """
+
+        def ask(question):
+            return self.ask(**question)
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            return list(executor.map(ask, questions))
