@@ -77,6 +77,26 @@ sent back to the parent. If you're not sure how long a particular analysis might
 ``None`` initially or ask the owner/maintainer of the child for an estimate.
 
 
+Asking multiple questions in parallel
+-------------------------------------
+You can also ask multiple questions to a service in parallel.
+
+.. code-block:: python
+
+    child.ask_multiple(
+        {"input_values": {"height": 32, "width": 3}},
+        {"input_values": {"height": 12, "width": 10}},
+        {"input_values": {"height": 7, "width": 32}},
+    )
+    >>> [
+            {"output_values": {"some": "output"}, "output_manifest": None},
+            {"output_values": {"another": "result"}, "output_manifest": None},
+            {"output_values": {"different": "result"}, "output_manifest": None},
+        ]
+
+This method uses threads, allowing all the questions to be asked at once instead of one after another.
+
+
 Asking a question within a service
 ----------------------------------
 If you have :doc:`created your own Octue service <creating_services>` and want to ask children questions, you can do
