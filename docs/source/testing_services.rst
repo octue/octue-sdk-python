@@ -53,12 +53,6 @@ You can emulate any message type that your app (the parent) can handle. The tabl
 - Any messages after a ``result`` or ``exception`` message won't be passed to the parent because execution of the child
   emulator will have ended.
 
-Input/output validation (lack of)
----------------------------------
-Unlike a real child, the inputs given to the emulator and the outputs returned aren't validated against the schema in
-the child's twine - this is only available to the real child. Hence, the input values and manifest do not affect the
-messages returned by the emulator, and the output values and manifest are exactly what you specify in the messages you
-give to the emulator.
 
 Instantiating a child emulator in python
 ----------------------------------------
@@ -210,8 +204,16 @@ To emulate your children in tests, patch the :mod:`Child <octue.resources.child.
 
 Creating a test fixture
 =======================
-In this context, creating a test fixture is instantiating a child emulator with a list of emulated messages. You can
-create this list manually or record messages sent by a real child to a JSON file. To record messages:
+Since the child is *emulated*, it doesn't actually do any calculation - if you change the inputs, the outputs won't
+change correspondingly (or at all). So, it's up to you to define a set of realistic inputs and corresponding outputs
+(the list of emulated messages) to test your service. These are called **test fixtures**.
+
+.. note::
+  Unlike a real child, the inputs given to the emulator and the outputs returned aren't validated against the schema in
+  the child's twine - this is because the twine is only available to the real child. This is ok - you're testing your
+  service, not the child.
+
+You can create test fixtures manually or by recording messages from a real child to a JSON file. To record messages:
 
 .. code-block:: python
 
