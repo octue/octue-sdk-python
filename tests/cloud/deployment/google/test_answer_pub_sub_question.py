@@ -5,7 +5,7 @@ from unittest import TestCase, mock
 import yaml
 
 from octue.cloud.deployment.google.answer_pub_sub_question import answer_question
-from octue.cloud.emulators.pub_sub import MockTopic
+from octue.cloud.emulators._pub_sub import MockTopic
 from tests.mocks import MockOpen
 
 

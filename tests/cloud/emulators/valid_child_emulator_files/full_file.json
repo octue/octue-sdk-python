@@ -8,19 +8,20 @@
     "messages": [
         {
             "type": "log_record",
-            "content": {"msg": "Starting analysis."}
+            "log_record": {"msg": "Starting analysis."}
         },
         {
             "type": "log_record",
-            "content": {"msg": "Finishing analysis."}
+            "log_record": {"msg": "Finishing analysis."}
         },
         {
             "type": "monitor_message",
-            "content": "A sample monitor message."
+            "data": "{\"sample\": \"data\"}"
         },
         {
             "type": "result",
-            "content": {"output_values": [1, 2, 3, 4, 5], "output_manifest": null}
+            "output_values": [1, 2, 3, 4, 5],
+            "output_manifest": null
         }
     ]
 }

@@ -5,13 +5,12 @@ import uuid
 from unittest.mock import patch
 
 from octue.cloud import EXCEPTIONS_MAPPING
-from octue.cloud.emulators.pub_sub import MockService, MockSubscriber, MockSubscription, MockTopic
+from octue.cloud.emulators._pub_sub import MockService, MockSubscriber, MockSubscription, MockTopic
 from octue.resources import Analysis, Manifest, service_backends
+from octue.utils.patches import MultiPatcher
 
 
 logger = logging.getLogger(__name__)
-
-VALID_MESSAGE_TYPES = ("log_record", "monitor_message", "exception", "result")
 
 
 class ChildEmulator:
@@ -43,11 +42,14 @@ class ChildEmulator:
         )
 
         self._message_handlers = {
+            "delivery_acknowledgement": self._handle_delivery_acknowledgement,
             "log_record": self._handle_log_record,
             "monitor_message": self._handle_monitor_message,
             "exception": self._handle_exception,
             "result": self._handle_result,
         }
+
+        self._valid_message_types = set(self._message_handlers.keys())
 
     @classmethod
     def from_file(cls, path):
@@ -81,6 +83,7 @@ class ChildEmulator:
         subscribe_to_logs=True,
         allow_local_files=False,
         handle_monitor_message=None,
+        record_messages_to=None,
         question_uuid=None,
         timeout=86400,
     ):
@@ -93,31 +96,31 @@ class ChildEmulator:
         :param bool subscribe_to_logs: if `True`, subscribe to logs from the child and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will have access to these local files
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
+        :param str|None record_messages_to: if given a path to a JSON file, messages received in response to the question are saved to it
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
         :return dict: a dictionary containing the keys "output_values" and "output_manifest"
         """
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
-                with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
-                    self._child.serve()
+        with ServicePatcher():
+            self._child.serve()
 
-                    subscription, _ = self._parent.ask(
-                        service_id=self._child.id,
-                        input_values=input_values,
-                        input_manifest=input_manifest,
-                        subscribe_to_logs=subscribe_to_logs,
-                        allow_local_files=allow_local_files,
-                        question_uuid=question_uuid,
-                    )
+            subscription, _ = self._parent.ask(
+                service_id=self._child.id,
+                input_values=input_values,
+                input_manifest=input_manifest,
+                subscribe_to_logs=subscribe_to_logs,
+                allow_local_files=allow_local_files,
+                question_uuid=question_uuid,
+            )
 
-                    return self._parent.wait_for_answer(
-                        subscription,
-                        handle_monitor_message=handle_monitor_message,
-                        service_name=self.id,
-                        timeout=timeout,
-                    )
+            return self._parent.wait_for_answer(
+                subscription,
+                handle_monitor_message=handle_monitor_message,
+                record_messages_to=record_messages_to,
+                service_name=self.id,
+                timeout=timeout,
+            )
 
     def _emulate_analysis(
         self,
@@ -127,6 +130,7 @@ class ChildEmulator:
         analysis_log_handler,
         handle_monitor_message,
         allow_save_diagnostics_data_on_crash,
+        sent_messages,
     ):
         """Emulate analysis of a question by handling the messages given at instantiation in the order given.
 
@@ -136,6 +140,7 @@ class ChildEmulator:
         :param logging.Handler|None analysis_log_handler: the `logging.Handler` instance which will be used to handle logs for this analysis run (this is ignored by the emulator)
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
         :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved if the analysis fails
+        :param list|None sent_messages: the list of messages sent by the service running this runner (this should update in real time) to save if crash diagnostics are enabled
         :return octue.resources.analysis.Analysis:
         """
         for message in self.messages:
@@ -143,13 +148,14 @@ class ChildEmulator:
             handler = self._message_handlers[message["type"]]
 
             result = handler(
-                message["content"],
+                message,
                 analysis_id=analysis_id,
                 input_values=input_values,
                 input_manifest=input_manifest,
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=handle_monitor_message,
                 allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
+                sent_messages=sent_messages,
             )
 
             if result:
@@ -171,88 +177,99 @@ class ChildEmulator:
 
         :param dict message:
         :raise TypeError: if the message isn't a dictionary
-        :raise ValueError: if the message doesn't contain a 'type' key and a 'content' key; if the 'type' key maps to an invalid value
+        :raise ValueError: if the message doesn't contain a 'type' key or if the 'type' key maps to an invalid value
         :return None:
         """
         if not isinstance(message, dict):
             raise TypeError("Each message must be a dictionary.")
 
-        if "type" not in message or "content" not in message:
+        if "type" not in message:
             raise ValueError(
-                f"Each message must contain a 'type' and a 'content' key. The valid types are: {VALID_MESSAGE_TYPES!r}."
+                f"Each message must contain a 'type' key mapping to one of: {self._valid_message_types!r}."
             )
 
-        if message["type"] not in VALID_MESSAGE_TYPES:
+        if message["type"] not in self._valid_message_types:
             raise ValueError(
                 f"{message['type']!r} is an invalid message type for the ChildEmulator. The valid types are: "
-                f"{VALID_MESSAGE_TYPES!r}."
+                f"{self._valid_message_types!r}."
             )
 
-    def _handle_log_record(self, log_record_dictionary, **kwargs):
-        """Convert the given dictionary into a log record and pass it to the log handler.
+    def _handle_delivery_acknowledgement(self, message, **kwargs):
+        """A no-operation handler for delivery acknowledgement messages (these messages are ignored by the child
+        emulator).
 
-        :param dict log_record_dictionary: a dictionary representing a log record.
+        :param dict message: a dictionary containing the key "delivery_time"
+        :param kwargs: this should be empty
+        :return None:
+        """
+        logger.warning("Delivery acknowledgement messages are ignored by the ChildEmulator.")
+
+    def _handle_log_record(self, message, **kwargs):
+        """Convert the given message into a log record and pass it to the log handler.
+
+        :param dict message: a dictionary containing a "log_record" key whose value is a dictionary representing a log record
         :param kwargs: this should be empty
         :raise TypeError: if the message can't be converted to a log record
         :return None:
         """
         try:
-            log_record_dictionary["levelno"] = log_record_dictionary.get("levelno") or 20
-            log_record_dictionary["levelname"] = log_record_dictionary.get("levelname") or "INFO"
-            log_record_dictionary["name"] = log_record_dictionary.get("name") or f"{__name__}.{type(self).__name__}"
+            log_record = message["log_record"]
+        except KeyError:
+            raise ValueError("Log record messages must include a 'log_record' key.")
 
-            logger.handle(logging.makeLogRecord(log_record_dictionary))
+        try:
+            log_record["levelno"] = log_record.get("levelno", 20)
+            log_record["levelname"] = log_record.get("levelname", "INFO")
+            log_record["name"] = log_record.get("name", f"{__name__}.{type(self).__name__}")
+            logger.handle(logging.makeLogRecord(log_record))
 
         except Exception:
             raise TypeError(
-                "The log record must be given as a dictionary that can be converted by `logging.makeLogRecord` to a "
-                "`logging.LogRecord` instance."
+                "The 'log_record' key in a log record message must map to a dictionary that can be converted by "
+                "`logging.makeLogRecord` to a `logging.LogRecord` instance."
             )
 
-    def _handle_monitor_message(self, monitor_message, **kwargs):
+    def _handle_monitor_message(self, message, **kwargs):
         """Handle a monitor message with the given handler.
 
-        :param any monitor_message: a monitor message to be handled by the monitor message handler
+        :param dict message: a dictionary containing a "data" key mapped to a JSON-encoded string representing a monitor message. This monitor message will be handled by the monitor message handler
         :param kwargs: must include the "handle_monitor_message" key
         :return None:
         """
-        kwargs.get("handle_monitor_message")(monitor_message)
+        kwargs.get("handle_monitor_message")(json.loads(message["data"]))
 
-    def _handle_exception(self, exception, **kwargs):
+    def _handle_exception(self, message, **kwargs):
         """Raise the given exception.
 
-        :param dict|Exception exception: the exception to be raised in python form or serialised form
+        :param dict message: a dictionary representing the exception to be raised; it must include the "exception_type" and "exception_message" keys
         :param kwargs: this should be empty
         :raise ValueError: if the given exception cannot be raised
         :return None:
         """
-        if isinstance(exception, Exception):
-            raise exception
-
-        if "exception_type" not in exception or "exception_message" not in exception:
+        if "exception_type" not in message or "exception_message" not in message:
             raise ValueError(
                 "The exception must be given as a dictionary containing the keys 'exception_type' and "
                 "'exception_message'."
             )
 
         try:
-            exception_type = EXCEPTIONS_MAPPING[exception["exception_type"]]
+            exception_type = EXCEPTIONS_MAPPING[message["exception_type"]]
 
         # Allow unknown exception types to still be raised.
         except KeyError:
-            exception_type = type(exception["exception_type"], (Exception,), {})
+            exception_type = type(message["exception_type"], (Exception,), {})
 
-        raise exception_type(exception["exception_message"])
+        raise exception_type(message["exception_message"])
 
-    def _handle_result(self, result, **kwargs):
+    def _handle_result(self, message, **kwargs):
         """Return the result as an `Analysis` instance.
 
-        :param dict result: a dictionary containing an "output_values" key and an "output_manifest" key
+        :param dict message: a dictionary containing an "output_values" key and an "output_manifest" key
         :param kwargs: must contain the keys "analysis_id", "handle_monitor_message", "input_values", and "input_manifest"
         :raise ValueError: if the result doesn't contain the "output_values" and "output_manifest" keys
         :return octue.resources.analysis.Analysis: an `Analysis` instance containing the emulated outputs
         """
-        output_manifest = result.get("output_manifest")
+        output_manifest = message.get("output_manifest")
 
         if output_manifest and not isinstance(output_manifest, Manifest):
             output_manifest = Manifest.deserialise(output_manifest)
@@ -264,11 +281,27 @@ class ChildEmulator:
                 handle_monitor_message=kwargs["handle_monitor_message"],
                 input_values=kwargs["input_values"],
                 input_manifest=kwargs["input_manifest"],
-                output_values=result["output_values"],
+                output_values=message["output_values"],
                 output_manifest=output_manifest,
             )
 
         except KeyError:
             raise ValueError(
-                "The result must be a dictionary containing the keys 'output_values' and 'output_manifest'."
+                "Result messages must be dictionaries containing the keys 'output_values' and 'output_manifest'."
             )
+
+
+class ServicePatcher(MultiPatcher):
+    """A multi-patcher that provides the patches needed to run mock services.
+
+    :return None:
+    """
+
+    def __init__(self):
+        super().__init__(
+            patches=[
+                patch("octue.cloud.pub_sub.service.Topic", new=MockTopic),
+                patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription),
+                patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber),
+            ]
+        )

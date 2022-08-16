@@ -12,6 +12,7 @@ from urllib.parse import urlparse
 import yaml
 
 from octue import REPOSITORY_ROOT, Runner
+from octue.cloud.emulators import ChildEmulator
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.resources.manifest import Manifest
 from octue.utils.processes import ProcessesContextManager
@@ -136,6 +137,44 @@ class TemplateAppsTestCase(BaseTestCase):
 
         self.assertTrue("elevations" in analysis.output_values)
         self.assertTrue("wind_speeds" in analysis.output_values)
+
+    def test_child_services_template_using_emulated_children(self):
+        """Test the child services template app using emulated children."""
+        self.set_template("template-child-services")
+        parent_service_path = os.path.join(self.template_path, "parent_service")
+
+        with open(os.path.join(parent_service_path, "app_configuration.json")) as f:
+            children = json.load(f)["children"]
+
+        runner = Runner(
+            app_src=parent_service_path,
+            twine=os.path.join(parent_service_path, "twine.json"),
+            children=children,
+            service_id="template-child-services/parent-service",
+        )
+
+        emulated_children = [
+            ChildEmulator(
+                id="template-child-services/wind-speed-service",
+                internal_service_name=runner.service_id,
+                messages=[
+                    {"type": "log_record", "log_record": {"msg": "This is an emulated child log message."}},
+                    {"type": "result", "output_values": [10], "output_manifest": None},
+                ],
+            ),
+            ChildEmulator(
+                id="template-child-services/elevation-service",
+                internal_service_name=runner.service_id,
+                messages=[
+                    {"type": "result", "output_values": [300], "output_manifest": None},
+                ],
+            ),
+        ]
+
+        with patch("octue.runner.Child", side_effect=emulated_children):
+            analysis = runner.run(input_values=os.path.join(parent_service_path, "data", "input", "values.json"))
+
+        self.assertEqual(analysis.output_values, {"wind_speeds": [10], "elevations": [300]})
 
     def setUp(self):
         """Set up the test case by adding empty attributes ready to store details about the templates.

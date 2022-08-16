@@ -3,7 +3,7 @@ import logging
 from logging import makeLogRecord
 from unittest.mock import patch
 
-from octue.cloud.emulators.pub_sub import MESSAGES, MockService, MockTopic
+from octue.cloud.emulators._pub_sub import MESSAGES, MockService, MockTopic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.resources.service_backends import GCPPubSubBackend
 from tests.base import BaseTestCase
@@ -23,7 +23,7 @@ class TestGooglePubSubHandler(BaseTestCase):
         topic.create()
 
         log_record = makeLogRecord({"msg": "Starting analysis."})
-        GooglePubSubHandler(service.publisher, topic, "analysis-id").emit(log_record)
+        GooglePubSubHandler(service._send_message, topic, "analysis-id").emit(log_record)
 
         self.assertEqual(json.loads(MESSAGES[topic.name][0].data.decode())["log_record"]["msg"], "Starting analysis.")
 
@@ -46,8 +46,8 @@ class TestGooglePubSubHandler(BaseTestCase):
             {"msg": "%r is not JSON-serialisable but can go into a log message", "args": (non_json_serialisable_thing,)}
         )
 
-        with patch("octue.cloud.emulators.pub_sub.MockPublisher.publish") as mock_publish:
-            GooglePubSubHandler(service.publisher, topic, "analysis-id").emit(record)
+        with patch("octue.cloud.emulators._pub_sub.MockPublisher.publish") as mock_publish:
+            GooglePubSubHandler(service._send_message, topic, "analysis-id").emit(record)
 
         self.assertEqual(
             json.loads(mock_publish.call_args.kwargs["data"].decode())["log_record"]["msg"],

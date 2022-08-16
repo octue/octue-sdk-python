@@ -64,6 +64,8 @@ class Service(CoolNameable):
 
         self.backend = backend
         self.run_function = run_function
+        self._record_sent_messages = False
+        self._sent_messages = []
         self._publisher = None
         self._credentials = None
         super().__init__(*args, **kwargs)
@@ -165,13 +167,19 @@ class Service(CoolNameable):
             allow_save_diagnostics_data_on_crash,
         ) = self._parse_question(question)
 
+        # Record messages sent to child for potential diagnostics.
+        if allow_save_diagnostics_data_on_crash:
+            self._record_sent_messages = True
+        else:
+            self._record_sent_messages = False
+
         topic = answer_topic or self.instantiate_answer_topic(question_uuid)
         self._send_delivery_acknowledgment(topic)
 
         try:
             if forward_logs:
                 analysis_log_handler = GooglePubSubHandler(
-                    publisher=self.publisher,
+                    message_sender=self._send_message,
                     topic=topic,
                     analysis_id=question_uuid,
                 )
@@ -206,6 +214,7 @@ class Service(CoolNameable):
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=functools.partial(self._send_monitor_message, topic=topic),
                 allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
+                sent_messages=self._sent_messages,
             )
 
             if analysis.output_manifest is None:
@@ -213,20 +222,17 @@ class Service(CoolNameable):
             else:
                 serialised_output_manifest = analysis.output_manifest.serialise()
 
-            self.publisher.publish(
-                topic=topic.path,
-                data=json.dumps(
-                    {
-                        "type": "result",
-                        "output_values": analysis.output_values,
-                        "output_manifest": serialised_output_manifest,
-                        "message_number": topic.messages_published,
-                    },
-                    cls=OctueJSONEncoder,
-                ).encode(),
-                retry=retry.Retry(deadline=timeout),
+            self._send_message(
+                {
+                    "type": "result",
+                    "output_values": analysis.output_values,
+                    "output_manifest": serialised_output_manifest,
+                    "message_number": topic.messages_published,
+                },
+                topic=topic,
+                timeout=timeout,
             )
-            topic.messages_published += 1
+
             logger.info("%r answered question %r.", self, question_uuid)
 
         except BaseException as error:  # noqa
@@ -296,14 +302,13 @@ class Service(CoolNameable):
             input_manifest.use_signed_urls_for_datasets()
             serialised_input_manifest = input_manifest.serialise()
 
-        self.publisher.publish(
-            topic=question_topic.path,
-            data=json.dumps({"input_values": input_values, "input_manifest": serialised_input_manifest}).encode(),
+        self._send_message(
+            {"input_values": input_values, "input_manifest": serialised_input_manifest},
+            topic=question_topic,
             question_uuid=question_uuid,
-            forward_logs=str(int(subscribe_to_logs)),
+            forward_logs=subscribe_to_logs,
             octue_sdk_version=pkg_resources.get_distribution("octue").version,
-            allow_save_diagnostics_data_on_crash=str(int(allow_save_diagnostics_data_on_crash)),
-            retry=retry.Retry(deadline=timeout),
+            allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
         )
 
         logger.info("%r asked a question %r to service %r.", self, question_uuid, unlinted_service_id)
@@ -313,6 +318,7 @@ class Service(CoolNameable):
         self,
         subscription,
         handle_monitor_message=None,
+        record_messages_to=None,
         service_name="REMOTE",
         timeout=60,
         delivery_acknowledgement_timeout=120,
@@ -322,6 +328,7 @@ class Service(CoolNameable):
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
+        :param str|None record_messages_to: if given a path to a JSON file, messages received in response to the question are saved to it
         :param str service_name: a name by which to refer to the child subscribed to (used for labelling its log messages if subscribed to)
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
@@ -341,6 +348,7 @@ class Service(CoolNameable):
             subscription=subscription,
             handle_monitor_message=handle_monitor_message,
             service_name=service_name,
+            record_messages_to=record_messages_to,
         )
 
         try:
@@ -375,21 +383,17 @@ class Service(CoolNameable):
         exception = convert_exception_to_primitives()
         exception_message = f"Error in {self!r}: {exception['message']}"
 
-        self.publisher.publish(
-            topic=topic.path,
-            data=json.dumps(
-                {
-                    "type": "exception",
-                    "exception_type": exception["type"],
-                    "exception_message": exception_message,
-                    "traceback": exception["traceback"],
-                    "message_number": topic.messages_published,
-                }
-            ).encode(),
-            retry=retry.Retry(deadline=timeout),
+        self._send_message(
+            {
+                "type": "exception",
+                "exception_type": exception["type"],
+                "exception_message": exception_message,
+                "traceback": exception["traceback"],
+                "message_number": topic.messages_published,
+            },
+            topic=topic,
+            timeout=timeout,
         )
-
-        topic.messages_published += 1
 
     def _clean_service_id(self, service_id):
         """Replace forward slashes in the given service ID with dots.
@@ -398,6 +402,34 @@ class Service(CoolNameable):
         :return str: the cleaned service ID.
         """
         return service_id.replace("/", ".")
+
+    def _send_message(self, message, topic, timeout=30, **attributes):
+        """Send a JSON-serialised message to the given topic with optional message attributes.
+
+        :param any message: any JSON-serialisable python primitive to send as a message
+        :param octue.cloud.pub_sub.topic.Topic topic: the Pub/Sub topic to send the message to
+        :param int|float timeout: the timeout for sending the message in seconds
+        :param attributes: key-value pairs to attach to the message - the values must be strings or bytes
+        :return None:
+        """
+        converted_attributes = {}
+
+        for key, value in attributes.items():
+            if isinstance(value, bool):
+                value = str(int(value))
+            converted_attributes[key] = value
+
+        self.publisher.publish(
+            topic=topic.path,
+            data=json.dumps(message, cls=OctueJSONEncoder).encode(),
+            retry=retry.Retry(deadline=timeout),
+            **converted_attributes,
+        )
+
+        topic.messages_published += 1
+
+        if self._record_sent_messages:
+            self._sent_messages.append(message)
 
     def _send_delivery_acknowledgment(self, topic, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
@@ -408,19 +440,15 @@ class Service(CoolNameable):
         """
         logger.info("%r acknowledged receipt of question.", self)
 
-        self.publisher.publish(
-            topic=topic.path,
-            data=json.dumps(
-                {
-                    "type": "delivery_acknowledgement",
-                    "delivery_time": str(datetime.datetime.now()),
-                    "message_number": topic.messages_published,
-                }
-            ).encode(),
-            retry=retry.Retry(deadline=timeout),
+        self._send_message(
+            {
+                "type": "delivery_acknowledgement",
+                "delivery_time": str(datetime.datetime.now()),
+                "message_number": topic.messages_published,
+            },
+            topic=topic,
+            timeout=timeout,
         )
-
-        topic.messages_published += 1
 
     def _send_monitor_message(self, data, topic, timeout=30):
         """Send a monitor message to the parent.
@@ -432,19 +460,15 @@ class Service(CoolNameable):
         """
         logger.debug("%r sending monitor message.", self)
 
-        self.publisher.publish(
-            topic=topic.path,
-            data=json.dumps(
-                {
-                    "type": "monitor_message",
-                    "data": json.dumps(data),
-                    "message_number": topic.messages_published,
-                }
-            ).encode(),
-            retry=retry.Retry(deadline=timeout),
+        self._send_message(
+            {
+                "type": "monitor_message",
+                "data": json.dumps(data),
+                "message_number": topic.messages_published,
+            },
+            topic=topic,
+            timeout=timeout,
         )
-
-        topic.messages_published += 1
 
     def _parse_question(self, question):
         """Parse a question in the Google Cloud Pub/Sub or Google Cloud Run format.

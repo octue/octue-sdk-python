@@ -5,7 +5,6 @@ import logging.handlers
 import os
 import re
 import sys
-import tempfile
 
 import google.api_core.exceptions
 from google import auth
@@ -68,12 +67,6 @@ class Runner:
         self.output_location = output_location
 
         self.crash_diagnostics_cloud_path = crash_diagnostics_cloud_path
-        self._crash_diagnostics_log_file_path = tempfile.NamedTemporaryFile(delete=False).name
-        self._crash_diagnostics_log_handler = logging.handlers.MemoryHandler(
-            capacity=10000,
-            target=logging.FileHandler(self._crash_diagnostics_log_file_path, delay=True),
-            flushOnClose=False,
-        )
 
         # Ensure the twine is present and instantiate it.
         if isinstance(twine, Twine):
@@ -102,7 +95,8 @@ class Runner:
         analysis_log_level=logging.INFO,
         analysis_log_handler=None,
         handle_monitor_message=None,
-        allow_save_diagnostics_data_on_crash=False,
+        allow_save_diagnostics_data_on_crash=True,
+        sent_messages=None,
     ):
         """Run an analysis.
 
@@ -113,6 +107,7 @@ class Runner:
         :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run. Handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but should use the format defined above in LOG_FORMAT.
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
         :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved if the analysis fails
+        :param list|None sent_messages: the list of messages sent by the service running this runner (this should update in real time) to save if crash diagnostics are enabled
         :return octue.resources.analysis.Analysis:
         """
         if hasattr(self.twine, "credentials"):
@@ -156,9 +151,9 @@ class Runner:
         outputs_and_monitors = self.twine.prepare("monitor_message", "output_values", "output_manifest", cls=CLASS_MAP)
 
         if analysis_log_handler:
-            extra_log_handlers = [analysis_log_handler, self._crash_diagnostics_log_handler]
+            extra_log_handlers = [analysis_log_handler]
         else:
-            extra_log_handlers = [self._crash_diagnostics_log_handler]
+            extra_log_handlers = []
 
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
 
@@ -210,14 +205,21 @@ class Runner:
 
             except Exception as analysis_error:
                 if allow_save_diagnostics_data_on_crash:
-                    logger.warning("Saving crash diagnostics to %r.", self.crash_diagnostics_cloud_path)
+                    if not self.crash_diagnostics_cloud_path:
+                        logger.warning(
+                            "Cannot save crash diagnostics as the child doesn't have a crash diagnostics cloud path "
+                            "set."
+                        )
 
-                    try:
-                        self._save_crash_diagnostics_data(analysis)
-                        logger.warning("Crash diagnostics saved.")
-                    except Exception as crash_diagnostics_save_error:
-                        logger.error("Failed to save crash diagnostics.")
-                        raise crash_diagnostics_save_error
+                    else:
+                        logger.warning("Saving crash diagnostics to %r.", self.crash_diagnostics_cloud_path)
+
+                        try:
+                            self._save_crash_diagnostics_data(analysis, sent_messages)
+                            logger.warning("Crash diagnostics saved.")
+                        except Exception as crash_diagnostics_save_error:
+                            logger.error("Failed to save crash diagnostics.")
+                            raise crash_diagnostics_save_error
 
                 logger.error(str(analysis_error))
                 raise analysis_error
@@ -289,11 +291,12 @@ class Runner:
 
                     raise twined.exceptions.invalid_contents_map[manifest_kind](message)
 
-    def _save_crash_diagnostics_data(self, analysis):
+    def _save_crash_diagnostics_data(self, analysis, sent_messages):
         """Save the values, manifests, and datasets for the analysis configuration and inputs to the crash diagnostics
         cloud path.
 
         :param octue.resources.analysis.Analysis analysis:
+        :param list|None sent_messages: the list of messages sent by the service running this runner (this should update in real time) to save if crash diagnostics are enabled
         :return None:
         """
         storage_client = GoogleCloudStorageClient()
@@ -321,12 +324,10 @@ class Runner:
 
                 manifest.to_cloud(storage.path.join(question_diagnostics_path, f"{manifest_type}.json"))
 
-        # Upload the crash diagnostics log file.
-        self._crash_diagnostics_log_handler.flush()
-
-        storage_client.upload_file(
-            local_path=self._crash_diagnostics_log_file_path,
-            cloud_path=storage.path.join(question_diagnostics_path, "logs.txt"),
+        # Upload the crash diagnostics events record.
+        storage_client.upload_from_string(
+            string=json.dumps(sent_messages or []),
+            cloud_path=storage.path.join(question_diagnostics_path, "messages.json"),
         )
 
 
