@@ -7,6 +7,7 @@ We recommend writing automated tests for your service so anyone who wants to use
 and reliability at a glance. `Here's an example test <https://github.com/octue/example-service-cloud-run/blob/main/tests/test_app.py>`_
 for our example service.
 
+
 Emulating children
 ==================
 If your app has children, you should emulate them in your tests instead of communicating with the real ones. This makes
@@ -199,8 +200,72 @@ To emulate your children in tests, patch the :mod:`Child <octue.resources.child.
         analysis = runner.run(input_values={"some": "input"})
 
 
-Notes:
+**Notes**
+
 - If your app uses more than one child, provide more child emulators in the ``emulated_children`` list in the order
   they're asked questions in your app.
 - If a given child is asked more than one question, provide a child emulator for each question asked in the same order
   the questions are asked.
+
+
+Creating a test fixture
+=======================
+In this context, creating a test fixture is instantiating a child emulator with a list of emulated messages. You can
+create this list manually or record messages sent by a real child to a JSON file. To record messages:
+
+.. code-block:: python
+
+    import json
+    from octue.resources import Child
+
+
+    child = Child(
+        id="octue/my-child",
+        backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
+    )
+
+    result = child.ask(
+        input_values=[1, 2, 3, 4],
+        record_messages_to="child_messages.json",
+    )
+
+    with open("child_messages.json") as f:
+        child_messages = json.load(f)
+
+    child_messages
+    >>> [
+            {
+                'type': 'delivery_acknowledgement',
+                'delivery_time': '2022-08-16 11:49:57.244263',
+                'message_number': 0
+            },
+            {
+                'type': 'log_record',
+                'log_record': {
+                    'msg': 'Finished analysis.',
+                    'args': None,
+                    'levelname': 'INFO',
+                    ...
+                },
+                'analysis_id': '0ce8386d-564d-47fa-9d11-3b728f557bfe',
+                'message_number': 1
+            },
+            {
+                'type': 'result',
+                'output_values': {"some": "results"},
+                'output_manifest': None,
+                'message_number': 2
+            }
+        ]
+
+You can then feed these into a child emulator to emulate one possible response of the child:
+
+.. code-block:: python
+
+    from octue.cloud.emulators import ChildEmulator
+
+
+    child_emulator = ChildEmulator(messages=child_messages)
+
+    child_emulator.ask(input_values=[1, 2, 3, 4])
+    >>> {"some": "results"}
