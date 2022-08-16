@@ -117,6 +117,11 @@ class OrderedMessageHandler:
 
             finally:
                 if self.record_messages_to:
+                    directory_name = os.path.dirname(self.record_messages_to)
+
+                    if not os.path.exists(directory_name):
+                        os.makedirs(directory_name)
+
                     with open(self.record_messages_to, "w") as f:
                         json.dump(recorded_messages, f)
 
