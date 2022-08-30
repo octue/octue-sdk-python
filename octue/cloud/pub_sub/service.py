@@ -335,6 +335,7 @@ class Service(CoolNameable):
         service_name="REMOTE",
         timeout=60,
         delivery_acknowledgement_timeout=120,
+        acceptable_heartbeat_interval=300,
     ):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
@@ -368,6 +369,7 @@ class Service(CoolNameable):
             return message_handler.handle_messages(
                 timeout=timeout,
                 delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
+                acceptable_heartbeat_interval=acceptable_heartbeat_interval,
             )
         finally:
             subscription.delete()
