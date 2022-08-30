@@ -177,7 +177,7 @@ class Service(CoolNameable):
         topic = answer_topic or self.instantiate_answer_topic(question_uuid)
         self._send_delivery_acknowledgment(topic)
 
-        heartbeater = RepeatingTimer(interval=120, function=self._send_heartbeat, kwargs={"topic": answer_topic})
+        heartbeater = RepeatingTimer(interval=120, function=self._send_heartbeat, kwargs={"topic": topic})
         heartbeater.daemon = True
         heartbeater.start()
 
