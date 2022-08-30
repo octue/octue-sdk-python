@@ -1,3 +1,4 @@
+import time
 from subprocess import PIPE, STDOUT, CalledProcessError, Popen
 from threading import Thread, Timer
 
@@ -7,7 +8,7 @@ class RepeatingTimer(Timer):
 
     def run(self):
         while not self.finished.is_set():
-            self.finished.wait(self.interval)
+            time.sleep(self.interval)
             self.function(*self.args, **self.kwargs)
 
 

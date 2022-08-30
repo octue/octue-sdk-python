@@ -784,8 +784,8 @@ class TestService(BaseTestCase):
 
         # Check that the child's messages have been recorded by the parent.
         self.assertEqual(recorded_messages[0]["type"], "delivery_acknowledgement")
-        self.assertEqual(recorded_messages[2]["type"], "exception")
-        self.assertIn("Oh no.", recorded_messages[2]["exception_message"])
+        self.assertEqual(recorded_messages[1]["type"], "exception")
+        self.assertIn("Oh no.", recorded_messages[1]["exception_message"])
 
     def test_heartbeat_messages_are_sent_at_expected_regular_intervals(self):
         """Test that heartbeat messages are sent at the expected regular intervals."""
