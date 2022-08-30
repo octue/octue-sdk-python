@@ -670,7 +670,7 @@ class TestService(BaseTestCase):
                             self.assertIn(
                                 f"The parent's Octue SDK version {parent_sdk_version} may not be compatible "
                                 f"with the local Octue SDK version {child_sdk_version}",
-                                logging_context.output[4],
+                                logging_context.output[3],
                             )
 
     def test_messages_sent_to_parent_are_not_recorded_by_child_if_crash_diagnostics_not_allowed(self):
