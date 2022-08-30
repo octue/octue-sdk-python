@@ -244,6 +244,7 @@ class Service(CoolNameable):
                 timeout=timeout,
             )
 
+            heartbeater.cancel()
             logger.info("%r answered question %r.", self, question_uuid)
 
         except BaseException as error:  # noqa
