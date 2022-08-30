@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import time
+from datetime import datetime, timedelta
 
 from google.api_core import retry
 
@@ -11,6 +12,7 @@ from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.exceptions import QuestionNotDelivered
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
+from octue.utils.threads import RepeatingTimer
 
 
 if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in GOOGLE_COMPUTE_PROVIDERS:
@@ -52,6 +54,7 @@ class OrderedMessageHandler:
 
         self.received_delivery_acknowledgement = None
         self._last_heartbeat = None
+        self._alive = True
         self._start_time = time.perf_counter()
         self._waiting_messages = None
         self._previous_message_number = -1
@@ -67,12 +70,13 @@ class OrderedMessageHandler:
 
         self._log_message_colours = [COLOUR_PALETTE[1], *COLOUR_PALETTE[3:]]
 
-    def handle_messages(self, timeout=60, delivery_acknowledgement_timeout=120):
+    def handle_messages(self, timeout=60, delivery_acknowledgement_timeout=120, acceptable_heartbeat_interval=300):
         """Pull messages and handle them in the order they were sent until a result is returned by a message handler,
         then return that result.
 
         :param float|None timeout: how long to wait for an answer before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long to wait for a delivery acknowledgement before raising `QuestionNotDelivered`
+        :param int|float acceptable_heartbeat_interval:
         :raise TimeoutError: if the timeout is exceeded before receiving the final message
         :return dict:
         """
@@ -83,7 +87,16 @@ class OrderedMessageHandler:
         recorded_messages = []
         pull_timeout = None
 
-        while True:
+        heartbeat_checker = RepeatingTimer(
+            interval=acceptable_heartbeat_interval,
+            function=self._monitor_heartbeat,
+            kwargs={"acceptable_interval": acceptable_heartbeat_interval},
+        )
+
+        heartbeat_checker.daemon = True
+        heartbeat_checker.start()
+
+        while self._alive:
 
             if timeout is not None:
                 run_time = time.perf_counter() - self._start_time
@@ -118,6 +131,8 @@ class OrderedMessageHandler:
                 pass
 
             finally:
+                heartbeat_checker.cancel()
+
                 if self.record_messages_to:
                     directory_name = os.path.dirname(self.record_messages_to)
 
@@ -126,6 +141,28 @@ class OrderedMessageHandler:
 
                     with open(self.record_messages_to, "w") as f:
                         json.dump(recorded_messages, f)
+
+        raise TimeoutError(
+            f"No heartbeat has been received within the acceptable interval of {acceptable_heartbeat_interval}s."
+        )
+
+    def _monitor_heartbeat(self, acceptable_interval=300):
+        """Raise an error if a heartbeat hasn't been received within the acceptable past time interval measured from the
+        moment of calling.
+
+        :param float|int acceptable_interval: the acceptable time interval in seconds
+        :return None:
+        """
+        acceptable_interval = timedelta(seconds=acceptable_interval)
+
+        if (
+            self._last_heartbeat
+            and datetime.now() - datetime.fromisoformat(self._last_heartbeat) <= acceptable_interval
+        ):
+            self._alive = True
+            return
+
+        self._alive = False
 
     def _pull_message(self, timeout, delivery_acknowledgement_timeout):
         """Pull a message from the subscription, raising a `TimeoutError` if the timeout is exceeded before succeeding.
