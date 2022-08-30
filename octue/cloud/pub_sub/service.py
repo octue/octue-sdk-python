@@ -150,12 +150,13 @@ class Service(CoolNameable):
 
             subscriber.close()
 
-    def answer(self, question, answer_topic=None, timeout=30):
+    def answer(self, question, answer_topic=None, heartbeat_interval=120, timeout=30):
         """Answer a question from a parent - i.e. run the child's app on the given data and return the output values.
         Answers conform to the output values and output manifest schemas specified in the child's Twine file.
 
         :param dict|Message question:
         :param octue.cloud.pub_sub.topic.Topic|None answer_topic: provide if messages need to be sent to the parent from outside the `Service` instance (e.g. in octue.cloud.deployment.google.cloud_run.flask_app)
+        :param int|float heartbeat_interval: the time interval, in seconds, at which to send heartbeats
         :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
@@ -177,7 +178,12 @@ class Service(CoolNameable):
         topic = answer_topic or self.instantiate_answer_topic(question_uuid)
         self._send_delivery_acknowledgment(topic)
 
-        heartbeater = RepeatingTimer(interval=120, function=self._send_heartbeat, kwargs={"topic": topic})
+        heartbeater = RepeatingTimer(
+            interval=heartbeat_interval,
+            function=self._send_heartbeat,
+            kwargs={"topic": topic},
+        )
+
         heartbeater.daemon = True
         heartbeater.start()
 
