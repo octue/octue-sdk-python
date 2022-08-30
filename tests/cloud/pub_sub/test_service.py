@@ -798,16 +798,20 @@ class TestService(BaseTestCase):
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         with self.service_patcher:
-            child.serve(callback=functools.partial(child.answer, heartbeat_interval=0.1))
+            child.serve()
 
-            self.ask_question_and_wait_for_answer(
-                parent=parent,
-                child=child,
-                input_values={},
-                subscribe_to_logs=True,
-                allow_save_diagnostics_data_on_crash=True,
-                service_name="my-super-service",
-            )
+            with patch(
+                "octue.cloud.emulators._pub_sub.MockService.answer",
+                functools.partial(child.answer, heartbeat_interval=0.1),
+            ):
+                self.ask_question_and_wait_for_answer(
+                    parent=parent,
+                    child=child,
+                    input_values={},
+                    subscribe_to_logs=True,
+                    allow_save_diagnostics_data_on_crash=True,
+                    service_name="my-super-service",
+                )
 
         self.assertEqual(child._sent_messages[1]["type"], "heartbeat")
         self.assertEqual(child._sent_messages[2]["type"], "heartbeat")
