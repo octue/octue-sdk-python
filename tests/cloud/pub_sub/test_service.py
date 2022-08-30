@@ -670,7 +670,7 @@ class TestService(BaseTestCase):
                             self.assertIn(
                                 f"The parent's Octue SDK version {parent_sdk_version} may not be compatible "
                                 f"with the local Octue SDK version {child_sdk_version}",
-                                logging_context.output[3],
+                                logging_context.output[4],
                             )
 
     def test_messages_sent_to_parent_are_not_recorded_by_child_if_crash_diagnostics_not_allowed(self):
@@ -716,13 +716,13 @@ class TestService(BaseTestCase):
 
         # Check that the child's messages have been recorded.
         self.assertEqual(child._sent_messages[0]["type"], "delivery_acknowledgement")
-        self.assertEqual(child._sent_messages[1]["type"], "log_record")
         self.assertEqual(child._sent_messages[2]["type"], "log_record")
         self.assertEqual(child._sent_messages[3]["type"], "log_record")
+        self.assertEqual(child._sent_messages[4]["type"], "log_record")
 
         self.assertEqual(
-            child._sent_messages[4],
-            {"type": "result", "output_values": "Hello! It worked!", "output_manifest": None, "message_number": 4},
+            child._sent_messages[5],
+            {"type": "result", "output_values": "Hello! It worked!", "output_manifest": None, "message_number": 5},
         )
 
     def test_child_messages_can_be_recorded_by_parent(self):
@@ -748,13 +748,13 @@ class TestService(BaseTestCase):
 
         # Check that the child's messages have been recorded by the parent.
         self.assertEqual(recorded_messages[0]["type"], "delivery_acknowledgement")
-        self.assertEqual(recorded_messages[1]["type"], "log_record")
         self.assertEqual(recorded_messages[2]["type"], "log_record")
         self.assertEqual(recorded_messages[3]["type"], "log_record")
+        self.assertEqual(recorded_messages[4]["type"], "log_record")
 
         self.assertEqual(
-            recorded_messages[4],
-            {"type": "result", "output_values": "Hello! It worked!", "output_manifest": None, "message_number": 4},
+            recorded_messages[5],
+            {"type": "result", "output_values": "Hello! It worked!", "output_manifest": None, "message_number": 5},
         )
 
     def test_child_exception_message_can_be_recorded_by_parent(self):
@@ -781,8 +781,8 @@ class TestService(BaseTestCase):
 
         # Check that the child's messages have been recorded by the parent.
         self.assertEqual(recorded_messages[0]["type"], "delivery_acknowledgement")
-        self.assertEqual(recorded_messages[1]["type"], "exception")
-        self.assertIn("Oh no.", recorded_messages[1]["exception_message"])
+        self.assertEqual(recorded_messages[2]["type"], "exception")
+        self.assertIn("Oh no.", recorded_messages[2]["exception_message"])
 
     @staticmethod
     def make_new_child(backend, run_function_returnee):

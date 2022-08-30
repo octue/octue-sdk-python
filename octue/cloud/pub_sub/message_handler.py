@@ -51,12 +51,14 @@ class OrderedMessageHandler:
         self.service_name = service_name
 
         self.received_delivery_acknowledgement = None
+        self._last_heartbeat = None
         self._start_time = time.perf_counter()
         self._waiting_messages = None
         self._previous_message_number = -1
 
         self._message_handlers = message_handlers or {
             "delivery_acknowledgement": self._handle_delivery_acknowledgement,
+            "heartbeat": self._handle_heartbeat,
             "monitor_message": self._handle_monitor_message,
             "log_record": self._handle_log_message,
             "exception": self._handle_exception,
@@ -204,6 +206,15 @@ class OrderedMessageHandler:
         """
         self.received_delivery_acknowledgement = True
         logger.info("%r's question was delivered at %s.", self.subscription.topic.service, message["delivery_time"])
+
+    def _handle_heartbeat(self, message):
+        """Record the heartbeat time.
+
+        :param dict message:
+        :return None:
+        """
+        self._last_heartbeat = message["time"]
+        logger.debug("Heartbeat received.")
 
     def _handle_monitor_message(self, message):
         """Send a monitor message to the handler if one has been provided.
