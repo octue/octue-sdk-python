@@ -463,8 +463,6 @@ class Service(CoolNameable):
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
-        logger.debug("Heartbeat sent.")
-
         self._send_message(
             {
                 "type": "heartbeat",
@@ -474,6 +472,8 @@ class Service(CoolNameable):
             topic=topic,
             timeout=timeout,
         )
+
+        logger.debug("Heartbeat sent.")
 
     def _send_monitor_message(self, data, topic, timeout=30):
         """Send a monitor message to the parent.
