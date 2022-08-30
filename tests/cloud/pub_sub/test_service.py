@@ -1,6 +1,9 @@
+import datetime
+import functools
 import json
 import logging
 import tempfile
+import time
 import uuid
 from unittest.mock import patch
 
@@ -783,6 +786,40 @@ class TestService(BaseTestCase):
         self.assertEqual(recorded_messages[0]["type"], "delivery_acknowledgement")
         self.assertEqual(recorded_messages[2]["type"], "exception")
         self.assertIn("Oh no.", recorded_messages[2]["exception_message"])
+
+    def test_heartbeat_messages_are_sent_at_expected_regular_intervals(self):
+        """Test that heartbeat messages are sent at the expected regular intervals."""
+
+        def run_function(*args, **kwargs):
+            time.sleep(0.3)
+            return MockAnalysis()
+
+        child = MockService(backend=BACKEND, run_function=lambda *args, **kwargs: run_function())
+        parent = MockService(backend=BACKEND, children={child.id: child})
+
+        with self.service_patcher:
+            child.serve(callback=functools.partial(child.answer, heartbeat_interval=0.1))
+
+            self.ask_question_and_wait_for_answer(
+                parent=parent,
+                child=child,
+                input_values={},
+                subscribe_to_logs=True,
+                allow_save_diagnostics_data_on_crash=True,
+                service_name="my-super-service",
+            )
+
+        self.assertEqual(child._sent_messages[1]["type"], "heartbeat")
+        self.assertEqual(child._sent_messages[2]["type"], "heartbeat")
+
+        first_heartbeat_time = datetime.datetime.fromisoformat(child._sent_messages[1]["time"])
+        second_heartbeat_time = datetime.datetime.fromisoformat(child._sent_messages[2]["time"])
+
+        self.assertAlmostEqual(
+            second_heartbeat_time - first_heartbeat_time,
+            datetime.timedelta(seconds=0.1),
+            delta=datetime.timedelta(0.05),
+        )
 
     @staticmethod
     def make_new_child(backend, run_function_returnee):
