@@ -716,13 +716,13 @@ class TestService(BaseTestCase):
 
         # Check that the child's messages have been recorded.
         self.assertEqual(child._sent_messages[0]["type"], "delivery_acknowledgement")
+        self.assertEqual(child._sent_messages[1]["type"], "log_record")
         self.assertEqual(child._sent_messages[2]["type"], "log_record")
         self.assertEqual(child._sent_messages[3]["type"], "log_record")
-        self.assertEqual(child._sent_messages[4]["type"], "log_record")
 
         self.assertEqual(
-            child._sent_messages[5],
-            {"type": "result", "output_values": "Hello! It worked!", "output_manifest": None, "message_number": 5},
+            child._sent_messages[4],
+            {"type": "result", "output_values": "Hello! It worked!", "output_manifest": None, "message_number": 4},
         )
 
     def test_child_messages_can_be_recorded_by_parent(self):
@@ -748,13 +748,13 @@ class TestService(BaseTestCase):
 
         # Check that the child's messages have been recorded by the parent.
         self.assertEqual(recorded_messages[0]["type"], "delivery_acknowledgement")
+        self.assertEqual(recorded_messages[1]["type"], "log_record")
         self.assertEqual(recorded_messages[2]["type"], "log_record")
         self.assertEqual(recorded_messages[3]["type"], "log_record")
-        self.assertEqual(recorded_messages[4]["type"], "log_record")
 
         self.assertEqual(
-            recorded_messages[5],
-            {"type": "result", "output_values": "Hello! It worked!", "output_manifest": None, "message_number": 5},
+            recorded_messages[4],
+            {"type": "result", "output_values": "Hello! It worked!", "output_manifest": None, "message_number": 4},
         )
 
     def test_child_exception_message_can_be_recorded_by_parent(self):
