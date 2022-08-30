@@ -2,7 +2,7 @@ import logging
 import subprocess
 from unittest.mock import Mock, patch
 
-from octue.utils.processes import run_subprocess_and_log_stdout_and_stderr
+from octue.utils.threads import run_subprocess_and_log_stdout_and_stderr
 from tests.base import BaseTestCase
 
 
