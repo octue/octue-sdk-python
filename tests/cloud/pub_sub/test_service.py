@@ -5,7 +5,7 @@ import logging
 import tempfile
 import time
 import uuid
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import twined.exceptions
 from octue import Runner, exceptions
@@ -787,8 +787,8 @@ class TestService(BaseTestCase):
         self.assertEqual(recorded_messages[1]["type"], "exception")
         self.assertIn("Oh no.", recorded_messages[1]["exception_message"])
 
-    def test_heartbeat_messages_are_sent_at_expected_regular_intervals(self):
-        """Test that heartbeat messages are sent at the expected regular intervals."""
+    def test_child_sends_heartbeat_messages_at_expected_regular_intervals(self):
+        """Test that children send heartbeat messages at the expected regular intervals."""
 
         def run_function(*args, **kwargs):
             time.sleep(0.3)
@@ -824,6 +824,20 @@ class TestService(BaseTestCase):
             datetime.timedelta(seconds=0.1),
             delta=datetime.timedelta(0.05),
         )
+
+    def test_parent_raises_error_if_heartbeat_not_received_in_time(self):
+        """Test that a parent will raise an error if a heartbeat isn't received within the acceptable time interval."""
+        parent = MockService(backend=BACKEND)
+
+        with self.service_patcher:
+            with self.assertRaises(TimeoutError) as error:
+                parent.wait_for_answer(
+                    subscription=Mock(is_push_subscription=False),
+                    delivery_acknowledgement_timeout=100,
+                    acceptable_heartbeat_interval=0,
+                )
+
+            self.assertIn("heartbeat", error.exception.args[0])
 
     @staticmethod
     def make_new_child(backend, run_function_returnee):
@@ -866,6 +880,7 @@ class TestService(BaseTestCase):
         timeout=30,
         delivery_acknowledgement_timeout=30,
         parent_sdk_version=None,
+        acceptable_heartbeat_interval=300,
     ):
         """Get a parent service to ask a question to a child service and wait for the answer.
 
@@ -883,6 +898,7 @@ class TestService(BaseTestCase):
         :param int|float timeout:
         :param int|float delivery_acknowledgement_timeout:
         :param str|None parent_sdk_version:
+        :param int|float acceptable_heartbeat_interval:
         :return dict:
         """
         subscription, _ = parent.ask(
@@ -903,6 +919,7 @@ class TestService(BaseTestCase):
             record_messages_to=record_messages_to,
             service_name=service_name,
             delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
+            acceptable_heartbeat_interval=acceptable_heartbeat_interval,
         )
 
     @staticmethod
