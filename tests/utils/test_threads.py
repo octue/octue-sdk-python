@@ -1,17 +1,66 @@
 import logging
 import subprocess
+import time
+from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from octue.utils.threads import run_subprocess_and_log_stdout_and_stderr
-from tests.base import BaseTestCase
+from octue.utils.threads import RepeatingTimer, run_subprocess_and_log_stdout_and_stderr
 
 
-class TestRunSubprocessAndLogStdoutAndStderr(BaseTestCase):
+class TestRepeatingTimer(TestCase):
+    def test_calls_function_expected_number_of_times_before_cancellation(self):
+        """Test that the timer calls the function the expected number of times before cancellation."""
+        mock_function = Mock()
+        timer = RepeatingTimer(interval=0.1, function=mock_function)
+        timer.daemon = True
+
+        timer.start()
+        time.sleep(1)
+        timer.cancel()
+
+        self.assertEqual(mock_function.call_count, 9)
+
+    def test_calls_function_at_correct_intervals(self):
+        """Test that the timer calls the function at the near-correct time interval."""
+        intended_interval = 0.1
+        times = []
+
+        timer = RepeatingTimer(interval=intended_interval, function=lambda: times.append(time.time()))
+        timer.daemon = True
+
+        timer.start()
+        time.sleep(1)
+        timer.cancel()
+
+        intervals = []
+
+        for i, timestamp in enumerate(times):
+            if i == 0:
+                continue
+
+            intervals.append(timestamp - times[i - 1])
+
+        for interval in intervals:
+            self.assertAlmostEqual(interval, intended_interval, delta=0.05)
+
+    def test_does_not_call_function_if_cancelled_before_interval(self):
+        """Test that the function is not called if the timer is cancelled before the time interval is first reached."""
+        mock_function = Mock()
+        timer = RepeatingTimer(interval=10, function=mock_function)
+        timer.daemon = True
+
+        timer.start()
+        timer.cancel()
+
+        mock_function.assert_not_called()
+
+
+class TestRunSubprocessAndLogStdoutAndStderr(TestCase):
     def test_error_raised_if_process_fails(self):
         """Test that an error is raised if the subprocess fails."""
         with self.assertRaises(subprocess.CalledProcessError):
             with patch(
-                "octue.utils.processes.Popen",
+                "octue.utils.threads.Popen",
                 return_value=MockPopen(stdout_messages=[b"bash: blah: command not found"], return_code=1),
             ):
                 run_subprocess_and_log_stdout_and_stderr(command=["blah"], logger=logging.getLogger(), shell=True)
@@ -21,7 +70,7 @@ class TestRunSubprocessAndLogStdoutAndStderr(BaseTestCase):
         mock_logger = Mock()
 
         with patch(
-            "octue.utils.processes.Popen", return_value=MockPopen(stdout_messages=[b"hello", b"goodbye"], return_code=0)
+            "octue.utils.threads.Popen", return_value=MockPopen(stdout_messages=[b"hello", b"goodbye"], return_code=0)
         ):
             process = run_subprocess_and_log_stdout_and_stderr(
                 command=["echo hello && echo goodbye"], logger=mock_logger, shell=True
