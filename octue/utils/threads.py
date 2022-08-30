@@ -1,5 +1,14 @@
 from subprocess import PIPE, STDOUT, CalledProcessError, Popen
-from threading import Thread
+from threading import Thread, Timer
+
+
+class RepeatingTimer(Timer):
+    """A repeating version of the `threading.Timer` class."""
+
+    def run(self):
+        while not self.finished.is_set():
+            self.function(*self.args, **self.kwargs)
+            self.finished.wait(self.interval)
 
 
 def run_subprocess_and_log_stdout_and_stderr(command, logger, log_level="info", *args, **kwargs):

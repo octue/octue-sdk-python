@@ -20,6 +20,7 @@ from octue.mixins import CoolNameable
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
 from octue.utils.objects import get_nested_attribute
+from octue.utils.threads import RepeatingTimer
 
 
 logger = logging.getLogger(__name__)
@@ -176,6 +177,10 @@ class Service(CoolNameable):
         topic = answer_topic or self.instantiate_answer_topic(question_uuid)
         self._send_delivery_acknowledgment(topic)
 
+        heartbeater = RepeatingTimer(interval=120, function=self._send_heartbeat, kwargs={"topic": answer_topic})
+        heartbeater.daemon = True
+        heartbeater.start()
+
         try:
             if forward_logs:
                 analysis_log_handler = GooglePubSubHandler(
@@ -236,6 +241,7 @@ class Service(CoolNameable):
             logger.info("%r answered question %r.", self, question_uuid)
 
         except BaseException as error:  # noqa
+            heartbeater.cancel()
             self.send_exception(topic, timeout)
             raise error
 
@@ -434,7 +440,7 @@ class Service(CoolNameable):
     def _send_delivery_acknowledgment(self, topic, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
 
-        :param octue.cloud.pub_sub.topic.Topic topic: topic to send acknowledgement to
+        :param octue.cloud.pub_sub.topic.Topic topic: topic to send the acknowledgement to
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -444,6 +450,25 @@ class Service(CoolNameable):
             {
                 "type": "delivery_acknowledgement",
                 "delivery_time": str(datetime.datetime.now()),
+                "message_number": topic.messages_published,
+            },
+            topic=topic,
+            timeout=timeout,
+        )
+
+    def _send_heartbeat(self, topic, timeout=30):
+        """Send a heartbeat to the parent, indicating that the service is alive.
+
+        :param octue.cloud.pub_sub.topic.Topic topic: topic to send the heartbeat to
+        :param float timeout: time in seconds after which to give up sending
+        :return None:
+        """
+        logger.debug("Heartbeat sent.")
+
+        self._send_message(
+            {
+                "type": "heartbeat",
+                "time": str(datetime.datetime.now()),
                 "message_number": topic.messages_published,
             },
             topic=topic,
