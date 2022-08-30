@@ -7,8 +7,8 @@ class RepeatingTimer(Timer):
 
     def run(self):
         while not self.finished.is_set():
-            self.function(*self.args, **self.kwargs)
             self.finished.wait(self.interval)
+            self.function(*self.args, **self.kwargs)
 
 
 def run_subprocess_and_log_stdout_and_stderr(command, logger, log_level="info", *args, **kwargs):
