@@ -72,6 +72,17 @@ class OrderedMessageHandler:
 
         self._log_message_colours = [COLOUR_PALETTE[1], *COLOUR_PALETTE[3:]]
 
+    @property
+    def _time_since_last_heartbeat(self):
+        """Get the time period since the last heartbeat was received.
+
+        :return datetime.timedelta|None:
+        """
+        if not self._last_heartbeat:
+            return None
+
+        return datetime.now() - self._last_heartbeat
+
     def handle_messages(self, timeout=60, delivery_acknowledgement_timeout=120, acceptable_heartbeat_interval=300):
         """Pull messages and handle them in the order they were sent until a result is returned by a message handler,
         then return that result.
@@ -158,7 +169,7 @@ class OrderedMessageHandler:
         """
         acceptable_interval = timedelta(seconds=acceptable_interval)
 
-        if self._last_heartbeat and (datetime.now() - self._last_heartbeat <= acceptable_interval):
+        if self._last_heartbeat and self._time_since_last_heartbeat <= acceptable_interval:
             self._alive = True
             return
 
