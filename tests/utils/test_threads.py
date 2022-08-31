@@ -18,7 +18,7 @@ class TestRepeatingTimer(TestCase):
         time.sleep(1)
         timer.cancel()
 
-        self.assertEqual(mock_function.call_count, 9)
+        self.assertGreater(mock_function.call_count, 4)
 
     def test_calls_function_at_correct_intervals(self):
         """Test that the timer calls the function at the near-correct time interval."""
@@ -41,7 +41,7 @@ class TestRepeatingTimer(TestCase):
             intervals.append(timestamp - times[i - 1])
 
         for interval in intervals:
-            self.assertAlmostEqual(interval, intended_interval, delta=0.05)
+            self.assertAlmostEqual(interval, intended_interval, delta=0.2)
 
     def test_does_not_call_function_if_cancelled_before_interval(self):
         """Test that the function is not called if the timer is cancelled before the time interval is first reached."""

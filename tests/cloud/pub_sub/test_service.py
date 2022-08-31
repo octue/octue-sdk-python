@@ -789,6 +789,7 @@ class TestService(BaseTestCase):
 
     def test_child_sends_heartbeat_messages_at_expected_regular_intervals(self):
         """Test that children send heartbeat messages at the expected regular intervals."""
+        expected_interval = 0.05
 
         def run_function(*args, **kwargs):
             time.sleep(0.3)
@@ -802,7 +803,7 @@ class TestService(BaseTestCase):
 
             with patch(
                 "octue.cloud.emulators._pub_sub.MockService.answer",
-                functools.partial(child.answer, heartbeat_interval=0.1),
+                functools.partial(child.answer, heartbeat_interval=expected_interval),
             ):
                 self.ask_question_and_wait_for_answer(
                     parent=parent,
@@ -821,7 +822,7 @@ class TestService(BaseTestCase):
 
         self.assertAlmostEqual(
             second_heartbeat_time - first_heartbeat_time,
-            datetime.timedelta(seconds=0.1),
+            datetime.timedelta(seconds=expected_interval),
             delta=datetime.timedelta(0.05),
         )
 
