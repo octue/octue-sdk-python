@@ -248,7 +248,7 @@ class OrderedMessageHandler:
         :return None:
         """
         self._last_heartbeat = datetime.now()
-        logger.debug("Heartbeat received.")
+        logger.info("Heartbeat received from service %r.", self.service_name)
 
     def _handle_monitor_message(self, message):
         """Send a monitor message to the handler if one has been provided.
