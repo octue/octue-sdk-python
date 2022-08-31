@@ -174,58 +174,56 @@ class OrderedMessageHandler:
         :return dict: message containing data
         """
         start_time = time.perf_counter()
+        attempt = 1
 
         while True:
-            attempt = 1
+            logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
 
-            while True:
-                logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
-
-                pull_response = self.subscriber.pull(
-                    request={"subscription": self.subscription.path, "max_messages": 1},
-                    retry=retry.Retry(),
-                )
-
-                try:
-                    answer = pull_response.received_messages[0]
-                    break
-
-                except IndexError:
-                    logger.debug("Google Pub/Sub pull response timed out early.")
-                    attempt += 1
-
-                    run_time = time.perf_counter() - start_time
-
-                    if timeout is not None and run_time > timeout:
-                        raise TimeoutError(
-                            f"No message received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
-                        )
-
-                    if not self.received_delivery_acknowledgement:
-                        if run_time > delivery_acknowledgement_timeout:
-                            raise QuestionNotDelivered(
-                                f"No delivery acknowledgement received for topic {self.subscription.topic.path!r} "
-                                f"after {delivery_acknowledgement_timeout} seconds."
-                            )
-
-            self.subscriber.acknowledge(request={"subscription": self.subscription.path, "ack_ids": [answer.ack_id]})
-
-            logger.debug(
-                "%r received a message related to question %r.",
-                self.subscription.topic.service,
-                self.subscription.topic.path.split(".")[-1],
+            pull_response = self.subscriber.pull(
+                request={"subscription": self.subscription.path, "max_messages": 1},
+                retry=retry.Retry(),
             )
 
-            # Get the child's Octue SDK version from the first message.
+            try:
+                answer = pull_response.received_messages[0]
+                break
+
+            except IndexError:
+                logger.debug("Google Pub/Sub pull response timed out early.")
+                attempt += 1
+
+                run_time = time.perf_counter() - start_time
+
+                if timeout is not None and run_time > timeout:
+                    raise TimeoutError(
+                        f"No message received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
+                    )
+
+                if not self.received_delivery_acknowledgement:
+                    if run_time > delivery_acknowledgement_timeout:
+                        raise QuestionNotDelivered(
+                            f"No delivery acknowledgement received for topic {self.subscription.topic.path!r} "
+                            f"after {delivery_acknowledgement_timeout} seconds."
+                        )
+
+        self.subscriber.acknowledge(request={"subscription": self.subscription.path, "ack_ids": [answer.ack_id]})
+
+        logger.debug(
+            "%r received a message related to question %r.",
+            self.subscription.topic.service,
+            self.subscription.topic.path.split(".")[-1],
+        )
+
+        # Get the child's Octue SDK version from the first message.
+        if not self._child_sdk_version:
+            self._child_sdk_version = answer.message.attributes.get("octue_sdk_version")
+
+            # If the child hasn't provided its Octue SDK version, it's too old to send heartbeats - so, cancel the
+            # heartbeat checker to maintain compatibility.
             if not self._child_sdk_version:
-                self._child_sdk_version = answer.message.attributes.get("octue_sdk_version")
+                self._heartbeat_checker.cancel()
 
-                # If the child hasn't provided its Octue SDK version, it's too old to send heartbeats - so, cancel the
-                # heartbeat checker to maintain compatibility.
-                if not self._child_sdk_version:
-                    self._heartbeat_checker.cancel()
-
-            return json.loads(answer.message.data.decode())
+        return json.loads(answer.message.data.decode())
 
     def _handle_message(self, message):
         """Pass a message to its handler and update the previous message number.
