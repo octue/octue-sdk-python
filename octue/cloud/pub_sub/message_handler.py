@@ -155,10 +155,7 @@ class OrderedMessageHandler:
         """
         acceptable_interval = timedelta(seconds=acceptable_interval)
 
-        if (
-            self._last_heartbeat
-            and datetime.now() - datetime.fromisoformat(self._last_heartbeat) <= acceptable_interval
-        ):
+        if self._last_heartbeat and (datetime.now() - self._last_heartbeat <= acceptable_interval):
             self._alive = True
             return
 
@@ -245,12 +242,12 @@ class OrderedMessageHandler:
         logger.info("%r's question was delivered at %s.", self.subscription.topic.service, message["delivery_time"])
 
     def _handle_heartbeat(self, message):
-        """Record the heartbeat time.
+        """Record the time the heartbeat was received.
 
         :param dict message:
         :return None:
         """
-        self._last_heartbeat = message["time"]
+        self._last_heartbeat = datetime.now()
         logger.debug("Heartbeat received.")
 
     def _handle_monitor_message(self, message):
