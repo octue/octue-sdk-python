@@ -125,6 +125,7 @@ class OrderedMessageHandler:
                     result = self._handle_message(message)
 
                     if result is not None:
+                        heartbeat_checker.cancel()
                         return result
 
             except KeyError:
