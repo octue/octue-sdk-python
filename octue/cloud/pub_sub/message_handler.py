@@ -4,7 +4,6 @@ import os
 import re
 import time
 from datetime import datetime, timedelta
-from unittest.mock import Mock
 
 from google.api_core import retry
 
@@ -55,6 +54,7 @@ class OrderedMessageHandler:
 
         self.received_delivery_acknowledgement = None
         self._child_sdk_version = None
+        self._heartbeat_checker = None
         self._last_heartbeat = None
         self._alive = True
         self._start_time = time.perf_counter()
@@ -89,20 +89,14 @@ class OrderedMessageHandler:
         recorded_messages = []
         pull_timeout = None
 
-        # If the child has provided its Octue SDK version, it's running a new enough version to send heartbeats.
-        if self._child_sdk_version:
-            heartbeat_checker = RepeatingTimer(
-                interval=acceptable_heartbeat_interval,
-                function=self._monitor_heartbeat,
-                kwargs={"acceptable_interval": acceptable_heartbeat_interval},
-            )
+        self._heartbeat_checker = RepeatingTimer(
+            interval=acceptable_heartbeat_interval,
+            function=self._monitor_heartbeat,
+            kwargs={"acceptable_interval": acceptable_heartbeat_interval},
+        )
 
-            heartbeat_checker.daemon = True
-            heartbeat_checker.start()
-
-        # If it hasn't, don't check for heartbeats.
-        else:
-            heartbeat_checker = Mock()
+        self._heartbeat_checker.daemon = True
+        self._heartbeat_checker.start()
 
         while self._alive:
 
@@ -133,14 +127,14 @@ class OrderedMessageHandler:
                     result = self._handle_message(message)
 
                     if result is not None:
-                        heartbeat_checker.cancel()
+                        self._heartbeat_checker.cancel()
                         return result
 
             except KeyError:
                 pass
 
             finally:
-                heartbeat_checker.cancel()
+                self._heartbeat_checker.cancel()
 
                 if self.record_messages_to:
                     directory_name = os.path.dirname(self.record_messages_to)
@@ -225,6 +219,11 @@ class OrderedMessageHandler:
             # Get the child's Octue SDK version from the first message.
             if not self._child_sdk_version:
                 self._child_sdk_version = answer.message.attributes.get("octue_sdk_version")
+
+                # If the child hasn't provided its Octue SDK version, it's too old to send heartbeats - so, cancel the
+                # heartbeat checker to maintain compatibility.
+                if not self._child_sdk_version:
+                    self._heartbeat_checker.cancel()
 
             return json.loads(answer.message.data.decode())
 
