@@ -76,7 +76,7 @@ class OrderedMessageHandler:
 
         :param float|None timeout: how long to wait for an answer before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long to wait for a delivery acknowledgement before raising `QuestionNotDelivered`
-        :param int|float acceptable_heartbeat_interval:
+        :param int|float acceptable_heartbeat_interval: the maximum acceptable amount of time (in seconds) between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded before receiving the final message
         :return dict:
         """
@@ -147,8 +147,8 @@ class OrderedMessageHandler:
         )
 
     def _monitor_heartbeat(self, acceptable_interval=300):
-        """Raise an error if a heartbeat hasn't been received within the acceptable past time interval measured from the
-        moment of calling.
+        """Change the alive status to `False` if a heartbeat hasn't been received within the acceptable past time
+        interval measured from the moment of calling.
 
         :param float|int acceptable_interval: the acceptable time interval in seconds
         :return None:
