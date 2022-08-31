@@ -149,9 +149,9 @@ class OrderedMessageHandler:
             f"No heartbeat has been received within the acceptable interval of {acceptable_heartbeat_interval}s."
         )
 
-    def _monitor_heartbeat(self, acceptable_interval=300):
-        """Change the alive status to `False` if a heartbeat hasn't been received within the acceptable past time
-        interval measured from the moment of calling.
+    def _monitor_heartbeat(self, acceptable_interval):
+        """Change the alive status to `False` and cancel the heartbeat checker if a heartbeat hasn't been received
+        within the acceptable past time interval measured from the moment of calling.
 
         :param float|int acceptable_interval: the acceptable time interval in seconds
         :return None:
@@ -163,6 +163,7 @@ class OrderedMessageHandler:
             return
 
         self._alive = False
+        self._heartbeat_checker.cancel()
 
     def _pull_message(self, timeout, delivery_acknowledgement_timeout):
         """Pull a message from the subscription, raising a `TimeoutError` if the timeout is exceeded before succeeding.
