@@ -65,6 +65,7 @@ class Service(CoolNameable):
 
         self.backend = backend
         self.run_function = run_function
+        self.local_sdk_version = pkg_resources.get_distribution("octue").version
         self._record_sent_messages = False
         self._sent_messages = []
         self._publisher = None
@@ -198,7 +199,7 @@ class Service(CoolNameable):
                 analysis_log_handler = None
 
             if parent_sdk_version:
-                local_sdk_version = packaging.version.parse(pkg_resources.get_distribution("octue").version)
+                local_sdk_version = packaging.version.parse(self.local_sdk_version)
 
                 if (
                     local_sdk_version.major != parent_sdk_version.major
@@ -320,7 +321,7 @@ class Service(CoolNameable):
             topic=question_topic,
             question_uuid=question_uuid,
             forward_logs=subscribe_to_logs,
-            octue_sdk_version=pkg_resources.get_distribution("octue").version,
+            octue_sdk_version=self.local_sdk_version,
             allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
         )
 
@@ -428,6 +429,7 @@ class Service(CoolNameable):
         :param attributes: key-value pairs to attach to the message - the values must be strings or bytes
         :return None:
         """
+        attributes["octue_sdk_version"] = self.local_sdk_version
         converted_attributes = {}
 
         for key, value in attributes.items():

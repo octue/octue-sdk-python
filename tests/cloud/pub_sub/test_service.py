@@ -648,12 +648,7 @@ class TestService(BaseTestCase):
 
     def test_warning_issued_if_child_and_parent_sdk_versions_incompatible(self):
         """Test that a warning is logged if the parent and child's Octue SDK versions are potentially incompatible."""
-        child = self.make_new_child(backend=BACKEND, run_function_returnee=MockAnalysis())
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
         with self.service_patcher:
-            child.serve()
-
             for parent_sdk_version, child_sdk_version in (
                 ("0.1.0", "0.2.0"),
                 ("0.2.0", "0.1.0"),
@@ -662,6 +657,11 @@ class TestService(BaseTestCase):
             ):
                 with self.subTest(parent_sdk_version=parent_sdk_version, child_sdk_version=child_sdk_version):
                     with patch("pkg_resources.Distribution.version", child_sdk_version):
+
+                        child = self.make_new_child(backend=BACKEND, run_function_returnee=MockAnalysis())
+                        parent = MockService(backend=BACKEND, children={child.id: child})
+                        child.serve()
+
                         with self.assertLogs() as logging_context:
                             self.ask_question_and_wait_for_answer(
                                 parent=parent,

@@ -4,6 +4,7 @@ import os
 import re
 import time
 from datetime import datetime, timedelta
+from unittest.mock import Mock
 
 from google.api_core import retry
 
@@ -53,6 +54,7 @@ class OrderedMessageHandler:
         self.service_name = service_name
 
         self.received_delivery_acknowledgement = None
+        self._child_sdk_version = None
         self._last_heartbeat = None
         self._alive = True
         self._start_time = time.perf_counter()
@@ -87,14 +89,20 @@ class OrderedMessageHandler:
         recorded_messages = []
         pull_timeout = None
 
-        heartbeat_checker = RepeatingTimer(
-            interval=acceptable_heartbeat_interval,
-            function=self._monitor_heartbeat,
-            kwargs={"acceptable_interval": acceptable_heartbeat_interval},
-        )
+        # If the child has provided its Octue SDK version, it's running a new enough version to send heartbeats.
+        if self._child_sdk_version:
+            heartbeat_checker = RepeatingTimer(
+                interval=acceptable_heartbeat_interval,
+                function=self._monitor_heartbeat,
+                kwargs={"acceptable_interval": acceptable_heartbeat_interval},
+            )
 
-        heartbeat_checker.daemon = True
-        heartbeat_checker.start()
+            heartbeat_checker.daemon = True
+            heartbeat_checker.start()
+
+        # If it hasn't, don't check for heartbeats.
+        else:
+            heartbeat_checker = Mock()
 
         while self._alive:
 
@@ -213,6 +221,10 @@ class OrderedMessageHandler:
                 self.subscription.topic.service,
                 self.subscription.topic.path.split(".")[-1],
             )
+
+            # Get the child's Octue SDK version from the first message.
+            if not self._child_sdk_version:
+                self._child_sdk_version = answer.message.attributes.get("octue_sdk_version")
 
             return json.loads(answer.message.data.decode())
 
