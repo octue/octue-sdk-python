@@ -1,3 +1,4 @@
+import datetime
 from unittest.mock import patch
 
 from octue import exceptions
@@ -227,3 +228,22 @@ class TestOrderedMessageHandler(BaseTestCase):
 
         self.assertTrue(message_handler.received_delivery_acknowledgement)
         self.assertEqual(result, {"output_values": None, "output_manifest": None})
+
+    def test_error_raised_if_heartbeat_not_received_before_checked(self):
+        """Test that an error is raised if a heartbeat isn't received before a heartbeat is first checked for."""
+        message_handler = OrderedMessageHandler(subscriber=MockSubscriber(), subscription=self.mock_subscription)
+
+        with self.assertRaises(TimeoutError) as error:
+            message_handler.handle_messages(acceptable_heartbeat_interval=0)
+
+        self.assertIn("heartbeat", error.exception.args[0])
+
+    def test_error_raised_if_heartbeats_stop_being_received(self):
+        """Test that an error is raised if heartbeats stop being received within the acceptable interval."""
+        message_handler = OrderedMessageHandler(subscriber=MockSubscriber(), subscription=self.mock_subscription)
+        message_handler._last_heartbeat = datetime.datetime.now() - datetime.timedelta(seconds=30)
+
+        with self.assertRaises(TimeoutError) as error:
+            message_handler.handle_messages(acceptable_heartbeat_interval=0)
+
+        self.assertIn("heartbeat", error.exception.args[0])
