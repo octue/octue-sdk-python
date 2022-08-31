@@ -5,7 +5,7 @@ import logging
 import tempfile
 import time
 import uuid
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import twined.exceptions
 from octue import Runner, exceptions
@@ -825,20 +825,6 @@ class TestService(BaseTestCase):
             datetime.timedelta(seconds=expected_interval),
             delta=datetime.timedelta(0.05),
         )
-
-    def test_parent_raises_error_if_heartbeat_not_received_in_time(self):
-        """Test that a parent will raise an error if a heartbeat isn't received within the acceptable time interval."""
-        parent = MockService(backend=BACKEND)
-
-        with self.service_patcher:
-            with self.assertRaises(TimeoutError) as error:
-                parent.wait_for_answer(
-                    subscription=Mock(is_push_subscription=False),
-                    delivery_acknowledgement_timeout=100,
-                    acceptable_heartbeat_interval=0,
-                )
-
-            self.assertIn("heartbeat", error.exception.args[0])
 
     @staticmethod
     def make_new_child(backend, run_function_returnee):
