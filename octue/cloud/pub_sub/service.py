@@ -294,7 +294,7 @@ class Service(CoolNameable):
             subscriber=pubsub_v1.SubscriberClient(credentials=self.credentials),
             push_endpoint=push_endpoint,
         )
-        answer_subscription.create(allow_existing=True)
+        answer_subscription.create(allow_existing=False)
 
         serialised_input_manifest = None
 
