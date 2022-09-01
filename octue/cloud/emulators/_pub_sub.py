@@ -28,8 +28,6 @@ class MockTopic(Topic):
             if self.exists():
                 raise google.api_core.exceptions.AlreadyExists(f"Topic {self.path!r} already exists.")
 
-            self._created = True
-
         if not self.exists():
             MESSAGES[get_service_id(self.path)] = []
             self._created = True
@@ -39,10 +37,7 @@ class MockTopic(Topic):
 
         :return None:
         """
-        try:
-            del MESSAGES[get_service_id(self.path)]
-        except KeyError:
-            pass
+        pass
 
     def exists(self, timeout=10):
         """Check if the topic exists in the global messages dictionary.
