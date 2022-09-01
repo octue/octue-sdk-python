@@ -34,7 +34,7 @@ class TestTopic(BaseTestCase):
                 with patch("octue.cloud.pub_sub.service.pubsub_v1.PublisherClient.create_topic"):
                     topic.create(allow_existing=allow_existing)
 
-                self.assertTrue(topic.created)
+                self.assertTrue(topic.creation_triggered_locally)
 
     def test_create_without_allow_existing_when_already_exists(self):
         """Test that an error is raised when trying to create a topic that already exists and `allow_existing` is
@@ -50,7 +50,7 @@ class TestTopic(BaseTestCase):
                 topic.create(allow_existing=False)
 
         # Check that the topic isn't indicated as created as it wasn't created locally.
-        self.assertFalse(topic.created)
+        self.assertFalse(topic.creation_triggered_locally)
 
     def test_create_with_allow_existing_when_already_exists(self):
         """Test that trying to create a topic that already exists when `allow_existing` is `True` results in no error."""
@@ -63,7 +63,7 @@ class TestTopic(BaseTestCase):
             topic.create(allow_existing=True)
 
         # Check that the topic isn't indicated as created as it wasn't created locally.
-        self.assertFalse(topic.created)
+        self.assertFalse(topic.creation_triggered_locally)
 
     def test_exists(self):
         """Test that topics can be tested for existence."""

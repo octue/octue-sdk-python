@@ -31,7 +31,7 @@ class Topic:
         self._created = False
 
     @property
-    def created(self):
+    def creation_triggered_locally(self):
         """Was the topic successfully created by calling `self.create` locally? This is `False` if its creation was
         triggered remotely.
 

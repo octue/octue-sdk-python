@@ -139,10 +139,10 @@ class Service(CoolNameable):
 
         finally:
             try:
-                if subscription.created:
+                if subscription.creation_triggered_locally:
                     subscription.delete()
 
-                if topic.created:
+                if topic.creation_triggered_locally:
                     topic.delete()
 
             except Exception:
