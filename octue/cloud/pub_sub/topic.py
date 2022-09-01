@@ -28,6 +28,16 @@ class Topic:
         self.service = service
         self.path = self.generate_topic_path(service.backend.project_name, self.name)
         self.messages_published = 0
+        self._created = False
+
+    @property
+    def created(self):
+        """Was the topic successfully created by calling `self.create` locally? This is `False` if its creation was
+        triggered remotely.
+
+        :return bool:
+        """
+        return self._created
 
     def __repr__(self):
         """Represent the topic as a string.
@@ -48,7 +58,7 @@ class Topic:
             self.service.publisher.create_topic(
                 request=Topic_(name=self.path, labels={"created": posix_timestamp_with_no_decimals})
             )
-
+            self._created = True
             self._log_creation()
             return
 
@@ -56,8 +66,10 @@ class Topic:
             self.service.publisher.create_topic(
                 request=Topic_(name=self.path, labels={"created": posix_timestamp_with_no_decimals})
             )
+            self._created = True
         except google.api_core.exceptions.AlreadyExists:
             pass
+
         self._log_creation()
 
     def get_subscriptions(self):
