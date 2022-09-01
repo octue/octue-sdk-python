@@ -12,7 +12,7 @@ class RepeatingTimer(Timer):
             self.function(*self.args, **self.kwargs)
 
 
-def run_subprocess_and_log_stdout_and_stderr(command, logger, log_level="info", *args, **kwargs):
+def run_logged_subprocess(command, logger, log_level="info", *args, **kwargs):
     """Run a subprocess, sending its stdout and stderr output to the given logger. Extra `args` and `kwargs` are
     provided to the `subprocess.Popen` instance used.
 

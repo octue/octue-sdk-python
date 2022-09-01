@@ -4,7 +4,7 @@ import time
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from octue.utils.threads import RepeatingTimer, run_subprocess_and_log_stdout_and_stderr
+from octue.utils.threads import RepeatingTimer, run_logged_subprocess
 
 
 class TestRepeatingTimer(TestCase):
@@ -55,7 +55,7 @@ class TestRepeatingTimer(TestCase):
         mock_function.assert_not_called()
 
 
-class TestRunSubprocessAndLogStdoutAndStderr(TestCase):
+class TestRunLoggedSubprocess(TestCase):
     def test_error_raised_if_process_fails(self):
         """Test that an error is raised if the subprocess fails."""
         with self.assertRaises(subprocess.CalledProcessError):
@@ -63,7 +63,7 @@ class TestRunSubprocessAndLogStdoutAndStderr(TestCase):
                 "octue.utils.threads.Popen",
                 return_value=MockPopen(stdout_messages=[b"bash: blah: command not found"], return_code=1),
             ):
-                run_subprocess_and_log_stdout_and_stderr(command=["blah"], logger=logging.getLogger(), shell=True)
+                run_logged_subprocess(command=["blah"], logger=logging.getLogger(), shell=True)
 
     def test_stdout_is_logged(self):
         """Test that any output to stdout from a subprocess is logged."""
@@ -72,9 +72,7 @@ class TestRunSubprocessAndLogStdoutAndStderr(TestCase):
         with patch(
             "octue.utils.threads.Popen", return_value=MockPopen(stdout_messages=[b"hello", b"goodbye"], return_code=0)
         ):
-            process = run_subprocess_and_log_stdout_and_stderr(
-                command=["echo hello && echo goodbye"], logger=mock_logger, shell=True
-            )
+            process = run_logged_subprocess(command=["echo hello && echo goodbye"], logger=mock_logger, shell=True)
 
         self.assertEqual(process.returncode, 0)
         self.assertEqual(mock_logger.info.call_args_list[0][0][0], "hello")
