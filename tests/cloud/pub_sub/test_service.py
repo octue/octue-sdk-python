@@ -77,6 +77,11 @@ class TestService(BaseTestCase):
                 with self.assertRaises(exceptions.ServiceAlreadyExists):
                     MockService(backend=BACKEND, service_id="existing-service").serve()
 
+    def test_serve(self):
+        """Test that serving works with a unique service ID."""
+        with self.service_patcher:
+            MockService(backend=BACKEND, service_id="new-service").serve()
+
     def test_ask_on_non_existent_service_results_in_error(self):
         """Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
         results in an error.
