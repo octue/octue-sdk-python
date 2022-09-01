@@ -141,7 +141,7 @@ class Subscription:
         :return None:
         """
         self.subscriber.delete_subscription(subscription=self.path)
-        logger.debug("Subscription %r deleted.", self.path)
+        logger.info("Subscription %r deleted.", self.path)
 
     def exists(self, timeout=5):
         """Check if the subscription exists on the Google Pub/Sub servers.

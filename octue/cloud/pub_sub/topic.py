@@ -73,7 +73,7 @@ class Topic:
         :return None:
         """
         self.service.publisher.delete_topic(topic=self.path)
-        logger.debug("%r deleted topic %r.", self.service, self.path)
+        logger.info("Topic %r deleted.", self.path)
 
     def exists(self, timeout=10):
         """Check if the topic exists on the Google Pub/Sub servers.
