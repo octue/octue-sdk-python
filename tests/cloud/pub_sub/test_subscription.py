@@ -82,7 +82,9 @@ class TestSubscription(BaseTestCase):
         self.assertFalse(subscription.creation_triggered_locally)
 
     def test_create_pull_subscription(self):
-        """Test that creating a pull subscription works properly."""
+        """Test that creating a pull subscription works properly and that its creation is marked as having been
+        triggered locally.
+        """
         project_name = os.environ["TEST_PROJECT_NAME"]
         service = Service(backend=GCPPubSubBackend(project_name=project_name))
         topic = Topic(name="my-topic", namespace="tests", service=service)
