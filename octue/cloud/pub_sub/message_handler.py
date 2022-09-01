@@ -83,13 +83,13 @@ class OrderedMessageHandler:
 
         return datetime.now() - self._last_heartbeat
 
-    def handle_messages(self, timeout=60, delivery_acknowledgement_timeout=120, acceptable_heartbeat_interval=300):
+    def handle_messages(self, timeout=60, delivery_acknowledgement_timeout=120, maximum_heartbeat_interval=300):
         """Pull messages and handle them in the order they were sent until a result is returned by a message handler,
         then return that result.
 
         :param float|None timeout: how long to wait for an answer before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long to wait for a delivery acknowledgement before raising `QuestionNotDelivered`
-        :param int|float acceptable_heartbeat_interval: the maximum acceptable amount of time (in seconds) between child heartbeats before an error is raised
+        :param int|float maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded before receiving the final message
         :return dict:
         """
@@ -101,9 +101,9 @@ class OrderedMessageHandler:
         pull_timeout = None
 
         self._heartbeat_checker = RepeatingTimer(
-            interval=acceptable_heartbeat_interval,
+            interval=maximum_heartbeat_interval,
             function=self._monitor_heartbeat,
-            kwargs={"acceptable_interval": acceptable_heartbeat_interval},
+            kwargs={"maximum_heartbeat_interval": maximum_heartbeat_interval},
         )
 
         self._heartbeat_checker.daemon = True
@@ -157,19 +157,19 @@ class OrderedMessageHandler:
                         json.dump(recorded_messages, f)
 
         raise TimeoutError(
-            f"No heartbeat has been received within the acceptable interval of {acceptable_heartbeat_interval}s."
+            f"No heartbeat has been received within the maximum allowed interval of {maximum_heartbeat_interval}s."
         )
 
-    def _monitor_heartbeat(self, acceptable_interval):
+    def _monitor_heartbeat(self, maximum_heartbeat_interval):
         """Change the alive status to `False` and cancel the heartbeat checker if a heartbeat hasn't been received
-        within the acceptable past time interval measured from the moment of calling.
+        within the maximum allowed time interval measured from the moment of calling.
 
-        :param float|int acceptable_interval: the acceptable time interval in seconds
+        :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats without raising an error
         :return None:
         """
-        acceptable_interval = timedelta(seconds=acceptable_interval)
+        maximum_heartbeat_interval = timedelta(seconds=maximum_heartbeat_interval)
 
-        if self._last_heartbeat and self._time_since_last_heartbeat <= acceptable_interval:
+        if self._last_heartbeat and self._time_since_last_heartbeat <= maximum_heartbeat_interval:
             self._alive = True
             return
 

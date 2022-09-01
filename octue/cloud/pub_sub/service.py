@@ -336,7 +336,7 @@ class Service(CoolNameable):
         service_name="REMOTE",
         timeout=60,
         delivery_acknowledgement_timeout=120,
-        acceptable_heartbeat_interval=300,
+        maximum_heartbeat_interval=300,
     ):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
@@ -347,7 +347,7 @@ class Service(CoolNameable):
         :param str service_name: a name by which to refer to the child subscribed to (used for labelling its log messages if subscribed to)
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
-        :param float|int acceptable_heartbeat_interval: the maximum acceptable amount of time (in seconds) between child heartbeats before an error is raised
+        :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded
         :raise octue.exceptions.QuestionNotDelivered: if a delivery acknowledgement is not received in time
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
@@ -371,7 +371,7 @@ class Service(CoolNameable):
             return message_handler.handle_messages(
                 timeout=timeout,
                 delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
-                acceptable_heartbeat_interval=acceptable_heartbeat_interval,
+                maximum_heartbeat_interval=maximum_heartbeat_interval,
             )
         finally:
             subscription.delete()

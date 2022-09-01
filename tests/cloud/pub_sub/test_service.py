@@ -867,7 +867,7 @@ class TestService(BaseTestCase):
         timeout=30,
         delivery_acknowledgement_timeout=30,
         parent_sdk_version=None,
-        acceptable_heartbeat_interval=300,
+        maximum_heartbeat_interval=300,
     ):
         """Get a parent service to ask a question to a child service and wait for the answer.
 
@@ -885,7 +885,7 @@ class TestService(BaseTestCase):
         :param int|float timeout:
         :param int|float delivery_acknowledgement_timeout:
         :param str|None parent_sdk_version:
-        :param int|float acceptable_heartbeat_interval:
+        :param int|float maximum_heartbeat_interval:
         :return dict:
         """
         subscription, _ = parent.ask(
@@ -906,7 +906,7 @@ class TestService(BaseTestCase):
             record_messages_to=record_messages_to,
             service_name=service_name,
             delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
-            acceptable_heartbeat_interval=acceptable_heartbeat_interval,
+            maximum_heartbeat_interval=maximum_heartbeat_interval,
         )
 
     @staticmethod
