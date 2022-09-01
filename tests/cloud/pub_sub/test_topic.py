@@ -49,7 +49,7 @@ class TestTopic(BaseTestCase):
             with self.assertRaises(google.api_core.exceptions.AlreadyExists):
                 topic.create(allow_existing=False)
 
-        # Check that the topic isn't indicated as created as it wasn't created locally.
+        # Check that the topic creation isn't indicated as being triggered locally.
         self.assertFalse(topic.creation_triggered_locally)
 
     def test_create_with_allow_existing_when_already_exists(self):
@@ -62,7 +62,7 @@ class TestTopic(BaseTestCase):
         ):
             topic.create(allow_existing=True)
 
-        # Check that the topic isn't indicated as created as it wasn't created locally.
+        # Check that the topic creation isn't indicated as being triggered locally.
         self.assertFalse(topic.creation_triggered_locally)
 
     def test_exists(self):

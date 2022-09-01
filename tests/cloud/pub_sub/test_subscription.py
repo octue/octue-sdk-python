@@ -14,12 +14,15 @@ from tests.base import BaseTestCase
 
 
 class TestSubscription(BaseTestCase):
-
     service = Service(backend=GCPPubSubBackend(project_name="my-project"))
     topic = Topic(name="world", namespace="hello", service=service)
     subscription = Subscription(
         name="world", topic=topic, namespace="hello", project_name=TEST_PROJECT_NAME, subscriber=MockSubscriber()
     )
+
+    def test_repr(self):
+        """Test that subscriptions are represented correctly."""
+        self.assertEqual(repr(self.subscription), "<Subscription(hello.world)>")
 
     def test_namespace_only_in_name_once(self):
         """Test that the subscription's namespace only appears in its name once, even if it is repeated."""
@@ -35,14 +38,18 @@ class TestSubscription(BaseTestCase):
 
         self.assertEqual(subscription_with_repeated_namespace.name, "hello.world")
 
-    def test_repr(self):
-        """Test that Subscriptions are represented correctly."""
-        self.assertEqual(repr(self.subscription), "<Subscription(hello.world)>")
-
-    def test_error_raised_when_creating_without_allowing_existing_when_subscription_already_exists(self):
+    def test_create_without_allow_existing_when_subscription_already_exists(self):
         """Test that an error is raised when trying to create a subscription that already exists and `allow_existing` is
         `False`.
         """
+        subscription = Subscription(
+            name="world",
+            topic=self.topic,
+            namespace="hello",
+            project_name=TEST_PROJECT_NAME,
+            subscriber=MockSubscriber(),
+        )
+
         with patch(
             "octue.cloud.emulators._pub_sub.MockSubscriber.create_subscription",
             side_effect=google.api_core.exceptions.AlreadyExists(""),
@@ -50,15 +57,29 @@ class TestSubscription(BaseTestCase):
             with self.assertRaises(google.api_core.exceptions.AlreadyExists):
                 self.subscription.create(allow_existing=False)
 
+        # Check that the subscription creation isn't indicated as being triggered locally.
+        self.assertFalse(subscription.creation_triggered_locally)
+
     def test_create_with_allow_existing_when_already_exists(self):
         """Test that trying to create a subscription that already exists when `allow_existing` is `True` results in no
         error.
         """
+        subscription = Subscription(
+            name="world",
+            topic=self.topic,
+            namespace="hello",
+            project_name=TEST_PROJECT_NAME,
+            subscriber=MockSubscriber(),
+        )
+
         with patch(
             "octue.cloud.emulators._pub_sub.MockSubscriber.create_subscription",
             side_effect=google.api_core.exceptions.AlreadyExists(""),
         ):
-            self.subscription.create(allow_existing=True)
+            subscription.create(allow_existing=True)
+
+        # Check that the subscription creation isn't indicated as being triggered locally.
+        self.assertFalse(subscription.creation_triggered_locally)
 
     def test_create_pull_subscription(self):
         """Test that creating a pull subscription works properly."""
@@ -74,14 +95,20 @@ class TestSubscription(BaseTestCase):
             subscriber=SubscriberClient(credentials=service.credentials),
         )
 
-        with patch("google.pubsub_v1.SubscriberClient.create_subscription", new=MockSubscriptionCreationResponse):
-            response = subscription.create(allow_existing=True)
+        for allow_existing in (True, False):
+            with self.subTest(allow_existing=allow_existing):
+                with patch(
+                    "google.pubsub_v1.SubscriberClient.create_subscription",
+                    new=MockSubscriptionCreationResponse,
+                ):
+                    response = subscription.create(allow_existing=allow_existing)
 
-        self.assertEqual(response._pb.ack_deadline_seconds, 600)
-        self.assertEqual(response._pb.expiration_policy.ttl.seconds, THIRTY_ONE_DAYS)
-        self.assertEqual(response._pb.message_retention_duration.seconds, 600)
-        self.assertEqual(response._pb.retry_policy.minimum_backoff.seconds, 10)
-        self.assertEqual(response._pb.retry_policy.maximum_backoff.seconds, 600)
+                self.assertTrue(subscription.creation_triggered_locally)
+                self.assertEqual(response._pb.ack_deadline_seconds, 600)
+                self.assertEqual(response._pb.expiration_policy.ttl.seconds, THIRTY_ONE_DAYS)
+                self.assertEqual(response._pb.message_retention_duration.seconds, 600)
+                self.assertEqual(response._pb.retry_policy.minimum_backoff.seconds, 10)
+                self.assertEqual(response._pb.retry_policy.maximum_backoff.seconds, 600)
 
     def test_create_push_subscription(self):
         """Test that creating a push subscription works properly."""
