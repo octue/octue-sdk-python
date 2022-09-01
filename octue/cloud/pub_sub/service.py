@@ -65,7 +65,8 @@ class Service(CoolNameable):
 
         self.backend = backend
         self.run_function = run_function
-        self.local_sdk_version = pkg_resources.get_distribution("octue").version
+        self._raw_local_sdk_version = pkg_resources.get_distribution("octue").version
+        self._parsed_local_sdk_version = packaging.version.parse(self._raw_local_sdk_version)
         self._record_sent_messages = False
         self._sent_messages = []
         self._publisher = None
@@ -199,18 +200,16 @@ class Service(CoolNameable):
                 analysis_log_handler = None
 
             if parent_sdk_version:
-                local_sdk_version = packaging.version.parse(self.local_sdk_version)
-
                 if (
-                    local_sdk_version.major != parent_sdk_version.major
-                    or local_sdk_version.minor != parent_sdk_version.minor
+                    self._parsed_local_sdk_version.major != parent_sdk_version.major
+                    or self._parsed_local_sdk_version.minor != parent_sdk_version.minor
                 ):
                     logger.warning(
                         "The parent's Octue SDK version %s may not be compatible with the local Octue SDK version %s. "
                         "Update them both to the latest version (or at least a version with the same major and minor "
                         "version numbers) if possible.",
                         parent_sdk_version,
-                        local_sdk_version,
+                        self._parsed_local_sdk_version,
                     )
 
             else:
@@ -428,7 +427,7 @@ class Service(CoolNameable):
         :param attributes: key-value pairs to attach to the message - the values must be strings or bytes
         :return None:
         """
-        attributes["octue_sdk_version"] = self.local_sdk_version
+        attributes["octue_sdk_version"] = self._raw_local_sdk_version
         converted_attributes = {}
 
         for key, value in attributes.items():
