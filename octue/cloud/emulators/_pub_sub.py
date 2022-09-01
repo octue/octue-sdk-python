@@ -28,8 +28,6 @@ class MockTopic(Topic):
             if self.exists():
                 raise google.api_core.exceptions.AlreadyExists(f"Topic {self.path!r} already exists.")
 
-            self._created = True
-
         if not self.exists():
             MESSAGES[get_service_id(self.path)] = []
             self._created = True

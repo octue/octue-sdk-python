@@ -228,7 +228,7 @@ def start(service_config, timeout):
         run_function=run_function,
     )
 
-    service.serve(timeout=timeout)
+    service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=True)
 
 
 @octue_cli.command()
