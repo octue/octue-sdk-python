@@ -16,6 +16,21 @@ class TestChildEmulatorAsk(BaseTestCase):
 
     BACKEND = {"name": "GCPPubSubBackend", "project_name": "blah"}
 
+    def test_representation(self):
+        """Test that child emulators are represented correctly."""
+        self.assertEqual(repr(ChildEmulator(id="emulated-child")), "<ChildEmulator('emulated-child')>")
+
+    def test_ask_with_non_dictionary_message(self):
+        """Test that messages that aren't dictionaries fail validation."""
+        messages = [
+            ["hello"],
+        ]
+
+        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+
+        with self.assertRaises(TypeError):
+            child_emulator.ask(input_values={"hello": "world"})
+
     def test_ask_with_invalid_message_structure(self):
         """Test that messages with an invalid structure fail validation."""
         messages = [
@@ -75,6 +90,19 @@ class TestChildEmulatorAsk(BaseTestCase):
         child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=[])
         result = child_emulator.ask(input_values={"hello": "world"})
         self.assertEqual(result, {"output_values": None, "output_manifest": None})
+
+    def test_ask_with_log_record_with_missing_log_record_key(self):
+        """Test that an error is raised if a log record message missing the "log_record" key is given."""
+        messages = [
+            {
+                "type": "log_record",
+            }
+        ]
+
+        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+
+        with self.assertRaises(ValueError):
+            child_emulator.ask(input_values={"hello": "world"})
 
     def test_ask_with_invalid_log_record(self):
         """Test that an invalid log record representation fails validation."""
@@ -190,6 +218,22 @@ class TestChildEmulatorAsk(BaseTestCase):
 
         # Check that the monitor message handler has worked.
         self.assertEqual(monitor_messages, ["A sample monitor message."])
+
+    def test_heartbeat_messages_are_ignored(self):
+        """Test that heartbeat messages are ignored by the emulator."""
+        messages = [
+            {
+                "type": "heartbeat",
+                "time": "2022-08-31 17:05:47.968419",
+            },
+        ]
+
+        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+
+        with self.assertLogs() as logging_context:
+            child_emulator.ask(input_values={"hello": "world"})
+
+        self.assertIn("Heartbeat messages are ignored by the ChildEmulator.", logging_context.output[4])
 
     def test_messages_recorded_from_real_child_can_be_used_in_child_emulator(self):
         """Test that messages recorded from a real child can be used as emulated messages in a child emulator (i.e. test

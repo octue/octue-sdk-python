@@ -1,3 +1,4 @@
+import datetime
 from unittest.mock import patch
 
 from octue import exceptions
@@ -227,3 +228,51 @@ class TestOrderedMessageHandler(BaseTestCase):
 
         self.assertTrue(message_handler.received_delivery_acknowledgement)
         self.assertEqual(result, {"output_values": None, "output_manifest": None})
+
+    def test_error_raised_if_heartbeat_not_received_before_checked(self):
+        """Test that an error is raised if a heartbeat isn't received before a heartbeat is first checked for."""
+        message_handler = OrderedMessageHandler(subscriber=MockSubscriber(), subscription=self.mock_subscription)
+
+        with self.assertRaises(TimeoutError) as error:
+            message_handler.handle_messages(maximum_heartbeat_interval=0)
+
+        self.assertIn("heartbeat", error.exception.args[0])
+
+    def test_error_raised_if_heartbeats_stop_being_received(self):
+        """Test that an error is raised if heartbeats stop being received within the maximum interval."""
+        message_handler = OrderedMessageHandler(subscriber=MockSubscriber(), subscription=self.mock_subscription)
+        message_handler._last_heartbeat = datetime.datetime.now() - datetime.timedelta(seconds=30)
+
+        with self.assertRaises(TimeoutError) as error:
+            message_handler.handle_messages(maximum_heartbeat_interval=0)
+
+        self.assertIn("heartbeat", error.exception.args[0])
+
+    def test_error_not_raised_if_heartbeat_has_been_received_in_maximum_allowed_interval(self):
+        """Test that an error is not raised if a heartbeat has been received in the maximum allowed interval."""
+        message_handler = OrderedMessageHandler(subscriber=MockSubscriber(), subscription=self.mock_subscription)
+        message_handler._last_heartbeat = datetime.datetime.now()
+
+        with patch(
+            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_message",
+            new=MockMessagePuller(
+                [
+                    {
+                        "type": "delivery_acknowledgement",
+                        "delivery_time": "2021-11-17 17:33:59.717428",
+                        "message_number": 0,
+                    },
+                    {"type": "result", "output_values": None, "output_manifest": None, "message_number": 1},
+                ]
+            ).pull,
+        ):
+            with patch(
+                "octue.cloud.pub_sub.message_handler.OrderedMessageHandler._time_since_last_heartbeat",
+                datetime.timedelta(seconds=0),
+            ):
+                message_handler.handle_messages(maximum_heartbeat_interval=0)
+
+    def test_time_since_last_heartbeat_is_none_if_no_heartbeat_received_yet(self):
+        """Test that the time since the last heartbeat is `None` if no heartbeat has been received yet."""
+        message_handler = OrderedMessageHandler(subscriber=MockSubscriber(), subscription=self.mock_subscription)
+        self.assertIsNone(message_handler._time_since_last_heartbeat)

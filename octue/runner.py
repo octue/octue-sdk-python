@@ -186,15 +186,15 @@ class Runner:
                 elif hasattr(self.app_source, "run"):
                     self.app_source.run(analysis)
 
-                # App as a string path to a module containing a class named "App" or a function named "run". The same other
-                # specifications apply as described above.
+                # App as a string path to a module containing a class named "App" or a function named "run". The same
+                # other specifications apply as described above.
                 elif isinstance(self.app_source, str):
 
                     with AppFrom(self.app_source) as app:
                         if hasattr(app.app_module, "App"):
                             app.app_module.App(analysis).run()
                         else:
-                            app.run(analysis)
+                            app.app_module.run(analysis)
 
                 # App as a function that takes "analysis" as an argument.
                 else:
@@ -331,13 +331,6 @@ class Runner:
         )
 
 
-def unwrap(fcn):
-    """Recurse through wrapping to get the raw function without decorators."""
-    if hasattr(fcn, "__wrapped__"):
-        return unwrap(fcn.__wrapped__)
-    return fcn
-
-
 class AppFrom:
     """A context manager that imports the module "app" from a file named "app.py" in the given directory on entry (by
     making a temporary addition to the system path) and unloads it (by deleting it from `sys.modules`) on exit. It will
@@ -392,11 +385,6 @@ class AppFrom:
                 f"Module 'app' was already removed from the system path prior to exiting the {context_manager_name} "
                 f"context manager. Using the {context_manager_name} context may yield unexpected results."
             )
-
-    @property
-    def run(self):
-        """Get the unwrapped run function from app.py in the application's root directory."""
-        return unwrap(self.app_module.run)
 
 
 class AnalysisLogHandlerSwitcher:
