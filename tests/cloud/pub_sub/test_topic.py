@@ -11,15 +11,16 @@ from tests.base import BaseTestCase
 class TestTopic(BaseTestCase):
 
     service = Service(backend=GCPPubSubBackend(project_name="my-project"))
-    topic = Topic(name="world", namespace="hello", service=service)
 
     def test_repr(self):
         """Test that Topics are represented correctly."""
-        self.assertEqual(repr(self.topic), "<Topic(hello.world)>")
+        topic = Topic(name="world", namespace="hello", service=self.service)
+        self.assertEqual(repr(topic), "<Topic(hello.world)>")
 
     def test_namespace_only_in_name_once(self):
         """Test that the topic's namespace only appears in its name once, even if it is repeated."""
-        self.assertEqual(self.topic.name, "hello.world")
+        topic = Topic(name="world", namespace="hello", service=self.service)
+        self.assertEqual(topic.name, "hello.world")
 
         topic_with_repeated_namespace = Topic(name="hello.world", namespace="hello", service=self.service)
         self.assertEqual(topic_with_repeated_namespace.name, "hello.world")
@@ -66,15 +67,18 @@ class TestTopic(BaseTestCase):
 
     def test_exists(self):
         """Test that topics can be tested for existence."""
+        topic = Topic(name="world", namespace="hello", service=self.service)
+
         with patch("octue.cloud.pub_sub.service.pubsub_v1.PublisherClient.get_topic"):
-            self.assertTrue(self.topic.exists())
+            self.assertTrue(topic.exists())
 
         with patch(
             "octue.cloud.pub_sub.service.pubsub_v1.PublisherClient.get_topic",
             side_effect=google.api_core.exceptions.NotFound(""),
         ):
-            self.assertFalse(self.topic.exists(timeout=1))
+            self.assertFalse(topic.exists(timeout=1))
 
     def test_exists_returns_false_if_timeout_exceeded(self):
         """Test `Topic.exists` returns `False` if the timeout is exceeded."""
-        self.assertFalse(self.topic.exists(timeout=0))
+        topic = Topic(name="world", namespace="hello", service=self.service)
+        self.assertFalse(topic.exists(timeout=0))
