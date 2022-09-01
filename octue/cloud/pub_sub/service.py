@@ -6,6 +6,7 @@ import json
 import logging
 import uuid
 
+import google.api_core.exceptions
 import packaging.version
 import pkg_resources
 from google import auth
@@ -122,8 +123,8 @@ class Service(CoolNameable):
         )
 
         try:
-            topic.create(allow_existing=True)
-            subscription.create(allow_existing=True)
+            topic.create(allow_existing=False)
+            subscription.create(allow_existing=False)
 
             future = subscriber.subscribe(subscription=subscription.path, callback=self.answer)
             logger.debug("%r is waiting for questions.", self)
@@ -133,12 +134,15 @@ class Service(CoolNameable):
             except (TimeoutError, concurrent.futures.TimeoutError, KeyboardInterrupt):
                 future.cancel()
 
+        except google.api_core.exceptions.AlreadyExists:
+            raise octue.exceptions.ServiceAlreadyExists(f"A service with the ID {self.id!r} already exists.")
+
         finally:
             try:
-                if subscription.exists():
+                if subscription.created:
                     subscription.delete()
 
-                if topic.exists():
+                if topic.created:
                     topic.delete()
 
             except Exception:
