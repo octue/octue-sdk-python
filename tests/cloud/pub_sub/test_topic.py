@@ -73,7 +73,7 @@ class TestTopic(BaseTestCase):
             "octue.cloud.pub_sub.service.pubsub_v1.PublisherClient.get_topic",
             side_effect=google.api_core.exceptions.NotFound(""),
         ):
-            self.assertFalse(self.topic.exists())
+            self.assertFalse(self.topic.exists(timeout=1))
 
     def test_exists_returns_false_if_timeout_exceeded(self):
         """Test `Topic.exists` returns `False` if the timeout is exceeded."""
