@@ -321,7 +321,6 @@ class Service(CoolNameable):
             topic=question_topic,
             question_uuid=question_uuid,
             forward_logs=subscribe_to_logs,
-            octue_sdk_version=self.local_sdk_version,
             allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
         )
 
