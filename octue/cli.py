@@ -189,16 +189,10 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
     show_default=True,
     help="A timeout in seconds after which to stop the service. The default is no timeout.",
 )
-@click.option(
-    "--rm",
-    "--delete-topic-and-subscription-on-exit",
-    is_flag=True,
-    default=False,
-    show_default=True,
-    help="Delete the Google Pub/Sub topic and subscription for the service on exit.",
-)
-def start(service_config, timeout, rm):
-    """Start an Octue service or digital twin locally as a child so it can be asked questions by other Octue services."""
+def start(service_config, timeout):
+    """Start an Octue service or digital twin locally as a child so it can be asked questions by other Octue services.
+    The service's pub/sub topic and subscription are deleted on exit.
+    """
     service_configuration, app_configuration = load_service_and_app_configuration(service_config)
 
     runner = Runner(
@@ -234,7 +228,7 @@ def start(service_config, timeout, rm):
         run_function=run_function,
     )
 
-    service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=rm)
+    service.serve(timeout=timeout)
 
 
 @octue_cli.command()

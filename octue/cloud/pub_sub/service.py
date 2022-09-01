@@ -99,12 +99,12 @@ class Service(CoolNameable):
 
         return self._credentials
 
-    def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False):
+    def serve(self, timeout=None):
         """Start the service as a child, waiting to accept questions from any other Octue service using Google Pub/Sub
-        on the same Google Cloud project. Questions are accepted, processed, and answered asynchronously.
+        on the same Google Cloud project. Questions are accepted, processed, and answered asynchronously. The service's
+        Pub/Sub topic and subscription are deleted on exit.
 
         :param float|None timeout: time in seconds after which to shut down the child
-        :param bool delete_topic_and_subscription_on_exit: if `True`, delete the child's topic and subscription on exiting serving mode
         :return None:
         """
         logger.info("Starting %r.", self)
@@ -134,18 +134,15 @@ class Service(CoolNameable):
                 future.cancel()
 
         finally:
-            if delete_topic_and_subscription_on_exit:
-                try:
-                    if subscription.exists():
-                        subscription.delete()
-                        logger.info("Subscription deleted.")
+            try:
+                if subscription.exists():
+                    subscription.delete()
 
-                    if topic.exists():
-                        topic.delete()
-                        logger.info("Topic deleted.")
+                if topic.exists():
+                    topic.delete()
 
-                except Exception:
-                    logger.error("Deletion of topic and/or subscription %r failed.", topic.name)
+            except Exception:
+                logger.error("Deletion of topic and/or subscription %r failed.", topic.name)
 
             subscriber.close()
 
