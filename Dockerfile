@@ -15,6 +15,4 @@ COPY pyproject.toml poetry.lock ./
 RUN poetry install --no-ansi --no-interaction --no-root
 
 COPY . .
-RUN poetry install --no-ansi --no-interaction
-
-RUN poetry install -E dataflow --no-dev -v
+RUN poetry install --no-ansi --no-interaction -E dataflow --no-dev -v
