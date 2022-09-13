@@ -800,11 +800,8 @@ class TestDataset(BaseTestCase):
 
         # Load it separately from the cloud object and check that the stored metadata is used instead of the
         # instantiation metadata.
-        with self.assertLogs() as logging_context:
-            reloaded_dataset = Dataset(path=cloud_path, tags={"new": "tag"})
-
+        reloaded_dataset = Dataset(path=cloud_path, tags={"new": "tag"})
         self.assertEqual(reloaded_dataset.tags, {"existing": True})
-        self.assertIn("Overriding metadata given at instantiation with stored metadata", logging_context.output[0])
 
     def test_instantiation_metadata_used_if_not_hypothetical_but_no_stored_metadata(self):
         """Test that instantiation metadata is used if `hypothetical` is `False` but there's no stored metadata."""
@@ -822,7 +819,7 @@ class TestDataset(BaseTestCase):
 
         # Load it separately from the cloud object and check that the instantiation metadata is used instead of the
         # stored metadata.
-        reloaded_datafile = Dataset(path=cloud_path, tags={"new": "tag"}, hypothetical=True)
+        reloaded_datafile = Dataset(path=cloud_path, tags={"new": "tag"}, ignore_stored_metadata=True)
         self.assertEqual(reloaded_datafile.tags, {"new": "tag"})
 
     def test_update_metadata_with_local_dataset(self):
