@@ -70,7 +70,7 @@ We use [Poetry](https://python-poetry.org/) as our package manager. For developm
 repository root, which will editably install the package:
 
 ```shell
-poetry install -E dataflow -E hdf5
+poetry install --all-extras
 ```
 
 Then run the tests to check everything's working.

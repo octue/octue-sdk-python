@@ -38,7 +38,7 @@ We use continuous deployment and semantic versioning for our releases:
   pyenv virtualenv 3.9 myenv                                    # Makes a virtual environment for you to install the dev tools into. Use any python >= 3.8
   pyenv activate myenv                                          # Activates the virtual environment so you don't affect other installations
   pip install poetry                                            # Installs the poetry package manager
-  poetry install -E hdf5 -E dataflow                            # Installs the package editably, including developer dependencies (e.g. testing and code formatting utilities)
+  poetry install --all-extras                                   # Installs the package editably, including developer dependencies (e.g. testing and code formatting utilities)
   pre-commit install && pre-commit install -t commit-msg        # Installs the pre-commit hooks in the git repo
   tox                                                           # Runs the tests
   ```
