@@ -790,8 +790,8 @@ class TestDataset(BaseTestCase):
         self.assertEqual(reloaded_dataset.tags, {"cat": "dog"})
         self.assertEqual(reloaded_dataset.labels, {"animals"})
 
-    def test_stored_metadata_has_priority_over_instantiation_metadata_if_not_hypothetical(self):
-        """Test that stored metadata is used instead of instantiation metadata if `hypothetical` is `False`."""
+    def test_stored_metadata_has_priority_over_instantiation_metadata_if_not_ignoring_stored_metadata(self):
+        """Test that stored metadata is used instead of instantiation metadata if `ignore_stored_metadata` is `False`."""
         cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "existing_dataset")
 
         # Create a dataset in the cloud and set some metadata on it.
@@ -803,14 +803,14 @@ class TestDataset(BaseTestCase):
         reloaded_dataset = Dataset(path=cloud_path, tags={"new": "tag"})
         self.assertEqual(reloaded_dataset.tags, {"existing": True})
 
-    def test_instantiation_metadata_used_if_not_hypothetical_but_no_stored_metadata(self):
-        """Test that instantiation metadata is used if `hypothetical` is `False` but there's no stored metadata."""
+    def test_instantiation_metadata_used_if_not_ignoring_stored_metadata_but_no_stored_metadata(self):
+        """Test that instantiation metadata is used if `ignore_stored_metadata` is `False` but there's no stored metadata."""
         cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "non_existing_dataset")
         dataset = Dataset(path=cloud_path, tags={"new": "tag"})
         self.assertEqual(dataset.tags, {"new": "tag"})
 
-    def test_stored_metadata_ignored_if_hypothetical_is_true(self):
-        """Test that instantiation metadata is used instead of stored metadata if `hypothetical` is `True`."""
+    def test_stored_metadata_ignored_if_ignoring_stored_metadata(self):
+        """Test that instantiation metadata is used instead of stored metadata if `ignore_stored_metadata` is `True`."""
         cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "existing_dataset")
 
         # Create a dataset in the cloud and set some metadata on it.
