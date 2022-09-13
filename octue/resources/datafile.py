@@ -11,9 +11,6 @@ import pkg_resources
 import requests
 from google_crc32c import Checksum
 
-from octue.resources.label import LabelSet
-from octue.resources.tag import TagDict
-
 
 # The `h5py` package is only needed if dealing with HDF5 files. It's only available if the `hdf5` extra is provided
 # during installation of `octue`.
@@ -99,21 +96,6 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             self._instantiate_from_cloud_object(path, local_path, ignore_stored_metadata=hypothetical)
         else:
             self._instantiate_from_local_path(path, cloud_path, ignore_stored_metadata=hypothetical)
-
-        if hypothetical:
-            logger.debug("Ignored stored metadata for %r.", self)
-        else:
-            if self.metadata(use_octue_namespace=False, include_sdk_version=False) != {
-                "id": id or self.id,
-                "timestamp": timestamp,
-                "tags": TagDict(tags),
-                "labels": LabelSet(labels),
-            }:
-                logger.warning(
-                    "Overriding metadata given at instantiation with stored metadata for %r - set `hypothetical` to "
-                    "`True` at instantiation to avoid this.",
-                    self,
-                )
 
     @classmethod
     def deserialise(cls, serialised_datafile, from_string=False):
