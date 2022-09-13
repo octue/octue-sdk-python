@@ -370,7 +370,7 @@ class TestDataset(BaseTestCase):
     def test_metadata_hash_is_same_for_different_datasets_with_the_same_metadata(self):
         """Test that the metadata hash is the same for datasets with different files but the same metadata."""
         first_dataset = Dataset(labels={"a", "b", "c"})
-        second_dataset = Dataset(files={Datafile(path="blah", hypothetical=True)}, labels={"a", "b", "c"})
+        second_dataset = Dataset(files={Datafile(path="blah", ignore_stored_metadata=True)}, labels={"a", "b", "c"})
         self.assertEqual(first_dataset.metadata_hash_value, second_dataset.metadata_hash_value)
 
     def test_metadata_hash_is_different_for_same_dataset_but_different_metadata(self):

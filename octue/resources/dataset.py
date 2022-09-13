@@ -407,7 +407,10 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             bucket_name = storage.path.split_bucket_name_from_cloud_path(path)[0]
 
             self.files = FilterSet(
-                Datafile(path=storage.path.generate_gs_path(bucket_name, blob.name), hypothetical=self._hypothetical)
+                Datafile(
+                    path=storage.path.generate_gs_path(bucket_name, blob.name),
+                    ignore_stored_metadata=self._hypothetical,
+                )
                 for blob in GoogleCloudStorageClient().scandir(
                     path,
                     recursive=self._recursive,
@@ -436,7 +439,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
                 if not self._recursive and level > 0:
                     break
 
-                self.files.add(Datafile(path=os.path.join(directory_path, filename), hypothetical=self._hypothetical))
+                self.files.add(
+                    Datafile(path=os.path.join(directory_path, filename), ignore_stored_metadata=self._hypothetical)
+                )
 
         if not self._hypothetical:
             self._use_local_metadata()
@@ -460,7 +465,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             return file
 
         if isinstance(file, str):
-            return Datafile(path=file, hypothetical=self._hypothetical)
+            return Datafile(path=file, ignore_stored_metadata=self._hypothetical)
 
         return Datafile.deserialise(file)
 

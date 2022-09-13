@@ -877,7 +877,7 @@ class TestDatafile(BaseTestCase):
 
         # Load it separately from the cloud object and check that the instantiation metadata is used instead of the
         # stored metadata.
-        reloaded_datafile = Datafile(cloud_path, tags={"new": "tag"}, hypothetical=True)
+        reloaded_datafile = Datafile(cloud_path, tags={"new": "tag"}, ignore_stored_metadata=True)
         self.assertEqual(reloaded_datafile.tags, {"new": "tag"})
 
     def test_error_raised_if_attempting_to_generate_signed_url_for_local_datafile(self):

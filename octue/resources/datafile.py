@@ -45,7 +45,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
     :param datetime.datetime|int|float|None timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when it was created but could relate to a relevant time point for the data
     :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode options are the same as for the builtin `open` function)
     :param bool update_metadata: if using as a context manager and this is `True`, update the stored metadata of the datafile when the context is exited
-    :param bool hypothetical: if `True`, ignore any metadata stored for this datafile locally or in the cloud and use whatever is given at instantiation
+    :param bool ignore_stored_metadata: if `True`, ignore any metadata stored for this datafile locally or in the cloud and use whatever is given at instantiation
     :param str id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
     :param dict|octue.resources.tag.TagDict|None tags: key-value pairs with string keys conforming to the Octue tag format (see `TagDict`)
     :param iter(str)|octue.resources.label.LabelSet|None labels: Space-separated string of labels relevant to this file
@@ -72,7 +72,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         timestamp=None,
         mode="r",
         update_metadata=True,
-        hypothetical=False,
+        ignore_stored_metadata=False,
         id=None,
         tags=None,
         labels=None,
@@ -93,9 +93,9 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         self._cloud_metadata = {}
 
         if storage.path.is_cloud_path(path):
-            self._instantiate_from_cloud_object(path, local_path, ignore_stored_metadata=hypothetical)
+            self._instantiate_from_cloud_object(path, local_path, ignore_stored_metadata=ignore_stored_metadata)
         else:
-            self._instantiate_from_local_path(path, cloud_path, ignore_stored_metadata=hypothetical)
+            self._instantiate_from_local_path(path, cloud_path, ignore_stored_metadata=ignore_stored_metadata)
 
     @classmethod
     def deserialise(cls, serialised_datafile, from_string=False):
