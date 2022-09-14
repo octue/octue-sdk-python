@@ -116,13 +116,13 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
 
         self._handle_monitor_message(data)
 
-    def finalise(self, upload_output_datasets_to=None, analysis_directory_name=None):
-        """Validate the output values and output manifest, optionally uploading the output manifest's datasets to the
-        cloud and updating its dataset paths to signed URLs. If the analysis didn't produce an output manifest, nothing
-        is uploaded.
+    def finalise(self, upload_output_datasets_to=None):
+        """Validate the output values and output manifest and, if the analysis produced an output manifest, upload its
+        output datasets to a unique subdirectory within the analysis's output location. This output location can be
+        overridden by providing a different cloud path via the `upload_output_datasets_to` parameter. Either way, the
+        dataset paths in the output manifest are replaced with signed URLs for easier, expiring access.
 
-        :param str|None upload_output_datasets_to: if provided or an output location was provided at instantiation, upload any output datasets into this cloud directory and update the output manifest with their upload locations
-        :param str|None analysis_directory_name: if uploading output datasets and this is provided, output datasets from this analysis are put in a subdirectory with this name within the output location (this is to avoid overwriting or unintentionally merging them with existing datasets); if none is provided, a random name is used
+        :param str|None upload_output_datasets_to: If not provided but an output location was provided at instantiation, upload any output datasets into a unique subdirectory within this output location; if provided, upload into this location instead. The output manifest is updated with the upload locations.
         :return None:
         """
         serialised_strands = {"output_values": None, "output_manifest": None}
@@ -137,21 +137,21 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         self._finalised = True
         logger.info("Validated output values and output manifest against the twine.")
 
-        upload_output_datasets_to = upload_output_datasets_to or self.output_location
-        analysis_directory_name = analysis_directory_name or coolname.generate_slug()
+        # Use a unique subdirectory in the output location given at instantiation (if given) if no
+        # `upload_output_datasets_to` is provided.
+        if self.output_location and not upload_output_datasets_to:
+            upload_output_datasets_to = storage.path.join(self.output_location, coolname.generate_slug())
 
         # If there isn't both an output manifest and upload location, nothing is uploaded.
         if not (upload_output_datasets_to and hasattr(self, "output_manifest")):
             return
 
-        upload_location = storage.path.join(upload_output_datasets_to, analysis_directory_name)
-
         for name, dataset in self.output_manifest.datasets.items():
-            dataset.upload(cloud_path=storage.path.join(upload_location, name))
+            dataset.upload(cloud_path=storage.path.join(upload_output_datasets_to, name))
 
         self.output_manifest.use_signed_urls_for_datasets()
 
-        logger.info("Uploaded output datasets to %r.", upload_location)
+        logger.info("Uploaded output datasets to %r.", upload_output_datasets_to)
 
     def _calculate_strand_hashes(self, strands):
         """Calculate the hashes of the strands specified in the HASH_FUNCTIONS constant.
