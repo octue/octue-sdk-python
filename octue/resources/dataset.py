@@ -26,14 +26,18 @@ SIGNED_METADATA_DIRECTORY = ".signed_metadata_files"
 
 
 class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadata, CloudPathable):
-    """A representation of a dataset. The default usage is to provide the path to a local or cloud directory and create
-    the dataset from the files it contains. Alternatively, the `files` parameter can be provided and only those files
-    are included. Either way, the `path` parameter should be explicitly set to something meaningful.
+    """A representation of a dataset with metadata.
 
-    Metadata for the dataset is obtained from its corresponding cloud object or a local `.octue` metadata file, if
-    present. If no stored metadata is available, it can be set during or after instantiation. If
-    `ignore_stored_metadata` is `False`, any stored metadata takes priority over metadata passed in during instantiation
-    (`id`, `name`, `tags`, and `labels`).
+    The default usage is to provide the path to a local or cloud directory and create the dataset from the files it
+    contains. Alternatively, the `files` parameter can be provided and only those files are included. Either way, the
+    `path` parameter should be explicitly set to something meaningful.
+
+    Metadata consists of `id`, `name`, `tags`, and `labels`, available as attributes on the instance. On instantiation,
+    metadata for the dataset is obtained from its stored location (the corresponding cloud object metadata
+    or a local `.octue` metadata file) if present. Metadata values can alternatively be passed as arguments at
+    instantiation but will only be used if stored metadata cannot be found - i.e. stored metadata always takes
+    precedence (use the `ignore_stored_metadata` parameter to override this behaviour). Stored metadata can be updated
+    after instantiation using the `update_metadata` method.
 
     :param str|None path: the path to the dataset (defaults to the current working directory if none is given)
     :param iter(str|dict|octue.resources.datafile.Datafile)|None files: the files belonging to the dataset
@@ -214,7 +218,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         return cloud_path
 
     def update_metadata(self):
-        """If the dataset is cloud-based, update its cloud metadata; otherwise, update its local metadata.
+        """Using the dataset instance's in-memory metadata, update its cloud metadata (if the dataset is cloud-based)
+        or its local metadata file (if the dataset is local).
 
         :return None:
         """
