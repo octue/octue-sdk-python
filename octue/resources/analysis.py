@@ -1,6 +1,8 @@
 import json
 import logging
 
+import coolname
+
 import twined.exceptions
 from octue.cloud import storage
 from octue.exceptions import InvalidMonitorMessage
@@ -114,11 +116,13 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
 
         self._handle_monitor_message(data)
 
-    def finalise(self, upload_output_datasets_to=None):
+    def finalise(self, upload_output_datasets_to=None, analysis_directory_name=None):
         """Validate the output values and output manifest, optionally uploading the output manifest's datasets to the
-        cloud and updating its dataset paths to signed URLs.
+        cloud and updating its dataset paths to signed URLs. If the analysis didn't produce an output manifest, nothing
+        is uploaded.
 
-        :param str|None upload_output_datasets_to: if provided, upload any output datasets to this cloud directory and update the output manifest with their locations
+        :param str|None upload_output_datasets_to: if provided or an output location was provided at instantiation, upload any output datasets into this cloud directory and update the output manifest with their upload locations
+        :param str|None analysis_directory_name: if uploading output datasets and this is provided, output datasets from this analysis are put in a subdirectory with this name within the output location (this is to avoid overwriting or unintentionally merging them with existing datasets); if none is provided, a random name is used
         :return None:
         """
         serialised_strands = {"output_values": None, "output_manifest": None}
@@ -133,15 +137,21 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         self._finalised = True
         logger.info("Validated output values and output manifest against the twine.")
 
+        upload_output_datasets_to = upload_output_datasets_to or self.output_location
+        analysis_directory_name = analysis_directory_name or coolname.generate_slug()
+
+        # If there isn't both an output manifest and upload location, nothing is uploaded.
         if not (upload_output_datasets_to and hasattr(self, "output_manifest")):
             return
 
+        upload_location = storage.path.join(upload_output_datasets_to, analysis_directory_name)
+
         for name, dataset in self.output_manifest.datasets.items():
-            dataset.upload(cloud_path=storage.path.join(upload_output_datasets_to, name))
+            dataset.upload(cloud_path=storage.path.join(upload_location, name))
 
         self.output_manifest.use_signed_urls_for_datasets()
 
-        logger.info("Uploaded output datasets to %r.", upload_output_datasets_to)
+        logger.info("Uploaded output datasets to %r.", upload_location)
 
     def _calculate_strand_hashes(self, strands):
         """Calculate the hashes of the strands specified in the HASH_FUNCTIONS constant.

@@ -57,10 +57,10 @@ class TemplateAppsTestCase(BaseTestCase):
             {"mast", "cleaned", "met"},
         )
 
-        self.assertEqual(
-            urlparse(downloaded_output_manifest.datasets["cleaned_met_mast_data"].files.one().cloud_path).path,
-            f"/{TEST_BUCKET_NAME}/output/test_using_manifests_analysis/cleaned_met_mast_data/cleaned.csv",
-        )
+        output_url = urlparse(downloaded_output_manifest.datasets["cleaned_met_mast_data"].files.one().cloud_path).path
+
+        self.assertTrue(output_url.startswith(f"/{TEST_BUCKET_NAME}/output/test_using_manifests_analysis"))
+        self.assertTrue(output_url.endswith("/cleaned_met_mast_data/cleaned.csv"))
 
     @unittest.skipIf(condition=os.name == "nt", reason="See issue https://github.com/octue/octue-sdk-python/issues/229")
     def test_child_services_template(self):
