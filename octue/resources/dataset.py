@@ -30,6 +30,11 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
     the dataset from the files it contains. Alternatively, the `files` parameter can be provided and only those files
     are included. Either way, the `path` parameter should be explicitly set to something meaningful.
 
+    Metadata for the dataset is obtained from its corresponding cloud object or a local `.octue` metadata file, if
+    present. If no stored metadata is available, it can be set during or after instantiation. If
+    `ignore_stored_metadata` is `False`, any stored metadata takes priority over metadata passed in during instantiation
+    (`id`, `name`, `tags`, and `labels`).
+
     :param str|None path: the path to the dataset (defaults to the current working directory if none is given)
     :param iter(str|dict|octue.resources.datafile.Datafile)|None files: the files belonging to the dataset
     :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained within the dataset directory

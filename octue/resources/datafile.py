@@ -37,7 +37,8 @@ OCTUE_METADATA_NAMESPACE = "octue"
 class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filterable, Metadata, CloudPathable):
     """A representation of a data file on the Octue system. Metadata for the file is obtained from its corresponding
     cloud object or a local `.octue` metadata file, if present. If no stored metadata is available, it can be set during
-    or after instantiation.
+    or after instantiation. If `ignore_stored_metadata` is `False`, any stored metadata takes priority over metadata
+    passed in during instantiation (`id`, `timestamp`, `tags`, and `labels`).
 
     :param str|None path: The path of this file locally or in the cloud, which may include folders or subfolders, within the dataset
     :param str|None local_path: If a cloud path is given as the `path` parameter, this is the path to an existing local file that is known to be in sync with the cloud object
