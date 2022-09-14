@@ -35,10 +35,14 @@ OCTUE_METADATA_NAMESPACE = "octue"
 
 
 class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filterable, Metadata, CloudPathable):
-    """A representation of a data file on the Octue system. Metadata for the file is obtained from its corresponding
-    cloud object or a local `.octue` metadata file, if present. If no stored metadata is available, it can be set during
-    or after instantiation. If `ignore_stored_metadata` is `False`, any stored metadata takes priority over metadata
-    passed in during instantiation (`id`, `timestamp`, `tags`, and `labels`).
+    """A representation of a data file with metadata.
+
+    Metadata consists of `id`, `timestamp`, `tags`, and `labels`, available as attributes on the instance. On
+    instantiation, metadata for the file is obtained from its stored location (the corresponding cloud object metadata
+    or a local `.octue` metadata file) if present. Metadata values can alternatively be passed as arguments at
+    instantiation but will only be used if stored metadata cannot be found - i.e. stored metadata always takes
+    precedence (use the `ignore_stored_metadata` parameter to override this behaviour). Stored metadata can be updated
+    after instantiation using the `update_metadata` method.
 
     :param str|None path: The path of this file locally or in the cloud, which may include folders or subfolders, within the dataset
     :param str|None local_path: If a cloud path is given as the `path` parameter, this is the path to an existing local file that is known to be in sync with the cloud object
@@ -441,7 +445,8 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         return {f"{OCTUE_METADATA_NAMESPACE}__{key}": value for key, value in metadata.items()}
 
     def update_metadata(self):
-        """If the datafile is cloud-based, update its cloud metadata; otherwise, update its local metadata.
+        """Using the datafile instance's in-memory metadata, update its cloud metadata (if the datafile is cloud-based)
+        or its local metadata file (if the datafile is local).
 
         :return None:
         """
