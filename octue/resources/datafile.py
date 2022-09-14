@@ -11,9 +11,6 @@ import pkg_resources
 import requests
 from google_crc32c import Checksum
 
-from octue.resources.label import LabelSet
-from octue.resources.tag import TagDict
-
 
 # The `h5py` package is only needed if dealing with HDF5 files. It's only available if the `hdf5` extra is provided
 # during installation of `octue`.
@@ -38,9 +35,14 @@ OCTUE_METADATA_NAMESPACE = "octue"
 
 
 class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filterable, Metadata, CloudPathable):
-    """A representation of a data file on the Octue system. Metadata for the file is obtained from its corresponding
-    cloud object or a local `.octue` metadata file, if present. If no stored metadata is available, it can be set during
-    or after instantiation.
+    """A representation of a data file with metadata.
+
+    Metadata consists of `id`, `timestamp`, `tags`, and `labels`, available as attributes on the instance. On
+    instantiation, metadata for the file is obtained from its stored location (the corresponding cloud object metadata
+    or a local `.octue` metadata file) if present. Metadata values can alternatively be passed as arguments at
+    instantiation but will only be used if stored metadata cannot be found - i.e. stored metadata always takes
+    precedence (use the `ignore_stored_metadata` parameter to override this behaviour). Stored metadata can be updated
+    after instantiation using the `update_metadata` method.
 
     :param str|None path: The path of this file locally or in the cloud, which may include folders or subfolders, within the dataset
     :param str|None local_path: If a cloud path is given as the `path` parameter, this is the path to an existing local file that is known to be in sync with the cloud object
@@ -48,7 +50,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
     :param datetime.datetime|int|float|None timestamp: A posix timestamp associated with the file, in seconds since epoch, typically when it was created but could relate to a relevant time point for the data
     :param str mode: if using as a context manager, open the datafile for reading/editing in this mode (the mode options are the same as for the builtin `open` function)
     :param bool update_metadata: if using as a context manager and this is `True`, update the stored metadata of the datafile when the context is exited
-    :param bool hypothetical: if `True`, ignore any metadata stored for this datafile locally or in the cloud and use whatever is given at instantiation
+    :param bool ignore_stored_metadata: if `True`, ignore any metadata stored for this datafile locally or in the cloud and use whatever is given at instantiation
     :param str id: The Universally Unique ID of this file (checked to be valid if not None, generated if None)
     :param dict|octue.resources.tag.TagDict|None tags: key-value pairs with string keys conforming to the Octue tag format (see `TagDict`)
     :param iter(str)|octue.resources.label.LabelSet|None labels: Space-separated string of labels relevant to this file
@@ -75,7 +77,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         timestamp=None,
         mode="r",
         update_metadata=True,
-        hypothetical=False,
+        ignore_stored_metadata=False,
         id=None,
         tags=None,
         labels=None,
@@ -96,24 +98,10 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         self._cloud_metadata = {}
 
         if storage.path.is_cloud_path(path):
-            self._instantiate_from_cloud_object(path, local_path, ignore_stored_metadata=hypothetical)
-        else:
-            self._instantiate_from_local_path(path, cloud_path, ignore_stored_metadata=hypothetical)
+            self._instantiate_from_cloud_object(path, local_path, ignore_stored_metadata=ignore_stored_metadata)
+            return
 
-        if hypothetical:
-            logger.debug("Ignored stored metadata for %r.", self)
-        else:
-            if self.metadata(use_octue_namespace=False, include_sdk_version=False) != {
-                "id": id or self.id,
-                "timestamp": timestamp,
-                "tags": TagDict(tags),
-                "labels": LabelSet(labels),
-            }:
-                logger.warning(
-                    "Overriding metadata given at instantiation with stored metadata for %r - set `hypothetical` to "
-                    "`True` at instantiation to avoid this.",
-                    self,
-                )
+        self._instantiate_from_local_path(path, cloud_path, ignore_stored_metadata=ignore_stored_metadata)
 
     @classmethod
     def deserialise(cls, serialised_datafile, from_string=False):
@@ -457,7 +445,8 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         return {f"{OCTUE_METADATA_NAMESPACE}__{key}": value for key, value in metadata.items()}
 
     def update_metadata(self):
-        """If the datafile is cloud-based, update its cloud metadata; otherwise, update its local metadata.
+        """Using the datafile instance's in-memory metadata, update its cloud metadata (if the datafile is cloud-based)
+        or its local metadata file (if the datafile is local).
 
         :return None:
         """

@@ -15,8 +15,6 @@ from octue.exceptions import CloudLocationNotSpecified, InvalidInputException
 from octue.mixins import CloudPathable, Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
-from octue.resources.label import LabelSet
-from octue.resources.tag import TagDict
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file, overwrite_local_metadata_file
 
@@ -28,14 +26,23 @@ SIGNED_METADATA_DIRECTORY = ".signed_metadata_files"
 
 
 class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadata, CloudPathable):
-    """A representation of a dataset. The default usage is to provide the path to a local or cloud directory and create
-    the dataset from the files it contains. Alternatively, the `files` parameter can be provided and only those files
-    are included. Either way, the `path` parameter should be explicitly set to something meaningful.
+    """A representation of a dataset with metadata.
+
+    The default usage is to provide the path to a local or cloud directory and create the dataset from the files it
+    contains. Alternatively, the `files` parameter can be provided and only those files are included. Either way, the
+    `path` parameter should be explicitly set to something meaningful.
+
+    Metadata consists of `id`, `name`, `tags`, and `labels`, available as attributes on the instance. On instantiation,
+    metadata for the dataset is obtained from its stored location (the corresponding cloud object metadata
+    or a local `.octue` metadata file) if present. Metadata values can alternatively be passed as arguments at
+    instantiation but will only be used if stored metadata cannot be found - i.e. stored metadata always takes
+    precedence (use the `ignore_stored_metadata` parameter to override this behaviour). Stored metadata can be updated
+    after instantiation using the `update_metadata` method.
 
     :param str|None path: the path to the dataset (defaults to the current working directory if none is given)
     :param iter(str|dict|octue.resources.datafile.Datafile)|None files: the files belonging to the dataset
     :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained within the dataset directory
-    :param bool hypothetical: if `True`, ignore any metadata stored for this dataset locally or in the cloud and use whatever is given at instantiation
+    :param bool ignore_stored_metadata: if `True`, ignore any metadata stored for this dataset locally or in the cloud and use whatever is given at instantiation
     :param str|None id: an optional UUID to assign to the dataset (defaults to a random UUID if none is given)
     :param str|None name: an optional name to give to the dataset (defaults to the dataset directory name)
     :param dict|octue.resources.tag.TagDict|None tags: key-value pairs with string keys conforming to the Octue tag format (see `TagDict`)
@@ -54,7 +61,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         path=None,
         files=None,
         recursive=False,
-        hypothetical=False,
+        ignore_stored_metadata=False,
         id=None,
         name=None,
         tags=None,
@@ -64,7 +71,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         self.path = path or os.getcwd()
         self.files = FilterSet()
         self._recursive = recursive
-        self._hypothetical = hypothetical
+        self._ignore_stored_metadata = ignore_stored_metadata
         self._cloud_metadata = {}
 
         if files:
@@ -79,24 +86,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         if storage.path.is_cloud_path(self.path):
             self._instantiate_from_cloud(path=self.path)
-        else:
-            self._instantiate_from_local_directory(path=self.path)
-
-        if self._hypothetical:
-            logger.debug("Ignored stored metadata for %r.", self)
             return
 
-        if self.metadata(include_sdk_version=False) != {
-            "name": name or self.name,
-            "id": id or self.id,
-            "tags": TagDict(tags),
-            "labels": LabelSet(labels),
-        }:
-            logger.warning(
-                "Overriding metadata given at instantiation with stored metadata for %r - set `hypothetical` to `True` "
-                "at instantiation to avoid this.",
-                self,
-            )
+        self._instantiate_from_local_directory(path=self.path)
 
     @property
     def name(self):
@@ -226,7 +218,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         return cloud_path
 
     def update_metadata(self):
-        """If the dataset is cloud-based, update its cloud metadata; otherwise, update its local metadata.
+        """Using the dataset instance's in-memory metadata, update its cloud metadata (if the dataset is cloud-based)
+        or its local metadata file (if the dataset is local).
 
         :return None:
         """
@@ -400,14 +393,17 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         :param str path: the cloud path to a directory in cloud storage
         :return None:
         """
-        if not self._hypothetical:
+        if not self._ignore_stored_metadata:
             self._use_cloud_metadata()
 
         if not self.files:
             bucket_name = storage.path.split_bucket_name_from_cloud_path(path)[0]
 
             self.files = FilterSet(
-                Datafile(path=storage.path.generate_gs_path(bucket_name, blob.name), hypothetical=self._hypothetical)
+                Datafile(
+                    path=storage.path.generate_gs_path(bucket_name, blob.name),
+                    ignore_stored_metadata=self._ignore_stored_metadata,
+                )
                 for blob in GoogleCloudStorageClient().scandir(
                     path,
                     recursive=self._recursive,
@@ -436,9 +432,14 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
                 if not self._recursive and level > 0:
                     break
 
-                self.files.add(Datafile(path=os.path.join(directory_path, filename), hypothetical=self._hypothetical))
+                self.files.add(
+                    Datafile(
+                        path=os.path.join(directory_path, filename),
+                        ignore_stored_metadata=self._ignore_stored_metadata,
+                    )
+                )
 
-        if not self._hypothetical:
+        if not self._ignore_stored_metadata:
             self._use_local_metadata()
 
     def _instantiate_datafiles(self, files):
@@ -460,7 +461,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             return file
 
         if isinstance(file, str):
-            return Datafile(path=file, hypothetical=self._hypothetical)
+            return Datafile(path=file, ignore_stored_metadata=self._ignore_stored_metadata)
 
         return Datafile.deserialise(file)
 
@@ -519,8 +520,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         :return None:
         """
         if "files" in metadata:
-            # There's no need to provide the hypothetical parameter here as this method is only used for
-            # non-hypothetical datasets.
+            # There's no need to provide the `ignore_stored_metadata` parameter here as this method is only used when
+            # stored metadata is used.
             self.files = FilterSet(Datafile(path=path) for path in metadata["files"])
 
         for attribute in self._METADATA_ATTRIBUTES:

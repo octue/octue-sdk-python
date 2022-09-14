@@ -370,7 +370,7 @@ class TestDataset(BaseTestCase):
     def test_metadata_hash_is_same_for_different_datasets_with_the_same_metadata(self):
         """Test that the metadata hash is the same for datasets with different files but the same metadata."""
         first_dataset = Dataset(labels={"a", "b", "c"})
-        second_dataset = Dataset(files={Datafile(path="blah", hypothetical=True)}, labels={"a", "b", "c"})
+        second_dataset = Dataset(files={Datafile(path="blah", ignore_stored_metadata=True)}, labels={"a", "b", "c"})
         self.assertEqual(first_dataset.metadata_hash_value, second_dataset.metadata_hash_value)
 
     def test_metadata_hash_is_different_for_same_dataset_but_different_metadata(self):
@@ -790,8 +790,8 @@ class TestDataset(BaseTestCase):
         self.assertEqual(reloaded_dataset.tags, {"cat": "dog"})
         self.assertEqual(reloaded_dataset.labels, {"animals"})
 
-    def test_stored_metadata_has_priority_over_instantiation_metadata_if_not_hypothetical(self):
-        """Test that stored metadata is used instead of instantiation metadata if `hypothetical` is `False`."""
+    def test_stored_metadata_has_priority_over_instantiation_metadata_if_not_ignoring_stored_metadata(self):
+        """Test that stored metadata is used instead of instantiation metadata if `ignore_stored_metadata` is `False`."""
         cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "existing_dataset")
 
         # Create a dataset in the cloud and set some metadata on it.
@@ -800,20 +800,17 @@ class TestDataset(BaseTestCase):
 
         # Load it separately from the cloud object and check that the stored metadata is used instead of the
         # instantiation metadata.
-        with self.assertLogs() as logging_context:
-            reloaded_dataset = Dataset(path=cloud_path, tags={"new": "tag"})
-
+        reloaded_dataset = Dataset(path=cloud_path, tags={"new": "tag"})
         self.assertEqual(reloaded_dataset.tags, {"existing": True})
-        self.assertIn("Overriding metadata given at instantiation with stored metadata", logging_context.output[0])
 
-    def test_instantiation_metadata_used_if_not_hypothetical_but_no_stored_metadata(self):
-        """Test that instantiation metadata is used if `hypothetical` is `False` but there's no stored metadata."""
+    def test_instantiation_metadata_used_if_not_ignoring_stored_metadata_but_no_stored_metadata(self):
+        """Test that instantiation metadata is used if `ignore_stored_metadata` is `False` but there's no stored metadata."""
         cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "non_existing_dataset")
         dataset = Dataset(path=cloud_path, tags={"new": "tag"})
         self.assertEqual(dataset.tags, {"new": "tag"})
 
-    def test_stored_metadata_ignored_if_hypothetical_is_true(self):
-        """Test that instantiation metadata is used instead of stored metadata if `hypothetical` is `True`."""
+    def test_stored_metadata_ignored_if_ignoring_stored_metadata(self):
+        """Test that instantiation metadata is used instead of stored metadata if `ignore_stored_metadata` is `True`."""
         cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "existing_dataset")
 
         # Create a dataset in the cloud and set some metadata on it.
@@ -822,7 +819,7 @@ class TestDataset(BaseTestCase):
 
         # Load it separately from the cloud object and check that the instantiation metadata is used instead of the
         # stored metadata.
-        reloaded_datafile = Dataset(path=cloud_path, tags={"new": "tag"}, hypothetical=True)
+        reloaded_datafile = Dataset(path=cloud_path, tags={"new": "tag"}, ignore_stored_metadata=True)
         self.assertEqual(reloaded_datafile.tags, {"new": "tag"})
 
     def test_update_metadata_with_local_dataset(self):
