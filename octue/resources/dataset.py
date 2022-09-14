@@ -77,8 +77,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         if storage.path.is_cloud_path(self.path):
             self._instantiate_from_cloud(path=self.path)
-        else:
-            self._instantiate_from_local_directory(path=self.path)
+            return
+
+        self._instantiate_from_local_directory(path=self.path)
 
     @property
     def name(self):

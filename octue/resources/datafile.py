@@ -94,8 +94,9 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
         if storage.path.is_cloud_path(path):
             self._instantiate_from_cloud_object(path, local_path, ignore_stored_metadata=ignore_stored_metadata)
-        else:
-            self._instantiate_from_local_path(path, cloud_path, ignore_stored_metadata=ignore_stored_metadata)
+            return
+
+        self._instantiate_from_local_path(path, cloud_path, ignore_stored_metadata=ignore_stored_metadata)
 
     @classmethod
     def deserialise(cls, serialised_datafile, from_string=False):
