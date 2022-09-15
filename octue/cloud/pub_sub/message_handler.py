@@ -265,7 +265,6 @@ class OrderedMessageHandler:
                 )
 
             else:
-
                 local_sdk_version = pkg_resources.get_distribution("octue").version
 
                 if not is_compatible(local_sdk_version, self._child_sdk_version):
@@ -275,6 +274,9 @@ class OrderedMessageHandler:
                         local_sdk_version,
                         self._child_sdk_version,
                     )
+
+            if isinstance(error, KeyError):
+                return
 
             raise error
 
