@@ -251,6 +251,8 @@ class OrderedMessageHandler:
             return self._message_handlers[message["type"]](message)
 
         except Exception as error:
+
+            # Just log a warning if an unknown message has been received - it's likely not to be a big problem.
             if isinstance(error, KeyError):
                 logger.warning(
                     "%r received a message of unknown type %r.",
@@ -261,6 +263,7 @@ class OrderedMessageHandler:
                 self._warn_if_incompatible()
                 return
 
+            # Raise all other errors.
             self._warn_if_incompatible()
             raise error
 
