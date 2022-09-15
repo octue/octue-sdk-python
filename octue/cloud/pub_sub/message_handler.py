@@ -258,26 +258,10 @@ class OrderedMessageHandler:
                     message.get("type", "unknown"),
                 )
 
-            if not self._child_sdk_version:
-                logger.warning(
-                    "The child couldn't be checked for compatibility with this service because it didn't send its "
-                    "Octue SDK version with its messages. Please update it to the latest Octue SDK version."
-                )
-
-            else:
-                local_sdk_version = pkg_resources.get_distribution("octue").version
-
-                if not is_compatible(local_sdk_version, self._child_sdk_version):
-                    logger.error(
-                        "The parent version %s may be incompatible with the child version %s. Try updating to the latest "
-                        "Octue SDK version.",
-                        local_sdk_version,
-                        self._child_sdk_version,
-                    )
-
-            if isinstance(error, KeyError):
+                self._warn_if_incompatible()
                 return
 
+            self._warn_if_incompatible()
             raise error
 
     def _handle_delivery_acknowledgement(self, message):
@@ -381,3 +365,25 @@ class OrderedMessageHandler:
             output_manifest = Manifest.deserialise(message["output_manifest"], from_string=True)
 
         return {"output_values": message["output_values"], "output_manifest": output_manifest}
+
+    def _warn_if_incompatible(self):
+        """Log a warning if the parent isn't compatible with the child or if compatibility can't be checked.
+
+        :return None:
+        """
+        if not self._child_sdk_version:
+            logger.warning(
+                "The child couldn't be checked for compatibility with this service because it didn't send its "
+                "Octue SDK version with its messages. Please update it to the latest Octue SDK version."
+            )
+
+        else:
+            local_sdk_version = pkg_resources.get_distribution("octue").version
+
+            if not is_compatible(local_sdk_version, self._child_sdk_version):
+                logger.warning(
+                    "The parent version %s is incompatible with the child version %s. Try updating to the latest Octue "
+                    "SDK version.",
+                    local_sdk_version,
+                    self._child_sdk_version,
+                )
