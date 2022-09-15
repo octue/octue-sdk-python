@@ -6,7 +6,6 @@ import json
 import logging
 import uuid
 
-import packaging.version
 import pkg_resources
 from google import auth
 from google.api_core import retry
@@ -16,6 +15,7 @@ import octue.exceptions
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
+from octue.compatibility import is_compatible
 from octue.mixins import CoolNameable
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
@@ -65,8 +65,7 @@ class Service(CoolNameable):
 
         self.backend = backend
         self.run_function = run_function
-        self._raw_local_sdk_version = pkg_resources.get_distribution("octue").version
-        self._parsed_local_sdk_version = packaging.version.parse(self._raw_local_sdk_version)
+        self._local_sdk_version = pkg_resources.get_distribution("octue").version
         self._record_sent_messages = False
         self._sent_messages = []
         self._publisher = None
@@ -200,22 +199,19 @@ class Service(CoolNameable):
                 analysis_log_handler = None
 
             if parent_sdk_version:
-                if (
-                    self._parsed_local_sdk_version.major != parent_sdk_version.major
-                    or self._parsed_local_sdk_version.minor != parent_sdk_version.minor
-                ):
+                if not is_compatible(self._local_sdk_version, parent_sdk_version):
                     logger.warning(
                         "The parent's Octue SDK version %s may not be compatible with the local Octue SDK version %s. "
                         "Update them both to the latest version (or at least a version with the same major and minor "
                         "version numbers) if possible.",
                         parent_sdk_version,
-                        self._parsed_local_sdk_version,
+                        self._local_sdk_version,
                     )
 
             else:
                 logger.warning(
-                    "The parent couldn't be checked for compatibility with this service because it didn't send its Octue "
-                    "SDK version with its question. Please update it to the latest Octue SDK version."
+                    "The parent couldn't be checked for compatibility with this service because it didn't send its "
+                    "Octue SDK version with its question. Please update it to the latest Octue SDK version."
                 )
 
             analysis = self.run_function(
@@ -427,7 +423,7 @@ class Service(CoolNameable):
         :param attributes: key-value pairs to attach to the message - the values must be strings or bytes
         :return None:
         """
-        attributes["octue_sdk_version"] = self._raw_local_sdk_version
+        attributes["octue_sdk_version"] = self._local_sdk_version
         converted_attributes = {}
 
         for key, value in attributes.items():
@@ -509,7 +505,7 @@ class Service(CoolNameable):
         """Parse a question in the Google Cloud Pub/Sub or Google Cloud Run format.
 
         :param dict|Message question:
-        :return (dict, str, bool, packaging.version.Version|None, bool):
+        :return (dict, str, bool, str|None, bool):
         """
         try:
             # Parse question directly from Pub/Sub or Dataflow.
@@ -540,8 +536,5 @@ class Service(CoolNameable):
             )
         except AttributeError:
             allow_save_diagnostics_data_on_crash = False
-
-        if parent_sdk_version:
-            parent_sdk_version = packaging.version.parse(parent_sdk_version)
 
         return data, question_uuid, forward_logs, parent_sdk_version, allow_save_diagnostics_data_on_crash
