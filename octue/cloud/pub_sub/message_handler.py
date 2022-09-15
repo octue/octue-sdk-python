@@ -5,9 +5,11 @@ import re
 import time
 from datetime import datetime, timedelta
 
+import pkg_resources
 from google.api_core import retry
 
 from octue.cloud import EXCEPTIONS_MAPPING
+from octue.compatibility import is_compatible
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.exceptions import QuestionNotDelivered
 from octue.log_handlers import COLOUR_PALETTE
@@ -247,12 +249,28 @@ class OrderedMessageHandler:
 
         try:
             return self._message_handlers[message["type"]](message)
+
         except KeyError:
-            logger.warning(
-                "%r received a message of unknown type %r.",
-                self.subscription.topic.service,
-                message["type"],
-            )
+            message_type = message.get("type", "unknown")
+
+            local_sdk_version = pkg_resources.get_distribution("octue").version
+            sdk_versions_incompatible = not is_compatible(local_sdk_version, self._child_sdk_version)
+
+            if sdk_versions_incompatible:
+                logger.error(
+                    "%r received a message of unknown type %r. The parent version %s may be incompatible with the child "
+                    "version %s.",
+                    self.subscription.topic.service,
+                    message_type,
+                    local_sdk_version,
+                    self._child_sdk_version,
+                )
+            else:
+                logger.warning(
+                    "%r received a message of unknown type %r.",
+                    self.subscription.topic.service,
+                    message_type,
+                )
 
     def _handle_delivery_acknowledgement(self, message):
         """Mark the question as delivered to prevent resending it.
