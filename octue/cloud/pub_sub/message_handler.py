@@ -263,17 +263,20 @@ class OrderedMessageHandler:
                     "The child couldn't be checked for compatibility with this service because it didn't send its "
                     "Octue SDK version with its messages. Please update it to the latest Octue SDK version."
                 )
-                return
 
-            local_sdk_version = pkg_resources.get_distribution("octue").version
+            else:
 
-            if not is_compatible(local_sdk_version, self._child_sdk_version):
-                logger.error(
-                    "The parent version %s may be incompatible with the child version %s. Try updating to the latest "
-                    "Octue SDK version.",
-                    local_sdk_version,
-                    self._child_sdk_version,
-                )
+                local_sdk_version = pkg_resources.get_distribution("octue").version
+
+                if not is_compatible(local_sdk_version, self._child_sdk_version):
+                    logger.error(
+                        "The parent version %s may be incompatible with the child version %s. Try updating to the latest "
+                        "Octue SDK version.",
+                        local_sdk_version,
+                        self._child_sdk_version,
+                    )
+
+            raise error
 
     def _handle_delivery_acknowledgement(self, message):
         """Mark the question as delivered to prevent resending it.
