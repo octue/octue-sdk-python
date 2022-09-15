@@ -379,14 +379,14 @@ class OrderedMessageHandler:
                 "The child couldn't be checked for compatibility with this service because it didn't send its "
                 "Octue SDK version with its messages. Please update it to the latest Octue SDK version."
             )
+            return
 
-        else:
-            local_sdk_version = pkg_resources.get_distribution("octue").version
+        local_sdk_version = pkg_resources.get_distribution("octue").version
 
-            if not is_compatible(local_sdk_version, self._child_sdk_version):
-                logger.warning(
-                    "The parent version %s is incompatible with the child version %s. Try updating to the latest Octue "
-                    "SDK version.",
-                    local_sdk_version,
-                    self._child_sdk_version,
-                )
+        if not is_compatible(local_sdk_version, self._child_sdk_version):
+            logger.warning(
+                "The parent version %s is incompatible with the child version %s. Try updating to the latest Octue SDK "
+                "version.",
+                local_sdk_version,
+                self._child_sdk_version,
+            )

@@ -198,21 +198,7 @@ class Service(CoolNameable):
             else:
                 analysis_log_handler = None
 
-            if parent_sdk_version:
-                if not is_compatible(self._local_sdk_version, parent_sdk_version):
-                    logger.warning(
-                        "The parent's Octue SDK version %s may not be compatible with the local Octue SDK version %s. "
-                        "Update them both to the latest version (or at least a version with the same major and minor "
-                        "version numbers) if possible.",
-                        parent_sdk_version,
-                        self._local_sdk_version,
-                    )
-
-            else:
-                logger.warning(
-                    "The parent couldn't be checked for compatibility with this service because it didn't send its "
-                    "Octue SDK version with its question. Please update it to the latest Octue SDK version."
-                )
+            self._warn_if_incompatible(parent_sdk_version)
 
             analysis = self.run_function(
                 analysis_id=question_uuid,
@@ -538,3 +524,24 @@ class Service(CoolNameable):
             allow_save_diagnostics_data_on_crash = False
 
         return data, question_uuid, forward_logs, parent_sdk_version, allow_save_diagnostics_data_on_crash
+
+    def _warn_if_incompatible(self, parent_sdk_version):
+        """Log a warning if the parent isn't compatible with the child or if compatibility can't be checked.
+
+        :param str|None parent_sdk_version:
+        :return None:
+        """
+        if not parent_sdk_version:
+            logger.warning(
+                "The parent couldn't be checked for compatibility with this service because it didn't send its "
+                "Octue SDK version with its question. Please update it to the latest Octue SDK version."
+            )
+            return
+
+        if not is_compatible(self._local_sdk_version, parent_sdk_version):
+            logger.warning(
+                "The parent's Octue SDK version %s may not be compatible with the local Octue SDK version %s. "
+                "Update them both to the latest version if possible.",
+                parent_sdk_version,
+                self._local_sdk_version,
+            )
