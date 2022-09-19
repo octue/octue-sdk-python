@@ -4,9 +4,9 @@ import os
 import sys
 import tempfile
 
-from octue.resources import Datafile, Dataset, Manifest
+from utils import ServicePatcher
 
-from ..utils import ServicePatcher
+from octue.resources import Datafile, Dataset, Manifest
 
 
 try:

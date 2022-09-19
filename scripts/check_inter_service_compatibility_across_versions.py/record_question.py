@@ -4,12 +4,11 @@ import tempfile
 from unittest.mock import patch
 
 import pkg_resources
+from utils import ServicePatcher
 
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
 from octue.utils.encoders import OctueJSONEncoder
-
-from ..utils import ServicePatcher
 
 
 try:
@@ -69,10 +68,7 @@ def record_question():
         finally:
             publish_patch.stop()
 
-    with open(
-        "/Users/Marcus1/repos/octue/octue-sdk-python/scripts/record_questions_across_versions/recorded_questions.jsonl",
-        "a",
-    ) as f:
+    with open("recorded_questions.jsonl", "a") as f:
         f.write(
             json.dumps(
                 {

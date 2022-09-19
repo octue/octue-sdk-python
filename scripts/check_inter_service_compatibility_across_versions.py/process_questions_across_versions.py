@@ -44,9 +44,7 @@ CHILD_VERSIONS = [
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/Users/Marcus1/octue-amy-6429d9e54ddf.json"
 
 
-with open(
-    "/Users/Marcus1/repos/octue/octue-sdk-python/scripts/record_questions_across_versions/recorded_questions.jsonl"
-) as f:
+with open("/scripts/check_inter_service_compatibility_across_versions.py/recorded_questions.jsonl") as f:
     questions = f.readlines()
 
 
