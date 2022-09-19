@@ -671,8 +671,8 @@ class TestService(BaseTestCase):
                             )
 
                             self.assertIn(
-                                f"The parent's Octue SDK version {parent_sdk_version} may not be compatible "
-                                f"with the local Octue SDK version {child_sdk_version}",
+                                f"The child's Octue SDK version {child_sdk_version} is incompatible with the parent's "
+                                f"version {parent_sdk_version}. Please update either or both to the latest version",
                                 logging_context.output[3],
                             )
 

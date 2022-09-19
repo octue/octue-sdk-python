@@ -9,7 +9,7 @@ import pkg_resources
 from google.api_core import retry
 
 from octue.cloud import EXCEPTIONS_MAPPING
-from octue.compatibility import is_compatible
+from octue.compatibility import warn_if_incompatible
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.exceptions import QuestionNotDelivered
 from octue.log_handlers import COLOUR_PALETTE
@@ -251,20 +251,22 @@ class OrderedMessageHandler:
             return self._message_handlers[message["type"]](message)
 
         except Exception as error:
+            warn_if_incompatible(
+                local_sdk_version=pkg_resources.get_distribution("octue").version,
+                remote_sdk_version=self._child_sdk_version,
+                perspective="parent",
+            )
 
-            # Just log a warning if an unknown message has been received - it's likely not to be a big problem.
+            # Just log a warning if an unknown message type has been received - it's likely not to be a big problem.
             if isinstance(error, KeyError):
                 logger.warning(
                     "%r received a message of unknown type %r.",
                     self.subscription.topic.service,
                     message.get("type", "unknown"),
                 )
-
-                self._warn_if_incompatible()
                 return
 
             # Raise all other errors.
-            self._warn_if_incompatible()
             raise error
 
     def _handle_delivery_acknowledgement(self, message):
@@ -368,25 +370,3 @@ class OrderedMessageHandler:
             output_manifest = Manifest.deserialise(message["output_manifest"], from_string=True)
 
         return {"output_values": message["output_values"], "output_manifest": output_manifest}
-
-    def _warn_if_incompatible(self):
-        """Log a warning if the parent isn't compatible with the child or if compatibility can't be checked.
-
-        :return None:
-        """
-        if not self._child_sdk_version:
-            logger.warning(
-                "The child couldn't be checked for compatibility with this service because it didn't send its "
-                "Octue SDK version with its messages. Please update it to the latest Octue SDK version."
-            )
-            return
-
-        local_sdk_version = pkg_resources.get_distribution("octue").version
-
-        if not is_compatible(local_sdk_version, self._child_sdk_version):
-            logger.warning(
-                "The parent version %s is incompatible with the child version %s. Try updating to the latest Octue SDK "
-                "version.",
-                local_sdk_version,
-                self._child_sdk_version,
-            )
