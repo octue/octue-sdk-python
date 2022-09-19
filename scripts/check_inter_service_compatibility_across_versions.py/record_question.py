@@ -20,6 +20,9 @@ except ModuleNotFoundError:
         from octue.cloud.emulators.pub_sub import MockService
 
 
+RECORDING_FILE = "recorded_questions.jsonl"
+
+
 class QuestionRecorder:
     def __init__(self):
         self.question = None
@@ -68,7 +71,7 @@ def record_question():
         finally:
             publish_patch.stop()
 
-    with open("recorded_questions.jsonl", "a") as f:
+    with open(RECORDING_FILE, "a") as f:
         f.write(
             json.dumps(
                 {

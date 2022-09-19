@@ -1,8 +1,9 @@
 import json
-import os
 import subprocess
 import tempfile
 
+
+RECORDING_FILE = "recorded_questions.jsonl"
 
 CHILD_VERSIONS = [
     "0.35.0",
@@ -41,10 +42,8 @@ CHILD_VERSIONS = [
     "0.16.0",
 ]
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/Users/Marcus1/octue-amy-6429d9e54ddf.json"
 
-
-with open("/scripts/check_inter_service_compatibility_across_versions.py/recorded_questions.jsonl") as f:
+with open(RECORDING_FILE) as f:
     questions = f.readlines()
 
 
