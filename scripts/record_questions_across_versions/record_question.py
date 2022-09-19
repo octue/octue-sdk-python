@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pkg_resources
 
 from octue.resources import Datafile, Dataset, Manifest
+from octue.resources.service_backends import GCPPubSubBackend
 from octue.utils.encoders import OctueJSONEncoder
 
 from ..utils import ServicePatcher
@@ -18,23 +19,6 @@ except ModuleNotFoundError:
         from tests.cloud.pub_sub.mocks import MockService
     except ModuleNotFoundError:
         from octue.cloud.emulators.pub_sub import MockService
-
-from octue.resources.service_backends import GCPPubSubBackend
-
-
-path = tempfile.NamedTemporaryFile().name
-
-input_manifest = Manifest(
-    datasets={
-        "my_dataset": Dataset(
-            path=path,
-            files=[
-                Datafile(path=os.path.join(path, "path-within-dataset", "a_test_file.csv")),
-                Datafile(path=os.path.join(path, "path-within-dataset", "another_test_file.csv")),
-            ],
-        )
-    }
-)
 
 
 class QuestionRecorder:
@@ -50,6 +34,20 @@ def record_question():
     child = MockService(backend=backend, run_function=lambda: None)
     child.answer = lambda *args, **kwargs: None
     parent = MockService(backend=backend, run_function=lambda: None, children={child.id: child})
+
+    path = tempfile.NamedTemporaryFile().name
+
+    input_manifest = Manifest(
+        datasets={
+            "my_dataset": Dataset(
+                path=path,
+                files=[
+                    Datafile(path=os.path.join(path, "path-within-dataset", "a_test_file.csv")),
+                    Datafile(path=os.path.join(path, "path-within-dataset", "another_test_file.csv")),
+                ],
+            )
+        }
+    )
 
     with ServicePatcher():
         publish_patch, question_recorder = _get_and_start_publish_patch()
@@ -67,12 +65,6 @@ def record_question():
 
             except KeyError:
                 pass
-            except Exception:
-                parent.ask(
-                    child.id,
-                    input_values={"height": 4, "width": 72},
-                    input_manifest=input_manifest,
-                )
 
         finally:
             publish_patch.stop()
