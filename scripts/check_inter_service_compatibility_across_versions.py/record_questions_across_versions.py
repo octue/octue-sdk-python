@@ -1,9 +1,8 @@
-import os
 import subprocess
 
 
 versions = (
-    # "0.35.0",
+    "0.35.0",
     # "0.34.1",
     # "0.34.0",
     # "0.33.0",
@@ -39,8 +38,7 @@ versions = (
     "0.16.0",
 )
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/Users/Marcus1/octue-amy-6429d9e54ddf.json"
-os.environ["TEST_PROJECT_NAME"] = "blah"
+# os.environ["TEST_PROJECT_NAME"] = "blah"
 
 
 for version in versions:
@@ -49,11 +47,8 @@ for version in versions:
     print("=" * (len(version_string) - 1))
 
     print("Installing version...")
-    subprocess.run(["git", "checkout", version], capture_output=True)
-    try:
-        subprocess.run(["poetry", "install", "--all-extras"], capture_output=False)
-    except Exception:
-        subprocess.run(["pip", "install", "-e", "."], capture_output=False)
+    subprocess.run(["git", "checkout", version], capture_output=False)
+    subprocess.run(["poetry", "install", "--all-extras"], capture_output=False)
 
     print("Recording question...")
-    subprocess.run(["python", "record_questions_across_versions/record_question.py"])
+    subprocess.run(["python", "record_question.py"])
