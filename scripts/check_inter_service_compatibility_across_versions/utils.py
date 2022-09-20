@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 
+# Facilitate importing Pub/Sub mocks across a wide range of previous versions of `octue`.
 try:
     from octue.cloud.emulators._pub_sub import MockSubscriber, MockSubscription, MockTopic
 except ModuleNotFoundError:
