@@ -26,7 +26,7 @@ class TestChildEmulatorAsk(BaseTestCase):
             ["hello"],
         ]
 
-        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
 
         with self.assertRaises(TypeError):
             child_emulator.ask(input_values={"hello": "world"})
@@ -99,7 +99,7 @@ class TestChildEmulatorAsk(BaseTestCase):
             }
         ]
 
-        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
 
         with self.assertRaises(ValueError):
             child_emulator.ask(input_values={"hello": "world"})
@@ -226,7 +226,7 @@ class TestChildEmulatorAsk(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
 
         with self.assertLogs() as logging_context:
             child_emulator.ask(input_values={"hello": "world"})
