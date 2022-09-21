@@ -26,7 +26,7 @@ class TestIsCompatible(BaseTestCase):
         )
 
     def test_warning_issued_if_no_data_on_child_version(self):
-        """Test that two versions are compatible but a warning is raised if no data is available on the parent version."""
+        """Test that two versions are compatible but a warning is raised if no data is available on the child version."""
         with self.assertLogs() as logging_context:
             self.assertTrue(is_compatible(parent_sdk_version="0.26.0", child_sdk_version="1000000.0.0"))
 
@@ -72,12 +72,12 @@ class TestWarnIfIncompatible(BaseTestCase):
 
     def test_warn_if_incompatible_with_compatible_versions(self):
         """Test that no warning is raised if compatible versions are detected."""
-        no_logs = False
+        no_warnings = False
 
         try:
             with self.assertLogs(level=logging.WARNING):
                 warn_if_incompatible(parent_sdk_version="0.35.0", child_sdk_version="0.35.0")
         except AssertionError:
-            no_logs = True
+            no_warnings = True
 
-        self.assertTrue(no_logs)
+        self.assertTrue(no_warnings)
