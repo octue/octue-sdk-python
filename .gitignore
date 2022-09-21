@@ -99,3 +99,5 @@ ENV/
 google_credentials.json
 gha-creds-*.json
 gcp-creds-*.json
+
+*.jsonl

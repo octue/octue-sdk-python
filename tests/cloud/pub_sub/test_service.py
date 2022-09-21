@@ -1,6 +1,9 @@
+import datetime
+import functools
 import json
 import logging
 import tempfile
+import time
 import uuid
 from unittest.mock import patch
 
@@ -660,36 +663,6 @@ class TestService(BaseTestCase):
             },
         )
 
-    def test_warning_issued_if_child_and_parent_sdk_versions_incompatible(self):
-        """Test that a warning is logged if the parent and child's Octue SDK versions are potentially incompatible."""
-        child = self.make_new_child(backend=BACKEND, run_function_returnee=MockAnalysis())
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
-        with self.service_patcher:
-            child.serve()
-
-            for parent_sdk_version, child_sdk_version in (
-                ("0.1.0", "0.2.0"),
-                ("0.2.0", "0.1.0"),
-                ("0.1.0", "1.1.0"),
-                ("1.1.0", "0.1.0"),
-            ):
-                with self.subTest(parent_sdk_version=parent_sdk_version, child_sdk_version=child_sdk_version):
-                    with patch("pkg_resources.Distribution.version", child_sdk_version):
-                        with self.assertLogs() as logging_context:
-                            self.ask_question_and_wait_for_answer(
-                                parent=parent,
-                                child=child,
-                                input_values={"question": "What does the child of the child say?"},
-                                parent_sdk_version=parent_sdk_version,
-                            )
-
-                            self.assertIn(
-                                f"The parent's Octue SDK version {parent_sdk_version} may not be compatible "
-                                f"with the local Octue SDK version {child_sdk_version}",
-                                logging_context.output[3],
-                            )
-
     def test_messages_sent_to_parent_are_not_recorded_by_child_if_crash_diagnostics_not_allowed(self):
         """Test that messages sent to the parent by the child aren't recorded by the child if crash diagnostics aren't
         allowed.
@@ -801,6 +774,45 @@ class TestService(BaseTestCase):
         self.assertEqual(recorded_messages[1]["type"], "exception")
         self.assertIn("Oh no.", recorded_messages[1]["exception_message"])
 
+    def test_child_sends_heartbeat_messages_at_expected_regular_intervals(self):
+        """Test that children send heartbeat messages at the expected regular intervals."""
+        expected_interval = 0.05
+
+        def run_function(*args, **kwargs):
+            time.sleep(0.3)
+            return MockAnalysis()
+
+        child = MockService(backend=BACKEND, run_function=lambda *args, **kwargs: run_function())
+        parent = MockService(backend=BACKEND, children={child.id: child})
+
+        with self.service_patcher:
+            child.serve()
+
+            with patch(
+                "octue.cloud.emulators._pub_sub.MockService.answer",
+                functools.partial(child.answer, heartbeat_interval=expected_interval),
+            ):
+                self.ask_question_and_wait_for_answer(
+                    parent=parent,
+                    child=child,
+                    input_values={},
+                    subscribe_to_logs=True,
+                    allow_save_diagnostics_data_on_crash=True,
+                    service_name="my-super-service",
+                )
+
+        self.assertEqual(child._sent_messages[1]["type"], "heartbeat")
+        self.assertEqual(child._sent_messages[2]["type"], "heartbeat")
+
+        first_heartbeat_time = datetime.datetime.fromisoformat(child._sent_messages[1]["time"])
+        second_heartbeat_time = datetime.datetime.fromisoformat(child._sent_messages[2]["time"])
+
+        self.assertAlmostEqual(
+            second_heartbeat_time - first_heartbeat_time,
+            datetime.timedelta(seconds=expected_interval),
+            delta=datetime.timedelta(0.05),
+        )
+
     @staticmethod
     def make_new_child(backend, run_function_returnee):
         """Make and return a new child service that returns the given run function returnee when its run function is
@@ -842,6 +854,7 @@ class TestService(BaseTestCase):
         timeout=30,
         delivery_acknowledgement_timeout=30,
         parent_sdk_version=None,
+        maximum_heartbeat_interval=300,
     ):
         """Get a parent service to ask a question to a child service and wait for the answer.
 
@@ -859,6 +872,7 @@ class TestService(BaseTestCase):
         :param int|float timeout:
         :param int|float delivery_acknowledgement_timeout:
         :param str|None parent_sdk_version:
+        :param int|float maximum_heartbeat_interval:
         :return dict:
         """
         subscription, _ = parent.ask(
@@ -879,6 +893,7 @@ class TestService(BaseTestCase):
             record_messages_to=record_messages_to,
             service_name=service_name,
             delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
+            maximum_heartbeat_interval=maximum_heartbeat_interval,
         )
 
     @staticmethod

@@ -7,7 +7,6 @@ import logging
 import uuid
 
 import google.api_core.exceptions
-import packaging.version
 import pkg_resources
 from google import auth
 from google.api_core import retry
@@ -17,10 +16,12 @@ import octue.exceptions
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
+from octue.compatibility import warn_if_incompatible
 from octue.mixins import CoolNameable
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
 from octue.utils.objects import get_nested_attribute
+from octue.utils.threads import RepeatingTimer
 
 
 logger = logging.getLogger(__name__)
@@ -65,6 +66,7 @@ class Service(CoolNameable):
 
         self.backend = backend
         self.run_function = run_function
+        self._local_sdk_version = pkg_resources.get_distribution("octue").version
         self._record_sent_messages = False
         self._sent_messages = []
         self._publisher = None
@@ -151,12 +153,13 @@ class Service(CoolNameable):
 
             subscriber.close()
 
-    def answer(self, question, answer_topic=None, timeout=30):
+    def answer(self, question, answer_topic=None, heartbeat_interval=120, timeout=30):
         """Answer a question from a parent - i.e. run the child's app on the given data and return the output values.
         Answers conform to the output values and output manifest schemas specified in the child's Twine file.
 
         :param dict|Message question:
         :param octue.cloud.pub_sub.topic.Topic|None answer_topic: provide if messages need to be sent to the parent from outside the `Service` instance (e.g. in octue.cloud.deployment.google.cloud_run.flask_app)
+        :param int|float heartbeat_interval: the time interval, in seconds, at which to send heartbeats
         :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
@@ -178,6 +181,15 @@ class Service(CoolNameable):
         topic = answer_topic or self.instantiate_answer_topic(question_uuid)
         self._send_delivery_acknowledgment(topic)
 
+        heartbeater = RepeatingTimer(
+            interval=heartbeat_interval,
+            function=self._send_heartbeat,
+            kwargs={"topic": topic},
+        )
+
+        heartbeater.daemon = True
+        heartbeater.start()
+
         try:
             if forward_logs:
                 analysis_log_handler = GooglePubSubHandler(
@@ -187,27 +199,6 @@ class Service(CoolNameable):
                 )
             else:
                 analysis_log_handler = None
-
-            if parent_sdk_version:
-                local_sdk_version = packaging.version.parse(pkg_resources.get_distribution("octue").version)
-
-                if (
-                    local_sdk_version.major != parent_sdk_version.major
-                    or local_sdk_version.minor != parent_sdk_version.minor
-                ):
-                    logger.warning(
-                        "The parent's Octue SDK version %s may not be compatible with the local Octue SDK version %s. "
-                        "Update them both to the latest version (or at least a version with the same major and minor "
-                        "version numbers) if possible.",
-                        parent_sdk_version,
-                        local_sdk_version,
-                    )
-
-            else:
-                logger.warning(
-                    "The parent couldn't be checked for compatibility with this service because it didn't send its Octue "
-                    "SDK version with its question. Please update it to the latest Octue SDK version."
-                )
 
             analysis = self.run_function(
                 analysis_id=question_uuid,
@@ -235,9 +226,12 @@ class Service(CoolNameable):
                 timeout=timeout,
             )
 
+            heartbeater.cancel()
             logger.info("%r answered question %r.", self, question_uuid)
 
         except BaseException as error:  # noqa
+            heartbeater.cancel()
+            warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
             self.send_exception(topic, timeout)
             raise error
 
@@ -309,7 +303,6 @@ class Service(CoolNameable):
             topic=question_topic,
             question_uuid=question_uuid,
             forward_logs=subscribe_to_logs,
-            octue_sdk_version=pkg_resources.get_distribution("octue").version,
             allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
         )
 
@@ -324,6 +317,7 @@ class Service(CoolNameable):
         service_name="REMOTE",
         timeout=60,
         delivery_acknowledgement_timeout=120,
+        maximum_heartbeat_interval=300,
     ):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
@@ -334,6 +328,7 @@ class Service(CoolNameable):
         :param str service_name: a name by which to refer to the child subscribed to (used for labelling its log messages if subscribed to)
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
+        :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded
         :raise octue.exceptions.QuestionNotDelivered: if a delivery acknowledgement is not received in time
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
@@ -357,6 +352,7 @@ class Service(CoolNameable):
             return message_handler.handle_messages(
                 timeout=timeout,
                 delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
+                maximum_heartbeat_interval=maximum_heartbeat_interval,
             )
         finally:
             subscription.delete()
@@ -414,6 +410,7 @@ class Service(CoolNameable):
         :param attributes: key-value pairs to attach to the message - the values must be strings or bytes
         :return None:
         """
+        attributes["octue_sdk_version"] = self._local_sdk_version
         converted_attributes = {}
 
         for key, value in attributes.items():
@@ -436,7 +433,7 @@ class Service(CoolNameable):
     def _send_delivery_acknowledgment(self, topic, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
 
-        :param octue.cloud.pub_sub.topic.Topic topic: topic to send acknowledgement to
+        :param octue.cloud.pub_sub.topic.Topic topic: topic to send the acknowledgement to
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -451,6 +448,25 @@ class Service(CoolNameable):
             topic=topic,
             timeout=timeout,
         )
+
+    def _send_heartbeat(self, topic, timeout=30):
+        """Send a heartbeat to the parent, indicating that the service is alive.
+
+        :param octue.cloud.pub_sub.topic.Topic topic: topic to send the heartbeat to
+        :param float timeout: time in seconds after which to give up sending
+        :return None:
+        """
+        self._send_message(
+            {
+                "type": "heartbeat",
+                "time": str(datetime.datetime.now()),
+                "message_number": topic.messages_published,
+            },
+            topic=topic,
+            timeout=timeout,
+        )
+
+        logger.debug("Heartbeat sent.")
 
     def _send_monitor_message(self, data, topic, timeout=30):
         """Send a monitor message to the parent.
@@ -476,7 +492,7 @@ class Service(CoolNameable):
         """Parse a question in the Google Cloud Pub/Sub or Google Cloud Run format.
 
         :param dict|Message question:
-        :return (dict, str, bool, packaging.version.Version|None, bool):
+        :return (dict, str, bool, str|None, bool):
         """
         try:
             # Parse question directly from Pub/Sub or Dataflow.
@@ -507,8 +523,5 @@ class Service(CoolNameable):
             )
         except AttributeError:
             allow_save_diagnostics_data_on_crash = False
-
-        if parent_sdk_version:
-            parent_sdk_version = packaging.version.parse(parent_sdk_version)
 
         return data, question_uuid, forward_logs, parent_sdk_version, allow_save_diagnostics_data_on_crash

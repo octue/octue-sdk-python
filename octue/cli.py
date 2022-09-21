@@ -230,6 +230,11 @@ def start(service_config, timeout):
 
     service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=True)
 
+    logger.info(
+        "You can now ask this service questions at %r using the `octue.resources.Child` class.",
+        service_configuration.service_id,
+    )
+
 
 @octue_cli.command()
 @click.argument(

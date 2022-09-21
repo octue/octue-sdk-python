@@ -3,14 +3,18 @@ import logging
 import os
 import re
 import time
+from datetime import datetime, timedelta
 
+import pkg_resources
 from google.api_core import retry
 
 from octue.cloud import EXCEPTIONS_MAPPING
+from octue.compatibility import warn_if_incompatible
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.exceptions import QuestionNotDelivered
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
+from octue.utils.threads import RepeatingTimer
 
 
 if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in GOOGLE_COMPUTE_PROVIDERS:
@@ -51,12 +55,17 @@ class OrderedMessageHandler:
         self.service_name = service_name
 
         self.received_delivery_acknowledgement = None
+        self._child_sdk_version = None
+        self._heartbeat_checker = None
+        self._last_heartbeat = None
+        self._alive = True
         self._start_time = time.perf_counter()
         self._waiting_messages = None
         self._previous_message_number = -1
 
         self._message_handlers = message_handlers or {
             "delivery_acknowledgement": self._handle_delivery_acknowledgement,
+            "heartbeat": self._handle_heartbeat,
             "monitor_message": self._handle_monitor_message,
             "log_record": self._handle_log_message,
             "exception": self._handle_exception,
@@ -65,12 +74,24 @@ class OrderedMessageHandler:
 
         self._log_message_colours = [COLOUR_PALETTE[1], *COLOUR_PALETTE[3:]]
 
-    def handle_messages(self, timeout=60, delivery_acknowledgement_timeout=120):
+    @property
+    def _time_since_last_heartbeat(self):
+        """Get the time period since the last heartbeat was received.
+
+        :return datetime.timedelta|None:
+        """
+        if not self._last_heartbeat:
+            return None
+
+        return datetime.now() - self._last_heartbeat
+
+    def handle_messages(self, timeout=60, delivery_acknowledgement_timeout=120, maximum_heartbeat_interval=300):
         """Pull messages and handle them in the order they were sent until a result is returned by a message handler,
         then return that result.
 
         :param float|None timeout: how long to wait for an answer before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long to wait for a delivery acknowledgement before raising `QuestionNotDelivered`
+        :param int|float maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded before receiving the final message
         :return dict:
         """
@@ -81,7 +102,16 @@ class OrderedMessageHandler:
         recorded_messages = []
         pull_timeout = None
 
-        while True:
+        self._heartbeat_checker = RepeatingTimer(
+            interval=maximum_heartbeat_interval,
+            function=self._monitor_heartbeat,
+            kwargs={"maximum_heartbeat_interval": maximum_heartbeat_interval},
+        )
+
+        self._heartbeat_checker.daemon = True
+        self._heartbeat_checker.start()
+
+        while self._alive:
 
             if timeout is not None:
                 run_time = time.perf_counter() - self._start_time
@@ -110,12 +140,15 @@ class OrderedMessageHandler:
                     result = self._handle_message(message)
 
                     if result is not None:
+                        self._heartbeat_checker.cancel()
                         return result
 
             except KeyError:
                 pass
 
             finally:
+                self._heartbeat_checker.cancel()
+
                 if self.record_messages_to:
                     directory_name = os.path.dirname(self.record_messages_to)
 
@@ -124,6 +157,26 @@ class OrderedMessageHandler:
 
                     with open(self.record_messages_to, "w") as f:
                         json.dump(recorded_messages, f)
+
+        raise TimeoutError(
+            f"No heartbeat has been received within the maximum allowed interval of {maximum_heartbeat_interval}s."
+        )
+
+    def _monitor_heartbeat(self, maximum_heartbeat_interval):
+        """Change the alive status to `False` and cancel the heartbeat checker if a heartbeat hasn't been received
+        within the maximum allowed time interval measured from the moment of calling.
+
+        :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats without raising an error
+        :return None:
+        """
+        maximum_heartbeat_interval = timedelta(seconds=maximum_heartbeat_interval)
+
+        if self._last_heartbeat and self._time_since_last_heartbeat <= maximum_heartbeat_interval:
+            self._alive = True
+            return
+
+        self._alive = False
+        self._heartbeat_checker.cancel()
 
     def _pull_message(self, timeout, delivery_acknowledgement_timeout):
         """Pull a message from the subscription, raising a `TimeoutError` if the timeout is exceeded before succeeding.
@@ -135,49 +188,56 @@ class OrderedMessageHandler:
         :return dict: message containing data
         """
         start_time = time.perf_counter()
+        attempt = 1
 
         while True:
-            attempt = 1
+            logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
 
-            while True:
-                logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
-
-                pull_response = self.subscriber.pull(
-                    request={"subscription": self.subscription.path, "max_messages": 1},
-                    retry=retry.Retry(),
-                )
-
-                try:
-                    answer = pull_response.received_messages[0]
-                    break
-
-                except IndexError:
-                    logger.debug("Google Pub/Sub pull response timed out early.")
-                    attempt += 1
-
-                    run_time = time.perf_counter() - start_time
-
-                    if timeout is not None and run_time > timeout:
-                        raise TimeoutError(
-                            f"No message received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
-                        )
-
-                    if not self.received_delivery_acknowledgement:
-                        if run_time > delivery_acknowledgement_timeout:
-                            raise QuestionNotDelivered(
-                                f"No delivery acknowledgement received for topic {self.subscription.topic.path!r} "
-                                f"after {delivery_acknowledgement_timeout} seconds."
-                            )
-
-            self.subscriber.acknowledge(request={"subscription": self.subscription.path, "ack_ids": [answer.ack_id]})
-
-            logger.debug(
-                "%r received a message related to question %r.",
-                self.subscription.topic.service,
-                self.subscription.topic.path.split(".")[-1],
+            pull_response = self.subscriber.pull(
+                request={"subscription": self.subscription.path, "max_messages": 1},
+                retry=retry.Retry(),
             )
 
-            return json.loads(answer.message.data.decode())
+            try:
+                answer = pull_response.received_messages[0]
+                break
+
+            except IndexError:
+                logger.debug("Google Pub/Sub pull response timed out early.")
+                attempt += 1
+
+                run_time = time.perf_counter() - start_time
+
+                if timeout is not None and run_time > timeout:
+                    raise TimeoutError(
+                        f"No message received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
+                    )
+
+                if not self.received_delivery_acknowledgement:
+                    if run_time > delivery_acknowledgement_timeout:
+                        raise QuestionNotDelivered(
+                            f"No delivery acknowledgement received for topic {self.subscription.topic.path!r} "
+                            f"after {delivery_acknowledgement_timeout} seconds."
+                        )
+
+        self.subscriber.acknowledge(request={"subscription": self.subscription.path, "ack_ids": [answer.ack_id]})
+
+        logger.debug(
+            "%r received a message related to question %r.",
+            self.subscription.topic.service,
+            self.subscription.topic.path.split(".")[-1],
+        )
+
+        # Get the child's Octue SDK version from the first message.
+        if not self._child_sdk_version:
+            self._child_sdk_version = answer.message.attributes.get("octue_sdk_version")
+
+            # If the child hasn't provided its Octue SDK version, it's too old to send heartbeats - so, cancel the
+            # heartbeat checker to maintain compatibility.
+            if not self._child_sdk_version:
+                self._heartbeat_checker.cancel()
+
+        return json.loads(answer.message.data.decode())
 
     def _handle_message(self, message):
         """Pass a message to its handler and update the previous message number.
@@ -189,12 +249,24 @@ class OrderedMessageHandler:
 
         try:
             return self._message_handlers[message["type"]](message)
-        except KeyError:
-            logger.warning(
-                "%r received a message of unknown type %r.",
-                self.subscription.topic.service,
-                message["type"],
+
+        except Exception as error:
+            warn_if_incompatible(
+                parent_sdk_version=pkg_resources.get_distribution("octue").version,
+                child_sdk_version=self._child_sdk_version,
             )
+
+            # Just log a warning if an unknown message type has been received - it's likely not to be a big problem.
+            if isinstance(error, KeyError):
+                logger.warning(
+                    "%r received a message of unknown type %r.",
+                    self.subscription.topic.service,
+                    message.get("type", "unknown"),
+                )
+                return
+
+            # Raise all other errors.
+            raise error
 
     def _handle_delivery_acknowledgement(self, message):
         """Mark the question as delivered to prevent resending it.
@@ -204,6 +276,15 @@ class OrderedMessageHandler:
         """
         self.received_delivery_acknowledgement = True
         logger.info("%r's question was delivered at %s.", self.subscription.topic.service, message["delivery_time"])
+
+    def _handle_heartbeat(self, message):
+        """Record the time the heartbeat was received.
+
+        :param dict message:
+        :return None:
+        """
+        self._last_heartbeat = datetime.now()
+        logger.info("Heartbeat received from service %r.", self.service_name)
 
     def _handle_monitor_message(self, message):
         """Send a monitor message to the handler if one has been provided.

@@ -143,9 +143,11 @@ class AnalysisTestCase(BaseTestCase):
 
         self.assertTrue(
             signed_url_for_dataset.startswith(
-                f"{self.test_result_modifier.storage_emulator_host}/{TEST_BUCKET_NAME}/datasets/the_dataset"
+                f"{self.test_result_modifier.storage_emulator_host}/{TEST_BUCKET_NAME}/datasets"
             )
         )
+
+        self.assertIn("/the_dataset", signed_url_for_dataset)
 
         downloaded_dataset = Dataset(path=signed_url_for_dataset)
         self.assertEqual(downloaded_dataset.name, "the_dataset")

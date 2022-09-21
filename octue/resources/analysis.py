@@ -1,6 +1,8 @@
 import json
 import logging
 
+import coolname
+
 import twined.exceptions
 from octue.cloud import storage
 from octue.exceptions import InvalidMonitorMessage
@@ -115,10 +117,12 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         self._handle_monitor_message(data)
 
     def finalise(self, upload_output_datasets_to=None):
-        """Validate the output values and output manifest, optionally uploading the output manifest's datasets to the
-        cloud and updating its dataset paths to signed URLs.
+        """Validate the output values and output manifest and, if the analysis produced an output manifest, upload its
+        output datasets to a unique subdirectory within the analysis's output location. This output location can be
+        overridden by providing a different cloud path via the `upload_output_datasets_to` parameter. Either way, the
+        dataset paths in the output manifest are replaced with signed URLs for easier, expiring access.
 
-        :param str|None upload_output_datasets_to: if provided, upload any output datasets to this cloud directory and update the output manifest with their locations
+        :param str|None upload_output_datasets_to: If not provided but an output location was provided at instantiation, upload any output datasets into a unique subdirectory within this output location; if provided, upload into this location instead. The output manifest is updated with the upload locations.
         :return None:
         """
         serialised_strands = {"output_values": None, "output_manifest": None}
@@ -133,6 +137,12 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         self._finalised = True
         logger.info("Validated output values and output manifest against the twine.")
 
+        # Use a unique subdirectory in the output location given at instantiation (if given) if no
+        # `upload_output_datasets_to` is provided.
+        if self.output_location and not upload_output_datasets_to:
+            upload_output_datasets_to = storage.path.join(self.output_location, coolname.generate_slug())
+
+        # If there isn't both an output manifest and upload location, nothing is uploaded.
         if not (upload_output_datasets_to and hasattr(self, "output_manifest")):
             return
 

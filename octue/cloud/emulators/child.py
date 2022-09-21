@@ -43,6 +43,7 @@ class ChildEmulator:
 
         self._message_handlers = {
             "delivery_acknowledgement": self._handle_delivery_acknowledgement,
+            "heartbeat": self._handle_heartbeat,
             "log_record": self._handle_log_record,
             "monitor_message": self._handle_monitor_message,
             "exception": self._handle_exception,
@@ -203,6 +204,15 @@ class ChildEmulator:
         :return None:
         """
         logger.warning("Delivery acknowledgement messages are ignored by the ChildEmulator.")
+
+    def _handle_heartbeat(self, message, **kwargs):
+        """A no-operation handler for heartbeat messages (these messages are ignored by the child emulator).
+
+        :param dict message: a dictionary containing the key "time"
+        :param kwargs: this should be empty
+        :return None:
+        """
+        logger.warning("Heartbeat messages are ignored by the ChildEmulator.")
 
     def _handle_log_record(self, message, **kwargs):
         """Convert the given message into a log record and pass it to the log handler.
