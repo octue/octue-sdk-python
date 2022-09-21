@@ -1,0 +1,18 @@
+name: version-compatibility
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  check-compatibility-tested:
+    if: "!contains(github.event.head_commit.message, 'skipci')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v2
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+      - name: Check version compatibility has been tested
+        run: python .github/scripts/check_version_compatibility_tested.py
