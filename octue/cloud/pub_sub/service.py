@@ -198,8 +198,6 @@ class Service(CoolNameable):
             else:
                 analysis_log_handler = None
 
-            warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
-
             analysis = self.run_function(
                 analysis_id=question_uuid,
                 input_values=data["input_values"],
@@ -231,6 +229,7 @@ class Service(CoolNameable):
 
         except BaseException as error:  # noqa
             heartbeater.cancel()
+            warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
             self.send_exception(topic, timeout)
             raise error
 
