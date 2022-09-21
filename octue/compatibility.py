@@ -10,23 +10,26 @@ with open(os.path.join(os.path.dirname(__file__), "metadata", "version_compatibi
     VERSION_COMPATIBILITIES = json.load(f)
 
 
-def is_compatible(parent_version, child_version):
+def is_compatible(parent_sdk_version, child_sdk_version):
     """Check if two versions of `octue` are compatible according to empirical testing. The versions are treated as
     compatible if there's no information on one of the versions, but a warning is also issued.
 
-    :param str parent_version: the semantic version of the parent
-    :param str child_version: the semantic version of the child
+    :param str parent_sdk_version: the semantic version of Octue SDK running the parent
+    :param str child_sdk_version: the semantic version of Octue SDK running the child
     :return bool:
     """
-    if parent_version not in VERSION_COMPATIBILITIES or child_version not in VERSION_COMPATIBILITIES[parent_version]:
+    if (
+        parent_sdk_version not in VERSION_COMPATIBILITIES
+        or child_sdk_version not in VERSION_COMPATIBILITIES[parent_sdk_version]
+    ):
         logger.warning(
             "No data on compatibility of parent SDK version %s and child SDK version %s.",
-            parent_version,
-            child_version,
+            parent_sdk_version,
+            child_sdk_version,
         )
         return True
 
-    return VERSION_COMPATIBILITIES[parent_version][child_version]
+    return VERSION_COMPATIBILITIES[parent_sdk_version][child_sdk_version]
 
 
 def warn_if_incompatible(parent_sdk_version, child_sdk_version):
