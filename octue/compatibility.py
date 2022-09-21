@@ -11,8 +11,8 @@ with open(os.path.join(os.path.dirname(__file__), "metadata", "version_compatibi
 
 
 def is_compatible(parent_sdk_version, child_sdk_version):
-    """Check if two versions of `octue` are compatible according to empirical testing. The versions are treated as
-    compatible if there's no information on one of the versions, but a warning is also issued.
+    """Check if two versions of `octue` are compatible according to empirical testing. If there's no information on one
+    of the versions, a warning is issued and they're treated as compatible.
 
     :param str parent_sdk_version: the semantic version of Octue SDK running the parent
     :param str child_sdk_version: the semantic version of Octue SDK running the child
@@ -33,11 +33,11 @@ def is_compatible(parent_sdk_version, child_sdk_version):
 
 
 def warn_if_incompatible(parent_sdk_version, child_sdk_version):
-    """Log a warning if the local SDK version isn't compatible with the remote version, or if compatibility can't be
-    checked due to an absence of remote version information.
+    """Log a warning if the parent SDK version isn't compatible with the child SDK version, or if compatibility can't be
+    checked due to an absence of version information for one of them.
 
-    :param str local_sdk_version: the version of the Octue SDK running locally / on the local service
-    :param str|None remote_sdk_version: the version of the Octue SDK running on the remote service
+    :param str|None parent_sdk_version: the version of the Octue SDK running locally / on the local service
+    :param str|None child_sdk_version: the version of the Octue SDK running on the remote service
     :return None:
     """
     if not parent_sdk_version:
