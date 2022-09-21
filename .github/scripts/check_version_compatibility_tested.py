@@ -23,5 +23,5 @@ if CURRENT_VERSION not in VERSION_COMPATIBILITY_DATA:
     raise compatibility_not_checked_error
 
 for version in VERSION_COMPATIBILITY_DATA:
-    if CURRENT_VERSION not in version:
+    if CURRENT_VERSION not in VERSION_COMPATIBILITY_DATA[version]:
         raise compatibility_not_checked_error
