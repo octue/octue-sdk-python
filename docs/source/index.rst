@@ -90,6 +90,7 @@ We use `GitHub Issues <https://github.com/octue/octue-sdk-python/issues>`_ [#]_ 
    troubleshooting_services
    logging
    authentication
+   inter_service_compatibility
    api
    license
    version_history
