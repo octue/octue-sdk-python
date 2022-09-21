@@ -127,9 +127,12 @@ class Service(CoolNameable):
         try:
             topic.create(allow_existing=False)
             subscription.create(allow_existing=False)
-
             future = subscriber.subscribe(subscription=subscription.path, callback=self.answer)
-            logger.debug("%r is waiting for questions.", self)
+
+            logger.info(
+                "You can now ask this service questions at %r using the `octue.resources.Child` class.",
+                self.id,
+            )
 
             try:
                 future.result(timeout=timeout)

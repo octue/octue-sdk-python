@@ -7,6 +7,7 @@ import os
 import sys
 
 import click
+import coolname
 import pkg_resources
 from google import auth
 
@@ -16,6 +17,7 @@ from octue.cloud.pub_sub.service import Service
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.configuration import load_service_and_app_configuration
 from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
+from octue.exceptions import ServiceAlreadyExists
 from octue.log_handlers import apply_log_handler, get_remote_handler
 from octue.resources import service_backends
 from octue.runner import Runner
@@ -229,18 +231,26 @@ def start(service_config, timeout, no_rm):
         _, project_name = auth.default()
         backend = service_backends.get_backend()(project_name=project_name)
 
-    service = Service(
-        service_id=service_configuration.service_id,
-        backend=backend,
-        run_function=run_function,
-    )
+    service_id = service_configuration.service_id
+    service = Service(service_id=service_id, backend=backend, run_function=run_function)
 
-    service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=not no_rm)
+    try:
+        service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=not no_rm)
 
-    logger.info(
-        "You can now ask this service questions at %r using the `octue.resources.Child` class.",
-        service_configuration.service_id,
-    )
+    except ServiceAlreadyExists:
+        service_id = service_id + "-" + coolname.generate_slug(2)
+
+        while True:
+            user_confirmation = input(f"Service already exists. Create new service with ID {service_id!r}? [Y/n]\n")
+
+            if user_confirmation.upper() == "N":
+                return
+
+            if user_confirmation.upper() in {"Y", ""}:
+                break
+
+        service = Service(service_id=service_id, backend=backend, run_function=run_function)
+        service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=not no_rm)
 
 
 @octue_cli.command()
