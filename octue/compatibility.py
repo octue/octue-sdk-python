@@ -20,7 +20,7 @@ def is_compatible(parent_version, child_version):
     """
     if parent_version not in VERSION_COMPATIBILITIES or child_version not in VERSION_COMPATIBILITIES[parent_version]:
         logger.warning(
-            "No data on compatibility of parent version %s and child version %s.",
+            "No data on compatibility of parent SDK version %s and child SDK version %s.",
             parent_version,
             child_version,
         )
