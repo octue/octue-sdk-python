@@ -29,42 +29,33 @@ def is_compatible(parent_version, child_version):
     return VERSION_COMPATIBILITIES[parent_version][child_version]
 
 
-def warn_if_incompatible(local_sdk_version, remote_sdk_version, perspective):
+def warn_if_incompatible(parent_sdk_version, child_sdk_version):
     """Log a warning if the local SDK version isn't compatible with the remote version, or if compatibility can't be
     checked due to an absence of remote version information.
 
     :param str local_sdk_version: the version of the Octue SDK running locally / on the local service
     :param str|None remote_sdk_version: the version of the Octue SDK running on the remote service
-    :param str perspective: the perspective from which the warnings will be issued; must be one of the strings 'child' or 'parent'
-    :raise ValueError: if the `perspective` argument isn't one of 'child' or 'parent'
     :return None:
     """
-    if perspective not in {"child", "parent"}:
-        raise ValueError(
-            f"The `perspective` argument must take the value of either 'child' or 'parent', not {perspective!r}."
-        )
+    if not parent_sdk_version:
+        missing_service_version_information = "parent"
+    elif not child_sdk_version:
+        missing_service_version_information = "child"
+    else:
+        missing_service_version_information = None
 
-    if perspective == "child":
-        remote_service_type = "parent"
-    elif perspective == "parent":
-        remote_service_type = "child"
-
-    local_service_type = perspective
-
-    if not remote_sdk_version:
+    if missing_service_version_information:
         logger.warning(
-            "The %s couldn't be checked for compatibility with this service because it didn't send its Octue SDK "
-            "version with its messages. Please update it to the latest Octue SDK version.",
-            remote_service_type,
+            "The %s couldn't be checked for compatibility with this service because its Octue SDK version wasn't "
+            "provided. Please update it to the latest Octue SDK version.",
+            missing_service_version_information,
         )
         return
 
-    if not is_compatible(local_sdk_version, remote_sdk_version):
+    if not is_compatible(parent_sdk_version, child_sdk_version):
         logger.warning(
-            "The %s's Octue SDK version %s is incompatible with the %s's version %s. Please update either or both to "
-            "the latest version.",
-            local_service_type,
-            local_sdk_version,
-            remote_service_type,
-            remote_sdk_version,
+            "The parent's Octue SDK version %s is incompatible with the child's version %s. Please update either or "
+            "both to the latest version.",
+            parent_sdk_version,
+            child_sdk_version,
         )

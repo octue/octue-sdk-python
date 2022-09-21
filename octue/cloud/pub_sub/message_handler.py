@@ -252,9 +252,8 @@ class OrderedMessageHandler:
 
         except Exception as error:
             warn_if_incompatible(
-                local_sdk_version=pkg_resources.get_distribution("octue").version,
-                remote_sdk_version=self._child_sdk_version,
-                perspective="parent",
+                parent_sdk_version=pkg_resources.get_distribution("octue").version,
+                child_sdk_version=self._child_sdk_version,
             )
 
             # Just log a warning if an unknown message type has been received - it's likely not to be a big problem.

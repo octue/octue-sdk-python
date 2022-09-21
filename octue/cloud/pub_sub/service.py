@@ -198,11 +198,7 @@ class Service(CoolNameable):
             else:
                 analysis_log_handler = None
 
-            warn_if_incompatible(
-                local_sdk_version=self._local_sdk_version,
-                remote_sdk_version=parent_sdk_version,
-                perspective="child",
-            )
+            warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
 
             analysis = self.run_function(
                 analysis_id=question_uuid,
