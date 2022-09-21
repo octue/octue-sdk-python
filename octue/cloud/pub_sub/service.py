@@ -102,12 +102,13 @@ class Service(CoolNameable):
 
         return self._credentials
 
-    def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False):
+    def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False, allow_existing=False):
         """Start the service as a child, waiting to accept questions from any other Octue service using Google Pub/Sub
         on the same Google Cloud project. Questions are accepted, processed, and answered asynchronously.
 
         :param bool delete_topic_and_subscription_on_exit: if `True`, delete the child's topic and subscription on exiting serving mode
         :param float|None timeout: time in seconds after which to shut down the child
+        :param bool allow_existing: if `True`, allow starting a service for which the topic and/or subscription already exists (indicating an existing service) - this connects this service to the existing service's topic and subscription
         :return None:
         """
         logger.info("Starting %r.", self)
@@ -125,8 +126,8 @@ class Service(CoolNameable):
         )
 
         try:
-            topic.create(allow_existing=False)
-            subscription.create(allow_existing=False)
+            topic.create(allow_existing=allow_existing)
+            subscription.create(allow_existing=allow_existing)
             future = subscriber.subscribe(subscription=subscription.path, callback=self.answer)
 
             logger.info(
