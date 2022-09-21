@@ -189,7 +189,14 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
     show_default=True,
     help="A timeout in seconds after which to stop the service. The default is no timeout.",
 )
-def start(service_config, timeout):
+@click.option(
+    "--no-rm",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Don't delete the Google Pub/Sub topic and subscription for the service on exit.",
+)
+def start(service_config, timeout, no_rm):
     """Start an Octue service or digital twin locally as a child so it can be asked questions by other Octue services.
     The service's pub/sub topic and subscription are deleted on exit.
     """
@@ -228,7 +235,7 @@ def start(service_config, timeout):
         run_function=run_function,
     )
 
-    service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=True)
+    service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=not no_rm)
 
     logger.info(
         "You can now ask this service questions at %r using the `octue.resources.Child` class.",
