@@ -74,10 +74,10 @@ class TestOrderedMessageHandler(BaseTestCase):
             message_handlers={"finish-test": lambda message: message},
         )
 
-        with patch("logging.StreamHandler.emit") as mock_emit:
+        with self.assertLogs() as logging_context:
             message_handler._handle_message({"type": "blah", "message_number": 0})
 
-        self.assertIn("received a message of unknown type", mock_emit.call_args_list[0][0][0].msg)
+        self.assertIn("received a message of unknown type", logging_context.output[1])
 
     def test_in_order_messages_are_handled_in_order(self):
         """Test that messages received in order are handled in order."""

@@ -646,36 +646,6 @@ class TestService(BaseTestCase):
             },
         )
 
-    def test_warning_issued_if_child_and_parent_sdk_versions_incompatible(self):
-        """Test that a warning is logged if the parent and child's Octue SDK versions are potentially incompatible."""
-        with self.service_patcher:
-            for parent_sdk_version, child_sdk_version in (
-                ("0.1.0", "0.2.0"),
-                ("0.2.0", "0.1.0"),
-                ("0.1.0", "1.1.0"),
-                ("1.1.0", "0.1.0"),
-            ):
-                with self.subTest(parent_sdk_version=parent_sdk_version, child_sdk_version=child_sdk_version):
-                    with patch("pkg_resources.Distribution.version", child_sdk_version):
-
-                        child = self.make_new_child(backend=BACKEND, run_function_returnee=MockAnalysis())
-                        parent = MockService(backend=BACKEND, children={child.id: child})
-                        child.serve()
-
-                        with self.assertLogs() as logging_context:
-                            self.ask_question_and_wait_for_answer(
-                                parent=parent,
-                                child=child,
-                                input_values={"question": "What does the child of the child say?"},
-                                parent_sdk_version=parent_sdk_version,
-                            )
-
-                            self.assertIn(
-                                f"The parent's Octue SDK version {parent_sdk_version} may not be compatible "
-                                f"with the local Octue SDK version {child_sdk_version}",
-                                logging_context.output[3],
-                            )
-
     def test_messages_sent_to_parent_are_not_recorded_by_child_if_crash_diagnostics_not_allowed(self):
         """Test that messages sent to the parent by the child aren't recorded by the child if crash diagnostics aren't
         allowed.
