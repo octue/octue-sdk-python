@@ -106,8 +106,8 @@ class Service(CoolNameable):
         """Start the service as a child, waiting to accept questions from any other Octue service using Google Pub/Sub
         on the same Google Cloud project. Questions are accepted, processed, and answered asynchronously.
 
-        :param bool delete_topic_and_subscription_on_exit: if `True`, delete the child's topic and subscription on exiting serving mode
         :param float|None timeout: time in seconds after which to shut down the child
+        :param bool delete_topic_and_subscription_on_exit: if `True`, delete the child's topic and subscription on exiting serving mode
         :param bool allow_existing: if `True`, allow starting a service for which the topic and/or subscription already exists (indicating an existing service) - this connects this service to the existing service's topic and subscription
         :return None:
         """
