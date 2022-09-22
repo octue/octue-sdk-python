@@ -88,7 +88,6 @@ class TemplateAppsTestCase(BaseTestCase):
                     cli_path,
                     "start",
                     f"--service-config={elevation_service_configuration.name}",
-                    "--rm",
                 ],
                 cwd=elevation_service_path,
             )
@@ -110,7 +109,6 @@ class TemplateAppsTestCase(BaseTestCase):
                         cli_path,
                         "start",
                         f"--service-config={wind_speed_service_configuration.name}",
-                        "--rm",
                     ],
                     cwd=wind_speed_service_path,
                 )

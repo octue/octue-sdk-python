@@ -6,6 +6,7 @@ import json
 import logging
 import uuid
 
+import google.api_core.exceptions
 import pkg_resources
 from google import auth
 from google.api_core import retry
@@ -101,12 +102,13 @@ class Service(CoolNameable):
 
         return self._credentials
 
-    def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False):
+    def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False, allow_existing=False):
         """Start the service as a child, waiting to accept questions from any other Octue service using Google Pub/Sub
         on the same Google Cloud project. Questions are accepted, processed, and answered asynchronously.
 
         :param float|None timeout: time in seconds after which to shut down the child
         :param bool delete_topic_and_subscription_on_exit: if `True`, delete the child's topic and subscription on exiting serving mode
+        :param bool allow_existing: if `True`, allow starting a service for which the topic and/or subscription already exists (indicating an existing service) - this connects this service to the existing service's topic and subscription
         :return None:
         """
         logger.info("Starting %r.", self)
@@ -124,27 +126,31 @@ class Service(CoolNameable):
         )
 
         try:
-            topic.create(allow_existing=True)
-            subscription.create(allow_existing=True)
-
+            topic.create(allow_existing=allow_existing)
+            subscription.create(allow_existing=allow_existing)
             future = subscriber.subscribe(subscription=subscription.path, callback=self.answer)
-            logger.debug("%r is waiting for questions.", self)
+
+            logger.info(
+                "You can now ask this service questions at %r using the `octue.resources.Child` class.",
+                self.id,
+            )
 
             try:
                 future.result(timeout=timeout)
             except (TimeoutError, concurrent.futures.TimeoutError, KeyboardInterrupt):
                 future.cancel()
 
+        except google.api_core.exceptions.AlreadyExists:
+            raise octue.exceptions.ServiceAlreadyExists(f"A service with the ID {self.id!r} already exists.")
+
         finally:
             if delete_topic_and_subscription_on_exit:
                 try:
-                    if subscription.exists():
+                    if subscription.creation_triggered_locally:
                         subscription.delete()
-                        logger.info("Subscription deleted.")
 
-                    if topic.exists():
+                    if topic.creation_triggered_locally:
                         topic.delete()
-                        logger.info("Topic deleted.")
 
                 except Exception:
                     logger.error("Deletion of topic and/or subscription %r failed.", topic.name)
@@ -288,7 +294,7 @@ class Service(CoolNameable):
             subscriber=pubsub_v1.SubscriberClient(credentials=self.credentials),
             push_endpoint=push_endpoint,
         )
-        answer_subscription.create(allow_existing=True)
+        answer_subscription.create(allow_existing=False)
 
         serialised_input_manifest = None
 

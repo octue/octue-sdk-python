@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import tempfile
 
@@ -26,7 +27,7 @@ class TestChildEmulatorAsk(BaseTestCase):
             ["hello"],
         ]
 
-        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
 
         with self.assertRaises(TypeError):
             child_emulator.ask(input_values={"hello": "world"})
@@ -37,7 +38,7 @@ class TestChildEmulatorAsk(BaseTestCase):
             {"message": "hello"},
         ]
 
-        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
 
         with self.assertRaises(ValueError):
             child_emulator.ask(input_values={"hello": "world"})
@@ -48,7 +49,7 @@ class TestChildEmulatorAsk(BaseTestCase):
             {"type": "hello", "content": [1, 2, 3, 4]},
         ]
 
-        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
 
         with self.assertRaises(ValueError):
             child_emulator.ask(input_values={"hello": "world"})
@@ -62,7 +63,7 @@ class TestChildEmulatorAsk(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
 
         with self.assertRaises(ValueError):
             child_emulator.ask(input_values={"hello": "world"})
@@ -79,7 +80,7 @@ class TestChildEmulatorAsk(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
 
         result = child_emulator.ask(input_values={"hello": "world"})
         self.assertEqual(result["output_values"], [1, 2, 3, 4])
@@ -87,7 +88,7 @@ class TestChildEmulatorAsk(BaseTestCase):
 
     def test_empty_output_returned_by_ask_if_no_result_present_in_messages(self):
         """Test that an empty output is returned if no result message is present in the given messages."""
-        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=[])
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=[])
         result = child_emulator.ask(input_values={"hello": "world"})
         self.assertEqual(result, {"output_values": None, "output_manifest": None})
 
@@ -99,7 +100,7 @@ class TestChildEmulatorAsk(BaseTestCase):
             }
         ]
 
-        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
 
         with self.assertRaises(ValueError):
             child_emulator.ask(input_values={"hello": "world"})
@@ -113,7 +114,7 @@ class TestChildEmulatorAsk(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
 
         with self.assertRaises(TypeError):
             child_emulator.ask(input_values={"hello": "world"})
@@ -131,13 +132,13 @@ class TestChildEmulatorAsk(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
 
         with self.assertLogs() as logging_context:
             child_emulator.ask(input_values={"hello": "world"})
 
-        self.assertIn("Starting analysis.", logging_context.output[4])
-        self.assertIn("Finishing analysis.", logging_context.output[5])
+        self.assertIn("Starting analysis.", logging_context.output[5])
+        self.assertIn("Finishing analysis.", logging_context.output[6])
 
     def test_ask_with_logs_without_level_number_and_name(self):
         """Test that the 'INFO' log level is used if none is provided in the log record dictionaries."""
@@ -152,16 +153,16 @@ class TestChildEmulatorAsk(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
 
         with self.assertLogs() as logging_context:
             child_emulator.ask(input_values={"hello": "world"})
 
         self.assertEqual(logging_context.records[4].levelname, "INFO")
-        self.assertIn("Starting analysis.", logging_context.output[4])
+        self.assertIn("Starting analysis.", logging_context.output[5])
 
         self.assertEqual(logging_context.records[5].levelname, "INFO")
-        self.assertIn("Finishing analysis.", logging_context.output[5])
+        self.assertIn("Finishing analysis.", logging_context.output[6])
 
     def test_ask_with_invalid_exception(self):
         """Test that an invalid exception fails validation."""
@@ -172,7 +173,7 @@ class TestChildEmulatorAsk(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
 
         with self.assertRaises(ValueError):
             child_emulator.ask(input_values={"hello": "world"})
@@ -187,16 +188,14 @@ class TestChildEmulatorAsk(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
 
         # Test that the exception was raised.
         with self.assertRaises(TypeError) as context:
             child_emulator.ask(input_values={"hello": "world"})
 
         # Test that the exception was raised in the parent and not the child.
-        self.assertIn(
-            "The following traceback was captured from the remote service 'emulated-child'", format(context.exception)
-        )
+        self.assertIn("The following traceback was captured from the remote service", format(context.exception))
 
     def test_ask_with_monitor_message(self):
         """Test that monitor messages are handled by the emulator."""
@@ -207,7 +206,7 @@ class TestChildEmulatorAsk(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
 
         monitor_messages = []
 
@@ -228,12 +227,12 @@ class TestChildEmulatorAsk(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(id="emulated-child", backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
 
-        with self.assertLogs() as logging_context:
+        with self.assertLogs(level=logging.WARNING) as logging_context:
             child_emulator.ask(input_values={"hello": "world"})
 
-        self.assertIn("Heartbeat messages are ignored by the ChildEmulator.", logging_context.output[4])
+        self.assertIn("Heartbeat messages are ignored by the ChildEmulator.", logging_context.output[0])
 
     def test_messages_recorded_from_real_child_can_be_used_in_child_emulator(self):
         """Test that messages recorded from a real child can be used as emulated messages in a child emulator (i.e. test
@@ -293,8 +292,8 @@ class TestChildEmulatorJSONFiles(BaseTestCase):
             )
 
         # Check log records have been emitted.
-        self.assertIn("Starting analysis.", logging_context.output[4])
-        self.assertIn("Finishing analysis.", logging_context.output[5])
+        self.assertIn("Starting analysis.", logging_context.output[5])
+        self.assertIn("Finishing analysis.", logging_context.output[6])
 
         # Check monitor message has been handled.
         self.assertEqual(monitor_messages, [{"sample": "data"}])
@@ -320,8 +319,8 @@ class TestChildEmulatorJSONFiles(BaseTestCase):
             )
 
         # Check log records have been emitted.
-        self.assertIn("Starting analysis.", logging_context.output[4])
-        self.assertIn("Finishing analysis.", logging_context.output[5])
+        self.assertIn("Starting analysis.", logging_context.output[5])
+        self.assertIn("Finishing analysis.", logging_context.output[6])
 
         # Check monitor message has been handled.
         self.assertEqual(monitor_messages, [{"sample": "data"}])
@@ -340,7 +339,7 @@ class TestChildEmulatorJSONFiles(BaseTestCase):
                 child_emulator.ask(input_values={"hello": "world"})
 
         # Check log records were emitted before the error was raised.
-        self.assertIn("Starting analysis.", logging_context.output[4])
+        self.assertIn("Starting analysis.", logging_context.output[5])
 
     def test_with_output_manifest(self):
         """Test that a child emulator will return the expected output manifest when given a serialised one in a JSON

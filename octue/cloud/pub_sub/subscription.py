@@ -75,6 +75,16 @@ class Subscription:
         )
 
         self.push_endpoint = push_endpoint
+        self._created = False
+
+    @property
+    def creation_triggered_locally(self):
+        """Was the subscription successfully created by calling `self.create` locally? This is `False` if its creation
+        was triggered remotely.
+
+        :return bool:
+        """
+        return self._created
 
     @property
     def is_pull_subscription(self):
@@ -109,11 +119,13 @@ class Subscription:
 
         if not allow_existing:
             subscription = self.subscriber.create_subscription(request=subscription)
+            self._created = True
             self._log_creation()
             return subscription
 
         try:
             subscription = self.subscriber.create_subscription(request=subscription)
+            self._created = True
         except google.api_core.exceptions.AlreadyExists:
             pass
 
@@ -141,7 +153,7 @@ class Subscription:
         :return None:
         """
         self.subscriber.delete_subscription(subscription=self.path)
-        logger.debug("Subscription %r deleted.", self.path)
+        logger.info("Subscription %r deleted.", self.path)
 
     def exists(self, timeout=5):
         """Check if the subscription exists on the Google Pub/Sub servers.

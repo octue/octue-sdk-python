@@ -30,6 +30,7 @@ class MockTopic(Topic):
 
         if not self.exists():
             MESSAGES[get_service_id(self.path)] = []
+            self._created = True
 
     def delete(self):
         """Delete the topic from the global messages dictionary.
@@ -59,7 +60,7 @@ class MockSubscription(Subscription):
         :param bool allow_existing:
         :return None:
         """
-        pass
+        self._created = True
 
     def delete(self):
         """Do nothing.

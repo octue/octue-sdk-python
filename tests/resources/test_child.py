@@ -69,7 +69,7 @@ class TestChild(BaseTestCase):
 
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
-            service_id="testing/wind-speed",
+            service_id="testing/service-for-parallelised-questions",
             run_function=mock_run_function,
         )
 

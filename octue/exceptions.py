@@ -72,6 +72,10 @@ class ServiceNotFound(OctueSDKException):
     """
 
 
+class ServiceAlreadyExists(OctueSDKException):
+    """Raise if trying to create a service with the ID of an existing service."""
+
+
 class QuestionNotDelivered(OctueSDKException):
     """Raise if a question has not been delivered or no acknowledgement of its delivery has been received."""
 

@@ -1,3 +1,4 @@
+import collections
 import json
 import os
 
@@ -15,4 +16,13 @@ VERSION_COMPATIBILITY_DATA_PATH = os.path.join(
 with open(VERSION_COMPATIBILITY_DATA_PATH) as f:
     VERSION_COMPATIBILITY_DATA = json.load(f)
 
-print(tabulate.tabulate(pd.DataFrame.from_records(VERSION_COMPATIBILITY_DATA), headers="keys", tablefmt="grid"))
+# Order the data so the highest versions are shown first in the columns and rows.
+sorted_data = collections.OrderedDict(sorted(VERSION_COMPATIBILITY_DATA.items(), reverse=True))
+
+for column, row in sorted_data.items():
+    sorted_data[column] = collections.OrderedDict(sorted(row.items(), reverse=True))
+
+# Transpose the dataframe so parents are the rows and children the columns.
+df = pd.DataFrame.from_dict(sorted_data).transpose()
+
+print(tabulate.tabulate(df, headers="keys", tablefmt="grid"))

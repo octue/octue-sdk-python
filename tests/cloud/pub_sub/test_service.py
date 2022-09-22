@@ -7,6 +7,8 @@ import time
 import uuid
 from unittest.mock import patch
 
+import google.api_core.exceptions
+
 import twined.exceptions
 from octue import Runner, exceptions
 from octue.cloud.emulators._pub_sub import (
@@ -67,6 +69,21 @@ class TestService(BaseTestCase):
 
         with self.assertRaises(ValueError):
             Service(backend=BACKEND, service_id={})
+
+    def test_serve_fails_if_service_with_same_id_already_exists(self):
+        """Test that serving a service fails if a service with the same name already exists."""
+        with self.service_patcher:
+            with patch(
+                "octue.cloud.pub_sub.service.Topic.create",
+                side_effect=google.api_core.exceptions.AlreadyExists(""),
+            ):
+                with self.assertRaises(exceptions.ServiceAlreadyExists):
+                    MockService(backend=BACKEND, service_id="existing-service").serve()
+
+    def test_serve(self):
+        """Test that serving works with a unique service ID."""
+        with self.service_patcher:
+            MockService(backend=BACKEND, service_id="new-service").serve()
 
     def test_ask_on_non_existent_service_results_in_error(self):
         """Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
