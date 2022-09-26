@@ -8,7 +8,6 @@ import uuid
 
 import google.api_core.exceptions
 import pkg_resources
-from google import auth
 from google.api_core import retry
 from google.cloud import pubsub_v1
 
@@ -85,22 +84,9 @@ class Service(CoolNameable):
         :return google.cloud.pubsub_v1.PublisherClient:
         """
         if not self._publisher:
-            self._publisher = pubsub_v1.PublisherClient(credentials=self.credentials, batch_settings=BATCH_SETTINGS)
+            self._publisher = pubsub_v1.PublisherClient(batch_settings=BATCH_SETTINGS)
 
         return self._publisher
-
-    @property
-    def credentials(self):
-        """Get or instantiate the Google Cloud credentials for the service. No credentials are instantiated until this
-        property is called for the first time. This allows checking for the `GOOGLE_APPLICATION_CREDENTIALS` environment
-        variable to be put off until it's needed.
-
-        :return google.auth.credentials.Credentials:
-        """
-        if not self._credentials:
-            self._credentials = auth.default()[0]
-
-        return self._credentials
 
     def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False, allow_existing=False):
         """Start the service as a child, waiting to accept questions from any other Octue service using Google Pub/Sub
@@ -114,16 +100,16 @@ class Service(CoolNameable):
         logger.info("Starting %r.", self)
 
         topic = Topic(name=self.id, project_name=self.backend.project_name, namespace=OCTUE_NAMESPACE)
-        subscriber = pubsub_v1.SubscriberClient(credentials=self.credentials)
 
         subscription = Subscription(
             name=self.id,
             topic=topic,
             namespace=OCTUE_NAMESPACE,
             project_name=self.backend.project_name,
-            subscriber=subscriber,
             expiration_time=None,
         )
+
+        subscriber = pubsub_v1.SubscriberClient()
 
         try:
             topic.create(allow_existing=allow_existing)
@@ -291,7 +277,6 @@ class Service(CoolNameable):
             topic=answer_topic,
             namespace=OCTUE_NAMESPACE,
             project_name=self.backend.project_name,
-            subscriber=pubsub_v1.SubscriberClient(credentials=self.credentials),
             push_endpoint=push_endpoint,
         )
         answer_subscription.create(allow_existing=False)
@@ -342,10 +327,7 @@ class Service(CoolNameable):
                 f"Cannot pull from {subscription.path!r} subscription as it is a push subscription."
             )
 
-        subscriber = pubsub_v1.SubscriberClient(credentials=self.credentials)
-
         message_handler = OrderedMessageHandler(
-            subscriber=subscriber,
             subscription=subscription,
             receiving_service=self,
             handle_monitor_message=handle_monitor_message,
@@ -361,7 +343,6 @@ class Service(CoolNameable):
             )
         finally:
             subscription.delete()
-            subscriber.close()
 
     def instantiate_answer_topic(self, question_uuid, service_id=None):
         """Instantiate the answer topic for the given question UUID and child service ID.
