@@ -81,12 +81,7 @@ class TestSubscription(BaseTestCase):
         project_name = os.environ["TEST_PROJECT_NAME"]
         topic = Topic(name="my-topic", project_name=project_name, namespace="tests")
 
-        subscription = Subscription(
-            name="world",
-            topic=topic,
-            namespace="hello",
-            project_name=project_name,
-        )
+        subscription = Subscription(name="world", topic=topic, namespace="hello", project_name=project_name)
 
         for allow_existing in (True, False):
             with self.subTest(allow_existing=allow_existing):

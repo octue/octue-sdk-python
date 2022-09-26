@@ -69,7 +69,6 @@ class Service(CoolNameable):
         self._record_sent_messages = False
         self._sent_messages = []
         self._publisher = None
-        self._credentials = None
         super().__init__(*args, **kwargs)
 
     def __repr__(self):
