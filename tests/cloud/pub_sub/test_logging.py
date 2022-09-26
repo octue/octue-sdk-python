@@ -17,12 +17,13 @@ class NonJSONSerialisable:
 class TestGooglePubSubHandler(BaseTestCase):
     def test_emit(self):
         """Test the log message is published when `GooglePubSubHandler.emit` is called."""
-        backend = GCPPubSubBackend(project_name="blah")
-        service = MockService(backend=backend)
-        topic = MockTopic(name="world", namespace="hello", service=service)
+        topic = MockTopic(name="world", project_name="blah", namespace="hello")
         topic.create()
 
         log_record = makeLogRecord({"msg": "Starting analysis."})
+
+        backend = GCPPubSubBackend(project_name="blah")
+        service = MockService(backend=backend)
         GooglePubSubHandler(service._send_message, topic, "analysis-id").emit(log_record)
 
         self.assertEqual(json.loads(MESSAGES[topic.name][0].data.decode())["log_record"]["msg"], "Starting analysis.")
@@ -31,9 +32,7 @@ class TestGooglePubSubHandler(BaseTestCase):
         """Test that non-JSON-serialisable arguments to log messages are converted to their string representation
         before being serialised and published to the Pub/Sub topic.
         """
-        backend = GCPPubSubBackend(project_name="blah")
-        service = MockService(backend=backend)
-        topic = MockTopic(name="world-1", namespace="hello", service=service)
+        topic = MockTopic(name="world-1", project_name="blah", namespace="hello")
         topic.create()
 
         non_json_serialisable_thing = NonJSONSerialisable()
@@ -45,6 +44,9 @@ class TestGooglePubSubHandler(BaseTestCase):
         record = logging.makeLogRecord(
             {"msg": "%r is not JSON-serialisable but can go into a log message", "args": (non_json_serialisable_thing,)}
         )
+
+        backend = GCPPubSubBackend(project_name="blah")
+        service = MockService(backend=backend)
 
         with patch("octue.cloud.emulators._pub_sub.MockPublisher.publish") as mock_publish:
             GooglePubSubHandler(service._send_message, topic, "analysis-id").emit(record)

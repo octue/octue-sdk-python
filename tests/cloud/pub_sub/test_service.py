@@ -95,8 +95,7 @@ class TestService(BaseTestCase):
 
     def test_timeout_error_raised_if_no_messages_received_when_waiting(self):
         """Test that a TimeoutError is raised if no messages are received while waiting."""
-        service = Service(backend=BACKEND)
-        mock_topic = MockTopic(name="world", namespace="hello", service=service)
+        mock_topic = MockTopic(name="world", project_name=TEST_PROJECT_NAME, namespace="hello")
 
         mock_subscription = MockSubscription(
             name="world",
@@ -106,22 +105,24 @@ class TestService(BaseTestCase):
             subscriber=MockSubscriber(),
         )
 
+        service = Service(backend=BACKEND)
+
         with patch("octue.cloud.pub_sub.service.pubsub_v1.SubscriberClient.pull", return_value=MockPullResponse()):
             with self.assertRaises(TimeoutError):
                 service.wait_for_answer(subscription=mock_subscription, timeout=0.01)
 
     def test_error_raised_if_attempting_to_wait_for_answer_from_push_subscription(self):
         """Test that an error is raised if attempting to wait for an answer from a push subscription."""
-        service = Service(backend=BACKEND)
-
         mock_subscription = MockSubscription(
             name="world",
-            topic=MockTopic(name="world", namespace="hello", service=service),
+            topic=MockTopic(name="world", project_name=TEST_PROJECT_NAME, namespace="hello"),
             namespace="hello",
             project_name=TEST_PROJECT_NAME,
             subscriber=MockSubscriber(),
             push_endpoint="https://example.com/endpoint",
         )
+
+        service = Service(backend=BACKEND)
 
         with self.assertRaises(exceptions.PushSubscriptionCannotBePulled):
             service.wait_for_answer(subscription=mock_subscription)

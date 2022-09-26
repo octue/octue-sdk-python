@@ -1,9 +1,8 @@
 from octue.cloud.deployment.google.base_deployer import BaseDeployer, ProgressMessage
-from octue.cloud.pub_sub.service import OCTUE_NAMESPACE, Service
+from octue.cloud.pub_sub.service import OCTUE_NAMESPACE
 from octue.cloud.pub_sub.subscription import Subscription
 from octue.cloud.pub_sub.topic import Topic
 from octue.exceptions import DeploymentError
-from octue.resources.service_backends import GCPPubSubBackend
 
 
 DEFAULT_CLOUD_RUN_DOCKERFILE_URL = (
@@ -188,11 +187,12 @@ class CloudRunDeployer(BaseDeployer):
             5,
             self.TOTAL_NUMBER_OF_STAGES,
         ) as progress_message:
-            service = Service(
-                backend=GCPPubSubBackend(project_name=self.service_configuration.project_name),
-                service_id=self.service_id,
+            topic = Topic(
+                name=self.service_id,
+                project_name=self.service_configuration.project_name,
+                namespace=OCTUE_NAMESPACE,
             )
-            topic = Topic(name=self.service_id, namespace=OCTUE_NAMESPACE, service=service)
+
             topic.create(allow_existing=True)
 
             command = [

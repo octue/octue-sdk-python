@@ -113,7 +113,7 @@ class Service(CoolNameable):
         """
         logger.info("Starting %r.", self)
 
-        topic = Topic(name=self.id, namespace=OCTUE_NAMESPACE, service=self)
+        topic = Topic(name=self.id, project_name=self.backend.project_name, namespace=OCTUE_NAMESPACE)
         subscriber = pubsub_v1.SubscriberClient(credentials=self.credentials)
 
         subscription = Subscription(
@@ -276,7 +276,7 @@ class Service(CoolNameable):
 
         unlinted_service_id = service_id
         service_id = self._clean_service_id(service_id)
-        question_topic = Topic(name=service_id, namespace=OCTUE_NAMESPACE, service=self)
+        question_topic = Topic(name=service_id, project_name=self.backend.project_name, namespace=OCTUE_NAMESPACE)
 
         if not question_topic.exists(timeout=timeout):
             raise octue.exceptions.ServiceNotFound(f"Service with ID {unlinted_service_id!r} cannot be found.")
@@ -347,6 +347,7 @@ class Service(CoolNameable):
         message_handler = OrderedMessageHandler(
             subscriber=subscriber,
             subscription=subscription,
+            receiving_service=self,
             handle_monitor_message=handle_monitor_message,
             service_name=service_name,
             record_messages_to=record_messages_to,
@@ -371,8 +372,8 @@ class Service(CoolNameable):
         """
         return Topic(
             name=".".join((service_id or self.id, ANSWERS_NAMESPACE, question_uuid)),
+            project_name=self.backend.project_name,
             namespace=OCTUE_NAMESPACE,
-            service=self,
         )
 
     def send_exception(self, topic, timeout=30):

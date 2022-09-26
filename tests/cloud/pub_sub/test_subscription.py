@@ -14,8 +14,7 @@ from tests.base import BaseTestCase
 
 
 class TestSubscription(BaseTestCase):
-    service = Service(backend=GCPPubSubBackend(project_name="my-project"))
-    topic = Topic(name="world", namespace="hello", service=service)
+    topic = Topic(name="world", project_name="my-project", namespace="hello")
     subscription = Subscription(
         name="world", topic=topic, namespace="hello", project_name=TEST_PROJECT_NAME, subscriber=MockSubscriber()
     )
@@ -87,7 +86,7 @@ class TestSubscription(BaseTestCase):
         """
         project_name = os.environ["TEST_PROJECT_NAME"]
         service = Service(backend=GCPPubSubBackend(project_name=project_name))
-        topic = Topic(name="my-topic", namespace="tests", service=service)
+        topic = Topic(name="my-topic", project_name=project_name, namespace="tests")
 
         subscription = Subscription(
             name="world",
@@ -116,7 +115,7 @@ class TestSubscription(BaseTestCase):
         """Test that creating a push subscription works properly."""
         project_name = os.environ["TEST_PROJECT_NAME"]
         service = Service(backend=GCPPubSubBackend(project_name=project_name))
-        topic = Topic(name="my-topic", namespace="tests", service=service)
+        topic = Topic(name="my-topic", project_name=project_name, namespace="tests")
 
         subscription = Subscription(
             name="world",

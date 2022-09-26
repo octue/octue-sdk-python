@@ -32,6 +32,7 @@ class OrderedMessageHandler:
 
     :param google.pubsub_v1.services.subscriber.client.SubscriberClient subscriber: a Google Pub/Sub subscriber
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
+    :param octue.cloud.pub_sub.service.Service receiving_service:
     :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
     :param str|None record_messages_to: if given a path to a JSON file, received messages are saved to it
     :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
@@ -43,6 +44,7 @@ class OrderedMessageHandler:
         self,
         subscriber,
         subscription,
+        receiving_service,
         handle_monitor_message=None,
         record_messages_to=None,
         service_name="REMOTE",
@@ -50,6 +52,7 @@ class OrderedMessageHandler:
     ):
         self.subscriber = subscriber
         self.subscription = subscription
+        self.receiving_service = receiving_service
         self.handle_monitor_message = handle_monitor_message
         self.record_messages_to = record_messages_to
         self.service_name = service_name
@@ -224,7 +227,7 @@ class OrderedMessageHandler:
 
         logger.debug(
             "%r received a message related to question %r.",
-            self.subscription.topic.service,
+            self.receiving_service,
             self.subscription.topic.path.split(".")[-1],
         )
 
@@ -260,7 +263,7 @@ class OrderedMessageHandler:
             if isinstance(error, KeyError):
                 logger.warning(
                     "%r received a message of unknown type %r.",
-                    self.subscription.topic.service,
+                    self.receiving_service,
                     message.get("type", "unknown"),
                 )
                 return
@@ -275,7 +278,7 @@ class OrderedMessageHandler:
         :return None:
         """
         self.received_delivery_acknowledgement = True
-        logger.info("%r's question was delivered at %s.", self.subscription.topic.service, message["delivery_time"])
+        logger.info("%r's question was delivered at %s.", self.receiving_service, message["delivery_time"])
 
     def _handle_heartbeat(self, message):
         """Record the time the heartbeat was received.
@@ -292,7 +295,7 @@ class OrderedMessageHandler:
         :param dict message:
         :return None:
         """
-        logger.debug("%r received a monitor message.", self.subscription.topic.service)
+        logger.debug("%r received a monitor message.", self.receiving_service)
 
         if self.handle_monitor_message is not None:
             self.handle_monitor_message(json.loads(message["data"]))
@@ -359,7 +362,7 @@ class OrderedMessageHandler:
         """
         logger.info(
             "%r received an answer to question %r.",
-            self.subscription.topic.service,
+            self.receiving_service,
             self.subscription.topic.path.split(".")[-1],
         )
 

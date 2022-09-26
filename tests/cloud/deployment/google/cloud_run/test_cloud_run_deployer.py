@@ -3,7 +3,9 @@ import tempfile
 from unittest.mock import Mock, patch
 
 from octue.cloud.deployment.google.cloud_run.deployer import DEFAULT_CLOUD_RUN_DOCKERFILE_URL, CloudRunDeployer
+from octue.cloud.emulators._pub_sub import MockPublisher
 from octue.exceptions import DeploymentError
+from octue.utils.patches import MultiPatcher
 from tests.base import BaseTestCase
 
 
@@ -169,23 +171,28 @@ class TestCloudRunDeployer(BaseTestCase):
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
             deployer = CloudRunDeployer(octue_configuration_path)
 
-            with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:
-                with patch("octue.cloud.deployment.google.cloud_run.deployer.Topic.create"):
-                    with patch(GET_SUBSCRIPTIONS_METHOD_PATH, return_value=["test-service"]):
-                        with patch("octue.cloud.deployment.google.cloud_run.deployer.Subscription"):
-                            with patch("octue.cloud.deployment.google.cloud_run.deployer.Service"):
-                                mock_build_id = "my-build-id"
-                                with patch(
-                                    "json.loads",
-                                    return_value={
-                                        "metadata": {"build": {"images": ["my-image"], "id": mock_build_id}},
-                                        "status": "SUCCESS",
-                                    },
-                                ):
-                                    temporary_file = tempfile.NamedTemporaryFile(delete=False)
+            mock_build_id = "my-build-id"
 
-                                    with patch("tempfile.NamedTemporaryFile", return_value=temporary_file):
-                                        deployer.deploy()
+            with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:
+                with MultiPatcher(
+                    patches=[
+                        patch("octue.cloud.deployment.google.cloud_run.deployer.Topic.create"),
+                        patch(GET_SUBSCRIPTIONS_METHOD_PATH, return_value=["test-service"]),
+                        patch("octue.cloud.deployment.google.cloud_run.deployer.Subscription"),
+                        patch("octue.cloud.pub_sub.topic.PublisherClient", MockPublisher),
+                        patch(
+                            "json.loads",
+                            return_value={
+                                "metadata": {"build": {"images": ["my-image"], "id": mock_build_id}},
+                                "status": "SUCCESS",
+                            },
+                        ),
+                    ]
+                ):
+                    temporary_file = tempfile.NamedTemporaryFile(delete=False)
+
+                    with patch("tempfile.NamedTemporaryFile", return_value=temporary_file):
+                        deployer.deploy()
 
             # Test the build trigger creation request.
             self.assertEqual(
