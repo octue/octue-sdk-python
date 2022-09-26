@@ -110,55 +110,56 @@ class OrderedMessageHandler:
             kwargs={"maximum_heartbeat_interval": maximum_heartbeat_interval},
         )
 
-        self._heartbeat_checker.daemon = True
-        self._heartbeat_checker.start()
+        try:
+            self._heartbeat_checker.daemon = True
+            self._heartbeat_checker.start()
 
-        while self._alive:
+            while self._alive:
 
-            if timeout is not None:
-                run_time = time.perf_counter() - self._start_time
+                if timeout is not None:
+                    run_time = time.perf_counter() - self._start_time
 
-                if run_time > timeout:
-                    raise TimeoutError(
-                        f"No final answer received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
-                    )
+                    if run_time > timeout:
+                        raise TimeoutError(
+                            f"No final answer received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
+                        )
 
-                pull_timeout = timeout - run_time
+                    pull_timeout = timeout - run_time
 
-            message = self._pull_message(
-                timeout=pull_timeout,
-                delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
-            )
+                message = self._pull_message(
+                    timeout=pull_timeout,
+                    delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
+                )
 
-            self._waiting_messages[int(message["message_number"])] = message
+                self._waiting_messages[int(message["message_number"])] = message
 
-            try:
-                while self._waiting_messages:
-                    message = self._waiting_messages.pop(self._previous_message_number + 1)
+                try:
+                    while self._waiting_messages:
+                        message = self._waiting_messages.pop(self._previous_message_number + 1)
 
-                    if self.record_messages_to:
-                        recorded_messages.append(message)
+                        if self.record_messages_to:
+                            recorded_messages.append(message)
 
-                    result = self._handle_message(message)
+                        result = self._handle_message(message)
 
-                    if result is not None:
-                        self._heartbeat_checker.cancel()
-                        return result
+                        if result is not None:
+                            return result
 
-            except KeyError:
-                pass
+                except KeyError:
+                    pass
 
-            finally:
-                self._heartbeat_checker.cancel()
+        finally:
+            self._heartbeat_checker.cancel()
+            self._subscriber.close()
 
-                if self.record_messages_to:
-                    directory_name = os.path.dirname(self.record_messages_to)
+            if self.record_messages_to:
+                directory_name = os.path.dirname(self.record_messages_to)
 
-                    if not os.path.exists(directory_name):
-                        os.makedirs(directory_name)
+                if not os.path.exists(directory_name):
+                    os.makedirs(directory_name)
 
-                    with open(self.record_messages_to, "w") as f:
-                        json.dump(recorded_messages, f)
+                with open(self.record_messages_to, "w") as f:
+                    json.dump(recorded_messages, f)
 
         raise TimeoutError(
             f"No heartbeat has been received within the maximum allowed interval of {maximum_heartbeat_interval}s."
