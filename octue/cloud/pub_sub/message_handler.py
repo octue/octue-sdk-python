@@ -32,7 +32,7 @@ class OrderedMessageHandler:
 
     :param google.pubsub_v1.services.subscriber.client.SubscriberClient subscriber: a Google Pub/Sub subscriber
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
-    :param octue.cloud.pub_sub.service.Service receiving_service:
+    :param octue.cloud.pub_sub.service.Service receiving_service: the service that's receiving the messages
     :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
     :param str|None record_messages_to: if given a path to a JSON file, received messages are saved to it
     :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
