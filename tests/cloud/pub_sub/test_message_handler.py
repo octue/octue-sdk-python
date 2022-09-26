@@ -5,12 +5,12 @@ from octue import exceptions
 from octue.cloud.emulators._pub_sub import (
     MockMessagePuller,
     MockPullResponse,
+    MockService,
     MockSubscriber,
     MockSubscription,
     MockTopic,
 )
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
-from octue.cloud.pub_sub.service import Service
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
@@ -25,7 +25,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         """
         mock_topic = MockTopic(name="world", project_name=TEST_PROJECT_NAME, namespace="hello")
 
-        cls.receiving_service = Service(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        cls.receiving_service = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         cls.mock_subscription = MockSubscription(
             name="world",
