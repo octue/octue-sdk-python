@@ -2,22 +2,17 @@ import os
 from unittest.mock import patch
 
 import google.api_core.exceptions
-from google.pubsub_v1 import SubscriberClient
 
 from octue.cloud.emulators._pub_sub import MockSubscriber, MockSubscriptionCreationResponse
-from octue.cloud.pub_sub.service import Service
 from octue.cloud.pub_sub.subscription import THIRTY_ONE_DAYS, Subscription
 from octue.cloud.pub_sub.topic import Topic
-from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 
 
 class TestSubscription(BaseTestCase):
     topic = Topic(name="world", project_name="my-project", namespace="hello")
-    subscription = Subscription(
-        name="world", topic=topic, namespace="hello", project_name=TEST_PROJECT_NAME, subscriber=MockSubscriber()
-    )
+    subscription = Subscription(name="world", topic=topic, namespace="hello", project_name=TEST_PROJECT_NAME)
 
     def test_repr(self):
         """Test that subscriptions are represented correctly."""
@@ -32,7 +27,6 @@ class TestSubscription(BaseTestCase):
             topic=self.topic,
             namespace="hello",
             project_name=TEST_PROJECT_NAME,
-            subscriber=MockSubscriber(),
         )
 
         self.assertEqual(subscription_with_repeated_namespace.name, "hello.world")
@@ -41,20 +35,20 @@ class TestSubscription(BaseTestCase):
         """Test that an error is raised when trying to create a subscription that already exists and `allow_existing` is
         `False`.
         """
-        subscription = Subscription(
-            name="world",
-            topic=self.topic,
-            namespace="hello",
-            project_name=TEST_PROJECT_NAME,
-            subscriber=MockSubscriber(),
-        )
+        with patch("octue.cloud.pub_sub.subscription.SubscriberClient", MockSubscriber):
+            subscription = Subscription(
+                name="world",
+                topic=self.topic,
+                namespace="hello",
+                project_name=TEST_PROJECT_NAME,
+            )
 
         with patch(
             "octue.cloud.emulators._pub_sub.MockSubscriber.create_subscription",
             side_effect=google.api_core.exceptions.AlreadyExists(""),
         ):
             with self.assertRaises(google.api_core.exceptions.AlreadyExists):
-                self.subscription.create(allow_existing=False)
+                subscription.create(allow_existing=False)
 
         # Check that the subscription creation isn't indicated as being triggered locally.
         self.assertFalse(subscription.creation_triggered_locally)
@@ -63,13 +57,13 @@ class TestSubscription(BaseTestCase):
         """Test that trying to create a subscription that already exists when `allow_existing` is `True` results in no
         error.
         """
-        subscription = Subscription(
-            name="world",
-            topic=self.topic,
-            namespace="hello",
-            project_name=TEST_PROJECT_NAME,
-            subscriber=MockSubscriber(),
-        )
+        with patch("octue.cloud.pub_sub.subscription.SubscriberClient", MockSubscriber):
+            subscription = Subscription(
+                name="world",
+                topic=self.topic,
+                namespace="hello",
+                project_name=TEST_PROJECT_NAME,
+            )
 
         with patch(
             "octue.cloud.emulators._pub_sub.MockSubscriber.create_subscription",
@@ -85,7 +79,6 @@ class TestSubscription(BaseTestCase):
         triggered locally.
         """
         project_name = os.environ["TEST_PROJECT_NAME"]
-        service = Service(backend=GCPPubSubBackend(project_name=project_name))
         topic = Topic(name="my-topic", project_name=project_name, namespace="tests")
 
         subscription = Subscription(
@@ -93,7 +86,6 @@ class TestSubscription(BaseTestCase):
             topic=topic,
             namespace="hello",
             project_name=project_name,
-            subscriber=SubscriberClient(credentials=service.credentials),
         )
 
         for allow_existing in (True, False):
@@ -114,7 +106,6 @@ class TestSubscription(BaseTestCase):
     def test_create_push_subscription(self):
         """Test that creating a push subscription works properly."""
         project_name = os.environ["TEST_PROJECT_NAME"]
-        service = Service(backend=GCPPubSubBackend(project_name=project_name))
         topic = Topic(name="my-topic", project_name=project_name, namespace="tests")
 
         subscription = Subscription(
@@ -122,7 +113,6 @@ class TestSubscription(BaseTestCase):
             topic=topic,
             namespace="hello",
             project_name=project_name,
-            subscriber=SubscriberClient(credentials=service.credentials),
             push_endpoint="https://example.com/endpoint",
         )
 
@@ -148,7 +138,6 @@ class TestSubscription(BaseTestCase):
             topic=self.topic,
             namespace="hello",
             project_name=TEST_PROJECT_NAME,
-            subscriber=MockSubscriber(),
             push_endpoint="https://example.com/endpoint",
         )
 

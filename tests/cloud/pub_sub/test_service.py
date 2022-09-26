@@ -17,7 +17,6 @@ from octue.cloud.emulators._pub_sub import (
     MockAnalysisWithOutputManifest,
     MockPullResponse,
     MockService,
-    MockSubscriber,
     MockSubscription,
     MockTopic,
 )
@@ -102,7 +101,6 @@ class TestService(BaseTestCase):
             topic=mock_topic,
             namespace="hello",
             project_name=TEST_PROJECT_NAME,
-            subscriber=MockSubscriber(),
         )
 
         service = Service(backend=BACKEND)
@@ -118,7 +116,6 @@ class TestService(BaseTestCase):
             topic=MockTopic(name="world", project_name=TEST_PROJECT_NAME, namespace="hello"),
             namespace="hello",
             project_name=TEST_PROJECT_NAME,
-            subscriber=MockSubscriber(),
             push_endpoint="https://example.com/endpoint",
         )
 

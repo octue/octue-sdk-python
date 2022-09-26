@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 import pkg_resources
 from google.api_core import retry
+from google.cloud.pubsub_v1 import SubscriberClient
 
 from octue.cloud import EXCEPTIONS_MAPPING
 from octue.compatibility import warn_if_incompatible
@@ -30,7 +31,6 @@ logger = logging.getLogger(__name__)
 class OrderedMessageHandler:
     """A handler for Google Pub/Sub messages that ensures messages are handled in the order they were sent.
 
-    :param google.pubsub_v1.services.subscriber.client.SubscriberClient subscriber: a Google Pub/Sub subscriber
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
     :param octue.cloud.pub_sub.service.Service receiving_service: the service that's receiving the messages
     :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
@@ -42,7 +42,6 @@ class OrderedMessageHandler:
 
     def __init__(
         self,
-        subscriber,
         subscription,
         receiving_service,
         handle_monitor_message=None,
@@ -50,7 +49,6 @@ class OrderedMessageHandler:
         service_name="REMOTE",
         message_handlers=None,
     ):
-        self.subscriber = subscriber
         self.subscription = subscription
         self.receiving_service = receiving_service
         self.handle_monitor_message = handle_monitor_message
@@ -58,6 +56,7 @@ class OrderedMessageHandler:
         self.service_name = service_name
 
         self.received_delivery_acknowledgement = None
+        self._subscriber = SubscriberClient()
         self._child_sdk_version = None
         self._heartbeat_checker = None
         self._last_heartbeat = None
@@ -196,7 +195,7 @@ class OrderedMessageHandler:
         while True:
             logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
 
-            pull_response = self.subscriber.pull(
+            pull_response = self._subscriber.pull(
                 request={"subscription": self.subscription.path, "max_messages": 1},
                 retry=retry.Retry(),
             )
@@ -223,7 +222,7 @@ class OrderedMessageHandler:
                             f"after {delivery_acknowledgement_timeout} seconds."
                         )
 
-        self.subscriber.acknowledge(request={"subscription": self.subscription.path, "ack_ids": [answer.ack_id]})
+        self._subscriber.acknowledge(request={"subscription": self.subscription.path, "ack_ids": [answer.ack_id]})
 
         logger.debug(
             "%r received a message related to question %r.",
