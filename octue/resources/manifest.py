@@ -153,12 +153,6 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
         if isinstance(dataset, Dataset):
             return (key, dataset)
 
-        # Deserialise dataset from JSON if appropriate.
-        try:
-            dataset = json.loads(dataset)
-        except (TypeError, json.JSONDecodeError):
-            pass
-
         # If `dataset` is just a path to a dataset:
         if isinstance(dataset, str):
             return (key, Dataset(path=dataset, recursive=True))
