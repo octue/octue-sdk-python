@@ -377,13 +377,18 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         """
         serialised_dataset = super().to_primitive()
 
-        if self.exists_in_cloud:
-            path_type = "cloud_path"
-        else:
-            path_type = "local_path"
-
         if include_files:
-            serialised_dataset["files"] = sorted(getattr(datafile, path_type) for datafile in self.files)
+            serialised_dataset["files"] = []
+
+            for datafile in self.files:
+                if datafile.exists_in_cloud:
+                    datafile_path_type = "cloud_path"
+                else:
+                    datafile_path_type = "local_path"
+
+                serialised_dataset["files"].append(getattr(datafile, datafile_path_type))
+
+            serialised_dataset["files"] = sorted(serialised_dataset["files"])
 
         return serialised_dataset
 
