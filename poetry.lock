@@ -1637,17 +1637,10 @@ description = "A library to help digital twins and data services talk to one ano
 category = "main"
 optional = false
 python-versions = ">=3.6"
-develop = false
 
 [package.dependencies]
 jsonschema = ">=4.4.0,<4.5.0"
 python-dotenv = "*"
-
-[package.source]
-type = "git"
-url = "https://github.com/octue/twined.git"
-reference = "fix/update-manifest-schema"
-resolved_reference = "6c92fb6073dac122288ddbff383d868b191393f2"
 
 [[package]]
 name = "typed-ast"
@@ -1774,7 +1767,7 @@ hdf5 = ["h5py"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7.1"
-content-hash = "bf98a2e0acfc316e0228f114a7b6565b445f68f6dba148983a8bd8531c8048f5"
+content-hash = "569765a981361d24beed8702d81f5d7930a8bbfae4ac6e0167b4571b2ecd452f"
 
 [metadata.files]
 alabaster = [
@@ -3017,7 +3010,10 @@ tox = [
     {file = "tox-3.26.0-py2.py3-none-any.whl", hash = "sha256:bf037662d7c740d15c9924ba23bb3e587df20598697bb985ac2b49bdc2d847f6"},
     {file = "tox-3.26.0.tar.gz", hash = "sha256:44f3c347c68c2c68799d7d44f1808f9d396fc8a1a500cbc624253375c7ae107e"},
 ]
-twined = []
+twined = [
+    {file = "twined-0.5.1-py3-none-any.whl", hash = "sha256:a3ac293c45339f80d32c756c0c92400f2f00d3d6cc0b44ff4717ed38b3dfab9c"},
+    {file = "twined-0.5.1.tar.gz", hash = "sha256:70ad9734c7371466a0bd3a43c5570ce11361fe4748f70441a89fb1b550e5d856"},
+]
 typed-ast = [
     {file = "typed_ast-1.5.4-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:669dd0c4167f6f2cd9f57041e03c3c2ebf9063d0757dc89f79ba1daa2bfca9d4"},
     {file = "typed_ast-1.5.4-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:211260621ab1cd7324e0798d6be953d00b74e0428382991adfddb352252f1d62"},
