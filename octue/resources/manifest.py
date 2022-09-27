@@ -158,7 +158,7 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
             return (key, Dataset(path=dataset, recursive=True))
 
         # If `dataset` is a cloud dataset and is represented as a dictionary including a "path" key:
-        if storage.path.is_cloud_path(dataset["path"]):
+        if storage.path.is_cloud_path(dataset.get("path", "")):
             return (key, Dataset(path=dataset["path"], files=dataset.get("files"), recursive=True))
 
         return (key, Dataset(**dataset))
