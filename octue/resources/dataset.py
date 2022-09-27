@@ -73,6 +73,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         self._recursive = recursive
         self._ignore_stored_metadata = ignore_stored_metadata
         self._cloud_metadata = {}
+        self._instantiated_from_files_argument = False
 
         if files:
             if not any((isinstance(files, list), isinstance(files, set), isinstance(files, tuple))):
@@ -82,6 +83,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
                 )
 
             self.files = self._instantiate_datafiles(files)
+            self._instantiated_from_files_argument = True
             return
 
         if storage.path.is_cloud_path(self.path):
