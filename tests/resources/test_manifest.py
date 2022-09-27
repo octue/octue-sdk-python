@@ -37,6 +37,55 @@ class TestManifest(BaseTestCase):
     def test_serialisation_and_deserialisation(self):
         """Test that manifests can be serialised and deserialised."""
         with tempfile.TemporaryDirectory() as temporary_directory:
+
+            dataset_0_path = os.path.join(temporary_directory, "my_dataset_0")
+            os.mkdir(dataset_0_path)
+
+            with open(os.path.join(dataset_0_path, "my_file_0.txt"), "w") as f:
+                f.write("blah")
+
+            dataset_1_path = os.path.join(temporary_directory, "my_dataset_1")
+            os.mkdir(dataset_1_path)
+
+            with open(os.path.join(dataset_1_path, "my_file_1.txt"), "w") as f:
+                f.write("blah")
+
+            datasets = {"my_dataset_0": Dataset(dataset_0_path), "my_dataset_1": Dataset(dataset_1_path)}
+
+            for dataset in datasets.values():
+                dataset.update_local_metadata()
+
+            manifest = Manifest(datasets=datasets, id="7e0025cd-bd68-4de6-b48d-2643ebd5effd", name="my-manifest")
+
+            serialised_manifest = manifest.to_primitive()
+
+            self.assertEqual(
+                serialised_manifest,
+                {
+                    "id": manifest.id,
+                    "name": "my-manifest",
+                    "datasets": {
+                        "my_dataset_0": os.path.join(temporary_directory, "my_dataset_0"),
+                        "my_dataset_1": os.path.join(temporary_directory, "my_dataset_1"),
+                    },
+                },
+            )
+
+            deserialised_manifest = Manifest.deserialise(serialised_manifest)
+
+        self.assertEqual(manifest.name, deserialised_manifest.name)
+        self.assertEqual(manifest.id, deserialised_manifest.id)
+
+        for key in manifest.datasets.keys():
+            self.assertEqual(manifest.datasets[key].name, deserialised_manifest.datasets[key].name)
+            self.assertEqual(manifest.datasets[key].id, deserialised_manifest.datasets[key].id)
+            self.assertEqual(manifest.datasets[key].path, deserialised_manifest.datasets[key].path)
+
+    def test_serialisation_and_deserialisation_with_datasets_instantiated_using_files_parameter(self):
+        """Test that manifests can be serialised and deserialised when the datasets were instantiated using the `files`
+        parameter.
+        """
+        with tempfile.TemporaryDirectory() as temporary_directory:
             datasets = {
                 "my_dataset_0": Dataset(
                     path=os.path.join(temporary_directory, "my_dataset_0"),
@@ -61,8 +110,8 @@ class TestManifest(BaseTestCase):
                     "id": manifest.id,
                     "name": "my-manifest",
                     "datasets": {
-                        "my_dataset_0": os.path.join(temporary_directory, "my_dataset_0"),
-                        "my_dataset_1": os.path.join(temporary_directory, "my_dataset_1"),
+                        "my_dataset_0": manifest.datasets["my_dataset_0"].to_primitive(),
+                        "my_dataset_1": manifest.datasets["my_dataset_1"].to_primitive(),
                     },
                 },
             )
