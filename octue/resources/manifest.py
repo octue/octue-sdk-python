@@ -118,7 +118,7 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
 
         for name, dataset in self.datasets.items():
             if dataset._instantiated_from_files_argument:
-                self_as_primitive["datasets"][name] = dataset.serialise()
+                self_as_primitive["datasets"][name] = dataset.to_primitive()
             else:
                 self_as_primitive["datasets"][name] = dataset.path
 
