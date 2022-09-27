@@ -95,14 +95,13 @@ class OrderedMessageHandler:
         :param float delivery_acknowledgement_timeout: how long to wait for a delivery acknowledgement before raising `QuestionNotDelivered`
         :param int|float maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded before receiving the final message
-        :return dict:
+        :return dict: the first result returned by a message handler
         """
         self.received_delivery_acknowledgement = False
         self._waiting_messages = {}
         self._previous_message_number = -1
 
         recorded_messages = []
-        pull_timeout = None
 
         self._heartbeat_checker = RepeatingTimer(
             interval=maximum_heartbeat_interval,
@@ -115,38 +114,17 @@ class OrderedMessageHandler:
             self._heartbeat_checker.start()
 
             while self._alive:
+                pull_timeout = self._check_timeout_and_get_pull_timeout(timeout)
 
-                if timeout is not None:
-                    run_time = time.perf_counter() - self._start_time
-
-                    if run_time > timeout:
-                        raise TimeoutError(
-                            f"No final answer received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
-                        )
-
-                    pull_timeout = timeout - run_time
-
-                message = self._pull_message(
+                self._pull_and_enqueue_message(
                     timeout=pull_timeout,
                     delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
                 )
 
-                self._waiting_messages[int(message["message_number"])] = message
+                result = self._attempt_to_handle_queued_messages(recorded_messages=recorded_messages)
 
-                try:
-                    while self._waiting_messages:
-                        message = self._waiting_messages.pop(self._previous_message_number + 1)
-
-                        if self.record_messages_to:
-                            recorded_messages.append(message)
-
-                        result = self._handle_message(message)
-
-                        if result is not None:
-                            return result
-
-                except KeyError:
-                    pass
+                if result is not None:
+                    return result
 
         finally:
             self._heartbeat_checker.cancel()
@@ -175,14 +153,35 @@ class OrderedMessageHandler:
         self._alive = False
         self._heartbeat_checker.cancel()
 
-    def _pull_message(self, timeout, delivery_acknowledgement_timeout):
-        """Pull a message from the subscription, raising a `TimeoutError` if the timeout is exceeded before succeeding.
+    def _check_timeout_and_get_pull_timeout(self, timeout):
+        """Check if the timeout has been exceeded and, if it hasn't, return the timeout for the next message pull. If
+        the timeout has been exceeded, raise an error.
+
+        :param int|float|None timeout: the timeout for handling all messages
+        :raise TimeoutError: if the timeout has been exceeded
+        :return int|float: the timeout for the next message pull
+        """
+        if timeout is None:
+            return None
+
+        run_time = time.perf_counter() - self._start_time
+
+        if run_time > timeout:
+            raise TimeoutError(
+                f"No final answer received from topic {self.subscription.topic.path!r} after {timeout} seconds."
+            )
+
+        return timeout - run_time
+
+    def _pull_and_enqueue_message(self, timeout, delivery_acknowledgement_timeout):
+        """Pull a message from the subscription and enqueue it in `self._waiting_messages`, raising a `TimeoutError` if
+        the timeout is exceeded before succeeding.
 
         :param float|None timeout: how long to wait in seconds for the message before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long to wait for a delivery acknowledgement before raising `QuestionNotDelivered`
         :raise TimeoutError|concurrent.futures.TimeoutError: if the timeout is exceeded
         :raise octue.exceptions.QuestionNotDelivered: if a delivery acknowledgement is not received in time
-        :return dict: message containing data
+        :return None:
         """
         start_time = time.perf_counter()
         attempt = 1
@@ -234,7 +233,31 @@ class OrderedMessageHandler:
             if not self._child_sdk_version:
                 self._heartbeat_checker.cancel()
 
-        return json.loads(answer.message.data.decode())
+        message = json.loads(answer.message.data.decode())
+        self._waiting_messages[int(message["message_number"])] = message
+
+    def _attempt_to_handle_queued_messages(self, recorded_messages):
+        """Attempt to handle messages in the pulled message queue. If these messages aren't consecutive with the last
+        handled message (i.e. if messages have been received out of order and the next in-order message hasn't been
+        received yet), just return.
+
+        :param list recorded_messages: if recording messages, store them in this
+        :return any|None: either a non-`None` result from a message handler or `None` if nothing was returned by the message handlers or if the next in-order message hasn't been received yet
+        """
+        try:
+            while self._waiting_messages:
+                message = self._waiting_messages.pop(self._previous_message_number + 1)
+
+                if self.record_messages_to:
+                    recorded_messages.append(message)
+
+                result = self._handle_message(message)
+
+                if result is not None:
+                    return result
+
+        except KeyError:
+            return
 
     def _handle_message(self, message):
         """Pass a message to its handler and update the previous message number.

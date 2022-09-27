@@ -59,8 +59,11 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         with patch(
-            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_message",
-            new=MockMessagePuller(messages=[{"type": "test", "message_number": 0}]).pull,
+            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
+            new=MockMessagePuller(
+                messages=[{"type": "test", "message_number": 0}],
+                message_handler=message_handler,
+            ).pull,
         ):
             with self.assertRaises(TimeoutError):
                 message_handler.handle_messages(timeout=0)
@@ -94,14 +97,15 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         with patch(
-            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_message",
+            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
             new=MockMessagePuller(
                 messages=[
                     {"type": "test", "message_number": 0},
                     {"type": "test", "message_number": 1},
                     {"type": "test", "message_number": 2},
                     {"type": "finish-test", "message_number": 3},
-                ]
+                ],
+                message_handler=message_handler,
             ).pull,
         ):
             result = message_handler.handle_messages()
@@ -124,14 +128,15 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         with patch(
-            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_message",
+            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
             new=MockMessagePuller(
                 messages=[
                     {"type": "test", "message_number": 1},
                     {"type": "test", "message_number": 2},
                     {"type": "test", "message_number": 0},
                     {"type": "finish-test", "message_number": 3},
-                ]
+                ],
+                message_handler=message_handler,
             ).pull,
         ):
             result = message_handler.handle_messages()
@@ -156,14 +161,15 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         with patch(
-            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_message",
+            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
             new=MockMessagePuller(
                 messages=[
                     {"type": "finish-test", "message_number": 3},
                     {"type": "test", "message_number": 1},
                     {"type": "test", "message_number": 2},
                     {"type": "test", "message_number": 0},
-                ]
+                ],
+                message_handler=message_handler,
             ).pull,
         ):
             result = message_handler.handle_messages()
@@ -186,13 +192,14 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         with patch(
-            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_message",
+            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
             new=MockMessagePuller(
                 messages=[
                     {"type": "finish-test", "message_number": 2},
                     {"type": "test", "message_number": 0},
                     {"type": "test", "message_number": 1},
-                ]
+                ],
+                message_handler=message_handler,
             ).pull,
         ):
             result = message_handler.handle_messages(timeout=None)
@@ -225,7 +232,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         self.assertFalse(message_handler.received_delivery_acknowledgement)
 
         with patch(
-            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_message",
+            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
             new=MockMessagePuller(
                 [
                     {
@@ -234,7 +241,8 @@ class TestOrderedMessageHandler(BaseTestCase):
                         "message_number": 0,
                     },
                     {"type": "result", "output_values": None, "output_manifest": None, "message_number": 1},
-                ]
+                ],
+                message_handler=message_handler,
             ).pull,
         ):
             result = message_handler.handle_messages()
@@ -281,16 +289,17 @@ class TestOrderedMessageHandler(BaseTestCase):
         message_handler._last_heartbeat = datetime.datetime.now()
 
         with patch(
-            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_message",
+            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
             new=MockMessagePuller(
-                [
+                messages=[
                     {
                         "type": "delivery_acknowledgement",
                         "delivery_time": "2021-11-17 17:33:59.717428",
                         "message_number": 0,
                     },
                     {"type": "result", "output_values": None, "output_manifest": None, "message_number": 1},
-                ]
+                ],
+                message_handler=message_handler,
             ).pull,
         ):
             with patch(

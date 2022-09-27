@@ -297,25 +297,28 @@ class MockService(Service):
 
 
 class MockMessagePuller:
-    """A mock message puller that returns the messages in the order they were provided on initialisation. This is meant
-    for patching `octue.cloud.pub_sub.message_handler.OrderedMessageHandler._pull_message` in tests.
+    """A mock message puller that enqueues messages in the message handler in the order they're provided on
+    initialisation. This is meant for patching
+    `octue.cloud.pub_sub.message_handler.OrderedMessageHandler._pull_and_enqueue_message` in tests.
 
     :param iter(dict) messages:
+    :param octue.cloud.pub_sub.message_handler.OrderedMessageHandler message_handler:
     :return None:
     """
 
-    def __init__(self, messages):
+    def __init__(self, messages, message_handler):
         self.messages = messages
+        self.message_handler = message_handler
         self.message_number = 0
 
     def pull(self, timeout, delivery_acknowledgement_timeout):
-        """Get the next message from the messages given at initialisation.
+        """Enqueue the next message from the messages given at instantiation.
 
-        :return dict:
+        :return None:
         """
         message = self.messages[self.message_number]
+        self.message_handler._waiting_messages[int(message["message_number"])] = message
         self.message_number += 1
-        return message
 
 
 class MockAnalysis:
