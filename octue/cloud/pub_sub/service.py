@@ -193,6 +193,7 @@ class Service(CoolNameable):
                 analysis_id=question_uuid,
                 input_values=data["input_values"],
                 input_manifest=data["input_manifest"],
+                children=data.get("children"),
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=functools.partial(self._send_monitor_message, topic=topic),
                 allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
@@ -229,6 +230,7 @@ class Service(CoolNameable):
         service_id,
         input_values=None,
         input_manifest=None,
+        children=None,
         subscribe_to_logs=True,
         allow_local_files=False,
         allow_save_diagnostics_data_on_crash=True,
@@ -243,6 +245,7 @@ class Service(CoolNameable):
         :param str service_id: the ID of the child to ask the question to
         :param any|None input_values: any input values for the question
         :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
+        :param dict|None children:
         :param bool subscribe_to_logs: if `True`, subscribe to the child's logs and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will be able to access these local files
         :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved by the child if it fails while processing them
@@ -287,7 +290,7 @@ class Service(CoolNameable):
             serialised_input_manifest = input_manifest.serialise()
 
         self._send_message(
-            {"input_values": input_values, "input_manifest": serialised_input_manifest},
+            {"input_values": input_values, "input_manifest": serialised_input_manifest, "children": children},
             topic=question_topic,
             question_uuid=question_uuid,
             forward_logs=subscribe_to_logs,
