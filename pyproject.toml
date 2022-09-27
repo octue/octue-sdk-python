@@ -34,7 +34,7 @@ python-dateutil = "^2.8"
 pyyaml = "^6"
 h5py = { version = "^3.6", optional = true }
 apache-beam = { version = "^2.37", optional = true }
-twined = "^0.5.0"
+twined = { git = "https://github.com/octue/twined.git", branch = "fix/update-manifest-schema" }
 packaging = ">=20.4,<22"
 # The following dependencies are from apache-beam[gcp]. They're provided here to a) avoid dependency resolution problems
 # and b) to reduce our total number of dependencies (we only need a small number of the dependencies the "gcp" extra
