@@ -153,13 +153,7 @@ class OrderedMessageHandler:
             self._subscriber.close()
 
             if self.record_messages_to:
-                directory_name = os.path.dirname(self.record_messages_to)
-
-                if not os.path.exists(directory_name):
-                    os.makedirs(directory_name)
-
-                with open(self.record_messages_to, "w") as f:
-                    json.dump(recorded_messages, f)
+                self._save_messages(recorded_messages)
 
         raise TimeoutError(
             f"No heartbeat has been received within the maximum allowed interval of {maximum_heartbeat_interval}s."
@@ -270,6 +264,20 @@ class OrderedMessageHandler:
 
             # Raise all other errors.
             raise error
+
+    def _save_messages(self, recorded_messages):
+        """Save the given messages to the JSON file given in `self._record_messages_to`.
+
+        :param list recorded_messages:
+        :return None:
+        """
+        directory_name = os.path.dirname(self.record_messages_to)
+
+        if not os.path.exists(directory_name):
+            os.makedirs(directory_name)
+
+        with open(self.record_messages_to, "w") as f:
+            json.dump(recorded_messages, f)
 
     def _handle_delivery_acknowledgement(self, message):
         """Mark the question as delivered to prevent resending it.
