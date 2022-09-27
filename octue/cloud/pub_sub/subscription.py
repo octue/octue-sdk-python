@@ -27,7 +27,6 @@ class Subscription:
     :param octue.cloud.pub_sub.topic.Topic topic: the topic the subscription is attached to
     :param str project_name: the name of the Google Cloud project that the subscription belongs to
     :param str namespace: a namespace to put before the subscription's name in its path
-    :param google.pubsub_v1.services.subscriber.client.SubscriberClient|None subscriber: a Google Pub/Sub subscriber that can be used to create or delete the subscription
     :param int ack_deadline: the time in seconds after which, if the subscriber hasn't acknowledged a message, to retry sending it to the subscription
     :param int message_retention_duration: unacknowledged message retention time in seconds
     :param int|None expiration_time: number of seconds after which the subscription is deleted (infinite time if None)
@@ -43,7 +42,6 @@ class Subscription:
         topic,
         project_name,
         namespace="",
-        subscriber=None,
         ack_deadline=600,
         message_retention_duration=600,
         expiration_time=THIRTY_ONE_DAYS,
@@ -57,7 +55,6 @@ class Subscription:
             self.name = name
 
         self.topic = topic
-        self.subscriber = subscriber or SubscriberClient()
         self.path = self.generate_subscription_path(project_name, self.name)
         self.ack_deadline = ack_deadline
         self.message_retention_duration = Duration(seconds=message_retention_duration)
@@ -75,6 +72,7 @@ class Subscription:
         )
 
         self.push_endpoint = push_endpoint
+        self._subscriber = SubscriberClient()
         self._created = False
 
     @property
@@ -118,13 +116,13 @@ class Subscription:
         subscription = self._create_proto_message_subscription()
 
         if not allow_existing:
-            subscription = self.subscriber.create_subscription(request=subscription)
+            subscription = self._subscriber.create_subscription(request=subscription)
             self._created = True
             self._log_creation()
             return subscription
 
         try:
-            subscription = self.subscriber.create_subscription(request=subscription)
+            subscription = self._subscriber.create_subscription(request=subscription)
             self._created = True
         except google.api_core.exceptions.AlreadyExists:
             pass
@@ -137,7 +135,7 @@ class Subscription:
 
         :return None:
         """
-        self.subscriber.update_subscription(
+        self._subscriber.update_subscription(
             request=UpdateSubscriptionRequest(
                 mapping=None,
                 subscription=self._create_proto_message_subscription(),  # noqa
@@ -152,7 +150,7 @@ class Subscription:
 
         :return None:
         """
-        self.subscriber.delete_subscription(subscription=self.path)
+        self._subscriber.delete_subscription(subscription=self.path)
         logger.info("Subscription %r deleted.", self.path)
 
     def exists(self, timeout=5):
@@ -162,7 +160,7 @@ class Subscription:
         :return bool:
         """
         try:
-            self.subscriber.get_subscription(subscription=self.path, timeout=timeout)
+            self._subscriber.get_subscription(subscription=self.path, timeout=timeout)
             return True
         except google.api_core.exceptions.NotFound:
             return False

@@ -16,9 +16,6 @@ from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 
 
-BACKEND = GCPPubSubBackend(project_name=TEST_PROJECT_NAME)
-
-
 class TestOrderedMessageHandler(BaseTestCase):
     @classmethod
     def setUpClass(cls):
@@ -26,14 +23,15 @@ class TestOrderedMessageHandler(BaseTestCase):
 
         :return None:
         """
-        service = MockService(backend=BACKEND)
-        mock_topic = MockTopic(name="world", namespace="hello", service=service)
+        mock_topic = MockTopic(name="world", project_name=TEST_PROJECT_NAME, namespace="hello")
+
+        cls.receiving_service = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+
         cls.mock_subscription = MockSubscription(
             name="world",
             topic=mock_topic,
             namespace="hello",
             project_name=TEST_PROJECT_NAME,
-            subscriber=MockSubscriber(),
         )
 
     def _make_order_recording_message_handler(self, message_handling_order):
@@ -50,14 +48,15 @@ class TestOrderedMessageHandler(BaseTestCase):
 
     def test_timeout(self):
         """Test that a TimeoutError is raised if message handling takes longer than the given timeout."""
-        message_handler = OrderedMessageHandler(
-            subscriber=MockSubscriber(),
-            subscription=self.mock_subscription,
-            message_handlers={
-                "test": self._make_order_recording_message_handler([]),
-                "finish-test": lambda message: message,
-            },
-        )
+        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
+            message_handler = OrderedMessageHandler(
+                subscription=self.mock_subscription,
+                receiving_service=self.receiving_service,
+                message_handlers={
+                    "test": self._make_order_recording_message_handler([]),
+                    "finish-test": lambda message: message,
+                },
+            )
 
         with patch(
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_message",
@@ -68,11 +67,12 @@ class TestOrderedMessageHandler(BaseTestCase):
 
     def test_unknown_message_type_raises_warning(self):
         """Test that unknown message types result in a warning being logged."""
-        message_handler = OrderedMessageHandler(
-            subscriber=MockSubscriber(),
-            subscription=self.mock_subscription,
-            message_handlers={"finish-test": lambda message: message},
-        )
+        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
+            message_handler = OrderedMessageHandler(
+                subscription=self.mock_subscription,
+                receiving_service=self.receiving_service,
+                message_handlers={"finish-test": lambda message: message},
+            )
 
         with self.assertLogs() as logging_context:
             message_handler._handle_message({"type": "blah", "message_number": 0})
@@ -83,14 +83,15 @@ class TestOrderedMessageHandler(BaseTestCase):
         """Test that messages received in order are handled in order."""
         message_handling_order = []
 
-        message_handler = OrderedMessageHandler(
-            subscriber=MockSubscriber(),
-            subscription=self.mock_subscription,
-            message_handlers={
-                "test": self._make_order_recording_message_handler(message_handling_order),
-                "finish-test": lambda message: "This is the result.",
-            },
-        )
+        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
+            message_handler = OrderedMessageHandler(
+                subscription=self.mock_subscription,
+                receiving_service=self.receiving_service,
+                message_handlers={
+                    "test": self._make_order_recording_message_handler(message_handling_order),
+                    "finish-test": lambda message: "This is the result.",
+                },
+            )
 
         with patch(
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_message",
@@ -112,14 +113,15 @@ class TestOrderedMessageHandler(BaseTestCase):
         """Test that messages received out of order are handled in order."""
         message_handling_order = []
 
-        message_handler = OrderedMessageHandler(
-            subscriber=MockSubscriber(),
-            subscription=self.mock_subscription,
-            message_handlers={
-                "test": self._make_order_recording_message_handler(message_handling_order),
-                "finish-test": lambda message: "This is the result.",
-            },
-        )
+        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
+            message_handler = OrderedMessageHandler(
+                subscription=self.mock_subscription,
+                receiving_service=self.receiving_service,
+                message_handlers={
+                    "test": self._make_order_recording_message_handler(message_handling_order),
+                    "finish-test": lambda message: "This is the result.",
+                },
+            )
 
         with patch(
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_message",
@@ -143,14 +145,15 @@ class TestOrderedMessageHandler(BaseTestCase):
         """
         message_handling_order = []
 
-        message_handler = OrderedMessageHandler(
-            subscriber=MockSubscriber(),
-            subscription=self.mock_subscription,
-            message_handlers={
-                "test": self._make_order_recording_message_handler(message_handling_order),
-                "finish-test": lambda message: "This is the result.",
-            },
-        )
+        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
+            message_handler = OrderedMessageHandler(
+                subscription=self.mock_subscription,
+                receiving_service=self.receiving_service,
+                message_handlers={
+                    "test": self._make_order_recording_message_handler(message_handling_order),
+                    "finish-test": lambda message: "This is the result.",
+                },
+            )
 
         with patch(
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_message",
@@ -172,14 +175,15 @@ class TestOrderedMessageHandler(BaseTestCase):
         """Test that message handling works with no timeout."""
         message_handling_order = []
 
-        message_handler = OrderedMessageHandler(
-            subscriber=MockSubscriber(),
-            subscription=self.mock_subscription,
-            message_handlers={
-                "test": self._make_order_recording_message_handler(message_handling_order),
-                "finish-test": lambda message: "This is the result.",
-            },
-        )
+        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
+            message_handler = OrderedMessageHandler(
+                subscription=self.mock_subscription,
+                receiving_service=self.receiving_service,
+                message_handlers={
+                    "test": self._make_order_recording_message_handler(message_handling_order),
+                    "finish-test": lambda message: "This is the result.",
+                },
+            )
 
         with patch(
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_message",
@@ -200,7 +204,11 @@ class TestOrderedMessageHandler(BaseTestCase):
         """Test that an error is raised if delivery acknowledgement isn't received before the given acknowledgement
         timeout.
         """
-        message_handler = OrderedMessageHandler(subscriber=MockSubscriber(), subscription=self.mock_subscription)
+        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
+            message_handler = OrderedMessageHandler(
+                subscription=self.mock_subscription,
+                receiving_service=self.receiving_service,
+            )
 
         with patch("octue.cloud.emulators._pub_sub.MockSubscriber.pull", return_value=MockPullResponse()):
             with self.assertRaises(exceptions.QuestionNotDelivered):
@@ -208,7 +216,12 @@ class TestOrderedMessageHandler(BaseTestCase):
 
     def test_delivery_acknowledgement(self):
         """Test that a delivery acknowledgement message is handled correctly."""
-        message_handler = OrderedMessageHandler(subscriber=MockSubscriber(), subscription=self.mock_subscription)
+        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
+            message_handler = OrderedMessageHandler(
+                subscription=self.mock_subscription,
+                receiving_service=self.receiving_service,
+            )
+
         self.assertFalse(message_handler.received_delivery_acknowledgement)
 
         with patch(
@@ -231,7 +244,11 @@ class TestOrderedMessageHandler(BaseTestCase):
 
     def test_error_raised_if_heartbeat_not_received_before_checked(self):
         """Test that an error is raised if a heartbeat isn't received before a heartbeat is first checked for."""
-        message_handler = OrderedMessageHandler(subscriber=MockSubscriber(), subscription=self.mock_subscription)
+        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
+            message_handler = OrderedMessageHandler(
+                subscription=self.mock_subscription,
+                receiving_service=self.receiving_service,
+            )
 
         with self.assertRaises(TimeoutError) as error:
             message_handler.handle_messages(maximum_heartbeat_interval=0)
@@ -240,7 +257,12 @@ class TestOrderedMessageHandler(BaseTestCase):
 
     def test_error_raised_if_heartbeats_stop_being_received(self):
         """Test that an error is raised if heartbeats stop being received within the maximum interval."""
-        message_handler = OrderedMessageHandler(subscriber=MockSubscriber(), subscription=self.mock_subscription)
+        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
+            message_handler = OrderedMessageHandler(
+                subscription=self.mock_subscription,
+                receiving_service=self.receiving_service,
+            )
+
         message_handler._last_heartbeat = datetime.datetime.now() - datetime.timedelta(seconds=30)
 
         with self.assertRaises(TimeoutError) as error:
@@ -250,7 +272,12 @@ class TestOrderedMessageHandler(BaseTestCase):
 
     def test_error_not_raised_if_heartbeat_has_been_received_in_maximum_allowed_interval(self):
         """Test that an error is not raised if a heartbeat has been received in the maximum allowed interval."""
-        message_handler = OrderedMessageHandler(subscriber=MockSubscriber(), subscription=self.mock_subscription)
+        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
+            message_handler = OrderedMessageHandler(
+                subscription=self.mock_subscription,
+                receiving_service=self.receiving_service,
+            )
+
         message_handler._last_heartbeat = datetime.datetime.now()
 
         with patch(
@@ -274,5 +301,10 @@ class TestOrderedMessageHandler(BaseTestCase):
 
     def test_time_since_last_heartbeat_is_none_if_no_heartbeat_received_yet(self):
         """Test that the time since the last heartbeat is `None` if no heartbeat has been received yet."""
-        message_handler = OrderedMessageHandler(subscriber=MockSubscriber(), subscription=self.mock_subscription)
+        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
+            message_handler = OrderedMessageHandler(
+                subscription=self.mock_subscription,
+                receiving_service=self.receiving_service,
+            )
+
         self.assertIsNone(message_handler._time_since_last_heartbeat)

@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 import pkg_resources
 from google.api_core import retry
+from google.cloud.pubsub_v1 import SubscriberClient
 
 from octue.cloud import EXCEPTIONS_MAPPING
 from octue.compatibility import warn_if_incompatible
@@ -30,8 +31,8 @@ logger = logging.getLogger(__name__)
 class OrderedMessageHandler:
     """A handler for Google Pub/Sub messages that ensures messages are handled in the order they were sent.
 
-    :param google.pubsub_v1.services.subscriber.client.SubscriberClient subscriber: a Google Pub/Sub subscriber
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
+    :param octue.cloud.pub_sub.service.Service receiving_service: the service that's receiving the messages
     :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
     :param str|None record_messages_to: if given a path to a JSON file, received messages are saved to it
     :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
@@ -41,20 +42,21 @@ class OrderedMessageHandler:
 
     def __init__(
         self,
-        subscriber,
         subscription,
+        receiving_service,
         handle_monitor_message=None,
         record_messages_to=None,
         service_name="REMOTE",
         message_handlers=None,
     ):
-        self.subscriber = subscriber
         self.subscription = subscription
+        self.receiving_service = receiving_service
         self.handle_monitor_message = handle_monitor_message
         self.record_messages_to = record_messages_to
         self.service_name = service_name
 
         self.received_delivery_acknowledgement = None
+        self._subscriber = SubscriberClient()
         self._child_sdk_version = None
         self._heartbeat_checker = None
         self._last_heartbeat = None
@@ -108,55 +110,56 @@ class OrderedMessageHandler:
             kwargs={"maximum_heartbeat_interval": maximum_heartbeat_interval},
         )
 
-        self._heartbeat_checker.daemon = True
-        self._heartbeat_checker.start()
+        try:
+            self._heartbeat_checker.daemon = True
+            self._heartbeat_checker.start()
 
-        while self._alive:
+            while self._alive:
 
-            if timeout is not None:
-                run_time = time.perf_counter() - self._start_time
+                if timeout is not None:
+                    run_time = time.perf_counter() - self._start_time
 
-                if run_time > timeout:
-                    raise TimeoutError(
-                        f"No final answer received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
-                    )
+                    if run_time > timeout:
+                        raise TimeoutError(
+                            f"No final answer received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
+                        )
 
-                pull_timeout = timeout - run_time
+                    pull_timeout = timeout - run_time
 
-            message = self._pull_message(
-                timeout=pull_timeout,
-                delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
-            )
+                message = self._pull_message(
+                    timeout=pull_timeout,
+                    delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
+                )
 
-            self._waiting_messages[int(message["message_number"])] = message
+                self._waiting_messages[int(message["message_number"])] = message
 
-            try:
-                while self._waiting_messages:
-                    message = self._waiting_messages.pop(self._previous_message_number + 1)
+                try:
+                    while self._waiting_messages:
+                        message = self._waiting_messages.pop(self._previous_message_number + 1)
 
-                    if self.record_messages_to:
-                        recorded_messages.append(message)
+                        if self.record_messages_to:
+                            recorded_messages.append(message)
 
-                    result = self._handle_message(message)
+                        result = self._handle_message(message)
 
-                    if result is not None:
-                        self._heartbeat_checker.cancel()
-                        return result
+                        if result is not None:
+                            return result
 
-            except KeyError:
-                pass
+                except KeyError:
+                    pass
 
-            finally:
-                self._heartbeat_checker.cancel()
+        finally:
+            self._heartbeat_checker.cancel()
+            self._subscriber.close()
 
-                if self.record_messages_to:
-                    directory_name = os.path.dirname(self.record_messages_to)
+            if self.record_messages_to:
+                directory_name = os.path.dirname(self.record_messages_to)
 
-                    if not os.path.exists(directory_name):
-                        os.makedirs(directory_name)
+                if not os.path.exists(directory_name):
+                    os.makedirs(directory_name)
 
-                    with open(self.record_messages_to, "w") as f:
-                        json.dump(recorded_messages, f)
+                with open(self.record_messages_to, "w") as f:
+                    json.dump(recorded_messages, f)
 
         raise TimeoutError(
             f"No heartbeat has been received within the maximum allowed interval of {maximum_heartbeat_interval}s."
@@ -193,7 +196,7 @@ class OrderedMessageHandler:
         while True:
             logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
 
-            pull_response = self.subscriber.pull(
+            pull_response = self._subscriber.pull(
                 request={"subscription": self.subscription.path, "max_messages": 1},
                 retry=retry.Retry(),
             )
@@ -220,11 +223,11 @@ class OrderedMessageHandler:
                             f"after {delivery_acknowledgement_timeout} seconds."
                         )
 
-        self.subscriber.acknowledge(request={"subscription": self.subscription.path, "ack_ids": [answer.ack_id]})
+        self._subscriber.acknowledge(request={"subscription": self.subscription.path, "ack_ids": [answer.ack_id]})
 
         logger.debug(
             "%r received a message related to question %r.",
-            self.subscription.topic.service,
+            self.receiving_service,
             self.subscription.topic.path.split(".")[-1],
         )
 
@@ -260,7 +263,7 @@ class OrderedMessageHandler:
             if isinstance(error, KeyError):
                 logger.warning(
                     "%r received a message of unknown type %r.",
-                    self.subscription.topic.service,
+                    self.receiving_service,
                     message.get("type", "unknown"),
                 )
                 return
@@ -275,7 +278,7 @@ class OrderedMessageHandler:
         :return None:
         """
         self.received_delivery_acknowledgement = True
-        logger.info("%r's question was delivered at %s.", self.subscription.topic.service, message["delivery_time"])
+        logger.info("%r's question was delivered at %s.", self.receiving_service, message["delivery_time"])
 
     def _handle_heartbeat(self, message):
         """Record the time the heartbeat was received.
@@ -292,7 +295,7 @@ class OrderedMessageHandler:
         :param dict message:
         :return None:
         """
-        logger.debug("%r received a monitor message.", self.subscription.topic.service)
+        logger.debug("%r received a monitor message.", self.receiving_service)
 
         if self.handle_monitor_message is not None:
             self.handle_monitor_message(json.loads(message["data"]))
@@ -359,7 +362,7 @@ class OrderedMessageHandler:
         """
         logger.info(
             "%r received an answer to question %r.",
-            self.subscription.topic.service,
+            self.receiving_service,
             self.subscription.topic.path.split(".")[-1],
         )
 
