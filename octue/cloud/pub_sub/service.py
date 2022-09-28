@@ -249,7 +249,7 @@ class Service(CoolNameable):
         :param str service_id: the ID of the child to ask the question to
         :param any|None input_values: any input values for the question
         :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
-        :param list(dict)|None children:
+        :param list(dict)|None children: a list of children for the child to use instead of its default children (if it uses children). These should be in the same format as in an app's app configuration file.
         :param bool subscribe_to_logs: if `True`, subscribe to the child's logs and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will be able to access these local files
         :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved by the child if it fails while processing them
