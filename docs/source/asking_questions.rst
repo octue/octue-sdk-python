@@ -51,7 +51,10 @@ input values and/or an input manifest.
         backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
     )
 
-    answer = child.ask(input_values={"height": 32, "width": 3}, input_manifest=manifest)
+    answer = child.ask(
+        input_values={"height": 32, "width": 3},
+        input_manifest=manifest,
+    )
 
     answer["output_values"]
     >>> {"some": "data"}
@@ -62,9 +65,12 @@ input values and/or an input manifest.
 
 You can also set the following options when you call :mod:`Child.ask <octue.resources.child.Child.ask>`:
 
+- ``children`` - if provided, these children will override any default children the child asks questions to as part of its analysis (see :ref:`this subsection below <overriding_children>`).
 - ``subscribe_to_logs`` - if true, the child will forward its logs to you
 - ``allow_local_files`` - if true, local files/datasets are allowed in any input manifest you supply
 - ``handle_monitor_message`` - if provided a function, it will be called on any monitor messages from the child
+- ``record_messages_to`` – if given a path to a JSON file, messages received from the parent while it processes the question are saved to it
+- ``allow_save_diagnostics_data_on_crash`` – if true, the input values and input manifest (including its datasets) will be saved by the child for future crash diagnostics if it fails while processing them
 - ``question_uuid`` - if provided, the question will use this UUID instead of a generated one
 - ``timeout`` - how long in seconds to wait for an answer (``None`` by default - i.e. don't time out)
 
@@ -154,6 +160,8 @@ See the parent service's `app configuration <https://github.com/octue/octue-sdk-
 and `app.py file <https://github.com/octue/octue-sdk-python/blob/main/octue/templates/template-child-services/parent_service/app.py>`_
 in the  `child-services app template <https://github.com/octue/octue-sdk-python/tree/main/octue/templates/template-child-services>`_
 to see this in action.
+
+.. _overriding_children:
 
 Overriding a child's children
 -----------------------------
