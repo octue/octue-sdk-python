@@ -289,7 +289,9 @@ class MockService(Service):
 
             self.children[service_id].answer(
                 MockMessage(
-                    data=json.dumps({"input_values": input_values, "input_manifest": input_manifest}).encode(),
+                    data=json.dumps(
+                        {"input_values": input_values, "input_manifest": input_manifest, "children": children}
+                    ).encode(),
                     question_uuid=question_uuid,
                     forward_logs=subscribe_to_logs,
                     octue_sdk_version=parent_sdk_version,
