@@ -821,9 +821,8 @@ class TestService(BaseTestCase):
             dynamic_child_of_child.serve()
             child.serve()
 
-            with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
-                subscription, _ = parent.ask(service_id=child.id, input_values={}, children=dynamic_children)
-                answer = parent.wait_for_answer(subscription)
+            subscription, _ = parent.ask(service_id=child.id, input_values={}, children=dynamic_children)
+            answer = parent.wait_for_answer(subscription)
 
         self.assertEqual(answer["output_values"], "I am the dynamic child.")
 
