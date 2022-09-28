@@ -50,20 +50,26 @@ class Service(CoolNameable):
     """
 
     def __init__(self, backend, service_id=None, run_function=None, *args, **kwargs):
+        # If no service ID is given, use a random UUID for `id` and set `name` to a "cool name".
         if service_id is None:
-            self.id = f"{OCTUE_NAMESPACE}.{str(uuid.uuid4())}"
-            self._unlinted_service_id = self.id
+            service_uuid = str(uuid.uuid4())
+            self.id = f"{OCTUE_NAMESPACE}.{service_uuid}"
+            self._unlinted_service_id = service_uuid
+
+        # Raise an error if the service ID is some kind of falsey object that isn't `None`.
         elif not service_id:
             raise ValueError(f"service_id should be None or a non-falsey value; received {service_id!r} instead.")
-        else:
-            if service_id.startswith(OCTUE_NAMESPACE):
-                self.id = service_id
-            else:
-                self.id = f"{OCTUE_NAMESPACE}.{service_id}"
 
-            self.name = kwargs.get("name") or self.id
+        # If a service ID is given, set `name` to it but set `id` to a namespaced, cleaned version of it. If a `name` is
+        # given as a kwarg, then the `name` attribute is set to that instead.
+        else:
+            self.name = kwargs.get("name") or service_id
             self._unlinted_service_id = service_id
-            self.id = self._clean_service_id(self.id)
+
+            if service_id.startswith(OCTUE_NAMESPACE):
+                self.id = self._clean_service_id(service_id)
+            else:
+                self.id = self._clean_service_id(f"{OCTUE_NAMESPACE}.{service_id}")
 
         self.backend = backend
         self.run_function = run_function
