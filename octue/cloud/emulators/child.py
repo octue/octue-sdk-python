@@ -128,6 +128,7 @@ class ChildEmulator:
         analysis_id,
         input_values,
         input_manifest,
+        children,
         analysis_log_handler,
         handle_monitor_message,
         allow_save_diagnostics_data_on_crash,
@@ -138,6 +139,7 @@ class ChildEmulator:
         :param str|None analysis_id: UUID of analysis
         :param str|dict|None input_values: any input values for the question
         :param str|dict|octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
+        :param list(dict)|None children:
         :param logging.Handler|None analysis_log_handler: the `logging.Handler` instance which will be used to handle logs for this analysis run (this is ignored by the emulator)
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
         :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved if the analysis fails
@@ -153,6 +155,7 @@ class ChildEmulator:
                 analysis_id=analysis_id,
                 input_values=input_values,
                 input_manifest=input_manifest,
+                children=children,
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=handle_monitor_message,
                 allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
