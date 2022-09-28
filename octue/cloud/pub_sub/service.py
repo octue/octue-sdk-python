@@ -61,6 +61,7 @@ class Service(CoolNameable):
                 self.id = f"{OCTUE_NAMESPACE}.{service_id}"
 
             self.name = kwargs.get("name") or self.id
+            self._unlinted_service_id = service_id
             self.id = self._clean_service_id(self.id)
 
         self.backend = backend
@@ -117,7 +118,7 @@ class Service(CoolNameable):
 
             logger.info(
                 "You can now ask this service questions at %r using the `octue.resources.Child` class.",
-                self.id,
+                self._unlinted_service_id,
             )
 
             try:
@@ -126,7 +127,9 @@ class Service(CoolNameable):
                 future.cancel()
 
         except google.api_core.exceptions.AlreadyExists:
-            raise octue.exceptions.ServiceAlreadyExists(f"A service with the ID {self.id!r} already exists.")
+            raise octue.exceptions.ServiceAlreadyExists(
+                f"A service with the ID {self._unlinted_service_id!r} already exists."
+            )
 
         finally:
             if delete_topic_and_subscription_on_exit:
