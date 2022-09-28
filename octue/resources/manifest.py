@@ -114,7 +114,14 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
         :return dict:
         """
         self_as_primitive = super().to_primitive()
-        self_as_primitive["datasets"] = {name: dataset.path for name, dataset in self.datasets.items()}
+        self_as_primitive["datasets"] = {}
+
+        for name, dataset in self.datasets.items():
+            if dataset._instantiated_from_files_argument:
+                self_as_primitive["datasets"][name] = dataset.to_primitive()
+            else:
+                self_as_primitive["datasets"][name] = dataset.path
+
         return self_as_primitive
 
     def _instantiate_datasets(self, datasets):
@@ -150,9 +157,9 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
         if isinstance(dataset, str):
             return (key, Dataset(path=dataset, recursive=True))
 
-        # If `dataset` is a dictionary including a "path" key:
-        if storage.path.is_cloud_path(dataset["path"]):
-            return (key, Dataset(path=dataset["path"], recursive=True))
+        # If `dataset` is a cloud dataset and is represented as a dictionary including a "path" key:
+        if storage.path.is_cloud_path(dataset.get("path", "")):
+            return (key, Dataset(path=dataset["path"], files=dataset.get("files"), recursive=True))
 
         return (key, Dataset(**dataset))
 
