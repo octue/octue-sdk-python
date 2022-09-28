@@ -73,6 +73,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         self._recursive = recursive
         self._ignore_stored_metadata = ignore_stored_metadata
         self._cloud_metadata = {}
+        self._instantiated_from_files_argument = False
 
         if files:
             if not any((isinstance(files, list), isinstance(files, set), isinstance(files, tuple))):
@@ -82,6 +83,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
                 )
 
             self.files = self._instantiate_datafiles(files)
+            self._instantiated_from_files_argument = True
             return
 
         if storage.path.is_cloud_path(self.path):
@@ -377,13 +379,18 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         """
         serialised_dataset = super().to_primitive()
 
-        if self.exists_in_cloud:
-            path_type = "cloud_path"
-        else:
-            path_type = "local_path"
-
         if include_files:
-            serialised_dataset["files"] = sorted(getattr(datafile, path_type) for datafile in self.files)
+            serialised_dataset["files"] = []
+
+            for datafile in self.files:
+                if datafile.exists_in_cloud:
+                    datafile_path_type = "cloud_path"
+                else:
+                    datafile_path_type = "local_path"
+
+                serialised_dataset["files"].append(getattr(datafile, datafile_path_type))
+
+            serialised_dataset["files"] = sorted(serialised_dataset["files"])
 
         return serialised_dataset
 

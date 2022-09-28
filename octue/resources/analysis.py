@@ -131,7 +131,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
             serialised_strands["output_values"] = json.dumps(self.output_values, cls=OctueJSONEncoder)
 
         if self.output_manifest:
-            serialised_strands["output_manifest"] = self.output_manifest.to_primitive()
+            serialised_strands["output_manifest"] = self.output_manifest.serialise()
 
         self.twine.validate(**serialised_strands)
         self._finalised = True
