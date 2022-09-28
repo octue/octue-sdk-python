@@ -811,16 +811,73 @@ class TestService(BaseTestCase):
             delta=datetime.timedelta(0.05),
         )
 
+    def test_providing_dynamic_children(self):
+        def mock_child_app(analysis):
+            analysis.children["expected_child"]._service = child
+            analysis.output_values = analysis.children["expected_child"].ask(input_values=[1, 2, 3, 4])
+
+        static_children = [
+            {
+                "key": "expected_child",
+                "id": "octue/static-child-of-child",
+                "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
+            },
+        ]
+
+        runner = Runner(
+            app_src=mock_child_app,
+            twine={
+                "children": [{"key": "expected_child"}],
+                "input_values_schema": {"type": "object", "required": []},
+                "output_values_schema": {},
+            },
+            children=static_children,
+            service_id="octue/child",
+        )
+
+        static_child_of_child = self.make_new_child(
+            backend=BACKEND,
+            service_id="octue/static-child-of-child",
+            run_function_returnee=MockAnalysis(output_values="I am the static child."),
+        )
+
+        child = MockService(
+            backend=BACKEND,
+            service_id="octue/child",
+            run_function=runner.run,
+            children={static_child_of_child.id: static_child_of_child},
+        )
+
+        parent = MockService(backend=BACKEND, service_id="octue/parent", children={child.id: child})
+
+        with self.service_patcher:
+            static_child_of_child.serve()
+            child.serve()
+
+            with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
+                answer = self.ask_question_and_wait_for_answer(
+                    input_values={},
+                    parent=parent,
+                    child=child,
+                )
+
+        self.assertEqual(answer["output_values"], "I am the dynamic child.")
+
     @staticmethod
-    def make_new_child(backend, run_function_returnee):
+    def make_new_child(backend, run_function_returnee, service_id=None):
         """Make and return a new child service that returns the given run function returnee when its run function is
         executed.
 
         :param octue.resources.service_backends.ServiceBackend backend:
         :param any run_function_returnee:
+        :param str|None service_id:
         :return octue.cloud.emulators._pub_sub.MockService:
         """
-        return MockService(backend=backend, run_function=lambda *args, **kwargs: run_function_returnee)
+        return MockService(
+            backend=backend,
+            service_id=service_id,
+            run_function=lambda *args, **kwargs: run_function_returnee,
+        )
 
     def make_new_child_with_error(self, exception_to_raise):
         """Make a mock child service that raises the given exception when its run function is executed.
