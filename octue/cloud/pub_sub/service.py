@@ -52,6 +52,7 @@ class Service(CoolNameable):
     def __init__(self, backend, service_id=None, run_function=None, *args, **kwargs):
         if service_id is None:
             self.id = f"{OCTUE_NAMESPACE}.{str(uuid.uuid4())}"
+            self._unlinted_service_id = self.id
         elif not service_id:
             raise ValueError(f"service_id should be None or a non-falsey value; received {service_id!r} instead.")
         else:
