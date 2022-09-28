@@ -54,7 +54,7 @@ class Service(CoolNameable):
         if service_id is None:
             service_uuid = str(uuid.uuid4())
             self.id = f"{OCTUE_NAMESPACE}.{service_uuid}"
-            self._unlinted_service_id = service_uuid
+            self._raw_service_id = service_uuid
 
         # Raise an error if the service ID is some kind of falsey object that isn't `None`.
         elif not service_id:
@@ -64,7 +64,7 @@ class Service(CoolNameable):
         # given as a kwarg, then the `name` attribute is set to that instead.
         else:
             self.name = kwargs.get("name") or service_id
-            self._unlinted_service_id = service_id
+            self._raw_service_id = service_id
 
             if service_id.startswith(OCTUE_NAMESPACE):
                 self.id = self._clean_service_id(service_id)
@@ -125,7 +125,7 @@ class Service(CoolNameable):
 
             logger.info(
                 "You can now ask this service questions at %r using the `octue.resources.Child` class.",
-                self._unlinted_service_id,
+                self._raw_service_id,
             )
 
             try:
@@ -135,7 +135,7 @@ class Service(CoolNameable):
 
         except google.api_core.exceptions.AlreadyExists:
             raise octue.exceptions.ServiceAlreadyExists(
-                f"A service with the ID {self._unlinted_service_id!r} already exists."
+                f"A service with the ID {self._raw_service_id!r} already exists."
             )
 
         finally:
