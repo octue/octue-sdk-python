@@ -154,3 +154,65 @@ See the parent service's `app configuration <https://github.com/octue/octue-sdk-
 and `app.py file <https://github.com/octue/octue-sdk-python/blob/main/octue/templates/template-child-services/parent_service/app.py>`_
 in the  `child-services app template <https://github.com/octue/octue-sdk-python/tree/main/octue/templates/template-child-services>`_
 to see this in action.
+
+Overriding a child's children
+-----------------------------
+If the child you're asking a question to has its own children (static children), you can override these by providing the
+IDs of the children you want it to use (dynamic children) to the :mod:`Child.ask <octue.resources.child.Child.ask>`
+method. Questions that would have gone to the static children will instead go to the dynamic children. Note that:
+
+- You must provide the children in the same format as they're provided in the :ref:`app configuration <app_configuration>`
+- If you override one static child, you must override others, too
+- The dynamic children must have the same keys as the static children (so the child knows which service to ask which
+  questions)
+- You should ensure the dynamic children you provide are compatible with and appropriate for questions from the child
+  service
+
+For example, if the child requires these children in its app configuration:
+
+.. code-block:: json
+
+    [
+        {
+            "key": "wind_speed",
+            "id": "template-child-services/wind-speed-service",
+            "backend": {
+                "name": "GCPPubSubBackend",
+                "project_name": "octue-amy"
+            },
+        },
+        {
+            "key": "elevation",
+            "id": "template-child-services/elevation-service",
+            "backend": {
+                "name": "GCPPubSubBackend",
+                "project_name": "octue-amy"
+            },
+        }
+    ]
+
+then you can override them like this:
+
+.. code-block:: python
+
+    answer = child.ask(
+        input_values={"height": 32, "width": 3},
+        children=[
+            {
+                "key": "wind_speed",
+                "id": "my/own-service",
+                "backend": {
+                    "name": "GCPPubSubBackend",
+                    "project_name": "octue-amy"
+                },
+            },
+            {
+                "key": "elevation",
+                "id": "organisation/another-service",
+                "backend": {
+                    "name": "GCPPubSubBackend",
+                    "project_name": "octue-amy"
+                },
+            },
+        ],
+    )
