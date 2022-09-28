@@ -159,7 +159,7 @@ class OrderedMessageHandler:
 
         :param int|float|None timeout: the timeout for handling all messages
         :raise TimeoutError: if the timeout has been exceeded
-        :return int|float: the timeout for the next message pull
+        :return int|float: the timeout for the next message pull in seconds
         """
         if timeout is None:
             return None
