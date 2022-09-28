@@ -812,9 +812,13 @@ class TestService(BaseTestCase):
         )
 
     def test_providing_dynamic_children(self):
+        """Test that, if children are provided to the `ask` method while asking a question, the child being asked uses
+        those children instead of the children it has defined in its app configuration.
+        """
+
         def mock_child_app(analysis):
             analysis.children["expected_child"]._service = child
-            analysis.output_values = analysis.children["expected_child"].ask(input_values=[1, 2, 3, 4])
+            analysis.output_values = analysis.children["expected_child"].ask(input_values=[1, 2, 3, 4])["output_values"]
 
         static_children = [
             {
@@ -841,22 +845,41 @@ class TestService(BaseTestCase):
             run_function_returnee=MockAnalysis(output_values="I am the static child."),
         )
 
+        dynamic_child_of_child = self.make_new_child(
+            backend=BACKEND,
+            service_id="octue/dynamic-child-of-child",
+            run_function_returnee=MockAnalysis(output_values="I am the dynamic child."),
+        )
+
         child = MockService(
             backend=BACKEND,
             service_id="octue/child",
             run_function=runner.run,
-            children={static_child_of_child.id: static_child_of_child},
+            children={
+                static_child_of_child.id: static_child_of_child,
+                dynamic_child_of_child.id: dynamic_child_of_child,
+            },
         )
 
         parent = MockService(backend=BACKEND, service_id="octue/parent", children={child.id: child})
 
+        dynamic_children = [
+            {
+                "key": "expected_child",
+                "id": "octue/dynamic-child-of-child",
+                "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
+            },
+        ]
+
         with self.service_patcher:
             static_child_of_child.serve()
+            dynamic_child_of_child.serve()
             child.serve()
 
             with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
                 answer = self.ask_question_and_wait_for_answer(
                     input_values={},
+                    children=dynamic_children,
                     parent=parent,
                     child=child,
                 )
@@ -899,6 +922,7 @@ class TestService(BaseTestCase):
         child,
         input_values=None,
         input_manifest=None,
+        children=None,
         subscribe_to_logs=True,
         allow_local_files=False,
         record_messages_to=None,
@@ -917,6 +941,7 @@ class TestService(BaseTestCase):
         :param octue.cloud.emulators._pub_sub.MockService child:
         :param dict|None input_values:
         :param octue.resources.manifest.Manifest|None input_manifest:
+        :param list(dict)|None children:
         :param bool subscribe_to_logs:
         :param bool allow_local_files:
         :param str|None record_messages_to:
@@ -934,6 +959,7 @@ class TestService(BaseTestCase):
             service_id=child.id,
             input_values=input_values,
             input_manifest=input_manifest,
+            children=children,
             subscribe_to_logs=subscribe_to_logs,
             allow_local_files=allow_local_files,
             allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
