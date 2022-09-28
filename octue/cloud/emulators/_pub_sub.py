@@ -241,6 +241,7 @@ class MockService(Service):
         service_id,
         input_values=None,
         input_manifest=None,
+        children=None,
         subscribe_to_logs=True,
         allow_local_files=False,
         allow_save_diagnostics_data_on_crash=True,
@@ -255,6 +256,7 @@ class MockService(Service):
         :param str service_id:
         :param dict|list|None input_values:
         :param octue.resources.manifest.Manifest|None input_manifest:
+        :param list(dict)|None children:
         :param bool subscribe_to_logs:
         :param bool allow_local_files:
         :param bool allow_save_diagnostics_data_on_crash:
@@ -267,6 +269,7 @@ class MockService(Service):
             service_id=service_id,
             input_values=input_values,
             input_manifest=input_manifest,
+            children=children,
             subscribe_to_logs=subscribe_to_logs,
             allow_local_files=allow_local_files,
             allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
