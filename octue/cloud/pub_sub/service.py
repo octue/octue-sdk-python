@@ -67,9 +67,9 @@ class Service(CoolNameable):
             self._raw_service_id = service_id
 
             if service_id.startswith(OCTUE_NAMESPACE):
-                self.id = self._clean_service_id(service_id)
+                self.id = clean_service_id(service_id)
             else:
-                self.id = self._clean_service_id(f"{OCTUE_NAMESPACE}.{service_id}")
+                self.id = clean_service_id(f"{OCTUE_NAMESPACE}.{service_id}")
 
         self.backend = backend
         self.run_function = run_function
@@ -273,7 +273,7 @@ class Service(CoolNameable):
                 )
 
         unlinted_service_id = service_id
-        service_id = self._clean_service_id(service_id)
+        service_id = clean_service_id(service_id)
         question_topic = Topic(name=service_id, project_name=self.backend.project_name, namespace=OCTUE_NAMESPACE)
 
         if not question_topic.exists(timeout=timeout):
@@ -390,14 +390,6 @@ class Service(CoolNameable):
             topic=topic,
             timeout=timeout,
         )
-
-    def _clean_service_id(self, service_id):
-        """Replace forward slashes in the given service ID with dots.
-
-        :param str service_id: the raw service ID
-        :return str: the cleaned service ID.
-        """
-        return service_id.replace("/", ".")
 
     def _send_message(self, message, topic, timeout=30, **attributes):
         """Send a JSON-serialised message to the given topic with optional message attributes.
@@ -523,3 +515,12 @@ class Service(CoolNameable):
             allow_save_diagnostics_data_on_crash = False
 
         return data, question_uuid, forward_logs, parent_sdk_version, allow_save_diagnostics_data_on_crash
+
+
+def clean_service_id(service_id):
+    """Replace forward slashes in the given service ID with dots.
+
+    :param str service_id: the raw service ID
+    :return str: the cleaned service ID.
+    """
+    return service_id.replace("/", ".")

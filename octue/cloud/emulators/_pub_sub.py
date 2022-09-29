@@ -5,7 +5,7 @@ import google.api_core
 import pkg_resources
 
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.service import OCTUE_NAMESPACE, Service
+from octue.cloud.pub_sub.service import OCTUE_NAMESPACE, Service, clean_service_id
 from octue.resources import Manifest
 
 
@@ -285,7 +285,7 @@ class MockService(Service):
 
         try:
             if not service_id.startswith(OCTUE_NAMESPACE):
-                service_id = OCTUE_NAMESPACE + "." + service_id.replace("/", ".")
+                service_id = OCTUE_NAMESPACE + "." + clean_service_id(service_id)
 
             self.children[service_id].answer(
                 MockMessage(
