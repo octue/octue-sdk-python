@@ -5,7 +5,7 @@ Asking services questions
 =========================
 
 Octue services
---------------
+==============
 
 There's a growing range of live :ref:`services <service_definition>` in the Octue ecosystem that you can ask questions
 to and get answers from. Currently, all of them are related to wind energy. Here's a quick glossary of terms before we
@@ -38,7 +38,7 @@ tell you more:
 
 
 How to ask a question
----------------------
+=====================
 You can ask any service a question if you have its service ID, project name, and permissions. The question is formed of
 input values and/or an input manifest.
 
@@ -65,7 +65,7 @@ input values and/or an input manifest.
 
 You can also set the following options when you call :mod:`Child.ask <octue.resources.child.Child.ask>`:
 
-- ``children`` - if provided, these children will override any default children the child asks questions to as part of its analysis (see :ref:`this subsection below <overriding_children>`).
+- ``children`` - If the child has children of its own (i.e. grandchildren of the parent), this optional argument can be used to override the child's "default" children. This allows you to specify particular versions of grandchildren to use (see :ref:`this subsection below <overriding_children>`).
 - ``subscribe_to_logs`` - if true, the child will forward its logs to you
 - ``allow_local_files`` - if true, local files/datasets are allowed in any input manifest you supply
 - ``handle_monitor_message`` - if provided a function, it will be called on any monitor messages from the child
@@ -84,7 +84,7 @@ sent back to the parent. If you're not sure how long a particular analysis might
 
 
 Asking multiple questions in parallel
--------------------------------------
+=====================================
 You can also ask multiple questions to a service in parallel.
 
 .. code-block:: python
@@ -104,7 +104,7 @@ This method uses threads, allowing all the questions to be asked at once instead
 
 
 Asking a question within a service
-----------------------------------
+==================================
 If you have :doc:`created your own Octue service <creating_services>` and want to ask children questions, you can do
 this more easily than above. Children are accessible from the ``analysis`` object by the keys you give them in the
 :ref:`app configuration <app_configuration>` file. For example, you can ask an ``elevation`` service a question like
@@ -164,7 +164,7 @@ to see this in action.
 .. _overriding_children:
 
 Overriding a child's children
------------------------------
+=============================
 If the child you're asking a question to has its own children (static children), you can override these by providing the
 IDs of the children you want it to use (dynamic children) to the :mod:`Child.ask <octue.resources.child.Child.ask>`
 method. Questions that would have gone to the static children will instead go to the dynamic children. Note that:
@@ -224,3 +224,9 @@ then you can override them like this:
             },
         ],
     )
+
+Overriding beyond the first generation
+--------------------------------------
+It's an intentional choice to only go one generation deep with overriding children. If you need to be able to specify a
+whole tree of children, grandchildren, and so on, please `upvote this issue.
+<https://github.com/octue/octue-sdk-python/issues/528>`_
