@@ -320,7 +320,8 @@ class MockMessagePuller:
         self.message_number = 0
 
     def pull(self, timeout, delivery_acknowledgement_timeout):
-        """Enqueue the next message from the messages given at instantiation.
+        """Get the next message from the messages given at instantiation and enqueue it for handling in the message
+        handler.
 
         :return None:
         """
