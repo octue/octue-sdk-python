@@ -109,7 +109,7 @@ class AppConfiguration:
 
     :param str|dict|list|None configuration_values: values to configure the app
     :param str|dict|octue.resources.Manifest|None configuration_manifest: a manifest of datasets to configure the app
-    :param str|None|list children: details of the children the app requires
+    :param str|list(dict)|None children: details of the children the app requires
     :param str|None output_location: the path to a cloud directory to save output datasets at
     :return None:
     """

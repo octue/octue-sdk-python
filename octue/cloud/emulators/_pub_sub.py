@@ -5,7 +5,7 @@ import google.api_core
 import pkg_resources
 
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.service import Service
+from octue.cloud.pub_sub.service import OCTUE_NAMESPACE, Service, clean_service_id
 from octue.resources import Manifest
 
 
@@ -241,6 +241,7 @@ class MockService(Service):
         service_id,
         input_values=None,
         input_manifest=None,
+        children=None,
         subscribe_to_logs=True,
         allow_local_files=False,
         allow_save_diagnostics_data_on_crash=True,
@@ -255,6 +256,7 @@ class MockService(Service):
         :param str service_id:
         :param dict|list|None input_values:
         :param octue.resources.manifest.Manifest|None input_manifest:
+        :param list(dict)|None children:
         :param bool subscribe_to_logs:
         :param bool allow_local_files:
         :param bool allow_save_diagnostics_data_on_crash:
@@ -267,6 +269,7 @@ class MockService(Service):
             service_id=service_id,
             input_values=input_values,
             input_manifest=input_manifest,
+            children=children,
             subscribe_to_logs=subscribe_to_logs,
             allow_local_files=allow_local_files,
             allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
@@ -281,9 +284,14 @@ class MockService(Service):
             input_manifest = input_manifest.serialise()
 
         try:
+            if not service_id.startswith(OCTUE_NAMESPACE):
+                service_id = OCTUE_NAMESPACE + "." + clean_service_id(service_id)
+
             self.children[service_id].answer(
                 MockMessage(
-                    data=json.dumps({"input_values": input_values, "input_manifest": input_manifest}).encode(),
+                    data=json.dumps(
+                        {"input_values": input_values, "input_manifest": input_manifest, "children": children}
+                    ).encode(),
                     question_uuid=question_uuid,
                     forward_logs=subscribe_to_logs,
                     octue_sdk_version=parent_sdk_version,
@@ -297,25 +305,29 @@ class MockService(Service):
 
 
 class MockMessagePuller:
-    """A mock message puller that returns the messages in the order they were provided on initialisation. This is meant
-    for patching `octue.cloud.pub_sub.message_handler.OrderedMessageHandler._pull_message` in tests.
+    """A mock message puller that enqueues messages in the message handler in the order they're provided on
+    initialisation. This is meant for patching
+    `octue.cloud.pub_sub.message_handler.OrderedMessageHandler._pull_and_enqueue_message` in tests.
 
     :param iter(dict) messages:
+    :param octue.cloud.pub_sub.message_handler.OrderedMessageHandler message_handler:
     :return None:
     """
 
-    def __init__(self, messages):
+    def __init__(self, messages, message_handler):
         self.messages = messages
+        self.message_handler = message_handler
         self.message_number = 0
 
     def pull(self, timeout, delivery_acknowledgement_timeout):
-        """Get the next message from the messages given at initialisation.
+        """Get the next message from the messages given at instantiation and enqueue it for handling in the message
+        handler.
 
-        :return dict:
+        :return None:
         """
         message = self.messages[self.message_number]
+        self.message_handler._waiting_messages[int(message["message_number"])] = message
         self.message_number += 1
-        return message
 
 
 class MockAnalysis:

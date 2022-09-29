@@ -134,13 +134,10 @@ class TestService(BaseTestCase):
 
         with self.service_patcher:
             child.serve()
+            subscription, _ = parent.ask(service_id=child.id, input_values={})
 
             with self.assertRaises(twined.exceptions.InvalidManifestContents) as context:
-                self.ask_question_and_wait_for_answer(
-                    parent=parent,
-                    child=child,
-                    input_values={},
-                )
+                parent.wait_for_answer(subscription=subscription)
 
         self.assertIn("'met_mast_id' is a required property", context.exception.args[0])
 
@@ -153,13 +150,10 @@ class TestService(BaseTestCase):
 
         with self.service_patcher:
             child.serve()
+            subscription, _ = parent.ask(service_id=child.id, input_values={})
 
             with self.assertRaises(FileNotFoundError) as context:
-                self.ask_question_and_wait_for_answer(
-                    parent=parent,
-                    child=child,
-                    input_values={},
-                )
+                parent.wait_for_answer(subscription)
 
         self.assertIn("[Errno 2] No such file or directory: 'blah'", format(context.exception))
 
@@ -174,13 +168,10 @@ class TestService(BaseTestCase):
 
         with self.service_patcher:
             child.serve()
+            subscription, _ = parent.ask(service_id=child.id, input_values={})
 
             with self.assertRaises(Exception) as context:
-                self.ask_question_and_wait_for_answer(
-                    parent=parent,
-                    child=child,
-                    input_values={},
-                )
+                parent.wait_for_answer(subscription)
 
         self.assertEqual(type(context.exception).__name__, "AnUnknownException")
         self.assertIn("This is an exception unknown to the asker.", context.exception.args[0])
@@ -196,13 +187,8 @@ class TestService(BaseTestCase):
         with self.assertLogs() as logging_context:
             with self.service_patcher:
                 child.serve()
-
-                answer = self.ask_question_and_wait_for_answer(
-                    parent=parent,
-                    child=child,
-                    input_values={},
-                    subscribe_to_logs=False,
-                )
+                subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=False)
+                answer = parent.wait_for_answer(subscription)
 
         self.assertEqual(
             answer,
@@ -222,14 +208,8 @@ class TestService(BaseTestCase):
         with self.assertLogs() as logs_context_manager:
             with self.service_patcher:
                 child.serve()
-
-                answer = self.ask_question_and_wait_for_answer(
-                    parent=parent,
-                    child=child,
-                    input_values={},
-                    subscribe_to_logs=True,
-                    service_name="my-super-service",
-                )
+                subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
+                answer = parent.wait_for_answer(subscription, service_name="my-super-service")
 
         self.assertEqual(
             answer,
@@ -271,17 +251,11 @@ class TestService(BaseTestCase):
         child = MockService(backend=BACKEND, run_function=create_exception_logging_run_function())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with self.assertLogs() as logs_context_manager:
+        with self.assertLogs(level=logging.ERROR) as logs_context_manager:
             with self.service_patcher:
                 child.serve()
-
-                self.ask_question_and_wait_for_answer(
-                    parent=parent,
-                    child=child,
-                    input_values={},
-                    subscribe_to_logs=True,
-                    service_name="my-super-service",
-                )
+                subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
+                parent.wait_for_answer(subscription, service_name="my-super-service")
 
         error_logged = False
 
@@ -322,17 +296,14 @@ class TestService(BaseTestCase):
 
         with self.service_patcher:
             child.serve()
-
             subscription, _ = parent.ask(child.id, input_values={})
-            monitoring_data = []
 
-            parent.wait_for_answer(
-                subscription,
-                handle_monitor_message=lambda data: monitoring_data.append(data),
-            )
+            monitoring_data = []
+            parent.wait_for_answer(subscription, handle_monitor_message=lambda data: monitoring_data.append(data))
 
         self.assertEqual(
-            monitoring_data, [{"status": "my first monitor message"}, {"status": "my second monitor message"}]
+            monitoring_data,
+            [{"status": "my first monitor message"}, {"status": "my second monitor message"}],
         )
 
     def test_monitoring_update_fails_if_schema_not_met(self):
@@ -364,7 +335,6 @@ class TestService(BaseTestCase):
 
         with self.service_patcher:
             child.serve()
-
             subscription, _ = parent.ask(child.id, input_values={})
             monitoring_data = []
 
@@ -374,10 +344,7 @@ class TestService(BaseTestCase):
                     handle_monitor_message=lambda data: monitoring_data.append(data),
                 )
 
-        self.assertEqual(
-            monitoring_data,
-            [{"status": "my first monitor message"}],
-        )
+        self.assertEqual(monitoring_data, [{"status": "my first monitor message"}])
 
     def test_ask_with_input_manifest(self):
         """Test that a service can ask a question including an input manifest to another service that is serving and
@@ -401,12 +368,8 @@ class TestService(BaseTestCase):
             child.serve()
 
             with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
-                answer = self.ask_question_and_wait_for_answer(
-                    parent=parent,
-                    child=child,
-                    input_values={},
-                    input_manifest=input_manifest,
-                )
+                subscription, _ = parent.ask(service_id=child.id, input_values={}, input_manifest=input_manifest)
+                answer = parent.wait_for_answer(subscription)
 
         self.assertEqual(
             answer,
@@ -435,11 +398,8 @@ class TestService(BaseTestCase):
             child.serve()
 
             with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
-                answer = self.ask_question_and_wait_for_answer(
-                    parent=parent,
-                    child=child,
-                    input_manifest=input_manifest,
-                )
+                subscription, _ = parent.ask(service_id=child.id, input_manifest=input_manifest)
+                answer = parent.wait_for_answer(subscription)
 
         self.assertEqual(
             answer,
@@ -482,13 +442,14 @@ class TestService(BaseTestCase):
         with self.service_patcher:
             child.serve()
 
-            answer = self.ask_question_and_wait_for_answer(
-                parent=parent,
-                child=child,
+            subscription, _ = parent.ask(
+                service_id=child.id,
                 input_values={},
                 input_manifest=manifest,
                 allow_local_files=True,
             )
+
+            answer = parent.wait_for_answer(subscription)
 
         self.assertEqual(answer["output_values"], "This is a local file.")
 
@@ -499,12 +460,8 @@ class TestService(BaseTestCase):
 
         with self.service_patcher:
             child.serve()
-
-            answer = self.ask_question_and_wait_for_answer(
-                parent=parent,
-                child=child,
-                input_values={},
-            )
+            subscription, _ = parent.ask(service_id=child.id, input_values={})
+            answer = parent.wait_for_answer(subscription)
 
         self.assertEqual(answer["output_values"], MockAnalysisWithOutputManifest.output_values)
         self.assertEqual(answer["output_manifest"].id, MockAnalysisWithOutputManifest.output_manifest.id)
@@ -516,17 +473,11 @@ class TestService(BaseTestCase):
 
         with self.service_patcher:
             child.serve()
-
             answers = []
 
             for i in range(5):
-                answers.append(
-                    self.ask_question_and_wait_for_answer(
-                        parent=parent,
-                        child=child,
-                        input_values={},
-                    )
-                )
+                subscription, _ = parent.ask(service_id=child.id, input_values={})
+                answers.append(parent.wait_for_answer(subscription))
 
         for answer in answers:
             self.assertEqual(
@@ -545,17 +496,11 @@ class TestService(BaseTestCase):
             child_1.serve()
             child_2.serve()
 
-            answer_1 = self.ask_question_and_wait_for_answer(
-                parent=parent,
-                child=child_1,
-                input_values={},
-            )
+            subscription, _ = parent.ask(service_id=child_1.id, input_values={})
+            answer_1 = parent.wait_for_answer(subscription)
 
-            answer_2 = self.ask_question_and_wait_for_answer(
-                parent=parent,
-                child=child_2,
-                input_values={},
-            )
+            subscription, _ = parent.ask(service_id=child_2.id, input_values={})
+            answer_2 = parent.wait_for_answer(subscription)
 
         self.assertEqual(
             answer_1,
@@ -590,11 +535,12 @@ class TestService(BaseTestCase):
             child.serve()
             child_of_child.serve()
 
-            answer = self.ask_question_and_wait_for_answer(
-                parent=parent,
-                child=child,
+            subscription, _ = parent.ask(
+                service_id=child.id,
                 input_values={"question": "What does the child of the child say?"},
             )
+
+            answer = parent.wait_for_answer(subscription)
 
         self.assertEqual(
             answer,
@@ -638,11 +584,12 @@ class TestService(BaseTestCase):
             first_child_of_child.serve()
             second_child_of_child.serve()
 
-            answer = self.ask_question_and_wait_for_answer(
-                parent=parent,
-                child=child,
+            subscription, _ = parent.ask(
+                service_id=child.id,
                 input_values={"question": "What does the child of the child say?"},
             )
+
+            answer = parent.wait_for_answer(subscription)
 
         self.assertEqual(
             answer,
@@ -671,14 +618,14 @@ class TestService(BaseTestCase):
         with self.service_patcher:
             child.serve()
 
-            self.ask_question_and_wait_for_answer(
-                parent=parent,
-                child=child,
+            subscription, _ = parent.ask(
+                service_id=child.id,
                 input_values={},
                 subscribe_to_logs=True,
                 allow_save_diagnostics_data_on_crash=False,
-                service_name="my-super-service",
             )
+
+            parent.wait_for_answer(subscription, service_name="my-super-service")
 
         # Check that the child's messages haven't been recorded.
         self.assertEqual(child._sent_messages, [])
@@ -693,14 +640,14 @@ class TestService(BaseTestCase):
         with self.service_patcher:
             child.serve()
 
-            self.ask_question_and_wait_for_answer(
-                parent=parent,
-                child=child,
+            subscription, _ = parent.ask(
+                service_id=child.id,
                 input_values={},
                 subscribe_to_logs=True,
                 allow_save_diagnostics_data_on_crash=True,
-                service_name="my-super-service",
             )
+
+            parent.wait_for_answer(subscription, service_name="my-super-service")
 
         # Check that the child's messages have been recorded.
         self.assertEqual(child._sent_messages[0]["type"], "delivery_acknowledgement")
@@ -722,11 +669,10 @@ class TestService(BaseTestCase):
             child.serve()
 
             with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
-                self.ask_question_and_wait_for_answer(
-                    parent=parent,
-                    child=child,
-                    input_values={},
-                    subscribe_to_logs=True,
+                subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
+
+                parent.wait_for_answer(
+                    subscription,
                     record_messages_to=temporary_file.name,
                     service_name="my-super-service",
                 )
@@ -755,11 +701,10 @@ class TestService(BaseTestCase):
 
             with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
                 with self.assertRaises(ValueError):
-                    self.ask_question_and_wait_for_answer(
-                        parent=parent,
-                        child=child,
-                        input_values={},
-                        subscribe_to_logs=True,
+                    subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
+
+                    parent.wait_for_answer(
+                        subscription,
                         record_messages_to=temporary_file.name,
                         service_name="my-super-service",
                     )
@@ -790,14 +735,14 @@ class TestService(BaseTestCase):
                 "octue.cloud.emulators._pub_sub.MockService.answer",
                 functools.partial(child.answer, heartbeat_interval=expected_interval),
             ):
-                self.ask_question_and_wait_for_answer(
-                    parent=parent,
-                    child=child,
+                subscription, _ = parent.ask(
+                    service_id=child.id,
                     input_values={},
                     subscribe_to_logs=True,
                     allow_save_diagnostics_data_on_crash=True,
-                    service_name="my-super-service",
                 )
+
+                parent.wait_for_answer(subscription, service_name="my-super-service")
 
         self.assertEqual(child._sent_messages[1]["type"], "heartbeat")
         self.assertEqual(child._sent_messages[2]["type"], "heartbeat")
@@ -811,16 +756,91 @@ class TestService(BaseTestCase):
             delta=datetime.timedelta(0.05),
         )
 
+    def test_providing_dynamic_children(self):
+        """Test that, if children are provided to the `ask` method while asking a question, the child being asked uses
+        those children instead of the children it has defined in its app configuration.
+        """
+
+        def mock_child_app(analysis):
+            analysis.children["expected_child"]._service = child
+            analysis.output_values = analysis.children["expected_child"].ask(input_values=[1, 2, 3, 4])["output_values"]
+
+        static_children = [
+            {
+                "key": "expected_child",
+                "id": "octue/static-child-of-child",
+                "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
+            },
+        ]
+
+        runner = Runner(
+            app_src=mock_child_app,
+            twine={
+                "children": [{"key": "expected_child"}],
+                "input_values_schema": {"type": "object", "required": []},
+                "output_values_schema": {},
+            },
+            children=static_children,
+            service_id="octue/child",
+        )
+
+        static_child_of_child = self.make_new_child(
+            backend=BACKEND,
+            service_id="octue/static-child-of-child",
+            run_function_returnee=MockAnalysis(output_values="I am the static child."),
+        )
+
+        dynamic_child_of_child = self.make_new_child(
+            backend=BACKEND,
+            service_id="octue/dynamic-child-of-child",
+            run_function_returnee=MockAnalysis(output_values="I am the dynamic child."),
+        )
+
+        child = MockService(
+            backend=BACKEND,
+            service_id="octue/child",
+            run_function=runner.run,
+            children={
+                static_child_of_child.id: static_child_of_child,
+                dynamic_child_of_child.id: dynamic_child_of_child,
+            },
+        )
+
+        parent = MockService(backend=BACKEND, service_id="octue/parent", children={child.id: child})
+
+        dynamic_children = [
+            {
+                "key": "expected_child",
+                "id": "octue/dynamic-child-of-child",
+                "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
+            },
+        ]
+
+        with self.service_patcher:
+            static_child_of_child.serve()
+            dynamic_child_of_child.serve()
+            child.serve()
+
+            subscription, _ = parent.ask(service_id=child.id, input_values={}, children=dynamic_children)
+            answer = parent.wait_for_answer(subscription)
+
+        self.assertEqual(answer["output_values"], "I am the dynamic child.")
+
     @staticmethod
-    def make_new_child(backend, run_function_returnee):
+    def make_new_child(backend, run_function_returnee, service_id=None):
         """Make and return a new child service that returns the given run function returnee when its run function is
         executed.
 
         :param octue.resources.service_backends.ServiceBackend backend:
         :param any run_function_returnee:
+        :param str|None service_id:
         :return octue.cloud.emulators._pub_sub.MockService:
         """
-        return MockService(backend=backend, run_function=lambda *args, **kwargs: run_function_returnee)
+        return MockService(
+            backend=backend,
+            service_id=service_id,
+            run_function=lambda *args, **kwargs: run_function_returnee,
+        )
 
     def make_new_child_with_error(self, exception_to_raise):
         """Make a mock child service that raises the given exception when its run function is executed.
@@ -835,64 +855,6 @@ class TestService(BaseTestCase):
 
         child.run_function = error_run_function
         return child
-
-    @staticmethod
-    def ask_question_and_wait_for_answer(
-        parent,
-        child,
-        input_values=None,
-        input_manifest=None,
-        subscribe_to_logs=True,
-        allow_local_files=False,
-        record_messages_to=None,
-        allow_save_diagnostics_data_on_crash=True,
-        service_name="my-service",
-        question_uuid=None,
-        push_endpoint=None,
-        timeout=30,
-        delivery_acknowledgement_timeout=30,
-        parent_sdk_version=None,
-        maximum_heartbeat_interval=300,
-    ):
-        """Get a parent service to ask a question to a child service and wait for the answer.
-
-        :param octue.cloud.emulators._pub_sub.MockService parent:
-        :param octue.cloud.emulators._pub_sub.MockService child:
-        :param dict|None input_values:
-        :param octue.resources.manifest.Manifest|None input_manifest:
-        :param bool subscribe_to_logs:
-        :param bool allow_local_files:
-        :param str|None record_messages_to:
-        :param bool allow_save_diagnostics_data_on_crash:
-        :param str service_name:
-        :param str|None question_uuid:
-        :param callable|None push_endpoint:
-        :param int|float timeout:
-        :param int|float delivery_acknowledgement_timeout:
-        :param str|None parent_sdk_version:
-        :param int|float maximum_heartbeat_interval:
-        :return dict:
-        """
-        subscription, _ = parent.ask(
-            service_id=child.id,
-            input_values=input_values,
-            input_manifest=input_manifest,
-            subscribe_to_logs=subscribe_to_logs,
-            allow_local_files=allow_local_files,
-            allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
-            question_uuid=question_uuid,
-            push_endpoint=push_endpoint,
-            timeout=timeout,
-            parent_sdk_version=parent_sdk_version,
-        )
-
-        return parent.wait_for_answer(
-            subscription=subscription,
-            record_messages_to=record_messages_to,
-            service_name=service_name,
-            delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
-            maximum_heartbeat_interval=maximum_heartbeat_interval,
-        )
 
     @staticmethod
     def create_run_function():

@@ -50,18 +50,26 @@ class Service(CoolNameable):
     """
 
     def __init__(self, backend, service_id=None, run_function=None, *args, **kwargs):
+        # If no service ID is given, use a random UUID for `id` and set `name` to a "cool name".
         if service_id is None:
-            self.id = f"{OCTUE_NAMESPACE}.{str(uuid.uuid4())}"
+            service_uuid = str(uuid.uuid4())
+            self.id = f"{OCTUE_NAMESPACE}.{service_uuid}"
+            self._raw_service_id = service_uuid
+
+        # Raise an error if the service ID is some kind of falsey object that isn't `None`.
         elif not service_id:
             raise ValueError(f"service_id should be None or a non-falsey value; received {service_id!r} instead.")
-        else:
-            if service_id.startswith(OCTUE_NAMESPACE):
-                self.id = service_id
-            else:
-                self.id = f"{OCTUE_NAMESPACE}.{service_id}"
 
-            self.name = kwargs.get("name") or self.id
-            self.id = self._clean_service_id(self.id)
+        # If a service ID is given, set `name` to it but set `id` to a namespaced, cleaned version of it. If a `name` is
+        # given as a kwarg, then the `name` attribute is set to that instead.
+        else:
+            self.name = kwargs.get("name") or service_id
+            self._raw_service_id = service_id
+
+            if service_id.startswith(OCTUE_NAMESPACE):
+                self.id = clean_service_id(service_id)
+            else:
+                self.id = clean_service_id(f"{OCTUE_NAMESPACE}.{service_id}")
 
         self.backend = backend
         self.run_function = run_function
@@ -117,7 +125,7 @@ class Service(CoolNameable):
 
             logger.info(
                 "You can now ask this service questions at %r using the `octue.resources.Child` class.",
-                self.id,
+                self._raw_service_id,
             )
 
             try:
@@ -126,7 +134,9 @@ class Service(CoolNameable):
                 future.cancel()
 
         except google.api_core.exceptions.AlreadyExists:
-            raise octue.exceptions.ServiceAlreadyExists(f"A service with the ID {self.id!r} already exists.")
+            raise octue.exceptions.ServiceAlreadyExists(
+                f"A service with the ID {self._raw_service_id!r} already exists."
+            )
 
         finally:
             if delete_topic_and_subscription_on_exit:
@@ -193,6 +203,7 @@ class Service(CoolNameable):
                 analysis_id=question_uuid,
                 input_values=data["input_values"],
                 input_manifest=data["input_manifest"],
+                children=data.get("children"),
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=functools.partial(self._send_monitor_message, topic=topic),
                 allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
@@ -229,6 +240,7 @@ class Service(CoolNameable):
         service_id,
         input_values=None,
         input_manifest=None,
+        children=None,
         subscribe_to_logs=True,
         allow_local_files=False,
         allow_save_diagnostics_data_on_crash=True,
@@ -243,6 +255,7 @@ class Service(CoolNameable):
         :param str service_id: the ID of the child to ask the question to
         :param any|None input_values: any input values for the question
         :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
+        :param list(dict)|None children: a list of children for the child to use instead of its default children (if it uses children). These should be in the same format as in an app's app configuration file and have the same keys.
         :param bool subscribe_to_logs: if `True`, subscribe to the child's logs and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will be able to access these local files
         :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved by the child if it fails while processing them
@@ -260,7 +273,7 @@ class Service(CoolNameable):
                 )
 
         unlinted_service_id = service_id
-        service_id = self._clean_service_id(service_id)
+        service_id = clean_service_id(service_id)
         question_topic = Topic(name=service_id, project_name=self.backend.project_name, namespace=OCTUE_NAMESPACE)
 
         if not question_topic.exists(timeout=timeout):
@@ -287,7 +300,7 @@ class Service(CoolNameable):
             serialised_input_manifest = input_manifest.serialise()
 
         self._send_message(
-            {"input_values": input_values, "input_manifest": serialised_input_manifest},
+            {"input_values": input_values, "input_manifest": serialised_input_manifest, "children": children},
             topic=question_topic,
             question_uuid=question_uuid,
             forward_logs=subscribe_to_logs,
@@ -377,14 +390,6 @@ class Service(CoolNameable):
             topic=topic,
             timeout=timeout,
         )
-
-    def _clean_service_id(self, service_id):
-        """Replace forward slashes in the given service ID with dots.
-
-        :param str service_id: the raw service ID
-        :return str: the cleaned service ID.
-        """
-        return service_id.replace("/", ".")
 
     def _send_message(self, message, topic, timeout=30, **attributes):
         """Send a JSON-serialised message to the given topic with optional message attributes.
@@ -510,3 +515,12 @@ class Service(CoolNameable):
             allow_save_diagnostics_data_on_crash = False
 
         return data, question_uuid, forward_logs, parent_sdk_version, allow_save_diagnostics_data_on_crash
+
+
+def clean_service_id(service_id):
+    """Replace forward slashes in the given service ID with dots.
+
+    :param str service_id: the raw service ID
+    :return str: the cleaned service ID.
+    """
+    return service_id.replace("/", ".")

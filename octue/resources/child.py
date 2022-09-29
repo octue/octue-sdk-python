@@ -41,6 +41,7 @@ class Child:
         self,
         input_values=None,
         input_manifest=None,
+        children=None,
         subscribe_to_logs=True,
         allow_local_files=False,
         handle_monitor_message=None,
@@ -55,6 +56,7 @@ class Child:
 
         :param any|None input_values: any input values for the question
         :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
+        :param list(dict)|None children: a list of children for the child to use instead of its default children (if it uses children). These should be in the same format as in an app's app configuration file and have the same keys.
         :param bool subscribe_to_logs: if `True`, subscribe to logs from the child and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will have access to these local files
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
@@ -69,6 +71,7 @@ class Child:
             service_id=self.id,
             input_values=input_values,
             input_manifest=input_manifest,
+            children=children,
             subscribe_to_logs=subscribe_to_logs,
             allow_local_files=allow_local_files,
             allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
