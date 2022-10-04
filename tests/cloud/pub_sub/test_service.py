@@ -4,6 +4,7 @@ import json
 import logging
 import tempfile
 import time
+import unittest
 import uuid
 from unittest.mock import patch
 
@@ -22,7 +23,7 @@ from octue.cloud.emulators._pub_sub import (
 )
 from octue.cloud.emulators.child import ServicePatcher
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
-from octue.cloud.pub_sub.service import Service
+from octue.cloud.pub_sub.service import Service, clean_service_id
 from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
@@ -880,3 +881,21 @@ class TestService(BaseTestCase):
         """
 
         return Runner(app_src=mock_app, twine=twine).run
+
+
+class TestCleanServiceID(unittest.TestCase):
+    def test_clean_service_id(self):
+        """Test that service IDs containing organisations, revision tags, and the services namespace are all cleaned
+        correctly.
+        """
+        service_ids = (
+            ("my-service", "my-service"),
+            ("octue/my-service", "octue.my-service"),
+            ("octue/my-service:0.1.7", "octue.my-service.0-1-7"),
+            ("my-service:3.1.9", "my-service.3-1-9"),
+            ("octue.services.octue/my-service:0.1.7", "octue.services.octue.my-service.0-1-7"),
+        )
+
+        for uncleaned_service_id, cleaned_service_id in service_ids:
+            with self.subTest(uncleaned_service_id=uncleaned_service_id, cleaned_service_id=cleaned_service_id):
+                self.assertEqual(clean_service_id(uncleaned_service_id), cleaned_service_id)
