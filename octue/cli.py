@@ -13,7 +13,8 @@ from google import auth
 
 from octue.cloud import storage
 from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
-from octue.cloud.pub_sub.service import Service
+from octue.cloud.pub_sub import Subscription, Topic
+from octue.cloud.pub_sub.service import Service, clean_service_id
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.configuration import load_service_and_app_configuration
 from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
@@ -339,6 +340,38 @@ def dataflow(service_config, no_cache, update, dataflow_job_only, image_uri):
         return
 
     deployer.deploy(no_cache=no_cache, update=update)
+
+
+@deploy.command()
+@click.argument("project_name")
+@click.argument("service_id")
+@click.argument("push_endpoint")
+@click.option(
+    "--revision-tag",
+    is_flag=False,
+    default="latest",
+    show_default=True,
+    help="The tag used as a suffix to the service ID when creating a Service Revision Unique Identifier (e.g. 1.0.7)",
+)
+def create_push_subscription(project_name, service_id, push_endpoint, revision_tag):
+    """Create a push subscription on Google Pub/Sub from the Octue service to the push endpoint. If a corresponding
+    topic doesn't exist, it will be created.
+
+    PROJECT_NAME is the name of the Google Cloud project in which the subscription will be created
+
+    SERVICE_ID is the ID of the service in kebab case, optionally preceded by an organisation name (e.g. `wake-service`
+    or `octue/example-service`))
+
+    PUSH_ENDPOINT is the HTTP/HTTPS endpoint of the service to push to. It should be fully formed and include the
+    'https://' prefix
+    """
+    service_id = clean_service_id(f"{service_id}:{revision_tag}")
+
+    topic = Topic(name=service_id, project_name=project_name)
+    topic.create(allow_existing=True)
+
+    subscription = Subscription(name=service_id, topic=topic, project_name=project_name, push_endpoint=push_endpoint)
+    subscription.create()
 
 
 def _add_monitor_message_to_file(path, monitor_message):
