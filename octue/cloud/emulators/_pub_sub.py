@@ -12,6 +12,7 @@ from octue.resources import Manifest
 logger = logging.getLogger(__name__)
 
 MESSAGES = {}
+SUBSCRIPTIONS = {}
 
 
 class MockTopic(Topic):
@@ -54,13 +55,23 @@ class MockTopic(Topic):
 class MockSubscription(Subscription):
     """A mock subscription that registers in a global dictionary rather than Google Pub/Sub."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._subscriber = MockSubscriber()
+
     def create(self, allow_existing=False):
-        """Do nothing.
+        """Register the subscription in the global subscriptions dictionary.
 
         :param bool allow_existing:
         :return None:
         """
-        self._created = True
+        if not allow_existing:
+            if self.exists():
+                raise google.api_core.exceptions.AlreadyExists(f"Subscription {self.path!r} already exists.")
+
+        if not self.exists():
+            SUBSCRIPTIONS[get_service_id(self.path)] = []
+            self._created = True
 
     def delete(self):
         """Do nothing.
@@ -68,6 +79,14 @@ class MockSubscription(Subscription):
         :return None:
         """
         pass
+
+    def exists(self, timeout=5):
+        """Check if the subscription exists in the global subscriptions dictionary.
+
+        :param float timeout:
+        :return bool:
+        """
+        return get_service_id(self.path) in SUBSCRIPTIONS
 
 
 class MockFuture:
