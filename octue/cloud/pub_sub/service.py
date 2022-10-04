@@ -523,4 +523,4 @@ def clean_service_id(service_id):
     :param str service_id: the raw service ID
     :return str: the cleaned service ID.
     """
-    return service_id.replace("/", ".")
+    return service_id.replace("/", ".").replace(":", ".")
