@@ -4,6 +4,7 @@ import tempfile
 import unittest.mock
 import uuid
 from unittest import mock
+from unittest.mock import patch
 
 import yaml
 from click.testing import CliRunner
@@ -11,10 +12,12 @@ from click.testing import CliRunner
 from octue import Runner
 from octue.cli import octue_cli
 from octue.cloud import storage
-from octue.cloud.emulators._pub_sub import MockService
+from octue.cloud.emulators._pub_sub import MockService, MockSubscription, MockTopic
 from octue.cloud.emulators.child import ServicePatcher
+from octue.cloud.pub_sub import Subscription, Topic
 from octue.configuration import AppConfiguration, ServiceConfiguration
 from octue.resources import Datafile
+from octue.utils.patches import MultiPatcher
 from tests import TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
 from tests.mocks import MockOpen
@@ -307,3 +310,35 @@ class TestDeployCommand(BaseTestCase):
 
         self.assertEqual(result.exit_code, 1)
         self.assertIsInstance(result.exception, ImportWarning)
+
+    def test_create_push_subscription(self):
+        """Test that a push subscription can be created using the `octue deploy create-push-subscription` command."""
+        with MultiPatcher(
+            patches=[patch("octue.cli.Topic", new=MockTopic), patch("octue.cli.Subscription", new=MockSubscription)]
+        ):
+            result = CliRunner().invoke(
+                octue_cli,
+                [
+                    "deploy",
+                    "create-push-subscription",
+                    "my-project",
+                    "octue/example-service",
+                    "https://example.com/endpoint",
+                    "--revision-tag=3.5.0",
+                ],
+            )
+
+        with MultiPatcher(
+            patches=[
+                patch("tests.test_cli.Topic", new=MockTopic),
+                patch("tests.test_cli.Subscription", new=MockSubscription),
+            ]
+        ):
+            topic = Topic(name="octue.example-service.3-5-0", project_name="my-project")
+            self.assertTrue(topic.exists())
+
+            subscription = Subscription(name="octue.example-service.3-5-0", topic=topic, project_name="my-project")
+            self.assertTrue(subscription.exists())
+
+        self.assertIsNone(result.exception)
+        self.assertEqual(result.exit_code, 0)
