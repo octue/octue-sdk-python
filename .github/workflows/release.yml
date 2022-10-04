@@ -18,7 +18,6 @@ jobs:
       USING_COVERAGE: '3.9'
     strategy:
       matrix:
-        python: [ 3.9 ]
         os: [ ubuntu-latest, windows-latest, macos-latest ]
     permissions:
       id-token: write
@@ -29,7 +28,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python }}
+          python-version: 3.9
 
       - name: Install Poetry
         uses: snok/install-poetry@v1

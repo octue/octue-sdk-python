@@ -18,18 +18,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - uses: octue/generate-pull-request-description
       with:
-        # Set fetch-depth to 0 to fetch all commit history (necessary for compiling pull request description).
-        fetch-depth: 0
-    - name: Install release note compiler
-      run: pip install git+https://github.com/octue/conventional-commits
-    - name: Compile new pull request description
-      run: |
-        echo 'PULL_REQUEST_NOTES<<EOF' >> $GITHUB_ENV
-        echo "$(compile-release-notes PULL_REQUEST_START --pull-request-url=${{ github.event.pull_request.url }} --api-token=${{ secrets.GITHUB_TOKEN }})" >> $GITHUB_ENV
-        echo EOF >> $GITHUB_ENV
+        pull_request_url: ${{ github.event.pull_request.url }}
+        api_token: ${{ secrets.GITHUB_TOKEN }}
     - name: Update pull request body
       uses: riskledger/update-pr-description@v2
       with:
-        body: ${{ env.PULL_REQUEST_NOTES }}
+        body: ${{ env.PULL_REQUEST_DESCRIPTION }}
         token: ${{ secrets.GITHUB_TOKEN }}
