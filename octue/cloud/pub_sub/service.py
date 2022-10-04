@@ -518,9 +518,9 @@ class Service(CoolNameable):
 
 
 def clean_service_id(service_id):
-    """Replace forward slashes in the given service ID with dots.
+    """Replace dots with dashes and forward slashes and colons with dots in the given service ID.
 
     :param str service_id: the raw service ID
     :return str: the cleaned service ID.
     """
-    return service_id.replace("/", ".").replace(":", ".")
+    return service_id.replace(".", "-").replace("/", ".").replace(":", ".")
