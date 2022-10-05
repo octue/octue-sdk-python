@@ -240,7 +240,7 @@ def start(service_config, timeout, no_rm):
         service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=not no_rm)
 
     except ServiceAlreadyExists:
-        service_id = service_id + "-" + coolname.generate_slug(2)
+        service_id = service_id + ":" + coolname.generate_slug(2)
 
         while True:
             user_confirmation = input(f"Service already exists. Create new service with ID {service_id!r}? [Y/n]\n")
