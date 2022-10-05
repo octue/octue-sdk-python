@@ -26,6 +26,7 @@ from octue.utils.threads import RepeatingTimer
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_NAMESPACE = "default"
 ANSWERS_NAMESPACE = "answers"
 
 # Switch message batching off by setting `max_messages` to 1. This minimises latency and is recommended for
@@ -53,8 +54,8 @@ class Service(CoolNameable):
         # If no service ID is given, use a random UUID for `id` and set `name` to a "cool name".
         if service_id is None:
             service_uuid = str(uuid.uuid4())
-            self.id = service_uuid
-            self._raw_service_id = service_uuid
+            self._raw_service_id = DEFAULT_NAMESPACE + "/" + service_uuid
+            self.id = clean_service_id(self._raw_service_id)
 
         # Raise an error if the service ID is some kind of falsey object that isn't `None`.
         elif not service_id:
@@ -65,7 +66,7 @@ class Service(CoolNameable):
         else:
             self.name = kwargs.get("name") or service_id
             self._raw_service_id = service_id
-            self.id = clean_service_id(service_id)
+            self.id = clean_service_id(self._raw_service_id)
 
         self.backend = backend
         self.run_function = run_function
