@@ -15,6 +15,7 @@ from octue.cloud import storage
 from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import Service
+from octue.cloud.service_id import clean_service_id, create_service_id
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.configuration import load_service_and_app_configuration
 from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
@@ -22,7 +23,6 @@ from octue.exceptions import ServiceAlreadyExists
 from octue.log_handlers import apply_log_handler, get_remote_handler
 from octue.resources import service_backends
 from octue.runner import Runner
-from octue.utils.cleaning import clean_service_id
 from octue.utils.encoders import OctueJSONEncoder
 from twined import Twine
 
@@ -187,6 +187,12 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
     help="The path to an `octue.yaml` file defining the service to start.",
 )
 @click.option(
+    "-c",
+    "--revision-tag",
+    type=str,
+    help="A tag to use for this revision of the service (e.g. 1.3.7).",
+)
+@click.option(
     "--timeout",
     type=click.INT,
     default=None,
@@ -200,11 +206,20 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
     show_default=True,
     help="Don't delete the Google Pub/Sub topic and subscription for the service on exit.",
 )
-def start(service_config, timeout, no_rm):
+def start(service_config, revision_tag, timeout, no_rm):
     """Start an Octue service or digital twin locally as a child so it can be asked questions by other Octue services.
     The service's pub/sub topic and subscription are deleted on exit.
     """
     service_configuration, app_configuration = load_service_and_app_configuration(service_config)
+
+    if revision_tag:
+        service_id = create_service_id(service_configuration.namespace, service_configuration.name, revision_tag)
+    else:
+        service_id = create_service_id(
+            service_configuration.namespace,
+            service_configuration.name,
+            coolname.generate_slug(2),
+        )
 
     runner = Runner(
         app_src=service_configuration.app_source_path,
@@ -214,7 +229,7 @@ def start(service_config, timeout, no_rm):
         children=app_configuration.children,
         output_location=app_configuration.output_location,
         crash_diagnostics_cloud_path=service_configuration.crash_diagnostics_cloud_path,
-        service_id=service_configuration.service_id,
+        service_id=service_id,
     )
 
     run_function = functools.partial(
@@ -233,14 +248,18 @@ def start(service_config, timeout, no_rm):
         _, project_name = auth.default()
         backend = service_backends.get_backend()(project_name=project_name)
 
-    service_id = service_configuration.service_id
     service = Service(service_id=service_id, backend=backend, run_function=run_function)
 
     try:
         service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=not no_rm)
 
     except ServiceAlreadyExists:
-        service_id = service_id + ":" + coolname.generate_slug(2)
+        # Generate and use a new revision tag if the service already exists.
+        service_id = create_service_id(
+            service_configuration.namespace,
+            service_configuration.name,
+            coolname.generate_slug(2),
+        )
 
         while True:
             user_confirmation = input(f"Service already exists. Create new service with ID {service_id!r}? [Y/n]\n")

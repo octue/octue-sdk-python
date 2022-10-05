@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 
 from octue.cloud.deployment.google.cloud_run.deployer import DEFAULT_CLOUD_RUN_DOCKERFILE_URL, CloudRunDeployer
 from octue.cloud.emulators._pub_sub import MockPublisher
+from octue.cloud.service_id import create_service_id
 from octue.exceptions import DeploymentError
 from octue.utils.patches import MultiPatcher
 from tests.base import BaseTestCase
@@ -25,7 +26,7 @@ OCTUE_CONFIGURATION = {
 
 SERVICE = OCTUE_CONFIGURATION["services"][0]
 GET_SUBSCRIPTIONS_METHOD_PATH = "octue.cloud.deployment.google.cloud_run.deployer.Topic.get_subscriptions"
-EXPECTED_IMAGE_NAME = f"eu.gcr.io/{SERVICE['project_name']}/{SERVICE['repository_name']}/{SERVICE['namespace']}/{SERVICE['name']}:$SHORT_SHA"
+EXPECTED_IMAGE_NAME = f"eu.gcr.io/{SERVICE['project_name']}/{SERVICE['repository_name']}/{create_service_id(SERVICE['namespace'], SERVICE['name'])}:$SHORT_SHA"
 
 EXPECTED_CLOUD_BUILD_CONFIGURATION = {
     "steps": [
@@ -62,7 +63,7 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
                 f"--region={SERVICE['region']}",
                 "--memory=128Mi",
                 "--cpu=1",
-                f"--set-env-vars=SERVICE_NAME={SERVICE['namespace']}/{SERVICE['name']}",
+                f"--set-env-vars=SERVICE_NAME={create_service_id(SERVICE['namespace'], SERVICE['name'])}",
                 "--timeout=3600",
                 "--concurrency=10",
                 "--min-instances=0",
@@ -85,7 +86,7 @@ EXPECTED_BUILD_TRIGGER_CREATION_COMMAND = [
     f"--name={SERVICE['namespace']}.{SERVICE['name']}",
     f"--repo-name={SERVICE['repository_name']}",
     f"--repo-owner={SERVICE['repository_owner']}",
-    f"--description=Build the '{SERVICE['namespace']}/{SERVICE['name']}' service and deploy it to Cloud Run.",
+    f"--description=Build the '{create_service_id(SERVICE['namespace'], SERVICE['name'])}' service and deploy it to Cloud Run.",
     f"--branch-pattern={SERVICE['branch_pattern']}",
 ]
 
