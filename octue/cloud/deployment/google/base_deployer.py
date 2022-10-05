@@ -6,10 +6,9 @@ from abc import abstractmethod
 
 import yaml
 
+from octue.cloud.service_id import clean_service_id, validate_service_id
 from octue.configuration import ServiceConfiguration
 from octue.exceptions import DeploymentError
-from octue.utils.cleaning import clean_service_id
-from octue.validation import validate_service_id
 
 
 DOCKER_REGISTRY_URL = "eu.gcr.io"

@@ -15,14 +15,13 @@ import octue.exceptions
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
+from octue.cloud.service_id import clean_service_id, validate_service_id
 from octue.compatibility import warn_if_incompatible
 from octue.mixins import CoolNameable
-from octue.utils.cleaning import clean_service_id
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
 from octue.utils.objects import get_nested_attribute
 from octue.utils.threads import RepeatingTimer
-from octue.validation import validate_service_id
 
 
 logger = logging.getLogger(__name__)

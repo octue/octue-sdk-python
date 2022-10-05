@@ -6,8 +6,8 @@ import pkg_resources
 
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import Service
+from octue.cloud.service_id import clean_service_id
 from octue.resources import Manifest
-from octue.utils.cleaning import clean_service_id
 
 
 logger = logging.getLogger(__name__)

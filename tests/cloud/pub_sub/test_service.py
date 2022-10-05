@@ -24,10 +24,10 @@ from octue.cloud.emulators._pub_sub import (
 from octue.cloud.emulators.child import ServicePatcher
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.cloud.pub_sub.service import Service
+from octue.cloud.service_id import clean_service_id
 from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
-from octue.utils.cleaning import clean_service_id
 from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 

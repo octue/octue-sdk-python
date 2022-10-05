@@ -12,7 +12,7 @@ from google.pubsub_v1.types.pubsub import (
     UpdateSubscriptionRequest,
 )
 
-from octue.cloud import OCTUE_SERVICES_NAMESPACE
+from octue.cloud.service_id import OCTUE_SERVICES_NAMESPACE
 
 
 logger = logging.getLogger(__name__)

@@ -1,7 +1,7 @@
 import unittest
 
+from octue.cloud.service_id import validate_service_id
 from octue.exceptions import InvalidServiceID
-from octue.validation import validate_service_id
 
 
 class TestValidateServiceID(unittest.TestCase):
