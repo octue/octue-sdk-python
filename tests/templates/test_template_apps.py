@@ -70,14 +70,15 @@ class TemplateAppsTestCase(BaseTestCase):
         """
         cli_path = os.path.join(REPOSITORY_ROOT, "octue", "cli.py")
         self.set_template("template-child-services")
+        namespace = "template-child-services"
 
         elevation_service_path = os.path.join(self.template_path, "elevation_service")
-        elevation_service_id = f"elevation-service-{uuid.uuid4()}"
+        elevation_service_name = f"elevation-service-{uuid.uuid4()}"
 
         with tempfile.NamedTemporaryFile() as elevation_service_configuration:
             with open(os.path.join(self.template_path, "elevation_service", "octue.yaml")) as f:
                 config = yaml.load(f, Loader=yaml.SafeLoader)
-                config["services"][0]["name"] = elevation_service_id
+                config["services"][0]["name"] = elevation_service_name
 
             with open(elevation_service_configuration.name, "w") as f:
                 yaml.dump(config, f)
@@ -93,12 +94,12 @@ class TemplateAppsTestCase(BaseTestCase):
             )
 
             wind_speed_service_path = os.path.join(self.template_path, "wind_speed_service")
-            wind_speed_service_id = f"wind-speed-service-{uuid.uuid4()}"
+            wind_speed_service_name = f"wind-speed-service-{uuid.uuid4()}"
 
             with tempfile.NamedTemporaryFile() as wind_speed_service_configuration:
                 with open(os.path.join(self.template_path, "wind_speed_service", "octue.yaml")) as f:
                     config = yaml.load(f, Loader=yaml.SafeLoader)
-                    config["services"][0]["name"] = wind_speed_service_id
+                    config["services"][0]["name"] = wind_speed_service_name
 
                 with open(wind_speed_service_configuration.name, "w") as f:
                     yaml.dump(config, f)
@@ -117,8 +118,8 @@ class TemplateAppsTestCase(BaseTestCase):
 
                 with open(os.path.join(parent_service_path, "app_configuration.json")) as f:
                     children = json.load(f)["children"]
-                    children[0]["id"] = wind_speed_service_id
-                    children[1]["id"] = elevation_service_id
+                    children[0]["id"] = namespace + "/" + wind_speed_service_name
+                    children[1]["id"] = namespace + "/" + elevation_service_name
 
                 with ProcessesContextManager(processes=(elevation_process, wind_speed_process)):
 
