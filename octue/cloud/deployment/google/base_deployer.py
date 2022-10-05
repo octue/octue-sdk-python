@@ -6,7 +6,7 @@ from abc import abstractmethod
 
 import yaml
 
-from octue.cloud.service_id import clean_service_id, validate_service_id
+from octue.cloud.service_id import clean_service_id, create_service_id
 from octue.configuration import ServiceConfiguration
 from octue.exceptions import DeploymentError
 
@@ -48,20 +48,17 @@ class BaseDeployer:
         self.build_trigger_description = None
         self.generated_cloud_build_configuration = None
 
-        validate_service_id(self.service_configuration.service_id)
-        self.cleaned_service_id = clean_service_id(self.service_configuration.service_id)
+        self.service_id = create_service_id(self.service_configuration.namespace, self.service_configuration.name)
+        self.cleaned_service_id = clean_service_id(self.service_id)
 
-        self.required_environment_variables = {"SERVICE_NAME": self.service_configuration.service_id}
+        self.required_environment_variables = {"SERVICE_NAME": self.service_id}
 
         self.image_uri_template = image_uri_template or (
             f"{DOCKER_REGISTRY_URL}/{self.service_configuration.project_name}/"
-            f"{self.service_configuration.repository_name}/{self.service_configuration.service_id}:$SHORT_SHA"
+            f"{self.service_configuration.repository_name}/{self.service_id}:$SHORT_SHA"
         )
 
-        self.success_message = (
-            f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at "
-            f"{self.service_configuration.service_id!r}."
-        )
+        self.success_message = f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}."
 
     @abstractmethod
     def deploy(self, no_cache=False, update=False):

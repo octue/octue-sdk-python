@@ -7,7 +7,6 @@ import os
 import sys
 
 import click
-import coolname
 import pkg_resources
 from google import auth
 
@@ -190,7 +189,9 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
     "-c",
     "--revision-tag",
     type=str,
-    help="A tag to use for this revision of the service (e.g. 1.3.7).",
+    default=None,
+    help="A tag to use for this revision of the service (e.g. 1.3.7). This overrides the `OCTUE_REVISION_TAG` "
+    "environment variable if it's present.",
 )
 @click.option(
     "--timeout",
@@ -212,14 +213,11 @@ def start(service_config, revision_tag, timeout, no_rm):
     """
     service_configuration, app_configuration = load_service_and_app_configuration(service_config)
 
-    if revision_tag:
-        service_id = create_service_id(service_configuration.namespace, service_configuration.name, revision_tag)
-    else:
-        service_id = create_service_id(
-            service_configuration.namespace,
-            service_configuration.name,
-            coolname.generate_slug(2),
-        )
+    service_id = create_service_id(
+        service_configuration.namespace,
+        service_configuration.name,
+        revision_tag=revision_tag,
+    )
 
     runner = Runner(
         app_src=service_configuration.app_source_path,
@@ -255,11 +253,7 @@ def start(service_config, revision_tag, timeout, no_rm):
 
     except ServiceAlreadyExists:
         # Generate and use a new revision tag if the service already exists.
-        service_id = create_service_id(
-            service_configuration.namespace,
-            service_configuration.name,
-            coolname.generate_slug(2),
-        )
+        service_id = create_service_id(service_configuration.namespace, service_configuration.name)
 
         while True:
             user_confirmation = input(f"Service already exists. Create new service with ID {service_id!r}? [Y/n]\n")

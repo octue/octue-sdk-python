@@ -4,8 +4,6 @@ import os
 
 import yaml
 
-from octue.cloud.service_id import create_service_id
-
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +50,6 @@ class ServiceConfiguration:
     ):
         self.name = name
         self.namespace = namespace
-        self.service_id = create_service_id(namespace, name)
         self.app_source_path = app_source_path
         self.twine_path = twine_path
         self.app_configuration_path = app_configuration_path

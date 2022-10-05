@@ -1,4 +1,7 @@
+import os
 import re
+
+import coolname
 
 import octue.exceptions
 
@@ -13,18 +16,16 @@ COMPILED_SERVICE_SRUID_PATTERN = re.compile(SERVICE_SRUID_PATTERN)
 
 
 def create_service_id(namespace, name, revision_tag=None):
-    """Create a service ID from a namespace, name, and revision tag.
+    """Create a service ID from a namespace, name, and revision tag. The resultant ID is validated before returning.
 
     :param str namespace:
     :param str name:
-    :param str revision_tag:
+    :param str|None revision_tag:
+    :raise octue.exceptions.InvalidServiceID: if the service ID is invalid
     :return str:
     """
-    service_id = f"{namespace}/{name}"
-
-    if revision_tag:
-        service_id += f":{revision_tag}"
-
+    revision_tag = revision_tag or os.environ.get("OCTUE_REVISION_TAG") or coolname.generate_slug(2)
+    service_id = f"{namespace}/{name}:{revision_tag}"
     validate_service_id(service_id)
     return service_id
 

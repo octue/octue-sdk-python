@@ -33,9 +33,7 @@ class CloudRunDeployer(BaseDeployer):
 
     def __init__(self, octue_configuration_path, image_uri_template=None):
         super().__init__(octue_configuration_path, image_uri_template)
-        self.build_trigger_description = (
-            f"Build the {self.service_configuration.service_id!r} service and deploy it to Cloud Run."
-        )
+        self.build_trigger_description = f"Build the {self.service_id!r} service and deploy it to Cloud Run."
 
     def deploy(self, no_cache=False, update=False):
         """Create a Google Cloud Build configuration from the `octue.yaml` file, create a build trigger, and run the
