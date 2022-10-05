@@ -17,7 +17,7 @@ class NonJSONSerialisable:
 class TestGooglePubSubHandler(BaseTestCase):
     def test_emit(self):
         """Test the log message is published when `GooglePubSubHandler.emit` is called."""
-        topic = MockTopic(name="world", project_name="blah", namespace="hello")
+        topic = MockTopic(name="world", project_name="blah")
         topic.create()
 
         log_record = makeLogRecord({"msg": "Starting analysis."})
@@ -32,7 +32,7 @@ class TestGooglePubSubHandler(BaseTestCase):
         """Test that non-JSON-serialisable arguments to log messages are converted to their string representation
         before being serialised and published to the Pub/Sub topic.
         """
-        topic = MockTopic(name="world-1", project_name="blah", namespace="hello")
+        topic = MockTopic(name="world-1", project_name="blah")
         topic.create()
 
         non_json_serialisable_thing = NonJSONSerialisable()
