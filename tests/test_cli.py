@@ -45,6 +45,7 @@ class TestRunCommand(BaseTestCase):
     MOCK_CONFIGURATIONS = (
         ServiceConfiguration(
             name="test-app",
+            namespace="testing",
             app_source_path=os.path.join(TESTS_DIR, "test_app_modules", "app_module"),
             twine_path=TWINE_FILE_PATH,
             app_configuration_path="blah.json",
@@ -91,6 +92,7 @@ class TestRunCommand(BaseTestCase):
         mock_configurations = (
             ServiceConfiguration(
                 name="test-app",
+                namespace="testing",
                 app_source_path=os.path.join(TESTS_DIR, "test_app_modules", "app_module_with_output_manifest"),
                 twine_path={"input_values_schema": {}, "output_manifest": {"datasets": {}}, "output_values_schema": {}},
             ),
@@ -118,6 +120,7 @@ class TestRunCommand(BaseTestCase):
         mock_configurations = (
             ServiceConfiguration(
                 name="test-app",
+                namespace="testing",
                 app_source_path=os.path.join(TESTS_DIR, "test_app_modules", "app_with_monitor_message"),
                 twine_path=TWINE_FILE_PATH,
                 app_configuration_path="blah.json",
@@ -174,6 +177,7 @@ class TestStartCommand(BaseTestCase):
                         "services": [
                             {
                                 "name": "test-service",
+                                "namespace": "testing",
                                 "app_source_path": python_fractal_service_path,
                                 "twine_path": os.path.join(python_fractal_service_path, "twine.json"),
                                 "app_configuration_path": "app_configuration.json",

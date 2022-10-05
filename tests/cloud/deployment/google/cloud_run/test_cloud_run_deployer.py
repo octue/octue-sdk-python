@@ -13,6 +13,7 @@ OCTUE_CONFIGURATION = {
     "services": [
         {
             "name": "test-service",
+            "namespace": "testing",
             "repository_name": "test-repository",
             "repository_owner": "octue",
             "project_name": "test-project",
@@ -24,7 +25,7 @@ OCTUE_CONFIGURATION = {
 
 SERVICE = OCTUE_CONFIGURATION["services"][0]
 GET_SUBSCRIPTIONS_METHOD_PATH = "octue.cloud.deployment.google.cloud_run.deployer.Topic.get_subscriptions"
-EXPECTED_IMAGE_NAME = f"eu.gcr.io/{SERVICE['project_name']}/{SERVICE['repository_name']}/{SERVICE['name']}:$SHORT_SHA"
+EXPECTED_IMAGE_NAME = f"eu.gcr.io/{SERVICE['project_name']}/{SERVICE['repository_name']}/{SERVICE['namespace']}/{SERVICE['name']}:$SHORT_SHA"
 
 EXPECTED_CLOUD_BUILD_CONFIGURATION = {
     "steps": [
@@ -55,13 +56,13 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
                 "run",
                 "services",
                 "update",
-                "test-service",
+                f"{SERVICE['namespace']}.{SERVICE['name']}",
                 "--platform=managed",
                 f"--image={EXPECTED_IMAGE_NAME}",
                 f"--region={SERVICE['region']}",
                 "--memory=128Mi",
                 "--cpu=1",
-                f"--set-env-vars=SERVICE_NAME={SERVICE['name']}",
+                f"--set-env-vars=SERVICE_NAME={SERVICE['namespace']}/{SERVICE['name']}",
                 "--timeout=3600",
                 "--concurrency=10",
                 "--min-instances=0",
@@ -81,10 +82,10 @@ EXPECTED_BUILD_TRIGGER_CREATION_COMMAND = [
     "triggers",
     "create",
     "github",
-    f"--name={SERVICE['name']}",
+    f"--name={SERVICE['namespace']}.{SERVICE['name']}",
     f"--repo-name={SERVICE['repository_name']}",
     f"--repo-owner={SERVICE['repository_owner']}",
-    f"--description=Build the {SERVICE['name']!r} service and deploy it to Cloud Run.",
+    f"--description=Build the '{SERVICE['namespace']}/{SERVICE['name']}' service and deploy it to Cloud Run.",
     f"--branch-pattern={SERVICE['branch_pattern']}",
 ]
 
@@ -177,7 +178,9 @@ class TestCloudRunDeployer(BaseTestCase):
                 with MultiPatcher(
                     patches=[
                         patch("octue.cloud.deployment.google.cloud_run.deployer.Topic.create"),
-                        patch(GET_SUBSCRIPTIONS_METHOD_PATH, return_value=["test-service"]),
+                        patch(
+                            GET_SUBSCRIPTIONS_METHOD_PATH, return_value=[f"{SERVICE['namespace']}.{SERVICE['name']}"]
+                        ),
                         patch("octue.cloud.deployment.google.cloud_run.deployer.Subscription"),
                         patch("octue.cloud.pub_sub.topic.PublisherClient", MockPublisher),
                         patch(
@@ -211,7 +214,7 @@ class TestCloudRunDeployer(BaseTestCase):
                     "builds",
                     "triggers",
                     "run",
-                    SERVICE["name"],
+                    f"{SERVICE['namespace']}.{SERVICE['name']}",
                     "--branch=my-branch",
                 ],
             )
@@ -238,7 +241,7 @@ class TestCloudRunDeployer(BaseTestCase):
                     "run",
                     "services",
                     "add-iam-policy-binding",
-                    SERVICE["name"],
+                    f"{SERVICE['namespace']}.{SERVICE['name']}",
                     f'--region={SERVICE["region"]}',
                     "--member=allUsers",
                     "--role=roles/run.invoker",
@@ -255,11 +258,11 @@ class TestCloudRunDeployer(BaseTestCase):
                     "eventarc",
                     "triggers",
                     "create",
-                    f'{SERVICE["name"]}-trigger',
+                    f"{SERVICE['namespace']}.{SERVICE['name']}-trigger",
                     "--matching-criteria=type=google.cloud.pubsub.topic.v1.messagePublished",
                     f"--destination-run-service={SERVICE['name']}",
                     f"--location={SERVICE['region']}",
-                    f"--transport-topic=octue.services.{SERVICE['name']}",
+                    f"--transport-topic=octue.services.{SERVICE['namespace']}.{SERVICE['name']}",
                 ],
             )
 
@@ -301,7 +304,7 @@ class TestCloudRunDeployer(BaseTestCase):
                 "builds",
                 "triggers",
                 "delete",
-                SERVICE["name"],
+                f"{SERVICE['namespace']}.{SERVICE['name']}",
             ],
         )
 

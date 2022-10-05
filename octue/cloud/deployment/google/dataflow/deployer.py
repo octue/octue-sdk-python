@@ -76,7 +76,7 @@ class DataflowDeployer(BaseDeployer):
             kwargs = {
                 "service_name": self.service_configuration.name,
                 "project_name": self.service_configuration.project_name,
-                "service_id": self.service_id,
+                "service_id": self.cleaned_service_id,
                 "region": self.service_configuration.region,
                 "setup_file_path": self.service_configuration.setup_file_path,
                 "image_uri": image_uri,

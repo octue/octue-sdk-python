@@ -19,6 +19,7 @@ OCTUE_CONFIGURATION = {
     "services": [
         {
             "name": "test-service",
+            "namespace": "testing",
             "repository_name": "test-repository",
             "repository_owner": "octue",
             "project_name": "test-project",
@@ -37,9 +38,7 @@ OCTUE_CONFIGURATION_WITH_CLOUD_BUILD_PATH = {
     "services": [{**copy.copy(SERVICE), "cloud_build_configuration_path": "cloudbuild.yaml"}]
 }
 
-EXPECTED_IMAGE_NAME = (
-    f"eu.gcr.io/{SERVICE['project_name']}/{SERVICE['repository_name']}/" f"{SERVICE['name']}:$SHORT_SHA"
-)
+EXPECTED_IMAGE_NAME = f"eu.gcr.io/{SERVICE['project_name']}/{SERVICE['repository_name']}/{SERVICE['namespace']}/{SERVICE['name']}:$SHORT_SHA"
 
 EXPECTED_CLOUD_BUILD_CONFIGURATION = {
     "steps": [
@@ -55,7 +54,7 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
             "args": [
                 "-c",
                 (
-                    f"docker build '-t' {EXPECTED_IMAGE_NAME!r} --build-arg=SERVICE_NAME={SERVICE['name']} "
+                    f"docker build '-t' {EXPECTED_IMAGE_NAME!r} --build-arg=SERVICE_NAME={SERVICE['namespace']}/{SERVICE['name']} "
                     ". '-f' Dockerfile"
                 ),
             ],
@@ -89,7 +88,7 @@ EXPECTED_BUILD_TRIGGER_CREATION_COMMAND = [
     "triggers",
     "create",
     "github",
-    f"--name={SERVICE['name']}",
+    f"--name={SERVICE['namespace']}.{SERVICE['name']}",
     f"--repo-name={SERVICE['repository_name']}",
     f"--repo-owner={SERVICE['repository_owner']}",
     f"--description=Build the {SERVICE['name']!r} service and deploy it to Dataflow.",
@@ -145,7 +144,7 @@ class TestDataflowDeployer(BaseTestCase):
                     "builds",
                     "triggers",
                     "run",
-                    SERVICE["name"],
+                    f"{SERVICE['namespace']}.{SERVICE['name']}",
                     "--branch=my-branch",
                 ],
             )
@@ -186,13 +185,13 @@ class TestDataflowDeployer(BaseTestCase):
                     with patch("octue.cloud.deployment.google.dataflow.pipeline.DataflowRunner"):
                         deployer.deploy()
 
+            service = OCTUE_CONFIGURATION_WITH_CLOUD_BUILD_PATH["services"][0]
+
             # Test the build trigger creation request.
             self.assertEqual(
                 mock_run.call_args_list[0].args[0],
                 EXPECTED_BUILD_TRIGGER_CREATION_COMMAND
-                + [
-                    f"--build-config={OCTUE_CONFIGURATION_WITH_CLOUD_BUILD_PATH['services'][0]['cloud_build_configuration_path']}"
-                ],
+                + [f"--build-config={service['cloud_build_configuration_path']}"],
             )
 
             # Test the build trigger run request.
@@ -200,13 +199,13 @@ class TestDataflowDeployer(BaseTestCase):
                 mock_run.call_args_list[1].args[0],
                 [
                     "gcloud",
-                    f"--project={OCTUE_CONFIGURATION_WITH_CLOUD_BUILD_PATH['services'][0]['project_name']}",
+                    f"--project={service['project_name']}",
                     "--format=json",
                     "beta",
                     "builds",
                     "triggers",
                     "run",
-                    OCTUE_CONFIGURATION_WITH_CLOUD_BUILD_PATH["services"][0]["name"],
+                    f"{service['namespace']}.{service['name']}",
                     "--branch=my-branch",
                 ],
             )
@@ -216,7 +215,7 @@ class TestDataflowDeployer(BaseTestCase):
                 mock_run.call_args_list[2].args[0],
                 [
                     "gcloud",
-                    f'--project={SERVICE["project_name"]}',
+                    f'--project={service["project_name"]}',
                     "--format=json",
                     "builds",
                     "describe",

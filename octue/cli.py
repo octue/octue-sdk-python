@@ -14,7 +14,7 @@ from google import auth
 from octue.cloud import storage
 from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.service import Service, clean_service_id
+from octue.cloud.pub_sub.service import Service
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.configuration import load_service_and_app_configuration
 from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
@@ -22,6 +22,7 @@ from octue.exceptions import ServiceAlreadyExists
 from octue.log_handlers import apply_log_handler, get_remote_handler
 from octue.resources import service_backends
 from octue.runner import Runner
+from octue.utils.cleaning import clean_service_id
 from octue.utils.encoders import OctueJSONEncoder
 from twined import Twine
 

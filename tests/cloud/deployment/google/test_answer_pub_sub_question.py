@@ -16,7 +16,9 @@ class TestAnswerPubSubQuestion(TestCase):
         """
         with mock.patch(
             "octue.configuration.open",
-            unittest.mock.mock_open(read_data=yaml.dump({"services": [{"name": "test-service"}]})),
+            unittest.mock.mock_open(
+                read_data=yaml.dump({"services": [{"name": "test-service", "namespace": "testing"}]})
+            ),
         ):
             with mock.patch("octue.cloud.deployment.google.answer_pub_sub_question.Runner") as mock_runner:
                 with mock.patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
@@ -39,7 +41,7 @@ class TestAnswerPubSubQuestion(TestCase):
                 "output_location": None,
                 "crash_diagnostics_cloud_path": None,
                 "project_name": "a-project-name",
-                "service_id": "test-service",
+                "service_id": "testing/test-service",
             }
         )
 
@@ -55,6 +57,7 @@ class TestAnswerPubSubQuestion(TestCase):
                         "services": [
                             {
                                 "name": "test-service",
+                                "namespace": "testing",
                                 "app_source_path": "/path/to/app_dir",
                                 "twine_path": "path/to/twine.json",
                                 "app_configuration_path": "app_configuration.json",
@@ -87,6 +90,6 @@ class TestAnswerPubSubQuestion(TestCase):
                 "output_location": None,
                 "crash_diagnostics_cloud_path": None,
                 "project_name": "a-project-name",
-                "service_id": "test-service",
+                "service_id": "testing/test-service",
             }
         )

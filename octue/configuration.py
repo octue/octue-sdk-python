@@ -12,7 +12,7 @@ class ServiceConfiguration:
     """A class containing the details needed to configure a service.
 
     :param str name: the name to give the service
-    :param str|None organisation: the name of the organisation providing the service
+    :param str namespace: the namespace for grouping the service with others (e.g. the name of an organisation or individual)
     :param str app_source_path: the path to the directory containing the app's source code
     :param str twine_path: the path to the twine file defining the schema for input, output, and configuration data for the service
     :param str|None app_configuration_path: the path to the app configuration file containing configuration data for the service; if this is `None`, the default application configuration is used
@@ -23,7 +23,7 @@ class ServiceConfiguration:
     def __init__(
         self,
         name,
-        organisation=None,
+        namespace,
         app_source_path=".",
         twine_path="twine.json",
         app_configuration_path=None,
@@ -49,16 +49,12 @@ class ServiceConfiguration:
         **kwargs,
     ):
         self.name = name
-        self.organisation = organisation
+        self.namespace = namespace
+        self.service_id = namespace + "/" + name
         self.app_source_path = app_source_path
         self.twine_path = twine_path
         self.app_configuration_path = app_configuration_path
         self.crash_diagnostics_cloud_path = crash_diagnostics_cloud_path
-
-        if organisation:
-            self.service_id = organisation + "/" + name
-        else:
-            self.service_id = self.name
 
         # Deployed services only.
         self.repository_name = repository_name

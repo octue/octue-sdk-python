@@ -6,9 +6,9 @@ from abc import abstractmethod
 
 import yaml
 
-from octue.cloud.pub_sub.service import clean_service_id
 from octue.configuration import ServiceConfiguration
 from octue.exceptions import DeploymentError
+from octue.utils.cleaning import clean_service_id
 
 
 DOCKER_REGISTRY_URL = "eu.gcr.io"
@@ -47,16 +47,19 @@ class BaseDeployer:
         # Generated attributes.
         self.build_trigger_description = None
         self.generated_cloud_build_configuration = None
-        self.service_id = clean_service_id(self.service_configuration.service_id)
+        self.cleaned_service_id = clean_service_id(self.service_configuration.service_id)
 
-        self.required_environment_variables = {"SERVICE_NAME": self.service_configuration.name}
+        self.required_environment_variables = {"SERVICE_NAME": self.service_configuration.service_id}
 
         self.image_uri_template = image_uri_template or (
             f"{DOCKER_REGISTRY_URL}/{self.service_configuration.project_name}/"
-            f"{self.service_configuration.repository_name}/{self.service_configuration.name}:$SHORT_SHA"
+            f"{self.service_configuration.repository_name}/{self.service_configuration.service_id}:$SHORT_SHA"
         )
 
-        self.success_message = f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}."
+        self.success_message = (
+            f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at "
+            f"{self.service_configuration.service_id!r}."
+        )
 
     @abstractmethod
     def deploy(self, no_cache=False, update=False):
@@ -162,7 +165,7 @@ class BaseDeployer:
                     "triggers",
                     "create",
                     "github",
-                    f"--name={self.service_configuration.name}",
+                    f"--name={self.cleaned_service_id}",
                     f"--repo-name={self.service_configuration.repository_name}",
                     f"--repo-owner={self.service_configuration.repository_owner}",
                     f"--description={self.build_trigger_description}",
@@ -182,7 +185,7 @@ class BaseDeployer:
                         "builds",
                         "triggers",
                         "delete",
-                        f"{self.service_configuration.name}",
+                        f"{self.cleaned_service_id}",
                     ]
 
                     self._run_command(delete_trigger_command)
@@ -209,7 +212,7 @@ class BaseDeployer:
                 "builds",
                 "triggers",
                 "run",
-                self.service_configuration.name,
+                self.cleaned_service_id,
                 f"--branch={self.service_configuration.branch_pattern.strip('^$')}",
             ]
 
