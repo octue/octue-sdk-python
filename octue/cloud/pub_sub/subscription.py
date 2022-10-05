@@ -12,7 +12,7 @@ from google.pubsub_v1.types.pubsub import (
     UpdateSubscriptionRequest,
 )
 
-from octue.cloud import OCTUE_NAMESPACE
+from octue.cloud import OCTUE_SERVICES_NAMESPACE
 
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ class Subscription:
         name,
         topic,
         project_name,
-        namespace=OCTUE_NAMESPACE,
+        namespace=OCTUE_SERVICES_NAMESPACE,
         ack_deadline=600,
         message_retention_duration=600,
         expiration_time=THIRTY_ONE_DAYS,

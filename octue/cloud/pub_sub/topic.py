@@ -6,7 +6,7 @@ import google.api_core.exceptions
 from google.cloud.pubsub_v1 import PublisherClient
 from google.pubsub_v1.types.pubsub import Topic as Topic_
 
-from octue.cloud import OCTUE_NAMESPACE
+from octue.cloud import OCTUE_SERVICES_NAMESPACE
 
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ class Topic:
     :return None:
     """
 
-    def __init__(self, name, project_name, namespace=OCTUE_NAMESPACE):
+    def __init__(self, name, project_name, namespace=OCTUE_SERVICES_NAMESPACE):
         if namespace and not name.startswith(namespace):
             self.name = f"{namespace}.{name}"
         else:

@@ -9,4 +9,4 @@ EXCEPTIONS_MAPPING = create_exceptions_mapping(
     vars(octue.exceptions),
 )
 
-OCTUE_NAMESPACE = "octue.services"
+OCTUE_SERVICES_NAMESPACE = "octue.services"
