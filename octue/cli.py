@@ -351,7 +351,7 @@ def dataflow(service_config, no_cache, update, dataflow_job_only, image_uri):
     is_flag=False,
     default="latest",
     show_default=True,
-    help="The tag used as a suffix to the service ID when creating a Service Revision Unique Identifier (e.g. 1.0.7)",
+    help="The tag used as a suffix to the service ID when creating a Service Revision Unique Identifier (e.g. 1.0.7).",
 )
 def create_push_subscription(project_name, service_id, push_endpoint, revision_tag):
     """Create a push subscription on Google Pub/Sub from the Octue service to the push endpoint. If a corresponding
