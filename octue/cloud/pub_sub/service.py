@@ -12,7 +12,7 @@ from google.api_core import retry
 from google.cloud import pubsub_v1
 
 import octue.exceptions
-from octue.cloud.pub_sub import OCTUE_NAMESPACE, Subscription, Topic
+from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
 from octue.compatibility import warn_if_incompatible
@@ -52,7 +52,7 @@ class Service(CoolNameable):
         # If no service ID is given, use a random UUID for `id` and set `name` to a "cool name".
         if service_id is None:
             service_uuid = str(uuid.uuid4())
-            self.id = f"{OCTUE_NAMESPACE}.{service_uuid}"
+            self.id = service_uuid
             self._raw_service_id = service_uuid
 
         # Raise an error if the service ID is some kind of falsey object that isn't `None`.
@@ -64,11 +64,7 @@ class Service(CoolNameable):
         else:
             self.name = kwargs.get("name") or service_id
             self._raw_service_id = service_id
-
-            if service_id.startswith(OCTUE_NAMESPACE):
-                self.id = clean_service_id(service_id)
-            else:
-                self.id = clean_service_id(f"{OCTUE_NAMESPACE}.{service_id}")
+            self.id = clean_service_id(service_id)
 
         self.backend = backend
         self.run_function = run_function
@@ -105,12 +101,11 @@ class Service(CoolNameable):
         """
         logger.info("Starting %r.", self)
 
-        topic = Topic(name=self.id, project_name=self.backend.project_name, namespace=OCTUE_NAMESPACE)
+        topic = Topic(name=self.id, project_name=self.backend.project_name)
 
         subscription = Subscription(
             name=self.id,
             topic=topic,
-            namespace=OCTUE_NAMESPACE,
             project_name=self.backend.project_name,
             expiration_time=None,
         )
@@ -273,7 +268,7 @@ class Service(CoolNameable):
 
         unlinted_service_id = service_id
         service_id = clean_service_id(service_id)
-        question_topic = Topic(name=service_id, project_name=self.backend.project_name, namespace=OCTUE_NAMESPACE)
+        question_topic = Topic(name=service_id, project_name=self.backend.project_name)
 
         if not question_topic.exists(timeout=timeout):
             raise octue.exceptions.ServiceNotFound(f"Service with ID {unlinted_service_id!r} cannot be found.")
@@ -286,7 +281,6 @@ class Service(CoolNameable):
         answer_subscription = Subscription(
             name=answer_topic.name,
             topic=answer_topic,
-            namespace=OCTUE_NAMESPACE,
             project_name=self.backend.project_name,
             push_endpoint=push_endpoint,
         )
@@ -365,7 +359,6 @@ class Service(CoolNameable):
         return Topic(
             name=".".join((service_id or self.id, ANSWERS_NAMESPACE, question_uuid)),
             project_name=self.backend.project_name,
-            namespace=OCTUE_NAMESPACE,
         )
 
     def send_exception(self, topic, timeout=30):

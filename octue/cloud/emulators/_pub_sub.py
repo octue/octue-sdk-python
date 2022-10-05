@@ -4,7 +4,8 @@ import logging
 import google.api_core
 import pkg_resources
 
-from octue.cloud.pub_sub import OCTUE_NAMESPACE, Subscription, Topic
+from octue.cloud import OCTUE_NAMESPACE
+from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import Service, clean_service_id
 from octue.resources import Manifest
 

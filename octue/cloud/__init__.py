@@ -8,3 +8,5 @@ EXCEPTIONS_MAPPING = create_exceptions_mapping(
     vars(twined.exceptions),
     vars(octue.exceptions),
 )
+
+OCTUE_NAMESPACE = "octue.services"

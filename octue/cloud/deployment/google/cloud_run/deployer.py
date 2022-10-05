@@ -1,5 +1,4 @@
 from octue.cloud.deployment.google.base_deployer import BaseDeployer, ProgressMessage
-from octue.cloud.pub_sub import OCTUE_NAMESPACE
 from octue.cloud.pub_sub.subscription import Subscription
 from octue.cloud.pub_sub.topic import Topic
 from octue.exceptions import DeploymentError
@@ -187,11 +186,7 @@ class CloudRunDeployer(BaseDeployer):
             5,
             self.TOTAL_NUMBER_OF_STAGES,
         ) as progress_message:
-            topic = Topic(
-                name=self.service_id,
-                project_name=self.service_configuration.project_name,
-                namespace=OCTUE_NAMESPACE,
-            )
+            topic = Topic(name=self.service_id, project_name=self.service_configuration.project_name)
 
             topic.create(allow_existing=True)
 
