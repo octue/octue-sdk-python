@@ -12,7 +12,7 @@ from google.api_core import retry
 from google.cloud import pubsub_v1
 
 import octue.exceptions
-from octue.cloud.pub_sub import Subscription, Topic
+from octue.cloud.pub_sub import OCTUE_NAMESPACE, Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
 from octue.compatibility import warn_if_incompatible
@@ -25,7 +25,6 @@ from octue.utils.threads import RepeatingTimer
 
 logger = logging.getLogger(__name__)
 
-OCTUE_NAMESPACE = "octue.services"
 ANSWERS_NAMESPACE = "answers"
 
 # Switch message batching off by setting `max_messages` to 1. This minimises latency and is recommended for

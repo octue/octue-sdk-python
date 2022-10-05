@@ -8,8 +8,7 @@ from apache_beam.runners.dataflow.internal.apiclient import DataflowJobAlreadyEx
 
 from octue import REPOSITORY_ROOT
 from octue.cloud.deployment.google.answer_pub_sub_question import answer_question
-from octue.cloud.pub_sub import Topic
-from octue.cloud.pub_sub.service import OCTUE_NAMESPACE
+from octue.cloud.pub_sub import OCTUE_NAMESPACE, Topic
 from octue.exceptions import DeploymentError
 
 

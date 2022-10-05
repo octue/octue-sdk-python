@@ -1,5 +1,5 @@
 from octue.cloud.deployment.google.base_deployer import BaseDeployer, ProgressMessage
-from octue.cloud.pub_sub.service import OCTUE_NAMESPACE
+from octue.cloud.pub_sub import OCTUE_NAMESPACE
 from octue.cloud.pub_sub.subscription import Subscription
 from octue.cloud.pub_sub.topic import Topic
 from octue.exceptions import DeploymentError
