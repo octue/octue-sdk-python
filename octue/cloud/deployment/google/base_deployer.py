@@ -9,6 +9,7 @@ import yaml
 from octue.configuration import ServiceConfiguration
 from octue.exceptions import DeploymentError
 from octue.utils.cleaning import clean_service_id
+from octue.validation import validate_service_id
 
 
 DOCKER_REGISTRY_URL = "eu.gcr.io"
@@ -47,6 +48,8 @@ class BaseDeployer:
         # Generated attributes.
         self.build_trigger_description = None
         self.generated_cloud_build_configuration = None
+
+        validate_service_id(self.service_configuration.service_id)
         self.cleaned_service_id = clean_service_id(self.service_configuration.service_id)
 
         self.required_environment_variables = {"SERVICE_NAME": self.service_configuration.service_id}

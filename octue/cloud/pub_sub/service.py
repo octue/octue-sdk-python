@@ -22,6 +22,7 @@ from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
 from octue.utils.objects import get_nested_attribute
 from octue.utils.threads import RepeatingTimer
+from octue.validation import validate_service_id
 
 
 logger = logging.getLogger(__name__)
@@ -64,6 +65,7 @@ class Service(CoolNameable):
         # If a service ID is given, set `name` to it but set `id` to a namespaced, cleaned version of it. If a `name` is
         # given as a kwarg, then the `name` attribute is set to that instead.
         else:
+            validate_service_id(service_id)
             self.name = kwargs.get("name") or service_id
             self._raw_service_id = service_id
             self.id = clean_service_id(self._raw_service_id)
@@ -260,6 +262,8 @@ class Service(CoolNameable):
         :param float|None timeout: time in seconds to keep retrying sending the question
         :return (octue.cloud.pub_sub.subscription.Subscription, str): the answer subscription and question UUID
         """
+        validate_service_id(service_id)
+
         if not allow_local_files:
             if (input_manifest is not None) and (not input_manifest.all_datasets_are_in_cloud):
                 raise octue.exceptions.FileLocationError(
