@@ -6,7 +6,6 @@ import pkg_resources
 
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import Service
-from octue.cloud.service_id import convert_service_id_to_pub_sub_form
 from octue.resources import Manifest
 
 
@@ -304,7 +303,7 @@ class MockService(Service):
             input_manifest = input_manifest.serialise()
 
         try:
-            self.children[convert_service_id_to_pub_sub_form(service_id)].answer(
+            self.children[service_id].answer(
                 MockMessage(
                     data=json.dumps(
                         {"input_values": input_values, "input_manifest": input_manifest, "children": children}

@@ -1,7 +1,25 @@
 import unittest
 
-from octue.cloud.service_id import validate_service_id
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form, validate_service_id
 from octue.exceptions import InvalidServiceID
+
+
+class TestConvertServiceIDToPubSubForm(unittest.TestCase):
+    def test_convert_service_id_to_pub_sub_form(self):
+        """Test that service IDs containing organisations, revision tags, and the services namespace are all converted
+        correctly.
+        """
+        service_ids = (
+            ("my-service", "my-service"),
+            ("octue/my-service", "octue.my-service"),
+            ("octue/my-service:0.1.7", "octue.my-service.0-1-7"),
+            ("my-service:3.1.9", "my-service.3-1-9"),
+            ("octue.services.octue/my-service:0.1.7", "octue.services.octue.my-service.0-1-7"),
+        )
+
+        for uncleaned_service_id, cleaned_service_id in service_ids:
+            with self.subTest(uncleaned_service_id=uncleaned_service_id, cleaned_service_id=cleaned_service_id):
+                self.assertEqual(convert_service_id_to_pub_sub_form(uncleaned_service_id), cleaned_service_id)
 
 
 class TestValidateServiceID(unittest.TestCase):

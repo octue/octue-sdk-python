@@ -4,8 +4,6 @@ import json
 import logging
 import tempfile
 import time
-import unittest
-import uuid
 from unittest.mock import patch
 
 import google.api_core.exceptions
@@ -24,7 +22,6 @@ from octue.cloud.emulators._pub_sub import (
 from octue.cloud.emulators.child import ServicePatcher
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.cloud.pub_sub.service import Service
-from octue.cloud.service_id import convert_service_id_to_pub_sub_form
 from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
@@ -69,12 +66,12 @@ class TestService(BaseTestCase):
                 side_effect=google.api_core.exceptions.AlreadyExists(""),
             ):
                 with self.assertRaises(exceptions.ServiceAlreadyExists):
-                    MockService(backend=BACKEND, service_id="existing-service").serve()
+                    MockService(backend=BACKEND, service_id="my-org/existing-service:latest").serve()
 
     def test_serve(self):
         """Test that serving works with a unique service ID."""
         with self.service_patcher:
-            MockService(backend=BACKEND, service_id="new-service").serve()
+            MockService(backend=BACKEND, service_id="my-org/existing-service:latest").serve()
 
     def test_ask_on_non_existent_service_results_in_error(self):
         """Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
@@ -82,7 +79,7 @@ class TestService(BaseTestCase):
         """
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with self.assertRaises(exceptions.ServiceNotFound):
-                MockService(backend=BACKEND).ask(service_id="hello", input_values=[1, 2, 3, 4])
+                MockService(backend=BACKEND).ask(service_id="my-org/existing-service:latest", input_values=[1, 2, 3, 4])
 
     def test_timeout_error_raised_if_no_messages_received_when_waiting(self):
         """Test that a TimeoutError is raised if no messages are received while waiting."""
@@ -396,7 +393,7 @@ class TestService(BaseTestCase):
         """
         with self.assertRaises(exceptions.FileLocationError):
             MockService(backend=BACKEND).ask(
-                service_id=str(uuid.uuid4()),
+                service_id="octue/test-service:latest",
                 input_values={},
                 input_manifest=self.create_valid_manifest(),
             )
@@ -752,7 +749,7 @@ class TestService(BaseTestCase):
         static_children = [
             {
                 "key": "expected_child",
-                "id": "octue/static-child-of-child",
+                "id": "octue/static-child-of-child:latest",
                 "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
             },
         ]
@@ -765,24 +762,24 @@ class TestService(BaseTestCase):
                 "output_values_schema": {},
             },
             children=static_children,
-            service_id="octue/child",
+            service_id="octue/child:latest",
         )
 
         static_child_of_child = self.make_new_child(
             backend=BACKEND,
-            service_id="octue/static-child-of-child",
+            service_id="octue/static-child-of-child:latest",
             run_function_returnee=MockAnalysis(output_values="I am the static child."),
         )
 
         dynamic_child_of_child = self.make_new_child(
             backend=BACKEND,
-            service_id="octue/dynamic-child-of-child",
+            service_id="octue/dynamic-child-of-child:latest",
             run_function_returnee=MockAnalysis(output_values="I am the dynamic child."),
         )
 
         child = MockService(
             backend=BACKEND,
-            service_id="octue/child",
+            service_id="octue/child:latest",
             run_function=runner.run,
             children={
                 static_child_of_child.id: static_child_of_child,
@@ -790,12 +787,12 @@ class TestService(BaseTestCase):
             },
         )
 
-        parent = MockService(backend=BACKEND, service_id="octue/parent", children={child.id: child})
+        parent = MockService(backend=BACKEND, service_id="octue/parent:latest", children={child.id: child})
 
         dynamic_children = [
             {
                 "key": "expected_child",
-                "id": "octue/dynamic-child-of-child",
+                "id": "octue/dynamic-child-of-child:latest",
                 "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
             },
         ]
@@ -864,21 +861,3 @@ class TestService(BaseTestCase):
         """
 
         return Runner(app_src=mock_app, twine=twine).run
-
-
-class TestCleanServiceID(unittest.TestCase):
-    def test_clean_service_id(self):
-        """Test that service IDs containing organisations, revision tags, and the services namespace are all cleaned
-        correctly.
-        """
-        service_ids = (
-            ("my-service", "my-service"),
-            ("octue/my-service", "octue.my-service"),
-            ("octue/my-service:0.1.7", "octue.my-service.0-1-7"),
-            ("my-service:3.1.9", "my-service.3-1-9"),
-            ("octue.services.octue/my-service:0.1.7", "octue.services.octue.my-service.0-1-7"),
-        )
-
-        for uncleaned_service_id, cleaned_service_id in service_ids:
-            with self.subTest(uncleaned_service_id=uncleaned_service_id, cleaned_service_id=cleaned_service_id):
-                self.assertEqual(convert_service_id_to_pub_sub_form(uncleaned_service_id), cleaned_service_id)
