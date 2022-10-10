@@ -53,12 +53,13 @@ class DataflowDeployer(BaseDeployer):
 
         :param bool no_cache: if `True`, don't use the Docker cache when building the image
         :param bool update: if `True`, allow the build trigger to already exist and just build and deploy a new image based on an updated `octue.yaml` file
-        :return None:
+        :return str: the service's SRUID
         """
         self._generate_cloud_build_configuration(no_cache=no_cache)
         self._create_build_trigger(update=update)
         self._run_build_trigger()
         print(self.success_message)
+        return self.service_id
 
     def create_streaming_dataflow_job(self, image_uri, update=False):
         """Deploy the newly-built service as a streaming Dataflow job.
