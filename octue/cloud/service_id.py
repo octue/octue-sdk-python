@@ -9,14 +9,18 @@ import octue.exceptions
 OCTUE_SERVICES_NAMESPACE = "octue.services"
 SERVICE_NAMESPACE_AND_NAME_PATTERN = r"([a-z0-9])+(-([a-z0-9])+)*"
 REVISION_TAG_PATTERN = r"([A-z0-9_])+([-.]*([A-z0-9_])+)*"
+
 SERVICE_SRUID_PATTERN = (
     rf"^{SERVICE_NAMESPACE_AND_NAME_PATTERN}\/{SERVICE_NAMESPACE_AND_NAME_PATTERN}:{REVISION_TAG_PATTERN}$"
 )
+
 COMPILED_SERVICE_SRUID_PATTERN = re.compile(SERVICE_SRUID_PATTERN)
 
 
 def create_service_id(namespace, name, revision_tag=None):
-    """Create a service ID from a namespace, name, and revision tag. The resultant ID is validated before returning.
+    """Create a service ID from a namespace, name, and revision tag. The resultant ID is validated before returning. If
+    no revision tag is given, the `OCTUE_REVISION_TAG` environment variable is used if it's available or a "cool name"
+    revision tag is generated if not.
 
     :param str namespace:
     :param str name:
