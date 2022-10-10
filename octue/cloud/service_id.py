@@ -19,7 +19,7 @@ COMPILED_SERVICE_SRUID_PATTERN = re.compile(SERVICE_SRUID_PATTERN)
 
 def create_service_id(namespace, name, revision_tag=None):
     """Create a service ID from a namespace, name, and revision tag. The resultant ID is validated before returning. If
-    no revision tag is given, the `OCTUE_REVISION_TAG` environment variable is used if it's available or a "cool name"
+    no revision tag is given, the `OCTUE_SERVICE_TAG` environment variable is used if it's available or a "cool name"
     revision tag is generated if not.
 
     :param str namespace:
@@ -28,7 +28,7 @@ def create_service_id(namespace, name, revision_tag=None):
     :raise octue.exceptions.InvalidServiceID: if the service ID is invalid
     :return str:
     """
-    revision_tag = revision_tag or os.environ.get("OCTUE_REVISION_TAG") or coolname.generate_slug(2)
+    revision_tag = revision_tag or os.environ.get("OCTUE_SERVICE_TAG") or coolname.generate_slug(2)
     service_id = f"{namespace}/{name}:{revision_tag}"
     validate_service_id(service_id)
     return service_id

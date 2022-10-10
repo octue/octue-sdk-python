@@ -190,7 +190,7 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
     "--revision-tag",
     type=str,
     default=None,
-    help="A tag to use for this revision of the service (e.g. 1.3.7). This overrides the `OCTUE_REVISION_TAG` "
+    help="A tag to use for this revision of the service (e.g. 1.3.7). This overrides the `OCTUE_SERVICE_TAG` "
     "environment variable if it's present.",
 )
 @click.option(
@@ -213,11 +213,11 @@ def start(service_config, revision_tag, timeout, no_rm):
     """
     service_configuration, app_configuration = load_service_and_app_configuration(service_config)
 
-    if revision_tag and os.environ.get("OCTUE_REVISION_TAG"):
+    if revision_tag and os.environ.get("OCTUE_SERVICE_TAG"):
         logger.warning(
-            "The `OCTUE_REVISION_TAG` environment variable %r has been overridden by the `--revision-tag` CLI option "
+            "The `OCTUE_SERVICE_TAG` environment variable %r has been overridden by the `--revision-tag` CLI option "
             "%r.",
-            os.environ["OCTUE_REVISION_TAG"],
+            os.environ["OCTUE_SERVICE_TAG"],
             revision_tag,
         )
 
