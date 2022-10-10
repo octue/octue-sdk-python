@@ -186,8 +186,7 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
     help="The path to an `octue.yaml` file defining the service to start.",
 )
 @click.option(
-    "-c",
-    "--revision-tag",
+    "--service-tag",
     type=str,
     default=None,
     help="A tag to use for this revision of the service (e.g. 1.3.7). This overrides the `OCTUE_SERVICE_TAG` "
@@ -207,10 +206,11 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
     show_default=True,
     help="Don't delete the Google Pub/Sub topic and subscription for the service on exit.",
 )
-def start(service_config, service_tag_override, timeout, no_rm):
+def start(service_config, service_tag, timeout, no_rm):
     """Start an Octue service or digital twin locally as a child so it can be asked questions by other Octue services.
     The service's pub/sub topic and subscription are deleted on exit.
     """
+    service_tag_override = service_tag
     service_configuration, app_configuration = load_service_and_app_configuration(service_config)
     service_namespace, service_name, service_tag = get_service_sruid_parts(service_configuration)
 
