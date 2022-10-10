@@ -49,10 +49,15 @@ class BaseDeployer:
         self.generated_cloud_build_configuration = None
 
         self.service_namespace, self.service_name, service_tag = get_service_sruid_parts(self.service_configuration)
+
         self.service_id = create_service_id(
-            namespace=self.service_namespace, name=self.service_name, revision_tag=service_tag
+            namespace=self.service_namespace,
+            name=self.service_name,
+            revision_tag=service_tag,
         )
-        self.cleaned_service_id = convert_service_id_to_pub_sub_form(self.service_id)
+
+        self.pub_sub_service_id = convert_service_id_to_pub_sub_form(self.service_id)
+        self.cloud_build_service_id = self.pub_sub_service_id.replace(".", "-")
 
         self.required_environment_variables = {
             "OCTUE_SERVICE_NAMESPACE": self.service_namespace,
@@ -62,7 +67,7 @@ class BaseDeployer:
 
         self.image_uri_template = image_uri_template or (
             f"{DOCKER_REGISTRY_URL}/{self.service_configuration.project_name}/"
-            f"{self.service_configuration.repository_name}/{self.service_id}:$SHORT_SHA"
+            f"{self.service_configuration.repository_name}/{self.pub_sub_service_id}:$SHORT_SHA"
         )
 
         self.success_message = f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}."
@@ -73,7 +78,7 @@ class BaseDeployer:
 
         :param bool no_cache: if `True`, don't use the Docker cache when building the image
         :param bool update: if `True`, allow the build trigger to already exist and just build and deploy a new image based on an updated `octue.yaml` file
-        :return str: the service's UUID
+        :return str: the service's SRUID
         """
 
     @abstractmethod
@@ -171,7 +176,7 @@ class BaseDeployer:
                     "triggers",
                     "create",
                     "github",
-                    f"--name={self.service_id}",
+                    f"--name={self.cloud_build_service_id}",
                     f"--repo-name={self.service_configuration.repository_name}",
                     f"--repo-owner={self.service_configuration.repository_owner}",
                     f"--description={self.build_trigger_description}",
@@ -191,7 +196,7 @@ class BaseDeployer:
                         "builds",
                         "triggers",
                         "delete",
-                        f"{self.service_id}",
+                        f"{self.cloud_build_service_id}",
                     ]
 
                     self._run_command(delete_trigger_command)
@@ -218,7 +223,7 @@ class BaseDeployer:
                 "builds",
                 "triggers",
                 "run",
-                self.service_id,
+                self.cloud_build_service_id,
                 f"--branch={self.service_configuration.branch_pattern.strip('^$')}",
             ]
 
