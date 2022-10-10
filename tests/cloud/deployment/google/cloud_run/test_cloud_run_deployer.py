@@ -63,7 +63,7 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
                 f"--region={SERVICE['region']}",
                 "--memory=128Mi",
                 "--cpu=1",
-                f"--set-env-vars=SERVICE_NAME={create_service_id(SERVICE['namespace'], SERVICE['name'])}",
+                f"--set-env-vars=SERVICE_NAMESPACE={SERVICE['namespace']},SERVICE_NAME={SERVICE['name']}",
                 "--timeout=3600",
                 "--concurrency=10",
                 "--min-instances=0",

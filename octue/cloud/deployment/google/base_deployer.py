@@ -6,7 +6,7 @@ from abc import abstractmethod
 
 import yaml
 
-from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_id
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_id, get_service_sruid_parts
 from octue.configuration import ServiceConfiguration
 from octue.exceptions import DeploymentError
 
@@ -48,10 +48,17 @@ class BaseDeployer:
         self.build_trigger_description = None
         self.generated_cloud_build_configuration = None
 
-        self.service_id = create_service_id(self.service_configuration.namespace, self.service_configuration.name)
+        self.service_namespace, self.service_name, service_tag = get_service_sruid_parts(self.service_configuration)
+        self.service_id = create_service_id(
+            namespace=self.service_namespace, name=self.service_name, revision_tag=service_tag
+        )
         self.cleaned_service_id = convert_service_id_to_pub_sub_form(self.service_id)
 
-        self.required_environment_variables = {"SERVICE_NAME": self.service_id}
+        self.required_environment_variables = {
+            "OCTUE_SERVICE_NAMESPACE": self.service_namespace,
+            "OCTUE_SERVICE_NAME": self.service_name,
+            "OCTUE_SERVICE_TAG": service_tag,
+        }
 
         self.image_uri_template = image_uri_template or (
             f"{DOCKER_REGISTRY_URL}/{self.service_configuration.project_name}/"

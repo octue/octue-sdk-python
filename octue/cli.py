@@ -14,7 +14,7 @@ from octue.cloud import storage
 from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import Service
-from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_id
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_id, get_service_sruid_parts
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.configuration import load_service_and_app_configuration
 from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
@@ -207,24 +207,25 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
     show_default=True,
     help="Don't delete the Google Pub/Sub topic and subscription for the service on exit.",
 )
-def start(service_config, revision_tag, timeout, no_rm):
+def start(service_config, service_tag_override, timeout, no_rm):
     """Start an Octue service or digital twin locally as a child so it can be asked questions by other Octue services.
     The service's pub/sub topic and subscription are deleted on exit.
     """
     service_configuration, app_configuration = load_service_and_app_configuration(service_config)
+    service_namespace, service_name, service_tag = get_service_sruid_parts(service_configuration)
 
-    if revision_tag and os.environ.get("OCTUE_SERVICE_TAG"):
+    if service_tag_override and service_tag:
         logger.warning(
             "The `OCTUE_SERVICE_TAG` environment variable %r has been overridden by the `--revision-tag` CLI option "
             "%r.",
             os.environ["OCTUE_SERVICE_TAG"],
-            revision_tag,
+            service_tag_override,
         )
 
     service_id = create_service_id(
-        service_configuration.namespace,
-        service_configuration.name,
-        revision_tag=revision_tag,
+        namespace=service_namespace,
+        name=service_name,
+        revision_tag=service_tag_override or service_tag,
     )
 
     runner = Runner(
@@ -261,7 +262,7 @@ def start(service_config, revision_tag, timeout, no_rm):
 
     except ServiceAlreadyExists:
         # Generate and use a new revision tag if the service already exists.
-        service_id = create_service_id(service_configuration.namespace, service_configuration.name)
+        service_id = create_service_id(namespace=service_namespace, name=service_name)
 
         while True:
             user_confirmation = input(f"Service already exists. Create new service with ID {service_id!r}? [Y/n]\n")

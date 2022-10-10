@@ -1,9 +1,13 @@
+import logging
 import os
 import re
 
 import coolname
 
 import octue.exceptions
+
+
+logger = logging.getLogger(__name__)
 
 
 OCTUE_SERVICES_NAMESPACE = "octue.services"
@@ -17,10 +21,44 @@ SERVICE_SRUID_PATTERN = (
 COMPILED_SERVICE_SRUID_PATTERN = re.compile(SERVICE_SRUID_PATTERN)
 
 
+def get_service_sruid_parts(service_configuration):
+    """Get the namespace and name for the service from either the service environment variables or the service
+    configuration (in that order of precedence). The service revision tag is included if it's provided in the
+    `OCTUE_SERVICE_TAG` environment variable; otherwise, it's `None`.
+
+    :param octue.configuration.ServiceConfiguration service_configuration:
+    :return (str, str, str|None):
+    """
+    service_namespace = os.environ.get("OCTUE_SERVICE_NAMESPACE")
+    service_name = os.environ.get("OCTUE_SERVICE_NAME")
+    service_tag = os.environ.get("OCTUE_SERVICE_TAG")
+
+    if service_namespace:
+        logger.warning(
+            "The namespace in the service configuration %r has been overridden by the `OCTUE_SERVICE_NAMESPACE` "
+            "environment variable %r.",
+            service_configuration.namespace,
+            service_namespace,
+        )
+    else:
+        service_namespace = service_configuration.name
+
+    if service_name:
+        logger.warning(
+            "The name in the service configuration %r has been overridden by the `OCTUE_SERVICE_NAME` environment "
+            "variable %r.",
+            service_configuration.name,
+            service_name,
+        )
+    else:
+        service_name = service_configuration.name
+
+    return service_namespace, service_name, service_tag
+
+
 def create_service_id(namespace, name, revision_tag=None):
     """Create a service ID from a namespace, name, and revision tag. The resultant ID is validated before returning. If
-    no revision tag is given, the `OCTUE_SERVICE_TAG` environment variable is used if it's available or a "cool name"
-    revision tag is generated if not.
+    no revision tag is given, a "cool name" revision tag is generated.
 
     :param str namespace:
     :param str name:
@@ -28,7 +66,7 @@ def create_service_id(namespace, name, revision_tag=None):
     :raise octue.exceptions.InvalidServiceID: if the service ID is invalid
     :return str:
     """
-    revision_tag = revision_tag or os.environ.get("OCTUE_SERVICE_TAG") or coolname.generate_slug(2)
+    revision_tag = revision_tag or coolname.generate_slug(2)
     service_id = f"{namespace}/{name}:{revision_tag}"
     validate_service_id(service_id)
     return service_id

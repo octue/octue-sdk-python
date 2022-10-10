@@ -20,7 +20,6 @@ DEFAULT_SETUP_FILE_PATH = os.path.join(REPOSITORY_ROOT, "setup.py")
 
 
 def create_streaming_job(
-    service_name,
     service_id,
     project_name,
     region,
@@ -35,7 +34,6 @@ def create_streaming_job(
 ):
     """Deploy an `octue` service as a streaming Google Dataflow Prime job.
 
-    :param str service_name: the name to give the Dataflow job
     :param str service_id: the Pub/Sub topic name for the Dataflow job to subscribe to
     :param str project_name: the name of the project to deploy the job to
     :param str region: the region to deploy the job to
@@ -54,7 +52,7 @@ def create_streaming_job(
         "project": project_name,
         "region": region,
         "temp_location": temporary_files_location,
-        "job_name": service_name,
+        "job_name": service_id,
         "sdk_container_image": image_uri,
         "setup_file": os.path.abspath(setup_file_path),
         "update": update,
@@ -89,4 +87,4 @@ def create_streaming_job(
     try:
         DataflowRunner().run_pipeline(pipeline, options=pipeline_options)
     except DataflowJobAlreadyExistsError:
-        raise DeploymentError(f"A Dataflow job with name {service_name!r} already exists.") from None
+        raise DeploymentError(f"A Dataflow job with name {service_id!r} already exists.") from None

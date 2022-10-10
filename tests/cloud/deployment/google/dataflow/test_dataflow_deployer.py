@@ -54,7 +54,9 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
             "args": [
                 "-c",
                 (
-                    f"docker build '-t' {EXPECTED_IMAGE_NAME!r} --build-arg=SERVICE_NAME={SERVICE['namespace']}/{SERVICE['name']} "
+                    f"docker build '-t' {EXPECTED_IMAGE_NAME!r} "
+                    f"--build-arg=OCTUE_SERVICE_NAMESPACE={SERVICE['namespace']} "
+                    f"--build-arg=OCTUE_SERVICE_NAME={SERVICE['name']} "
                     ". '-f' Dockerfile"
                 ),
             ],

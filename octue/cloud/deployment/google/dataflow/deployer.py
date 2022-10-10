@@ -39,9 +39,7 @@ class DataflowDeployer(BaseDeployer):
 
     def __init__(self, octue_configuration_path, image_uri_template=None):
         super().__init__(octue_configuration_path, image_uri_template)
-        self.build_trigger_description = (
-            f"Build the {self.service_configuration.name!r} service and deploy it to Dataflow."
-        )
+        self.build_trigger_description = f"Build the {self.service_id!r} service and deploy it to Dataflow."
 
         if not self.service_configuration.temporary_files_location:
             self.service_configuration.temporary_files_location = DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION
@@ -74,7 +72,6 @@ class DataflowDeployer(BaseDeployer):
                 progress_message.finish_message = "update triggered."
 
             kwargs = {
-                "service_name": self.service_configuration.name,
                 "project_name": self.service_configuration.project_name,
                 "service_id": self.cleaned_service_id,
                 "region": self.service_configuration.region,

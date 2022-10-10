@@ -197,7 +197,7 @@ class CloudRunDeployer(BaseDeployer):
                 "create",
                 f"{self.cleaned_service_id}-trigger",
                 "--matching-criteria=type=google.cloud.pubsub.topic.v1.messagePublished",
-                f"--destination-run-service={self.service_configuration.name}",
+                f"--destination-run-service={self.service_id}",
                 f"--location={self.service_configuration.region}",
                 f"--transport-topic={topic.name}",
             ]
