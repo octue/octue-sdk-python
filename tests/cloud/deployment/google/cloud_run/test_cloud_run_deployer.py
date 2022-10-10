@@ -87,7 +87,7 @@ EXPECTED_BUILD_TRIGGER_CREATION_COMMAND = [
     "triggers",
     "create",
     "github",
-    f"--name={PUB_SUB_SRUID}",
+    f"--name={SRUID}",
     f"--repo-name={SERVICE['repository_name']}",
     f"--repo-owner={SERVICE['repository_owner']}",
     f"--description=Build the '{SRUID}' service and deploy it to Cloud Run.",
@@ -226,7 +226,7 @@ class TestCloudRunDeployer(BaseTestCase):
                     "builds",
                     "triggers",
                     "run",
-                    f"{PUB_SUB_SRUID}",
+                    f"{SRUID}",
                     "--branch=my-branch",
                 ],
             )
@@ -319,7 +319,7 @@ class TestCloudRunDeployer(BaseTestCase):
                 "builds",
                 "triggers",
                 "delete",
-                f"{PUB_SUB_SRUID}",
+                f"{SRUID}",
             ],
         )
 

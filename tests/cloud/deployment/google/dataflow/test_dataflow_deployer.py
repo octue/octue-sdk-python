@@ -1,4 +1,5 @@
 import copy
+import os
 import tempfile
 from unittest.mock import Mock, patch
 
@@ -33,12 +34,15 @@ OCTUE_CONFIGURATION = {
 }
 
 SERVICE = OCTUE_CONFIGURATION["services"][0]
+OCTUE_SERVICE_TAG = "my-tag"
+SRUID = f"{SERVICE['namespace']}/{SERVICE['name']}:{OCTUE_SERVICE_TAG}"
+PUB_SUB_SRUID = f"{SERVICE['namespace']}.{SERVICE['name']}.{OCTUE_SERVICE_TAG}"
 
 OCTUE_CONFIGURATION_WITH_CLOUD_BUILD_PATH = {
     "services": [{**copy.copy(SERVICE), "cloud_build_configuration_path": "cloudbuild.yaml"}]
 }
 
-EXPECTED_IMAGE_NAME = f"eu.gcr.io/{SERVICE['project_name']}/{SERVICE['repository_name']}/{SERVICE['namespace']}/{SERVICE['name']}:$SHORT_SHA"
+EXPECTED_IMAGE_NAME = f"eu.gcr.io/{SERVICE['project_name']}/{SERVICE['repository_name']}/{SERVICE['namespace']}/{SERVICE['name']}:{OCTUE_SERVICE_TAG}:$SHORT_SHA"
 
 EXPECTED_CLOUD_BUILD_CONFIGURATION = {
     "steps": [
@@ -57,6 +61,7 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
                     f"docker build '-t' {EXPECTED_IMAGE_NAME!r} "
                     f"--build-arg=OCTUE_SERVICE_NAMESPACE={SERVICE['namespace']} "
                     f"--build-arg=OCTUE_SERVICE_NAME={SERVICE['name']} "
+                    f"--build-arg=OCTUE_SERVICE_TAG={OCTUE_SERVICE_TAG} "
                     ". '-f' Dockerfile"
                 ),
             ],
@@ -90,10 +95,10 @@ EXPECTED_BUILD_TRIGGER_CREATION_COMMAND = [
     "triggers",
     "create",
     "github",
-    f"--name={SERVICE['namespace']}.{SERVICE['name']}",
+    f"--name={SRUID}",
     f"--repo-name={SERVICE['repository_name']}",
     f"--repo-owner={SERVICE['repository_owner']}",
-    f"--description=Build the {SERVICE['name']!r} service and deploy it to Dataflow.",
+    f"--description=Build the {SRUID!r} service and deploy it to Dataflow.",
     f"--branch-pattern={SERVICE['branch_pattern']}",
 ]
 
@@ -103,7 +108,9 @@ class TestDataflowDeployer(BaseTestCase):
         """Test that a correct Google Cloud Build configuration is generated from the given `octue.yaml` file."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
-            deployer = DataflowDeployer(octue_configuration_path)
+
+            with patch.dict(os.environ, {"OCTUE_SERVICE_TAG": "my-tag"}):
+                deployer = DataflowDeployer(octue_configuration_path)
 
         deployer._generate_cloud_build_configuration()
         self.assertEqual(deployer.generated_cloud_build_configuration, EXPECTED_CLOUD_BUILD_CONFIGURATION)
@@ -112,7 +119,9 @@ class TestDataflowDeployer(BaseTestCase):
         """Test that the build trigger creation and run are requested correctly."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
-            deployer = DataflowDeployer(octue_configuration_path)
+
+            with patch.dict(os.environ, {"OCTUE_SERVICE_TAG": "my-tag"}):
+                deployer = DataflowDeployer(octue_configuration_path)
 
             with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:
                 mock_build_id = "my-build-id"
@@ -146,7 +155,7 @@ class TestDataflowDeployer(BaseTestCase):
                     "builds",
                     "triggers",
                     "run",
-                    f"{SERVICE['namespace']}.{SERVICE['name']}",
+                    f"{SRUID}",
                     "--branch=my-branch",
                 ],
             )
@@ -172,7 +181,8 @@ class TestDataflowDeployer(BaseTestCase):
                 temporary_directory,
             )
 
-            deployer = DataflowDeployer(octue_configuration_path, image_uri_template="blah")
+            with patch.dict(os.environ, {"OCTUE_SERVICE_TAG": "my-tag"}):
+                deployer = DataflowDeployer(octue_configuration_path, image_uri_template="blah")
 
             with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:
                 mock_build_id = "my-build-id"
@@ -207,7 +217,7 @@ class TestDataflowDeployer(BaseTestCase):
                     "builds",
                     "triggers",
                     "run",
-                    f"{service['namespace']}.{service['name']}",
+                    f"{SRUID}",
                     "--branch=my-branch",
                 ],
             )
@@ -229,7 +239,9 @@ class TestDataflowDeployer(BaseTestCase):
         """Test creating a streaming dataflow job directly."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
-            deployer = DataflowDeployer(octue_configuration_path)
+
+            with patch.dict(os.environ, {"OCTUE_SERVICE_TAG": "my-tag"}):
+                deployer = DataflowDeployer(octue_configuration_path)
 
             with patch(
                 "octue.cloud.deployment.google.dataflow.pipeline.Topic",
@@ -242,7 +254,7 @@ class TestDataflowDeployer(BaseTestCase):
             self.assertFalse(options["update"])
             self.assertTrue(options["streaming"])
             self.assertEqual(options["project"], SERVICE["project_name"])
-            self.assertEqual(options["job_name"], SERVICE["name"])
+            self.assertEqual(options["job_name"], SRUID)
             self.assertEqual(options["temp_location"], DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION)
             self.assertEqual(options["region"], SERVICE["region"])
             self.assertEqual(options["sdk_container_image"], "my-image-uri")
@@ -256,7 +268,9 @@ class TestDataflowDeployer(BaseTestCase):
         """Test updating an existing streaming dataflow job."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
-            deployer = DataflowDeployer(octue_configuration_path)
+
+            with patch.dict(os.environ, {"OCTUE_SERVICE_TAG": "my-tag"}):
+                deployer = DataflowDeployer(octue_configuration_path)
 
             with patch(
                 "octue.cloud.deployment.google.dataflow.pipeline.Topic",
@@ -270,7 +284,7 @@ class TestDataflowDeployer(BaseTestCase):
             self.assertTrue(options["streaming"])
             self.assertIsNone(options["dataflow_service_options"])
             self.assertEqual(options["project"], SERVICE["project_name"])
-            self.assertEqual(options["job_name"], SERVICE["name"])
+            self.assertEqual(options["job_name"], SRUID)
             self.assertEqual(options["temp_location"], DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION)
             self.assertEqual(options["region"], SERVICE["region"])
             self.assertEqual(options["sdk_container_image"], "my-image-uri")
