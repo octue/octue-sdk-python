@@ -28,9 +28,10 @@ SERVICE = OCTUE_CONFIGURATION["services"][0]
 OCTUE_SERVICE_TAG = "my-tag"
 SRUID = f"{SERVICE['namespace']}/{SERVICE['name']}:{OCTUE_SERVICE_TAG}"
 PUB_SUB_SRUID = f"{SERVICE['namespace']}.{SERVICE['name']}.{OCTUE_SERVICE_TAG}"
+CLOUD_BUILD_SRUID = PUB_SUB_SRUID.replace(".", "-")
 
 GET_SUBSCRIPTIONS_METHOD_PATH = "octue.cloud.deployment.google.cloud_run.deployer.Topic.get_subscriptions"
-EXPECTED_IMAGE_NAME = f"eu.gcr.io/{SERVICE['project_name']}/{SERVICE['repository_name']}/{SRUID}:$SHORT_SHA"
+EXPECTED_IMAGE_NAME = f"eu.gcr.io/{SERVICE['project_name']}/{SERVICE['repository_name']}/{PUB_SUB_SRUID}:$SHORT_SHA"
 
 EXPECTED_CLOUD_BUILD_CONFIGURATION = {
     "steps": [
@@ -61,7 +62,7 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
                 "run",
                 "services",
                 "update",
-                f"{SRUID}",
+                f"{CLOUD_BUILD_SRUID}",
                 "--platform=managed",
                 f"--image={EXPECTED_IMAGE_NAME}",
                 f"--region={SERVICE['region']}",
@@ -87,7 +88,7 @@ EXPECTED_BUILD_TRIGGER_CREATION_COMMAND = [
     "triggers",
     "create",
     "github",
-    f"--name={SRUID}",
+    f"--name={CLOUD_BUILD_SRUID}",
     f"--repo-name={SERVICE['repository_name']}",
     f"--repo-owner={SERVICE['repository_owner']}",
     f"--description=Build the '{SRUID}' service and deploy it to Cloud Run.",
@@ -226,7 +227,7 @@ class TestCloudRunDeployer(BaseTestCase):
                     "builds",
                     "triggers",
                     "run",
-                    f"{SRUID}",
+                    f"{CLOUD_BUILD_SRUID}",
                     "--branch=my-branch",
                 ],
             )
@@ -253,7 +254,7 @@ class TestCloudRunDeployer(BaseTestCase):
                     "run",
                     "services",
                     "add-iam-policy-binding",
-                    f"{SRUID}",
+                    f"{CLOUD_BUILD_SRUID}",
                     f'--region={SERVICE["region"]}',
                     "--member=allUsers",
                     "--role=roles/run.invoker",
@@ -270,9 +271,9 @@ class TestCloudRunDeployer(BaseTestCase):
                     "eventarc",
                     "triggers",
                     "create",
-                    f"{SRUID}-trigger",
+                    f"{CLOUD_BUILD_SRUID}-trigger",
                     "--matching-criteria=type=google.cloud.pubsub.topic.v1.messagePublished",
-                    f"--destination-run-service={SRUID}",
+                    f"--destination-run-service={CLOUD_BUILD_SRUID}",
                     f"--location={SERVICE['region']}",
                     f"--transport-topic=octue.services.{PUB_SUB_SRUID}",
                 ],
@@ -319,7 +320,7 @@ class TestCloudRunDeployer(BaseTestCase):
                 "builds",
                 "triggers",
                 "delete",
-                f"{SRUID}",
+                f"{CLOUD_BUILD_SRUID}",
             ],
         )
 
