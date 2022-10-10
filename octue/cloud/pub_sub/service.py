@@ -15,7 +15,7 @@ import octue.exceptions
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
-from octue.cloud.service_id import clean_service_id, validate_service_id
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form, validate_service_id
 from octue.compatibility import warn_if_incompatible
 from octue.mixins import CoolNameable
 from octue.utils.encoders import OctueJSONEncoder
@@ -55,7 +55,7 @@ class Service(CoolNameable):
         if service_id is None:
             service_uuid = str(uuid.uuid4())
             self._raw_service_id = DEFAULT_NAMESPACE + "/" + service_uuid
-            self.id = clean_service_id(self._raw_service_id)
+            self.id = convert_service_id_to_pub_sub_form(self._raw_service_id)
 
         # Raise an error if the service ID is some kind of falsey object that isn't `None`.
         elif not service_id:
@@ -67,7 +67,7 @@ class Service(CoolNameable):
             validate_service_id(service_id)
             self.name = kwargs.get("name") or service_id
             self._raw_service_id = service_id
-            self.id = clean_service_id(self._raw_service_id)
+            self.id = convert_service_id_to_pub_sub_form(self._raw_service_id)
 
         self.backend = backend
         self.run_function = run_function
@@ -272,7 +272,7 @@ class Service(CoolNameable):
                 )
 
         unlinted_service_id = service_id
-        service_id = clean_service_id(service_id)
+        service_id = convert_service_id_to_pub_sub_form(service_id)
         question_topic = Topic(name=service_id, project_name=self.backend.project_name)
 
         if not question_topic.exists(timeout=timeout):

@@ -6,7 +6,7 @@ from abc import abstractmethod
 
 import yaml
 
-from octue.cloud.service_id import clean_service_id, create_service_id
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_id
 from octue.configuration import ServiceConfiguration
 from octue.exceptions import DeploymentError
 
@@ -49,7 +49,7 @@ class BaseDeployer:
         self.generated_cloud_build_configuration = None
 
         self.service_id = create_service_id(self.service_configuration.namespace, self.service_configuration.name)
-        self.cleaned_service_id = clean_service_id(self.service_id)
+        self.cleaned_service_id = convert_service_id_to_pub_sub_form(self.service_id)
 
         self.required_environment_variables = {"SERVICE_NAME": self.service_id}
 

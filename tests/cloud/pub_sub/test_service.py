@@ -24,7 +24,7 @@ from octue.cloud.emulators._pub_sub import (
 from octue.cloud.emulators.child import ServicePatcher
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.cloud.pub_sub.service import Service
-from octue.cloud.service_id import clean_service_id
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form
 from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
@@ -881,4 +881,4 @@ class TestCleanServiceID(unittest.TestCase):
 
         for uncleaned_service_id, cleaned_service_id in service_ids:
             with self.subTest(uncleaned_service_id=uncleaned_service_id, cleaned_service_id=cleaned_service_id):
-                self.assertEqual(clean_service_id(uncleaned_service_id), cleaned_service_id)
+                self.assertEqual(convert_service_id_to_pub_sub_form(uncleaned_service_id), cleaned_service_id)

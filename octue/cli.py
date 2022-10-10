@@ -14,7 +14,7 @@ from octue.cloud import storage
 from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import Service
-from octue.cloud.service_id import clean_service_id, create_service_id
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_id
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.configuration import load_service_and_app_configuration
 from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
@@ -387,7 +387,7 @@ def create_push_subscription(project_name, service_id, push_endpoint, revision_t
     PUSH_ENDPOINT is the HTTP/HTTPS endpoint of the service to push to. It should be fully formed and include the
     'https://' prefix
     """
-    service_id = clean_service_id(f"{service_id}:{revision_tag}")
+    service_id = convert_service_id_to_pub_sub_form(f"{service_id}:{revision_tag}")
 
     topic = Topic(name=service_id, project_name=project_name)
     topic.create(allow_existing=True)

@@ -47,12 +47,13 @@ def validate_service_id(service_id):
         )
 
 
-def clean_service_id(service_id):
-    """Replace forward slashes and colons with dots in the service ID and, if a service revision is included in the
-    service ID, replace any dots in it with dashes.
+def convert_service_id_to_pub_sub_form(service_id):
+    """Convert the service ID to the form required for use in Google Pub/Sub topic and subscription paths. This is done
+    by replacing forward slashes and colons with periods and, if a service revision is included, replacing any periods
+    in it with dashes.
 
-    :param str service_id: the raw service ID
-    :return str: the cleaned service ID.
+    :param str service_id: the user-friendly service ID
+    :return str: the service ID in Google Pub/Sub form
     """
     if ":" in service_id:
         service_id, service_revision = service_id.split(":")
