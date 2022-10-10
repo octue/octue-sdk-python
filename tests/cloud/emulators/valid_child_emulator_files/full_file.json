@@ -1,10 +1,10 @@
 {
-    "id": "octue/my-child",
+    "id": "octue/my-child:latest",
     "backend": {
         "name": "GCPPubSubBackend",
         "project_name": "blah"
     },
-    "internal_service_name": "my-service",
+    "internal_service_name": "octue/my-service:latest",
     "messages": [
         {
             "type": "log_record",

@@ -1,7 +1,6 @@
 import copy
 import json
 import logging
-import uuid
 from unittest.mock import patch
 
 from octue.cloud import EXCEPTIONS_MAPPING
@@ -26,14 +25,14 @@ class ChildEmulator:
     """
 
     def __init__(self, id=None, backend=None, internal_service_name=None, messages=None):
-        self.id = id or str(uuid.uuid4())
         self.messages = messages or []
 
         backend = copy.deepcopy(backend or {"name": "GCPPubSubBackend", "project_name": "emulated-project"})
         backend_type_name = backend.pop("name")
         backend = service_backends.get_backend(backend_type_name)(**backend)
 
-        self._child = MockService(service_id=self.id, backend=backend, run_function=self._emulate_analysis)
+        self._child = MockService(service_id=id, backend=backend, run_function=self._emulate_analysis)
+        self.id = self._child.id
 
         self._parent = MockService(
             backend=backend,
