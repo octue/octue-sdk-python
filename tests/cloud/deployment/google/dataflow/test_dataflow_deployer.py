@@ -37,12 +37,13 @@ SERVICE = OCTUE_CONFIGURATION["services"][0]
 OCTUE_SERVICE_TAG = "my-tag"
 SRUID = f"{SERVICE['namespace']}/{SERVICE['name']}:{OCTUE_SERVICE_TAG}"
 PUB_SUB_SRUID = f"{SERVICE['namespace']}.{SERVICE['name']}.{OCTUE_SERVICE_TAG}"
+CLOUD_BUILD_SRUID = PUB_SUB_SRUID.replace(".", "-")
 
 OCTUE_CONFIGURATION_WITH_CLOUD_BUILD_PATH = {
     "services": [{**copy.copy(SERVICE), "cloud_build_configuration_path": "cloudbuild.yaml"}]
 }
 
-EXPECTED_IMAGE_NAME = f"eu.gcr.io/{SERVICE['project_name']}/{SERVICE['repository_name']}/{SERVICE['namespace']}/{SERVICE['name']}:{OCTUE_SERVICE_TAG}:$SHORT_SHA"
+EXPECTED_IMAGE_NAME = f"eu.gcr.io/{SERVICE['project_name']}/{SERVICE['repository_name']}/{PUB_SUB_SRUID}:$SHORT_SHA"
 
 EXPECTED_CLOUD_BUILD_CONFIGURATION = {
     "steps": [
@@ -95,7 +96,7 @@ EXPECTED_BUILD_TRIGGER_CREATION_COMMAND = [
     "triggers",
     "create",
     "github",
-    f"--name={SRUID}",
+    f"--name={CLOUD_BUILD_SRUID}",
     f"--repo-name={SERVICE['repository_name']}",
     f"--repo-owner={SERVICE['repository_owner']}",
     f"--description=Build the {SRUID!r} service and deploy it to Dataflow.",
@@ -155,7 +156,7 @@ class TestDataflowDeployer(BaseTestCase):
                     "builds",
                     "triggers",
                     "run",
-                    f"{SRUID}",
+                    f"{CLOUD_BUILD_SRUID}",
                     "--branch=my-branch",
                 ],
             )
@@ -217,7 +218,7 @@ class TestDataflowDeployer(BaseTestCase):
                     "builds",
                     "triggers",
                     "run",
-                    f"{SRUID}",
+                    f"{CLOUD_BUILD_SRUID}",
                     "--branch=my-branch",
                 ],
             )
@@ -254,7 +255,7 @@ class TestDataflowDeployer(BaseTestCase):
             self.assertFalse(options["update"])
             self.assertTrue(options["streaming"])
             self.assertEqual(options["project"], SERVICE["project_name"])
-            self.assertEqual(options["job_name"], SRUID)
+            self.assertEqual(options["job_name"], PUB_SUB_SRUID)
             self.assertEqual(options["temp_location"], DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION)
             self.assertEqual(options["region"], SERVICE["region"])
             self.assertEqual(options["sdk_container_image"], "my-image-uri")
@@ -284,7 +285,7 @@ class TestDataflowDeployer(BaseTestCase):
             self.assertTrue(options["streaming"])
             self.assertIsNone(options["dataflow_service_options"])
             self.assertEqual(options["project"], SERVICE["project_name"])
-            self.assertEqual(options["job_name"], SRUID)
+            self.assertEqual(options["job_name"], PUB_SUB_SRUID)
             self.assertEqual(options["temp_location"], DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION)
             self.assertEqual(options["region"], SERVICE["region"])
             self.assertEqual(options["sdk_container_image"], "my-image-uri")

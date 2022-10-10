@@ -15,7 +15,7 @@ class TestDataflowDeployment(BaseTestCase):
         in response.
         """
         child = Child(
-            id="octue/example-service-dataflow",
+            id="octue/example-service-dataflow:latest",
             backend={"name": "GCPPubSubBackend", "project_name": os.environ["TEST_PROJECT_NAME"]},
         )
 
