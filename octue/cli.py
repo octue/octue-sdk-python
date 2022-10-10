@@ -213,6 +213,14 @@ def start(service_config, revision_tag, timeout, no_rm):
     """
     service_configuration, app_configuration = load_service_and_app_configuration(service_config)
 
+    if revision_tag and os.environ.get("OCTUE_REVISION_TAG"):
+        logger.warning(
+            "The `OCTUE_REVISION_TAG` environment variable %r has been overridden by the `--revision-tag` CLI option "
+            "%r.",
+            os.environ["OCTUE_REVISION_TAG"],
+            revision_tag,
+        )
+
     service_id = create_service_id(
         service_configuration.namespace,
         service_configuration.name,
