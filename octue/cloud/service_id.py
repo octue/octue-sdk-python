@@ -41,7 +41,7 @@ def get_service_sruid_parts(service_configuration):
             service_namespace,
         )
     else:
-        service_namespace = service_configuration.name
+        service_namespace = service_configuration.namespace
 
     if service_name:
         logger.warning(
