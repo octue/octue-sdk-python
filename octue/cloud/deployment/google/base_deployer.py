@@ -171,7 +171,7 @@ class BaseDeployer:
                     "triggers",
                     "create",
                     "github",
-                    f"--name={self.cleaned_service_id}",
+                    f"--name={self.service_id}",
                     f"--repo-name={self.service_configuration.repository_name}",
                     f"--repo-owner={self.service_configuration.repository_owner}",
                     f"--description={self.build_trigger_description}",
@@ -191,7 +191,7 @@ class BaseDeployer:
                         "builds",
                         "triggers",
                         "delete",
-                        f"{self.cleaned_service_id}",
+                        f"{self.service_id}",
                     ]
 
                     self._run_command(delete_trigger_command)
@@ -218,7 +218,7 @@ class BaseDeployer:
                 "builds",
                 "triggers",
                 "run",
-                self.cleaned_service_id,
+                self.service_id,
                 f"--branch={self.service_configuration.branch_pattern.strip('^$')}",
             ]
 
