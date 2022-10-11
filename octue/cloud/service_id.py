@@ -53,6 +53,9 @@ def get_service_sruid_parts(service_configuration):
     else:
         service_name = service_configuration.name
 
+    if service_tag:
+        logger.info("Service tag %r provided in `OCTUE_SERVICE_TAG` environment variable.")
+
     return service_namespace, service_name, service_tag
 
 
