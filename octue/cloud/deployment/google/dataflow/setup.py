@@ -17,7 +17,7 @@ with open("../../../../../LICENSE") as f:
 
 setup(
     name="octue",
-    version="0.16.0",
+    version="0.40.0",
     py_modules=["cli"],
     install_requires=[
         "click>=7,<9",
@@ -31,12 +31,21 @@ setup(
         "gunicorn>=20.1,<21",
         "python-dateutil>=2.8,<3",
         "pyyaml>=6,<7",
-        "twined>=0.5,<0.6",
+        "twined>=0.5.1,<0.6",
     ],
-    extras_require={"hdf5": ["h5py>=3.6,<4"], "dataflow": ["apache-beam[gcp]>=2.37,<3"]},
+    extras_require={
+        "hdf5": ["h5py>=3.6,<4"],
+        "dataflow": [
+            "apache-beam[gcp]>=2.37,<3",
+            "cachetools>=3.1.0,<5",
+            "google-apitools>=0.5.31,<0.5.32",
+            "google-auth-httplib2>=0.1.0,<0.2.0",
+            "google-cloud-datastore>=1.8.0,<2",
+        ],
+    },
     url="https://www.github.com/octue/octue-sdk-python",
     license="MIT",
-    author="Thomas Clark (github: thclark), cortadocodes <cortado.codes@protonmail.com>",
+    author="cortadocodes <marcus@octue.com>, Thomas Clark (github: thclark)",
     author_email="support@octue.com",
     description="A package providing template applications for data services, and a python SDK to the Octue API",
     long_description=readme_text,
@@ -53,6 +62,8 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Operating System :: OS Independent",
     ],
     keywords=["digital", "twins", "twined", "data", "services", "science", "api", "apps", "ml"],
