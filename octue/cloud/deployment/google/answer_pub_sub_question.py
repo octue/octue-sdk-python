@@ -31,8 +31,6 @@ def answer_question(question, project_name):
     answer_topic = service.instantiate_answer_topic(question_uuid)
 
     try:
-        service.name = service_configuration.name
-
         runner = Runner(
             app_src=service_configuration.app_source_path,
             twine=service_configuration.twine_path,

@@ -311,7 +311,7 @@ class TestChildEmulatorJSONFiles(BaseTestCase):
         child_emulator = ChildEmulator.from_file(os.path.join(self.TEST_FILES_DIRECTORY, "full_file.json"))
         self.assertEqual(child_emulator.id, "octue/my-child:latest")
         self.assertEqual(child_emulator._child.backend.project_name, "blah")
-        self.assertEqual(child_emulator._parent.name, "octue/my-service:latest")
+        self.assertEqual(child_emulator._parent.id, "octue/my-service:latest")
 
         monitor_messages = []
 

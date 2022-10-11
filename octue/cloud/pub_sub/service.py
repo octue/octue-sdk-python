@@ -17,7 +17,6 @@ from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
 from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_id, validate_service_id
 from octue.compatibility import warn_if_incompatible
-from octue.mixins import CoolNameable
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
 from octue.utils.objects import get_nested_attribute
@@ -34,7 +33,7 @@ ANSWERS_NAMESPACE = "answers"
 BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_latency=0.01, max_messages=1)
 
 
-class Service(CoolNameable):
+class Service:
     """An Octue service that can be used as a data service or digital twin in one of two modes:
 
     - As a child accepting questions (input values and manifests) from parents, running them through its app, and
@@ -47,15 +46,14 @@ class Service(CoolNameable):
     :param octue.resources.service_backends.ServiceBackend backend: the object representing the type of backend the service uses
     :param str|None service_id: a unique ID to give to the service (any string); a UUID is generated if none is given
     :param callable|None run_function: the function the service should run when it is called
+    :param str|None name: an optional name to use for the service to override its ID in its string representation
     :return None:
     """
 
-    def __init__(self, backend, service_id=None, run_function=None, *args, **kwargs):
-        # If no service ID is given, use a random UUID for `id` and set `name` to a "cool name".
+    def __init__(self, backend, service_id=None, run_function=None, name=None):
         if service_id is None:
             service_uuid = str(uuid.uuid4())
             self.id = create_service_id(namespace=DEFAULT_NAMESPACE, name=service_uuid)
-            self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
 
         # Raise an error if the service ID is some kind of falsey object that isn't `None`.
         elif not service_id:
@@ -63,20 +61,19 @@ class Service(CoolNameable):
 
         else:
             validate_service_id(service_id)
-            self.name = kwargs.get("name") or service_id
             self.id = service_id
-            self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
 
         self.backend = backend
         self.run_function = run_function
+        self.name = name
+        self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
         self._local_sdk_version = pkg_resources.get_distribution("octue").version
         self._record_sent_messages = False
         self._sent_messages = []
         self._publisher = None
-        super().__init__(*args, **kwargs)
 
     def __repr__(self):
-        return f"<{type(self).__name__}({self.name!r})>"
+        return f"<{type(self).__name__}({self.name or self.id!r})>"
 
     @property
     def publisher(self):
