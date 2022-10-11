@@ -20,6 +20,7 @@ DEFAULT_SETUP_FILE_PATH = os.path.join(REPOSITORY_ROOT, "setup.py")
 
 
 def create_streaming_job(
+    job_name,
     service_id,
     project_name,
     region,
@@ -34,6 +35,7 @@ def create_streaming_job(
 ):
     """Deploy an `octue` service as a streaming Google Dataflow Prime job.
 
+    :param str job_name:
     :param str service_id: the Pub/Sub topic name for the Dataflow job to subscribe to
     :param str project_name: the name of the project to deploy the job to
     :param str region: the region to deploy the job to
@@ -52,7 +54,7 @@ def create_streaming_job(
         "project": project_name,
         "region": region,
         "temp_location": temporary_files_location,
-        "job_name": service_id,
+        "job_name": job_name,
         "sdk_container_image": image_uri,
         "setup_file": os.path.abspath(setup_file_path),
         "update": update,

@@ -73,6 +73,7 @@ class DataflowDeployer(BaseDeployer):
                 progress_message.finish_message = "update triggered."
 
             kwargs = {
+                "job_name": self.cloud_build_service_id,
                 "project_name": self.service_configuration.project_name,
                 "service_id": self.pub_sub_service_id,
                 "region": self.service_configuration.region,
