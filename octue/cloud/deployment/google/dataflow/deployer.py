@@ -174,6 +174,11 @@ class DataflowDeployer(BaseDeployer):
                             "--dataflow-job-only",
                             f"--image-uri={self.image_uri_template}",
                         ],
+                        "env": [
+                            f"OCTUE_SERVICE_NAMESPACE={self.service_namespace}",
+                            f"OCTUE_SERVICE_NAME={self.service_name}",
+                            f"OCTUE_SERVICE_TAG={self.service_tag}",
+                        ],
                     },
                 ],
                 "images": [self.image_uri_template],
