@@ -1,4 +1,4 @@
-FROM apache/beam_python3.9_sdk:2.37.0
+FROM apache/beam_python3.9_sdk:2.41.0
 
 # Allow statements and log messages to immediately appear in the logs on Google Cloud.
 ENV PYTHONUNBUFFERED=1
@@ -15,8 +15,11 @@ RUN pip install --upgrade pip && pip install -e .
 ENV USE_OCTUE_LOG_HANDLER=1
 ENV COMPUTE_PROVIDER=GOOGLE_DATAFLOW
 
-ARG SERVICE_ID
-ENV SERVICE_ID=$SERVICE_ID
+ARG SERVICE_NAMESPACE
+ENV SERVICE_NAMESPACE=$SERVICE_NAMESPACE
 
 ARG SERVICE_NAME
 ENV SERVICE_NAME=$SERVICE_NAME
+
+ARG SERVICE_TAG
+ENV SERVICE_TAG=$SERVICE_TAG
