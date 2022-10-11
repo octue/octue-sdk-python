@@ -22,8 +22,8 @@ def answer_question(question, project_name):
     :return None:
     """
     service_configuration, app_configuration = load_service_and_app_configuration(DEFAULT_SERVICE_CONFIGURATION_PATH)
-    service_namespace, service_name, service_tag = get_service_sruid_parts(service_configuration)
-    service_id = create_service_id(namespace=service_namespace, name=service_name, revision_tag=service_tag)
+    service_namespace, service_name, service_revision_tag = get_service_sruid_parts(service_configuration)
+    service_id = create_service_id(namespace=service_namespace, name=service_name, revision_tag=service_revision_tag)
 
     service = Service(service_id=service_id, backend=GCPPubSubBackend(project_name=project_name))
 

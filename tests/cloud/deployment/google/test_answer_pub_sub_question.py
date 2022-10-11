@@ -26,7 +26,7 @@ class TestAnswerPubSubQuestion(TestCase):
                 ),
                 patch("octue.cloud.pub_sub.service.Topic", new=MockTopic),
                 patch("octue.cloud.deployment.google.answer_pub_sub_question.Service"),
-                patch.dict(os.environ, {"OCTUE_SERVICE_TAG": "blah"}),
+                patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "blah"}),
             ]
         ):
             with patch("octue.cloud.deployment.google.answer_pub_sub_question.Runner") as mock_runner:
@@ -78,7 +78,7 @@ class TestAnswerPubSubQuestion(TestCase):
                     patch("octue.configuration.open", mock.mock_open(mock=MockOpenForConfigurationFiles)),
                     patch("octue.cloud.pub_sub.service.Topic", new=MockTopic),
                     patch("octue.cloud.deployment.google.answer_pub_sub_question.Service"),
-                    patch.dict(os.environ, {"OCTUE_SERVICE_TAG": "blah"}),
+                    patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "blah"}),
                 ]
             ):
                 answer_question(

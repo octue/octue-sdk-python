@@ -24,14 +24,14 @@ COMPILED_SERVICE_SRUID_PATTERN = re.compile(SERVICE_SRUID_PATTERN)
 def get_service_sruid_parts(service_configuration):
     """Get the namespace and name for the service from either the service environment variables or the service
     configuration (in that order of precedence). The service revision tag is included if it's provided in the
-    `OCTUE_SERVICE_TAG` environment variable; otherwise, it's `None`.
+    `OCTUE_SERVICE_REVISION_TAG` environment variable; otherwise, it's `None`.
 
     :param octue.configuration.ServiceConfiguration service_configuration:
     :return (str, str, str|None):
     """
     service_namespace = os.environ.get("OCTUE_SERVICE_NAMESPACE")
     service_name = os.environ.get("OCTUE_SERVICE_NAME")
-    service_tag = os.environ.get("OCTUE_SERVICE_TAG")
+    service_revision_tag = os.environ.get("OCTUE_SERVICE_REVISION_TAG")
 
     if service_namespace:
         logger.warning(
@@ -53,10 +53,10 @@ def get_service_sruid_parts(service_configuration):
     else:
         service_name = service_configuration.name
 
-    if service_tag:
-        logger.info("Service tag %r provided in `OCTUE_SERVICE_TAG` environment variable.")
+    if service_revision_tag:
+        logger.info("Service revision tag %r provided by `OCTUE_SERVICE_REVISION_TAG` environment variable.")
 
-    return service_namespace, service_name, service_tag
+    return service_namespace, service_name, service_revision_tag
 
 
 def create_service_id(namespace, name, revision_tag=None):

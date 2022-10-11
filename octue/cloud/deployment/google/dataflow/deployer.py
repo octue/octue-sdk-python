@@ -178,7 +178,7 @@ class DataflowDeployer(BaseDeployer):
                         "env": [
                             f"OCTUE_SERVICE_NAMESPACE={self.service_namespace}",
                             f"OCTUE_SERVICE_NAME={self.service_name}",
-                            f"OCTUE_SERVICE_TAG={self.service_tag}",
+                            f"OCTUE_SERVICE_REVISION_TAG={self.service_revision_tag}",
                         ],
                     },
                 ],

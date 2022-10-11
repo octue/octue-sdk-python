@@ -48,14 +48,14 @@ class BaseDeployer:
         self.build_trigger_description = None
         self.generated_cloud_build_configuration = None
 
-        self.service_namespace, self.service_name, self.service_tag = get_service_sruid_parts(
+        self.service_namespace, self.service_name, self.service_revision_tag = get_service_sruid_parts(
             self.service_configuration
         )
 
         self.service_id = create_service_id(
             namespace=self.service_namespace,
             name=self.service_name,
-            revision_tag=self.service_tag,
+            revision_tag=self.service_revision_tag,
         )
 
         self.pub_sub_service_id = convert_service_id_to_pub_sub_form(self.service_id)
@@ -64,7 +64,7 @@ class BaseDeployer:
         self.required_environment_variables = {
             "OCTUE_SERVICE_NAMESPACE": self.service_namespace,
             "OCTUE_SERVICE_NAME": self.service_name,
-            "OCTUE_SERVICE_TAG": self.service_tag,
+            "OCTUE_SERVICE_REVISION_TAG": self.service_revision_tag,
         }
 
         self.image_uri_template = image_uri_template or (

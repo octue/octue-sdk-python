@@ -34,9 +34,9 @@ OCTUE_CONFIGURATION = {
 }
 
 SERVICE = OCTUE_CONFIGURATION["services"][0]
-OCTUE_SERVICE_TAG = "my-tag"
-SRUID = f"{SERVICE['namespace']}/{SERVICE['name']}:{OCTUE_SERVICE_TAG}"
-PUB_SUB_SRUID = f"{SERVICE['namespace']}.{SERVICE['name']}.{OCTUE_SERVICE_TAG}"
+OCTUE_SERVICE_REVISION_TAG = "my-tag"
+SRUID = f"{SERVICE['namespace']}/{SERVICE['name']}:{OCTUE_SERVICE_REVISION_TAG}"
+PUB_SUB_SRUID = f"{SERVICE['namespace']}.{SERVICE['name']}.{OCTUE_SERVICE_REVISION_TAG}"
 CLOUD_BUILD_SRUID = PUB_SUB_SRUID.replace(".", "-")
 
 OCTUE_CONFIGURATION_WITH_CLOUD_BUILD_PATH = {
@@ -62,7 +62,7 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
                     f"docker build '-t' {EXPECTED_IMAGE_NAME!r} "
                     f"--build-arg=OCTUE_SERVICE_NAMESPACE={SERVICE['namespace']} "
                     f"--build-arg=OCTUE_SERVICE_NAME={SERVICE['name']} "
-                    f"--build-arg=OCTUE_SERVICE_TAG={OCTUE_SERVICE_TAG} "
+                    f"--build-arg=OCTUE_SERVICE_REVISION_TAG={OCTUE_SERVICE_REVISION_TAG} "
                     ". '-f' Dockerfile"
                 ),
             ],
@@ -86,7 +86,7 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
             "env": [
                 "OCTUE_SERVICE_NAMESPACE=testing",
                 "OCTUE_SERVICE_NAME=test-service",
-                "OCTUE_SERVICE_TAG=my-tag",
+                "OCTUE_SERVICE_REVISION_TAG=my-tag",
             ],
         },
     ],
@@ -115,7 +115,7 @@ class TestDataflowDeployer(BaseTestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
 
-            with patch.dict(os.environ, {"OCTUE_SERVICE_TAG": "my-tag"}):
+            with patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "my-tag"}):
                 deployer = DataflowDeployer(octue_configuration_path)
 
         deployer._generate_cloud_build_configuration()
@@ -126,7 +126,7 @@ class TestDataflowDeployer(BaseTestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
 
-            with patch.dict(os.environ, {"OCTUE_SERVICE_TAG": "my-tag"}):
+            with patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "my-tag"}):
                 deployer = DataflowDeployer(octue_configuration_path)
 
             with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:
@@ -187,7 +187,7 @@ class TestDataflowDeployer(BaseTestCase):
                 temporary_directory,
             )
 
-            with patch.dict(os.environ, {"OCTUE_SERVICE_TAG": "my-tag"}):
+            with patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "my-tag"}):
                 deployer = DataflowDeployer(octue_configuration_path, image_uri_template="blah")
 
             with patch("subprocess.run", return_value=Mock(returncode=0)) as mock_run:
@@ -246,7 +246,7 @@ class TestDataflowDeployer(BaseTestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
 
-            with patch.dict(os.environ, {"OCTUE_SERVICE_TAG": "my-tag"}):
+            with patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "my-tag"}):
                 deployer = DataflowDeployer(octue_configuration_path)
 
             with patch(
@@ -275,7 +275,7 @@ class TestDataflowDeployer(BaseTestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
 
-            with patch.dict(os.environ, {"OCTUE_SERVICE_TAG": "my-tag"}):
+            with patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "my-tag"}):
                 deployer = DataflowDeployer(octue_configuration_path)
 
             with patch(

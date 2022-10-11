@@ -70,7 +70,7 @@ class TemplateAppsTestCase(BaseTestCase):
         self.set_template("template-child-services")
 
         elevation_service_path = os.path.join(self.template_path, "elevation_service")
-        elevation_service_tag = str(uuid.uuid4())
+        elevation_service_revision_tag = str(uuid.uuid4())
 
         elevation_process = subprocess.Popen(
             [
@@ -80,11 +80,11 @@ class TemplateAppsTestCase(BaseTestCase):
                 f"--service-config={os.path.join(elevation_service_path, 'octue.yaml')}",
             ],
             cwd=elevation_service_path,
-            env={**os.environ, "OCTUE_SERVICE_TAG": elevation_service_tag},
+            env={**os.environ, "OCTUE_SERVICE_REVISION_TAG": elevation_service_revision_tag},
         )
 
         wind_speed_service_path = os.path.join(self.template_path, "wind_speed_service")
-        wind_speed_service_tag = str(uuid.uuid4())
+        wind_speed_service_revision_tag = str(uuid.uuid4())
 
         wind_speed_process = subprocess.Popen(
             [
@@ -94,7 +94,7 @@ class TemplateAppsTestCase(BaseTestCase):
                 f"--service-config={os.path.join(wind_speed_service_path, 'octue.yaml')}",
             ],
             cwd=wind_speed_service_path,
-            env={**os.environ, "OCTUE_SERVICE_TAG": wind_speed_service_tag},
+            env={**os.environ, "OCTUE_SERVICE_REVISION_TAG": wind_speed_service_revision_tag},
         )
 
         parent_service_path = os.path.join(self.template_path, "parent_service")
@@ -106,13 +106,13 @@ class TemplateAppsTestCase(BaseTestCase):
             children[0]["id"] = create_service_id(
                 namespace=namespace,
                 name="wind-speed-service",
-                revision_tag=wind_speed_service_tag,
+                revision_tag=wind_speed_service_revision_tag,
             )
 
             children[1]["id"] = create_service_id(
                 namespace=namespace,
                 name="elevation-service",
-                revision_tag=elevation_service_tag,
+                revision_tag=elevation_service_revision_tag,
             )
 
         with ProcessesContextManager(processes=(elevation_process, wind_speed_process)):

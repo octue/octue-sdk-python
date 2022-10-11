@@ -25,9 +25,9 @@ OCTUE_CONFIGURATION = {
 }
 
 SERVICE = OCTUE_CONFIGURATION["services"][0]
-OCTUE_SERVICE_TAG = "my-tag"
-SRUID = f"{SERVICE['namespace']}/{SERVICE['name']}:{OCTUE_SERVICE_TAG}"
-PUB_SUB_SRUID = f"{SERVICE['namespace']}.{SERVICE['name']}.{OCTUE_SERVICE_TAG}"
+OCTUE_SERVICE_REVISION_TAG = "my-tag"
+SRUID = f"{SERVICE['namespace']}/{SERVICE['name']}:{OCTUE_SERVICE_REVISION_TAG}"
+PUB_SUB_SRUID = f"{SERVICE['namespace']}.{SERVICE['name']}.{OCTUE_SERVICE_REVISION_TAG}"
 CLOUD_BUILD_SRUID = PUB_SUB_SRUID.replace(".", "-")
 
 GET_SUBSCRIPTIONS_METHOD_PATH = "octue.cloud.deployment.google.cloud_run.deployer.Topic.get_subscriptions"
@@ -68,7 +68,7 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
                 f"--region={SERVICE['region']}",
                 "--memory=128Mi",
                 "--cpu=1",
-                f"--set-env-vars=OCTUE_SERVICE_NAMESPACE={SERVICE['namespace']},OCTUE_SERVICE_NAME={SERVICE['name']},OCTUE_SERVICE_TAG={OCTUE_SERVICE_TAG}",
+                f"--set-env-vars=OCTUE_SERVICE_NAMESPACE={SERVICE['namespace']},OCTUE_SERVICE_NAME={SERVICE['name']},OCTUE_SERVICE_REVISION_TAG={OCTUE_SERVICE_REVISION_TAG}",
                 "--timeout=3600",
                 "--concurrency=10",
                 "--min-instances=0",
@@ -102,7 +102,7 @@ class TestCloudRunDeployer(BaseTestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
 
-            with patch.dict(os.environ, {"OCTUE_SERVICE_TAG": OCTUE_SERVICE_TAG}):
+            with patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": OCTUE_SERVICE_REVISION_TAG}):
                 deployer = CloudRunDeployer(octue_configuration_path)
 
             deployer._generate_cloud_build_configuration()
@@ -122,7 +122,7 @@ class TestCloudRunDeployer(BaseTestCase):
                 temporary_directory,
             )
 
-            with patch.dict(os.environ, {"OCTUE_SERVICE_TAG": OCTUE_SERVICE_TAG}):
+            with patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": OCTUE_SERVICE_REVISION_TAG}):
                 deployer = CloudRunDeployer(octue_configuration_path)
 
             deployer._generate_cloud_build_configuration()
@@ -153,7 +153,7 @@ class TestCloudRunDeployer(BaseTestCase):
                 temporary_directory,
             )
 
-            with patch.dict(os.environ, {"OCTUE_SERVICE_TAG": OCTUE_SERVICE_TAG}):
+            with patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": OCTUE_SERVICE_REVISION_TAG}):
                 deployer = CloudRunDeployer(octue_configuration_path)
 
             deployer._generate_cloud_build_configuration()
@@ -184,7 +184,7 @@ class TestCloudRunDeployer(BaseTestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
 
-            with patch.dict(os.environ, {"OCTUE_SERVICE_TAG": OCTUE_SERVICE_TAG}):
+            with patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": OCTUE_SERVICE_REVISION_TAG}):
                 deployer = CloudRunDeployer(octue_configuration_path)
 
             mock_build_id = "my-build-id"
@@ -286,7 +286,7 @@ class TestCloudRunDeployer(BaseTestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
 
-            with patch.dict(os.environ, {"OCTUE_SERVICE_TAG": OCTUE_SERVICE_TAG}):
+            with patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": OCTUE_SERVICE_REVISION_TAG}):
                 deployer = CloudRunDeployer(octue_configuration_path)
 
             deployer._generate_cloud_build_configuration()
