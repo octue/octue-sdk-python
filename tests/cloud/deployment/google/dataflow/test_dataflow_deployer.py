@@ -83,6 +83,11 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
                 "--dataflow-job-only",
                 f"--image-uri={EXPECTED_IMAGE_NAME}",
             ],
+            "env": [
+                "OCTUE_SERVICE_NAMESPACE=testing",
+                "OCTUE_SERVICE_NAME=test-service",
+                "OCTUE_SERVICE_TAG=my-tag",
+            ],
         },
     ],
     "images": [EXPECTED_IMAGE_NAME],
