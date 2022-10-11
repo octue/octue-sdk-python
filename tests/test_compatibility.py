@@ -42,17 +42,22 @@ class TestIsCompatible(BaseTestCase):
         """Test that a warning is issued if the version compatibility data file can't be found at import time and that
         a further "no data" warning is raised when checking compatibility of two versions.
         """
-        with self.assertLogs(level=logging.WARNING) as logging_context:
-            with patch("builtins.open", side_effect=FileNotFoundError()):
-                importlib.reload(sys.modules["octue.compatibility"])
+        try:
+            with self.assertLogs(level=logging.WARNING) as logging_context:
+                with patch("builtins.open", side_effect=FileNotFoundError()):
+                    importlib.reload(sys.modules["octue.compatibility"])
 
-            self.assertIn("Version compatibility data could not be loaded.", logging_context.output[0])
-            self.assertTrue(is_compatible("0.39.0", "0.39.0"))
+                self.assertIn("Version compatibility data could not be loaded.", logging_context.output[0])
+                self.assertTrue(is_compatible("0.39.0", "0.39.0"))
 
-            self.assertIn(
-                "No data on compatibility of parent SDK version 0.39.0 and child SDK version 0.39.0.",
-                logging_context.output[1],
-            )
+                self.assertIn(
+                    "No data on compatibility of parent SDK version 0.39.0 and child SDK version 0.39.0.",
+                    logging_context.output[1],
+                )
+
+        # Ensure version compatibility data is available again.
+        finally:
+            importlib.reload(sys.modules["octue.compatibility"])
 
 
 class TestWarnIfIncompatible(BaseTestCase):
