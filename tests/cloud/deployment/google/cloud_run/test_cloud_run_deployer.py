@@ -62,7 +62,7 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
                 "run",
                 "services",
                 "update",
-                f"{CLOUD_BUILD_SRUID}",
+                CLOUD_BUILD_SRUID,
                 "--platform=managed",
                 f"--image={EXPECTED_IMAGE_NAME}",
                 f"--region={SERVICE['region']}",

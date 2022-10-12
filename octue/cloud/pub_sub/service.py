@@ -15,7 +15,7 @@ import octue.exceptions
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
-from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_sruid, validate_service_id
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_sruid, validate_service_sruid
 from octue.compatibility import warn_if_incompatible
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
@@ -59,7 +59,7 @@ class Service:
             raise ValueError(f"`service_id` should be `None` or a non-falsey value; received {service_id!r} instead.")
 
         else:
-            validate_service_id(service_id)
+            validate_service_sruid(service_id)
             self.id = service_id
 
         self.backend = backend
@@ -253,7 +253,7 @@ class Service:
         :param float|None timeout: time in seconds to keep retrying sending the question
         :return (octue.cloud.pub_sub.subscription.Subscription, str): the answer subscription and question UUID
         """
-        validate_service_id(service_id)
+        validate_service_sruid(service_id)
 
         if not allow_local_files:
             if (input_manifest is not None) and (not input_manifest.all_datasets_are_in_cloud):
