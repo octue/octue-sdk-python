@@ -52,8 +52,7 @@ class Service:
 
     def __init__(self, backend, service_id=None, run_function=None, name=None):
         if service_id is None:
-            service_uuid = str(uuid.uuid4())
-            self.id = create_service_sruid(namespace=DEFAULT_NAMESPACE, name=service_uuid)
+            self.id = create_service_sruid(namespace=DEFAULT_NAMESPACE, name=str(uuid.uuid4()))
 
         # Raise an error if the service ID is some kind of falsey object that isn't `None`.
         elif not service_id:
