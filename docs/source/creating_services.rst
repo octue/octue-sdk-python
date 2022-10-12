@@ -114,6 +114,7 @@ octue.yaml
         .. code-block:: yaml
 
             services:
+              - namespace: my-organisation
               - name: my-app
 
         It may also need the following key-value pairs:
@@ -183,7 +184,6 @@ Dockerfile (optional)
 
 Naming services
 ===============
-Services must be named according to the following rules.
 
 .. admonition:: Definitions
 
@@ -215,6 +215,28 @@ Services must be named according to the following rules.
         may contain lowercase and uppercase letters, numbers, underscores, periods, and hyphens but can't start with a
         period or a dash. They can contain a maximum of 128 characters. These requirements are the same as the `Docker
         tag format <https://docs.docker.com/engine/reference/commandline/tag/>`_.
+
+    Service ID
+        A service ID can be used to ask a question to a service without specifying a specific revision of it. This makes
+        a service ID almost the same as an SRUID, but less specific. This enables asking questions to, for example, the
+        service ``octue/my-service`` and automatically having them routed to its latest revision. Note that this will
+        be a future feature - currently, you will still be required to also provide a revision tag (i.e. a full SRUID).
+
+Where to specify the namespace, name, and revision tag
+------------------------------------------------------
+The name and namespace are read from the service's ``octue.yaml`` file. However, to make deployment to particular
+environments easier, they can alternatively be specified via the following environment variables:
+
+- ``OCTUE_SERVICE_NAMESPACE``
+- ``OCTUE_SERVICE_NAME``
+
+These environment variables take precedence over the values in ``octue.yaml``.
+
+Revision tags are specified differently - they're how you keep service revisions unique, so it doesn't make sense to
+hard-code them in ``octue.yaml``. If the revision tag is not specified in the ``OCTUE_SERVICE_REVISION_TAG`` environment
+variable or, if using the ``octue start`` CLI command, via the ``--revision-tag`` CLI option, a "coolname" tag (e.g.
+``hungry-hippo``) will be generated to ensure uniqueness of the resources used. If the CLI option is provided, it takes
+precedence over the ``OCTUE_SERVICE_REVISION_TAG`` environment variable.
 
 
 Template apps
