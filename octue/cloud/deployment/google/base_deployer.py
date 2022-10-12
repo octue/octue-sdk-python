@@ -6,7 +6,7 @@ from abc import abstractmethod
 
 import yaml
 
-from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_id, get_service_sruid_parts
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_sruid, get_service_sruid_parts
 from octue.configuration import ServiceConfiguration
 from octue.exceptions import DeploymentError
 
@@ -52,7 +52,7 @@ class BaseDeployer:
             self.service_configuration
         )
 
-        self.service_id = create_service_id(
+        self.service_id = create_service_sruid(
             namespace=self.service_namespace,
             name=self.service_name,
             revision_tag=self.service_revision_tag,

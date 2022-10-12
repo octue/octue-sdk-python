@@ -15,7 +15,7 @@ import octue.exceptions
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
-from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_id, validate_service_id
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_sruid, validate_service_id
 from octue.compatibility import warn_if_incompatible
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
@@ -53,7 +53,7 @@ class Service:
     def __init__(self, backend, service_id=None, run_function=None, name=None):
         if service_id is None:
             service_uuid = str(uuid.uuid4())
-            self.id = create_service_id(namespace=DEFAULT_NAMESPACE, name=service_uuid)
+            self.id = create_service_sruid(namespace=DEFAULT_NAMESPACE, name=service_uuid)
 
         # Raise an error if the service ID is some kind of falsey object that isn't `None`.
         elif not service_id:

@@ -1,7 +1,7 @@
 import logging
 
 from octue.cloud.pub_sub.service import Service
-from octue.cloud.service_id import create_service_id, get_service_sruid_parts
+from octue.cloud.service_id import create_service_sruid, get_service_sruid_parts
 from octue.configuration import load_service_and_app_configuration
 from octue.resources.service_backends import GCPPubSubBackend
 from octue.runner import Runner
@@ -23,7 +23,7 @@ def answer_question(question, project_name):
     """
     service_configuration, app_configuration = load_service_and_app_configuration(DEFAULT_SERVICE_CONFIGURATION_PATH)
     service_namespace, service_name, service_revision_tag = get_service_sruid_parts(service_configuration)
-    service_id = create_service_id(namespace=service_namespace, name=service_name, revision_tag=service_revision_tag)
+    service_id = create_service_sruid(namespace=service_namespace, name=service_name, revision_tag=service_revision_tag)
 
     service = Service(service_id=service_id, backend=GCPPubSubBackend(project_name=project_name))
 

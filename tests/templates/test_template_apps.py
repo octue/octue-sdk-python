@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 from octue import REPOSITORY_ROOT, Runner
 from octue.cloud.emulators import ChildEmulator
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
-from octue.cloud.service_id import create_service_id
+from octue.cloud.service_id import create_service_sruid
 from octue.resources.manifest import Manifest
 from octue.utils.processes import ProcessesContextManager
 from tests import TEST_BUCKET_NAME
@@ -103,13 +103,13 @@ class TemplateAppsTestCase(BaseTestCase):
         with open(os.path.join(parent_service_path, "app_configuration.json")) as f:
             children = json.load(f)["children"]
 
-            children[0]["id"] = create_service_id(
+            children[0]["id"] = create_service_sruid(
                 namespace=namespace,
                 name="wind-speed-service",
                 revision_tag=wind_speed_service_revision_tag,
             )
 
-            children[1]["id"] = create_service_id(
+            children[1]["id"] = create_service_sruid(
                 namespace=namespace,
                 name="elevation-service",
                 revision_tag=elevation_service_revision_tag,

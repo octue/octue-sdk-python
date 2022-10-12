@@ -14,7 +14,7 @@ from octue.cloud import storage
 from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import Service
-from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_id, get_service_sruid_parts
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_sruid, get_service_sruid_parts
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.configuration import load_service_and_app_configuration
 from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
@@ -222,7 +222,7 @@ def start(service_config, revision_tag, timeout, no_rm):
             service_revision_tag_override,
         )
 
-    service_id = create_service_id(
+    service_id = create_service_sruid(
         namespace=service_namespace,
         name=service_name,
         revision_tag=service_revision_tag_override or service_revision_tag,
@@ -262,7 +262,7 @@ def start(service_config, revision_tag, timeout, no_rm):
 
     except ServiceAlreadyExists:
         # Generate and use a new revision tag if the service already exists.
-        service_id = create_service_id(namespace=service_namespace, name=service_name)
+        service_id = create_service_sruid(namespace=service_namespace, name=service_name)
 
         while True:
             user_confirmation = input(f"Service already exists. Create new service with ID {service_id!r}? [Y/n]\n")

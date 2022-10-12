@@ -66,7 +66,7 @@ def get_service_sruid_parts(service_configuration):
     return service_namespace, service_name, service_revision_tag
 
 
-def create_service_id(namespace, name, revision_tag=None):
+def create_service_sruid(namespace, name, revision_tag=None):
     """Create a service ID from a namespace, name, and revision tag. The resultant ID is validated before returning. If
     no revision tag is given, a "cool name" revision tag is generated.
 
