@@ -36,7 +36,7 @@ setup(
     extras_require={
         "hdf5": ["h5py>=3.6,<4"],
         "dataflow": [
-            "apache-beam[gcp]>=2.37,<3",
+            "apache-beam>=2.37,<3",
             "cachetools>=3.1.0,<5",
             "google-apitools>=0.5.31,<0.5.32",
             "google-auth-httplib2>=0.1.0,<0.2.0",
