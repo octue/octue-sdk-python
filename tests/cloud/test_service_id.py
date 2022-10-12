@@ -1,7 +1,64 @@
+import logging
+import os
 import unittest
+from unittest.mock import patch
 
-from octue.cloud.service_id import convert_service_id_to_pub_sub_form, validate_service_id
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form, get_service_sruid_parts, validate_service_id
+from octue.configuration import ServiceConfiguration
 from octue.exceptions import InvalidServiceID
+
+
+class TestGetServiceSRUIDParts(unittest.TestCase):
+    SERVICE_CONFIGURATION = ServiceConfiguration(namespace="octue", name="my-service")
+
+    def test_with_namespace_environment_variable_overriding_service_configuration(self):
+        """Test that the service configuration namespace is overridden if the relevant environment variable is present."""
+        with patch.dict(os.environ, {"OCTUE_SERVICE_NAMESPACE": "my-org"}):
+            with self.assertLogs(level=logging.WARNING) as logging_context:
+                namespace, name, revision_tag = get_service_sruid_parts(self.SERVICE_CONFIGURATION)
+
+        self.assertEqual(
+            logging_context.records[0].message,
+            "The namespace in the service configuration 'octue' has been overridden by the `OCTUE_SERVICE_NAMESPACE` "
+            "environment variable 'my-org'.",
+        )
+
+        self.assertEqual(namespace, "my-org")
+        self.assertEqual(name, "my-service")
+        self.assertIsNone(revision_tag)
+
+    def test_with_name_environment_variable_overriding_service_configuration(self):
+        """Test that the service configuration name is overridden if the relevant environment variable is present."""
+        with patch.dict(os.environ, {"OCTUE_SERVICE_NAME": "another-service"}):
+            with self.assertLogs(level=logging.WARNING) as logging_context:
+                namespace, name, revision_tag = get_service_sruid_parts(self.SERVICE_CONFIGURATION)
+
+        self.assertEqual(
+            logging_context.records[0].message,
+            "The name in the service configuration 'my-service' has been overridden by the `OCTUE_SERVICE_NAME` "
+            "environment variable 'another-service'.",
+        )
+
+        self.assertEqual(namespace, "octue")
+        self.assertEqual(name, "another-service")
+        self.assertIsNone(revision_tag)
+
+    def test_with_revision_tag_environment_variable(self):
+        """Test that the service configuration revision tag can be set by the `OCTUE_SERVICE_REVISION_TAG` environment
+        variable.
+        """
+        with patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "this-is-a-tag"}):
+            with self.assertLogs(level=logging.INFO) as logging_context:
+                namespace, name, revision_tag = get_service_sruid_parts(self.SERVICE_CONFIGURATION)
+
+        self.assertEqual(
+            logging_context.records[0].message,
+            "Service revision tag 'this-is-a-tag' provided by `OCTUE_SERVICE_REVISION_TAG` environment variable.",
+        )
+
+        self.assertEqual(namespace, "octue")
+        self.assertEqual(name, "my-service")
+        self.assertEqual(revision_tag, "this-is-a-tag")
 
 
 class TestConvertServiceIDToPubSubForm(unittest.TestCase):
