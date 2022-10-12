@@ -100,6 +100,14 @@ def validate_service_id(service_id=None, namespace=None, name=None, revision_tag
                 f"hyphens, but can't start with a period or a dash. It can contain a maximum of 128 characters. These "
                 f"requirements are the same as the Docker tag format."
             )
+
+        revision_tag = service_id.split(":")[-1]
+
+        if len(revision_tag) > 128:
+            raise octue.exceptions.InvalidServiceID(
+                f"The maximum length for a revision tag is 128 characters. Received {revision_tag!r}."
+            )
+
         return
 
     if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.match(namespace):
@@ -112,6 +120,11 @@ def validate_service_id(service_id=None, namespace=None, name=None, revision_tag
         raise octue.exceptions.InvalidServiceID(
             f"{name!r} is not a valid name for a service. It must be lower kebab case (i.e. only contain the letters "
             f"[a-z], numbers [0-9], and hyphens [-]) and not begin or end with a hyphen."
+        )
+
+    if len(revision_tag) > 128:
+        raise octue.exceptions.InvalidServiceID(
+            f"The maximum length for a revision tag is 128 characters. Received {revision_tag!r}."
         )
 
     if not COMPILED_REVISION_TAG_PATTERN.match(revision_tag):
