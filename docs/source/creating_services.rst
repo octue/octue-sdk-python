@@ -192,9 +192,9 @@ Naming services
         version of the service, a dynamic development branch for it, or a deliberate duplication or variation of it.
 
     Service revision unique identifier (SRUID)
-        The combination of a service's namespace, name, and revision tag that uniquely identify it. For example,
-        ``octue/my-service:1.3.0`` where the namespace is ``octue``, the name is ``my-service``, and the revision
-        tag is ``1.3.0``.
+        The combination of a service revisions's namespace, name, and revision tag that uniquely identifies it. For
+        example, ``octue/my-service:1.3.0`` where the namespace is ``octue``, the name is ``my-service``, and the
+        revision tag is ``1.3.0``.
 
     Service namespace
         The group to which the service belongs e.g. your name or your organisation's name. If in doubt, use the GitHub
@@ -212,15 +212,15 @@ Naming services
         A tag that uniquely identifies a particular revision of a service. The revision tag could correspond to a commit
         hash like ``a3eb45``, a release number like ``0.12.4``, a branch name (e.g. ``development``), a particular
         environment the service is deployed in (e.g. ``production``), or a combination like ``0.12.4-production``. Tags
-        may contain lowercase and uppercase letters, numbers, underscores, periods, and hyphens but can't start with a
+        may contain lowercase and uppercase letters, numbers, underscores, periods, and hyphens, but can't start with a
         period or a dash. They can contain a maximum of 128 characters. These requirements are the same as the `Docker
         tag format <https://docs.docker.com/engine/reference/commandline/tag/>`_.
 
     Service ID
-        A service ID can be used to ask a question to a service without specifying a specific revision of it. This makes
-        a service ID almost the same as an SRUID, but less specific. This enables asking questions to, for example, the
-        service ``octue/my-service`` and automatically having them routed to its latest revision. Note that this will
-        be a future feature - currently, you will still be required to also provide a revision tag (i.e. a full SRUID).
+        A service ID is almost the same as an SRUID, but less specific. It can be used to ask a question to a service
+        without specifying a specific revision of it. This enables asking questions to, for example, the service
+        ``octue/my-service`` and automatically having them routed to its latest revision. Note that this will be a
+        future feature; currently, you will still be required to provide a revision tag (i.e. a full SRUID).
 
 Where to specify the namespace, name, and revision tag
 ------------------------------------------------------
@@ -235,8 +235,8 @@ These environment variables take precedence over the values in ``octue.yaml``.
 Revision tags are specified differently - they're how you keep service revisions unique, so it doesn't make sense to
 hard-code them in ``octue.yaml``. If the revision tag is not specified in the ``OCTUE_SERVICE_REVISION_TAG`` environment
 variable or, if using the ``octue start`` CLI command, via the ``--revision-tag`` CLI option, a "coolname" tag (e.g.
-``hungry-hippo``) will be generated to ensure uniqueness of the resources used. If the CLI option is provided, it takes
-precedence over the ``OCTUE_SERVICE_REVISION_TAG`` environment variable.
+``hungry-hippo``) will be generated to ensure the uniqueness of the service revision. If the CLI option is provided, it
+takes precedence over the ``OCTUE_SERVICE_REVISION_TAG`` environment variable.
 
 
 Template apps
