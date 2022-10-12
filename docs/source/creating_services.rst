@@ -217,10 +217,11 @@ Naming services
         tag format <https://docs.docker.com/engine/reference/commandline/tag/>`_.
 
     Service ID
-        A service ID is almost the same as an SRUID, but less specific. It can be used to ask a question to a service
-        without specifying a specific revision of it. This enables asking questions to, for example, the service
-        ``octue/my-service`` and automatically having them routed to its latest revision. Note that this will be a
-        future feature; currently, you will still be required to provide a revision tag (i.e. a full SRUID).
+        The SRUID is a special case of the service ID. A service ID can be an SRUID or just the service namespace and
+        name. It can be used to ask a question to a service without specifying a specific revision of it. This enables
+        asking questions to, for example, the service ``octue/my-service`` and automatically having them routed to its
+        latest revision. Note that this will be a future feature; currently, you will still be required to provide a
+        revision tag (i.e. a full SRUID).
 
 Where to specify the namespace, name, and revision tag
 ------------------------------------------------------
