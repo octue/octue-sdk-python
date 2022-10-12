@@ -26,11 +26,11 @@ COMPILED_SERVICE_SRUID_PATTERN = re.compile(SERVICE_SRUID_PATTERN)
 
 
 def get_service_sruid_parts(service_configuration):
-    """Get the namespace and name for the service from either the service environment variables or the service
-    configuration (in that order of precedence). The service revision tag is included if it's provided in the
-    `OCTUE_SERVICE_REVISION_TAG` environment variable; otherwise, it's `None`.
+    """Get the namespace, name, and revision tag for the service from either the service environment variables or the
+    service configuration (in that order of precedence). The service revision tag is `None` if it's not provided in the
+    `OCTUE_SERVICE_REVISION_TAG` environment variable (as it can't be included in the service configuration).
 
-    :param octue.configuration.ServiceConfiguration service_configuration:
+    :param octue.configuration.ServiceConfiguration service_configuration: the service configuration to get the SRUID parts from
     :return (str, str, str|None):
     """
     service_namespace = os.environ.get("OCTUE_SERVICE_NAMESPACE")
