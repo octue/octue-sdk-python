@@ -79,9 +79,9 @@ class TestConvertServiceIDToPubSubForm(unittest.TestCase):
                 self.assertEqual(convert_service_id_to_pub_sub_form(service_id), pub_sub_service_id)
 
 
-class TestValidateServiceID(unittest.TestCase):
+class TestValidateServiceSRUID(unittest.TestCase):
     def test_error_raised_if_service_id_invalid(self):
-        """Test that an error is raised if an invalid service ID is given."""
+        """Test that an error is raised if an invalid SRUID is given."""
         for service_id in (
             "1.9.4",
             "my-service",
@@ -91,22 +91,24 @@ class TestValidateServiceID(unittest.TestCase):
             "my-org/my-service:1.9.4-",
             "my_org/my-service:1.9.4",
             "my-org/my_service:1.9.4",
-            "my.org/my.service:1.9.4",
+            "my.org/my-service:1.9.4",
+            "my-org/my.service:1.9.4",
             "my-org/my-service-1.9.4",
             "MY-ORG/my-service:1.9.4",
             "my-org/MY-SERVICE:1.9.4",
-            "my_org/my-service:1.9.4",
-            "my-org/my_service:1.9.4",
+            "my-org/MY-SERVICE:@",
             f"my-org/my-service:{'1'*129}",
         ):
             with self.subTest(service_id=service_id):
                 with self.assertRaises(InvalidServiceID):
                     validate_service_sruid(service_id=service_id)
 
-    def test_no_error_raised_if_service_id_valid(self):
-        """Test that no error is raised if a valid service ID is given."""
+    def test_no_error_raised_if_sruid_valid(self):
+        """Test that no error is raised if a valid SRUID is given."""
         for service_id in (
             "my-org/my-service:1.9.4",
+            "my-org1/my-service:1.9.4",
+            "my-org/my-service9:1.9.4",
             "my-org/my-service:1-9-4",
             "my-org/my-service:1.9.4_",
             "my-org/my-service:1.9.4_beta",
@@ -115,7 +117,7 @@ class TestValidateServiceID(unittest.TestCase):
             with self.subTest(service_id=service_id):
                 validate_service_sruid(service_id=service_id)
 
-    def test_error_raised_if_not_all_service_id_components_provided(self):
+    def test_error_raised_if_not_all_sruid_components_provided(self):
         """Test that an error is raised if, when not providing the `service_id` argument, not all of the `namespace,
         `name`, and `revision_tag` arguments are provided.
         """
@@ -128,8 +130,8 @@ class TestValidateServiceID(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     validate_service_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
 
-    def test_error_raised_if_service_id_components_invalid(self):
-        """Test that an error is raised if any of the service ID components are individually invalid."""
+    def test_error_raised_if_service_sruid_components_invalid(self):
+        """Test that an error is raised if any of the SRUID components are individually invalid."""
         for namespace, name, revision_tag in (
             ("-my-org", "my-service", "1.9.4"),
             ("my-org", "-my-service", "1.9.4"),
@@ -140,8 +142,6 @@ class TestValidateServiceID(unittest.TestCase):
             ("my-org", "my.service", "1.9.4"),
             ("MY-ORG", "my-service", "1.9.4"),
             ("my-org", "MY-SERVICE", "1.9.4"),
-            ("my_org", "my-service", "1.9.4"),
-            ("my-org", "my_service", "1.9.4"),
             ("my-org", "my-service", "@"),
             ("my-org", "my-service", f"{'1'*129}"),
         ):
@@ -149,10 +149,12 @@ class TestValidateServiceID(unittest.TestCase):
                 with self.assertRaises(InvalidServiceID):
                     validate_service_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
 
-    def test_no_error_raised_if_service_id_components_valid(self):
-        """Test that no error is raised if all components of the service ID are valid."""
+    def test_no_error_raised_if_service_sruid_components_valid(self):
+        """Test that no error is raised if all components of the SRUID are valid."""
         for namespace, name, revision_tag in (
             ("my-org", "my-service", "1.9.4"),
+            ("my-org1", "my-service", "1.9.4"),
+            ("my-org", "my-service9", "1.9.4"),
             ("my-org", "my-service", "1-9-4"),
             ("my-org", "my-service", "1.9.4_"),
             ("my-org", "my-service", "1.9.4_beta"),
