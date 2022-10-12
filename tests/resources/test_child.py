@@ -13,6 +13,13 @@ from tests.base import BaseTestCase
 
 
 class TestChild(BaseTestCase):
+    def test_representation(self):
+        """Test that children are represented correctly as a string."""
+        self.assertEqual(
+            repr(Child(id="octue/my-child:latest", backend={"name": "GCPPubSubBackend", "project_name": "blah"})),
+            "<Child('octue/my-child:latest')>",
+        )
+
     def test_instantiating_child_without_credentials(self):
         """Test that a child can be instantiated without Google Cloud credentials."""
         with patch.dict(os.environ, clear=True):
