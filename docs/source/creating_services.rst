@@ -199,7 +199,7 @@ Naming services
         The group to which the service belongs e.g. your name or your organisation's name. If in doubt, use the GitHub
         handle of the user or organisation publishing the services.
 
-        Namespaces must be lower kebab case (i.e. they may contain the letters [a-z], numbers [0-9] and hyphens [-].
+        Namespaces must be lower kebab case (i.e. they may contain the letters [a-z], numbers [0-9], and hyphens [-].
         They may not begin or end with hyphens.
 
     Service name
@@ -211,8 +211,8 @@ Naming services
         A tag that uniquely identifies a particular revision of a service. The revision tag could correspond to a commit
         hash like `a3eb45`, a release number like ``0.12.4``, a particular environment the service is deployed in (e.g.
         ``production``), or a combination like ``0.12.4-production``. Tags may contain lowercase and uppercase letters,
-        numbers, underscores, periods, and hyphens but can't not start with a period or a dash. It can contain a
-        maximum of 128 characters. These requirements are the same as the `docker tag format
+        numbers, underscores, periods, and hyphens but can't start with a period or a dash. It can contain a maximum of
+        128 characters. These requirements are the same as the `Docker tag format
         <https://docs.docker.com/engine/reference/commandline/tag/>`_.
 
 

@@ -11,8 +11,12 @@ logger = logging.getLogger(__name__)
 
 
 OCTUE_SERVICES_NAMESPACE = "octue.services"
+
 SERVICE_NAMESPACE_AND_NAME_PATTERN = r"([a-z0-9])+(-([a-z0-9])+)*"
+COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN = re.compile(SERVICE_NAMESPACE_AND_NAME_PATTERN)
+
 REVISION_TAG_PATTERN = r"([A-z0-9_])+([-.]*([A-z0-9_])+)*"
+COMPILED_REVISION_TAG_PATTERN = re.compile(REVISION_TAG_PATTERN)
 
 SERVICE_SRUID_PATTERN = (
     rf"^{SERVICE_NAMESPACE_AND_NAME_PATTERN}\/{SERVICE_NAMESPACE_AND_NAME_PATTERN}:{REVISION_TAG_PATTERN}$"
@@ -75,16 +79,46 @@ def create_service_id(namespace, name, revision_tag=None):
     return service_id
 
 
-def validate_service_id(service_id):
-    """Raise an error if the service ID doesn't meet the defined patterns.
+def validate_service_id(service_id=None, namespace=None, name=None, revision_tag=None):
+    """Raise an error if the service ID or its components don't meet the required patterns. Either the `service_id` or
+    all of the `namespace`, `name`, and `revision_tag` arguments must be given.
 
-    :param str service_id:
-    :raise octue.exceptions.InvalidServiceID: if the service ID is invalid.
+    :param str|None service_id: the service ID to validate
+    :param str|None namespace: the namespace of a service to validate
+    :param str|None name: the name of a service to validate
+    :param str|None revision_tag: the revision tag of a service to validate
+    :raise octue.exceptions.InvalidServiceID: if the service ID or any of its components are invalid
     :return None:
     """
-    if not COMPILED_SERVICE_SRUID_PATTERN.match(service_id):
+    if service_id:
+        if not COMPILED_SERVICE_SRUID_PATTERN.match(service_id):
+            raise octue.exceptions.InvalidServiceID(
+                f"{service_id!r} is not a valid service ID. It must be in the format "
+                f"<namespace>/<name>:<revision_tag>. The namespace and name must be lower kebab case (i.e. only "
+                f"contain the letters [a-z], numbers [0-9], and hyphens [-]) and not begin or end with a hyphen. The "
+                f"revision tag can contain lowercase and uppercase letters, numbers, underscores, periods, and "
+                f"hyphens, but can't start with a period or a dash. It can contain a maximum of 128 characters. These "
+                f"requirements are the same as the Docker tag format."
+            )
+        return
+
+    if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.match(namespace):
         raise octue.exceptions.InvalidServiceID(
-            f"{service_id!r} is not a valid service ID. Make sure it meets this regex: {SERVICE_SRUID_PATTERN!r}."
+            f"{namespace!r} is not a valid namespace for a service. It must be lower kebab case (i.e. only contain "
+            "the letters [a-z], numbers [0-9], and hyphens [-]) and not begin or end with a hyphen."
+        )
+
+    if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.match(name):
+        raise octue.exceptions.InvalidServiceID(
+            f"{name!r} is not a valid name for a service. It must be lower kebab case (i.e. only contain the letters "
+            f"[a-z], numbers [0-9], and hyphens [-]) and not begin or end with a hyphen."
+        )
+
+    if not COMPILED_REVISION_TAG_PATTERN.match(revision_tag):
+        raise octue.exceptions.InvalidServiceID(
+            f"{revision_tag!r} is not a valid revision tag for a service. It can contain lowercase and uppercase "
+            "letters, numbers, underscores, periods, and hyphens, but can't start with a period or a dash. It can "
+            "contain a maximum of 128 characters. These requirements are the same as the Docker tag format."
         )
 
 
