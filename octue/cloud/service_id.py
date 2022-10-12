@@ -75,7 +75,7 @@ def create_service_id(namespace, name, revision_tag=None):
     """
     revision_tag = revision_tag or coolname.generate_slug(2)
     service_id = f"{namespace}/{name}:{revision_tag}"
-    validate_service_id(service_id)
+    validate_service_id(namespace=namespace, name=name, revision_tag=revision_tag)
     return service_id
 
 
@@ -109,6 +109,12 @@ def validate_service_id(service_id=None, namespace=None, name=None, revision_tag
             )
 
         return
+
+    if not (namespace and name and revision_tag):
+        raise ValueError(
+            "If not providing the `service_id` argument for service ID validation, all of `namespace`, `name`, and "
+            "`revision_tag` must be provided."
+        )
 
     if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.match(namespace):
         raise octue.exceptions.InvalidServiceID(
