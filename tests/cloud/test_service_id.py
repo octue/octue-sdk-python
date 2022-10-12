@@ -38,12 +38,15 @@ class TestValidateServiceID(unittest.TestCase):
             "my-org/my-service-1.9.4",
             "MY-ORG/my-service:1.9.4",
             "my-org/MY-SERVICE:1.9.4",
+            "my_org/my-service:1.9.4",
+            "my-org/my_service:1.9.4",
+            f"my-org/my-service:{'1'*129}",
         ):
             with self.subTest(service_id=service_id):
                 with self.assertRaises(InvalidServiceID):
-                    validate_service_id(service_id)
+                    validate_service_id(service_id=service_id)
 
-    def test_no_error_raised_if_service_id_invalid(self):
+    def test_no_error_raised_if_service_id_valid(self):
         """Test that no error is raised if a valid service ID is given."""
         for service_id in (
             "my-org/my-service:1.9.4",
@@ -53,4 +56,50 @@ class TestValidateServiceID(unittest.TestCase):
             "my-org/my-service:some_TAG",
         ):
             with self.subTest(service_id=service_id):
-                validate_service_id(service_id)
+                validate_service_id(service_id=service_id)
+
+    def test_error_raised_if_not_all_service_id_components_provided(self):
+        """Test that an error is raised if, when not providing the `service_id` argument, not all of the `namespace,
+        `name`, and `revision_tag` arguments are provided.
+        """
+        for namespace, name, revision_tag in (
+            ("my-org", "my-service", None),
+            ("my-org", None, "1.2.3"),
+            (None, "my-service", "1.2.3"),
+        ):
+            with self.subTest(namespace=namespace, name=name, revision_tag=revision_tag):
+                with self.assertRaises(ValueError):
+                    validate_service_id(namespace=namespace, name=name, revision_tag=revision_tag)
+
+    def test_error_raised_if_service_id_components_invalid(self):
+        """Test that an error is raised if any of the service ID components are individually invalid."""
+        for namespace, name, revision_tag in (
+            ("-my-org", "my-service", "1.9.4"),
+            ("my-org", "-my-service", "1.9.4"),
+            ("my-org", "my-service", "-1.9.4"),
+            ("my_org", "my-service", "1.9.4"),
+            ("my-org", "my_service", "1.9.4"),
+            ("my.org", "my-service", "1.9.4"),
+            ("my-org", "my.service", "1.9.4"),
+            ("MY-ORG", "my-service", "1.9.4"),
+            ("my-org", "MY-SERVICE", "1.9.4"),
+            ("my_org", "my-service", "1.9.4"),
+            ("my-org", "my_service", "1.9.4"),
+            ("my-org", "my-service", "@"),
+            ("my-org", "my-service", f"{'1'*129}"),
+        ):
+            with self.subTest(namespace=namespace, name=name, revision_tag=revision_tag):
+                with self.assertRaises(InvalidServiceID):
+                    validate_service_id(namespace=namespace, name=name, revision_tag=revision_tag)
+
+    def test_no_error_raised_if_service_id_components_valid(self):
+        """Test that no error is raised if all components of the service ID are valid."""
+        for namespace, name, revision_tag in (
+            ("my-org", "my-service", "1.9.4"),
+            ("my-org", "my-service", "1-9-4"),
+            ("my-org", "my-service", "1.9.4_"),
+            ("my-org", "my-service", "1.9.4_beta"),
+            ("my-org", "my-service", "some_TAG"),
+        ):
+            with self.subTest(namespace=namespace, name=name, revision_tag=revision_tag):
+                validate_service_id(namespace=namespace, name=name, revision_tag=revision_tag)
