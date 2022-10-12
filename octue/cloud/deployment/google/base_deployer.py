@@ -262,14 +262,6 @@ class BaseDeployer:
             time.sleep(check_period)
 
     @staticmethod
-    def _get_short_head_commit_hash():
-        """Get the short commit hash for the HEAD commit in the current git repository.
-
-        :return str:
-        """
-        return subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True).stdout.decode().strip()
-
-    @staticmethod
     def _run_command(command):
         """Run a command in a subprocess, raising a `DeploymentError` if it fails.
 
