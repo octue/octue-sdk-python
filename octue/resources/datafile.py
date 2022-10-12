@@ -422,7 +422,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
             else:
                 if self._open_attributes["mode"] == "r":
-                    raise FileNotFoundException("The file mode is 'r' but no file exists at %r.", self.cloud_path)
+                    raise FileNotFoundException(f"The file mode is 'r' but no file exists at {self.cloud_path!r}.")
 
         # Now use hash value of local file instead of cloud file.
         self.reset_hash()
