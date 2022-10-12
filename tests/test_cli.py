@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import tempfile
 import unittest.mock
@@ -161,9 +162,9 @@ class TestRunCommand(BaseTestCase):
 
 
 class TestStartCommand(BaseTestCase):
-    def test_start_command(self):
-        """Test that the start command works without error."""
-        python_fractal_service_path = os.path.join(
+    @classmethod
+    def setUpClass(cls):
+        cls.python_fractal_service_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
             "octue",
             "templates",
@@ -178,8 +179,8 @@ class TestStartCommand(BaseTestCase):
                             {
                                 "name": "test-service",
                                 "namespace": "testing",
-                                "app_source_path": python_fractal_service_path,
-                                "twine_path": os.path.join(python_fractal_service_path, "twine.json"),
+                                "app_source_path": cls.python_fractal_service_path,
+                                "twine_path": os.path.join(cls.python_fractal_service_path, "twine.json"),
                                 "app_configuration_path": "app_configuration.json",
                             }
                         ]
@@ -204,11 +205,55 @@ class TestStartCommand(BaseTestCase):
                 ),
             }
 
-        with mock.patch("octue.configuration.open", unittest.mock.mock_open(mock=MockOpenForConfigurationFiles)):
+        cls.MockOpenForConfigurationFiles = MockOpenForConfigurationFiles
+
+    def test_start_command(self):
+        """Test that the start command works without error and uses the revision tag supplied in the
+        `OCTUE_SERVICE_REVISION_TAG` environment variable.
+        """
+        with MultiPatcher(
+            patches=[
+                mock.patch(
+                    "octue.configuration.open",
+                    unittest.mock.mock_open(mock=self.MockOpenForConfigurationFiles),
+                ),
+                mock.patch("octue.cli.Service", MockService),
+                patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "goodbye"}),
+            ]
+        ):
             with ServicePatcher():
-                with mock.patch("octue.cli.Service", MockService):
+                with self.assertLogs(level=logging.INFO) as logging_context:
                     result = CliRunner().invoke(octue_cli, ["start", "--timeout=0"])
 
+        self.assertEqual(logging_context.records[3].message, "Starting <MockService('testing/test-service:goodbye')>.")
+        self.assertIsNone(result.exception)
+        self.assertEqual(result.exit_code, 0)
+
+    def test_start_command_with_revision_tag_override_when_revision_tag_environment_variable_specified(self):
+        """Test that the `OCTUE_SERVICE_REVISION_TAG` is overridden by the `--revision-tag` CLI option and that a
+        warning is logged when this happens.
+        """
+        with MultiPatcher(
+            patches=[
+                mock.patch(
+                    "octue.configuration.open",
+                    unittest.mock.mock_open(mock=self.MockOpenForConfigurationFiles),
+                ),
+                mock.patch("octue.cli.Service", MockService),
+                patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "goodbye"}),
+            ]
+        ):
+            with ServicePatcher():
+                with self.assertLogs(level=logging.WARNING) as logging_context:
+                    result = CliRunner().invoke(octue_cli, ["start", "--revision-tag=hello", "--timeout=0"])
+
+        self.assertEqual(
+            logging_context.records[3].message,
+            "The `OCTUE_SERVICE_REVISION_TAG` environment variable 'goodbye' has been overridden by the "
+            "`--revision-tag` CLI option 'hello'.",
+        )
+
+        self.assertEqual(logging_context.records[4].message, "Starting <MockService('testing/test-service:hello')>.")
         self.assertIsNone(result.exception)
         self.assertEqual(result.exit_code, 0)
 
