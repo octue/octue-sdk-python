@@ -28,9 +28,9 @@ COMPILED_SERVICE_SRUID_PATTERN = re.compile(SERVICE_SRUID_PATTERN)
 def get_service_sruid_parts(service_configuration):
     """Get the namespace, name, and revision tag for the service from either the service environment variables or the
     service configuration (in that order of precedence). The service revision tag is `None` if it's not provided in the
-    `OCTUE_SERVICE_REVISION_TAG` environment variable (as it can't be included in the service configuration).
+    `OCTUE_SERVICE_REVISION_TAG` environment variable as it can't be specified in the service configuration.
 
-    :param octue.configuration.ServiceConfiguration service_configuration: the service configuration to get the SRUID parts from
+    :param octue.configuration.ServiceConfiguration service_configuration: the service configuration to get the service namespace and name from
     :return (str, str, str|None):
     """
     service_namespace = os.environ.get("OCTUE_SERVICE_NAMESPACE")
@@ -67,19 +67,18 @@ def get_service_sruid_parts(service_configuration):
 
 
 def create_service_sruid(namespace, name, revision_tag=None):
-    """Create a service ID from a namespace, name, and revision tag. The resultant ID is validated before returning. If
-    no revision tag is given, a "cool name" revision tag is generated.
+    """Create and validate a service revision unique identifier (SRUID) from a namespace, name, and revision tag. If no
+    revision tag is given, a "cool name" revision tag is generated.
 
-    :param str namespace:
-    :param str name:
-    :param str|None revision_tag:
-    :raise octue.exceptions.InvalidServiceID: if the service ID is invalid
-    :return str:
+    :param str namespace: the name of the group to which the service belongs
+    :param str name: the name of the service
+    :param str|None revision_tag: a tag that uniquely identifies a particular revision of the service
+    :raise octue.exceptions.InvalidServiceID: if any of the namespace, name, or revision tag are invalid
+    :return str: the valid SRUID comprising the namespace, name, and revision tag
     """
     revision_tag = revision_tag or coolname.generate_slug(2)
-    service_id = f"{namespace}/{name}:{revision_tag}"
     validate_service_id(namespace=namespace, name=name, revision_tag=revision_tag)
-    return service_id
+    return f"{namespace}/{name}:{revision_tag}"
 
 
 def validate_service_id(service_id=None, namespace=None, name=None, revision_tag=None):
@@ -115,8 +114,8 @@ def validate_service_id(service_id=None, namespace=None, name=None, revision_tag
 
     if not (namespace and name and revision_tag):
         raise ValueError(
-            "If not providing the `service_id` argument for service ID validation, all of `namespace`, `name`, and "
-            "`revision_tag` must be provided."
+            "If not providing the `service_id` argument for service ID validation, all of the `namespace`, `name`, and "
+            "`revision_tag` arguments must be provided instead."
         )
 
     if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.fullmatch(namespace):
@@ -146,20 +145,20 @@ def validate_service_id(service_id=None, namespace=None, name=None, revision_tag
 
 def convert_service_id_to_pub_sub_form(service_id):
     """Convert the service ID to the form required for use in Google Pub/Sub topic and subscription paths. This is done
-    by replacing forward slashes and colons with periods and, if a service revision is included, replacing any periods
-    in it with dashes.
+    by replacing forward slashes and colons with periods and, if a service revision tag is included, replacing any
+    periods in it with dashes.
 
-    :param str service_id: the user-friendly service ID
+    :param str service_id: a service ID or service revision unique identifier (SRUID)
     :return str: the service ID in Google Pub/Sub form
     """
     if ":" in service_id:
-        service_id, service_revision = service_id.split(":")
+        service_id, service_revision_tag = service_id.split(":")
     else:
-        service_revision = None
+        service_revision_tag = None
 
     service_id = service_id.replace("/", ".")
 
-    if service_revision:
-        service_id = service_id + "." + service_revision.replace(".", "-")
+    if service_revision_tag:
+        service_id = service_id + "." + service_revision_tag.replace(".", "-")
 
     return service_id
