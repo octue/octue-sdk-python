@@ -91,7 +91,7 @@ def validate_service_id(service_id=None, namespace=None, name=None, revision_tag
     :return None:
     """
     if service_id:
-        if not COMPILED_SERVICE_SRUID_PATTERN.match(service_id):
+        if not COMPILED_SERVICE_SRUID_PATTERN.fullmatch(service_id):
             raise octue.exceptions.InvalidServiceID(
                 f"{service_id!r} is not a valid service ID. It must be in the format "
                 f"<namespace>/<name>:<revision_tag>. The namespace and name must be lower kebab case (i.e. only "
@@ -116,13 +116,13 @@ def validate_service_id(service_id=None, namespace=None, name=None, revision_tag
             "`revision_tag` must be provided."
         )
 
-    if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.match(namespace):
+    if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.fullmatch(namespace):
         raise octue.exceptions.InvalidServiceID(
             f"{namespace!r} is not a valid namespace for a service. It must be lower kebab case (i.e. only contain "
             "the letters [a-z], numbers [0-9], and hyphens [-]) and not begin or end with a hyphen."
         )
 
-    if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.match(name):
+    if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.fullmatch(name):
         raise octue.exceptions.InvalidServiceID(
             f"{name!r} is not a valid name for a service. It must be lower kebab case (i.e. only contain the letters "
             f"[a-z], numbers [0-9], and hyphens [-]) and not begin or end with a hyphen."
@@ -133,7 +133,7 @@ def validate_service_id(service_id=None, namespace=None, name=None, revision_tag
             f"The maximum length for a revision tag is 128 characters. Received {revision_tag!r}."
         )
 
-    if not COMPILED_REVISION_TAG_PATTERN.match(revision_tag):
+    if not COMPILED_REVISION_TAG_PATTERN.fullmatch(revision_tag):
         raise octue.exceptions.InvalidServiceID(
             f"{revision_tag!r} is not a valid revision tag for a service. It can contain lowercase and uppercase "
             "letters, numbers, underscores, periods, and hyphens, but can't start with a period or a dash. It can "
