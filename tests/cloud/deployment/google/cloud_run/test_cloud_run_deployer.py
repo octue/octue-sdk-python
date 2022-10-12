@@ -193,7 +193,7 @@ class TestCloudRunDeployer(BaseTestCase):
                 with MultiPatcher(
                     patches=[
                         patch("octue.cloud.deployment.google.cloud_run.deployer.Topic.create"),
-                        patch(GET_SUBSCRIPTIONS_METHOD_PATH, return_value=[f"{PUB_SUB_SRUID}"]),
+                        patch(GET_SUBSCRIPTIONS_METHOD_PATH, return_value=[PUB_SUB_SRUID]),
                         patch("octue.cloud.deployment.google.cloud_run.deployer.Subscription"),
                         patch("octue.cloud.pub_sub.topic.PublisherClient", MockPublisher),
                         patch(
@@ -227,7 +227,7 @@ class TestCloudRunDeployer(BaseTestCase):
                     "builds",
                     "triggers",
                     "run",
-                    f"{CLOUD_BUILD_SRUID}",
+                    CLOUD_BUILD_SRUID,
                     "--branch=my-branch",
                 ],
             )
@@ -254,7 +254,7 @@ class TestCloudRunDeployer(BaseTestCase):
                     "run",
                     "services",
                     "add-iam-policy-binding",
-                    f"{CLOUD_BUILD_SRUID}",
+                    CLOUD_BUILD_SRUID,
                     f'--region={SERVICE["region"]}',
                     "--member=allUsers",
                     "--role=roles/run.invoker",
@@ -320,7 +320,7 @@ class TestCloudRunDeployer(BaseTestCase):
                 "builds",
                 "triggers",
                 "delete",
-                f"{CLOUD_BUILD_SRUID}",
+                CLOUD_BUILD_SRUID,
             ],
         )
 

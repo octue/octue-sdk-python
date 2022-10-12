@@ -84,9 +84,9 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
                 f"--image-uri={EXPECTED_IMAGE_NAME}",
             ],
             "env": [
-                "OCTUE_SERVICE_NAMESPACE=testing",
-                "OCTUE_SERVICE_NAME=test-service",
-                "OCTUE_SERVICE_REVISION_TAG=my-tag",
+                f"OCTUE_SERVICE_NAMESPACE={SERVICE['namespace']}",
+                f"OCTUE_SERVICE_NAME={SERVICE['name']}",
+                f"OCTUE_SERVICE_REVISION_TAG={OCTUE_SERVICE_REVISION_TAG}",
             ],
         },
     ],
@@ -161,7 +161,7 @@ class TestDataflowDeployer(BaseTestCase):
                     "builds",
                     "triggers",
                     "run",
-                    f"{CLOUD_BUILD_SRUID}",
+                    CLOUD_BUILD_SRUID,
                     "--branch=my-branch",
                 ],
             )
@@ -223,7 +223,7 @@ class TestDataflowDeployer(BaseTestCase):
                     "builds",
                     "triggers",
                     "run",
-                    f"{CLOUD_BUILD_SRUID}",
+                    CLOUD_BUILD_SRUID,
                     "--branch=my-branch",
                 ],
             )
