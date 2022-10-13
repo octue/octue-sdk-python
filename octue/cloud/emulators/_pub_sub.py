@@ -30,7 +30,7 @@ class MockTopic(Topic):
                 raise google.api_core.exceptions.AlreadyExists(f"Topic {self.path!r} already exists.")
 
         if not self.exists():
-            MESSAGES[get_service_id(self.path)] = []
+            MESSAGES[self.name] = []
             self._created = True
 
     def delete(self):
@@ -39,7 +39,7 @@ class MockTopic(Topic):
         :return None:
         """
         try:
-            del MESSAGES[get_service_id(self.path)]
+            del MESSAGES[self.name]
         except KeyError:
             pass
 
@@ -49,7 +49,7 @@ class MockTopic(Topic):
         :param float timeout:
         :return bool:
         """
-        return get_service_id(self.path) in MESSAGES
+        return self.name in MESSAGES
 
 
 class MockSubscription(Subscription):
@@ -70,7 +70,7 @@ class MockSubscription(Subscription):
                 raise google.api_core.exceptions.AlreadyExists(f"Subscription {self.path!r} already exists.")
 
         if not self.exists():
-            SUBSCRIPTIONS[get_service_id(self.path)] = []
+            SUBSCRIPTIONS[self.name] = []
             self._created = True
 
     def delete(self):
@@ -86,7 +86,7 @@ class MockSubscription(Subscription):
         :param float timeout:
         :return bool:
         """
-        return get_service_id(self.path) in SUBSCRIPTIONS
+        return self.name in SUBSCRIPTIONS
 
 
 class MockFuture:
