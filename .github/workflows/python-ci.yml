@@ -43,7 +43,7 @@ jobs:
           python-version: 3.9
 
       - name: Install Poetry
-        uses: snok/install-poetry@v1
+        uses: snok/install-poetry@v1.3.2
 
       - name: Check pyproject.toml file
         run: poetry check
