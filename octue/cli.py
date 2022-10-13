@@ -404,7 +404,7 @@ def create_push_subscription(project_name, service_namespace, service_name, push
 
     subscription = Subscription(name=pub_sub_sruid, topic=topic, project_name=project_name, push_endpoint=push_endpoint)
     subscription.create()
-    click.echo(subscription.name)
+    click.echo(service_sruid)
 
 
 def _add_monitor_message_to_file(path, monitor_message):
