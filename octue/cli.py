@@ -385,7 +385,7 @@ def dataflow(service_config, no_cache, update, dataflow_job_only, image_uri):
 )
 def create_push_subscription(project_name, service_namespace, service_name, push_endpoint, revision_tag):
     """Create a push subscription on Google Pub/Sub from the Octue service to the push endpoint. If a corresponding
-    topic doesn't exist, it will be created.
+    topic doesn't exist, it will be created. The subscription name is printed on completion.
 
     PROJECT_NAME is the name of the Google Cloud project in which the subscription will be created
 
@@ -404,6 +404,7 @@ def create_push_subscription(project_name, service_namespace, service_name, push
 
     subscription = Subscription(name=pub_sub_sruid, topic=topic, project_name=project_name, push_endpoint=push_endpoint)
     subscription.create()
+    click.echo(subscription.name)
 
 
 def _add_monitor_message_to_file(path, monitor_message):
