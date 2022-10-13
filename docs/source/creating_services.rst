@@ -225,19 +225,31 @@ Naming services
 
 Where to specify the namespace, name, and revision tag
 ------------------------------------------------------
-The name and namespace are read from the service's ``octue.yaml`` file. However, to make deployment to particular
-environments easier, they can alternatively be specified via the following environment variables:
 
-- ``OCTUE_SERVICE_NAMESPACE``
-- ``OCTUE_SERVICE_NAME``
+**Namespace**
 
-These environment variables take precedence over the values in ``octue.yaml``.
+- Required: yes
+- Set in:
 
-Revision tags are specified differently - they're how you keep service revisions unique, so it doesn't make sense to
-hard-code them in ``octue.yaml``. If the revision tag is not specified in the ``OCTUE_SERVICE_REVISION_TAG`` environment
-variable or, if using the ``octue start`` CLI command, via the ``--revision-tag`` CLI option, a "coolname" tag (e.g.
-``hungry-hippo``) will be generated to ensure the uniqueness of the service revision. If the CLI option is provided, it
-takes precedence over the ``OCTUE_SERVICE_REVISION_TAG`` environment variable.
+  - ``octue.yaml``
+  - ``OCTUE_SERVICE_NAMESPACE`` environment variable (takes priority)
+
+**Name**
+
+- Required: yes
+- Set in:
+
+  - ``octue.yaml``
+  - ``OCTUE_SERVICE_NAME`` environment variable (takes priority)
+
+**Revision tag**
+
+- Required: no
+- Default: a random "coolname" (e.g. ``hungry-hippo``)
+- Set in:
+
+  - ``OCTUE_SERVICE_REVISION_TAG`` environment variable
+  - If using ``octue start`` command, the ``--revision-tag`` option (takes priority)
 
 
 Template apps
