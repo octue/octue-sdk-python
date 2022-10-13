@@ -218,7 +218,7 @@ def start(service_config, revision_tag, timeout, no_rm):
         logger.warning(
             "The `OCTUE_SERVICE_REVISION_TAG` environment variable %r has been overridden by the `--revision-tag` CLI "
             "option %r.",
-            os.environ["OCTUE_SERVICE_REVISION_TAG"],
+            service_revision_tag,
             service_revision_tag_override,
         )
 
@@ -367,33 +367,37 @@ def dataflow(service_config, no_cache, update, dataflow_job_only, image_uri):
 
 @deploy.command()
 @click.argument("project_name")
-@click.argument("service_id")
+@click.argument("service_namespace")
+@click.argument("service_name")
 @click.argument("push_endpoint")
 @click.option(
     "--revision-tag",
     is_flag=False,
-    default="latest",
+    default=None,
     show_default=True,
-    help="The tag used as a suffix to the service ID when creating a Service Revision Unique Identifier (e.g. 1.0.7).",
+    help="The service revision tag (e.g. 1.0.7). If this option isn't given, a random 'cool name' tag is generated e.g"
+    ". 'curious-capybara'.",
 )
-def create_push_subscription(project_name, service_id, push_endpoint, revision_tag):
+def create_push_subscription(project_name, service_namespace, service_name, push_endpoint, revision_tag):
     """Create a push subscription on Google Pub/Sub from the Octue service to the push endpoint. If a corresponding
     topic doesn't exist, it will be created.
 
     PROJECT_NAME is the name of the Google Cloud project in which the subscription will be created
 
-    SERVICE_ID is the ID of the service in kebab case, optionally preceded by an organisation name (e.g. `wake-service`
-    or `octue/example-service`))
+    SERVICE_NAMESPACE is the namespace the service belongs to in kebab case
+
+    SERVICE_NAME is the name of the service in kebab case, unique within its namespace
 
     PUSH_ENDPOINT is the HTTP/HTTPS endpoint of the service to push to. It should be fully formed and include the
     'https://' prefix
     """
-    service_id = convert_service_id_to_pub_sub_form(f"{service_id}:{revision_tag}")
+    service_sruid = create_service_sruid(namespace=service_namespace, name=service_name, revision_tag=revision_tag)
+    pub_sub_sruid = convert_service_id_to_pub_sub_form(service_sruid)
 
-    topic = Topic(name=service_id, project_name=project_name)
+    topic = Topic(name=pub_sub_sruid, project_name=project_name)
     topic.create(allow_existing=True)
 
-    subscription = Subscription(name=service_id, topic=topic, project_name=project_name, push_endpoint=push_endpoint)
+    subscription = Subscription(name=pub_sub_sruid, topic=topic, project_name=project_name, push_endpoint=push_endpoint)
     subscription.create()
 
 
