@@ -37,7 +37,8 @@ jobs:
         run: poetry check
 
       - name: Get package version
-        run: echo "PACKAGE_VERSION=$(poetry version -s)" >> $GITHUB_ENV
+        id: get-package-version
+        run: echo "PACKAGE_VERSION=$(poetry version -s)" >> $GITHUB_OUTPUT
 
       - name: Install tox
         run: pip install tox
@@ -64,7 +65,7 @@ jobs:
           fail_ci_if_error: false
 
     outputs:
-      package_version: ${{ env.PACKAGE_VERSION }}
+      package_version: ${{ steps.get-package-version.outputs.PACKAGE_VERSION }}
 
   release:
     runs-on: ubuntu-latest
