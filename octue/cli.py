@@ -190,7 +190,8 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
     type=str,
     default=None,
     help="A tag to use for this revision of the service (e.g. 1.3.7). This overrides the `OCTUE_SERVICE_REVISION_TAG` "
-    "environment variable if it's present.",
+    "environment variable if it's present. If this option isn't given and the environment variable isn't present, a "
+    "random 'cool name' tag is generated e.g 'curious-capybara'.",
 )
 @click.option(
     "--timeout",
