@@ -6,7 +6,7 @@ from abc import abstractmethod
 
 import yaml
 
-from octue.cloud.pub_sub.service import clean_service_id
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_sruid, get_service_sruid_parts
 from octue.configuration import ServiceConfiguration
 from octue.exceptions import DeploymentError
 
@@ -47,16 +47,34 @@ class BaseDeployer:
         # Generated attributes.
         self.build_trigger_description = None
         self.generated_cloud_build_configuration = None
-        self.service_id = clean_service_id(self.service_configuration.service_id)
 
-        self.required_environment_variables = {"SERVICE_NAME": self.service_configuration.name}
+        self.service_namespace, self.service_name, self.service_revision_tag = get_service_sruid_parts(
+            self.service_configuration
+        )
+
+        self.service_sruid = create_service_sruid(
+            namespace=self.service_namespace,
+            name=self.service_name,
+            revision_tag=self.service_revision_tag,
+        )
+
+        self.pub_sub_service_sruid = convert_service_id_to_pub_sub_form(self.service_sruid)
+        self.cloud_build_service_sruid = self.pub_sub_service_sruid.replace(".", "-")
+
+        self.required_environment_variables = {
+            "OCTUE_SERVICE_NAMESPACE": self.service_namespace,
+            "OCTUE_SERVICE_NAME": self.service_name,
+            "OCTUE_SERVICE_REVISION_TAG": self.service_revision_tag,
+        }
 
         self.image_uri_template = image_uri_template or (
             f"{DOCKER_REGISTRY_URL}/{self.service_configuration.project_name}/"
-            f"{self.service_configuration.repository_name}/{self.service_configuration.name}:$SHORT_SHA"
+            f"{self.service_configuration.repository_name}/{self.pub_sub_service_sruid}:$SHORT_SHA"
         )
 
-        self.success_message = f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}."
+        self.success_message = (
+            f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_sruid!r}."
+        )
 
     @abstractmethod
     def deploy(self, no_cache=False, update=False):
@@ -64,7 +82,7 @@ class BaseDeployer:
 
         :param bool no_cache: if `True`, don't use the Docker cache when building the image
         :param bool update: if `True`, allow the build trigger to already exist and just build and deploy a new image based on an updated `octue.yaml` file
-        :return str: the service's UUID
+        :return str: the service's SRUID
         """
 
     @abstractmethod
@@ -162,7 +180,7 @@ class BaseDeployer:
                     "triggers",
                     "create",
                     "github",
-                    f"--name={self.service_configuration.name}",
+                    f"--name={self.cloud_build_service_sruid}",
                     f"--repo-name={self.service_configuration.repository_name}",
                     f"--repo-owner={self.service_configuration.repository_owner}",
                     f"--description={self.build_trigger_description}",
@@ -182,7 +200,7 @@ class BaseDeployer:
                         "builds",
                         "triggers",
                         "delete",
-                        f"{self.service_configuration.name}",
+                        f"{self.cloud_build_service_sruid}",
                     ]
 
                     self._run_command(delete_trigger_command)
@@ -209,7 +227,7 @@ class BaseDeployer:
                 "builds",
                 "triggers",
                 "run",
-                self.service_configuration.name,
+                self.cloud_build_service_sruid,
                 f"--branch={self.service_configuration.branch_pattern.strip('^$')}",
             ]
 
@@ -244,14 +262,6 @@ class BaseDeployer:
                 break
 
             time.sleep(check_period)
-
-    @staticmethod
-    def _get_short_head_commit_hash():
-        """Get the short commit hash for the HEAD commit in the current git repository.
-
-        :return str:
-        """
-        return subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True).stdout.decode().strip()
 
     @staticmethod
     def _run_command(command):

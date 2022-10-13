@@ -15,8 +15,8 @@ import octue.exceptions
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_sruid, validate_service_sruid
 from octue.compatibility import warn_if_incompatible
-from octue.mixins import CoolNameable
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
 from octue.utils.objects import get_nested_attribute
@@ -25,7 +25,7 @@ from octue.utils.threads import RepeatingTimer
 
 logger = logging.getLogger(__name__)
 
-OCTUE_NAMESPACE = "octue.services"
+DEFAULT_NAMESPACE = "default"
 ANSWERS_NAMESPACE = "answers"
 
 # Switch message batching off by setting `max_messages` to 1. This minimises latency and is recommended for
@@ -33,7 +33,7 @@ ANSWERS_NAMESPACE = "answers"
 BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_latency=0.01, max_messages=1)
 
 
-class Service(CoolNameable):
+class Service:
     """An Octue service that can be used as a data service or digital twin in one of two modes:
 
     - As a child accepting questions (input values and manifests) from parents, running them through its app, and
@@ -46,41 +46,33 @@ class Service(CoolNameable):
     :param octue.resources.service_backends.ServiceBackend backend: the object representing the type of backend the service uses
     :param str|None service_id: a unique ID to give to the service (any string); a UUID is generated if none is given
     :param callable|None run_function: the function the service should run when it is called
+    :param str|None name: an optional name to use for the service to override its ID in its string representation
     :return None:
     """
 
-    def __init__(self, backend, service_id=None, run_function=None, *args, **kwargs):
-        # If no service ID is given, use a random UUID for `id` and set `name` to a "cool name".
+    def __init__(self, backend, service_id=None, run_function=None, name=None):
         if service_id is None:
-            service_uuid = str(uuid.uuid4())
-            self.id = f"{OCTUE_NAMESPACE}.{service_uuid}"
-            self._raw_service_id = service_uuid
+            self.id = create_service_sruid(namespace=DEFAULT_NAMESPACE, name=str(uuid.uuid4()))
 
         # Raise an error if the service ID is some kind of falsey object that isn't `None`.
         elif not service_id:
-            raise ValueError(f"service_id should be None or a non-falsey value; received {service_id!r} instead.")
+            raise ValueError(f"`service_id` should be `None` or a non-falsey value; received {service_id!r} instead.")
 
-        # If a service ID is given, set `name` to it but set `id` to a namespaced, cleaned version of it. If a `name` is
-        # given as a kwarg, then the `name` attribute is set to that instead.
         else:
-            self.name = kwargs.get("name") or service_id
-            self._raw_service_id = service_id
-
-            if service_id.startswith(OCTUE_NAMESPACE):
-                self.id = clean_service_id(service_id)
-            else:
-                self.id = clean_service_id(f"{OCTUE_NAMESPACE}.{service_id}")
+            validate_service_sruid(service_id)
+            self.id = service_id
 
         self.backend = backend
         self.run_function = run_function
+        self.name = name
+        self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
         self._local_sdk_version = pkg_resources.get_distribution("octue").version
         self._record_sent_messages = False
         self._sent_messages = []
         self._publisher = None
-        super().__init__(*args, **kwargs)
 
     def __repr__(self):
-        return f"<{type(self).__name__}({self.name!r})>"
+        return f"<{type(self).__name__}({self.name or self.id!r})>"
 
     @property
     def publisher(self):
@@ -106,12 +98,11 @@ class Service(CoolNameable):
         """
         logger.info("Starting %r.", self)
 
-        topic = Topic(name=self.id, project_name=self.backend.project_name, namespace=OCTUE_NAMESPACE)
+        topic = Topic(name=self._pub_sub_id, project_name=self.backend.project_name)
 
         subscription = Subscription(
-            name=self.id,
+            name=self._pub_sub_id,
             topic=topic,
-            namespace=OCTUE_NAMESPACE,
             project_name=self.backend.project_name,
             expiration_time=None,
         )
@@ -125,7 +116,7 @@ class Service(CoolNameable):
 
             logger.info(
                 "You can now ask this service questions at %r using the `octue.resources.Child` class.",
-                self._raw_service_id,
+                self.id,
             )
 
             try:
@@ -134,9 +125,7 @@ class Service(CoolNameable):
                 future.cancel()
 
         except google.api_core.exceptions.AlreadyExists:
-            raise octue.exceptions.ServiceAlreadyExists(
-                f"A service with the ID {self._raw_service_id!r} already exists."
-            )
+            raise octue.exceptions.ServiceAlreadyExists(f"A service with the ID {self.id!r} already exists.")
 
         finally:
             if delete_topic_and_subscription_on_exit:
@@ -264,6 +253,8 @@ class Service(CoolNameable):
         :param float|None timeout: time in seconds to keep retrying sending the question
         :return (octue.cloud.pub_sub.subscription.Subscription, str): the answer subscription and question UUID
         """
+        validate_service_sruid(service_id)
+
         if not allow_local_files:
             if (input_manifest is not None) and (not input_manifest.all_datasets_are_in_cloud):
                 raise octue.exceptions.FileLocationError(
@@ -272,22 +263,20 @@ class Service(CoolNameable):
                     "the new cloud locations."
                 )
 
-        unlinted_service_id = service_id
-        service_id = clean_service_id(service_id)
-        question_topic = Topic(name=service_id, project_name=self.backend.project_name, namespace=OCTUE_NAMESPACE)
+        pub_sub_service_id = convert_service_id_to_pub_sub_form(service_id)
+        question_topic = Topic(name=pub_sub_service_id, project_name=self.backend.project_name)
 
         if not question_topic.exists(timeout=timeout):
-            raise octue.exceptions.ServiceNotFound(f"Service with ID {unlinted_service_id!r} cannot be found.")
+            raise octue.exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
 
         question_uuid = question_uuid or str(uuid.uuid4())
 
-        answer_topic = self.instantiate_answer_topic(question_uuid, service_id)
+        answer_topic = self.instantiate_answer_topic(question_uuid, pub_sub_service_id)
         answer_topic.create(allow_existing=False)
 
         answer_subscription = Subscription(
             name=answer_topic.name,
             topic=answer_topic,
-            namespace=OCTUE_NAMESPACE,
             project_name=self.backend.project_name,
             push_endpoint=push_endpoint,
         )
@@ -307,7 +296,7 @@ class Service(CoolNameable):
             allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
         )
 
-        logger.info("%r asked a question %r to service %r.", self, question_uuid, unlinted_service_id)
+        logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
         return answer_subscription, question_uuid
 
     def wait_for_answer(
@@ -360,13 +349,12 @@ class Service(CoolNameable):
         """Instantiate the answer topic for the given question UUID and child service ID.
 
         :param str question_uuid:
-        :param str|None service_id: the ID of the child to ask the question to
+        :param str|None service_id: the ID of the child to ask the question to in Pub/Sub form
         :return octue.cloud.pub_sub.topic.Topic:
         """
         return Topic(
-            name=".".join((service_id or self.id, ANSWERS_NAMESPACE, question_uuid)),
+            name=".".join((service_id or self._pub_sub_id, ANSWERS_NAMESPACE, question_uuid)),
             project_name=self.backend.project_name,
-            namespace=OCTUE_NAMESPACE,
         )
 
     def send_exception(self, topic, timeout=30):
@@ -515,12 +503,3 @@ class Service(CoolNameable):
             allow_save_diagnostics_data_on_crash = False
 
         return data, question_uuid, forward_logs, parent_sdk_version, allow_save_diagnostics_data_on_crash
-
-
-def clean_service_id(service_id):
-    """Replace forward slashes in the given service ID with dots.
-
-    :param str service_id: the raw service ID
-    :return str: the cleaned service ID.
-    """
-    return service_id.replace("/", ".")

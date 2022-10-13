@@ -23,16 +23,9 @@ class TestOrderedMessageHandler(BaseTestCase):
 
         :return None:
         """
-        mock_topic = MockTopic(name="world", project_name=TEST_PROJECT_NAME, namespace="hello")
-
+        mock_topic = MockTopic(name="world", project_name=TEST_PROJECT_NAME)
         cls.receiving_service = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
-
-        cls.mock_subscription = MockSubscription(
-            name="world",
-            topic=mock_topic,
-            namespace="hello",
-            project_name=TEST_PROJECT_NAME,
-        )
+        cls.mock_subscription = MockSubscription(name="world", topic=mock_topic, project_name=TEST_PROJECT_NAME)
 
     def _make_order_recording_message_handler(self, message_handling_order):
         """Make a message handler that records the order in which messages were handled to the given list.

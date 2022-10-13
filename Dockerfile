@@ -12,7 +12,7 @@ RUN poetry config virtualenvs.create false
 # install post-create to install the root package, which will change more rapidly than dependencies.
 COPY octue/cloud/deployment/google/dataflow/setup.py setup.py
 COPY pyproject.toml poetry.lock ./
-RUN poetry install --no-ansi --no-interaction --no-root
+RUN poetry install --no-ansi --no-interaction -E dataflow --only=main --no-root -v
 
 COPY . .
-RUN poetry install --no-ansi --no-interaction -E dataflow --no-dev -v
+RUN poetry install --no-ansi --no-interaction -E dataflow --only=main -v

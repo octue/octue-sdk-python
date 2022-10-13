@@ -13,11 +13,18 @@ from tests.base import BaseTestCase
 
 
 class TestChild(BaseTestCase):
+    def test_representation(self):
+        """Test that children are represented correctly as a string."""
+        self.assertEqual(
+            repr(Child(id="octue/my-child:latest", backend={"name": "GCPPubSubBackend", "project_name": "blah"})),
+            "<Child('octue/my-child:latest')>",
+        )
+
     def test_instantiating_child_without_credentials(self):
         """Test that a child can be instantiated without Google Cloud credentials."""
         with patch.dict(os.environ, clear=True):
             Child(
-                id="my-child",
+                id="octue/my-child:latest",
                 backend={"name": "GCPPubSubBackend", "project_name": "blah"},
             )
 
@@ -30,7 +37,7 @@ class TestChild(BaseTestCase):
                         with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
 
                             child = Child(
-                                id="my-child",
+                                id="octue/my-child:latest",
                                 backend={"name": "GCPPubSubBackend", "project_name": "blah"},
                             )
 
@@ -45,7 +52,7 @@ class TestChild(BaseTestCase):
 
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
-            service_id="testing/wind-speed",
+            service_id="testing/wind-speed:latest",
             run_function=mock_run_function,
         )
 
@@ -69,7 +76,7 @@ class TestChild(BaseTestCase):
 
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
-            service_id="testing/service-for-parallelised-questions",
+            service_id="testing/service-for-parallelised-questions:latest",
             run_function=mock_run_function,
         )
 

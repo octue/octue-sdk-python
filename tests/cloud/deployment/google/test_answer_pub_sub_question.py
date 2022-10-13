@@ -1,11 +1,13 @@
 import json
-import unittest.mock
+import os
 from unittest import TestCase, mock
+from unittest.mock import patch
 
 import yaml
 
 from octue.cloud.deployment.google.answer_pub_sub_question import answer_question
 from octue.cloud.emulators._pub_sub import MockTopic
+from octue.utils.patches import MultiPatcher
 from tests.mocks import MockOpen
 
 
@@ -14,20 +16,24 @@ class TestAnswerPubSubQuestion(TestCase):
         """Test that the `answer_question` function uses the default service and app configuration values when the
         minimal service configuration is provided with no path to an app configuration file.
         """
-        with mock.patch(
-            "octue.configuration.open",
-            unittest.mock.mock_open(read_data=yaml.dump({"services": [{"name": "test-service"}]})),
+        with MultiPatcher(
+            patches=[
+                patch(
+                    "octue.configuration.open",
+                    mock.mock_open(
+                        read_data=yaml.dump({"services": [{"name": "test-service", "namespace": "testing"}]})
+                    ),
+                ),
+                patch("octue.cloud.pub_sub.service.Topic", new=MockTopic),
+                patch("octue.cloud.deployment.google.answer_pub_sub_question.Service"),
+                patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "blah"}),
+            ]
         ):
-            with mock.patch("octue.cloud.deployment.google.answer_pub_sub_question.Runner") as mock_runner:
-                with mock.patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-                    with mock.patch("octue.cloud.deployment.google.answer_pub_sub_question.Service"):
-                        answer_question(
-                            question={
-                                "data": {},
-                                "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"},
-                            },
-                            project_name="a-project-name",
-                        )
+            with patch("octue.cloud.deployment.google.answer_pub_sub_question.Runner") as mock_runner:
+                answer_question(
+                    question={"data": {}, "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"}},
+                    project_name="a-project-name",
+                )
 
         mock_runner.assert_called_with(
             **{
@@ -39,7 +45,7 @@ class TestAnswerPubSubQuestion(TestCase):
                 "output_location": None,
                 "crash_diagnostics_cloud_path": None,
                 "project_name": "a-project-name",
-                "service_id": "test-service",
+                "service_id": "testing/test-service:blah",
             }
         )
 
@@ -55,6 +61,7 @@ class TestAnswerPubSubQuestion(TestCase):
                         "services": [
                             {
                                 "name": "test-service",
+                                "namespace": "testing",
                                 "app_source_path": "/path/to/app_dir",
                                 "twine_path": "path/to/twine.json",
                                 "app_configuration_path": "app_configuration.json",
@@ -65,17 +72,22 @@ class TestAnswerPubSubQuestion(TestCase):
                 "app_configuration.json": json.dumps({"configuration_values": {"hello": "configuration"}}),
             }
 
-        with mock.patch("octue.configuration.open", unittest.mock.mock_open(mock=MockOpenForConfigurationFiles)):
-            with mock.patch("octue.cloud.deployment.google.answer_pub_sub_question.Runner") as mock_runner:
-                with mock.patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-                    with mock.patch("octue.cloud.deployment.google.answer_pub_sub_question.Service"):
-                        answer_question(
-                            question={
-                                "data": {},
-                                "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"},
-                            },
-                            project_name="a-project-name",
-                        )
+        with patch("octue.cloud.deployment.google.answer_pub_sub_question.Runner") as mock_runner:
+            with MultiPatcher(
+                patches=[
+                    patch("octue.configuration.open", mock.mock_open(mock=MockOpenForConfigurationFiles)),
+                    patch("octue.cloud.pub_sub.service.Topic", new=MockTopic),
+                    patch("octue.cloud.deployment.google.answer_pub_sub_question.Service"),
+                    patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "blah"}),
+                ]
+            ):
+                answer_question(
+                    question={
+                        "data": {},
+                        "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"},
+                    },
+                    project_name="a-project-name",
+                )
 
         mock_runner.assert_called_with(
             **{
@@ -87,6 +99,6 @@ class TestAnswerPubSubQuestion(TestCase):
                 "output_location": None,
                 "crash_diagnostics_cloud_path": None,
                 "project_name": "a-project-name",
-                "service_id": "test-service",
+                "service_id": "testing/test-service:blah",
             }
         )

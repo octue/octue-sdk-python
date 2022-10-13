@@ -11,37 +11,31 @@ from tests.base import BaseTestCase
 
 
 class TestSubscription(BaseTestCase):
-    topic = Topic(name="world", project_name="my-project", namespace="hello")
-    subscription = Subscription(name="world", topic=topic, namespace="hello", project_name=TEST_PROJECT_NAME)
+    topic = Topic(name="world", project_name="my-project")
+    subscription = Subscription(name="world", topic=topic, project_name=TEST_PROJECT_NAME)
 
     def test_repr(self):
         """Test that subscriptions are represented correctly."""
-        self.assertEqual(repr(self.subscription), "<Subscription(hello.world)>")
+        self.assertEqual(repr(self.subscription), "<Subscription(octue.services.world)>")
 
     def test_namespace_only_in_name_once(self):
         """Test that the subscription's namespace only appears in its name once, even if it is repeated."""
-        self.assertEqual(self.subscription.name, "hello.world")
+        self.assertEqual(self.subscription.name, "octue.services.world")
 
         subscription_with_repeated_namespace = Subscription(
-            name="hello.world",
+            name="octue.services.world",
             topic=self.topic,
-            namespace="hello",
             project_name=TEST_PROJECT_NAME,
         )
 
-        self.assertEqual(subscription_with_repeated_namespace.name, "hello.world")
+        self.assertEqual(subscription_with_repeated_namespace.name, "octue.services.world")
 
     def test_create_without_allow_existing_when_subscription_already_exists(self):
         """Test that an error is raised when trying to create a subscription that already exists and `allow_existing` is
         `False`.
         """
         with patch("octue.cloud.pub_sub.subscription.SubscriberClient", MockSubscriber):
-            subscription = Subscription(
-                name="world",
-                topic=self.topic,
-                namespace="hello",
-                project_name=TEST_PROJECT_NAME,
-            )
+            subscription = Subscription(name="world", topic=self.topic, project_name=TEST_PROJECT_NAME)
 
         with patch(
             "octue.cloud.emulators._pub_sub.MockSubscriber.create_subscription",
@@ -58,12 +52,7 @@ class TestSubscription(BaseTestCase):
         error.
         """
         with patch("octue.cloud.pub_sub.subscription.SubscriberClient", MockSubscriber):
-            subscription = Subscription(
-                name="world",
-                topic=self.topic,
-                namespace="hello",
-                project_name=TEST_PROJECT_NAME,
-            )
+            subscription = Subscription(name="world", topic=self.topic, project_name=TEST_PROJECT_NAME)
 
         with patch(
             "octue.cloud.emulators._pub_sub.MockSubscriber.create_subscription",
@@ -79,9 +68,9 @@ class TestSubscription(BaseTestCase):
         triggered locally.
         """
         project_name = os.environ["TEST_PROJECT_NAME"]
-        topic = Topic(name="my-topic", project_name=project_name, namespace="tests")
+        topic = Topic(name="my-topic", project_name=project_name)
 
-        subscription = Subscription(name="world", topic=topic, namespace="hello", project_name=project_name)
+        subscription = Subscription(name="world", topic=topic, project_name=project_name)
 
         for allow_existing in (True, False):
             with self.subTest(allow_existing=allow_existing):
@@ -101,12 +90,11 @@ class TestSubscription(BaseTestCase):
     def test_create_push_subscription(self):
         """Test that creating a push subscription works properly."""
         project_name = os.environ["TEST_PROJECT_NAME"]
-        topic = Topic(name="my-topic", project_name=project_name, namespace="tests")
+        topic = Topic(name="my-topic", project_name=project_name)
 
         subscription = Subscription(
             name="world",
             topic=topic,
-            namespace="hello",
             project_name=project_name,
             push_endpoint="https://example.com/endpoint",
         )
@@ -131,7 +119,6 @@ class TestSubscription(BaseTestCase):
         push_subscription = Subscription(
             name="world",
             topic=self.topic,
-            namespace="hello",
             project_name=TEST_PROJECT_NAME,
             push_endpoint="https://example.com/endpoint",
         )

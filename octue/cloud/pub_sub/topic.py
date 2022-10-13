@@ -6,6 +6,8 @@ import google.api_core.exceptions
 from google.cloud.pubsub_v1 import PublisherClient
 from google.pubsub_v1.types.pubsub import Topic as Topic_
 
+from octue.cloud.service_id import OCTUE_SERVICES_NAMESPACE
+
 
 logger = logging.getLogger(__name__)
 
@@ -17,13 +19,12 @@ class Topic:
 
     :param str name: the name to give the topic
     :param str project_name: the name of the GCP project the topic should exist in
-    :param str namespace: a namespace to add before the topic's name, giving the topic a full name of `<namespace>.<name>`
     :return None:
     """
 
-    def __init__(self, name, project_name, namespace=""):
-        if namespace and not name.startswith(namespace):
-            self.name = f"{namespace}.{name}"
+    def __init__(self, name, project_name):
+        if not name.startswith(OCTUE_SERVICES_NAMESPACE):
+            self.name = f"{OCTUE_SERVICES_NAMESPACE}.{name}"
         else:
             self.name = name
 

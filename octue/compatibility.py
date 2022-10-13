@@ -6,8 +6,12 @@ import os
 logger = logging.getLogger(__name__)
 
 
-with open(os.path.join(os.path.dirname(__file__), "metadata", "version_compatibilities.json")) as f:
-    VERSION_COMPATIBILITIES = json.load(f)
+try:
+    with open(os.path.join(os.path.dirname(__file__), "metadata", "version_compatibilities.json")) as f:
+        VERSION_COMPATIBILITIES = json.load(f)
+except FileNotFoundError:
+    logger.warning("Version compatibility data could not be loaded.")
+    VERSION_COMPATIBILITIES = {}
 
 
 def is_compatible(parent_sdk_version, child_sdk_version):

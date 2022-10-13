@@ -5,13 +5,14 @@ import google.api_core
 import pkg_resources
 
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.service import OCTUE_NAMESPACE, Service, clean_service_id
+from octue.cloud.pub_sub.service import Service
 from octue.resources import Manifest
 
 
 logger = logging.getLogger(__name__)
 
 MESSAGES = {}
+SUBSCRIPTIONS = {}
 
 
 class MockTopic(Topic):
@@ -29,7 +30,7 @@ class MockTopic(Topic):
                 raise google.api_core.exceptions.AlreadyExists(f"Topic {self.path!r} already exists.")
 
         if not self.exists():
-            MESSAGES[get_service_id(self.path)] = []
+            MESSAGES[self.name] = []
             self._created = True
 
     def delete(self):
@@ -38,7 +39,7 @@ class MockTopic(Topic):
         :return None:
         """
         try:
-            del MESSAGES[get_service_id(self.path)]
+            del MESSAGES[self.name]
         except KeyError:
             pass
 
@@ -48,19 +49,29 @@ class MockTopic(Topic):
         :param float timeout:
         :return bool:
         """
-        return get_service_id(self.path) in MESSAGES
+        return self.name in MESSAGES
 
 
 class MockSubscription(Subscription):
     """A mock subscription that registers in a global dictionary rather than Google Pub/Sub."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._subscriber = MockSubscriber()
+
     def create(self, allow_existing=False):
-        """Do nothing.
+        """Register the subscription in the global subscriptions dictionary.
 
         :param bool allow_existing:
         :return None:
         """
-        self._created = True
+        if not allow_existing:
+            if self.exists():
+                raise google.api_core.exceptions.AlreadyExists(f"Subscription {self.path!r} already exists.")
+
+        if not self.exists():
+            SUBSCRIPTIONS[self.name] = []
+            self._created = True
 
     def delete(self):
         """Do nothing.
@@ -68,6 +79,14 @@ class MockSubscription(Subscription):
         :return None:
         """
         pass
+
+    def exists(self, timeout=5):
+        """Check if the subscription exists in the global subscriptions dictionary.
+
+        :param float timeout:
+        :return bool:
+        """
+        return self.name in SUBSCRIPTIONS
 
 
 class MockFuture:
@@ -284,9 +303,6 @@ class MockService(Service):
             input_manifest = input_manifest.serialise()
 
         try:
-            if not service_id.startswith(OCTUE_NAMESPACE):
-                service_id = OCTUE_NAMESPACE + "." + clean_service_id(service_id)
-
             self.children[service_id].answer(
                 MockMessage(
                     data=json.dumps(

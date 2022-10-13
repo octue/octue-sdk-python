@@ -1,4 +1,5 @@
 import copy
+import os
 import tempfile
 from unittest.mock import Mock, patch
 
@@ -13,6 +14,7 @@ OCTUE_CONFIGURATION = {
     "services": [
         {
             "name": "test-service",
+            "namespace": "testing",
             "repository_name": "test-repository",
             "repository_owner": "octue",
             "project_name": "test-project",
@@ -23,8 +25,13 @@ OCTUE_CONFIGURATION = {
 }
 
 SERVICE = OCTUE_CONFIGURATION["services"][0]
+OCTUE_SERVICE_REVISION_TAG = "my-tag"
+SRUID = f"{SERVICE['namespace']}/{SERVICE['name']}:{OCTUE_SERVICE_REVISION_TAG}"
+PUB_SUB_SRUID = f"{SERVICE['namespace']}.{SERVICE['name']}.{OCTUE_SERVICE_REVISION_TAG}"
+CLOUD_BUILD_SRUID = PUB_SUB_SRUID.replace(".", "-")
+
 GET_SUBSCRIPTIONS_METHOD_PATH = "octue.cloud.deployment.google.cloud_run.deployer.Topic.get_subscriptions"
-EXPECTED_IMAGE_NAME = f"eu.gcr.io/{SERVICE['project_name']}/{SERVICE['repository_name']}/{SERVICE['name']}:$SHORT_SHA"
+EXPECTED_IMAGE_NAME = f"eu.gcr.io/{SERVICE['project_name']}/{SERVICE['repository_name']}/{PUB_SUB_SRUID}:$SHORT_SHA"
 
 EXPECTED_CLOUD_BUILD_CONFIGURATION = {
     "steps": [
@@ -55,13 +62,13 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
                 "run",
                 "services",
                 "update",
-                "test-service",
+                CLOUD_BUILD_SRUID,
                 "--platform=managed",
                 f"--image={EXPECTED_IMAGE_NAME}",
                 f"--region={SERVICE['region']}",
                 "--memory=128Mi",
                 "--cpu=1",
-                f"--set-env-vars=SERVICE_NAME={SERVICE['name']}",
+                f"--set-env-vars=OCTUE_SERVICE_NAMESPACE={SERVICE['namespace']},OCTUE_SERVICE_NAME={SERVICE['name']},OCTUE_SERVICE_REVISION_TAG={OCTUE_SERVICE_REVISION_TAG}",
                 "--timeout=3600",
                 "--concurrency=10",
                 "--min-instances=0",
@@ -81,10 +88,10 @@ EXPECTED_BUILD_TRIGGER_CREATION_COMMAND = [
     "triggers",
     "create",
     "github",
-    f"--name={SERVICE['name']}",
+    f"--name={CLOUD_BUILD_SRUID}",
     f"--repo-name={SERVICE['repository_name']}",
     f"--repo-owner={SERVICE['repository_owner']}",
-    f"--description=Build the {SERVICE['name']!r} service and deploy it to Cloud Run.",
+    f"--description=Build the '{SRUID}' service and deploy it to Cloud Run.",
     f"--branch-pattern={SERVICE['branch_pattern']}",
 ]
 
@@ -94,7 +101,10 @@ class TestCloudRunDeployer(BaseTestCase):
         """Test that a correct Google Cloud Build configuration is generated from the given `octue.yaml` file."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
-            deployer = CloudRunDeployer(octue_configuration_path)
+
+            with patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": OCTUE_SERVICE_REVISION_TAG}):
+                deployer = CloudRunDeployer(octue_configuration_path)
+
             deployer._generate_cloud_build_configuration()
 
         self.assertEqual(deployer.generated_cloud_build_configuration, EXPECTED_CLOUD_BUILD_CONFIGURATION)
@@ -112,7 +122,9 @@ class TestCloudRunDeployer(BaseTestCase):
                 temporary_directory,
             )
 
-            deployer = CloudRunDeployer(octue_configuration_path)
+            with patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": OCTUE_SERVICE_REVISION_TAG}):
+                deployer = CloudRunDeployer(octue_configuration_path)
+
             deployer._generate_cloud_build_configuration()
 
         # Expect the extra "Get default Octue Dockerfile" step to be absent and the given Dockerfile path to be
@@ -141,7 +153,9 @@ class TestCloudRunDeployer(BaseTestCase):
                 temporary_directory,
             )
 
-            deployer = CloudRunDeployer(octue_configuration_path)
+            with patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": OCTUE_SERVICE_REVISION_TAG}):
+                deployer = CloudRunDeployer(octue_configuration_path)
+
             deployer._generate_cloud_build_configuration()
 
         expected_cloud_build_configuration = copy.deepcopy(EXPECTED_CLOUD_BUILD_CONFIGURATION)
@@ -169,7 +183,9 @@ class TestCloudRunDeployer(BaseTestCase):
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
-            deployer = CloudRunDeployer(octue_configuration_path)
+
+            with patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": OCTUE_SERVICE_REVISION_TAG}):
+                deployer = CloudRunDeployer(octue_configuration_path)
 
             mock_build_id = "my-build-id"
 
@@ -177,7 +193,7 @@ class TestCloudRunDeployer(BaseTestCase):
                 with MultiPatcher(
                     patches=[
                         patch("octue.cloud.deployment.google.cloud_run.deployer.Topic.create"),
-                        patch(GET_SUBSCRIPTIONS_METHOD_PATH, return_value=["test-service"]),
+                        patch(GET_SUBSCRIPTIONS_METHOD_PATH, return_value=[PUB_SUB_SRUID]),
                         patch("octue.cloud.deployment.google.cloud_run.deployer.Subscription"),
                         patch("octue.cloud.pub_sub.topic.PublisherClient", MockPublisher),
                         patch(
@@ -211,7 +227,7 @@ class TestCloudRunDeployer(BaseTestCase):
                     "builds",
                     "triggers",
                     "run",
-                    SERVICE["name"],
+                    CLOUD_BUILD_SRUID,
                     "--branch=my-branch",
                 ],
             )
@@ -238,7 +254,7 @@ class TestCloudRunDeployer(BaseTestCase):
                     "run",
                     "services",
                     "add-iam-policy-binding",
-                    SERVICE["name"],
+                    CLOUD_BUILD_SRUID,
                     f'--region={SERVICE["region"]}',
                     "--member=allUsers",
                     "--role=roles/run.invoker",
@@ -255,11 +271,11 @@ class TestCloudRunDeployer(BaseTestCase):
                     "eventarc",
                     "triggers",
                     "create",
-                    f'{SERVICE["name"]}-trigger',
+                    f"{CLOUD_BUILD_SRUID}-trigger",
                     "--matching-criteria=type=google.cloud.pubsub.topic.v1.messagePublished",
-                    f"--destination-run-service={SERVICE['name']}",
+                    f"--destination-run-service={CLOUD_BUILD_SRUID}",
                     f"--location={SERVICE['region']}",
-                    f"--transport-topic=octue.services.{SERVICE['name']}",
+                    f"--transport-topic=octue.services.{PUB_SUB_SRUID}",
                 ],
             )
 
@@ -269,7 +285,10 @@ class TestCloudRunDeployer(BaseTestCase):
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
             octue_configuration_path = self._create_octue_configuration_file(OCTUE_CONFIGURATION, temporary_directory)
-            deployer = CloudRunDeployer(octue_configuration_path)
+
+            with patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": OCTUE_SERVICE_REVISION_TAG}):
+                deployer = CloudRunDeployer(octue_configuration_path)
+
             deployer._generate_cloud_build_configuration()
 
             temporary_file = tempfile.NamedTemporaryFile(delete=False)
@@ -301,7 +320,7 @@ class TestCloudRunDeployer(BaseTestCase):
                 "builds",
                 "triggers",
                 "delete",
-                SERVICE["name"],
+                CLOUD_BUILD_SRUID,
             ],
         )
 

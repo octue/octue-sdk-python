@@ -39,9 +39,7 @@ class DataflowDeployer(BaseDeployer):
 
     def __init__(self, octue_configuration_path, image_uri_template=None):
         super().__init__(octue_configuration_path, image_uri_template)
-        self.build_trigger_description = (
-            f"Build the {self.service_configuration.name!r} service and deploy it to Dataflow."
-        )
+        self.build_trigger_description = f"Build the {self.service_sruid!r} service and deploy it to Dataflow."
 
         if not self.service_configuration.temporary_files_location:
             self.service_configuration.temporary_files_location = DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION
@@ -55,12 +53,13 @@ class DataflowDeployer(BaseDeployer):
 
         :param bool no_cache: if `True`, don't use the Docker cache when building the image
         :param bool update: if `True`, allow the build trigger to already exist and just build and deploy a new image based on an updated `octue.yaml` file
-        :return None:
+        :return str: the service's SRUID
         """
         self._generate_cloud_build_configuration(no_cache=no_cache)
         self._create_build_trigger(update=update)
         self._run_build_trigger()
         print(self.success_message)
+        return self.service_sruid
 
     def create_streaming_dataflow_job(self, image_uri, update=False):
         """Deploy the newly-built service as a streaming Dataflow job.
@@ -74,9 +73,9 @@ class DataflowDeployer(BaseDeployer):
                 progress_message.finish_message = "update triggered."
 
             kwargs = {
-                "service_name": self.service_configuration.name,
+                "job_name": self.cloud_build_service_sruid,
                 "project_name": self.service_configuration.project_name,
-                "service_id": self.service_id,
+                "service_id": self.pub_sub_service_sruid,
                 "region": self.service_configuration.region,
                 "setup_file_path": self.service_configuration.setup_file_path,
                 "image_uri": image_uri,
@@ -175,6 +174,11 @@ class DataflowDeployer(BaseDeployer):
                             "--update",
                             "--dataflow-job-only",
                             f"--image-uri={self.image_uri_template}",
+                        ],
+                        "env": [
+                            f"OCTUE_SERVICE_NAMESPACE={self.service_namespace}",
+                            f"OCTUE_SERVICE_NAME={self.service_name}",
+                            f"OCTUE_SERVICE_REVISION_TAG={self.service_revision_tag}",
                         ],
                     },
                 ],

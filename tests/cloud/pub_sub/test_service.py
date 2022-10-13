@@ -4,7 +4,6 @@ import json
 import logging
 import tempfile
 import time
-import uuid
 from unittest.mock import patch
 
 import google.api_core.exceptions
@@ -43,20 +42,15 @@ class TestService(BaseTestCase):
 
     service_patcher = ServicePatcher()
 
-    def test_namespace_always_appears_in_id(self):
-        """Test that the Octue service namespace always appears at the start of a service's ID whether it's explicitly
-        provided or not.
-        """
-        service_with_no_namespace_in_id = Service(backend=BACKEND, service_id="hello")
-        self.assertEqual(service_with_no_namespace_in_id.id, "octue.services.hello")
-
-        service_with_namespace_in_id = Service(backend=BACKEND, service_id="octue.services.hello")
-        self.assertEqual(service_with_namespace_in_id.id, "octue.services.hello")
-
     def test_repr(self):
         """Test that services are represented as a string correctly."""
         service = Service(backend=BACKEND)
-        self.assertEqual(repr(service), f"<Service({service.name!r})>")
+        self.assertEqual(repr(service), f"<Service({service.id!r})>")
+
+    def test_repr_with_name(self):
+        """Test that services are represented using their name if they have one."""
+        service = Service(backend=BACKEND, name="octue/blah-service:latest")
+        self.assertEqual(repr(service), "<Service('octue/blah-service:latest')>")
 
     def test_service_id_cannot_be_non_none_empty_value(self):
         """Ensure that a ValueError is raised if a non-None empty value is provided as the service_id."""
@@ -77,12 +71,12 @@ class TestService(BaseTestCase):
                 side_effect=google.api_core.exceptions.AlreadyExists(""),
             ):
                 with self.assertRaises(exceptions.ServiceAlreadyExists):
-                    MockService(backend=BACKEND, service_id="existing-service").serve()
+                    MockService(backend=BACKEND, service_id="my-org/existing-service:latest").serve()
 
     def test_serve(self):
         """Test that serving works with a unique service ID."""
         with self.service_patcher:
-            MockService(backend=BACKEND, service_id="new-service").serve()
+            MockService(backend=BACKEND, service_id="my-org/existing-service:latest").serve()
 
     def test_ask_on_non_existent_service_results_in_error(self):
         """Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
@@ -90,19 +84,12 @@ class TestService(BaseTestCase):
         """
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with self.assertRaises(exceptions.ServiceNotFound):
-                MockService(backend=BACKEND).ask(service_id="hello", input_values=[1, 2, 3, 4])
+                MockService(backend=BACKEND).ask(service_id="my-org/existing-service:latest", input_values=[1, 2, 3, 4])
 
     def test_timeout_error_raised_if_no_messages_received_when_waiting(self):
         """Test that a TimeoutError is raised if no messages are received while waiting."""
-        mock_topic = MockTopic(name="world", project_name=TEST_PROJECT_NAME, namespace="hello")
-
-        mock_subscription = MockSubscription(
-            name="world",
-            topic=mock_topic,
-            namespace="hello",
-            project_name=TEST_PROJECT_NAME,
-        )
-
+        mock_topic = MockTopic(name="world", project_name=TEST_PROJECT_NAME)
+        mock_subscription = MockSubscription(name="world", topic=mock_topic, project_name=TEST_PROJECT_NAME)
         service = Service(backend=BACKEND)
 
         with patch("octue.cloud.pub_sub.service.pubsub_v1.SubscriberClient.pull", return_value=MockPullResponse()):
@@ -113,8 +100,7 @@ class TestService(BaseTestCase):
         """Test that an error is raised if attempting to wait for an answer from a push subscription."""
         mock_subscription = MockSubscription(
             name="world",
-            topic=MockTopic(name="world", project_name=TEST_PROJECT_NAME, namespace="hello"),
-            namespace="hello",
+            topic=MockTopic(name="world", project_name=TEST_PROJECT_NAME),
             project_name=TEST_PROJECT_NAME,
             push_endpoint="https://example.com/endpoint",
         )
@@ -412,7 +398,7 @@ class TestService(BaseTestCase):
         """
         with self.assertRaises(exceptions.FileLocationError):
             MockService(backend=BACKEND).ask(
-                service_id=str(uuid.uuid4()),
+                service_id="octue/test-service:latest",
                 input_values={},
                 input_manifest=self.create_valid_manifest(),
             )
@@ -768,7 +754,7 @@ class TestService(BaseTestCase):
         static_children = [
             {
                 "key": "expected_child",
-                "id": "octue/static-child-of-child",
+                "id": "octue/static-child-of-child:latest",
                 "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
             },
         ]
@@ -781,24 +767,24 @@ class TestService(BaseTestCase):
                 "output_values_schema": {},
             },
             children=static_children,
-            service_id="octue/child",
+            service_id="octue/child:latest",
         )
 
         static_child_of_child = self.make_new_child(
             backend=BACKEND,
-            service_id="octue/static-child-of-child",
+            service_id="octue/static-child-of-child:latest",
             run_function_returnee=MockAnalysis(output_values="I am the static child."),
         )
 
         dynamic_child_of_child = self.make_new_child(
             backend=BACKEND,
-            service_id="octue/dynamic-child-of-child",
+            service_id="octue/dynamic-child-of-child:latest",
             run_function_returnee=MockAnalysis(output_values="I am the dynamic child."),
         )
 
         child = MockService(
             backend=BACKEND,
-            service_id="octue/child",
+            service_id="octue/child:latest",
             run_function=runner.run,
             children={
                 static_child_of_child.id: static_child_of_child,
@@ -806,12 +792,12 @@ class TestService(BaseTestCase):
             },
         )
 
-        parent = MockService(backend=BACKEND, service_id="octue/parent", children={child.id: child})
+        parent = MockService(backend=BACKEND, service_id="octue/parent:latest", children={child.id: child})
 
         dynamic_children = [
             {
                 "key": "expected_child",
-                "id": "octue/dynamic-child-of-child",
+                "id": "octue/dynamic-child-of-child:latest",
                 "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
             },
         ]

@@ -1,9 +1,11 @@
 import json
+import logging
 import os
 import tempfile
 import unittest.mock
 import uuid
 from unittest import mock
+from unittest.mock import patch
 
 import yaml
 from click.testing import CliRunner
@@ -11,10 +13,12 @@ from click.testing import CliRunner
 from octue import Runner
 from octue.cli import octue_cli
 from octue.cloud import storage
-from octue.cloud.emulators._pub_sub import MockService
+from octue.cloud.emulators._pub_sub import MockService, MockSubscription, MockTopic
 from octue.cloud.emulators.child import ServicePatcher
+from octue.cloud.pub_sub import Subscription, Topic
 from octue.configuration import AppConfiguration, ServiceConfiguration
 from octue.resources import Datafile
+from octue.utils.patches import MultiPatcher
 from tests import TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
 from tests.mocks import MockOpen
@@ -42,6 +46,7 @@ class TestRunCommand(BaseTestCase):
     MOCK_CONFIGURATIONS = (
         ServiceConfiguration(
             name="test-app",
+            namespace="testing",
             app_source_path=os.path.join(TESTS_DIR, "test_app_modules", "app_module"),
             twine_path=TWINE_FILE_PATH,
             app_configuration_path="blah.json",
@@ -88,6 +93,7 @@ class TestRunCommand(BaseTestCase):
         mock_configurations = (
             ServiceConfiguration(
                 name="test-app",
+                namespace="testing",
                 app_source_path=os.path.join(TESTS_DIR, "test_app_modules", "app_module_with_output_manifest"),
                 twine_path={"input_values_schema": {}, "output_manifest": {"datasets": {}}, "output_values_schema": {}},
             ),
@@ -115,6 +121,7 @@ class TestRunCommand(BaseTestCase):
         mock_configurations = (
             ServiceConfiguration(
                 name="test-app",
+                namespace="testing",
                 app_source_path=os.path.join(TESTS_DIR, "test_app_modules", "app_with_monitor_message"),
                 twine_path=TWINE_FILE_PATH,
                 app_configuration_path="blah.json",
@@ -155,9 +162,9 @@ class TestRunCommand(BaseTestCase):
 
 
 class TestStartCommand(BaseTestCase):
-    def test_start_command(self):
-        """Test that the start command works without error."""
-        python_fractal_service_path = os.path.join(
+    @classmethod
+    def setUpClass(cls):
+        cls.python_fractal_service_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
             "octue",
             "templates",
@@ -171,8 +178,9 @@ class TestStartCommand(BaseTestCase):
                         "services": [
                             {
                                 "name": "test-service",
-                                "app_source_path": python_fractal_service_path,
-                                "twine_path": os.path.join(python_fractal_service_path, "twine.json"),
+                                "namespace": "testing",
+                                "app_source_path": cls.python_fractal_service_path,
+                                "twine_path": os.path.join(cls.python_fractal_service_path, "twine.json"),
                                 "app_configuration_path": "app_configuration.json",
                             }
                         ]
@@ -197,11 +205,55 @@ class TestStartCommand(BaseTestCase):
                 ),
             }
 
-        with mock.patch("octue.configuration.open", unittest.mock.mock_open(mock=MockOpenForConfigurationFiles)):
+        cls.MockOpenForConfigurationFiles = MockOpenForConfigurationFiles
+
+    def test_start_command(self):
+        """Test that the start command works without error and uses the revision tag supplied in the
+        `OCTUE_SERVICE_REVISION_TAG` environment variable.
+        """
+        with MultiPatcher(
+            patches=[
+                mock.patch(
+                    "octue.configuration.open",
+                    unittest.mock.mock_open(mock=self.MockOpenForConfigurationFiles),
+                ),
+                mock.patch("octue.cli.Service", MockService),
+                patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "goodbye"}),
+            ]
+        ):
             with ServicePatcher():
-                with mock.patch("octue.cli.Service", MockService):
+                with self.assertLogs(level=logging.INFO) as logging_context:
                     result = CliRunner().invoke(octue_cli, ["start", "--timeout=0"])
 
+        self.assertEqual(logging_context.records[3].message, "Starting <MockService('testing/test-service:goodbye')>.")
+        self.assertIsNone(result.exception)
+        self.assertEqual(result.exit_code, 0)
+
+    def test_start_command_with_revision_tag_override_when_revision_tag_environment_variable_specified(self):
+        """Test that the `OCTUE_SERVICE_REVISION_TAG` is overridden by the `--revision-tag` CLI option and that a
+        warning is logged when this happens.
+        """
+        with MultiPatcher(
+            patches=[
+                mock.patch(
+                    "octue.configuration.open",
+                    unittest.mock.mock_open(mock=self.MockOpenForConfigurationFiles),
+                ),
+                mock.patch("octue.cli.Service", MockService),
+                patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "goodbye"}),
+            ]
+        ):
+            with ServicePatcher():
+                with self.assertLogs(level=logging.WARNING) as logging_context:
+                    result = CliRunner().invoke(octue_cli, ["start", "--revision-tag=hello", "--timeout=0"])
+
+        self.assertEqual(
+            logging_context.records[3].message,
+            "The `OCTUE_SERVICE_REVISION_TAG` environment variable 'goodbye' has been overridden by the "
+            "`--revision-tag` CLI option 'hello'.",
+        )
+
+        self.assertEqual(logging_context.records[4].message, "Starting <MockService('testing/test-service:hello')>.")
         self.assertIsNone(result.exception)
         self.assertEqual(result.exit_code, 0)
 
@@ -307,3 +359,36 @@ class TestDeployCommand(BaseTestCase):
 
         self.assertEqual(result.exit_code, 1)
         self.assertIsInstance(result.exception, ImportWarning)
+
+    def test_create_push_subscription(self):
+        """Test that a push subscription can be created using the `octue deploy create-push-subscription` command."""
+        with MultiPatcher(
+            patches=[patch("octue.cli.Topic", new=MockTopic), patch("octue.cli.Subscription", new=MockSubscription)]
+        ):
+            result = CliRunner().invoke(
+                octue_cli,
+                [
+                    "deploy",
+                    "create-push-subscription",
+                    "my-project",
+                    "octue",
+                    "example-service",
+                    "https://example.com/endpoint",
+                    "--revision-tag=3.5.0",
+                ],
+            )
+
+        with MultiPatcher(
+            patches=[
+                patch("tests.test_cli.Topic", new=MockTopic),
+                patch("tests.test_cli.Subscription", new=MockSubscription),
+            ]
+        ):
+            topic = Topic(name="octue.example-service.3-5-0", project_name="my-project")
+            self.assertTrue(topic.exists())
+
+            subscription = Subscription(name="octue.example-service.3-5-0", topic=topic, project_name="my-project")
+            self.assertTrue(subscription.exists())
+
+        self.assertIsNone(result.exception)
+        self.assertEqual(result.exit_code, 0)

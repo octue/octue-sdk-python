@@ -7,13 +7,14 @@ import os
 import sys
 
 import click
-import coolname
 import pkg_resources
 from google import auth
 
 from octue.cloud import storage
 from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
+from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import Service
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_sruid, get_service_sruid_parts
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.configuration import load_service_and_app_configuration
 from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
@@ -185,6 +186,14 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
     help="The path to an `octue.yaml` file defining the service to start.",
 )
 @click.option(
+    "--revision-tag",
+    type=str,
+    default=None,
+    help="A tag to use for this revision of the service (e.g. 1.3.7). This overrides the `OCTUE_SERVICE_REVISION_TAG` "
+    "environment variable if it's present. If this option isn't given and the environment variable isn't present, a "
+    "random 'cool name' tag is generated e.g 'curious-capybara'.",
+)
+@click.option(
     "--timeout",
     type=click.INT,
     default=None,
@@ -198,11 +207,27 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
     show_default=True,
     help="Don't delete the Google Pub/Sub topic and subscription for the service on exit.",
 )
-def start(service_config, timeout, no_rm):
+def start(service_config, revision_tag, timeout, no_rm):
     """Start an Octue service or digital twin locally as a child so it can be asked questions by other Octue services.
     The service's pub/sub topic and subscription are deleted on exit.
     """
+    service_revision_tag_override = revision_tag
     service_configuration, app_configuration = load_service_and_app_configuration(service_config)
+    service_namespace, service_name, service_revision_tag = get_service_sruid_parts(service_configuration)
+
+    if service_revision_tag_override and service_revision_tag:
+        logger.warning(
+            "The `OCTUE_SERVICE_REVISION_TAG` environment variable %r has been overridden by the `--revision-tag` CLI "
+            "option %r.",
+            service_revision_tag,
+            service_revision_tag_override,
+        )
+
+    service_sruid = create_service_sruid(
+        namespace=service_namespace,
+        name=service_name,
+        revision_tag=service_revision_tag_override or service_revision_tag,
+    )
 
     runner = Runner(
         app_src=service_configuration.app_source_path,
@@ -212,7 +237,7 @@ def start(service_config, timeout, no_rm):
         children=app_configuration.children,
         output_location=app_configuration.output_location,
         crash_diagnostics_cloud_path=service_configuration.crash_diagnostics_cloud_path,
-        service_id=service_configuration.service_id,
+        service_id=service_sruid,
     )
 
     run_function = functools.partial(
@@ -231,17 +256,20 @@ def start(service_config, timeout, no_rm):
         _, project_name = auth.default()
         backend = service_backends.get_backend()(project_name=project_name)
 
-    service_id = service_configuration.service_id
-    service = Service(service_id=service_id, backend=backend, run_function=run_function)
+    service = Service(service_id=service_sruid, backend=backend, run_function=run_function)
 
     try:
         service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=not no_rm)
 
     except ServiceAlreadyExists:
-        service_id = service_id + "-" + coolname.generate_slug(2)
+        # Generate and use a new revision tag if the service already exists.
+        service_sruid = create_service_sruid(namespace=service_namespace, name=service_name)
 
         while True:
-            user_confirmation = input(f"Service already exists. Create new service with ID {service_id!r}? [Y/n]\n")
+            user_confirmation = input(
+                "Service already exists. Create new service with service revision unique identifier (SRUID) "
+                f"{service_sruid!r}? [Y/n]\n"
+            )
 
             if user_confirmation.upper() == "N":
                 return
@@ -249,7 +277,7 @@ def start(service_config, timeout, no_rm):
             if user_confirmation.upper() in {"Y", ""}:
                 break
 
-        service = Service(service_id=service_id, backend=backend, run_function=run_function)
+        service = Service(service_id=service_sruid, backend=backend, run_function=run_function)
         service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=not no_rm)
 
 
@@ -262,7 +290,8 @@ def start(service_config, timeout, no_rm):
     "--local-path",
     type=click.Path(file_okay=False),
     default=None,
-    help="The path to a directory to store the directory of diagnostics data in. Defaults to the current working directory.",
+    help="The path to a directory to store the directory of diagnostics data in. Defaults to the current working "
+    "directory.",
 )
 def get_crash_diagnostics(cloud_path, local_path):
     """Download crash diagnostics for an analysis from the given directory in Google Cloud Storage. The cloud path
@@ -339,6 +368,43 @@ def dataflow(service_config, no_cache, update, dataflow_job_only, image_uri):
         return
 
     deployer.deploy(no_cache=no_cache, update=update)
+
+
+@deploy.command()
+@click.argument("project_name")
+@click.argument("service_namespace")
+@click.argument("service_name")
+@click.argument("push_endpoint")
+@click.option(
+    "--revision-tag",
+    is_flag=False,
+    default=None,
+    show_default=True,
+    help="The service revision tag (e.g. 1.0.7). If this option isn't given, a random 'cool name' tag is generated e.g"
+    ". 'curious-capybara'.",
+)
+def create_push_subscription(project_name, service_namespace, service_name, push_endpoint, revision_tag):
+    """Create a push subscription on Google Pub/Sub from the Octue service to the push endpoint. If a corresponding
+    topic doesn't exist, it will be created. The subscription name is printed on completion.
+
+    PROJECT_NAME is the name of the Google Cloud project in which the subscription will be created
+
+    SERVICE_NAMESPACE is the namespace the service belongs to in kebab case
+
+    SERVICE_NAME is the name of the service in kebab case, unique within its namespace
+
+    PUSH_ENDPOINT is the HTTP/HTTPS endpoint of the service to push to. It should be fully formed and include the
+    'https://' prefix
+    """
+    service_sruid = create_service_sruid(namespace=service_namespace, name=service_name, revision_tag=revision_tag)
+    pub_sub_sruid = convert_service_id_to_pub_sub_form(service_sruid)
+
+    topic = Topic(name=pub_sub_sruid, project_name=project_name)
+    topic.create(allow_existing=True)
+
+    subscription = Subscription(name=pub_sub_sruid, topic=topic, project_name=project_name, push_endpoint=push_endpoint)
+    subscription.create()
+    click.echo(service_sruid)
 
 
 def _add_monitor_message_to_file(path, monitor_message):
