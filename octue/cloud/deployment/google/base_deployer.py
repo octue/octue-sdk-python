@@ -52,14 +52,14 @@ class BaseDeployer:
             self.service_configuration
         )
 
-        self.service_id = create_service_sruid(
+        self.service_sruid = create_service_sruid(
             namespace=self.service_namespace,
             name=self.service_name,
             revision_tag=self.service_revision_tag,
         )
 
-        self.pub_sub_service_id = convert_service_id_to_pub_sub_form(self.service_id)
-        self.cloud_build_service_id = self.pub_sub_service_id.replace(".", "-")
+        self.pub_sub_service_sruid = convert_service_id_to_pub_sub_form(self.service_sruid)
+        self.cloud_build_service_sruid = self.pub_sub_service_sruid.replace(".", "-")
 
         self.required_environment_variables = {
             "OCTUE_SERVICE_NAMESPACE": self.service_namespace,
@@ -69,10 +69,12 @@ class BaseDeployer:
 
         self.image_uri_template = image_uri_template or (
             f"{DOCKER_REGISTRY_URL}/{self.service_configuration.project_name}/"
-            f"{self.service_configuration.repository_name}/{self.pub_sub_service_id}:$SHORT_SHA"
+            f"{self.service_configuration.repository_name}/{self.pub_sub_service_sruid}:$SHORT_SHA"
         )
 
-        self.success_message = f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_id!r}."
+        self.success_message = (
+            f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_sruid!r}."
+        )
 
     @abstractmethod
     def deploy(self, no_cache=False, update=False):
@@ -178,7 +180,7 @@ class BaseDeployer:
                     "triggers",
                     "create",
                     "github",
-                    f"--name={self.cloud_build_service_id}",
+                    f"--name={self.cloud_build_service_sruid}",
                     f"--repo-name={self.service_configuration.repository_name}",
                     f"--repo-owner={self.service_configuration.repository_owner}",
                     f"--description={self.build_trigger_description}",
@@ -198,7 +200,7 @@ class BaseDeployer:
                         "builds",
                         "triggers",
                         "delete",
-                        f"{self.cloud_build_service_id}",
+                        f"{self.cloud_build_service_sruid}",
                     ]
 
                     self._run_command(delete_trigger_command)
@@ -225,7 +227,7 @@ class BaseDeployer:
                 "builds",
                 "triggers",
                 "run",
-                self.cloud_build_service_id,
+                self.cloud_build_service_sruid,
                 f"--branch={self.service_configuration.branch_pattern.strip('^$')}",
             ]
 

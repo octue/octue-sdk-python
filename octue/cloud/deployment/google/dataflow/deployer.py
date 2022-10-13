@@ -39,7 +39,7 @@ class DataflowDeployer(BaseDeployer):
 
     def __init__(self, octue_configuration_path, image_uri_template=None):
         super().__init__(octue_configuration_path, image_uri_template)
-        self.build_trigger_description = f"Build the {self.service_id!r} service and deploy it to Dataflow."
+        self.build_trigger_description = f"Build the {self.service_sruid!r} service and deploy it to Dataflow."
 
         if not self.service_configuration.temporary_files_location:
             self.service_configuration.temporary_files_location = DEFAULT_DATAFLOW_TEMPORARY_FILES_LOCATION
@@ -59,7 +59,7 @@ class DataflowDeployer(BaseDeployer):
         self._create_build_trigger(update=update)
         self._run_build_trigger()
         print(self.success_message)
-        return self.service_id
+        return self.service_sruid
 
     def create_streaming_dataflow_job(self, image_uri, update=False):
         """Deploy the newly-built service as a streaming Dataflow job.
@@ -73,9 +73,9 @@ class DataflowDeployer(BaseDeployer):
                 progress_message.finish_message = "update triggered."
 
             kwargs = {
-                "job_name": self.cloud_build_service_id,
+                "job_name": self.cloud_build_service_sruid,
                 "project_name": self.service_configuration.project_name,
-                "service_id": self.pub_sub_service_id,
+                "service_id": self.pub_sub_service_sruid,
                 "region": self.service_configuration.region,
                 "setup_file_path": self.service_configuration.setup_file_path,
                 "image_uri": image_uri,

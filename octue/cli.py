@@ -222,7 +222,7 @@ def start(service_config, revision_tag, timeout, no_rm):
             service_revision_tag_override,
         )
 
-    service_id = create_service_sruid(
+    service_sruid = create_service_sruid(
         namespace=service_namespace,
         name=service_name,
         revision_tag=service_revision_tag_override or service_revision_tag,
@@ -236,7 +236,7 @@ def start(service_config, revision_tag, timeout, no_rm):
         children=app_configuration.children,
         output_location=app_configuration.output_location,
         crash_diagnostics_cloud_path=service_configuration.crash_diagnostics_cloud_path,
-        service_id=service_id,
+        service_id=service_sruid,
     )
 
     run_function = functools.partial(
@@ -255,17 +255,20 @@ def start(service_config, revision_tag, timeout, no_rm):
         _, project_name = auth.default()
         backend = service_backends.get_backend()(project_name=project_name)
 
-    service = Service(service_id=service_id, backend=backend, run_function=run_function)
+    service = Service(service_id=service_sruid, backend=backend, run_function=run_function)
 
     try:
         service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=not no_rm)
 
     except ServiceAlreadyExists:
         # Generate and use a new revision tag if the service already exists.
-        service_id = create_service_sruid(namespace=service_namespace, name=service_name)
+        service_sruid = create_service_sruid(namespace=service_namespace, name=service_name)
 
         while True:
-            user_confirmation = input(f"Service already exists. Create new service with ID {service_id!r}? [Y/n]\n")
+            user_confirmation = input(
+                "Service already exists. Create new service with service revision unique identifier (SRUID) "
+                f"{service_sruid!r}? [Y/n]\n"
+            )
 
             if user_confirmation.upper() == "N":
                 return
@@ -273,7 +276,7 @@ def start(service_config, revision_tag, timeout, no_rm):
             if user_confirmation.upper() in {"Y", ""}:
                 break
 
-        service = Service(service_id=service_id, backend=backend, run_function=run_function)
+        service = Service(service_id=service_sruid, backend=backend, run_function=run_function)
         service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=not no_rm)
 
 
@@ -286,7 +289,8 @@ def start(service_config, revision_tag, timeout, no_rm):
     "--local-path",
     type=click.Path(file_okay=False),
     default=None,
-    help="The path to a directory to store the directory of diagnostics data in. Defaults to the current working directory.",
+    help="The path to a directory to store the directory of diagnostics data in. Defaults to the current working "
+    "directory.",
 )
 def get_crash_diagnostics(cloud_path, local_path):
     """Download crash diagnostics for an analysis from the given directory in Google Cloud Storage. The cloud path

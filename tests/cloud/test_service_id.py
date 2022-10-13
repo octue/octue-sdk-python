@@ -101,7 +101,7 @@ class TestValidateServiceSRUID(unittest.TestCase):
         ):
             with self.subTest(service_id=service_id):
                 with self.assertRaises(InvalidServiceID):
-                    validate_service_sruid(service_id=service_id)
+                    validate_service_sruid(service_sruid=service_id)
 
     def test_no_error_raised_if_sruid_valid(self):
         """Test that no error is raised if a valid SRUID is given."""
@@ -115,7 +115,7 @@ class TestValidateServiceSRUID(unittest.TestCase):
             "my-org/my-service:some_TAG",
         ):
             with self.subTest(service_id=service_id):
-                validate_service_sruid(service_id=service_id)
+                validate_service_sruid(service_sruid=service_id)
 
     def test_error_raised_if_not_all_sruid_components_provided(self):
         """Test that an error is raised if, when not providing the `service_id` argument, not all of the `namespace,

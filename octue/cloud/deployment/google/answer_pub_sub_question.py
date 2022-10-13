@@ -23,9 +23,14 @@ def answer_question(question, project_name):
     """
     service_configuration, app_configuration = load_service_and_app_configuration(DEFAULT_SERVICE_CONFIGURATION_PATH)
     service_namespace, service_name, service_revision_tag = get_service_sruid_parts(service_configuration)
-    service_id = create_service_sruid(namespace=service_namespace, name=service_name, revision_tag=service_revision_tag)
 
-    service = Service(service_id=service_id, backend=GCPPubSubBackend(project_name=project_name))
+    service_sruid = create_service_sruid(
+        namespace=service_namespace,
+        name=service_name,
+        revision_tag=service_revision_tag,
+    )
+
+    service = Service(service_id=service_sruid, backend=GCPPubSubBackend(project_name=project_name))
 
     question_uuid = get_nested_attribute(question, "attributes.question_uuid")
     answer_topic = service.instantiate_answer_topic(question_uuid)
@@ -40,7 +45,7 @@ def answer_question(question, project_name):
             output_location=app_configuration.output_location,
             crash_diagnostics_cloud_path=service_configuration.crash_diagnostics_cloud_path,
             project_name=project_name,
-            service_id=service_id,
+            service_id=service_sruid,
         )
 
         service.run_function = runner.run

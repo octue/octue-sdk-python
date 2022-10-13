@@ -81,21 +81,21 @@ def create_service_sruid(namespace, name, revision_tag=None):
     return f"{namespace}/{name}:{revision_tag}"
 
 
-def validate_service_sruid(service_id=None, namespace=None, name=None, revision_tag=None):
+def validate_service_sruid(service_sruid=None, namespace=None, name=None, revision_tag=None):
     """Raise an error if the service revision unique identifier (SRUID) or its components don't meet the required
     patterns. Either the `service_id` or all of the `namespace`, `name`, and `revision_tag` arguments must be given.
 
-    :param str|None service_id: the service SRUID to validate
+    :param str|None service_sruid: the service SRUID to validate
     :param str|None namespace: the namespace of a service to validate
     :param str|None name: the name of a service to validate
     :param str|None revision_tag: the revision tag of a service to validate
     :raise octue.exceptions.InvalidServiceID: if the service SRUID or any of its components are invalid
     :return None:
     """
-    if service_id:
-        if not COMPILED_SERVICE_SRUID_PATTERN.fullmatch(service_id):
+    if service_sruid:
+        if not COMPILED_SERVICE_SRUID_PATTERN.fullmatch(service_sruid):
             raise octue.exceptions.InvalidServiceID(
-                f"{service_id!r} is not a valid service revision unique identifier (SRUID). It must be in the format "
+                f"{service_sruid!r} is not a valid service revision unique identifier (SRUID). It must be in the format "
                 f"<namespace>/<name>:<revision_tag>. The namespace and name must be lower kebab case (i.e. only "
                 f"contain the letters [a-z], numbers [0-9], and hyphens [-]) and not begin or end with a hyphen. The "
                 f"revision tag can contain lowercase and uppercase letters, numbers, underscores, periods, and "
@@ -103,7 +103,7 @@ def validate_service_sruid(service_id=None, namespace=None, name=None, revision_
                 f"requirements are the same as the Docker tag format."
             )
 
-        revision_tag = service_id.split(":")[-1]
+        revision_tag = service_sruid.split(":")[-1]
 
         if len(revision_tag) > 128:
             raise octue.exceptions.InvalidServiceID(

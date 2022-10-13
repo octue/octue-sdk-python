@@ -33,7 +33,7 @@ class CloudRunDeployer(BaseDeployer):
 
     def __init__(self, octue_configuration_path, image_uri_template=None):
         super().__init__(octue_configuration_path, image_uri_template)
-        self.build_trigger_description = f"Build the {self.service_id!r} service and deploy it to Cloud Run."
+        self.build_trigger_description = f"Build the {self.service_sruid!r} service and deploy it to Cloud Run."
 
     def deploy(self, no_cache=False, update=False):
         """Create a Google Cloud Build configuration from the `octue.yaml` file, create a build trigger, and run the
@@ -50,7 +50,7 @@ class CloudRunDeployer(BaseDeployer):
         self._create_eventarc_run_trigger(update=update)
 
         print(self.success_message)
-        return self.service_id
+        return self.service_sruid
 
     def _generate_cloud_build_configuration(self, no_cache=False):
         """Generate a Google Cloud Build configuration equivalent to a `cloudbuild.yaml` file in memory and assign it
@@ -131,7 +131,7 @@ class CloudRunDeployer(BaseDeployer):
                             "run",
                             "services",
                             "update",
-                            self.cloud_build_service_id,
+                            self.cloud_build_service_sruid,
                             "--platform=managed",
                             f"--image={self.image_uri_template}",
                             f"--region={self.service_configuration.region}",
@@ -163,7 +163,7 @@ class CloudRunDeployer(BaseDeployer):
                 "run",
                 "services",
                 "add-iam-policy-binding",
-                self.cloud_build_service_id,
+                self.cloud_build_service_sruid,
                 f"--region={self.service_configuration.region}",
                 "--member=allUsers",
                 "--role=roles/run.invoker",
@@ -184,7 +184,7 @@ class CloudRunDeployer(BaseDeployer):
             5,
             self.TOTAL_NUMBER_OF_STAGES,
         ) as progress_message:
-            topic = Topic(name=self.pub_sub_service_id, project_name=self.service_configuration.project_name)
+            topic = Topic(name=self.pub_sub_service_sruid, project_name=self.service_configuration.project_name)
 
             topic.create(allow_existing=True)
 
@@ -195,9 +195,9 @@ class CloudRunDeployer(BaseDeployer):
                 "eventarc",
                 "triggers",
                 "create",
-                f"{self.cloud_build_service_id}-trigger",
+                f"{self.cloud_build_service_sruid}-trigger",
                 "--matching-criteria=type=google.cloud.pubsub.topic.v1.messagePublished",
-                f"--destination-run-service={self.cloud_build_service_id}",
+                f"--destination-run-service={self.cloud_build_service_sruid}",
                 f"--location={self.service_configuration.region}",
                 f"--transport-topic={topic.name}",
             ]
@@ -208,7 +208,7 @@ class CloudRunDeployer(BaseDeployer):
                 eventarc_subscription_path = None
 
                 for subscription_path in topic.get_subscriptions():
-                    if self.pub_sub_service_id in subscription_path:
+                    if self.pub_sub_service_sruid in subscription_path:
                         eventarc_subscription_path = subscription_path
                         break
 
