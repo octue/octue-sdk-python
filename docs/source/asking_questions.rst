@@ -47,7 +47,7 @@ input values and/or an input manifest.
     from octue.resources import Child
 
     child = Child(
-        id="my-organisation/my-service",
+        id="my-organisation/my-service:latest",
         backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
     )
 
@@ -122,7 +122,7 @@ if your app configuration file is:
       "children": [
         {
           "key": "wind_speed",
-          "id": "template-child-services/wind-speed-service",
+          "id": "template-child-services/wind-speed-service:latest",
           "backend": {
             "name": "GCPPubSubBackend",
             "project_name": "my-project"
@@ -130,7 +130,7 @@ if your app configuration file is:
         },
         {
           "key": "elevation",
-          "id": "template-child-services/elevation-service",
+          "id": "template-child-services/elevation-service:latest",
           "backend": {
             "name": "GCPPubSubBackend",
             "project_name": "my-project"
@@ -183,7 +183,7 @@ For example, if the child requires these children in its app configuration:
     [
         {
             "key": "wind_speed",
-            "id": "template-child-services/wind-speed-service",
+            "id": "template-child-services/wind-speed-service:latest",
             "backend": {
                 "name": "GCPPubSubBackend",
                 "project_name": "octue-amy"
@@ -191,7 +191,7 @@ For example, if the child requires these children in its app configuration:
         },
         {
             "key": "elevation",
-            "id": "template-child-services/elevation-service",
+            "id": "template-child-services/elevation-service:latest",
             "backend": {
                 "name": "GCPPubSubBackend",
                 "project_name": "octue-amy"
@@ -208,7 +208,7 @@ then you can override them like this:
         children=[
             {
                 "key": "wind_speed",
-                "id": "my/own-service",
+                "id": "my/own-service:latest",
                 "backend": {
                     "name": "GCPPubSubBackend",
                     "project_name": "octue-amy"
@@ -216,7 +216,7 @@ then you can override them like this:
             },
             {
                 "key": "elevation",
-                "id": "organisation/another-service",
+                "id": "organisation/another-service:latest",
                 "backend": {
                     "name": "GCPPubSubBackend",
                     "project_name": "octue-amy"
