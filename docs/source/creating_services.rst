@@ -115,7 +115,7 @@ octue.yaml
 
             services:
               - namespace: my-organisation
-              - name: my-app
+                name: my-app
 
         It may also need the following key-value pairs:
 

@@ -80,7 +80,6 @@ Instantiating a child emulator in python
     ]
 
     child_emulator = ChildEmulator(
-        id="emulated-child",
         backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
         messages=messages
     )
@@ -161,7 +160,7 @@ To emulate your children in tests, patch the :mod:`Child <octue.resources.child.
     children = [
         {
             "key": "my_child",
-            "id": "octue/my-child-service",
+            "id": "octue/my-child-service:latest",
             "backend": {
                 "name": "GCPPubSubBackend",
                 "project_name": "my-project"
@@ -173,13 +172,13 @@ To emulate your children in tests, patch the :mod:`Child <octue.resources.child.
         app_src=app_directory_path,
         twine=os.path.join(app_directory_path, "twine.json"),
         children=children,
-        service_id="you/your-service",
+        service_id="you/your-service:latest",
     )
 
     emulated_children = [
         ChildEmulator(
-            id="octue/my-child-service",
-            internal_service_name="you/your-service",
+            id="octue/my-child-service:latest",
+            internal_service_name="you/your-service:latest",
             messages=[
                 {
                     "type": "result",
@@ -222,7 +221,7 @@ You can create test fixtures manually or by recording messages from a real child
 
 
     child = Child(
-        id="octue/my-child",
+        id="octue/my-child:latest",
         backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
     )
 

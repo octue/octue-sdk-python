@@ -45,8 +45,7 @@ Get an Octue service to analyse data for you as part of a larger analysis.
     from octue.resources import Child
 
     child = Child(
-        name="wind_speed",
-        id="4acbf2aa-54ce-4bae-b473-a062e21b3d57",
+        id="octue/wind-speed:latest",
         backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
     )
 
