@@ -130,6 +130,8 @@ class TestManifest(BaseTestCase):
         """Test that a manifest can be uploaded to the cloud as a serialised JSON file of the Manifest instance."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             dataset = create_dataset_with_two_files(temporary_directory)
+            dataset.tags = {"my": "tag"}
+            dataset.files.filter(name="file_0.txt").one().tags = {"another": "tag"}
             dataset.upload(cloud_path=storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-small-dataset"))
 
             manifest = Manifest(datasets={"my-dataset": dataset})
