@@ -459,7 +459,7 @@ class Service:
         self._send_message(
             {
                 "type": "monitor_message",
-                "data": json.dumps(data),
+                "data": json.dumps(data, cls=OctueJSONEncoder),
                 "message_number": topic.messages_published,
             },
             topic=topic,

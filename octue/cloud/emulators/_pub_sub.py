@@ -7,6 +7,7 @@ import pkg_resources
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import Service
 from octue.resources import Manifest
+from octue.utils.encoders import OctueJSONEncoder
 
 
 logger = logging.getLogger(__name__)
@@ -306,7 +307,8 @@ class MockService(Service):
             self.children[service_id].answer(
                 MockMessage(
                     data=json.dumps(
-                        {"input_values": input_values, "input_manifest": input_manifest, "children": children}
+                        {"input_values": input_values, "input_manifest": input_manifest, "children": children},
+                        cls=OctueJSONEncoder,
                     ).encode(),
                     question_uuid=question_uuid,
                     forward_logs=subscribe_to_logs,

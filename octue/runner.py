@@ -328,7 +328,7 @@ class Runner:
 
         # Upload the crash diagnostics events record.
         storage_client.upload_from_string(
-            string=json.dumps(sent_messages or []),
+            string=json.dumps(sent_messages or [], cls=OctueJSONEncoder),
             cloud_path=storage.path.join(question_diagnostics_path, "messages.json"),
         )
 
