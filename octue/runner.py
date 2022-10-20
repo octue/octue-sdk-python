@@ -206,11 +206,13 @@ class Runner:
                 raise ModuleNotFoundError(f"{e.msg} in {os.path.abspath(self.app_source)!r}.")
 
             except Exception as analysis_error:
+                logger.error(str(analysis_error))
+
                 if allow_save_diagnostics_data_on_crash:
                     if not self.crash_diagnostics_cloud_path:
                         logger.warning(
-                            "Cannot save crash diagnostics as the child doesn't have a crash diagnostics cloud path "
-                            "set."
+                            "Cannot save crash diagnostics as the child doesn't have the "
+                            "`crash_diagnostics_cloud_path` field set in its service configuration (`octue.yaml` file)."
                         )
 
                     else:
@@ -223,7 +225,6 @@ class Runner:
                             logger.error("Failed to save crash diagnostics.")
                             raise crash_diagnostics_save_error
 
-                logger.error(str(analysis_error))
                 raise analysis_error
 
             if not analysis.finalised:
