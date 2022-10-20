@@ -8,7 +8,6 @@ from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException
 from octue.mixins import Hashable, Identifiable, Metadata, Serialisable
 from octue.resources.dataset import Dataset
-from octue.utils.encoders import OctueJSONEncoder
 
 
 logger = logging.getLogger(__name__)
@@ -74,10 +73,7 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
         :param str cloud_path: full path to cloud storage location to store manifest at (e.g. `gs://bucket_name/path/to/manifest.json`)
         :return None:
         """
-        GoogleCloudStorageClient().upload_from_string(
-            string=json.dumps(self.to_primitive(), cls=OctueJSONEncoder),
-            cloud_path=cloud_path,
-        )
+        GoogleCloudStorageClient().upload_from_string(string=self.serialise(), cloud_path=cloud_path)
 
     def get_dataset(self, key):
         """Get a dataset by its key (as defined in the twine).
