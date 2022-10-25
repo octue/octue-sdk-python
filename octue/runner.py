@@ -253,7 +253,9 @@ class Runner:
 
         for credential in missing_credentials:
             secret_path = secrets_client.secret_version_path(
-                project=project_name, secret=credential["name"], secret_version="latest"
+                project=project_name,
+                secret=credential["name"],
+                secret_version="latest",
             )
 
             try:
