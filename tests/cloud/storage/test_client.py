@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 import os
 import tempfile
 from unittest.mock import patch
@@ -163,6 +164,24 @@ class TestGoogleCloudStorageClient(BaseTestCase):
             self.assertEqual(directory_contents[1][1], ["sub-sub-directory"])
             self.assertEqual(directory_contents[1][2], ["sub_file.txt"])
             self.assertEqual(directory_contents[2][2], ["sub_sub_file.txt"])
+
+    def test_download_all_files_logs_warning_if_directory_is_empty(self):
+        """Test that trying to download all files from an empty or non-existent cloud directory results in a warning."""
+        cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "a_non_existent_directory")
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with self.assertLogs(level=logging.WARNING) as logging_context:
+                GoogleCloudStorageClient().download_all_files(
+                    local_path=temporary_directory,
+                    cloud_path=cloud_path,
+                    recursive=True,
+                )
+
+        self.assertEqual(
+            logging_context.records[0].message,
+            f"Attempted to download files from {cloud_path!r} but it appears empty. Please check this is the correct "
+            f"path.",
+        )
 
     def test_copy(self):
         """Test that a file can be copied from one cloud location to another."""
