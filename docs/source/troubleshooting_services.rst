@@ -2,10 +2,9 @@
 Troubleshooting services
 ========================
 
-Allowing crash diagnostics
-==========================
-A parent can give a child permission to save the following data to the cloud in the event the child fails while
-processing a question:
+Crash diagnostics
+=================
+Children save the following data to the cloud if they crash while processing a question:
 
 - Input values
 - Input manifest and datasets
@@ -13,23 +12,10 @@ processing a question:
 - Child configuration manifest and datasets
 - Messages sent from the child to the parent
 
-The parent can give permission on a question-by-question basis by setting ``allow_save_diagnostics_data_on_crash=True``
-in :mod:`Child.ask <octue.resources.child.Child.ask>`. For example:
+.. important::
 
-.. code-block:: python
-
-    child = Child(
-        id="my-organisation/my-service:latest",
-        backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
-    )
-
-    answer = child.ask(
-        input_values={"height": 32, "width": 3},
-        allow_save_diagnostics_data_on_crash=True,
-    )
-
-For crash diagnostics to be saved, the child must have the ``crash_diagnostics_cloud_path`` field in its service
-configuration (:ref:`octue.yaml <octue_yaml>` file) set to a Google Cloud Storage path.
+    For this feature to be enabled, the child must have the ``crash_diagnostics_cloud_path`` field in its service
+    configuration (:ref:`octue.yaml <octue_yaml>` file) set to a Google Cloud Storage path.
 
 Accessing crash diagnostics
 ===========================
@@ -60,3 +46,21 @@ More information on the command:
                               diagnostics data in. Defaults to the current working
                               directory.
       -h, --help              Show this message and exit.
+
+
+Disabling crash diagnostics
+===========================
+The parent can disable crash diagnostics on a question-by-question basis by setting
+``allow_save_diagnostics_data_on_crash`` to ``False`` in :mod:`Child.ask <octue.resources.child.Child.ask>`. For example:
+
+.. code-block:: python
+
+    child = Child(
+        id="my-organisation/my-service:latest",
+        backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
+    )
+
+    answer = child.ask(
+        input_values={"height": 32, "width": 3},
+        allow_save_diagnostics_data_on_crash=False,
+    )
