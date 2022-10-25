@@ -1,3 +1,4 @@
+import copy
 import importlib
 import json
 import logging
@@ -16,7 +17,7 @@ from octue import exceptions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.log_handlers import apply_log_handler, create_octue_formatter, get_log_record_attributes_for_environment
-from octue.resources import Child
+from octue.resources import Child, Dataset
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.utils import gen_uuid
 from octue.utils.encoders import OctueJSONEncoder
@@ -66,6 +67,7 @@ class Runner:
 
         self.output_location = output_location
 
+        self.crash_diagnostics = {}
         self.crash_diagnostics_cloud_path = crash_diagnostics_cloud_path
 
         # Ensure the twine is present and instantiate it.
@@ -75,6 +77,9 @@ class Runner:
             self.twine = Twine(source=twine)
 
         logger.debug("Parsed twine with strands %r", self.twine.available_strands)
+
+        self.crash_diagnostics["configuration_values"] = copy.deepcopy(configuration_values)
+        self.crash_diagnostics["configuration_manifest"] = copy.deepcopy(configuration_manifest)
 
         # Validate and initialise configuration data.
         self.configuration = self.twine.validate(
@@ -112,6 +117,9 @@ class Runner:
         :param list|None sent_messages: the list of messages sent by the service running this runner (this should update in real time) to save if crash diagnostics are enabled
         :return octue.resources.analysis.Analysis:
         """
+        self.crash_diagnostics["input_values"] = copy.deepcopy(input_values)
+        self.crash_diagnostics["input_manifest"] = copy.deepcopy(input_manifest)
+
         if hasattr(self.twine, "credentials"):
             self._populate_environment_with_google_cloud_secrets()
             credentials = self.twine.credentials
@@ -312,24 +320,36 @@ class Runner:
             # Upload the configuration and input values.
             values_type = f"{data_type}_values"
 
-            if getattr(analysis, values_type):
+            if values_type in self.crash_diagnostics:
                 storage_client.upload_from_string(
-                    json.dumps(getattr(analysis, values_type), cls=OctueJSONEncoder),
+                    json.dumps(self.crash_diagnostics[values_type], cls=OctueJSONEncoder),
                     cloud_path=storage.path.join(question_diagnostics_path, f"{values_type}.json"),
                 )
 
             # Upload the configuration and input manifests.
             manifest_type = f"{data_type}_manifest"
 
-            if getattr(analysis, manifest_type):
-                manifest = getattr(analysis, manifest_type)
+            if manifest_type in self.crash_diagnostics:
+                manifest = self.crash_diagnostics[manifest_type]
 
-                for name, dataset in manifest.datasets.items():
-                    dataset.upload(storage.path.join(question_diagnostics_path, f"{manifest_type}_datasets", name))
+                # Upload each dataset and update its path in the manifest.
+                for dataset_name, dataset_path in manifest["datasets"].items():
+                    new_dataset_path = storage.path.join(
+                        question_diagnostics_path,
+                        f"{manifest_type}_datasets",
+                        dataset_name,
+                    )
 
-                manifest.to_cloud(storage.path.join(question_diagnostics_path, f"{manifest_type}.json"))
+                    Dataset(dataset_path).upload(new_dataset_path)
+                    manifest["datasets"][dataset_name] = new_dataset_path
 
-        # Upload the crash diagnostics events record.
+                # Upload manifest.
+                storage_client.upload_from_string(
+                    json.dumps(self.crash_diagnostics[manifest_type], cls=OctueJSONEncoder),
+                    cloud_path=storage.path.join(question_diagnostics_path, f"{manifest_type}.json"),
+                )
+
+        # Upload the messages sent to the parent before the crash.
         storage_client.upload_from_string(
             string=json.dumps(sent_messages or [], cls=OctueJSONEncoder),
             cloud_path=storage.path.join(question_diagnostics_path, "messages.json"),
