@@ -343,10 +343,32 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
                 },
             )
 
-            self.assertEqual(directory_contents[2][1], ["met_mast_data"])
+            self.assertEqual(directory_contents[2][1], ["configuration_dataset"])
             self.assertEqual(set(directory_contents[3][2]), {"my_file.txt", ".octue"})
-            self.assertEqual(directory_contents[4][1], ["met_mast_data"])
+            self.assertEqual(directory_contents[4][1], ["input_dataset"])
             self.assertEqual(set(directory_contents[5][2]), {"my_file.txt", ".octue"})
+
+            # Check that the manifests have been updated to use the local paths of the datasets.
+            with open(os.path.join(temporary_directory, analysis_id, "configuration_manifest.json")) as f:
+                configuration_manifest = json.load(f)
+
+            self.assertEqual(
+                configuration_manifest["datasets"]["configuration_dataset"],
+                os.path.join(
+                    temporary_directory,
+                    analysis_id,
+                    "configuration_manifest_datasets",
+                    "configuration_dataset",
+                ),
+            )
+
+            with open(os.path.join(temporary_directory, analysis_id, "input_manifest.json")) as f:
+                input_manifest = json.load(f)
+
+            self.assertEqual(
+                input_manifest["datasets"]["input_dataset"],
+                os.path.join(temporary_directory, analysis_id, "input_manifest_datasets", "input_dataset"),
+            )
 
     def _run_app_that_crashes(self, crash_diagnostics_cloud_path, analysis_id):
         """Run an app that crashes and saves crash diagnostics to a directory named after the analysis ID within the
@@ -363,12 +385,14 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
         manifests = {}
 
         for data_type in ("configuration", "input"):
-            dataset_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_datasets", f"{data_type}_dataset")
+            dataset_name = f"{data_type}_dataset"
+
+            dataset_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_datasets", dataset_name)
 
             with Datafile(storage.path.join(dataset_path, "my_file.txt"), mode="w") as (datafile, f):
                 f.write(f"{data_type} manifest data")
 
-            manifests[data_type] = {"id": str(uuid.uuid4()), "datasets": {"met_mast_data": dataset_path}}
+            manifests[data_type] = {"id": str(uuid.uuid4()), "datasets": {dataset_name: dataset_path}}
 
         runner = Runner(
             app_src=app,

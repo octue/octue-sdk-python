@@ -20,7 +20,7 @@ from octue.configuration import load_service_and_app_configuration
 from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
 from octue.exceptions import ServiceAlreadyExists
 from octue.log_handlers import apply_log_handler, get_remote_handler
-from octue.resources import service_backends
+from octue.resources import Manifest, service_backends
 from octue.runner import Runner
 from octue.utils.encoders import OctueJSONEncoder
 from twined import Twine
@@ -313,10 +313,10 @@ def get_crash_diagnostics(cloud_path, local_path, download_datasets):
     else:
         filter = lambda blob: any(
             (
-                blob.name.endswith("input_values.json"),
-                blob.name.endswith("input_manifest.json"),
                 blob.name.endswith("configuration_values.json"),
                 blob.name.endswith("configuration_manifest.json"),
+                blob.name.endswith("input_values.json"),
+                blob.name.endswith("input_manifest.json"),
                 blob.name.endswith("messages.json"),
             )
         )
@@ -327,6 +327,22 @@ def get_crash_diagnostics(cloud_path, local_path, download_datasets):
         filter=filter,
         recursive=True,
     )
+
+    # Update the manifests with the local paths of the datasets.
+    if download_datasets:
+        for manifest_type in ("configuration_manifest", "input_manifest"):
+            manifest_path = os.path.join(local_path, manifest_type + ".json")
+
+            if not os.path.exists(manifest_path):
+                continue
+
+            manifest = Manifest.from_file(manifest_path)
+
+            manifest.update_dataset_paths(
+                path_generator=lambda dataset: os.path.join(local_path, f"{manifest_type}_datasets", dataset.name)
+            )
+
+            manifest.to_file(manifest_path)
 
     logger.info("Downloaded crash diagnostics from %r to %r.", cloud_path, local_path)
 
