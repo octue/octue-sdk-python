@@ -293,7 +293,13 @@ def start(service_config, revision_tag, timeout, no_rm):
     help="The path to a directory to store the directory of diagnostics data in. Defaults to the current working "
     "directory.",
 )
-def get_crash_diagnostics(cloud_path, local_path):
+@click.option(
+    "--download-datasets",
+    is_flag=True,
+    help="If provided, download any datasets from the crash diagnostics and update their paths in their manifests to "
+    "the new local paths.",
+)
+def get_crash_diagnostics(cloud_path, local_path, download_datasets):
     """Download crash diagnostics for an analysis from the given directory in Google Cloud Storage. The cloud path
     should end in the analysis ID.
 
@@ -302,9 +308,23 @@ def get_crash_diagnostics(cloud_path, local_path):
     analysis_id = storage.path.split(cloud_path)[-1]
     local_path = os.path.join((local_path or "."), analysis_id)
 
+    if download_datasets:
+        filter = None
+    else:
+        filter = lambda blob: any(
+            (
+                blob.name.endswith("input_values.json"),
+                blob.name.endswith("input_manifest.json"),
+                blob.name.endswith("configuration_values.json"),
+                blob.name.endswith("configuration_manifest.json"),
+                blob.name.endswith("messages.json"),
+            )
+        )
+
     GoogleCloudStorageClient().download_all_files(
         local_path=local_path,
         cloud_path=cloud_path,
+        filter=filter,
         recursive=True,
     )
 

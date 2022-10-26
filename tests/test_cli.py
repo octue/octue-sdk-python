@@ -259,9 +259,103 @@ class TestStartCommand(BaseTestCase):
 
 
 class TestGetCrashDiagnosticsCommand(BaseTestCase):
+    CRASH_DIAGNOSTICS_CLOUD_PATH = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_diagnostics")
+
     def test_get_crash_diagnostics(self):
-        """Test the get crash diagnostics CLI command."""
-        crash_diagnostics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_diagnostics")
+        """Test that only the values files, manifests, and messages file should be downloaded when using the
+        `get-crash-diagnostics` CLI command.
+        """
+        analysis_id = "dc1f09ca-7037-484f-a394-8bd04866f924"
+        self._run_app_that_crashes(self.CRASH_DIAGNOSTICS_CLOUD_PATH, analysis_id)
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            result = CliRunner().invoke(
+                octue_cli,
+                [
+                    "get-crash-diagnostics",
+                    storage.path.join(self.CRASH_DIAGNOSTICS_CLOUD_PATH, analysis_id),
+                    "--local-path",
+                    temporary_directory,
+                ],
+            )
+
+            self.assertIsNone(result.exception)
+            self.assertEqual(result.exit_code, 0)
+
+            # Only the values files, manifests, and messages should be downloaded.
+            directory_contents = list(os.walk(temporary_directory))
+            self.assertEqual(len(directory_contents), 2)
+            self.assertEqual(directory_contents[0][1], [analysis_id])
+
+            self.assertEqual(directory_contents[1][1], [])
+
+            self.assertEqual(
+                set(directory_contents[1][2]),
+                {
+                    "configuration_values.json",
+                    "configuration_manifest.json",
+                    "input_manifest.json",
+                    "input_values.json",
+                    "messages.json",
+                },
+            )
+
+    def test_get_crash_diagnostics_with_datasets(self):
+        """Test that datasets are downloaded as well as the values files, manifests, and messages file when the
+        `get-crash-diagnostics` CLI command is used with the `--download-datasets` flag.
+        """
+        analysis_id = "4b91e3f0-4492-49e3-8061-34f1942dc68a"
+        self._run_app_that_crashes(self.CRASH_DIAGNOSTICS_CLOUD_PATH, analysis_id)
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            result = CliRunner().invoke(
+                octue_cli,
+                [
+                    "get-crash-diagnostics",
+                    storage.path.join(self.CRASH_DIAGNOSTICS_CLOUD_PATH, analysis_id),
+                    "--local-path",
+                    temporary_directory,
+                    "--download-datasets",
+                ],
+            )
+
+            self.assertIsNone(result.exception)
+            self.assertEqual(result.exit_code, 0)
+
+            # The datasets should be downloaded as well as the values files, manifests, and messages.
+            directory_contents = list(os.walk(temporary_directory))
+            self.assertEqual(len(directory_contents), 6)
+            self.assertEqual(directory_contents[0][1], [analysis_id])
+
+            self.assertEqual(
+                set(directory_contents[1][1]),
+                {"configuration_manifest_datasets", "input_manifest_datasets"},
+            )
+
+            self.assertEqual(
+                set(directory_contents[1][2]),
+                {
+                    "configuration_values.json",
+                    "configuration_manifest.json",
+                    "input_manifest.json",
+                    "input_values.json",
+                    "messages.json",
+                },
+            )
+
+            self.assertEqual(directory_contents[2][1], ["met_mast_data"])
+            self.assertEqual(set(directory_contents[3][2]), {"my_file.txt", ".octue"})
+            self.assertEqual(directory_contents[4][1], ["met_mast_data"])
+            self.assertEqual(set(directory_contents[5][2]), {"my_file.txt", ".octue"})
+
+    def _run_app_that_crashes(self, crash_diagnostics_cloud_path, analysis_id):
+        """Run an app that crashes and saves crash diagnostics to a directory named after the analysis ID within the
+        directory at the crash diagnostics cloud path.
+
+        :param str crash_diagnostics_cloud_path:
+        :param str analysis_id:
+        :return None:
+        """
 
         def app(analysis):
             raise ValueError("This is deliberately raised to simulate app failure.")
@@ -289,8 +383,6 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
             crash_diagnostics_cloud_path=crash_diagnostics_cloud_path,
         )
 
-        analysis_id = "4b91e3f0-4492-49e3-8061-34f1942dc68a"
-
         with self.assertRaises(ValueError):
             runner.run(
                 analysis_id=analysis_id,
@@ -298,41 +390,6 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
                 input_manifest=manifests["input"],
                 allow_save_diagnostics_data_on_crash=True,
             )
-
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            result = CliRunner().invoke(
-                octue_cli,
-                [
-                    "get-crash-diagnostics",
-                    storage.path.join(crash_diagnostics_cloud_path, analysis_id),
-                    "--local-path",
-                    temporary_directory,
-                ],
-            )
-
-            self.assertIsNone(result.exception)
-            self.assertEqual(result.exit_code, 0)
-
-            directory_contents = list(os.walk(temporary_directory))
-            self.assertEqual(directory_contents[0][1], [analysis_id])
-            self.assertEqual(
-                set(directory_contents[1][1]),
-                {"configuration_manifest_datasets", "input_manifest_datasets"},
-            )
-            self.assertEqual(
-                set(directory_contents[1][2]),
-                {
-                    "configuration_values.json",
-                    "configuration_manifest.json",
-                    "input_manifest.json",
-                    "input_values.json",
-                    "messages.json",
-                },
-            )
-            self.assertEqual(directory_contents[2][1], ["met_mast_data"])
-            self.assertEqual(set(directory_contents[3][2]), {"my_file.txt", ".octue"})
-            self.assertEqual(directory_contents[4][1], ["met_mast_data"])
-            self.assertEqual(set(directory_contents[5][2]), {"my_file.txt", ".octue"})
 
 
 class TestDeployCommand(BaseTestCase):
