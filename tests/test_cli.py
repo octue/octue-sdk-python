@@ -260,21 +260,24 @@ class TestStartCommand(BaseTestCase):
 
 class TestGetCrashDiagnosticsCommand(BaseTestCase):
     CRASH_DIAGNOSTICS_CLOUD_PATH = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_diagnostics")
+    ANALYSIS_ID = "dc1f09ca-7037-484f-a394-8bd04866f924"
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls._run_app_that_crashes(cls.CRASH_DIAGNOSTICS_CLOUD_PATH, cls.ANALYSIS_ID)
 
     def test_get_crash_diagnostics(self):
         """Test that only the values files, manifests, and messages file are downloaded when using the
         `get-crash-diagnostics` CLI command. Also test that the original input/configuration values are saved as crash
         diagnostics despite the app mutating them during its analysis.
         """
-        analysis_id = "dc1f09ca-7037-484f-a394-8bd04866f924"
-        self._run_app_that_crashes(self.CRASH_DIAGNOSTICS_CLOUD_PATH, analysis_id)
-
         with tempfile.TemporaryDirectory() as temporary_directory:
             result = CliRunner().invoke(
                 octue_cli,
                 [
                     "get-crash-diagnostics",
-                    storage.path.join(self.CRASH_DIAGNOSTICS_CLOUD_PATH, analysis_id),
+                    storage.path.join(self.CRASH_DIAGNOSTICS_CLOUD_PATH, self.ANALYSIS_ID),
                     "--local-path",
                     temporary_directory,
                 ],
@@ -286,7 +289,7 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
             # Only the values files, manifests, and messages should be downloaded.
             directory_contents = list(os.walk(temporary_directory))
             self.assertEqual(len(directory_contents), 2)
-            self.assertEqual(directory_contents[0][1], [analysis_id])
+            self.assertEqual(directory_contents[0][1], [self.ANALYSIS_ID])
 
             self.assertEqual(directory_contents[1][1], [])
 
@@ -303,25 +306,22 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
 
             # Check the configuration and input values are the same as the originals, even though the app mutated them
             # during the analysis.
-            with open(os.path.join(temporary_directory, analysis_id, "configuration_values.json")) as f:
+            with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "configuration_values.json")) as f:
                 self.assertEqual(json.load(f), {"getting": "ready"})
 
-            with open(os.path.join(temporary_directory, analysis_id, "input_values.json")) as f:
+            with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "input_values.json")) as f:
                 self.assertEqual(json.load(f), {"hello": "world"})
 
     def test_get_crash_diagnostics_with_datasets(self):
         """Test that datasets are downloaded as well as the values files, manifests, and messages file when the
         `get-crash-diagnostics` CLI command is used with the `--download-datasets` flag.
         """
-        analysis_id = "4b91e3f0-4492-49e3-8061-34f1942dc68a"
-        self._run_app_that_crashes(self.CRASH_DIAGNOSTICS_CLOUD_PATH, analysis_id)
-
         with tempfile.TemporaryDirectory() as temporary_directory:
             result = CliRunner().invoke(
                 octue_cli,
                 [
                     "get-crash-diagnostics",
-                    storage.path.join(self.CRASH_DIAGNOSTICS_CLOUD_PATH, analysis_id),
+                    storage.path.join(self.CRASH_DIAGNOSTICS_CLOUD_PATH, self.ANALYSIS_ID),
                     "--local-path",
                     temporary_directory,
                     "--download-datasets",
@@ -334,7 +334,7 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
             # The datasets should be downloaded as well as the values files, manifests, and messages.
             directory_contents = list(os.walk(temporary_directory))
             self.assertEqual(len(directory_contents), 6)
-            self.assertEqual(directory_contents[0][1], [analysis_id])
+            self.assertEqual(directory_contents[0][1], [self.ANALYSIS_ID])
 
             self.assertEqual(
                 set(directory_contents[1][1]),
@@ -358,28 +358,29 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
             self.assertEqual(set(directory_contents[5][2]), {"my_file.txt", ".octue"})
 
             # Check that the manifests have been updated to use the local paths of the datasets.
-            with open(os.path.join(temporary_directory, analysis_id, "configuration_manifest.json")) as f:
+            with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "configuration_manifest.json")) as f:
                 configuration_manifest = json.load(f)
 
             self.assertEqual(
                 configuration_manifest["datasets"]["configuration_dataset"],
                 os.path.join(
                     temporary_directory,
-                    analysis_id,
+                    self.ANALYSIS_ID,
                     "configuration_manifest_datasets",
                     "configuration_dataset",
                 ),
             )
 
-            with open(os.path.join(temporary_directory, analysis_id, "input_manifest.json")) as f:
+            with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "input_manifest.json")) as f:
                 input_manifest = json.load(f)
 
             self.assertEqual(
                 input_manifest["datasets"]["input_dataset"],
-                os.path.join(temporary_directory, analysis_id, "input_manifest_datasets", "input_dataset"),
+                os.path.join(temporary_directory, self.ANALYSIS_ID, "input_manifest_datasets", "input_dataset"),
             )
 
-    def _run_app_that_crashes(self, crash_diagnostics_cloud_path, analysis_id):
+    @staticmethod
+    def _run_app_that_crashes(crash_diagnostics_cloud_path, analysis_id):
         """Run an app that crashes and saves crash diagnostics to a directory named after the analysis ID within the
         directory at the crash diagnostics cloud path.
 
@@ -401,7 +402,6 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
 
         for data_type in ("configuration", "input"):
             dataset_name = f"{data_type}_dataset"
-
             dataset_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_datasets", dataset_name)
 
             with Datafile(storage.path.join(dataset_path, "my_file.txt"), mode="w") as (datafile, f):
@@ -422,13 +422,15 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
             crash_diagnostics_cloud_path=crash_diagnostics_cloud_path,
         )
 
-        with self.assertRaises(ValueError):
+        try:
             runner.run(
                 analysis_id=analysis_id,
                 input_values={"hello": "world"},
                 input_manifest=manifests["input"],
                 allow_save_diagnostics_data_on_crash=True,
             )
+        except ValueError:
+            pass
 
 
 class TestDeployCommand(BaseTestCase):
