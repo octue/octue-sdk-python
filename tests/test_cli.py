@@ -262,8 +262,9 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
     CRASH_DIAGNOSTICS_CLOUD_PATH = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_diagnostics")
 
     def test_get_crash_diagnostics(self):
-        """Test that only the values files, manifests, and messages file should be downloaded when using the
-        `get-crash-diagnostics` CLI command.
+        """Test that only the values files, manifests, and messages file are downloaded when using the
+        `get-crash-diagnostics` CLI command. Also test that the original input/configuration values are saved as crash
+        diagnostics despite the app mutating them during its analysis.
         """
         analysis_id = "dc1f09ca-7037-484f-a394-8bd04866f924"
         self._run_app_that_crashes(self.CRASH_DIAGNOSTICS_CLOUD_PATH, analysis_id)
@@ -299,6 +300,14 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
                     "messages.json",
                 },
             )
+
+            # Check the configuration and input values are the same as the originals, even though the app mutated them
+            # during the analysis.
+            with open(os.path.join(temporary_directory, analysis_id, "configuration_values.json")) as f:
+                self.assertEqual(json.load(f), {"getting": "ready"})
+
+            with open(os.path.join(temporary_directory, analysis_id, "input_values.json")) as f:
+                self.assertEqual(json.load(f), {"hello": "world"})
 
     def test_get_crash_diagnostics_with_datasets(self):
         """Test that datasets are downloaded as well as the values files, manifests, and messages file when the
@@ -380,6 +389,12 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
         """
 
         def app(analysis):
+            # Mutate the configuration and input values and manifests so we can test that this doesn't stop the
+            # originals going into the crash diagnostics.
+            analysis.configuration_values = None
+            analysis.configuration_manifest = None
+            analysis.input_values = None
+            analysis.input_manifest = None
             raise ValueError("This is deliberately raised to simulate app failure.")
 
         manifests = {}
