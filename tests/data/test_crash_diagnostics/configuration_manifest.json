@@ -1,0 +1,7 @@
+{
+  "datasets": {
+    "configuration_dataset": "tests/utils/test_crash_diagnostics/configuration_manifest_datasets/configuration_dataset"
+  },
+  "id": "dab88335-d739-4899-8eec-13ffdb5921fd",
+  "name": null
+}
