@@ -326,12 +326,7 @@ class Runner:
         original_ask_method = copy.copy(child.ask)
 
         def wrapper(*args, **kwargs):
-            self.crash_diagnostics["questions"].append(
-                {
-                    "service_id": child.id,
-                    "recorded_messages": child.recorded_messages,
-                }
-            )
+            self.crash_diagnostics["questions"].append({"id": child.id, "recorded_messages": child.recorded_messages})
             return original_ask_method(*args, **kwargs)
 
         return wrapper
