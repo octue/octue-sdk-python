@@ -147,19 +147,7 @@ class Runner:
             )
 
         if inputs["children"] is not None:
-            children = {}
-
-            for child in inputs["children"]:
-                instantiated_child = Child(
-                    id=child["id"],
-                    backend=child["backend"],
-                    internal_service_name=self.service_id,
-                )
-
-                instantiated_child.ask = self._track_child_messages(instantiated_child)
-                children[child["key"]] = instantiated_child
-
-            inputs["children"] = children
+            inputs["children"] = self._instantiate_children(inputs["children"])
 
         outputs_and_monitors = self.twine.prepare("monitor_message", "output_values", "output_manifest", cls=CLASS_MAP)
 
@@ -307,7 +295,34 @@ class Runner:
 
                     raise twined.exceptions.invalid_contents_map[manifest_kind](message)
 
+    def _instantiate_children(self, serialised_children):
+        """Instantiate children from their serialised form (e.g. as given in the app configuration) so they are ready
+        to be asked questions.
+
+        :param list(dict) serialised_children: serialised children from e.g. the app configuration file
+        :return dict: a mapping of child keys to `octue.resources.Child` instances
+        """
+        children = {}
+
+        for uninstantiated_child in serialised_children:
+            child = Child(
+                id=uninstantiated_child["id"],
+                backend=uninstantiated_child["backend"],
+                internal_service_name=self.service_id,
+            )
+
+            child.ask = self._track_child_messages(child)
+            children[uninstantiated_child["key"]] = child
+
+        return children
+
     def _track_child_messages(self, child):
+        """Add question tracking to the `ask` method of the given child so the order of questions to and the resulting
+        responses from each child can be recorded by the runner for crash diagnostics.
+
+        :param octue.resources.child.Child child:
+        :return callable: the wrapped `Child.ask` method
+        """
         original_ask_method = copy.copy(child.ask)
 
         def wrapper(*args, **kwargs):
