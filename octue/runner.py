@@ -311,18 +311,19 @@ class Runner:
                 internal_service_name=self.service_id,
             )
 
-            child.ask = self._track_child_messages(child)
+            child.ask = self._add_child_question_and_response_recording(child)
             children[uninstantiated_child["key"]] = child
 
         return children
 
-    def _track_child_messages(self, child):
-        """Add question tracking to the `ask` method of the given child so the order of questions to and the resulting
-        responses from each child can be recorded by the runner for crash diagnostics.
+    def _add_child_question_and_response_recording(self, child):
+        """Add question and response recording to the `ask` method of the given child. This allows the order of
+        questions to and the resulting responses from each child to be recorded by the runner for crash diagnostics.
 
         :param octue.resources.child.Child child:
         :return callable: the wrapped `Child.ask` method
         """
+        # Copy the `ask` method to avoid an infinite recursion.
         original_ask_method = copy.copy(child.ask)
 
         def wrapper(*args, **kwargs):
