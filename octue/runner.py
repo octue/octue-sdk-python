@@ -351,8 +351,8 @@ class Runner:
 
         # Upload the messages sent to the parent before the crash.
         storage_client.upload_from_string(
-            string=json.dumps(sent_messages or [], cls=OctueJSONEncoder),
-            cloud_path=storage.path.join(question_diagnostics_path, "messages.json"),
+            string=json.dumps({"id": self.service_id, "messages": sent_messages or []}, cls=OctueJSONEncoder),
+            cloud_path=storage.path.join(question_diagnostics_path, "child_emulator.json"),
         )
 
 

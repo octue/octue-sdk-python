@@ -299,6 +299,7 @@ class TestRunner(BaseTestCase):
             configuration_values={"getting": "ready"},
             configuration_manifest=manifests["configuration"],
             crash_diagnostics_cloud_path=crash_diagnostics_cloud_path,
+            service_id="octue/my-app:2.5.7",
         )
 
         analysis_id = "4b91e3f0-4492-49e3-8061-34f1942dc68a"
@@ -388,10 +389,10 @@ class TestRunner(BaseTestCase):
         )
 
         # Check the child's messages are uploaded.
-        with Datafile(storage.path.join(question_crash_diagnostics_path, "messages.json")) as (_, f):
-            messages = json.load(f)
+        with Datafile(storage.path.join(question_crash_diagnostics_path, "child_emulator.json")) as (_, f):
+            child_emulator = json.load(f)
 
-        self.assertEqual(messages, mock_sent_messages)
+        self.assertEqual(child_emulator, {"id": runner.service_id, "messages": mock_sent_messages})
 
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):

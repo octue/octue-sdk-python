@@ -317,7 +317,7 @@ def get_crash_diagnostics(cloud_path, local_path, download_datasets):
                 blob.name.endswith("configuration_manifest.json"),
                 blob.name.endswith("input_values.json"),
                 blob.name.endswith("input_manifest.json"),
-                blob.name.endswith("messages.json"),
+                blob.name.endswith("child_emulator.json"),
             )
         )
 
