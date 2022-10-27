@@ -21,6 +21,16 @@ class TestTesting(TestCase):
         self.assertEqual(input_values, {"hello": "world"})
         self.assertIn("input_dataset", input_manifest.datasets)
 
+        self.assertEqual(len(child_emulators), 1)
+        self.assertEqual(child_emulators[0].id, "octue/my-child:latest")
+        self.assertEqual(
+            child_emulators[0].messages[2:],
+            [
+                {"type": "monitor_message", "data": '{"sample": "data"}'},
+                {"type": "result", "output_values": [1, 2, 3, 4, 5], "output_manifest": None},
+            ],
+        )
+
     def test_load_test_fixture_from_downloaded_crash_diagnostics_serialised(self):
         """Test that loading a test fixture from downloaded crash diagnostics in serialised form works."""
         configuration_values, configuration_manifest, input_values, input_manifest, child_emulators = load_test_fixture(
@@ -39,3 +49,13 @@ class TestTesting(TestCase):
 
         with open(os.path.join(TEST_CRASH_DIAGNOSTICS_PATH, "input_manifest.json")) as f:
             self.assertEqual(input_manifest, f.read())
+
+        self.assertEqual(len(child_emulators), 1)
+        self.assertEqual(child_emulators[0].id, "octue/my-child:latest")
+        self.assertEqual(
+            child_emulators[0].messages[2:],
+            [
+                {"type": "monitor_message", "data": '{"sample": "data"}'},
+                {"type": "result", "output_values": [1, 2, 3, 4, 5], "output_manifest": None},
+            ],
+        )
