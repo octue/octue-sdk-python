@@ -11,7 +11,7 @@ TEST_CRASH_DIAGNOSTICS_PATH = os.path.join(TESTS_DIR, "data", "test_crash_diagno
 class TestTesting(TestCase):
     def test_load_test_fixture_from_downloaded_crash_diagnostics(self):
         """Test that loading a test fixture from downloaded crash diagnostics works."""
-        configuration_values, configuration_manifest, input_values, input_manifest = load_test_fixture(
+        configuration_values, configuration_manifest, input_values, input_manifest, child_emulators = load_test_fixture(
             path=TEST_CRASH_DIAGNOSTICS_PATH,
             serialise=False,
         )
@@ -23,7 +23,7 @@ class TestTesting(TestCase):
 
     def test_load_test_fixture_from_downloaded_crash_diagnostics_serialised(self):
         """Test that loading a test fixture from downloaded crash diagnostics in serialised form works."""
-        configuration_values, configuration_manifest, input_values, input_manifest = load_test_fixture(
+        configuration_values, configuration_manifest, input_values, input_manifest, child_emulators = load_test_fixture(
             path=TEST_CRASH_DIAGNOSTICS_PATH,
             serialise=True,
         )
