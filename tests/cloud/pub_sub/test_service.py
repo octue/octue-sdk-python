@@ -1,6 +1,5 @@
 import datetime
 import functools
-import json
 import logging
 import tempfile
 import time
@@ -653,27 +652,17 @@ class TestService(BaseTestCase):
 
         with self.service_patcher:
             child.serve()
-
-            with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
-                subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
-
-                parent.wait_for_answer(
-                    subscription,
-                    record_messages_to=temporary_file.name,
-                    service_name="my-super-service",
-                )
-
-                with open(temporary_file.name) as f:
-                    recorded_messages = json.load(f)
+            subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
+            parent.wait_for_answer(subscription, service_name="my-super-service")
 
         # Check that the child's messages have been recorded by the parent.
-        self.assertEqual(recorded_messages[0]["type"], "delivery_acknowledgement")
-        self.assertEqual(recorded_messages[1]["type"], "log_record")
-        self.assertEqual(recorded_messages[2]["type"], "log_record")
-        self.assertEqual(recorded_messages[3]["type"], "log_record")
+        self.assertEqual(parent.recorded_messages[0]["type"], "delivery_acknowledgement")
+        self.assertEqual(parent.recorded_messages[1]["type"], "log_record")
+        self.assertEqual(parent.recorded_messages[2]["type"], "log_record")
+        self.assertEqual(parent.recorded_messages[3]["type"], "log_record")
 
         self.assertEqual(
-            recorded_messages[4],
+            parent.recorded_messages[4],
             {"type": "result", "output_values": "Hello! It worked!", "output_manifest": None, "message_number": 4},
         )
 
@@ -685,23 +674,14 @@ class TestService(BaseTestCase):
         with self.service_patcher:
             child.serve()
 
-            with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
-                with self.assertRaises(ValueError):
-                    subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
-
-                    parent.wait_for_answer(
-                        subscription,
-                        record_messages_to=temporary_file.name,
-                        service_name="my-super-service",
-                    )
-
-                with open(temporary_file.name) as f:
-                    recorded_messages = json.load(f)
+            with self.assertRaises(ValueError):
+                subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
+                parent.wait_for_answer(subscription, service_name="my-super-service")
 
         # Check that the child's messages have been recorded by the parent.
-        self.assertEqual(recorded_messages[0]["type"], "delivery_acknowledgement")
-        self.assertEqual(recorded_messages[1]["type"], "exception")
-        self.assertIn("Oh no.", recorded_messages[1]["exception_message"])
+        self.assertEqual(parent.recorded_messages[0]["type"], "delivery_acknowledgement")
+        self.assertEqual(parent.recorded_messages[1]["type"], "exception")
+        self.assertIn("Oh no.", parent.recorded_messages[1]["exception_message"])
 
     def test_child_sends_heartbeat_messages_at_expected_regular_intervals(self):
         """Test that children send heartbeat messages at the expected regular intervals."""

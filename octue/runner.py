@@ -102,7 +102,6 @@ class Runner:
         analysis_log_handler=None,
         handle_monitor_message=None,
         allow_save_diagnostics_data_on_crash=True,
-        sent_messages=None,
     ):
         """Run an analysis.
 
@@ -114,7 +113,6 @@ class Runner:
         :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run. Handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but should use the format defined above in LOG_FORMAT.
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
         :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved if the analysis fails
-        :param list|None sent_messages: the list of messages sent by the service running this runner (this should update in real time) to save if crash diagnostics are enabled
         :return octue.resources.analysis.Analysis:
         """
         self.crash_diagnostics["input_values"] = copy.deepcopy(input_values)
@@ -227,7 +225,7 @@ class Runner:
                         logger.warning("Saving crash diagnostics to %r.", self.crash_diagnostics_cloud_path)
 
                         try:
-                            self._save_crash_diagnostics_data(analysis, sent_messages)
+                            self._save_crash_diagnostics_data(analysis)
                             logger.warning("Crash diagnostics saved.")
                         except Exception as crash_diagnostics_save_error:
                             logger.error("Failed to save crash diagnostics.")
@@ -304,12 +302,11 @@ class Runner:
 
                     raise twined.exceptions.invalid_contents_map[manifest_kind](message)
 
-    def _save_crash_diagnostics_data(self, analysis, sent_messages):
+    def _save_crash_diagnostics_data(self, analysis):
         """Save the values, manifests, and datasets for the analysis configuration and inputs to the crash diagnostics
         cloud path.
 
         :param octue.resources.analysis.Analysis analysis:
-        :param list|None sent_messages: the list of messages sent by the service running this runner (this should update in real time) to save if crash diagnostics are enabled
         :return None:
         """
         storage_client = GoogleCloudStorageClient()
@@ -349,11 +346,11 @@ class Runner:
                     cloud_path=storage.path.join(question_diagnostics_path, f"{manifest_type}.json"),
                 )
 
-        # Upload the messages sent to the parent before the crash.
-        storage_client.upload_from_string(
-            string=json.dumps({"id": self.service_id, "messages": sent_messages or []}, cls=OctueJSONEncoder),
-            cloud_path=storage.path.join(question_diagnostics_path, "child_emulator.json"),
-        )
+        # # Upload the messages sent to the parent before the crash.
+        # storage_client.upload_from_string(
+        #     string=json.dumps({"id": self.service_id, "messages": sent_messages or []}, cls=OctueJSONEncoder),
+        #     cloud_path=storage.path.join(question_diagnostics_path, "child_emulator.json"),
+        # )
 
 
 class AppFrom:

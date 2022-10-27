@@ -65,6 +65,7 @@ class Service:
         self.backend = backend
         self.run_function = run_function
         self.name = name
+        self.recorded_messages = []
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
         self._local_sdk_version = pkg_resources.get_distribution("octue").version
         self._record_sent_messages = False
@@ -196,7 +197,6 @@ class Service:
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=functools.partial(self._send_monitor_message, topic=topic),
                 allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
-                sent_messages=self._sent_messages,
             )
 
             if analysis.output_manifest is None:
@@ -303,7 +303,7 @@ class Service:
         self,
         subscription,
         handle_monitor_message=None,
-        record_messages_to=None,
+        record_messages=True,
         service_name="REMOTE",
         timeout=60,
         delivery_acknowledgement_timeout=120,
@@ -314,7 +314,7 @@ class Service:
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
-        :param str|None record_messages_to: if given a path to a JSON file, messages received in response to the question are saved to it
+        :param bool record_messages: if `True`, record messages received from the child to the `recorded_messages` attribute
         :param str service_name: a name by which to refer to the child subscribed to (used for labelling its log messages if subscribed to)
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
@@ -333,7 +333,7 @@ class Service:
             receiving_service=self,
             handle_monitor_message=handle_monitor_message,
             service_name=service_name,
-            record_messages_to=record_messages_to,
+            record_messages=record_messages,
         )
 
         try:
@@ -342,7 +342,9 @@ class Service:
                 delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
                 maximum_heartbeat_interval=maximum_heartbeat_interval,
             )
+
         finally:
+            self.recorded_messages = message_handler.recorded_messages
             subscription.delete()
 
     def instantiate_answer_topic(self, question_uuid, service_id=None):

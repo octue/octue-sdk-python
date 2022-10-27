@@ -34,7 +34,7 @@ class OrderedMessageHandler:
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
     :param octue.cloud.pub_sub.service.Service receiving_service: the service that's receiving the messages
     :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
-    :param str|None record_messages_to: if given a path to a JSON file, received messages are saved to it
+    :param bool record_messages: if `True`, record received messages to the `recorded_messages` attribute
     :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
     :param dict|None message_handlers: a mapping of message type names to callables that handle each type of message. The handlers should not mutate the messages.
     :return None:
@@ -45,16 +45,17 @@ class OrderedMessageHandler:
         subscription,
         receiving_service,
         handle_monitor_message=None,
-        record_messages_to=None,
+        record_messages=True,
         service_name="REMOTE",
         message_handlers=None,
     ):
         self.subscription = subscription
         self.receiving_service = receiving_service
         self.handle_monitor_message = handle_monitor_message
-        self.record_messages_to = record_messages_to
+        self.record_messages = record_messages
         self.service_name = service_name
 
+        self.recorded_messages = []
         self.received_delivery_acknowledgement = None
         self._subscriber = SubscriberClient()
         self._child_sdk_version = None
@@ -101,8 +102,6 @@ class OrderedMessageHandler:
         self._waiting_messages = {}
         self._previous_message_number = -1
 
-        recorded_messages = []
-
         self._heartbeat_checker = RepeatingTimer(
             interval=maximum_heartbeat_interval,
             function=self._monitor_heartbeat,
@@ -121,7 +120,7 @@ class OrderedMessageHandler:
                     delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
                 )
 
-                result = self._attempt_to_handle_queued_messages(recorded_messages=recorded_messages)
+                result = self._attempt_to_handle_queued_messages()
 
                 if result is not None:
                     return result
@@ -129,9 +128,6 @@ class OrderedMessageHandler:
         finally:
             self._heartbeat_checker.cancel()
             self._subscriber.close()
-
-            if self.record_messages_to:
-                self._save_messages(recorded_messages)
 
         raise TimeoutError(
             f"No heartbeat has been received within the maximum allowed interval of {maximum_heartbeat_interval}s."
@@ -236,20 +232,19 @@ class OrderedMessageHandler:
         message = json.loads(answer.message.data.decode())
         self._waiting_messages[int(message["message_number"])] = message
 
-    def _attempt_to_handle_queued_messages(self, recorded_messages):
+    def _attempt_to_handle_queued_messages(self):
         """Attempt to handle messages in the pulled message queue. If these messages aren't consecutive with the last
         handled message (i.e. if messages have been received out of order and the next in-order message hasn't been
         received yet), just return.
 
-        :param list recorded_messages: if recording messages, store them in this
         :return any|None: either a non-`None` result from a message handler or `None` if nothing was returned by the message handlers or if the next in-order message hasn't been received yet
         """
         try:
             while self._waiting_messages:
                 message = self._waiting_messages.pop(self._previous_message_number + 1)
 
-                if self.record_messages_to:
-                    recorded_messages.append(message)
+                if self.record_messages:
+                    self.recorded_messages.append(message)
 
                 result = self._handle_message(message)
 
@@ -287,20 +282,6 @@ class OrderedMessageHandler:
 
             # Raise all other errors.
             raise error
-
-    def _save_messages(self, recorded_messages):
-        """Save the given messages to the JSON file given in `self._record_messages_to`.
-
-        :param list recorded_messages:
-        :return None:
-        """
-        directory_name = os.path.dirname(self.record_messages_to)
-
-        if not os.path.exists(directory_name):
-            os.makedirs(directory_name)
-
-        with open(self.record_messages_to, "w") as f:
-            json.dump(recorded_messages, f)
 
     def _handle_delivery_acknowledgement(self, message):
         """Mark the question as delivered to prevent resending it.

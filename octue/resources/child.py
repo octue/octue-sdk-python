@@ -20,6 +20,7 @@ class Child:
 
     def __init__(self, id, backend, internal_service_name=None):
         self.id = id
+        self.recorded_messages = []
 
         backend = copy.deepcopy(backend)
         backend_type_name = backend.pop("name")
@@ -45,7 +46,7 @@ class Child:
         subscribe_to_logs=True,
         allow_local_files=False,
         handle_monitor_message=None,
-        record_messages_to=None,
+        record_messages=True,
         allow_save_diagnostics_data_on_crash=True,
         question_uuid=None,
         timeout=86400,
@@ -60,7 +61,7 @@ class Child:
         :param bool subscribe_to_logs: if `True`, subscribe to logs from the child and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will have access to these local files
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
-        :param str|None record_messages_to: if given a path to a JSON file, messages received in response to the question are saved to it
+        :param bool record_messages: if `True`, record messages received from the child to the `recorded_messages` attribute
         :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved by the child if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
@@ -79,13 +80,16 @@ class Child:
             timeout=timeout,
         )
 
-        return self._service.wait_for_answer(
+        answer = self._service.wait_for_answer(
             subscription=subscription,
             handle_monitor_message=handle_monitor_message,
-            record_messages_to=record_messages_to,
+            record_messages=record_messages,
             service_name=self.id,
             timeout=timeout,
         )
+
+        self.recorded_messages = self._service.recorded_messages
+        return answer
 
     def ask_multiple(self, *questions):
         """Ask the child multiple questions in parallel and wait for the answers. Each question should be provided as a

@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import tempfile
 
 from octue.cloud import storage
 from octue.cloud.emulators._pub_sub import MockService
@@ -252,15 +251,11 @@ class TestChildEmulatorAsk(BaseTestCase):
         with ServicePatcher():
             child.serve()
 
-            with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
-                with self.assertRaises(OSError):
-                    subscription, _ = parent.ask(service_id=child.id, input_values={})
-                    parent.wait_for_answer(subscription=subscription, record_messages_to=temporary_file.name)
+            with self.assertRaises(OSError):
+                subscription, _ = parent.ask(service_id=child.id, input_values={})
+                parent.wait_for_answer(subscription=subscription)
 
-                with open(temporary_file.name) as f:
-                    recorded_messages = json.load(f)
-
-        child_emulator = ChildEmulator(messages=recorded_messages)
+        child_emulator = ChildEmulator(messages=parent.recorded_messages)
 
         with self.assertRaises(OSError):
             child_emulator.ask(input_values={})
