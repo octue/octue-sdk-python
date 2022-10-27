@@ -15,10 +15,8 @@ def load_test_fixture(path, serialise=True):
     :return (any|str|None, octue.resources.manifest.Manifest|str|None, any|str|None, octue.resources.manifest.Manifest|str|None): the configuration values, configuration manifest, input values, and input manifest (each if available)
     """
     paths = {
-        "configuration_values": os.path.join(path, "configuration_values.json"),
-        "configuration_manifest": os.path.join(path, "configuration_manifest.json"),
-        "input_values": os.path.join(path, "input_values.json"),
-        "input_manifest": os.path.join(path, "input_manifest.json"),
+        name: os.path.join(path, name + ".json")
+        for name in ("configuration_values", "configuration_manifest", "input_values", "input_manifest")
     }
 
     outputs = {"values": {}, "manifest": {}}
