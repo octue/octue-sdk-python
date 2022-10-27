@@ -67,7 +67,7 @@ class Runner:
 
         self.output_location = output_location
 
-        self.crash_diagnostics = {}
+        self.crash_diagnostics = {"questions": []}
         self.crash_diagnostics_cloud_path = crash_diagnostics_cloud_path
 
         # Ensure the twine is present and instantiate it.
@@ -147,14 +147,19 @@ class Runner:
             )
 
         if inputs["children"] is not None:
-            inputs["children"] = {
-                child["key"]: Child(
+            children = {}
+
+            for child in inputs["children"]:
+                instantiated_child = Child(
                     id=child["id"],
                     backend=child["backend"],
                     internal_service_name=self.service_id,
                 )
-                for child in inputs["children"]
-            }
+
+                instantiated_child.ask = self._track_child_messages(instantiated_child)
+                children[child["key"]] = instantiated_child
+
+            inputs["children"] = children
 
         outputs_and_monitors = self.twine.prepare("monitor_message", "output_values", "output_manifest", cls=CLASS_MAP)
 
@@ -302,6 +307,20 @@ class Runner:
 
                     raise twined.exceptions.invalid_contents_map[manifest_kind](message)
 
+    def _track_child_messages(self, child):
+        original_ask_method = copy.copy(child.ask)
+
+        def wrapper(*args, **kwargs):
+            self.crash_diagnostics["questions"].append(
+                {
+                    "service_id": child.id,
+                    "recorded_messages": child.recorded_messages,
+                }
+            )
+            return original_ask_method(*args, **kwargs)
+
+        return wrapper
+
     def _save_crash_diagnostics_data(self, analysis):
         """Save the values, manifests, and datasets for the analysis configuration and inputs to the crash diagnostics
         cloud path.
@@ -346,11 +365,11 @@ class Runner:
                     cloud_path=storage.path.join(question_diagnostics_path, f"{manifest_type}.json"),
                 )
 
-        # # Upload the messages sent to the parent before the crash.
-        # storage_client.upload_from_string(
-        #     string=json.dumps({"id": self.service_id, "messages": sent_messages or []}, cls=OctueJSONEncoder),
-        #     cloud_path=storage.path.join(question_diagnostics_path, "child_emulator.json"),
-        # )
+        # Upload the messages received from any children before the crash.
+        storage_client.upload_from_string(
+            string=json.dumps(self.crash_diagnostics["questions"], cls=OctueJSONEncoder),
+            cloud_path=storage.path.join(question_diagnostics_path, "questions.json"),
+        )
 
 
 class AppFrom:

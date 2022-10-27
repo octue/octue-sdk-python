@@ -300,7 +300,7 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
                     "configuration_manifest.json",
                     "input_manifest.json",
                     "input_values.json",
-                    "child_emulator.json",
+                    "questions.json",
                 },
             )
 
@@ -348,7 +348,7 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
                     "configuration_manifest.json",
                     "input_manifest.json",
                     "input_values.json",
-                    "child_emulator.json",
+                    "questions.json",
                 },
             )
 
