@@ -337,15 +337,11 @@ class Runner:
             # Convert args to kwargs so all inputs to the `ask` method can be recorded whether they're provided
             # positionally or as keyword arguments.
             kwargs.update(dict(zip(original_ask_method.__func__.__code__.co_varnames, args)))
+            self.crash_diagnostics["questions"].append({"id": child.id, **kwargs})
 
-            self.crash_diagnostics["questions"].append(
-                {
-                    "id": child.id,
-                    "messages": child.recorded_messages,
-                    **kwargs,
-                }
-            )
-            return original_ask_method(**kwargs)
+            answer = original_ask_method(**kwargs)
+            self.crash_diagnostics["questions"][-1]["messages"] = child.recorded_messages
+            return answer
 
         return wrapper
 

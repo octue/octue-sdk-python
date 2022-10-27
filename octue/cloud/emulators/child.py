@@ -39,7 +39,6 @@ class ChildEmulator:
             service_id=internal_service_name or f"{self.id}-parent",
             children={self._child.id: self._child},
         )
-        self.recorded_messages = self._parent.recorded_messages
 
         self._message_handlers = {
             "delivery_acknowledgement": self._handle_delivery_acknowledgement,
@@ -77,6 +76,14 @@ class ChildEmulator:
         """
         return f"<{type(self).__name__}({self.id!r})>"
 
+    @property
+    def recorded_messages(self):
+        """Get the messages received from the child.
+
+        :return list(dict):
+        """
+        return self._parent.recorded_messages
+
     def ask(
         self,
         input_values=None,
@@ -97,7 +104,7 @@ class ChildEmulator:
         :param bool subscribe_to_logs: if `True`, subscribe to logs from the child and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will have access to these local files
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
-        :param bool record_messages: if `True`, record messages received from the child to the `recorded_messages` attribute
+        :param bool record_messages: if `True`, record messages received from the child to the `recorded_messages` property
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
