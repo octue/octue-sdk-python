@@ -46,7 +46,7 @@ def load_test_fixture(path, serialise=True):
     with open(os.path.join(path, "questions.json")) as f:
         questions = json.load(f)
 
-    child_emulators = [ChildEmulator(**question) for question in questions]
+    child_emulators = [ChildEmulator(id=question["id"], messages=question["messages"]) for question in questions]
 
     return (
         outputs["values"].get("configuration"),

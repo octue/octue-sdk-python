@@ -326,8 +326,18 @@ class Runner:
         original_ask_method = copy.copy(child.ask)
 
         def wrapper(*args, **kwargs):
-            self.crash_diagnostics["questions"].append({"id": child.id, "recorded_messages": child.recorded_messages})
-            return original_ask_method(*args, **kwargs)
+            # Convert args to kwargs so all inputs to the `ask` method can be recorded whether they're provided
+            # positionally or as keyword arguments.
+            kwargs.update(dict(zip(original_ask_method.__func__.__code__.co_varnames, args)))
+
+            self.crash_diagnostics["questions"].append(
+                {
+                    "id": child.id,
+                    "messages": child.recorded_messages,
+                    **kwargs,
+                }
+            )
+            return original_ask_method(**kwargs)
 
         return wrapper
 
