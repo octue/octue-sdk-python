@@ -246,8 +246,8 @@ class TestManifest(BaseTestCase):
         manifest.update_dataset_paths(path_generator)
 
         # Check the first two datasets' paths are updated.
-        self.assertEqual(manifest.datasets["dataset_0"].path, "path/to/dataset_zero")
-        self.assertEqual(manifest.datasets["dataset_1"].path, "path/to/dataset_one")
+        self.assertEqual(manifest.datasets["dataset_0"].path, os.path.join("path", "to", "dataset_zero"))
+        self.assertEqual(manifest.datasets["dataset_1"].path, os.path.join("path", "to", "dataset_one"))
 
         # Check the third dataset's path is unmodified.
-        self.assertEqual(manifest.datasets["dataset_2"].path, "path/to/dataset_2")
+        self.assertEqual(manifest.datasets["dataset_2"].path, os.path.join("path", "to", "dataset_2"))
