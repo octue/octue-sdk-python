@@ -10,6 +10,7 @@ from jsonschema.validators import RefResolver
 import twined
 from octue import Runner, exceptions
 from octue.cloud import storage
+from octue.cloud.emulators import ChildEmulator
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Manifest
 from octue.resources.datafile import Datafile
@@ -33,6 +34,11 @@ class TestRunner(BaseTestCase):
         """Ensures that runner whose twine requires configuration can be instantiated"""
         runner = Runner(app_src=".", twine="{}")
         self.assertEqual(runner.__class__.__name__, "Runner")
+
+    def test_repr(self):
+        """Test that runners are represented as a string correctly."""
+        runner = Runner(app_src=".", twine="{}", service_id="octue/my-service:latest")
+        self.assertEqual(repr(runner), "<Runner('octue/my-service:latest')>")
 
     def test_run_with_configuration_passes(self):
         """Ensures that runs can be made with configuration only"""
@@ -276,6 +282,8 @@ class TestRunner(BaseTestCase):
         crash_diagnostics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_diagnostics")
 
         def app(analysis):
+            analysis.children["my-child"].ask(input_values=[1, 2, 3, 4])
+            analysis.children["another-child"].ask(input_values="miaow")
             raise ValueError("This is deliberately raised to simulate app failure.")
 
         manifests = {}
@@ -293,24 +301,65 @@ class TestRunner(BaseTestCase):
             twine={
                 "configuration_values_schema": {"properties": {}},
                 "configuration_manifest": {"datasets": {}},
+                "children": [
+                    {"key": "my-child"},
+                    {"key": "another-child"},
+                ],
                 "input_values_schema": {},
                 "input_manifest": {"datasets": {}},
             },
             configuration_values={"getting": "ready"},
             configuration_manifest=manifests["configuration"],
+            children=[
+                {
+                    "key": "my-child",
+                    "id": "octue/my-child:latest",
+                    "backend": {
+                        "name": "GCPPubSubBackend",
+                        "project_name": "my-project",
+                    },
+                },
+                {
+                    "key": "another-child",
+                    "id": "octue/another-child:latest",
+                    "backend": {
+                        "name": "GCPPubSubBackend",
+                        "project_name": "my-project",
+                    },
+                },
+            ],
             crash_diagnostics_cloud_path=crash_diagnostics_cloud_path,
             service_id="octue/my-app:2.5.7",
         )
 
+        emulated_children = [
+            ChildEmulator(
+                id="octue/my-child:latest",
+                messages=[
+                    {"type": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
+                ],
+            ),
+            ChildEmulator(
+                id="octue/another-child:latest",
+                messages=[
+                    {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
+                    {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
+                    {"type": "result", "output_values": "woof", "output_manifest": None},
+                ],
+            ),
+        ]
+
         analysis_id = "4b91e3f0-4492-49e3-8061-34f1942dc68a"
 
-        with self.assertRaises(ValueError):
-            runner.run(
-                analysis_id=analysis_id,
-                input_values={"hello": "world"},
-                input_manifest=manifests["input"],
-                allow_save_diagnostics_data_on_crash=True,
-            )
+        # Run the app.
+        with patch("octue.runner.Child", side_effect=emulated_children):
+            with self.assertRaises(ValueError):
+                runner.run(
+                    analysis_id=analysis_id,
+                    input_values={"hello": "world"},
+                    input_manifest=manifests["input"],
+                    allow_save_diagnostics_data_on_crash=True,
+                )
 
         storage_client = GoogleCloudStorageClient()
         question_crash_diagnostics_path = storage.path.join(crash_diagnostics_cloud_path, analysis_id)
@@ -375,6 +424,20 @@ class TestRunner(BaseTestCase):
                 question_crash_diagnostics_path, "input_manifest_datasets", "met_mast_data", "my_file.txt"
             ),
         )
+
+        # Check that messages from the children have been recorded.
+        with Datafile(storage.path.join(question_crash_diagnostics_path, "questions.json")) as (_, f):
+            questions = json.load(f)
+
+        # First question.
+        self.assertEqual(questions[0]["id"], "octue/my-child:latest")
+        self.assertEqual(questions[0]["input_values"], [1, 2, 3, 4])
+        self.assertEqual(len(questions[0]["messages"]), 2)
+
+        # Second question.
+        self.assertEqual(questions[1]["id"], "octue/another-child:latest")
+        self.assertEqual(questions[1]["input_values"], "miaow")
+        self.assertEqual(len(questions[1]["messages"]), 4)
 
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
