@@ -92,6 +92,13 @@ class Runner:
         self.service_id = service_id
         self._project_name = project_name
 
+    def __repr__(self):
+        """Represent the runner as a string.
+
+        :return str: the runner represented as a string.
+        """
+        return f"<{type(self).__name__}({self.service_id!r})>"
+
     def run(
         self,
         analysis_id=None,
