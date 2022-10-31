@@ -469,7 +469,7 @@ class TestRunner(BaseTestCase):
                 },
                 {
                     "key": "another-child",
-                    "id": "octue/another-child:latest",
+                    "id": "octue/yet-another-child:latest",
                     "backend": {
                         "name": "GCPPubSubBackend",
                         "project_name": "my-project",
@@ -488,7 +488,7 @@ class TestRunner(BaseTestCase):
                 ],
             ),
             ChildEmulator(
-                id="octue/another-child:latest",
+                id="octue/yet-another-child:latest",
                 messages=[
                     {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
                     {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
@@ -527,7 +527,7 @@ class TestRunner(BaseTestCase):
         self.assertEqual(len(questions[0]["messages"]), 2)
 
         # Second question.
-        self.assertEqual(questions[1]["id"], "octue/another-child:latest")
+        self.assertEqual(questions[1]["id"], "octue/yet-another-child:latest")
         self.assertEqual(questions[1]["input_values"], "miaow")
 
         # This should be 4 but log messages aren't currently being handled by the child emulator correctly.
