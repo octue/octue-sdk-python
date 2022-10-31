@@ -1,1 +1,1 @@
-{"dataset": {"id": "b03e1838-0506-4ed7-a366-f0293e5af1bb", "name": "input_dataset", "tags": {}, "labels": [], "path": "gs://octue-sdk-python-test-bucket/crash_diagnostics/4b91e3f0-4492-49e3-8061-34f1942dc68a/input_manifest_datasets/input_dataset"}}
+{"dataset": {"id": "b03e1838-0506-4ed7-a366-f0293e5af1bb", "name": "input_dataset", "tags": {"more": "metadata"}, "labels": [], "path": "gs://octue-sdk-python-test-bucket/crash_diagnostics/4b91e3f0-4492-49e3-8061-34f1942dc68a/input_manifest_datasets/input_dataset"}}

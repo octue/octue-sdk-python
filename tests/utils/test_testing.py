@@ -17,9 +17,10 @@ class TestTesting(TestCase):
         )
 
         self.assertEqual(configuration_values, {"getting": "ready"})
-        self.assertIn("configuration_dataset", configuration_manifest.datasets)
+        self.assertEqual(configuration_manifest.datasets["configuration_dataset"].tags, {"some": "metadata"})
+
         self.assertEqual(input_values, {"hello": "world"})
-        self.assertIn("input_dataset", input_manifest.datasets)
+        self.assertEqual(input_manifest.datasets["input_dataset"].tags, {"more": "metadata"})
 
         self.assertEqual(len(child_emulators), 1)
         self.assertEqual(child_emulators[0].id, "octue/my-child:latest")
