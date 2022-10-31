@@ -361,13 +361,13 @@ class Runner:
             values_type = f"{data_type}_values"
             manifest_type = f"{data_type}_manifest"
 
-            if self.crash_diagnostics[values_type]:
+            if self.crash_diagnostics[values_type] is not None:
                 storage_client.upload_from_string(
                     json.dumps(self.crash_diagnostics[values_type], cls=OctueJSONEncoder),
                     cloud_path=storage.path.join(question_diagnostics_path, f"{values_type}.json"),
                 )
 
-            if self.crash_diagnostics[manifest_type]:
+            if self.crash_diagnostics[manifest_type] is not None:
                 self._upload_manifest(manifest_type, question_diagnostics_path)
 
         # Upload the messages received from any children before the crash.
