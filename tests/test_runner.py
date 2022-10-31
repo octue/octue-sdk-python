@@ -12,7 +12,7 @@ from octue import Runner, exceptions
 from octue.cloud import storage
 from octue.cloud.emulators import ChildEmulator
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.resources import Manifest
+from octue.resources import Dataset, Manifest
 from octue.resources.datafile import Datafile
 from tests import TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
@@ -290,9 +290,13 @@ class TestRunner(BaseTestCase):
 
         for data_type in ("configuration", "input"):
             dataset_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_datasets", f"{data_type}_dataset")
+            datafile = Datafile(storage.path.join(dataset_path, "my_file.txt"), tags={"some": f"{data_type}_info"})
 
-            with Datafile(storage.path.join(dataset_path, "my_file.txt"), mode="w") as (datafile, f):
+            with datafile.open("w") as f:
                 f.write(f"{data_type} manifest data")
+
+            dataset = Dataset(dataset_path, labels={f"some-{data_type}-metadata"})
+            dataset.update_cloud_metadata()
 
             manifests[data_type] = {"id": str(uuid.uuid4()), "datasets": {"met_mast_data": dataset_path}}
 
@@ -383,7 +387,10 @@ class TestRunner(BaseTestCase):
             storage.path.join(question_crash_diagnostics_path, "configuration_manifest.json")
         )
         configuration_dataset = configuration_manifest.datasets["met_mast_data"]
+        self.assertEqual(configuration_dataset.labels, {"some-configuration-metadata"})
+
         configuration_file = configuration_dataset.files.one()
+        self.assertEqual(configuration_file.tags, {"some": "configuration_info"})
 
         with configuration_file.open() as f:
             self.assertEqual(f.read(), "configuration manifest data")
@@ -407,7 +414,10 @@ class TestRunner(BaseTestCase):
         # Check the input manifest and dataset.
         input_manifest = Manifest.from_cloud(storage.path.join(question_crash_diagnostics_path, "input_manifest.json"))
         input_dataset = input_manifest.datasets["met_mast_data"]
+        self.assertEqual(input_dataset.labels, {"some-input-metadata"})
+
         input_file = input_dataset.files.one()
+        self.assertEqual(input_file.tags, {"some": "input_info"})
 
         with input_file.open() as f:
             self.assertEqual(f.read(), "input manifest data")
