@@ -66,7 +66,12 @@ class Runner:
 
         self.output_location = output_location
 
-        self.crash_diagnostics = {"questions": []}
+        self.crash_diagnostics = {
+            "questions": [],
+            "configuration_values": copy.deepcopy(configuration_values),
+            "configuration_manifest": copy.deepcopy(configuration_manifest),
+        }
+
         self.crash_diagnostics_cloud_path = crash_diagnostics_cloud_path
 
         # Ensure the twine is present and instantiate it.
@@ -76,9 +81,6 @@ class Runner:
             self.twine = Twine(source=twine)
 
         logger.debug("Parsed twine with strands %r", self.twine.available_strands)
-
-        self.crash_diagnostics["configuration_values"] = copy.deepcopy(configuration_values)
-        self.crash_diagnostics["configuration_manifest"] = copy.deepcopy(configuration_manifest)
 
         # Validate and initialise configuration data.
         self.configuration = self.twine.validate(
@@ -360,7 +362,7 @@ class Runner:
             # Upload the configuration and input values.
             values_type = f"{data_type}_values"
 
-            if values_type in self.crash_diagnostics:
+            if self.crash_diagnostics[values_type]:
                 storage_client.upload_from_string(
                     json.dumps(self.crash_diagnostics[values_type], cls=OctueJSONEncoder),
                     cloud_path=storage.path.join(question_diagnostics_path, f"{values_type}.json"),
@@ -369,7 +371,7 @@ class Runner:
             # Upload the configuration and input manifests.
             manifest_type = f"{data_type}_manifest"
 
-            if manifest_type in self.crash_diagnostics:
+            if self.crash_diagnostics[manifest_type]:
                 manifest = self.crash_diagnostics[manifest_type]
 
                 if not manifest:
