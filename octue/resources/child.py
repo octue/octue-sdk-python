@@ -80,16 +80,17 @@ class Child:
             timeout=timeout,
         )
 
-        answer = self._service.wait_for_answer(
-            subscription=subscription,
-            handle_monitor_message=handle_monitor_message,
-            record_messages=record_messages,
-            service_name=self.id,
-            timeout=timeout,
-        )
+        try:
+            return self._service.wait_for_answer(
+                subscription=subscription,
+                handle_monitor_message=handle_monitor_message,
+                record_messages=record_messages,
+                service_name=self.id,
+                timeout=timeout,
+            )
 
-        self.recorded_messages = self._service.recorded_messages
-        return answer
+        finally:
+            self.recorded_messages = self._service.recorded_messages
 
     def ask_multiple(self, *questions):
         """Ask the child multiple questions in parallel and wait for the answers. Each question should be provided as a
