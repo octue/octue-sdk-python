@@ -441,6 +441,98 @@ class TestRunner(BaseTestCase):
         # This should be 4 but log messages aren't currently being handled by the child emulator correctly.
         self.assertEqual(len(questions[1]["messages"]), 2)
 
+    def test_child_messages_saved_even_if_child_ask_method_raises_error(self):
+        """Test that messages from the child are still saved even if an error is raised within the `Child.ask` method."""
+        crash_diagnostics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_diagnostics")
+
+        def app(analysis):
+            analysis.children["my-child"].ask(input_values=[1, 2, 3, 4])
+            analysis.children["another-child"].ask(input_values="miaow")
+
+        runner = Runner(
+            app_src=app,
+            twine={
+                "children": [
+                    {"key": "my-child"},
+                    {"key": "another-child"},
+                ],
+                "input_values_schema": {},
+            },
+            children=[
+                {
+                    "key": "my-child",
+                    "id": "octue/a-child:latest",
+                    "backend": {
+                        "name": "GCPPubSubBackend",
+                        "project_name": "my-project",
+                    },
+                },
+                {
+                    "key": "another-child",
+                    "id": "octue/another-child:latest",
+                    "backend": {
+                        "name": "GCPPubSubBackend",
+                        "project_name": "my-project",
+                    },
+                },
+            ],
+            crash_diagnostics_cloud_path=crash_diagnostics_cloud_path,
+            service_id="octue/my-app:2.5.8",
+        )
+
+        emulated_children = [
+            ChildEmulator(
+                id="octue/a-child:latest",
+                messages=[
+                    {"type": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
+                ],
+            ),
+            ChildEmulator(
+                id="octue/another-child:latest",
+                messages=[
+                    {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
+                    {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
+                    {
+                        "type": "exception",
+                        "exception_type": "ValueError",
+                        "exception_message": "Deliberately raised for testing.",
+                    },
+                ],
+            ),
+        ]
+
+        analysis_id = "4b91e3f0-4492-49e3-8061-34f1942dc68a"
+
+        # Run the app.
+        with patch("octue.runner.Child", side_effect=emulated_children):
+            with self.assertRaises(ValueError):
+                runner.run(analysis_id=analysis_id, input_values={"hello": "world"})
+
+        storage_client = GoogleCloudStorageClient()
+        question_crash_diagnostics_path = storage.path.join(crash_diagnostics_cloud_path, analysis_id)
+
+        # Check the input values.
+        self.assertEqual(
+            storage_client.download_as_string(storage.path.join(question_crash_diagnostics_path, "input_values.json")),
+            json.dumps({"hello": "world"}),
+        )
+
+        # Check that messages from the children have been recorded.
+        with Datafile(storage.path.join(question_crash_diagnostics_path, "questions.json")) as (_, f):
+            questions = json.load(f)
+
+        # First question.
+        self.assertEqual(questions[0]["id"], "octue/a-child:latest")
+        self.assertEqual(questions[0]["input_values"], [1, 2, 3, 4])
+        self.assertEqual(len(questions[0]["messages"]), 2)
+
+        # Second question.
+        self.assertEqual(questions[1]["id"], "octue/another-child:latest")
+        self.assertEqual(questions[1]["input_values"], "miaow")
+
+        # This should be 4 but log messages aren't currently being handled by the child emulator correctly.
+        self.assertEqual(len(questions[1]["messages"]), 2)
+
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
 
