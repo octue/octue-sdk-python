@@ -461,7 +461,7 @@ class TestRunner(BaseTestCase):
             children=[
                 {
                     "key": "my-child",
-                    "id": "octue/a-child:latest",
+                    "id": "octue/the-child:latest",
                     "backend": {
                         "name": "GCPPubSubBackend",
                         "project_name": "my-project",
@@ -482,7 +482,7 @@ class TestRunner(BaseTestCase):
 
         emulated_children = [
             ChildEmulator(
-                id="octue/a-child:latest",
+                id="octue/the-child:latest",
                 messages=[
                     {"type": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
                 ],
@@ -522,7 +522,7 @@ class TestRunner(BaseTestCase):
             questions = json.load(f)
 
         # First question.
-        self.assertEqual(questions[0]["id"], "octue/a-child:latest")
+        self.assertEqual(questions[0]["id"], "octue/the-child:latest")
         self.assertEqual(questions[0]["input_values"], [1, 2, 3, 4])
         self.assertEqual(len(questions[0]["messages"]), 2)
 
