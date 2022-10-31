@@ -341,60 +341,41 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
             self.assertIsNone(result.exception)
             self.assertEqual(result.exit_code, 0)
 
-            # The datasets should be downloaded as well as the values files, manifests, and messages.
-            directory_contents = list(os.walk(temporary_directory))
-            self.assertEqual(len(directory_contents), 6)
-            self.assertEqual(directory_contents[0][1], [self.ANALYSIS_ID])
-
-            self.assertEqual(
-                set(directory_contents[1][1]),
-                {"configuration_manifest_datasets", "input_manifest_datasets"},
+            # Check the configuration dataset has been downloaded.
+            configuration_dataset_path = os.path.join(
+                temporary_directory,
+                self.ANALYSIS_ID,
+                "configuration_manifest_datasets",
+                "configuration_dataset",
             )
 
-            expected_files = [
-                {},
-                {
-                    "configuration_values.json",
-                    "configuration_manifest.json",
-                    "input_manifest.json",
-                    "input_values.json",
-                    "questions.json",
-                },
-                {},
-                {"my_file.txt", ".octue"},
-                {},
-                {"my_file.txt", ".octue"},
-            ]
+            configuration_dataset = Dataset(configuration_dataset_path)
+            self.assertEqual(configuration_dataset.tags, {"some": "metadata"})
+            self.assertEqual(configuration_dataset.files.one().name, "my_file.txt")
 
-            self.assertEqual(set(directory_contents[1][2]) & expected_files[1], expected_files[1])
-
-            self.assertEqual(directory_contents[2][1], ["configuration_dataset"])
-            self.assertEqual(set(directory_contents[3][2]) & expected_files[3], expected_files[3])
-
-            self.assertEqual(directory_contents[4][1], ["input_dataset"])
-            self.assertEqual(set(directory_contents[5][2]) & expected_files[5], expected_files[5])
-
-            # Check that the manifests have been updated to use the local paths of the datasets.
+            # Check that the configuration manifest has been updated to use the local paths for its datasets.
             with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "configuration_manifest.json")) as f:
-                configuration_manifest = json.load(f)
+                self.assertEqual(json.load(f)["datasets"]["configuration_dataset"], configuration_dataset_path)
 
-            self.assertEqual(
-                configuration_manifest["datasets"]["configuration_dataset"],
-                os.path.join(
-                    temporary_directory,
-                    self.ANALYSIS_ID,
-                    "configuration_manifest_datasets",
-                    "configuration_dataset",
-                ),
+            # Check the input dataset has been downloaded.
+            input_dataset_path = os.path.join(
+                temporary_directory,
+                self.ANALYSIS_ID,
+                "input_manifest_datasets",
+                "input_dataset",
             )
 
+            input_dataset = Dataset(input_dataset_path)
+            self.assertEqual(input_dataset.tags, {"more": "metadata"})
+            self.assertEqual(input_dataset.files.one().name, "my_file.txt")
+
+            # Check that the input manifest has been updated to use the local paths for its datasets.
             with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "input_manifest.json")) as f:
-                input_manifest = json.load(f)
+                self.assertEqual(json.load(f)["datasets"]["input_dataset"], input_dataset_path)
 
-            self.assertEqual(
-                input_manifest["datasets"]["input_dataset"],
-                os.path.join(temporary_directory, self.ANALYSIS_ID, "input_manifest_datasets", "input_dataset"),
-            )
+            # Check the questions have been downloaded.
+            with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "questions.json")) as f:
+                self.assertEqual(len(json.load(f)[0]["messages"]), 4)
 
 
 class TestDeployCommand(BaseTestCase):
