@@ -338,9 +338,10 @@ class Runner:
             kwargs.update(dict(zip(original_ask_method.__func__.__code__.co_varnames, args)))
             self.crash_diagnostics["questions"].append({"id": child.id, **kwargs})
 
-            answer = original_ask_method(**kwargs)
-            self.crash_diagnostics["questions"][-1]["messages"] = child.recorded_messages
-            return answer
+            try:
+                return original_ask_method(**kwargs)
+            finally:
+                self.crash_diagnostics["questions"][-1]["messages"] = child.recorded_messages
 
         return wrapper
 
