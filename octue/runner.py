@@ -398,6 +398,6 @@ class Runner:
 
         # Upload manifest.
         GoogleCloudStorageClient().upload_from_string(
-            json.dumps(self.crash_diagnostics[manifest_type], cls=OctueJSONEncoder),
+            json.dumps(manifest, cls=OctueJSONEncoder),
             cloud_path=storage.path.join(question_diagnostics_path, f"{manifest_type}.json"),
         )
