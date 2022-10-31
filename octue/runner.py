@@ -16,7 +16,7 @@ import twined.exceptions
 from octue import exceptions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.log_handlers import apply_log_handler, create_octue_formatter, get_log_record_attributes_for_environment
+from octue.log_handlers import AnalysisLogHandlerSwitcher
 from octue.resources import Child, Dataset
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.utils import gen_uuid
@@ -450,96 +450,3 @@ class AppFrom:
                 f"Module 'app' was already removed from the system path prior to exiting the {context_manager_name} "
                 f"context manager. Using the {context_manager_name} context may yield unexpected results."
             )
-
-
-class AnalysisLogHandlerSwitcher:
-    """A context manager that, when activated, takes the given logger, removes its handlers, and adds a local handler
-    and any other handlers provided to it. A formatter is applied to the handlers that includes the given analysis ID
-    in the logging context. On leaving the context, the logger's initial handlers are restored to it and any that were
-    added to it in the context are removed.
-
-    :param str analysis_id:
-    :param logger.Logger logger:
-    :param str analysis_log_level:
-    :param list(logging.Handler) extra_log_handlers:
-    :return None:
-    """
-
-    def __init__(self, analysis_id, logger, analysis_log_level, extra_log_handlers=None):
-        self.analysis_id = analysis_id
-        self.logger = logger
-        self.analysis_log_level = analysis_log_level
-        self.extra_log_handlers = extra_log_handlers or []
-        self.initial_handlers = []
-
-    def __enter__(self):
-        """Remove the initial handlers from the logger, create a formatter that includes the analysis ID, use the
-        formatter on the local and extra handlers, and add these handlers to the logger.
-
-        :return None:
-        """
-        self.initial_handlers = list(self.logger.handlers)
-        self._remove_log_handlers()
-
-        # Add the analysis ID to the logging metadata.
-        octue_formatter = create_octue_formatter(
-            get_log_record_attributes_for_environment(),
-            [f"analysis-{self.analysis_id}"],
-        )
-
-        # Apply a local console `StreamHandler` to the logger.
-        apply_log_handler(formatter=octue_formatter, log_level=self.analysis_log_level)
-
-        if not self.extra_log_handlers:
-            return
-
-        uncoloured_octue_formatter = create_octue_formatter(
-            get_log_record_attributes_for_environment(),
-            [f"analysis-{self.analysis_id}"],
-            use_colour=False,
-        )
-
-        # Apply any other given handlers to the logger.
-        for extra_handler in self.extra_log_handlers:
-
-            # Apply an uncoloured log formatter to any file log handlers to keep them readable (i.e. to avoid the ANSI
-            # escape codes).
-            if type(extra_handler).__name__ == "FileHandler":
-                apply_log_handler(
-                    handler=extra_handler,
-                    log_level=self.analysis_log_level,
-                    formatter=uncoloured_octue_formatter,
-                )
-                continue
-
-            if (
-                type(extra_handler).__name__ == "MemoryHandler"
-                and getattr(extra_handler, "target")
-                and type(getattr(extra_handler, "target")).__name__ == "FileHandler"
-            ):
-                apply_log_handler(
-                    handler=extra_handler.target,
-                    log_level=self.analysis_log_level,
-                    formatter=uncoloured_octue_formatter,
-                )
-                continue
-
-            apply_log_handler(handler=extra_handler, log_level=self.analysis_log_level, formatter=octue_formatter)
-
-    def __exit__(self, *args):
-        """Remove the new handlers from the logger and re-add the initial handlers.
-
-        :return None:
-        """
-        self._remove_log_handlers()
-
-        for handler in self.initial_handlers:
-            self.logger.addHandler(handler)
-
-    def _remove_log_handlers(self):
-        """Remove all handlers from the logger.
-
-        :return None:
-        """
-        for handler in list(self.logger.handlers):
-            self.logger.removeHandler(handler)
