@@ -34,7 +34,7 @@ class OrderedMessageHandler:
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
     :param octue.cloud.pub_sub.service.Service receiving_service: the service that's receiving the messages
     :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
-    :param bool record_messages: if `True`, record received messages to the `recorded_messages` attribute
+    :param bool record_messages: if `True`, record received messages in the `received_messages` attribute
     :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
     :param dict|None message_handlers: a mapping of message type names to callables that handle each type of message. The handlers should not mutate the messages.
     :return None:
@@ -55,7 +55,7 @@ class OrderedMessageHandler:
         self.record_messages = record_messages
         self.service_name = service_name
 
-        self.recorded_messages = []
+        self.received_messages = []
         self.received_delivery_acknowledgement = None
         self._subscriber = SubscriberClient()
         self._child_sdk_version = None
@@ -244,7 +244,7 @@ class OrderedMessageHandler:
                 message = self._waiting_messages.pop(self._previous_message_number + 1)
 
                 if self.record_messages:
-                    self.recorded_messages.append(message)
+                    self.received_messages.append(message)
 
                 result = self._handle_message(message)
 

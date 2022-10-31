@@ -341,7 +341,7 @@ class Runner:
             try:
                 return original_ask_method(**kwargs)
             finally:
-                self.crash_diagnostics["questions"][-1]["messages"] = child.recorded_messages
+                self.crash_diagnostics["questions"][-1]["messages"] = child.received_messages
 
         return wrapper
 

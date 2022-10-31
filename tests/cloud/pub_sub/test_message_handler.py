@@ -83,7 +83,7 @@ class TestOrderedMessageHandler(BaseTestCase):
             result = message_handler.handle_messages()
 
         self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handler.recorded_messages, messages)
+        self.assertEqual(message_handler.received_messages, messages)
 
     def test_out_of_order_messages_are_handled_in_order(self):
         """Test that messages received out of order are handled in order."""
@@ -109,7 +109,7 @@ class TestOrderedMessageHandler(BaseTestCase):
 
         self.assertEqual(result, "This is the result.")
         self.assertEqual(
-            message_handler.recorded_messages,
+            message_handler.received_messages,
             [
                 {"type": "test", "message_number": 0},
                 {"type": "test", "message_number": 1},
@@ -146,7 +146,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         self.assertEqual(result, "This is the result.")
 
         self.assertEqual(
-            message_handler.recorded_messages,
+            message_handler.received_messages,
             [
                 {"type": "test", "message_number": 0},
                 {"type": "test", "message_number": 1},
@@ -177,7 +177,7 @@ class TestOrderedMessageHandler(BaseTestCase):
             result = message_handler.handle_messages(timeout=None)
 
         self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handler.recorded_messages, messages)
+        self.assertEqual(message_handler.received_messages, messages)
 
     def test_error_raised_if_delivery_acknowledgement_not_received_in_time(self):
         """Test that an error is raised if delivery acknowledgement isn't received before the given acknowledgement

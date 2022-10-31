@@ -604,13 +604,13 @@ class TestService(BaseTestCase):
             parent.wait_for_answer(subscription, service_name="my-super-service")
 
         # Check that the child's messages have been recorded by the parent.
-        self.assertEqual(parent.recorded_messages[0]["type"], "delivery_acknowledgement")
-        self.assertEqual(parent.recorded_messages[1]["type"], "log_record")
-        self.assertEqual(parent.recorded_messages[2]["type"], "log_record")
-        self.assertEqual(parent.recorded_messages[3]["type"], "log_record")
+        self.assertEqual(parent.received_messages[0]["type"], "delivery_acknowledgement")
+        self.assertEqual(parent.received_messages[1]["type"], "log_record")
+        self.assertEqual(parent.received_messages[2]["type"], "log_record")
+        self.assertEqual(parent.received_messages[3]["type"], "log_record")
 
         self.assertEqual(
-            parent.recorded_messages[4],
+            parent.received_messages[4],
             {"type": "result", "output_values": "Hello! It worked!", "output_manifest": None, "message_number": 4},
         )
 
@@ -627,9 +627,9 @@ class TestService(BaseTestCase):
                 parent.wait_for_answer(subscription, service_name="my-super-service")
 
         # Check that the child's messages have been recorded by the parent.
-        self.assertEqual(parent.recorded_messages[0]["type"], "delivery_acknowledgement")
-        self.assertEqual(parent.recorded_messages[1]["type"], "exception")
-        self.assertIn("Oh no.", parent.recorded_messages[1]["exception_message"])
+        self.assertEqual(parent.received_messages[0]["type"], "delivery_acknowledgement")
+        self.assertEqual(parent.received_messages[1]["type"], "exception")
+        self.assertIn("Oh no.", parent.received_messages[1]["exception_message"])
 
     def test_child_sends_heartbeat_messages_at_expected_regular_intervals(self):
         """Test that children send heartbeat messages at the expected regular intervals."""
@@ -658,11 +658,11 @@ class TestService(BaseTestCase):
 
                 parent.wait_for_answer(subscription, service_name="my-super-service")
 
-        self.assertEqual(parent.recorded_messages[1]["type"], "heartbeat")
-        self.assertEqual(parent.recorded_messages[2]["type"], "heartbeat")
+        self.assertEqual(parent.received_messages[1]["type"], "heartbeat")
+        self.assertEqual(parent.received_messages[2]["type"], "heartbeat")
 
-        first_heartbeat_time = datetime.datetime.fromisoformat(parent.recorded_messages[1]["time"])
-        second_heartbeat_time = datetime.datetime.fromisoformat(parent.recorded_messages[2]["time"])
+        first_heartbeat_time = datetime.datetime.fromisoformat(parent.received_messages[1]["time"])
+        second_heartbeat_time = datetime.datetime.fromisoformat(parent.received_messages[2]["time"])
 
         self.assertAlmostEqual(
             second_heartbeat_time - first_heartbeat_time,
