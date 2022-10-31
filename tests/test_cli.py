@@ -3,21 +3,19 @@ import logging
 import os
 import tempfile
 import unittest.mock
-import uuid
 from unittest import mock
 from unittest.mock import patch
 
 import yaml
 from click.testing import CliRunner
 
-from octue import Runner
 from octue.cli import octue_cli
 from octue.cloud import storage
 from octue.cloud.emulators._pub_sub import MockService, MockSubscription, MockTopic
 from octue.cloud.emulators.child import ServicePatcher
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.configuration import AppConfiguration, ServiceConfiguration
-from octue.resources import Datafile
+from octue.resources import Dataset
 from octue.utils.patches import MultiPatcher
 from tests import TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
@@ -264,8 +262,20 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
 
     @classmethod
     def setUpClass(cls):
+        """Upload the test crash diagnostics data to the cloud storage emulator so the `octue get-crash-diagnostics`
+        CLI command can be tested.
+
+        :return None:
+        """
         super().setUpClass()
-        cls._run_app_that_crashes(cls.CRASH_DIAGNOSTICS_CLOUD_PATH, cls.ANALYSIS_ID)
+
+        crash_diagnostics = Dataset(
+            path=os.path.join(TESTS_DIR, "data", "test_crash_diagnostics"),
+            recursive=True,
+            include_octue_metadata_files=True,
+        )
+
+        crash_diagnostics.upload(storage.path.join(cls.CRASH_DIAGNOSTICS_CLOUD_PATH, cls.ANALYSIS_ID))
 
     def test_get_crash_diagnostics(self):
         """Test that only the values files, manifests, and messages file are downloaded when using the
@@ -341,8 +351,8 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
                 {"configuration_manifest_datasets", "input_manifest_datasets"},
             )
 
-            self.assertEqual(
-                set(directory_contents[1][2]),
+            expected_files = [
+                {},
                 {
                     "configuration_values.json",
                     "configuration_manifest.json",
@@ -350,12 +360,19 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
                     "input_values.json",
                     "questions.json",
                 },
-            )
+                {},
+                {"my_file.txt", ".octue"},
+                {},
+                {"my_file.txt", ".octue"},
+            ]
+
+            self.assertEqual(set(directory_contents[1][2]) & expected_files[1], expected_files[1])
 
             self.assertEqual(directory_contents[2][1], ["configuration_dataset"])
-            self.assertEqual(set(directory_contents[3][2]), {"my_file.txt", ".octue"})
+            self.assertEqual(set(directory_contents[3][2]) & expected_files[3], expected_files[3])
+
             self.assertEqual(directory_contents[4][1], ["input_dataset"])
-            self.assertEqual(set(directory_contents[5][2]), {"my_file.txt", ".octue"})
+            self.assertEqual(set(directory_contents[5][2]) & expected_files[5], expected_files[5])
 
             # Check that the manifests have been updated to use the local paths of the datasets.
             with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "configuration_manifest.json")) as f:
@@ -378,59 +395,6 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
                 input_manifest["datasets"]["input_dataset"],
                 os.path.join(temporary_directory, self.ANALYSIS_ID, "input_manifest_datasets", "input_dataset"),
             )
-
-    @staticmethod
-    def _run_app_that_crashes(crash_diagnostics_cloud_path, analysis_id):
-        """Run an app that crashes and saves crash diagnostics to a directory named after the analysis ID within the
-        directory at the crash diagnostics cloud path.
-
-        :param str crash_diagnostics_cloud_path:
-        :param str analysis_id:
-        :return None:
-        """
-
-        def app(analysis):
-            # Mutate the configuration and input values and manifests so we can test that this doesn't stop the
-            # originals going into the crash diagnostics.
-            analysis.configuration_values = None
-            analysis.configuration_manifest = None
-            analysis.input_values = None
-            analysis.input_manifest = None
-            raise ValueError("This is deliberately raised to simulate app failure.")
-
-        manifests = {}
-
-        for data_type in ("configuration", "input"):
-            dataset_name = f"{data_type}_dataset"
-            dataset_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_datasets", dataset_name)
-
-            with Datafile(storage.path.join(dataset_path, "my_file.txt"), mode="w") as (datafile, f):
-                f.write(f"{data_type} manifest data")
-
-            manifests[data_type] = {"id": str(uuid.uuid4()), "datasets": {dataset_name: dataset_path}}
-
-        runner = Runner(
-            app_src=app,
-            twine={
-                "configuration_values_schema": {"properties": {}},
-                "configuration_manifest": {"datasets": {}},
-                "input_values_schema": {},
-                "input_manifest": {"datasets": {}},
-            },
-            configuration_values={"getting": "ready"},
-            configuration_manifest=manifests["configuration"],
-            crash_diagnostics_cloud_path=crash_diagnostics_cloud_path,
-        )
-
-        try:
-            runner.run(
-                analysis_id=analysis_id,
-                input_values={"hello": "world"},
-                input_manifest=manifests["input"],
-                allow_save_diagnostics_data_on_crash=True,
-            )
-        except ValueError:
-            pass
 
 
 class TestDeployCommand(BaseTestCase):
