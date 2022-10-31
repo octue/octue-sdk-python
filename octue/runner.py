@@ -372,6 +372,9 @@ class Runner:
             if manifest_type in self.crash_diagnostics:
                 manifest = self.crash_diagnostics[manifest_type]
 
+                if not manifest:
+                    continue
+
                 # Upload each dataset and update its path in the manifest.
                 for dataset_name, dataset_path in manifest["datasets"].items():
                     new_dataset_path = storage.path.join(
