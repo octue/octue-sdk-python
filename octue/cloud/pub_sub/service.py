@@ -65,10 +65,10 @@ class Service:
         self.backend = backend
         self.run_function = run_function
         self.name = name
-        self.received_messages = []
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
         self._local_sdk_version = pkg_resources.get_distribution("octue").version
         self._publisher = None
+        self._message_handler = None
 
     def __repr__(self):
         return f"<{type(self).__name__}({self.name or self.id!r})>"
@@ -85,6 +85,18 @@ class Service:
             self._publisher = pubsub_v1.PublisherClient(batch_settings=BATCH_SETTINGS)
 
         return self._publisher
+
+    @property
+    def received_messages(self):
+        """Get the messages received by the service from a child service while running the `wait_for_answer` method. If
+        the `wait_for_answer` method hasn't been run, `None` is returned. If an empty list is returned, no messages have
+        been received.
+
+        :return list(dict)|None:
+        """
+        if self._message_handler:
+            return self._message_handler.received_messages
+        return None
 
     def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False, allow_existing=False):
         """Start the service as a child, waiting to accept questions from any other Octue service using Google Pub/Sub
@@ -320,7 +332,7 @@ class Service:
                 f"Cannot pull from {subscription.path!r} subscription as it is a push subscription."
             )
 
-        message_handler = OrderedMessageHandler(
+        self._message_handler = OrderedMessageHandler(
             subscription=subscription,
             receiving_service=self,
             handle_monitor_message=handle_monitor_message,
@@ -329,14 +341,13 @@ class Service:
         )
 
         try:
-            return message_handler.handle_messages(
+            return self._message_handler.handle_messages(
                 timeout=timeout,
                 delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
                 maximum_heartbeat_interval=maximum_heartbeat_interval,
             )
 
         finally:
-            self.received_messages = message_handler.received_messages
             subscription.delete()
 
     def instantiate_answer_topic(self, question_uuid, service_id=None):

@@ -20,7 +20,6 @@ class Child:
 
     def __init__(self, id, backend, internal_service_name=None):
         self.id = id
-        self.received_messages = []
 
         backend = copy.deepcopy(backend)
         backend_type_name = backend.pop("name")
@@ -37,6 +36,15 @@ class Child:
         :return str:
         """
         return f"<{type(self).__name__}({self.id!r})>"
+
+    @property
+    def received_messages(self):
+        """Get the messages received from the child if it has been asked a question. If it hasn't, `None` is returned.
+        If an empty list is returned, no messages have been received.
+
+        :return list(dict)|None:
+        """
+        return self._service.received_messages
 
     def ask(
         self,
@@ -61,7 +69,7 @@ class Child:
         :param bool subscribe_to_logs: if `True`, subscribe to logs from the child and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will have access to these local files
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
-        :param bool record_messages: if `True`, record messages received from the child in the `received_messages` attribute
+        :param bool record_messages: if `True`, record messages received from the child in the `received_messages` property
         :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved by the child if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
@@ -80,17 +88,13 @@ class Child:
             timeout=timeout,
         )
 
-        try:
-            return self._service.wait_for_answer(
-                subscription=subscription,
-                handle_monitor_message=handle_monitor_message,
-                record_messages=record_messages,
-                service_name=self.id,
-                timeout=timeout,
-            )
-
-        finally:
-            self.received_messages = self._service.received_messages
+        return self._service.wait_for_answer(
+            subscription=subscription,
+            handle_monitor_message=handle_monitor_message,
+            record_messages=record_messages,
+            service_name=self.id,
+            timeout=timeout,
+        )
 
     def ask_multiple(self, *questions):
         """Ask the child multiple questions in parallel and wait for the answers. Each question should be provided as a
