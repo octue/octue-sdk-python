@@ -270,7 +270,7 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
         super().setUpClass()
 
         crash_diagnostics = Dataset(
-            path=os.path.join(TESTS_DIR, "data", "test_crash_diagnostics"),
+            path=os.path.join(TESTS_DIR, "data", "crash_diagnostics"),
             recursive=True,
             include_octue_metadata_files=True,
         )

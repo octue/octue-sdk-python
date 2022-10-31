@@ -5,7 +5,7 @@ from octue.utils.testing import load_test_fixture
 from tests import TESTS_DIR
 
 
-TEST_CRASH_DIAGNOSTICS_PATH = os.path.join(TESTS_DIR, "data", "test_crash_diagnostics")
+TEST_CRASH_DIAGNOSTICS_PATH = os.path.join(TESTS_DIR, "data", "crash_diagnostics")
 
 
 class TestTesting(TestCase):
