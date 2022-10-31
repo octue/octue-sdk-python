@@ -358,9 +358,8 @@ class Runner:
         question_diagnostics_path = storage.path.join(self.crash_diagnostics_cloud_path, analysis.id)
 
         for data_type in ("configuration", "input"):
-
-            # Upload the configuration and input values.
             values_type = f"{data_type}_values"
+            manifest_type = f"{data_type}_manifest"
 
             if self.crash_diagnostics[values_type]:
                 storage_client.upload_from_string(
@@ -368,34 +367,38 @@ class Runner:
                     cloud_path=storage.path.join(question_diagnostics_path, f"{values_type}.json"),
                 )
 
-            # Upload the configuration and input manifests.
-            manifest_type = f"{data_type}_manifest"
-
             if self.crash_diagnostics[manifest_type]:
-                manifest = self.crash_diagnostics[manifest_type]
-
-                if not manifest:
-                    continue
-
-                # Upload each dataset and update its path in the manifest.
-                for dataset_name, dataset_path in manifest["datasets"].items():
-                    new_dataset_path = storage.path.join(
-                        question_diagnostics_path,
-                        f"{manifest_type}_datasets",
-                        dataset_name,
-                    )
-
-                    Dataset(dataset_path).upload(new_dataset_path)
-                    manifest["datasets"][dataset_name] = new_dataset_path
-
-                # Upload manifest.
-                storage_client.upload_from_string(
-                    json.dumps(self.crash_diagnostics[manifest_type], cls=OctueJSONEncoder),
-                    cloud_path=storage.path.join(question_diagnostics_path, f"{manifest_type}.json"),
-                )
+                self._upload_manifest(manifest_type, question_diagnostics_path, storage_client)
 
         # Upload the messages received from any children before the crash.
         storage_client.upload_from_string(
             string=json.dumps(self.crash_diagnostics["questions"], cls=OctueJSONEncoder),
             cloud_path=storage.path.join(question_diagnostics_path, "questions.json"),
+        )
+
+    def _upload_manifest(self, manifest_type, question_diagnostics_path, storage_client):
+        """Upload the manifest of the given type as part of the crash diagnostics.
+
+        :param str manifest_type:
+        :param str question_diagnostics_path:
+        :param octue.cloud.storage.GoogleCloudStorageClient storage_client:
+        :return None:
+        """
+        manifest = self.crash_diagnostics[manifest_type]
+
+        # Upload each dataset and update its path in the manifest.
+        for dataset_name, dataset_path in manifest["datasets"].items():
+            new_dataset_path = storage.path.join(
+                question_diagnostics_path,
+                f"{manifest_type}_datasets",
+                dataset_name,
+            )
+
+            Dataset(dataset_path).upload(new_dataset_path)
+            manifest["datasets"][dataset_name] = new_dataset_path
+
+        # Upload manifest.
+        storage_client.upload_from_string(
+            json.dumps(self.crash_diagnostics[manifest_type], cls=OctueJSONEncoder),
+            cloud_path=storage.path.join(question_diagnostics_path, f"{manifest_type}.json"),
         )
