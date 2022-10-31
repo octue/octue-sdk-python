@@ -593,58 +593,6 @@ class TestService(BaseTestCase):
             },
         )
 
-    def test_messages_sent_to_parent_are_not_recorded_by_child_if_crash_diagnostics_not_allowed(self):
-        """Test that messages sent to the parent by the child aren't recorded by the child if crash diagnostics aren't
-        allowed.
-        """
-        child = MockService(backend=BACKEND, run_function=self.create_run_function())
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
-        with self.service_patcher:
-            child.serve()
-
-            subscription, _ = parent.ask(
-                service_id=child.id,
-                input_values={},
-                subscribe_to_logs=True,
-                allow_save_diagnostics_data_on_crash=False,
-            )
-
-            parent.wait_for_answer(subscription, service_name="my-super-service")
-
-        # Check that the child's messages haven't been recorded.
-        self.assertEqual(child._sent_messages, [])
-
-    def test_messages_sent_to_parent_are_recorded_by_child_if_crash_diagnostics_allowed(self):
-        """Test that messages sent to the parent by the child are recorded by the child if crash diagnostics are
-        allowed.
-        """
-        child = MockService(backend=BACKEND, run_function=self.create_run_function())
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
-        with self.service_patcher:
-            child.serve()
-
-            subscription, _ = parent.ask(
-                service_id=child.id,
-                input_values={},
-                subscribe_to_logs=True,
-                allow_save_diagnostics_data_on_crash=True,
-            )
-
-            parent.wait_for_answer(subscription, service_name="my-super-service")
-
-        # Check that the child's messages have been recorded.
-        self.assertEqual(child._sent_messages[0]["type"], "delivery_acknowledgement")
-        self.assertEqual(child._sent_messages[1]["type"], "log_record")
-        self.assertEqual(child._sent_messages[2]["type"], "log_record")
-        self.assertEqual(child._sent_messages[3]["type"], "log_record")
-
-        self.assertEqual(
-            child._sent_messages[4],
-            {"type": "result", "output_values": "Hello! It worked!", "output_manifest": None, "message_number": 4},
-        )
-
     def test_child_messages_can_be_recorded_by_parent(self):
         """Test that the parent can record messages it receives from its child to a JSON file."""
         child = MockService(backend=BACKEND, run_function=self.create_run_function())
@@ -710,11 +658,11 @@ class TestService(BaseTestCase):
 
                 parent.wait_for_answer(subscription, service_name="my-super-service")
 
-        self.assertEqual(child._sent_messages[1]["type"], "heartbeat")
-        self.assertEqual(child._sent_messages[2]["type"], "heartbeat")
+        self.assertEqual(parent.recorded_messages[1]["type"], "heartbeat")
+        self.assertEqual(parent.recorded_messages[2]["type"], "heartbeat")
 
-        first_heartbeat_time = datetime.datetime.fromisoformat(child._sent_messages[1]["time"])
-        second_heartbeat_time = datetime.datetime.fromisoformat(child._sent_messages[2]["time"])
+        first_heartbeat_time = datetime.datetime.fromisoformat(parent.recorded_messages[1]["time"])
+        second_heartbeat_time = datetime.datetime.fromisoformat(parent.recorded_messages[2]["time"])
 
         self.assertAlmostEqual(
             second_heartbeat_time - first_heartbeat_time,

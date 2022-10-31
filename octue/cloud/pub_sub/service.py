@@ -68,8 +68,6 @@ class Service:
         self.recorded_messages = []
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
         self._local_sdk_version = pkg_resources.get_distribution("octue").version
-        self._record_sent_messages = False
-        self._sent_messages = []
         self._publisher = None
 
     def __repr__(self):
@@ -160,12 +158,6 @@ class Service:
             parent_sdk_version,
             allow_save_diagnostics_data_on_crash,
         ) = self._parse_question(question)
-
-        # Record messages sent to child for potential diagnostics.
-        if allow_save_diagnostics_data_on_crash:
-            self._record_sent_messages = True
-        else:
-            self._record_sent_messages = False
 
         topic = answer_topic or self.instantiate_answer_topic(question_uuid)
         self._send_delivery_acknowledgment(topic)
@@ -406,9 +398,6 @@ class Service:
         )
 
         topic.messages_published += 1
-
-        if self._record_sent_messages:
-            self._sent_messages.append(message)
 
     def _send_delivery_acknowledgment(self, topic, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
