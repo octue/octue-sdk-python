@@ -368,7 +368,7 @@ class Runner:
                 )
 
             if self.crash_diagnostics[manifest_type]:
-                self._upload_manifest(manifest_type, question_diagnostics_path, storage_client)
+                self._upload_manifest(manifest_type, question_diagnostics_path)
 
         # Upload the messages received from any children before the crash.
         storage_client.upload_from_string(
@@ -376,12 +376,11 @@ class Runner:
             cloud_path=storage.path.join(question_diagnostics_path, "questions.json"),
         )
 
-    def _upload_manifest(self, manifest_type, question_diagnostics_path, storage_client):
-        """Upload the manifest of the given type as part of the crash diagnostics.
+    def _upload_manifest(self, manifest_type, question_diagnostics_path):
+        """Upload the serialised manifest of the given type as part of the crash diagnostics.
 
-        :param str manifest_type:
-        :param str question_diagnostics_path:
-        :param octue.cloud.storage.GoogleCloudStorageClient storage_client:
+        :param str manifest_type: one of "configuration_manifest" or "input_manifest"
+        :param str question_diagnostics_path: the path to a cloud directory to upload the manifest into
         :return None:
         """
         manifest = self.crash_diagnostics[manifest_type]
@@ -398,7 +397,7 @@ class Runner:
             manifest["datasets"][dataset_name] = new_dataset_path
 
         # Upload manifest.
-        storage_client.upload_from_string(
+        GoogleCloudStorageClient().upload_from_string(
             json.dumps(self.crash_diagnostics[manifest_type], cls=OctueJSONEncoder),
             cloud_path=storage.path.join(question_diagnostics_path, f"{manifest_type}.json"),
         )
