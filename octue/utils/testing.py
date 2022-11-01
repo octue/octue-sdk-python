@@ -2,6 +2,7 @@ import json
 import os
 
 from octue.cloud.emulators.child import ChildEmulator
+from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
 from octue.resources import Manifest
 
 
@@ -31,7 +32,7 @@ def _load_values(path, stage):
     :param str stage: one of "configuration" or "input"
     :return any|None: the values or `None` if no relevant file exists in the directory specified by `path`
     """
-    path = os.path.join(path, f"{stage}_values.json")
+    path = os.path.join(path, f"{stage}_{VALUES_FILENAME}")
 
     if not os.path.exists(path):
         return
@@ -47,7 +48,7 @@ def _load_manifest(path, stage):
     :param str stage: one of "configuration" or "input"
     :return any|None: the manifest or `None` if no relevant file exists in the directory specified by `path`
     """
-    path = os.path.join(path, f"{stage}_manifest.json")
+    path = os.path.join(path, f"{stage}_{MANIFEST_FILENAME}")
 
     if not os.path.exists(path):
         return

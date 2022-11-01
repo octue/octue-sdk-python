@@ -313,10 +313,10 @@ def get_crash_diagnostics(cloud_path, local_path, download_datasets):
     else:
         filter = lambda blob: any(
             (
-                blob.name.endswith("configuration_values.json"),
-                blob.name.endswith("configuration_manifest.json"),
-                blob.name.endswith("input_values.json"),
-                blob.name.endswith("input_manifest.json"),
+                blob.name.endswith(f"configuration_{VALUES_FILENAME}"),
+                blob.name.endswith(f"configuration_{MANIFEST_FILENAME}"),
+                blob.name.endswith(f"input_{VALUES_FILENAME}"),
+                blob.name.endswith(f"input_{MANIFEST_FILENAME}"),
                 blob.name.endswith("questions.json"),
             )
         )
