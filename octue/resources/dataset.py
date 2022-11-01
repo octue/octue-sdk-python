@@ -43,7 +43,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
     :param iter(str|dict|octue.resources.datafile.Datafile)|None files: the files belonging to the dataset
     :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained within the dataset directory
     :param bool ignore_stored_metadata: if `True`, ignore any metadata stored for this dataset locally or in the cloud and use whatever is given at instantiation
-    :param bool include_octue_metadata_files: if `True`, include `.octue` metadata files in the dataset when instantiating it
+    :param bool include_octue_metadata_files: if `True`, include `.octue` metadata files as datafiles in the dataset when instantiating it
     :param str|None id: an optional UUID to assign to the dataset (defaults to a random UUID if none is given)
     :param str|None name: an optional name to give to the dataset (defaults to the dataset directory name)
     :param dict|octue.resources.tag.TagDict|None tags: key-value pairs with string keys conforming to the Octue tag format (see `TagDict`)

@@ -305,10 +305,11 @@ class Runner:
 
     def _instantiate_children(self, serialised_children):
         """Instantiate children from their serialised form (e.g. as given in the app configuration) so they are ready
-        to be asked questions.
+        to be asked questions. For crash diagnostics, each child's `ask` method is wrapped so the runner can record the
+        questions asked by the app, the responses received to each question, and the order the questions are asked in.
 
         :param list(dict) serialised_children: serialised children from e.g. the app configuration file
-        :return dict: a mapping of child keys to `octue.resources.Child` instances
+        :return dict: a mapping of child keys to `octue.resources.child.Child` instances
         """
         children = {}
 
