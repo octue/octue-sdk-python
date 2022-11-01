@@ -406,23 +406,27 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         if not self._ignore_stored_metadata:
             self._use_cloud_metadata()
 
-        if not self.files:
-            bucket_name = storage.path.split_bucket_name_from_cloud_path(path)[0]
+        # If files have been specified in the cloud metadata:
+        if self.files:
+            return
 
-            if self._include_octue_metadata_files:
-                filter = lambda blob: SIGNED_METADATA_DIRECTORY not in blob.name
-            else:
-                filter = lambda blob: (
-                    SIGNED_METADATA_DIRECTORY not in blob.name and not blob.name.endswith(METADATA_FILENAME)
-                )
+        # If no files have been specified in the cloud metadata:
+        bucket_name = storage.path.split_bucket_name_from_cloud_path(path)[0]
 
-            self.files = FilterSet(
-                Datafile(
-                    path=storage.path.generate_gs_path(bucket_name, blob.name),
-                    ignore_stored_metadata=self._ignore_stored_metadata,
-                )
-                for blob in GoogleCloudStorageClient().scandir(path, recursive=self._recursive, filter=filter)
+        if self._include_octue_metadata_files:
+            filter = lambda blob: SIGNED_METADATA_DIRECTORY not in blob.name
+        else:
+            filter = lambda blob: (
+                SIGNED_METADATA_DIRECTORY not in blob.name and not blob.name.endswith(METADATA_FILENAME)
             )
+
+        self.files = FilterSet(
+            Datafile(
+                path=storage.path.generate_gs_path(bucket_name, blob.name),
+                ignore_stored_metadata=self._ignore_stored_metadata,
+            )
+            for blob in GoogleCloudStorageClient().scandir(path, recursive=self._recursive, filter=filter)
+        )
 
     def _instantiate_from_local_directory(self, path):
         """Instantiate the dataset from a local directory.
