@@ -10,7 +10,8 @@ Services save the following data to the cloud if they crash while processing a q
 - Input manifest and datasets
 - Child configuration values
 - Child configuration manifest and datasets
-- Inputs to and messages received in answer to each question the service asked its children (if it has any)
+- Inputs to and messages received in answer to each question the service asked its children (if it has any). These are
+  stored in the order the questions were asked.
 
 .. important::
 
