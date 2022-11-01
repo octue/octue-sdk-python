@@ -100,12 +100,12 @@ class Serialisable:
 
         return self_as_primitive
 
-    def to_file(self, filename, **kwargs):
+    def to_file(self, path, **kwargs):
         """Write the instance to a JSON file.
 
-        :param str filename: path of file to write to, including relative or absolute path and .json extension
+        :param str path: path of file to write to, including relative or absolute path and .json extension
         :param kwargs: kwargs to pass in to the JSON serialisation
         :return None:
         """
-        with open(filename, "w") as f:
+        with open(path, "w") as f:
             f.write(self.serialise(**kwargs))
