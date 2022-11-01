@@ -278,9 +278,8 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
         crash_diagnostics.upload(storage.path.join(cls.CRASH_DIAGNOSTICS_CLOUD_PATH, cls.ANALYSIS_ID))
 
     def test_get_crash_diagnostics(self):
-        """Test that only the values files, manifests, and messages file are downloaded when using the
-        `get-crash-diagnostics` CLI command. Also test that the original input/configuration values are saved as crash
-        diagnostics despite the app mutating them during its analysis.
+        """Test that only the values files, manifests, and questions file are downloaded when using the
+        `get-crash-diagnostics` CLI command.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
             result = CliRunner().invoke(
@@ -314,17 +313,25 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
                 },
             )
 
-            # Check the configuration and input values are the same as the originals, even though the app mutated them
-            # during the analysis.
-            with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "configuration_values.json")) as f:
-                self.assertEqual(json.load(f), {"getting": "ready"})
+            # Check the questions have been downloaded.
+            with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "questions.json")) as f:
+                questions = json.load(f)
 
-            with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "input_values.json")) as f:
-                self.assertEqual(json.load(f), {"hello": "world"})
+            self.assertEqual(questions[0]["id"], "octue/my-child:latest")
+
+            self.assertEqual(
+                questions[0]["messages"],
+                [
+                    {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
+                    {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
+                    {"type": "monitor_message", "data": '{"sample": "data"}'},
+                    {"type": "result", "output_values": [1, 2, 3, 4, 5], "output_manifest": None},
+                ],
+            )
 
     def test_get_crash_diagnostics_with_datasets(self):
-        """Test that datasets are downloaded as well as the values files, manifests, and messages file when the
-        `get-crash-diagnostics` CLI command is used with the `--download-datasets` flag.
+        """Test that datasets are downloaded as well as the values files, manifests, and questions file when the
+        `get-crash-diagnostics` CLI command is run with the `--download-datasets` flag.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
             result = CliRunner().invoke(
@@ -375,7 +382,19 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
 
             # Check the questions have been downloaded.
             with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "questions.json")) as f:
-                self.assertEqual(len(json.load(f)[0]["messages"]), 4)
+                questions = json.load(f)
+
+            self.assertEqual(questions[0]["id"], "octue/my-child:latest")
+
+            self.assertEqual(
+                questions[0]["messages"],
+                [
+                    {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
+                    {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
+                    {"type": "monitor_message", "data": '{"sample": "data"}'},
+                    {"type": "result", "output_values": [1, 2, 3, 4, 5], "output_manifest": None},
+                ],
+            )
 
 
 class TestDeployCommand(BaseTestCase):
