@@ -20,7 +20,10 @@ class TestTesting(TestCase):
         ) = load_test_fixture_from_crash_diagnostics(path=TEST_CRASH_DIAGNOSTICS_PATH)
 
         self.assertEqual(configuration_values, {"getting": "ready"})
+        self.assertIn("configuration_dataset", configuration_manifest.datasets)
+
         self.assertEqual(input_values, {"hello": "world"})
+        self.assertIn("input_dataset", input_manifest.datasets)
 
         self.assertEqual(len(child_emulators), 1)
         self.assertEqual(child_emulators[0].id, "octue/my-child:latest")
