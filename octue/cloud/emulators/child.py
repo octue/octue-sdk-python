@@ -111,7 +111,7 @@ class ChildEmulator:
         :return dict: a dictionary containing the keys "output_values" and "output_manifest"
         """
         with ServicePatcher():
-            self._child.serve()
+            self._child.serve(allow_existing=True)
 
             subscription, _ = self._parent.ask(
                 service_id=self._child.id,

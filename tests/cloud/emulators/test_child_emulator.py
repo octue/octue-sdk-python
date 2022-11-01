@@ -260,6 +260,21 @@ class TestChildEmulatorAsk(BaseTestCase):
         with self.assertRaises(OSError):
             child_emulator.ask(input_values={})
 
+    def test_ask_more_than_one_question(self):
+        """Test than a child emulator can be asked more than one question without an error occurring."""
+        messages = [
+            {
+                "type": "result",
+                "output_values": [1, 2, 3, 4],
+                "output_manifest": None,
+            },
+        ]
+
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
+        result_0 = child_emulator.ask(input_values={"hello": "world"})
+        result_1 = child_emulator.ask(input_values={"hello": "planet"})
+        self.assertEqual(result_0, result_1)
+
 
 class TestChildEmulatorJSONFiles(BaseTestCase):
 
