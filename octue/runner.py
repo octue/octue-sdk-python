@@ -187,28 +187,7 @@ class Runner:
             )
 
             try:
-                # App as a class that takes "analysis" as a constructor argument and contains a method named "run" that
-                # takes no arguments.
-                if isinstance(self.app_source, type):
-                    self.app_source(analysis).run()
-
-                # App as a module containing a function named "run" that takes "analysis" as an argument.
-                elif hasattr(self.app_source, "run"):
-                    self.app_source.run(analysis)
-
-                # App as a string path to a module containing a class named "App" or a function named "run". The same
-                # other specifications apply as described above.
-                elif isinstance(self.app_source, str):
-
-                    with AppFrom(self.app_source) as app:
-                        if hasattr(app.app_module, "App"):
-                            app.app_module.App(analysis).run()
-                        else:
-                            app.app_module.run(analysis)
-
-                # App as a function that takes "analysis" as an argument.
-                else:
-                    self.app_source(analysis)
+                self._load_and_run_app(analysis)
 
             except ModuleNotFoundError as e:
                 raise ModuleNotFoundError(f"{e.msg} in {os.path.abspath(self.app_source)!r}.")
@@ -351,6 +330,36 @@ class Runner:
                 )
 
         return wrapper
+
+    def _load_and_run_app(self, analysis):
+        """Load and run the app on the given analysis object.
+
+        :param octue.resources.analysis.Analysis analysis: the analysis object containing the configuration and inputs to run the app on
+        :return None:
+        """
+        # App as a class that takes "analysis" as a constructor argument and contains a method named "run" that
+        # takes no arguments.
+        if isinstance(self.app_source, type):
+            self.app_source(analysis).run()
+            return
+
+        # App as a module containing a function named "run" that takes "analysis" as an argument.
+        if hasattr(self.app_source, "run"):
+            self.app_source.run(analysis)
+            return
+
+        # App as a string path to a module containing a class named "App" or a function named "run". The same
+        # other specifications apply as described above.
+        if isinstance(self.app_source, str):
+            with AppFrom(self.app_source) as app:
+                if hasattr(app.app_module, "App"):
+                    app.app_module.App(analysis).run()
+                else:
+                    app.app_module.run(analysis)
+            return
+
+        # App as a function that takes "analysis" as an argument.
+        self.app_source(analysis)
 
     def _save_crash_diagnostics_data(self, analysis):
         """Save the following data to the crash diagnostics cloud path:
