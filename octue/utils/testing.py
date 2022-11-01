@@ -5,7 +5,7 @@ from octue.cloud.emulators.child import ChildEmulator
 from octue.resources import Manifest
 
 
-def load_test_fixture(path):
+def load_test_fixture_from_crash_diagnostics(path):
     """Load a test fixture from the given path to a local directory created by the `octue get-crash-diagnostics` CLI
     command. The configuration values, configuration manifest, input values, and input manifest are returned if
     available. A list of child emulators is returned if the service has children and asked questions to any of them.
