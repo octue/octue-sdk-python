@@ -440,11 +440,13 @@ class TestRunner(BaseTestCase):
             questions = json.load(f)
 
         # First question.
+        self.assertEqual(questions[0]["key"], "my-child")
         self.assertEqual(questions[0]["id"], "octue/a-child:latest")
         self.assertEqual(questions[0]["input_values"], [1, 2, 3, 4])
         self.assertEqual(len(questions[0]["messages"]), 2)
 
         # Second question.
+        self.assertEqual(questions[1]["key"], "another-child")
         self.assertEqual(questions[1]["id"], "octue/another-child:latest")
         self.assertEqual(questions[1]["input_values"], "miaow")
 
@@ -532,16 +534,22 @@ class TestRunner(BaseTestCase):
             questions = json.load(f)
 
         # First question.
+        self.assertEqual(questions[0]["key"], "my-child")
         self.assertEqual(questions[0]["id"], "octue/the-child:latest")
         self.assertEqual(questions[0]["input_values"], [1, 2, 3, 4])
         self.assertEqual(len(questions[0]["messages"]), 2)
 
         # Second question.
+        self.assertEqual(questions[1]["key"], "another-child")
         self.assertEqual(questions[1]["id"], "octue/yet-another-child:latest")
         self.assertEqual(questions[1]["input_values"], "miaow")
 
-        # This should be 4 but log messages aren't currently being handled by the child emulator correctly.
-        self.assertEqual(len(questions[1]["messages"]), 2)
+        self.assertEqual(questions[1]["messages"][1]["type"], "exception")
+        self.assertEqual(questions[1]["messages"][1]["exception_type"], "ValueError")
+        self.assertEqual(
+            questions[1]["messages"][1]["exception_message"],
+            "Error in <MockService('octue/yet-another-child:latest')>: Deliberately raised for testing.",
+        )
 
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
