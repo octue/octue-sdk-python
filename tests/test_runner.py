@@ -282,6 +282,13 @@ class TestRunner(BaseTestCase):
         crash_diagnostics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_diagnostics")
 
         def app(analysis):
+            # Mutate the configuration and input attributes so we can test the originals are preserved for crash
+            # diagnostics.
+            analysis.configuration_values = None
+            analysis.configuration_manifest = None
+            analysis.input_values = None
+            analysis.input_manifest = None
+
             analysis.children["my-child"].ask(input_values=[1, 2, 3, 4])
             analysis.children["another-child"].ask(input_values="miaow")
             raise ValueError("This is deliberately raised to simulate app failure.")
