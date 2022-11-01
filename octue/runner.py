@@ -326,10 +326,11 @@ class Runner:
         return children
 
     def _add_child_question_and_response_recording(self, child):
-        """Add question and response recording to the `ask` method of the given child. This allows the order of
-        questions to and the resulting responses from each child to be recorded by the runner for crash diagnostics.
+        """Add question and response recording to the `ask` method of the given child. This allows the runner to record
+        the questions asked by the app, the responses received to each question, and the order the questions are asked
+        in for crash diagnostics.
 
-        :param octue.resources.child.Child child:
+        :param octue.resources.child.Child child: the child to add question and response recording to
         :return callable: the wrapped `Child.ask` method
         """
         # Copy the `ask` method to avoid an infinite recursion.
@@ -339,12 +340,13 @@ class Runner:
             # Convert args to kwargs so all inputs to the `ask` method can be recorded whether they're provided
             # positionally or as keyword arguments.
             kwargs.update(dict(zip(original_ask_method.__func__.__code__.co_varnames, args)))
-            self.crash_diagnostics["questions"].append({"id": child.id, **kwargs})
 
             try:
                 return original_ask_method(**kwargs)
             finally:
-                self.crash_diagnostics["questions"][-1]["messages"] = child.received_messages
+                self.crash_diagnostics["questions"].append(
+                    {"id": child.id, **kwargs, "messages": child.received_messages}
+                )
 
         return wrapper
 
