@@ -212,7 +212,8 @@ change correspondingly (or at all). So, it's up to you to define a set of realis
   the child's twine - this is because the twine is only available to the real child. This is ok - you're testing your
   service, not the child.
 
-You can create test fixtures manually or by using the `Child.received_messages` property after questioning a real child.
+You can create test fixtures manually or by using the ``Child.received_messages`` property after questioning a real
+child.
 
 .. code-block:: python
 
@@ -260,3 +261,5 @@ You can then feed these into a child emulator to emulate one possible response o
 
     child_emulator.ask(input_values=[1, 2, 3, 4])
     >>> {"some": "results"}
+
+You can also create test fixtures from :ref:`downloaded service crash diagnostics <test_fixtures_from_crash_diagnostics>`.

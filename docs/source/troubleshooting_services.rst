@@ -51,6 +51,7 @@ More information on the command:
                               manifests to the new local paths.
       -h, --help              Show this message and exit.
 
+.. _test_fixtures_from_crash_diagnostics:
 
 Creating test fixtures from crash diagnostics
 =============================================
