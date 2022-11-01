@@ -10,8 +10,9 @@ from jsonschema.validators import RefResolver
 import twined
 from octue import Runner, exceptions
 from octue.cloud import storage
+from octue.cloud.emulators import ChildEmulator
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.resources import Manifest
+from octue.resources import Dataset, Manifest
 from octue.resources.datafile import Datafile
 from tests import TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
@@ -33,6 +34,11 @@ class TestRunner(BaseTestCase):
         """Ensures that runner whose twine requires configuration can be instantiated"""
         runner = Runner(app_src=".", twine="{}")
         self.assertEqual(runner.__class__.__name__, "Runner")
+
+    def test_repr(self):
+        """Test that runners are represented as a string correctly."""
+        runner = Runner(app_src=".", twine="{}", service_id="octue/my-service:latest")
+        self.assertEqual(repr(runner), "<Runner('octue/my-service:latest')>")
 
     def test_run_with_configuration_passes(self):
         """Ensures that runs can be made with configuration only"""
@@ -276,15 +282,28 @@ class TestRunner(BaseTestCase):
         crash_diagnostics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_diagnostics")
 
         def app(analysis):
+            # Mutate the configuration and input attributes so we can test the originals are preserved for crash
+            # diagnostics.
+            analysis.configuration_values = None
+            analysis.configuration_manifest = None
+            analysis.input_values = None
+            analysis.input_manifest = None
+
+            analysis.children["my-child"].ask(input_values=[1, 2, 3, 4])
+            analysis.children["another-child"].ask(input_values="miaow")
             raise ValueError("This is deliberately raised to simulate app failure.")
 
         manifests = {}
 
         for data_type in ("configuration", "input"):
             dataset_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_datasets", f"{data_type}_dataset")
+            datafile = Datafile(storage.path.join(dataset_path, "my_file.txt"), tags={"some": f"{data_type}_info"})
 
-            with Datafile(storage.path.join(dataset_path, "my_file.txt"), mode="w") as (datafile, f):
+            with datafile.open("w") as f:
                 f.write(f"{data_type} manifest data")
+
+            dataset = Dataset(dataset_path, labels={f"some-{data_type}-metadata"})
+            dataset.update_cloud_metadata()
 
             manifests[data_type] = {"id": str(uuid.uuid4()), "datasets": {"met_mast_data": dataset_path}}
 
@@ -293,35 +312,65 @@ class TestRunner(BaseTestCase):
             twine={
                 "configuration_values_schema": {"properties": {}},
                 "configuration_manifest": {"datasets": {}},
+                "children": [
+                    {"key": "my-child"},
+                    {"key": "another-child"},
+                ],
                 "input_values_schema": {},
                 "input_manifest": {"datasets": {}},
             },
             configuration_values={"getting": "ready"},
             configuration_manifest=manifests["configuration"],
+            children=[
+                {
+                    "key": "my-child",
+                    "id": "octue/a-child:latest",
+                    "backend": {
+                        "name": "GCPPubSubBackend",
+                        "project_name": "my-project",
+                    },
+                },
+                {
+                    "key": "another-child",
+                    "id": "octue/another-child:latest",
+                    "backend": {
+                        "name": "GCPPubSubBackend",
+                        "project_name": "my-project",
+                    },
+                },
+            ],
             crash_diagnostics_cloud_path=crash_diagnostics_cloud_path,
+            service_id="octue/my-app:2.5.7",
         )
+
+        emulated_children = [
+            ChildEmulator(
+                id="octue/a-child:latest",
+                messages=[
+                    {"type": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
+                ],
+            ),
+            ChildEmulator(
+                id="octue/another-child:latest",
+                messages=[
+                    {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
+                    {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
+                    {"type": "result", "output_values": "woof", "output_manifest": None},
+                ],
+            ),
+        ]
 
         analysis_id = "4b91e3f0-4492-49e3-8061-34f1942dc68a"
 
-        mock_sent_messages = [
-            {"type": "delivery_acknowledgement", "delivery_time": "2022-08-11 13:02:54.775794", "message_number": 0},
-            {
-                "type": "exception",
-                "exception_type": "ValueError",
-                "exception_message": "This is deliberately raised to simulate app failure.",
-                "traceback": "",
-                "message_number": 1,
-            },
-        ]
-
-        with self.assertRaises(ValueError):
-            runner.run(
-                analysis_id=analysis_id,
-                input_values={"hello": "world"},
-                input_manifest=manifests["input"],
-                allow_save_diagnostics_data_on_crash=True,
-                sent_messages=mock_sent_messages,
-            )
+        # Run the app.
+        with patch("octue.runner.Child", side_effect=emulated_children):
+            with self.assertRaises(ValueError):
+                runner.run(
+                    analysis_id=analysis_id,
+                    input_values={"hello": "world"},
+                    input_manifest=manifests["input"],
+                    allow_save_diagnostics_data_on_crash=True,
+                )
 
         storage_client = GoogleCloudStorageClient()
         question_crash_diagnostics_path = storage.path.join(crash_diagnostics_cloud_path, analysis_id)
@@ -345,7 +394,10 @@ class TestRunner(BaseTestCase):
             storage.path.join(question_crash_diagnostics_path, "configuration_manifest.json")
         )
         configuration_dataset = configuration_manifest.datasets["met_mast_data"]
+        self.assertEqual(configuration_dataset.labels, {"some-configuration-metadata"})
+
         configuration_file = configuration_dataset.files.one()
+        self.assertEqual(configuration_file.tags, {"some": "configuration_info"})
 
         with configuration_file.open() as f:
             self.assertEqual(f.read(), "configuration manifest data")
@@ -369,7 +421,10 @@ class TestRunner(BaseTestCase):
         # Check the input manifest and dataset.
         input_manifest = Manifest.from_cloud(storage.path.join(question_crash_diagnostics_path, "input_manifest.json"))
         input_dataset = input_manifest.datasets["met_mast_data"]
+        self.assertEqual(input_dataset.labels, {"some-input-metadata"})
+
         input_file = input_dataset.files.one()
+        self.assertEqual(input_file.tags, {"some": "input_info"})
 
         with input_file.open() as f:
             self.assertEqual(f.read(), "input manifest data")
@@ -387,11 +442,121 @@ class TestRunner(BaseTestCase):
             ),
         )
 
-        # Check the child's messages are uploaded.
-        with Datafile(storage.path.join(question_crash_diagnostics_path, "messages.json")) as (_, f):
-            messages = json.load(f)
+        # Check that messages from the children have been recorded.
+        with Datafile(storage.path.join(question_crash_diagnostics_path, "questions.json")) as (_, f):
+            questions = json.load(f)
 
-        self.assertEqual(messages, mock_sent_messages)
+        # First question.
+        self.assertEqual(questions[0]["key"], "my-child")
+        self.assertEqual(questions[0]["id"], "octue/a-child:latest")
+        self.assertEqual(questions[0]["input_values"], [1, 2, 3, 4])
+        self.assertEqual(len(questions[0]["messages"]), 2)
+
+        # Second question.
+        self.assertEqual(questions[1]["key"], "another-child")
+        self.assertEqual(questions[1]["id"], "octue/another-child:latest")
+        self.assertEqual(questions[1]["input_values"], "miaow")
+
+        # This should be 4 but log messages aren't currently being handled by the child emulator correctly.
+        self.assertEqual(len(questions[1]["messages"]), 2)
+
+    def test_child_messages_saved_even_if_child_ask_method_raises_error(self):
+        """Test that messages from the child are still saved even if an error is raised within the `Child.ask` method."""
+        crash_diagnostics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_diagnostics")
+
+        def app(analysis):
+            analysis.children["my-child"].ask(input_values=[1, 2, 3, 4])
+            analysis.children["another-child"].ask(input_values="miaow")
+
+        runner = Runner(
+            app_src=app,
+            twine={
+                "children": [
+                    {"key": "my-child"},
+                    {"key": "another-child"},
+                ],
+                "input_values_schema": {},
+            },
+            children=[
+                {
+                    "key": "my-child",
+                    "id": "octue/the-child:latest",
+                    "backend": {
+                        "name": "GCPPubSubBackend",
+                        "project_name": "my-project",
+                    },
+                },
+                {
+                    "key": "another-child",
+                    "id": "octue/yet-another-child:latest",
+                    "backend": {
+                        "name": "GCPPubSubBackend",
+                        "project_name": "my-project",
+                    },
+                },
+            ],
+            crash_diagnostics_cloud_path=crash_diagnostics_cloud_path,
+            service_id="octue/my-app:2.5.8",
+        )
+
+        emulated_children = [
+            ChildEmulator(
+                id="octue/the-child:latest",
+                messages=[
+                    {"type": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
+                ],
+            ),
+            ChildEmulator(
+                id="octue/yet-another-child:latest",
+                messages=[
+                    {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
+                    {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
+                    {
+                        "type": "exception",
+                        "exception_type": "ValueError",
+                        "exception_message": "Deliberately raised for testing.",
+                    },
+                ],
+            ),
+        ]
+
+        analysis_id = "4b91e3f0-4492-49e3-8061-34f1942dc68a"
+
+        # Run the app.
+        with patch("octue.runner.Child", side_effect=emulated_children):
+            with self.assertRaises(ValueError):
+                runner.run(analysis_id=analysis_id, input_values={"hello": "world"})
+
+        storage_client = GoogleCloudStorageClient()
+        question_crash_diagnostics_path = storage.path.join(crash_diagnostics_cloud_path, analysis_id)
+
+        # Check the input values.
+        self.assertEqual(
+            storage_client.download_as_string(storage.path.join(question_crash_diagnostics_path, "input_values.json")),
+            json.dumps({"hello": "world"}),
+        )
+
+        # Check that messages from the children have been recorded.
+        with Datafile(storage.path.join(question_crash_diagnostics_path, "questions.json")) as (_, f):
+            questions = json.load(f)
+
+        # First question.
+        self.assertEqual(questions[0]["key"], "my-child")
+        self.assertEqual(questions[0]["id"], "octue/the-child:latest")
+        self.assertEqual(questions[0]["input_values"], [1, 2, 3, 4])
+        self.assertEqual(len(questions[0]["messages"]), 2)
+
+        # Second question.
+        self.assertEqual(questions[1]["key"], "another-child")
+        self.assertEqual(questions[1]["id"], "octue/yet-another-child:latest")
+        self.assertEqual(questions[1]["input_values"], "miaow")
+
+        self.assertEqual(questions[1]["messages"][1]["type"], "exception")
+        self.assertEqual(questions[1]["messages"][1]["exception_type"], "ValueError")
+        self.assertEqual(
+            questions[1]["messages"][1]["exception_message"],
+            "Error in <MockService('octue/yet-another-child:latest')>: Deliberately raised for testing.",
+        )
 
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):

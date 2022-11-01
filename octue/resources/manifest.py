@@ -55,16 +55,28 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
         """
         return all(dataset.all_files_are_in_cloud for dataset in self.datasets.values())
 
+    def update_dataset_paths(self, path_generator):
+        """Update the path of each dataset according to the given path generator function.
+
+        :param callable path_generator: a function taking a `Dataset` as its only argument and returning the new path of the dataset
+        :return None:
+        """
+        for name, dataset in self.datasets.items():
+            self.datasets[name].path = path_generator(dataset)
+
     def use_signed_urls_for_datasets(self):
         """Generate signed URLs for any cloud datasets in the manifest and use these as their paths instead of regular
         cloud paths. URLs will not be generated for any local datasets in the manifest.
 
         :return None:
         """
-        for name, dataset in self.datasets.items():
-            if dataset.exists_in_cloud:
-                self.datasets[name].path = dataset.generate_signed_url()
 
+        def signed_url_path_generator(dataset):
+            if dataset.exists_in_cloud:
+                return dataset.generate_signed_url()
+            return dataset.path
+
+        self.update_dataset_paths(signed_url_path_generator)
         logger.debug("Cloud paths (cloud URIs) for datasets replaced with signed URLs in %r.", self)
 
     def to_cloud(self, cloud_path):

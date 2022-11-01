@@ -38,26 +38,35 @@ class Serialisable:
     _SERIALISE_FIELDS = None
     _EXCLUDE_SERIALISE_FIELDS = tuple()
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     @classmethod
     def deserialise(cls, serialised_object, from_string=False):
         """Deserialise the given JSON-serialised object into an instance of the class.
 
         :param str|dict serialised_object: the string or dictionary of python primitives to deserialise into an instance
         :param bool from_string: if ``True``, deserialise from a JSON string; otherwise, deserialise from a dictionary
-        :return any:
+        :return any: an instance of the class
         """
         if from_string:
             serialised_object = json.loads(serialised_object, cls=OctueJSONDecoder)
 
         return cls(**serialised_object)
 
+    @classmethod
+    def from_file(cls, path, **kwargs):
+        """Deserialise an instance from the given file.
+
+        :param str path: the path to the JSON file containing the serialised instance
+        :param kwargs: kwargs to pass in to the JSON deserialisation
+        :return any: an instance of the class
+        """
+        with open(path) as f:
+            return cls.deserialise(json.load(f, cls=OctueJSONDecoder, **kwargs))
+
     def serialise(self, **kwargs):
         """Serialise the instance to a JSON string of primitives. See the ``Serialisable`` constructor for more
         information.
 
+        :param kwargs: kwargs to pass in to the JSON serialisation
         :return str: a JSON string containing the instance as a serialised python primitive
         """
         return json.dumps(self.to_primitive(), cls=OctueJSONEncoder, sort_keys=True, indent=4, **kwargs)
@@ -91,11 +100,12 @@ class Serialisable:
 
         return self_as_primitive
 
-    def to_file(self, filename, **kwargs):
+    def to_file(self, path, **kwargs):
         """Write the instance to a JSON file.
 
-        :param str filename: path of file to write to, including relative or absolute path and .json extension
+        :param str path: path of file to write to, including relative or absolute path and .json extension
+        :param kwargs: kwargs to pass in to the JSON serialisation
         :return None:
         """
-        with open(filename, "w") as f:
+        with open(path, "w") as f:
             f.write(self.serialise(**kwargs))

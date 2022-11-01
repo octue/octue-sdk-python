@@ -76,6 +76,14 @@ class ChildEmulator:
         """
         return f"<{type(self).__name__}({self.id!r})>"
 
+    @property
+    def received_messages(self):
+        """Get the messages received from the child.
+
+        :return list(dict):
+        """
+        return self._parent.received_messages
+
     def ask(
         self,
         input_values=None,
@@ -83,7 +91,7 @@ class ChildEmulator:
         subscribe_to_logs=True,
         allow_local_files=False,
         handle_monitor_message=None,
-        record_messages_to=None,
+        record_messages=True,
         question_uuid=None,
         timeout=86400,
     ):
@@ -96,14 +104,14 @@ class ChildEmulator:
         :param bool subscribe_to_logs: if `True`, subscribe to logs from the child and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will have access to these local files
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
-        :param str|None record_messages_to: if given a path to a JSON file, messages received in response to the question are saved to it
+        :param bool record_messages: if `True`, record messages received from the child in the `received_messages` property
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
         :return dict: a dictionary containing the keys "output_values" and "output_manifest"
         """
         with ServicePatcher():
-            self._child.serve()
+            self._child.serve(allow_existing=True)
 
             subscription, _ = self._parent.ask(
                 service_id=self._child.id,
@@ -117,7 +125,7 @@ class ChildEmulator:
             return self._parent.wait_for_answer(
                 subscription,
                 handle_monitor_message=handle_monitor_message,
-                record_messages_to=record_messages_to,
+                record_messages=record_messages,
                 service_name=self.id,
                 timeout=timeout,
             )
@@ -131,7 +139,6 @@ class ChildEmulator:
         analysis_log_handler,
         handle_monitor_message,
         allow_save_diagnostics_data_on_crash,
-        sent_messages,
     ):
         """Emulate analysis of a question by handling the messages given at instantiation in the order given.
 
@@ -142,7 +149,6 @@ class ChildEmulator:
         :param logging.Handler|None analysis_log_handler: the `logging.Handler` instance which will be used to handle logs for this analysis run (this is ignored by the emulator)
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
         :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved if the analysis fails
-        :param list|None sent_messages: the list of messages sent by the service running this runner (this should update in real time) to save if crash diagnostics are enabled
         :return octue.resources.analysis.Analysis:
         """
         for message in self.messages:
@@ -158,7 +164,6 @@ class ChildEmulator:
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=handle_monitor_message,
                 allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
-                sent_messages=sent_messages,
             )
 
             if result:

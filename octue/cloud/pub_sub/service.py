@@ -67,9 +67,8 @@ class Service:
         self.name = name
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
         self._local_sdk_version = pkg_resources.get_distribution("octue").version
-        self._record_sent_messages = False
-        self._sent_messages = []
         self._publisher = None
+        self._message_handler = None
 
     def __repr__(self):
         return f"<{type(self).__name__}({self.name or self.id!r})>"
@@ -86,6 +85,18 @@ class Service:
             self._publisher = pubsub_v1.PublisherClient(batch_settings=BATCH_SETTINGS)
 
         return self._publisher
+
+    @property
+    def received_messages(self):
+        """Get the messages received by the service from a child service while running the `wait_for_answer` method. If
+        the `wait_for_answer` method hasn't been run, `None` is returned. If an empty list is returned, no messages have
+        been received.
+
+        :return list(dict)|None:
+        """
+        if self._message_handler:
+            return self._message_handler.received_messages
+        return None
 
     def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False, allow_existing=False):
         """Start the service as a child, waiting to accept questions from any other Octue service using Google Pub/Sub
@@ -160,12 +171,6 @@ class Service:
             allow_save_diagnostics_data_on_crash,
         ) = self._parse_question(question)
 
-        # Record messages sent to child for potential diagnostics.
-        if allow_save_diagnostics_data_on_crash:
-            self._record_sent_messages = True
-        else:
-            self._record_sent_messages = False
-
         topic = answer_topic or self.instantiate_answer_topic(question_uuid)
         self._send_delivery_acknowledgment(topic)
 
@@ -196,7 +201,6 @@ class Service:
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=functools.partial(self._send_monitor_message, topic=topic),
                 allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
-                sent_messages=self._sent_messages,
             )
 
             if analysis.output_manifest is None:
@@ -303,7 +307,7 @@ class Service:
         self,
         subscription,
         handle_monitor_message=None,
-        record_messages_to=None,
+        record_messages=True,
         service_name="REMOTE",
         timeout=60,
         delivery_acknowledgement_timeout=120,
@@ -314,7 +318,7 @@ class Service:
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
-        :param str|None record_messages_to: if given a path to a JSON file, messages received in response to the question are saved to it
+        :param bool record_messages: if `True`, record messages received from the child in the `received_messages` attribute
         :param str service_name: a name by which to refer to the child subscribed to (used for labelling its log messages if subscribed to)
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
@@ -328,20 +332,21 @@ class Service:
                 f"Cannot pull from {subscription.path!r} subscription as it is a push subscription."
             )
 
-        message_handler = OrderedMessageHandler(
+        self._message_handler = OrderedMessageHandler(
             subscription=subscription,
             receiving_service=self,
             handle_monitor_message=handle_monitor_message,
             service_name=service_name,
-            record_messages_to=record_messages_to,
+            record_messages=record_messages,
         )
 
         try:
-            return message_handler.handle_messages(
+            return self._message_handler.handle_messages(
                 timeout=timeout,
                 delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
                 maximum_heartbeat_interval=maximum_heartbeat_interval,
             )
+
         finally:
             subscription.delete()
 
@@ -404,9 +409,6 @@ class Service:
         )
 
         topic.messages_published += 1
-
-        if self._record_sent_messages:
-            self._sent_messages.append(message)
 
     def _send_delivery_acknowledgment(self, topic, timeout=30):
         """Send an acknowledgement of question receipt to the parent.

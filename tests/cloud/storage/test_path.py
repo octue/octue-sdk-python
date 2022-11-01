@@ -30,6 +30,19 @@ class TestStorage(BaseTestCase):
         # Ensure trailing slashes don't affect the result.
         self.assertEqual(storage.path.split_bucket_name_from_cloud_path("gs://my-bucket/"), ("my-bucket", ""))
 
+    def test_split_bucket_name_from_signed_url(self):
+        """Test that the bucket name can be split from the path in a signed URL."""
+        for access_endpoint in ("http://localhost:52764", "https://storage.googleapis.com"):
+            with self.subTest(access_endpoint=access_endpoint):
+                self.assertEqual(
+                    storage.path.split_bucket_name_from_cloud_path(
+                        f"{access_endpoint}/my-bucket/datasets/the_dataset/.signed_metadata_files/cyber-puffin-of-"
+                        "fantastic-enrichment?Expires=1667910615&GoogleAccessId=my-service-account%40my-project.iam."
+                        "gserviceaccount.com&Signature=mock-signature"
+                    ),
+                    ("my-bucket", "datasets/the_dataset/.signed_metadata_files/cyber-puffin-of-fantastic-enrichment"),
+                )
+
     def test_strip_protocol_from_path(self):
         """Test that the `gs://` protocol can be stripped from a path."""
         self.assertEqual(storage.path.strip_protocol_from_path("gs://my-bucket"), "my-bucket")

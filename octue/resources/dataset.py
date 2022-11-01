@@ -43,6 +43,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
     :param iter(str|dict|octue.resources.datafile.Datafile)|None files: the files belonging to the dataset
     :param bool recursive: if `True`, include in the dataset all files in the subdirectories recursively contained within the dataset directory
     :param bool ignore_stored_metadata: if `True`, ignore any metadata stored for this dataset locally or in the cloud and use whatever is given at instantiation
+    :param bool include_octue_metadata_files: if `True`, include `.octue` metadata files as datafiles in the dataset when instantiating it
     :param str|None id: an optional UUID to assign to the dataset (defaults to a random UUID if none is given)
     :param str|None name: an optional name to give to the dataset (defaults to the dataset directory name)
     :param dict|octue.resources.tag.TagDict|None tags: key-value pairs with string keys conforming to the Octue tag format (see `TagDict`)
@@ -62,6 +63,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         files=None,
         recursive=False,
         ignore_stored_metadata=False,
+        include_octue_metadata_files=False,
         id=None,
         name=None,
         tags=None,
@@ -72,6 +74,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         self.files = FilterSet()
         self._recursive = recursive
         self._ignore_stored_metadata = ignore_stored_metadata
+        self._include_octue_metadata_files = include_octue_metadata_files
         self._cloud_metadata = {}
         self._instantiated_from_files_argument = False
 
@@ -403,24 +406,27 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         if not self._ignore_stored_metadata:
             self._use_cloud_metadata()
 
-        if not self.files:
-            bucket_name = storage.path.split_bucket_name_from_cloud_path(path)[0]
+        # If files have been specified in the cloud metadata:
+        if self.files:
+            return
 
-            self.files = FilterSet(
-                Datafile(
-                    path=storage.path.generate_gs_path(bucket_name, blob.name),
-                    ignore_stored_metadata=self._ignore_stored_metadata,
-                )
-                for blob in GoogleCloudStorageClient().scandir(
-                    path,
-                    recursive=self._recursive,
-                    filter=(
-                        lambda blob: (
-                            not blob.name.endswith(METADATA_FILENAME) and SIGNED_METADATA_DIRECTORY not in blob.name
-                        )
-                    ),
-                )
+        # If no files have been specified in the cloud metadata:
+        bucket_name = storage.path.split_bucket_name_from_cloud_path(path)[0]
+
+        if self._include_octue_metadata_files:
+            filter = lambda blob: SIGNED_METADATA_DIRECTORY not in blob.name
+        else:
+            filter = lambda blob: (
+                SIGNED_METADATA_DIRECTORY not in blob.name and not blob.name.endswith(METADATA_FILENAME)
             )
+
+        self.files = FilterSet(
+            Datafile(
+                path=storage.path.generate_gs_path(bucket_name, blob.name),
+                ignore_stored_metadata=self._ignore_stored_metadata,
+            )
+            for blob in GoogleCloudStorageClient().scandir(path, recursive=self._recursive, filter=filter)
+        )
 
     def _instantiate_from_local_directory(self, path):
         """Instantiate the dataset from a local directory.
@@ -433,7 +439,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         for level, (directory_path, _, filenames) in enumerate(os.walk(path)):
             for filename in filenames:
 
-                if filename == METADATA_FILENAME:
+                if not self._include_octue_metadata_files and filename == METADATA_FILENAME:
                     continue
 
                 if not self._recursive and level > 0:

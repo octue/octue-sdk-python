@@ -20,7 +20,7 @@ from octue.configuration import load_service_and_app_configuration
 from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
 from octue.exceptions import ServiceAlreadyExists
 from octue.log_handlers import apply_log_handler, get_remote_handler
-from octue.resources import service_backends
+from octue.resources import Manifest, service_backends
 from octue.runner import Runner
 from octue.utils.encoders import OctueJSONEncoder
 from twined import Twine
@@ -289,24 +289,60 @@ def start(service_config, revision_tag, timeout, no_rm):
 @click.option(
     "--local-path",
     type=click.Path(file_okay=False),
-    default=None,
+    default=".",
     help="The path to a directory to store the directory of diagnostics data in. Defaults to the current working "
     "directory.",
 )
-def get_crash_diagnostics(cloud_path, local_path):
+@click.option(
+    "--download-datasets",
+    is_flag=True,
+    help="If provided, download any datasets from the crash diagnostics and update their paths in the configuration and "
+    "input manifests to the new local paths.",
+)
+def get_crash_diagnostics(cloud_path, local_path, download_datasets):
     """Download crash diagnostics for an analysis from the given directory in Google Cloud Storage. The cloud path
     should end in the analysis ID.
 
     CLOUD_PATH: The path to the directory in Google Cloud Storage containing the diagnostics data.
     """
     analysis_id = storage.path.split(cloud_path)[-1]
-    local_path = os.path.join((local_path or "."), analysis_id)
+    local_path = os.path.join(local_path, analysis_id)
+
+    if download_datasets:
+        filter = None
+    else:
+        filter = lambda blob: any(
+            (
+                blob.name.endswith(f"configuration_{VALUES_FILENAME}"),
+                blob.name.endswith(f"configuration_{MANIFEST_FILENAME}"),
+                blob.name.endswith(f"input_{VALUES_FILENAME}"),
+                blob.name.endswith(f"input_{MANIFEST_FILENAME}"),
+                blob.name.endswith("questions.json"),
+            )
+        )
 
     GoogleCloudStorageClient().download_all_files(
         local_path=local_path,
         cloud_path=cloud_path,
+        filter=filter,
         recursive=True,
     )
+
+    # Update the manifests with the local paths of the datasets.
+    if download_datasets:
+        for manifest_type in ("configuration_manifest", "input_manifest"):
+            manifest_path = os.path.join(local_path, manifest_type + ".json")
+
+            if not os.path.exists(manifest_path):
+                continue
+
+            manifest = Manifest.from_file(manifest_path)
+
+            manifest.update_dataset_paths(
+                path_generator=lambda dataset: os.path.join(local_path, f"{manifest_type}_datasets", dataset.name)
+            )
+
+            manifest.to_file(manifest_path)
 
     logger.info("Downloaded crash diagnostics from %r to %r.", cloud_path, local_path)
 

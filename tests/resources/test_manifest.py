@@ -225,3 +225,29 @@ class TestManifest(BaseTestCase):
         )
 
         self.assertEqual({dataset.name for dataset in manifest.datasets.values()}, {"dataset_0", "dataset_1"})
+
+    def test_update_dataset_paths(self):
+        """Test that dataset paths can be updated by providing a callable to `Dataset.update_dataset_paths`."""
+        manifest = Manifest(
+            datasets={
+                "dataset_0": os.path.join("path", "to", "dataset_0"),
+                "dataset_1": os.path.join("path", "to", "dataset_1"),
+                "dataset_2": os.path.join("path", "to", "dataset_2"),
+            },
+        )
+
+        def path_generator(dataset):
+            if dataset.path.endswith("0"):
+                return dataset.path.replace("0", "zero")
+            elif dataset.path.endswith("1"):
+                return dataset.path.replace("1", "one")
+            return dataset.path
+
+        manifest.update_dataset_paths(path_generator)
+
+        # Check the first two datasets' paths are updated.
+        self.assertEqual(manifest.datasets["dataset_0"].path, os.path.join("path", "to", "dataset_zero"))
+        self.assertEqual(manifest.datasets["dataset_1"].path, os.path.join("path", "to", "dataset_one"))
+
+        # Check the third dataset's path is unmodified.
+        self.assertEqual(manifest.datasets["dataset_2"].path, os.path.join("path", "to", "dataset_2"))

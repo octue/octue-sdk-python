@@ -27,28 +27,13 @@ class TestOrderedMessageHandler(BaseTestCase):
         cls.receiving_service = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
         cls.mock_subscription = MockSubscription(name="world", topic=mock_topic, project_name=TEST_PROJECT_NAME)
 
-    def _make_order_recording_message_handler(self, message_handling_order):
-        """Make a message handler that records the order in which messages were handled to the given list.
-
-        :param list message_handling_order:
-        :return callable:
-        """
-
-        def message_handler(message):
-            message_handling_order.append(message["message_number"])
-
-        return message_handler
-
     def test_timeout(self):
         """Test that a TimeoutError is raised if message handling takes longer than the given timeout."""
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=self.mock_subscription,
                 receiving_service=self.receiving_service,
-                message_handlers={
-                    "test": self._make_order_recording_message_handler([]),
-                    "finish-test": lambda message: message,
-                },
+                message_handlers={"test": lambda message: None, "finish-test": lambda message: message},
             )
 
         with patch(
@@ -77,80 +62,71 @@ class TestOrderedMessageHandler(BaseTestCase):
 
     def test_in_order_messages_are_handled_in_order(self):
         """Test that messages received in order are handled in order."""
-        message_handling_order = []
-
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=self.mock_subscription,
                 receiving_service=self.receiving_service,
-                message_handlers={
-                    "test": self._make_order_recording_message_handler(message_handling_order),
-                    "finish-test": lambda message: "This is the result.",
-                },
+                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
             )
+
+        messages = [
+            {"type": "test", "message_number": 0},
+            {"type": "test", "message_number": 1},
+            {"type": "test", "message_number": 2},
+            {"type": "finish-test", "message_number": 3},
+        ]
 
         with patch(
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
-            new=MockMessagePuller(
-                messages=[
-                    {"type": "test", "message_number": 0},
-                    {"type": "test", "message_number": 1},
-                    {"type": "test", "message_number": 2},
-                    {"type": "finish-test", "message_number": 3},
-                ],
-                message_handler=message_handler,
-            ).pull,
+            new=MockMessagePuller(messages=messages, message_handler=message_handler).pull,
         ):
             result = message_handler.handle_messages()
 
         self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handling_order, [0, 1, 2])
+        self.assertEqual(message_handler.received_messages, messages)
 
     def test_out_of_order_messages_are_handled_in_order(self):
         """Test that messages received out of order are handled in order."""
-        message_handling_order = []
-
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=self.mock_subscription,
                 receiving_service=self.receiving_service,
-                message_handlers={
-                    "test": self._make_order_recording_message_handler(message_handling_order),
-                    "finish-test": lambda message: "This is the result.",
-                },
+                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
             )
+
+        messages = [
+            {"type": "test", "message_number": 1},
+            {"type": "test", "message_number": 2},
+            {"type": "test", "message_number": 0},
+            {"type": "finish-test", "message_number": 3},
+        ]
 
         with patch(
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
-            new=MockMessagePuller(
-                messages=[
-                    {"type": "test", "message_number": 1},
-                    {"type": "test", "message_number": 2},
-                    {"type": "test", "message_number": 0},
-                    {"type": "finish-test", "message_number": 3},
-                ],
-                message_handler=message_handler,
-            ).pull,
+            new=MockMessagePuller(messages=messages, message_handler=message_handler).pull,
         ):
             result = message_handler.handle_messages()
 
         self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handling_order, [0, 1, 2])
+        self.assertEqual(
+            message_handler.received_messages,
+            [
+                {"type": "test", "message_number": 0},
+                {"type": "test", "message_number": 1},
+                {"type": "test", "message_number": 2},
+                {"type": "finish-test", "message_number": 3},
+            ],
+        )
 
     def test_out_of_order_messages_with_end_message_first_are_handled_in_order(self):
         """Test that messages received out of order and with the final message (the message that triggers a value to be
         returned) are handled in order.
         """
-        message_handling_order = []
-
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=self.mock_subscription,
                 receiving_service=self.receiving_service,
-                message_handlers={
-                    "test": self._make_order_recording_message_handler(message_handling_order),
-                    "finish-test": lambda message: "This is the result.",
-                },
+                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
             )
 
         with patch(
@@ -168,37 +144,40 @@ class TestOrderedMessageHandler(BaseTestCase):
             result = message_handler.handle_messages()
 
         self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handling_order, [0, 1, 2])
+
+        self.assertEqual(
+            message_handler.received_messages,
+            [
+                {"type": "test", "message_number": 0},
+                {"type": "test", "message_number": 1},
+                {"type": "test", "message_number": 2},
+                {"type": "finish-test", "message_number": 3},
+            ],
+        )
 
     def test_no_timeout(self):
         """Test that message handling works with no timeout."""
-        message_handling_order = []
-
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=self.mock_subscription,
                 receiving_service=self.receiving_service,
-                message_handlers={
-                    "test": self._make_order_recording_message_handler(message_handling_order),
-                    "finish-test": lambda message: "This is the result.",
-                },
+                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
             )
+
+        messages = [
+            {"type": "test", "message_number": 0},
+            {"type": "test", "message_number": 1},
+            {"type": "finish-test", "message_number": 2},
+        ]
 
         with patch(
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
-            new=MockMessagePuller(
-                messages=[
-                    {"type": "finish-test", "message_number": 2},
-                    {"type": "test", "message_number": 0},
-                    {"type": "test", "message_number": 1},
-                ],
-                message_handler=message_handler,
-            ).pull,
+            new=MockMessagePuller(messages=messages, message_handler=message_handler).pull,
         ):
             result = message_handler.handle_messages(timeout=None)
 
         self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handling_order, [0, 1])
+        self.assertEqual(message_handler.received_messages, messages)
 
     def test_error_raised_if_delivery_acknowledgement_not_received_in_time(self):
         """Test that an error is raised if delivery acknowledgement isn't received before the given acknowledgement

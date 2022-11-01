@@ -74,7 +74,7 @@ def split_bucket_name_from_cloud_path(path):
         return path[0], join(*path[1:])
 
     path = urlparse(path).path.strip("/").split("/")
-    return path[1], join(*path[2:])
+    return path[0], join(*path[1:])
 
 
 def strip_protocol_from_path(path):

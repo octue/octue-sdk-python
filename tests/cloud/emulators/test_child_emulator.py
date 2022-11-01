@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import tempfile
 
 from octue.cloud import storage
 from octue.cloud.emulators._pub_sub import MockService
@@ -252,18 +251,29 @@ class TestChildEmulatorAsk(BaseTestCase):
         with ServicePatcher():
             child.serve()
 
-            with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
-                with self.assertRaises(OSError):
-                    subscription, _ = parent.ask(service_id=child.id, input_values={})
-                    parent.wait_for_answer(subscription=subscription, record_messages_to=temporary_file.name)
+            with self.assertRaises(OSError):
+                subscription, _ = parent.ask(service_id=child.id, input_values={})
+                parent.wait_for_answer(subscription=subscription)
 
-                with open(temporary_file.name) as f:
-                    recorded_messages = json.load(f)
-
-        child_emulator = ChildEmulator(messages=recorded_messages)
+        child_emulator = ChildEmulator(messages=parent.received_messages)
 
         with self.assertRaises(OSError):
             child_emulator.ask(input_values={})
+
+    def test_ask_more_than_one_question(self):
+        """Test than a child emulator can be asked more than one question without an error occurring."""
+        messages = [
+            {
+                "type": "result",
+                "output_values": [1, 2, 3, 4],
+                "output_manifest": None,
+            },
+        ]
+
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
+        result_0 = child_emulator.ask(input_values={"hello": "world"})
+        result_1 = child_emulator.ask(input_values={"hello": "planet"})
+        self.assertEqual(result_0, result_1)
 
 
 class TestChildEmulatorJSONFiles(BaseTestCase):

@@ -3,21 +3,19 @@ import logging
 import os
 import tempfile
 import unittest.mock
-import uuid
 from unittest import mock
 from unittest.mock import patch
 
 import yaml
 from click.testing import CliRunner
 
-from octue import Runner
 from octue.cli import octue_cli
 from octue.cloud import storage
 from octue.cloud.emulators._pub_sub import MockService, MockSubscription, MockTopic
 from octue.cloud.emulators.child import ServicePatcher
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.configuration import AppConfiguration, ServiceConfiguration
-from octue.resources import Datafile
+from octue.resources import Dataset
 from octue.utils.patches import MultiPatcher
 from tests import TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
@@ -259,52 +257,36 @@ class TestStartCommand(BaseTestCase):
 
 
 class TestGetCrashDiagnosticsCommand(BaseTestCase):
-    def test_get_crash_diagnostics(self):
-        """Test the get crash diagnostics CLI command."""
-        crash_diagnostics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_diagnostics")
+    CRASH_DIAGNOSTICS_CLOUD_PATH = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_diagnostics")
+    ANALYSIS_ID = "dc1f09ca-7037-484f-a394-8bd04866f924"
 
-        def app(analysis):
-            raise ValueError("This is deliberately raised to simulate app failure.")
+    @classmethod
+    def setUpClass(cls):
+        """Upload the test crash diagnostics data to the cloud storage emulator so the `octue get-crash-diagnostics`
+        CLI command can be tested.
 
-        manifests = {}
+        :return None:
+        """
+        super().setUpClass()
 
-        for data_type in ("configuration", "input"):
-            dataset_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_datasets", f"{data_type}_dataset")
-
-            with Datafile(storage.path.join(dataset_path, "my_file.txt"), mode="w") as (datafile, f):
-                f.write(f"{data_type} manifest data")
-
-            manifests[data_type] = {"id": str(uuid.uuid4()), "datasets": {"met_mast_data": dataset_path}}
-
-        runner = Runner(
-            app_src=app,
-            twine={
-                "configuration_values_schema": {"properties": {}},
-                "configuration_manifest": {"datasets": {}},
-                "input_values_schema": {},
-                "input_manifest": {"datasets": {}},
-            },
-            configuration_values={"getting": "ready"},
-            configuration_manifest=manifests["configuration"],
-            crash_diagnostics_cloud_path=crash_diagnostics_cloud_path,
+        crash_diagnostics = Dataset(
+            path=os.path.join(TESTS_DIR, "data", "crash_diagnostics"),
+            recursive=True,
+            include_octue_metadata_files=True,
         )
 
-        analysis_id = "4b91e3f0-4492-49e3-8061-34f1942dc68a"
+        crash_diagnostics.upload(storage.path.join(cls.CRASH_DIAGNOSTICS_CLOUD_PATH, cls.ANALYSIS_ID))
 
-        with self.assertRaises(ValueError):
-            runner.run(
-                analysis_id=analysis_id,
-                input_values={"hello": "world"},
-                input_manifest=manifests["input"],
-                allow_save_diagnostics_data_on_crash=True,
-            )
-
+    def test_get_crash_diagnostics(self):
+        """Test that only the values files, manifests, and questions file are downloaded when using the
+        `get-crash-diagnostics` CLI command.
+        """
         with tempfile.TemporaryDirectory() as temporary_directory:
             result = CliRunner().invoke(
                 octue_cli,
                 [
                     "get-crash-diagnostics",
-                    storage.path.join(crash_diagnostics_cloud_path, analysis_id),
+                    storage.path.join(self.CRASH_DIAGNOSTICS_CLOUD_PATH, self.ANALYSIS_ID),
                     "--local-path",
                     temporary_directory,
                 ],
@@ -313,12 +295,13 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
             self.assertIsNone(result.exception)
             self.assertEqual(result.exit_code, 0)
 
+            # Only the values files, manifests, and messages should be downloaded.
             directory_contents = list(os.walk(temporary_directory))
-            self.assertEqual(directory_contents[0][1], [analysis_id])
-            self.assertEqual(
-                set(directory_contents[1][1]),
-                {"configuration_manifest_datasets", "input_manifest_datasets"},
-            )
+            self.assertEqual(len(directory_contents), 2)
+            self.assertEqual(directory_contents[0][1], [self.ANALYSIS_ID])
+
+            self.assertEqual(directory_contents[1][1], [])
+
             self.assertEqual(
                 set(directory_contents[1][2]),
                 {
@@ -326,13 +309,92 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
                     "configuration_manifest.json",
                     "input_manifest.json",
                     "input_values.json",
-                    "messages.json",
+                    "questions.json",
                 },
             )
-            self.assertEqual(directory_contents[2][1], ["met_mast_data"])
-            self.assertEqual(set(directory_contents[3][2]), {"my_file.txt", ".octue"})
-            self.assertEqual(directory_contents[4][1], ["met_mast_data"])
-            self.assertEqual(set(directory_contents[5][2]), {"my_file.txt", ".octue"})
+
+            # Check the questions have been downloaded.
+            with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "questions.json")) as f:
+                questions = json.load(f)
+
+            self.assertEqual(questions[0]["id"], "octue/my-child:latest")
+
+            self.assertEqual(
+                questions[0]["messages"],
+                [
+                    {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
+                    {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
+                    {"type": "monitor_message", "data": '{"sample": "data"}'},
+                    {"type": "result", "output_values": [1, 2, 3, 4, 5], "output_manifest": None},
+                ],
+            )
+
+    def test_get_crash_diagnostics_with_datasets(self):
+        """Test that datasets are downloaded as well as the values files, manifests, and questions file when the
+        `get-crash-diagnostics` CLI command is run with the `--download-datasets` flag.
+        """
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            result = CliRunner().invoke(
+                octue_cli,
+                [
+                    "get-crash-diagnostics",
+                    storage.path.join(self.CRASH_DIAGNOSTICS_CLOUD_PATH, self.ANALYSIS_ID),
+                    "--local-path",
+                    temporary_directory,
+                    "--download-datasets",
+                ],
+            )
+
+            self.assertIsNone(result.exception)
+            self.assertEqual(result.exit_code, 0)
+
+            # Check the configuration dataset has been downloaded.
+            configuration_dataset_path = os.path.join(
+                temporary_directory,
+                self.ANALYSIS_ID,
+                "configuration_manifest_datasets",
+                "configuration_dataset",
+            )
+
+            configuration_dataset = Dataset(configuration_dataset_path)
+            self.assertEqual(configuration_dataset.tags, {"some": "metadata"})
+            self.assertEqual(configuration_dataset.files.one().name, "my_file.txt")
+
+            # Check that the configuration manifest has been updated to use the local paths for its datasets.
+            with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "configuration_manifest.json")) as f:
+                self.assertEqual(json.load(f)["datasets"]["configuration_dataset"], configuration_dataset_path)
+
+            # Check the input dataset has been downloaded.
+            input_dataset_path = os.path.join(
+                temporary_directory,
+                self.ANALYSIS_ID,
+                "input_manifest_datasets",
+                "input_dataset",
+            )
+
+            input_dataset = Dataset(input_dataset_path)
+            self.assertEqual(input_dataset.tags, {"more": "metadata"})
+            self.assertEqual(input_dataset.files.one().name, "my_file.txt")
+
+            # Check that the input manifest has been updated to use the local paths for its datasets.
+            with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "input_manifest.json")) as f:
+                self.assertEqual(json.load(f)["datasets"]["input_dataset"], input_dataset_path)
+
+            # Check the questions have been downloaded.
+            with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "questions.json")) as f:
+                questions = json.load(f)
+
+            self.assertEqual(questions[0]["id"], "octue/my-child:latest")
+
+            self.assertEqual(
+                questions[0]["messages"],
+                [
+                    {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
+                    {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
+                    {"type": "monitor_message", "data": '{"sample": "data"}'},
+                    {"type": "result", "output_values": [1, 2, 3, 4, 5], "output_manifest": None},
+                ],
+            )
 
 
 class TestDeployCommand(BaseTestCase):

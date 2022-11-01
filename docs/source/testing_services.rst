@@ -172,7 +172,7 @@ To emulate your children in tests, patch the :mod:`Child <octue.resources.child.
         app_src=app_directory_path,
         twine=os.path.join(app_directory_path, "twine.json"),
         children=children,
-        service_id="you/your-service:latest",
+        service_id="your-org/your-service:latest",
     )
 
     emulated_children = [
@@ -212,7 +212,8 @@ change correspondingly (or at all). So, it's up to you to define a set of realis
   the child's twine - this is because the twine is only available to the real child. This is ok - you're testing your
   service, not the child.
 
-You can create test fixtures manually or by recording messages from a real child to a JSON file. To record messages:
+You can create test fixtures manually or by using the ``Child.received_messages`` property after questioning a real
+child.
 
 .. code-block:: python
 
@@ -225,20 +226,13 @@ You can create test fixtures manually or by recording messages from a real child
         backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
     )
 
-    result = child.ask(
-        input_values=[1, 2, 3, 4],
-        record_messages_to="child_messages.json",
-    )
+    result = child.ask(input_values=[1, 2, 3, 4])
 
-    with open("child_messages.json") as f:
-        child_messages = json.load(f)
-
-    child_messages
+    child.received_messages
     >>> [
             {
                 'type': 'delivery_acknowledgement',
                 'delivery_time': '2022-08-16 11:49:57.244263',
-                'message_number': 0
             },
             {
                 'type': 'log_record',
@@ -248,14 +242,11 @@ You can create test fixtures manually or by recording messages from a real child
                     'levelname': 'INFO',
                     ...
                 },
-                'analysis_id': '0ce8386d-564d-47fa-9d11-3b728f557bfe',
-                'message_number': 1
             },
             {
                 'type': 'result',
                 'output_values': {"some": "results"},
                 'output_manifest': None,
-                'message_number': 2
             }
         ]
 
@@ -266,7 +257,9 @@ You can then feed these into a child emulator to emulate one possible response o
     from octue.cloud.emulators import ChildEmulator
 
 
-    child_emulator = ChildEmulator(messages=child_messages)
+    child_emulator = ChildEmulator(messages=child.received_messages)
 
     child_emulator.ask(input_values=[1, 2, 3, 4])
     >>> {"some": "results"}
+
+You can also create test fixtures from :ref:`downloaded service crash diagnostics <test_fixtures_from_crash_diagnostics>`.

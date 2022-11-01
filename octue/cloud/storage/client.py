@@ -171,11 +171,12 @@ class GoogleCloudStorageClient:
         blob.download_to_filename(local_path, timeout=timeout)
         logger.debug("Downloaded %r from Google Cloud to %r.", blob.public_url, local_path)
 
-    def download_all_files(self, local_path, cloud_path, recursive=False):
+    def download_all_files(self, local_path, cloud_path, filter=None, recursive=False):
         """Download all files in the given cloud storage directory into the given local directory.
 
         :param str local_path: the path to a local directory to download the files into
         :param str cloud_path: the path to a cloud storage directory to download
+        :param callable|None filter: an optional callable to filter which files are downloaded from the cloud path; the callable should take a blob as its only positional argument
         :param bool recursive: if `True`, also download all files in all subdirectories of the cloud directory recursively
         :return None:
         """
@@ -192,8 +193,15 @@ class GoogleCloudStorageClient:
                     ),
                 ),
             }
-            for blob in self.scandir(cloud_path, recursive=recursive)
+            for blob in self.scandir(cloud_path, filter=filter, recursive=recursive)
         ]
+
+        if not cloud_and_local_paths:
+            logger.warning(
+                "Attempted to download files from %r but it appears empty. Please check this is the correct path.",
+                cloud_path,
+            )
+            return
 
         def download_file(cloud_and_local_path):
             self.download_to_file(cloud_and_local_path["local_path"], cloud_and_local_path["cloud_path"])
@@ -250,7 +258,7 @@ class GoogleCloudStorageClient:
         """Yield the blobs belonging to the given "directory" in the given bucket.
 
         :param str cloud_path: full cloud path of directory to scan (e.g. `gs://bucket_name/path/to/file.csv`)
-        :param callable filter: blob filter to constrain the yielded results
+        :param callable|None filter: an optional callable to filter which blobs are yielded; the callable should take a blob as its only positional argument
         :param bool recursive: if True, include all files in the tree below the given cloud directory
         :param bool show_directories_as_blobs: if False, do not show directories as blobs (this doesn't affect inclusion of their contained files if `recursive` is True)
         :param float timeout: time in seconds to allow for the request to complete
