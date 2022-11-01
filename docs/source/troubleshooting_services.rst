@@ -17,6 +17,7 @@ Services save the following data to the cloud if they crash while processing a q
     For this feature to be enabled, the child must have the ``crash_diagnostics_cloud_path`` field in its service
     configuration (:ref:`octue.yaml <octue_yaml>` file) set to a Google Cloud Storage path.
 
+
 Accessing crash diagnostics
 ===========================
 In the event of a crash, the service will upload the crash diagnostics and send the upload path to the parent as a log
@@ -49,6 +50,60 @@ More information on the command:
                               manifests to the new local paths.
       -h, --help              Show this message and exit.
 
+
+Creating test fixtures from crash diagnostics
+=============================================
+You can create test fixtures directly from crash diagnostics, allowing you to recreate the exact conditions that caused
+your service to fail.
+
+.. code-block:: python
+
+    from unittest.mock import patch
+
+    from octue import Runner
+    from octue.utils.testing import load_test_fixture_from_crash_diagnostics
+
+
+     (
+         configuration_values,
+         configuration_manifest,
+         input_values,
+         input_manifest,
+         child_emulators,
+     ) = load_test_fixture_from_crash_diagnostics(path="path/to/downloaded/crash/diagnostics")
+
+    # You can explicitly specify your children here as shown or
+    # read the same information in from your app configuration file.
+    children = [
+        {
+            "key": "my_child",
+            "id": "octue/my-child-service:latest",
+            "backend": {
+                "name": "GCPPubSubBackend",
+                "project_name": "my-project",
+            }
+        },
+        {
+            "key": "another_child",
+            "id": "octue/another-child-service:latest",
+            "backend": {
+                "name": "GCPPubSubBackend",
+                "project_name": "my-project",
+            }
+        }
+    ]
+
+    runner = Runner(
+        app_src="path/to/directory_containing_app",
+        twine=os.path.join(app_directory_path, "twine.json"),
+        children=children,
+        configuration_values=configuration_values,
+        configuration_manifest=configuration_manifest,
+        service_id="your-org/your-service:latest",
+    )
+
+    with patch("octue.runner.Child", side_effect=child_emulators):
+        analysis = runner.run(input_values=input_values, input_manifest=input_manifest)
 
 
 Disabling crash diagnostics

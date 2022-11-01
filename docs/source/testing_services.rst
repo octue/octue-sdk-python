@@ -172,7 +172,7 @@ To emulate your children in tests, patch the :mod:`Child <octue.resources.child.
         app_src=app_directory_path,
         twine=os.path.join(app_directory_path, "twine.json"),
         children=children,
-        service_id="you/your-service:latest",
+        service_id="your-org/your-service:latest",
     )
 
     emulated_children = [
