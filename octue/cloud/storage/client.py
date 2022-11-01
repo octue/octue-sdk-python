@@ -201,6 +201,7 @@ class GoogleCloudStorageClient:
                 "Attempted to download files from %r but it appears empty. Please check this is the correct path.",
                 cloud_path,
             )
+            return
 
         def download_file(cloud_and_local_path):
             self.download_to_file(cloud_and_local_path["local_path"], cloud_and_local_path["cloud_path"])
