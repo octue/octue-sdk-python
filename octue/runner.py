@@ -12,7 +12,7 @@ from jsonschema import ValidationError, validate as jsonschema_validate
 
 import twined.exceptions
 from octue import exceptions
-from octue.app import AppFrom
+from octue.app_loading import AppFrom
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.log_handlers import AnalysisLogHandlerSwitcher
