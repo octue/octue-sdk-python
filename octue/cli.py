@@ -289,15 +289,15 @@ def start(service_config, revision_tag, timeout, no_rm):
 @click.option(
     "--local-path",
     type=click.Path(file_okay=False),
-    default=None,
+    default=".",
     help="The path to a directory to store the directory of diagnostics data in. Defaults to the current working "
     "directory.",
 )
 @click.option(
     "--download-datasets",
     is_flag=True,
-    help="If provided, download any datasets from the crash diagnostics and update their paths in their manifests to "
-    "the new local paths.",
+    help="If provided, download any datasets from the crash diagnostics and update their paths in the configuration and "
+    "input manifests to the new local paths.",
 )
 def get_crash_diagnostics(cloud_path, local_path, download_datasets):
     """Download crash diagnostics for an analysis from the given directory in Google Cloud Storage. The cloud path
@@ -306,7 +306,7 @@ def get_crash_diagnostics(cloud_path, local_path, download_datasets):
     CLOUD_PATH: The path to the directory in Google Cloud Storage containing the diagnostics data.
     """
     analysis_id = storage.path.split(cloud_path)[-1]
-    local_path = os.path.join((local_path or "."), analysis_id)
+    local_path = os.path.join(local_path, analysis_id)
 
     if download_datasets:
         filter = None
