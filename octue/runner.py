@@ -73,6 +73,7 @@ class Runner:
         }
 
         self.crash_diagnostics_cloud_path = crash_diagnostics_cloud_path
+        self._storage_client = None
 
         # Ensure the twine is present and instantiate it.
         if isinstance(twine, Twine):
@@ -352,13 +353,17 @@ class Runner:
         return wrapper
 
     def _save_crash_diagnostics_data(self, analysis):
-        """Save the values, manifests, and datasets for the analysis configuration and inputs to the crash diagnostics
-        cloud path.
+        """Save the following data to the crash diagnostics cloud path:
+        - Configuration values
+        - Configuration manifest and datasets
+        - Input values
+        - Input manifest and datasets
+        - Questions asked to any children during the analysis and any responses received
 
         :param octue.resources.analysis.Analysis analysis:
         :return None:
         """
-        storage_client = GoogleCloudStorageClient()
+        self._storage_client = GoogleCloudStorageClient()
         question_diagnostics_path = storage.path.join(self.crash_diagnostics_cloud_path, analysis.id)
 
         for data_type in ("configuration", "input"):
@@ -366,18 +371,27 @@ class Runner:
             manifest_type = f"{data_type}_manifest"
 
             if self.crash_diagnostics[values_type] is not None:
-                storage_client.upload_from_string(
-                    json.dumps(self.crash_diagnostics[values_type], cls=OctueJSONEncoder),
-                    cloud_path=storage.path.join(question_diagnostics_path, f"{values_type}.json"),
-                )
+                self._upload_values(values_type, question_diagnostics_path)
 
             if self.crash_diagnostics[manifest_type] is not None:
                 self._upload_manifest(manifest_type, question_diagnostics_path)
 
         # Upload the messages received from any children before the crash.
-        storage_client.upload_from_string(
+        self._storage_client.upload_from_string(
             string=json.dumps(self.crash_diagnostics["questions"], cls=OctueJSONEncoder),
             cloud_path=storage.path.join(question_diagnostics_path, "questions.json"),
+        )
+
+    def _upload_values(self, values_type, question_diagnostics_path):
+        """Upload the values of the given type as part of the crash diagnostics.
+
+        :param str values_type: one of "configuration_values" or "input_values"
+        :param str question_diagnostics_path: the path to a cloud directory to upload the values into
+        :return None:
+        """
+        self._storage_client.upload_from_string(
+            json.dumps(self.crash_diagnostics[values_type], cls=OctueJSONEncoder),
+            cloud_path=storage.path.join(question_diagnostics_path, f"{values_type}.json"),
         )
 
     def _upload_manifest(self, manifest_type, question_diagnostics_path):
@@ -401,7 +415,7 @@ class Runner:
             manifest["datasets"][dataset_name] = new_dataset_path
 
         # Upload manifest.
-        GoogleCloudStorageClient().upload_from_string(
+        self._storage_client.upload_from_string(
             json.dumps(manifest, cls=OctueJSONEncoder),
             cloud_path=storage.path.join(question_diagnostics_path, f"{manifest_type}.json"),
         )
