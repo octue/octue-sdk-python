@@ -176,7 +176,7 @@ class GoogleCloudStorageClient:
 
         :param str local_path: the path to a local directory to download the files into
         :param str cloud_path: the path to a cloud storage directory to download
-        :param callable|None filter: an optional blob callable to filter which files are downloaded from the cloud path
+        :param callable|None filter: an optional callable to filter which files are downloaded from the cloud path; the callable should take a blob as its only positional argument
         :param bool recursive: if `True`, also download all files in all subdirectories of the cloud directory recursively
         :return None:
         """
@@ -257,7 +257,7 @@ class GoogleCloudStorageClient:
         """Yield the blobs belonging to the given "directory" in the given bucket.
 
         :param str cloud_path: full cloud path of directory to scan (e.g. `gs://bucket_name/path/to/file.csv`)
-        :param callable|None filter: blob filter to constrain the yielded results
+        :param callable|None filter: an optional callable to filter which blobs are yielded; the callable should take a blob as its only positional argument
         :param bool recursive: if True, include all files in the tree below the given cloud directory
         :param bool show_directories_as_blobs: if False, do not show directories as blobs (this doesn't affect inclusion of their contained files if `recursive` is True)
         :param float timeout: time in seconds to allow for the request to complete
