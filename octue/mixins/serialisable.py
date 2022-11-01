@@ -52,14 +52,14 @@ class Serialisable:
         return cls(**serialised_object)
 
     @classmethod
-    def from_file(cls, filename, **kwargs):
+    def from_file(cls, path, **kwargs):
         """Deserialise an instance from the given file.
 
-        :param str filename: the path to the JSON file containing the serialised instance
+        :param str path: the path to the JSON file containing the serialised instance
         :param kwargs: kwargs to pass in to the JSON deserialisation
         :return any: an instance of the class
         """
-        with open(filename) as f:
+        with open(path) as f:
             return cls.deserialise(json.load(f, cls=OctueJSONDecoder, **kwargs))
 
     def serialise(self, **kwargs):
