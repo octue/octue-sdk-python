@@ -320,17 +320,18 @@ class Runner:
                 internal_service_name=self.service_id,
             )
 
-            child.ask = self._add_child_question_and_response_recording(child)
+            child.ask = self._add_child_question_and_response_recording(child, uninstantiated_child["key"])
             children[uninstantiated_child["key"]] = child
 
         return children
 
-    def _add_child_question_and_response_recording(self, child):
+    def _add_child_question_and_response_recording(self, child, key):
         """Add question and response recording to the `ask` method of the given child. This allows the runner to record
         the questions asked by the app, the responses received to each question, and the order the questions are asked
         in for crash diagnostics.
 
         :param octue.resources.child.Child child: the child to add question and response recording to
+        :param str key: the key used to identify the child within the service
         :return callable: the wrapped `Child.ask` method
         """
         # Copy the `ask` method to avoid an infinite recursion.
@@ -345,7 +346,7 @@ class Runner:
                 return original_ask_method(**kwargs)
             finally:
                 self.crash_diagnostics["questions"].append(
-                    {"id": child.id, **kwargs, "messages": child.received_messages}
+                    {"id": child.id, "key": key, **kwargs, "messages": child.received_messages}
                 )
 
         return wrapper
