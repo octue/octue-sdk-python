@@ -136,11 +136,11 @@ class TestChildEmulatorAsk(BaseTestCase):
 
         child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
 
-        with self.assertLogs() as logging_context:
+        with self.assertLogs(level=logging.INFO) as logging_context:
             child_emulator.ask(input_values={"hello": "world"})
 
-        self.assertIn("Starting analysis.", logging_context.output[5])
-        self.assertIn("Finishing analysis.", logging_context.output[6])
+        self.assertEqual(logging_context.records[6].message, "Starting analysis.")
+        self.assertEqual(logging_context.records[7].message, "Finishing analysis.")
 
     def test_ask_with_logs_without_level_number_and_name(self):
         """Test that the 'INFO' log level is used if none is provided in the log record dictionaries."""
@@ -157,14 +157,14 @@ class TestChildEmulatorAsk(BaseTestCase):
 
         child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
 
-        with self.assertLogs() as logging_context:
+        with self.assertLogs(level=logging.INFO) as logging_context:
             child_emulator.ask(input_values={"hello": "world"})
 
-        self.assertEqual(logging_context.records[4].levelname, "INFO")
-        self.assertIn("Starting analysis.", logging_context.output[5])
+        self.assertEqual(logging_context.records[6].levelname, "INFO")
+        self.assertEqual(logging_context.records[6].message, "Starting analysis.")
 
-        self.assertEqual(logging_context.records[5].levelname, "INFO")
-        self.assertIn("Finishing analysis.", logging_context.output[6])
+        self.assertEqual(logging_context.records[7].levelname, "INFO")
+        self.assertEqual(logging_context.records[7].message, "Finishing analysis.")
 
     def test_ask_with_invalid_exception(self):
         """Test that an invalid exception fails validation."""
@@ -298,15 +298,15 @@ class TestChildEmulatorJSONFiles(BaseTestCase):
 
         monitor_messages = []
 
-        with self.assertLogs() as logging_context:
+        with self.assertLogs(level=logging.INFO) as logging_context:
             result = child_emulator.ask(
                 input_values={"hello": "world"},
                 handle_monitor_message=lambda value: monitor_messages.append(value),
             )
 
         # Check log records have been emitted.
-        self.assertIn("Starting analysis.", logging_context.output[5])
-        self.assertIn("Finishing analysis.", logging_context.output[6])
+        self.assertEqual(logging_context.records[6].message, "Starting analysis.")
+        self.assertEqual(logging_context.records[7].message, "Finishing analysis.")
 
         # Check monitor message has been handled.
         self.assertEqual(monitor_messages, [{"sample": "data"}])
@@ -325,15 +325,15 @@ class TestChildEmulatorJSONFiles(BaseTestCase):
 
         monitor_messages = []
 
-        with self.assertLogs() as logging_context:
+        with self.assertLogs(level=logging.INFO) as logging_context:
             result = child_emulator.ask(
                 input_values={"hello": "world"},
                 handle_monitor_message=lambda value: monitor_messages.append(value),
             )
 
         # Check log records have been emitted.
-        self.assertIn("Starting analysis.", logging_context.output[5])
-        self.assertIn("Finishing analysis.", logging_context.output[6])
+        self.assertEqual(logging_context.records[6].message, "Starting analysis.")
+        self.assertEqual(logging_context.records[7].message, "Finishing analysis.")
 
         # Check monitor message has been handled.
         self.assertEqual(monitor_messages, [{"sample": "data"}])
@@ -347,12 +347,12 @@ class TestChildEmulatorJSONFiles(BaseTestCase):
         """
         child_emulator = ChildEmulator.from_file(os.path.join(self.TEST_FILES_DIRECTORY, "file_with_exception.json"))
 
-        with self.assertLogs() as logging_context:
+        with self.assertLogs(level=logging.INFO) as logging_context:
             with self.assertRaises(FileNotFoundError):
                 child_emulator.ask(input_values={"hello": "world"})
 
         # Check log records were emitted before the error was raised.
-        self.assertIn("Starting analysis.", logging_context.output[5])
+        self.assertIn(logging_context.records[6].message, "Starting analysis.")
 
     def test_with_output_manifest(self):
         """Test that a child emulator will return the expected output manifest when given a serialised one in a JSON
