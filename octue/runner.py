@@ -16,7 +16,7 @@ from octue.app_loading import AppFrom
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.log_handlers import AnalysisLogHandlerSwitcher
-from octue.resources import Child, Dataset
+from octue.resources import Child, Dataset, Manifest
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.utils import gen_uuid
 from octue.utils.encoders import OctueJSONEncoder
@@ -410,7 +410,7 @@ class Runner:
         :param str question_diagnostics_path: the path to a cloud directory to upload the manifest into
         :return None:
         """
-        manifest = self.crash_diagnostics[manifest_type]
+        manifest = Manifest.deserialise(self.crash_diagnostics[manifest_type])
 
         # Upload each dataset and update its path in the manifest.
         for dataset_name, dataset_path in manifest["datasets"].items():
