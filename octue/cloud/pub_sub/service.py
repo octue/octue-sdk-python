@@ -17,6 +17,7 @@ from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
 from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_sruid, validate_service_sruid
 from octue.compatibility import warn_if_incompatible
+from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
 from octue.utils.objects import get_nested_attribute
@@ -472,6 +473,8 @@ class Service:
         :param dict|Message question:
         :return (dict, str, bool, str|None, bool):
         """
+        logger.info("%r received a question.", self)
+
         try:
             # Parse question directly from Pub/Sub or Dataflow.
             data = json.loads(question.data.decode())
@@ -484,7 +487,9 @@ class Service:
             # Parse question from Google Cloud Run.
             data = json.loads(base64.b64decode(question["data"]).decode("utf-8").strip())
 
-        logger.info("%r received a question.", self)
+        # Keep backwards compatibility with questions from Octue services running `octue<0.41.1`.
+        if isinstance(data["input_manifest"], str):
+            data["input_manifest"] = json.loads(data["input_manifest"], cls=OctueJSONDecoder)
 
         question_uuid = get_nested_attribute(question, "attributes.question_uuid")
         forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
@@ -502,4 +507,5 @@ class Service:
         except AttributeError:
             allow_save_diagnostics_data_on_crash = False
 
+        logger.info("%r parsed the question successfully.", self)
         return data, question_uuid, forward_logs, parent_sdk_version, allow_save_diagnostics_data_on_crash
