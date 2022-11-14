@@ -17,7 +17,6 @@ from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
 from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_sruid, validate_service_sruid
 from octue.compatibility import warn_if_incompatible
-from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
 from octue.utils.objects import get_nested_attribute
@@ -287,14 +286,12 @@ class Service:
         )
         answer_subscription.create(allow_existing=False)
 
-        serialised_input_manifest = None
-
         if input_manifest is not None:
             input_manifest.use_signed_urls_for_datasets()
-            serialised_input_manifest = input_manifest.serialise()
+            input_manifest = input_manifest.to_primitive()
 
         self._send_message(
-            {"input_values": input_values, "input_manifest": serialised_input_manifest, "children": children},
+            {"input_values": input_values, "input_manifest": input_manifest, "children": children},
             topic=question_topic,
             question_uuid=question_uuid,
             forward_logs=subscribe_to_logs,
@@ -486,9 +483,6 @@ class Service:
         except Exception:
             # Parse question from Google Cloud Run.
             data = json.loads(base64.b64decode(question["data"]).decode("utf-8").strip())
-
-        if data["input_manifest"]:
-            data["input_manifest"] = json.loads(data["input_manifest"], cls=OctueJSONDecoder)
 
         logger.info("%r received a question.", self)
 
