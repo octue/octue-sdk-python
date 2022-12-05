@@ -11,9 +11,10 @@ RUN apt-get update -y && apt-get install -y --fix-missing build-essential && rm 
 COPY . .
 
 # Install requirements (supports requirements.txt and setup.py; both will be run if both are present.)
-RUN if [ ! -f "requirements.txt" ] && [ ! -f "setup.py" ]; then exit 1; fi
+RUN if [ ! -f "requirements.txt" ] && [ ! -f "setup.py" ] && [ ! -f "pyproject.toml" ]; then exit 1; fi
 RUN if [ -f "requirements.txt" ]; then pip install --upgrade pip && pip install -r requirements.txt; fi
 RUN if [ -f "setup.py" ]; then pip install --upgrade pip && pip install -e .; fi
+RUN if [ -f "pyproject.toml" ]; then poetry install
 
 EXPOSE $PORT
 
