@@ -4,7 +4,7 @@ from octue.cloud.pub_sub.topic import Topic
 from octue.exceptions import DeploymentError
 
 
-DEFAULT_CLOUD_RUN_DOCKERFILE_URL = "https://raw.githubusercontent.com/octue/octue-sdk-python/e87bbe0b45fbead1155df81c6eeacd744bf9fa02/octue/cloud/deployment/google/cloud_run/Dockerfile"
+DEFAULT_CLOUD_RUN_DOCKERFILE_URL = "https://raw.githubusercontent.com/octue/octue-sdk-python/feature/support-poetry-based-apps-on-cloud-run/octue/cloud/deployment/google/cloud_run/Dockerfile"
 
 
 class CloudRunDeployer(BaseDeployer):
