@@ -14,7 +14,7 @@ COPY . .
 RUN if [ ! -f "requirements.txt" ] && [ ! -f "setup.py" ] && [ ! -f "pyproject.toml" ]; then exit 1; fi
 RUN if [ -f "requirements.txt" ]; then pip install --upgrade pip && pip install -r requirements.txt; fi
 RUN if [ -f "setup.py" ]; then pip install --upgrade pip && pip install -e .; fi
-RUN if [ -f "pyproject.toml" ]; then poetry install
+RUN if [ -f "pyproject.toml" ]; then poetry install; fi
 
 EXPOSE $PORT
 
