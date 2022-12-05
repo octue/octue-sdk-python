@@ -6,7 +6,12 @@ ENV PYTHONUNBUFFERED True
 ENV PROJECT_ROOT=/app
 WORKDIR $PROJECT_ROOT
 
-RUN apt-get update -y && apt-get install -y --fix-missing build-essential && rm -rf /var/lib/apt/lists/*
+RUN apt-get update -y && apt-get install -y --fix-missing build-essential curl && rm -rf /var/lib/apt/lists/*
+
+ENV POETRY_HOME=/etc/poetry
+RUN if [ -f "pyproject.toml" ]; then curl -sSL https://install.python-poetry.org | python3 -; fi
+ENV PATH "$POETRY_HOME/bin:$PATH"
+RUN if [ -f "pyproject.toml" ]; then poetry config virtualenvs.create false; fi
 
 COPY . .
 
