@@ -42,7 +42,7 @@ class BaseDeployer:
 
     TOTAL_NUMBER_OF_STAGES = None
 
-    def __init__(self, octue_configuration_path, image_uri_template=None):
+    def __init__(self, octue_configuration_path, image_uri_template=None, revision_tag=None):
         self.service_configuration = ServiceConfiguration.from_file(octue_configuration_path)
 
         # Generated attributes.
@@ -52,6 +52,9 @@ class BaseDeployer:
         self.service_namespace, self.service_name, self.service_revision_tag = get_service_sruid_parts(
             self.service_configuration
         )
+
+        if revision_tag:
+            self.service_revision_tag = revision_tag
 
         if not self.service_revision_tag:
             self.service_revision_tag = coolname.generate_slug(2)
