@@ -83,6 +83,8 @@ class BaseDeployer:
             f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_sruid!r}."
         )
 
+        print(f"Ready to deploy {self.service_sruid!r}.")
+
     @abstractmethod
     def deploy(self, no_cache=False, update=False):
         """Deploy the octue app.
