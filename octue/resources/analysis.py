@@ -127,8 +127,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         """
         self._periodic_monitor_message_sender = RepeatingTimer(
             interval=period,
-            function=self._create_and_send_monitor_message,
-            kwargs={"create_monitor_message": create_monitor_message},
+            function=lambda: self.send_monitor_message(data=create_monitor_message()),
         )
 
         self._periodic_monitor_message_sender.daemon = True
@@ -186,11 +185,3 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
                     setattr(self, strand_hash_name, HASH_FUNCTIONS[strand_name](strand_data))
                 else:
                     setattr(self, strand_hash_name, None)
-
-    def _create_and_send_monitor_message(self, create_monitor_message):
-        """Create a monitor message using the given callable and send it.
-
-        :param callable create_monitor_message: a callable that takes no arguments and returns a new up-to-date monitor message to send each time it is called
-        :return None:
-        """
-        self.send_monitor_message(data=create_monitor_message())
