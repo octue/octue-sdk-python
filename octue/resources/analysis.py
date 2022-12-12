@@ -119,9 +119,9 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         self._handle_monitor_message(data)
 
     def set_up_periodic_monitor_message(self, create_monitor_message, period=60):
-        """Set up a periodic monitor message that repeats at the given period of time with up-to-date data.
+        """Set up a periodic monitor message that sends periodically with up-to-date data.
 
-        :param callable create_monitor_message: a callable that takes no arguments and returns a new up-to-date monitor message to send each time it is called
+        :param callable create_monitor_message: a callable that takes no arguments and returns a new up-to-date monitor message to send each time it's called
         :param int|float period: the repetition period in seconds
         :return None:
         """

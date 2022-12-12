@@ -37,7 +37,7 @@ class BaseDeployer:
     ```
 
     The service revision tag resolution order is:
-    1. The `revision_tag` variable
+    1. The `revision_tag` variable if present
     2. The `OCTUE_SERVICE_REVISION_TAG` environment variable if present (returned by `get_service_sruid_parts`)
     3. A generated 'cool name'
 
