@@ -119,7 +119,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         self._handle_monitor_message(data)
 
     def set_up_periodic_monitor_message(self, create_monitor_message, period=60):
-        """Set up a periodic monitor message that sends periodically with up-to-date data.
+        """Set up a periodic monitor message that sends up-to-date data once per period.
 
         :param callable create_monitor_message: a callable that takes no arguments and returns a new up-to-date monitor message to send each time it's called
         :param int|float period: the repetition period in seconds
@@ -132,7 +132,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
 
         self._periodic_monitor_message_sender.daemon = True
         self._periodic_monitor_message_sender.start()
-        logger.info("Set up a periodic monitor message to send every %ss.", period)
+        logger.info("Periodic monitor message set up to send every %ss.", period)
 
     def finalise(self, upload_output_datasets_to=None):
         """Validate the output values and output manifest and, if the analysis produced an output manifest, upload its
