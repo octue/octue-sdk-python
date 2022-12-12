@@ -36,7 +36,14 @@ class BaseDeployer:
     pubsub-emulator 0.6.0
     ```
 
+    The service revision tag resolution order is:
+    1. The `revision_tag` variable
+    2. The `OCTUE_SERVICE_REVISION_TAG` environment variable if present (returned by `get_service_sruid_parts`)
+    3. A generated 'cool name'
+
     :param str octue_configuration_path: the path to the `octue.yaml` file if it's not in the current working directory
+    :param str|None image_uri_template: the image URI template to use to name and store images with Cloud Build
+    :param str|None revision_tag: a tag to use for this revision of the service (e.g. 1.3.7). This overrides the `OCTUE_SERVICE_REVISION_TAG` environment variable if it's present. If this option isn't given and the environment variable isn't present, a random 'cool name' tag is generated e.g 'curious-capybara'.
     :return None:
     """
 
