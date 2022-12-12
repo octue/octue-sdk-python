@@ -393,7 +393,15 @@ def cloud_run(service_config, update, no_cache, revision_tag):
     help="If provided, skip creating and running the build trigger and just deploy a pre-built image to Dataflow",
 )
 @click.option("--image-uri", type=str, default=None, help="The actual image URI to use when creating the Dataflow job.")
-def dataflow(service_config, no_cache, update, dataflow_job_only, image_uri):
+@click.option(
+    "--revision-tag",
+    type=str,
+    default=None,
+    help="A tag to use for this revision of the service (e.g. 1.3.7). This overrides the `OCTUE_SERVICE_REVISION_TAG` "
+    "environment variable if it's present. If this option isn't given and the environment variable isn't present, a "
+    "random 'cool name' tag is generated e.g 'curious-capybara'.",
+)
+def dataflow(service_config, no_cache, update, dataflow_job_only, image_uri, revision_tag):
     """Deploy a python app to Google Dataflow as an Octue service or digital twin."""
     if bool(importlib.util.find_spec("apache_beam")):
         # Import the Dataflow deployer only if the `apache-beam` package is available (due to installing `octue` with
@@ -405,7 +413,7 @@ def dataflow(service_config, no_cache, update, dataflow_job_only, image_uri):
             "`pip install octue[dataflow]`"
         )
 
-    deployer = DataflowDeployer(service_config)
+    deployer = DataflowDeployer(service_config, revision_tag=revision_tag)
 
     if dataflow_job_only:
         deployer.create_streaming_dataflow_job(image_uri=image_uri, update=update)

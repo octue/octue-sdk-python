@@ -37,8 +37,8 @@ class DataflowDeployer(BaseDeployer):
 
     TOTAL_NUMBER_OF_STAGES = 3
 
-    def __init__(self, octue_configuration_path, image_uri_template=None):
-        super().__init__(octue_configuration_path, image_uri_template)
+    def __init__(self, octue_configuration_path, image_uri_template=None, revision_tag=None):
+        super().__init__(octue_configuration_path, image_uri_template, revision_tag=revision_tag)
         self.build_trigger_description = f"Build the {self.service_sruid!r} service and deploy it to Dataflow."
 
         if not self.service_configuration.temporary_files_location:
