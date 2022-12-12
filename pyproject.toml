@@ -52,7 +52,7 @@ dataflow = ["apache-beam", "cachetools", "google-apitools", "google-auth-httplib
 [tool.poetry.scripts]
 octue = "octue.cli:octue_cli"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 # Testing
 gcp-storage-emulator = "2022.06.11"
 pytest = "^7"
