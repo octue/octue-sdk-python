@@ -18,7 +18,7 @@ class Child:
     :return None:
     """
 
-    def __init__(self, id, backend, internal_service_name="local"):
+    def __init__(self, id, backend, internal_service_name="local/local:local"):
         self.id = id
 
         backend = copy.deepcopy(backend)

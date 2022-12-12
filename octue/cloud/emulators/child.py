@@ -24,7 +24,7 @@ class ChildEmulator:
     :return None:
     """
 
-    def __init__(self, id=None, backend=None, internal_service_name="local", messages=None):
+    def __init__(self, id=None, backend=None, internal_service_name="local/local:local", messages=None):
         self.messages = messages or []
 
         backend = copy.deepcopy(backend or {"name": "GCPPubSubBackend", "project_name": "emulated-project"})
