@@ -214,6 +214,10 @@ class Runner:
 
                 raise analysis_error
 
+            finally:
+                if analysis._periodic_monitor_message_sender:
+                    analysis._periodic_monitor_message_sender.cancel()
+
             if not analysis.finalised:
                 analysis.finalise()
 

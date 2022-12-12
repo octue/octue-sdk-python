@@ -9,6 +9,7 @@ from octue.exceptions import InvalidMonitorMessage
 from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
 from octue.utils.encoders import OctueJSONEncoder
+from octue.utils.threads import RepeatingTimer
 from twined import ALL_STRANDS, Twine
 
 
@@ -87,6 +88,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         self.output_location = kwargs.pop("output_location", None)
 
         self._calculate_strand_hashes(strands=strand_kwargs)
+        self._periodic_monitor_message_sender = None
         self._finalised = False
         super().__init__(**kwargs)
 
@@ -115,6 +117,22 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
             return
 
         self._handle_monitor_message(data)
+
+    def set_up_periodic_monitor_message(self, create_monitor_message, period=60):
+        """Set up a periodic monitor message that repeats at the given period of time with up-to-date data.
+
+        :param callable create_monitor_message: a callable that takes no arguments and returns a new up-to-date monitor message to send each time it is called
+        :param int|float period: the repetition period in seconds
+        :return None:
+        """
+        self._periodic_monitor_message_sender = RepeatingTimer(
+            interval=period,
+            function=self._create_and_send_monitor_message,
+            kwargs={"create_monitor_message": create_monitor_message},
+        )
+
+        self._periodic_monitor_message_sender.daemon = True
+        self._periodic_monitor_message_sender.start()
 
     def finalise(self, upload_output_datasets_to=None):
         """Validate the output values and output manifest and, if the analysis produced an output manifest, upload its
@@ -167,3 +185,11 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
                     setattr(self, strand_hash_name, HASH_FUNCTIONS[strand_name](strand_data))
                 else:
                     setattr(self, strand_hash_name, None)
+
+    def _create_and_send_monitor_message(self, create_monitor_message):
+        """Create a monitor message using the given callable and send it.
+
+        :param callable create_monitor_message: a callable that takes no arguments and returns a new up-to-date monitor message to send each time it is called
+        :return None:
+        """
+        self.send_monitor_message(data=create_monitor_message())
