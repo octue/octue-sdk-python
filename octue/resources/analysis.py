@@ -133,6 +133,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
 
         self._periodic_monitor_message_sender.daemon = True
         self._periodic_monitor_message_sender.start()
+        logger.info("Set up a periodic monitor message to send every %ss.", period)
 
     def finalise(self, upload_output_datasets_to=None):
         """Validate the output values and output manifest and, if the analysis produced an output manifest, upload its
