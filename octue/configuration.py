@@ -42,6 +42,7 @@ class ServiceConfiguration:
         memory="128Mi",
         cpus=1,
         minimum_instances=0,
+        execution_environment="gen2",
         temporary_files_location=None,
         setup_file_path=None,
         service_account_email=None,
@@ -72,6 +73,7 @@ class ServiceConfiguration:
         self.memory = memory
         self.cpus = cpus
         self.minimum_instances = minimum_instances
+        self.execution_environment = execution_environment
 
         # Dataflow services only.
         self.temporary_files_location = temporary_files_location

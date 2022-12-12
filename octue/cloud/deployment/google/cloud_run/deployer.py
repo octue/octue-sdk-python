@@ -135,6 +135,7 @@ class CloudRunDeployer(BaseDeployer):
                             f"--region={self.service_configuration.region}",
                             f"--memory={self.service_configuration.memory}",
                             f"--cpu={self.service_configuration.cpus}",
+                            f"--execution-environment={self.service_configuration.execution_environment}",
                             f"--set-env-vars={environment_variables}",
                             "--timeout=3600",
                             f"--concurrency={self.service_configuration.concurrency}",
