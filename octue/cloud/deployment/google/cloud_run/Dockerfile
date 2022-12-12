@@ -12,11 +12,11 @@ COPY . .
 
 # Install poetry if necessary.
 ENV POETRY_HOME=/etc/poetry
-RUN if [ -f "pyproject.toml" ]; then curl -sSL https://install.python-poetry.org | python3 -; fi
 ENV PATH "$POETRY_HOME/bin:$PATH"
-RUN if [ -f "pyproject.toml" ]; then poetry config virtualenvs.create false; fi
+RUN if [ -f "pyproject.toml" ]; then curl -sSL https://install.python-poetry.org | python3 - && poetry config virtualenvs.create false; fi
 
-# Install requirements (supports requirements.txt and setup.py; both will be run if both are present.)
+# Install dependencies - supports `setup.py`, `requirements.txt`, and `pyproject.toml` via poetry. All dependency files
+# are installed from if present.
 RUN if [ ! -f "requirements.txt" ] && [ ! -f "setup.py" ] && [ ! -f "pyproject.toml" ]; then exit 1; fi
 RUN if [ -f "requirements.txt" ]; then pip install --upgrade pip && pip install -r requirements.txt; fi
 RUN if [ -f "setup.py" ]; then pip install --upgrade pip && pip install -e .; fi
