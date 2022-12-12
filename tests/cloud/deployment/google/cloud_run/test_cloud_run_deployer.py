@@ -68,6 +68,7 @@ EXPECTED_CLOUD_BUILD_CONFIGURATION = {
                 f"--region={SERVICE['region']}",
                 "--memory=128Mi",
                 "--cpu=1",
+                "--execution-environment=gen2",
                 f"--set-env-vars=OCTUE_SERVICE_NAMESPACE={SERVICE['namespace']},OCTUE_SERVICE_NAME={SERVICE['name']},OCTUE_SERVICE_REVISION_TAG={OCTUE_SERVICE_REVISION_TAG}",
                 "--timeout=3600",
                 "--concurrency=10",

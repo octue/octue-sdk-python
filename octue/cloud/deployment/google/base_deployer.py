@@ -4,6 +4,7 @@ import tempfile
 import time
 from abc import abstractmethod
 
+import coolname
 import yaml
 
 from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_sruid, get_service_sruid_parts
@@ -35,13 +36,20 @@ class BaseDeployer:
     pubsub-emulator 0.6.0
     ```
 
+    The service revision tag resolution order is:
+    1. The `revision_tag` variable if present
+    2. The `OCTUE_SERVICE_REVISION_TAG` environment variable if present (returned by `get_service_sruid_parts`)
+    3. A generated 'cool name'
+
     :param str octue_configuration_path: the path to the `octue.yaml` file if it's not in the current working directory
+    :param str|None image_uri_template: the image URI template to use to name and store images with Cloud Build
+    :param str|None revision_tag: a tag to use for this revision of the service (e.g. 1.3.7). This overrides the `OCTUE_SERVICE_REVISION_TAG` environment variable if it's present. If this option isn't given and the environment variable isn't present, a random 'cool name' tag is generated e.g 'curious-capybara'.
     :return None:
     """
 
     TOTAL_NUMBER_OF_STAGES = None
 
-    def __init__(self, octue_configuration_path, image_uri_template=None):
+    def __init__(self, octue_configuration_path, image_uri_template=None, revision_tag=None):
         self.service_configuration = ServiceConfiguration.from_file(octue_configuration_path)
 
         # Generated attributes.
@@ -51,6 +59,12 @@ class BaseDeployer:
         self.service_namespace, self.service_name, self.service_revision_tag = get_service_sruid_parts(
             self.service_configuration
         )
+
+        if revision_tag:
+            self.service_revision_tag = revision_tag
+
+        if not self.service_revision_tag:
+            self.service_revision_tag = coolname.generate_slug(2)
 
         self.service_sruid = create_service_sruid(
             namespace=self.service_namespace,
@@ -75,6 +89,8 @@ class BaseDeployer:
         self.success_message = (
             f"[SUCCESS] Service deployed - it can be questioned via Pub/Sub at {self.service_sruid!r}."
         )
+
+        print(f"Ready to deploy {self.service_sruid!r}.")
 
     @abstractmethod
     def deploy(self, no_cache=False, update=False):

@@ -6,14 +6,21 @@ ENV PYTHONUNBUFFERED True
 ENV PROJECT_ROOT=/app
 WORKDIR $PROJECT_ROOT
 
-RUN apt-get update -y && apt-get install -y --fix-missing build-essential && rm -rf /var/lib/apt/lists/*
+RUN apt-get update -y && apt-get install -y --fix-missing build-essential curl && rm -rf /var/lib/apt/lists/*
 
 COPY . .
 
-# Install requirements (supports requirements.txt and setup.py; both will be run if both are present.)
-RUN if [ ! -f "requirements.txt" ] && [ ! -f "setup.py" ]; then exit 1; fi
+# Install poetry if necessary.
+ENV POETRY_HOME=/etc/poetry
+ENV PATH "$POETRY_HOME/bin:$PATH"
+RUN if [ -f "pyproject.toml" ]; then curl -sSL https://install.python-poetry.org | python3 - && poetry config virtualenvs.create false; fi
+
+# Install dependencies - supports `setup.py`, `requirements.txt`, and `pyproject.toml` via poetry. All dependency files
+# are installed from if present.
+RUN if [ ! -f "requirements.txt" ] && [ ! -f "setup.py" ] && [ ! -f "pyproject.toml" ]; then exit 1; fi
 RUN if [ -f "requirements.txt" ]; then pip install --upgrade pip && pip install -r requirements.txt; fi
 RUN if [ -f "setup.py" ]; then pip install --upgrade pip && pip install -e .; fi
+RUN if [ -f "pyproject.toml" ]; then poetry install --only main; fi
 
 EXPOSE $PORT
 

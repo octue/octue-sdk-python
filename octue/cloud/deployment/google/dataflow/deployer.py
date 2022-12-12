@@ -32,13 +32,15 @@ class DataflowDeployer(BaseDeployer):
     ```
 
     :param str octue_configuration_path: the path to the `octue.yaml` file if it's not in the current working directory
+    :param str|None image_uri_template: the image URI template to use to name and store images with Cloud Build
+    :param str revision_tag: a tag to use for this revision of the service (e.g. 1.3.7). This overrides the `OCTUE_SERVICE_REVISION_TAG` environment variable if it's present. If this option isn't given and the environment variable isn't present, a random 'cool name' tag is generated e.g 'curious-capybara'.
     :return None:
     """
 
     TOTAL_NUMBER_OF_STAGES = 3
 
-    def __init__(self, octue_configuration_path, image_uri_template=None):
-        super().__init__(octue_configuration_path, image_uri_template)
+    def __init__(self, octue_configuration_path, image_uri_template=None, revision_tag=None):
+        super().__init__(octue_configuration_path, image_uri_template, revision_tag=revision_tag)
         self.build_trigger_description = f"Build the {self.service_sruid!r} service and deploy it to Dataflow."
 
         if not self.service_configuration.temporary_files_location:
