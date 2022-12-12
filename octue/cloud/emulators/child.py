@@ -19,12 +19,12 @@ class ChildEmulator:
 
     :param str|None id: the ID of the child; a UUID is generated if none is provided
     :param dict|None backend: a dictionary including the key "name" with a value of the name of the type of backend (e.g. "GCPPubSubBackend") and key-value pairs for any other parameters the chosen backend expects; a mock backend is used if none is provided
-    :param str|None internal_service_name: the name to give to the internal service used to ask questions to the child; defaults to "<id>-parent"
+    :param str internal_service_name: the name to give to the internal service used to ask questions to the child
     :param list(dict)|None messages: the list of messages to send to the parent
     :return None:
     """
 
-    def __init__(self, id=None, backend=None, internal_service_name=None, messages=None):
+    def __init__(self, id=None, backend=None, internal_service_name="local", messages=None):
         self.messages = messages or []
 
         backend = copy.deepcopy(backend or {"name": "GCPPubSubBackend", "project_name": "emulated-project"})
@@ -36,7 +36,7 @@ class ChildEmulator:
 
         self._parent = MockService(
             backend=backend,
-            service_id=internal_service_name or f"{self.id}-parent",
+            service_id=internal_service_name,
             children={self._child.id: self._child},
         )
 
