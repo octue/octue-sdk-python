@@ -68,3 +68,77 @@ parameter/attribute:
 - Input manifest: ``analysis.input_manifest``
 - Output values: ``analysis.output_values``
 - Output manifest: ``analysis.output_manifest``
+
+
+Sending monitor messages
+------------------------
+As well as sending the final result of the analysis your app produces to the parent, you can send monitor messages as
+computation progresses. This functionality can be used to update a plot or database in real time as the analysis is in
+progress.
+
+.. code-block:: python
+
+     def run(analysis):
+        some_data = {"x": 0, "y", 0.1, "z": 2}
+        analysis.send_monitor_message(data=some_data)
+
+Before sending monitor messages, the ``monitor_message_schema`` field must be provided in ``twine.json``. For example:
+
+.. code-block:: json
+
+    {
+        ...
+        "monitor_message_schema": {
+            "x": {
+                "description": "Real component",
+                "type": "number"
+            },
+            "y": {
+                "description": "Imaginary component",
+                "type": "number"
+            },
+            "z": {
+                "description": "Number of iterations before divergence",
+                "type": "number",
+                "minimum": 0
+            }
+        },
+        ...
+    }
+
+Monitor messages can also be set up to send periodically in time.
+
+.. code-block:: python
+
+    def run(analysis):
+
+        # Define a data structure whose attributes can be accessed in real
+        # time as they're updated during the analysis.
+        class DataStructure:
+            def __init__(self):
+                self.x = 0
+                self.y = 0
+                self.z = 0
+
+            def as_dict(self):
+                """Provide a method that provides the data in the format
+                required for the monitor messages.
+
+                :return dict:
+                """
+                return {"x": self.x, "y": self.y, "z": self.z}
+
+        # Create an instance of the data structure.
+        my_updating_data = DataStructure()
+
+        # Use the `as_dict` to provide up-to-date data from the data structure
+        # to send as monitor messages every 60s.
+        analysis.set_up_periodic_monitor_message(
+            create_monitor_message=my_updating_data.as_dict,
+            period=60,
+        )
+
+        # Run long-running computations on the data structure, updating its
+        # "x", "y", and "z" attributes as it progresses. The periodic monitor
+        # message will always send the current values of x, y, and z.
+        some_function(my_updating_data)
