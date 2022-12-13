@@ -45,7 +45,7 @@ def index():
 
     # Otherwise add the question UUID to the set.
     delivered_questions.add(question_uuid)
-    logger.info("Adding question UUID %r to the set of delivered questions.")
+    logger.info("Adding question UUID %r to the set of delivered questions.", question_uuid)
     overwrite_local_metadata_file(local_metadata)
 
     project_name = envelope["subscription"].split("/")[1]
