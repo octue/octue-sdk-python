@@ -408,7 +408,6 @@ class Service:
         )
 
         topic.messages_published += 1
-        logger.info("Sent message of type %r.", message.get("type", "unknown"))
 
     def _send_delivery_acknowledgment(self, topic, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
@@ -417,8 +416,6 @@ class Service:
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
-        logger.info("%r acknowledged receipt of question.", self)
-
         self._send_message(
             {
                 "type": "delivery_acknowledgement",
@@ -428,6 +425,8 @@ class Service:
             topic=topic,
             timeout=timeout,
         )
+
+        logger.info("%r acknowledged receipt of question.", self)
 
     def _send_heartbeat(self, topic, timeout=30):
         """Send a heartbeat to the parent, indicating that the service is alive.
@@ -446,7 +445,7 @@ class Service:
             timeout=timeout,
         )
 
-        logger.debug("Heartbeat sent.")
+        logger.debug("Heartbeat sent by %r.", self)
 
     def _send_monitor_message(self, data, topic, timeout=30):
         """Send a monitor message to the parent.
@@ -456,8 +455,6 @@ class Service:
         :param float timeout: time in seconds to retry sending the message
         :return None:
         """
-        logger.debug("%r sending monitor message.", self)
-
         self._send_message(
             {
                 "type": "monitor_message",
@@ -467,6 +464,8 @@ class Service:
             topic=topic,
             timeout=timeout,
         )
+
+        logger.debug("Monitor message sent by %r.", self)
 
     def _parse_question(self, question):
         """Parse a question in the Google Cloud Pub/Sub or Google Cloud Run format.
