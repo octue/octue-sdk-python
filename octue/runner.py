@@ -215,8 +215,9 @@ class Runner:
                 raise analysis_error
 
             finally:
-                if analysis._periodic_monitor_message_sender:
+                if analysis._periodic_monitor_message_sender is not None:
                     analysis._periodic_monitor_message_sender.cancel()
+                    logger.info("Periodic monitor message thread stopped.")
 
             if not analysis.finalised:
                 analysis.finalise()

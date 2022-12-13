@@ -1,8 +1,6 @@
 import logging
 import os
-import random
 import tempfile
-import time
 from unittest.mock import patch
 
 import twined.exceptions
@@ -158,22 +156,3 @@ class AnalysisTestCase(BaseTestCase):
 
         with downloaded_dataset.files.one() as (downloaded_datafile, f):
             self.assertEqual(f.read(), "hello")
-
-    def test_set_up_periodic_monitor_message(self):
-        """Test that periodic monitor messages can be set up from an analysis and that the `create_monitor_message`
-        callable returns new data each time.
-        """
-        monitor_messages = []
-
-        analysis = Analysis(
-            twine={"monitor_message_schema": {"random_integer": {"type": "integer"}}},
-            handle_monitor_message=monitor_messages.append,
-        )
-
-        create_monitor_message = lambda: {"random_integer": random.randint(0, 10000)}
-        analysis.set_up_periodic_monitor_message(create_monitor_message=create_monitor_message, period=0.05)
-        time.sleep(0.5)
-
-        # Check that messages have been sent and that the data is different each time.
-        self.assertTrue(len(monitor_messages) > 2)
-        self.assertTrue(monitor_messages[0]["random_integer"] != monitor_messages[1]["random_integer"])

@@ -1,7 +1,9 @@
 import copy
 import json
 import os
+import random
 import tempfile
+import time
 import uuid
 from unittest.mock import Mock, patch
 
@@ -557,6 +559,32 @@ class TestRunner(BaseTestCase):
             questions[1]["messages"][1]["exception_message"],
             "Error in <MockService('octue/yet-another-child:latest')>: Deliberately raised for testing.",
         )
+
+    def test_set_up_periodic_monitor_message(self):
+        """Test that periodic monitor messages can be set up from an analysis and that the `create_monitor_message`
+        callable returns new data each time.
+        """
+        monitor_messages = []
+
+        def app(analysis):
+            create_monitor_message = lambda: {"random_integer": random.randint(0, 10000)}
+            analysis.set_up_periodic_monitor_message(create_monitor_message=create_monitor_message, period=0.05)
+            time.sleep(0.5)
+
+        runner = Runner(
+            app_src=app,
+            twine={"monitor_message_schema": {"random_integer": {"type": "integer"}}},
+        )
+
+        analysis = runner.run(handle_monitor_message=monitor_messages.append)
+
+        # Check that messages have been sent and that the data is different each time.
+        self.assertTrue(len(monitor_messages) > 2)
+        self.assertTrue(monitor_messages[0]["random_integer"] != monitor_messages[1]["random_integer"])
+
+        # Check that the periodic monitor message thread has been stopped.
+        time.sleep(0.5)
+        self.assertFalse(analysis._periodic_monitor_message_sender.is_alive())
 
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
