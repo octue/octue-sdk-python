@@ -20,25 +20,16 @@ This is the entrypoint into your code - :doc:`read more here <creating_apps>`.
 
 twine.json
 ----------
-
-    .. collapse:: This is your schema for configuration, input, and output values and manifests - read more...
-
-            ----
-
-        This file defines your schema for configuration, input, and output values and manifests. Read more
-        `here <https://twined.readthedocs.io/en/latest/>`_ and see an example
-        `here <https://twined.readthedocs.io/en/latest/quick_start_create_your_first_twine.html>`_.
+This file defines the schema for the service's configuration, input, and output data. Read more
+`here <https://twined.readthedocs.io/en/latest/>`_ and see an example
+`here <https://twined.readthedocs.io/en/latest/quick_start_create_your_first_twine.html>`_.
 
 Dependencies file
 -----------------
-
-    .. collapse:: A file specifying your app's dependencies - read more...
-
-            ----
-
-        This is a ``setup.py`` file `(read more here) <https://docs.python.org/3/distutils/setupscript.html>`_ or
-        ``requirements.txt`` file `(read more here) <https://learnpython.com/blog/python-requirements-file/>`_ listing all the
-        python packages your app depends on and the version ranges that will work with your app.
+A file specifying your app's dependencies. This is a `setup.py file <https://docs.python.org/3/distutils/setupscript.html>`_,
+a `requirements.txt file <https://learnpython.com/blog/python-requirements-file/>`_, or a
+`pyproject.toml file <https://python-poetry.org/docs/pyproject/>`_ listing all the python packages your app depends on
+and the version ranges that are supported.
 
 .. _octue_yaml:
 
