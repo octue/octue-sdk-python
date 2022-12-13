@@ -142,3 +142,19 @@ Monitor messages can also be set up to send periodically in time.
         # "x", "y", and "z" attributes as it progresses. The periodic monitor
         # message will always send the current values of x, y, and z.
         some_function(my_updating_data)
+
+
+Finalising the analysis
+-----------------------
+When the analysis has finished, it is automatically finalised. This means:
+
+- The output values and manifest are validated against ``twine.json`` to ensure they're in the format promised by the
+  service.
+- If the app produced an output manifest and the ``output_location`` field is set to a cloud directory path in the app
+  configuration, the output datasets are uploaded to this location.
+
+.. note::
+
+    You can manually call :mod:`analysis.finalise <octue.resources.analysis.Analysis.finalise>` if you want to upload
+    any output datasets to a different location to the one specified in the app configuration. If you do this, the
+    analysis will not be finalised again - make sure you only call it when your output data is ready.
