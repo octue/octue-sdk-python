@@ -121,7 +121,7 @@ Monitor messages can also be set up to send periodically in time.
                 self.z = 0
 
             def as_dict(self):
-                """Provide a method that provides the data in the format
+                """Add a method that provides the data in the format
                 required for the monitor messages.
 
                 :return dict:
@@ -131,15 +131,15 @@ Monitor messages can also be set up to send periodically in time.
         # Create an instance of the data structure.
         my_updating_data = DataStructure()
 
-        # Use the `as_dict` to provide up-to-date data from the data structure
-        # to send as monitor messages every 60s.
+        # Use the `as_dict` method to provide up-to-date data from the data
+        # structure to send as monitor messages every 60s.
         analysis.set_up_periodic_monitor_message(
             create_monitor_message=my_updating_data.as_dict,
             period=60,
         )
 
-        # Run long-running computations on the data structure, updating its
-        # "x", "y", and "z" attributes as it progresses. The periodic monitor
+        # Run long-running computations on the data structure that update its
+        # "x", "y", and "z" attributes in real time. The periodic monitor
         # message will always send the current values of x, y, and z.
         some_function(my_updating_data)
 
