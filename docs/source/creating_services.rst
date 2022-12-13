@@ -15,68 +15,8 @@ An Octue service is defined by the following files (located in the repository ro
 
 app.py
 ------
+This is the entrypoint into your code - :doc:`read more here <creating_apps>`.
 
-    .. collapse:: This is the entrypoint into your code - read more...
-
-            ----
-
-        This is where you write your app. The ``app.py`` file can contain any valid python, including import and use of
-        any number of external packages or your own subpackages. It has only two requirements:
-
-        1. It must contain exactly one of the ``octue`` python app interfaces that serve as an entrypoint to your code.
-           These take a single :mod:`Analysis <octue.resources.analysis.Analysis>` instance:
-
-            - **Option 1:** A function named ``run`` with the following signature:
-
-                .. code-block:: python
-
-                    def run(analysis):
-                        """A function that uses input and configuration from an ``Analysis`` instance and stores any
-                        output values and output manifests on it.
-
-                        :param octue.resources.Analysis analysis:
-                        :return None:
-                        """
-                        ...
-
-            - **Option 2:** A class named ``App`` with the following signature:
-
-                .. code-block:: python
-
-                    class App:
-                        """A class that takes an ``Analysis`` instance and anything else you like. It can contain any
-                        methods you like but it must also have a ``run`` method.
-
-                        :param octue.resources.Analysis analysis:
-                        :return None:
-                        """
-
-                        def __init__(self, analysis, *args, **kwargs):
-                            self.analysis = analysis
-                            ...
-
-                        def run(self):
-                            """A method that that uses input and configuration from an ``Analysis`` instance and stores
-                            any output values and output manifests on it.
-
-                            :return None:
-                            """
-                            ...
-
-                        ...
-
-        2. It must access configuration/input data from and store output data on the :mod:`analysis
-           <octue.resources.analysis.Analysis>` parameter/attribute:
-
-        - Configuration values: ``analysis.configuration_values``
-        - Configuration manifest: ``analysis.configuration_manifest``
-        - Input values: ``analysis.input_values``
-        - Input manifest: ``analysis.input_manifest``
-        - Output values: ``analysis.output_values``
-        - Output manifest: ``analysis.output_manifest``
-
-        This allows standardised configuration/input/output for services while allowing you to do anything you like with
-        the input data to produce the output data.
 
 twine.json
 ----------
