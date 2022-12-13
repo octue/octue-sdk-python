@@ -570,13 +570,15 @@ class TestRunner(BaseTestCase):
             create_monitor_message = lambda: {"random_integer": random.randint(0, 10000)}
             analysis.set_up_periodic_monitor_message(create_monitor_message=create_monitor_message, period=0.05)
             time.sleep(0.5)
+            analysis.output_values = {"The": "output"}
 
         runner = Runner(
             app_src=app,
-            twine={"monitor_message_schema": {"random_integer": {"type": "integer"}}},
+            twine={"monitor_message_schema": {"random_integer": {"type": "integer"}}, "output_values_schema": {}},
         )
 
         analysis = runner.run(handle_monitor_message=monitor_messages.append)
+        self.assertEqual(analysis.output_values, {"The": "output"})
 
         # Check that messages have been sent and that the data is different each time.
         self.assertTrue(len(monitor_messages) > 2)
