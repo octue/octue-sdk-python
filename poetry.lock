@@ -50,8 +50,26 @@ test = ["cryptography (>=36.0.0)", "freezegun (>=0.3.12)", "hypothesis (<7)", "j
 
 [[package]]
 name = "apeye"
-version = "1.2.0"
+version = "1.3.0"
 description = "Handy tools for working with URLs and APIs."
+category = "dev"
+optional = false
+python-versions = ">=3.6.1"
+
+[package.dependencies]
+apeye-core = ">=1.0.0b2"
+domdf-python-tools = ">=2.6.0"
+platformdirs = ">=2.3.0"
+requests = ">=2.24.0"
+
+[package.extras]
+all = ["cachecontrol[filecache] (>=0.12.6)", "lockfile (>=0.12.2)"]
+limiter = ["cachecontrol[filecache] (>=0.12.6)", "lockfile (>=0.12.2)"]
+
+[[package]]
+name = "apeye-core"
+version = "1.1.0"
+description = "Core (offline) functionality for the apeye library."
 category = "dev"
 optional = false
 python-versions = ">=3.6.1"
@@ -59,12 +77,6 @@ python-versions = ">=3.6.1"
 [package.dependencies]
 domdf-python-tools = ">=2.6.0"
 idna = ">=2.5"
-platformdirs = ">=2.3.0"
-requests = ">=2.24.0"
-
-[package.extras]
-all = ["cachecontrol[filecache] (>=0.12.6)", "lockfile (>=0.12.2)"]
-limiter = ["cachecontrol[filecache] (>=0.12.6)", "lockfile (>=0.12.2)"]
 
 [[package]]
 name = "appdirs"
@@ -1856,8 +1868,12 @@ apache-beam = [
     {file = "apache_beam-2.43.0-cp39-cp39-win_amd64.whl", hash = "sha256:606f5a27b9b78542618663d11e4bce4bcb998cf442667f2b49b69ef87d91343a"},
 ]
 apeye = [
-    {file = "apeye-1.2.0-py3-none-any.whl", hash = "sha256:d6b08c96457e4e0457088c247417fc336ebf83ab88645c508562aaeaf3077954"},
-    {file = "apeye-1.2.0.tar.gz", hash = "sha256:0bb0f5b037730f149d3ab3697bc30ccccd60407cf16218d8ffa8f78462239e1e"},
+    {file = "apeye-1.3.0-py3-none-any.whl", hash = "sha256:8ce991a5c7d1ccedd46f067fcd53eccfa4b0b62a50d8802340b427941603b839"},
+    {file = "apeye-1.3.0.tar.gz", hash = "sha256:30ac4dcc6eafc28ae2cc6911caef7396c2692a3842e2d77aafe03cdb979eeb3c"},
+]
+apeye-core = [
+    {file = "apeye_core-1.1.0-py3-none-any.whl", hash = "sha256:b711fa1f2df30ec39f4e555cfca9c76120a643b8274397bf67dd6904066a4ae2"},
+    {file = "apeye_core-1.1.0.tar.gz", hash = "sha256:b57953dbd13d6e6c6228281bbf4468b98bd21261f1b23812bfab811f247edc0a"},
 ]
 appdirs = [
     {file = "appdirs-1.4.4-py2.py3-none-any.whl", hash = "sha256:a841dacd6b99318a741b166adb07e19ee71a274450e68237b4650ca1055ab128"},
