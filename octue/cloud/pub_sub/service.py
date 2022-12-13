@@ -408,6 +408,7 @@ class Service:
         )
 
         topic.messages_published += 1
+        logger.info("Sent message of type %r.", message.get("type", "unknown"))
 
     def _send_delivery_acknowledgment(self, topic, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
