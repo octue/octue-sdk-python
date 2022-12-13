@@ -117,6 +117,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
             return
 
         self._handle_monitor_message(data)
+        logger.info("Monitor message sent.")
 
     def set_up_periodic_monitor_message(self, create_monitor_message, period=60):
         """Set up a periodic monitor message that sends up-to-date data once per period.
