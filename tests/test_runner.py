@@ -586,7 +586,7 @@ class TestRunner(BaseTestCase):
 
         # Check that the periodic monitor message thread has been stopped.
         time.sleep(0.5)
-        self.assertFalse(analysis._periodic_monitor_message_sender.is_alive())
+        self.assertFalse(analysis._periodic_monitor_message_sender_threads[0].is_alive())
 
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
