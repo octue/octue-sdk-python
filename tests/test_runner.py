@@ -7,6 +7,7 @@ import time
 import uuid
 from unittest.mock import Mock, patch
 
+import coolname
 from jsonschema.validators import RefResolver
 
 import twined
@@ -560,33 +561,40 @@ class TestRunner(BaseTestCase):
             "Error in <MockService('octue/yet-another-child:latest')>: Deliberately raised for testing.",
         )
 
-    def test_set_up_periodic_monitor_message(self):
-        """Test that periodic monitor messages can be set up from an analysis and that the `create_monitor_message`
-        callable returns new data each time.
-        """
+    def test_set_up_periodic_monitor_messages(self):
+        """Test that multilple periodic monitor messages can be set up from an analysis."""
         monitor_messages = []
 
         def app(analysis):
-            create_monitor_message = lambda: {"random_integer": random.randint(0, 10000)}
-            analysis.set_up_periodic_monitor_message(create_monitor_message=create_monitor_message, period=0.05)
+            analysis.set_up_periodic_monitor_message(
+                create_monitor_message=lambda: {"random_integer": random.randint(0, 10000)},
+                period=0.05,
+            )
+
+            analysis.set_up_periodic_monitor_message(
+                create_monitor_message=lambda: {"random_word": coolname.generate_slug(2)},
+                period=0.01,
+            )
+
             time.sleep(0.5)
             analysis.output_values = {"The": "output"}
 
-        runner = Runner(
-            app_src=app,
-            twine={"monitor_message_schema": {"random_integer": {"type": "integer"}}, "output_values_schema": {}},
-        )
-
+        runner = Runner(app_src=app, twine={"monitor_message_schema": {}, "output_values_schema": {}})
         analysis = runner.run(handle_monitor_message=monitor_messages.append)
         self.assertEqual(analysis.output_values, {"The": "output"})
 
         # Check that messages have been sent and that the data is different each time.
         self.assertTrue(len(monitor_messages) > 2)
-        self.assertTrue(monitor_messages[0]["random_integer"] != monitor_messages[1]["random_integer"])
+
+        # Check that both types of monitor message were sent.
+        monitor_message_types = {list(message.keys())[0] for message in monitor_messages}
+        self.assertEqual(monitor_message_types, {"random_word", "random_integer"})
 
         # Check that the periodic monitor message thread has been stopped.
         time.sleep(0.5)
-        self.assertFalse(analysis._periodic_monitor_message_sender_threads[0].is_alive())
+
+        for thread in analysis._periodic_monitor_message_sender_threads:
+            self.assertFalse(thread.is_alive())
 
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
