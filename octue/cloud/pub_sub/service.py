@@ -4,6 +4,7 @@ import datetime
 import functools
 import json
 import logging
+import threading
 import uuid
 
 import google.api_core.exceptions
@@ -25,6 +26,7 @@ from octue.utils.threads import RepeatingTimer
 
 
 logger = logging.getLogger(__name__)
+send_message_lock = threading.Lock()
 
 DEFAULT_NAMESPACE = "default"
 ANSWERS_NAMESPACE = "answers"
@@ -214,7 +216,6 @@ class Service:
                     "type": "result",
                     "output_values": analysis.output_values,
                     "output_manifest": serialised_output_manifest,
-                    "message_number": topic.messages_published,
                 },
                 topic=topic,
                 timeout=timeout,
@@ -377,7 +378,6 @@ class Service:
                 "exception_type": exception["type"],
                 "exception_message": exception_message,
                 "traceback": exception["traceback"],
-                "message_number": topic.messages_published,
             },
             topic=topic,
             timeout=timeout,
@@ -392,22 +392,26 @@ class Service:
         :param attributes: key-value pairs to attach to the message - the values must be strings or bytes
         :return None:
         """
-        attributes["octue_sdk_version"] = self._local_sdk_version
+        attributes.update({"message_number": topic.messages_published, "octue_sdk_version": self._local_sdk_version})
         converted_attributes = {}
 
         for key, value in attributes.items():
             if isinstance(value, bool):
                 value = str(int(value))
+            elif isinstance(value, (int, float)):
+                value = str(value)
+
             converted_attributes[key] = value
 
-        self.publisher.publish(
-            topic=topic.path,
-            data=json.dumps(message, cls=OctueJSONEncoder).encode(),
-            retry=retry.Retry(deadline=timeout),
-            **converted_attributes,
-        )
+        with send_message_lock:
+            self.publisher.publish(
+                topic=topic.path,
+                data=json.dumps(message, cls=OctueJSONEncoder).encode(),
+                retry=retry.Retry(deadline=timeout),
+                **converted_attributes,
+            )
 
-        topic.messages_published += 1
+            topic.messages_published += 1
 
     def _send_delivery_acknowledgment(self, topic, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
@@ -420,7 +424,6 @@ class Service:
             {
                 "type": "delivery_acknowledgement",
                 "delivery_time": str(datetime.datetime.now()),
-                "message_number": topic.messages_published,
             },
             topic=topic,
             timeout=timeout,
@@ -439,7 +442,6 @@ class Service:
             {
                 "type": "heartbeat",
                 "time": str(datetime.datetime.now()),
-                "message_number": topic.messages_published,
             },
             topic=topic,
             timeout=timeout,
@@ -459,7 +461,6 @@ class Service:
             {
                 "type": "monitor_message",
                 "data": json.dumps(data, cls=OctueJSONEncoder),
-                "message_number": topic.messages_published,
             },
             topic=topic,
             timeout=timeout,

@@ -1,6 +1,7 @@
 import datetime
 import functools
 import logging
+import random
 import tempfile
 import time
 from unittest.mock import patch
@@ -22,7 +23,7 @@ from octue.cloud.emulators.child import ServicePatcher
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.cloud.pub_sub.service import Service
 from octue.exceptions import InvalidMonitorMessage
-from octue.resources import Datafile, Dataset, Manifest
+from octue.resources import Analysis, Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from tests.base import BaseTestCase
@@ -669,6 +670,53 @@ class TestService(BaseTestCase):
             datetime.timedelta(seconds=expected_interval),
             delta=datetime.timedelta(0.05),
         )
+
+    def test_send_monitor_messages_periodically(self):
+        """Test that monitor messages are sent periodically if set up in the run function and that the periodic monitor
+        message thread doesn't stop the result from being received (i.e. message sending is thread-safe).
+        """
+
+        def run_function(*args, **kwargs):
+            analysis = Analysis(
+                twine={"monitor_message_schema": {"type": "number"}},
+                handle_monitor_message=kwargs["handle_monitor_message"],
+            )
+
+            analysis.set_up_periodic_monitor_message(create_monitor_message=random.random, period=0.05)
+            time.sleep(1)
+            analysis.output_values = {"tada": True}
+            return analysis
+
+        backend = GCPPubSubBackend(project_name="octue-amy")
+        child = MockService(backend=backend, run_function=run_function)
+        parent = MockService(backend=backend, children={child.id: child})
+
+        with self.service_patcher:
+            child.serve()
+
+            subscription, _ = parent.ask(
+                service_id=child.id,
+                input_values={},
+                subscribe_to_logs=True,
+                allow_save_diagnostics_data_on_crash=True,
+            )
+
+            monitor_messages = []
+
+            result = parent.wait_for_answer(
+                subscription,
+                service_name="my-super-service",
+                handle_monitor_message=monitor_messages.append,
+            )
+
+        # Check that multiple monitor messages were sent and received.
+        self.assertTrue(len(monitor_messages) > 1)
+
+        # Check the monitor messages comprise random numbers.
+        self.assertNotEqual(sum(monitor_messages) / len(monitor_messages), monitor_messages[0])
+
+        # Check that the result was received correctly.
+        self.assertEqual(result["output_values"], {"tada": True})
 
     def test_providing_dynamic_children(self):
         """Test that, if children are provided to the `ask` method while asking a question, the child being asked uses
