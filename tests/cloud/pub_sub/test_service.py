@@ -711,7 +711,8 @@ class TestService(BaseTestCase):
         # Check that multiple monitor messages were sent and received.
         self.assertTrue(len(monitor_messages) > 1)
 
-        # Check the monitor messages comprise random numbers.
+        # Check the monitor messages comprise random numbers (i.e. that the same monitor message hasn't been sent each
+        # time).
         self.assertNotEqual(sum(monitor_messages) / len(monitor_messages), monitor_messages[0])
 
         # Check that the result was received correctly.
