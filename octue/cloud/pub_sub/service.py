@@ -101,14 +101,15 @@ class Service:
             return self._message_handler.received_messages
         return None
 
-    def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False, allow_existing=False):
+    def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False, allow_existing=False, detach=False):
         """Start the service as a child, waiting to accept questions from any other Octue service using Google Pub/Sub
         on the same Google Cloud project. Questions are accepted, processed, and answered asynchronously.
 
         :param float|None timeout: time in seconds after which to shut down the child
         :param bool delete_topic_and_subscription_on_exit: if `True`, delete the child's topic and subscription on exiting serving mode
         :param bool allow_existing: if `True`, allow starting a service for which the topic and/or subscription already exists (indicating an existing service) - this connects this service to the existing service's topic and subscription
-        :return None:
+        :param bool detach: if `True`, detach from the subscription future. The future and subscriber are returned so can still be cancelled and closed manually. Note that the topic and subscription are not automatically deleted on exit if this option is chosen.
+        :return (google.cloud.pubsub_v1.subscriber.futures.StreamingPullFuture, google.cloud.pubsub_v1.SubscriberClient):
         """
         logger.info("Starting %r.", self)
 
@@ -121,11 +122,15 @@ class Service:
             expiration_time=None,
         )
 
-        subscriber = pubsub_v1.SubscriberClient()
-
         try:
             topic.create(allow_existing=allow_existing)
             subscription.create(allow_existing=allow_existing)
+        except google.api_core.exceptions.AlreadyExists:
+            raise octue.exceptions.ServiceAlreadyExists(f"A service with the ID {self.id!r} already exists.")
+
+        subscriber = pubsub_v1.SubscriberClient()
+
+        try:
             future = subscriber.subscribe(subscription=subscription.path, callback=self.answer)
 
             logger.info(
@@ -133,27 +138,31 @@ class Service:
                 self.id,
             )
 
-            try:
-                future.result(timeout=timeout)
-            except (TimeoutError, concurrent.futures.TimeoutError, KeyboardInterrupt):
-                future.cancel()
-
-        except google.api_core.exceptions.AlreadyExists:
-            raise octue.exceptions.ServiceAlreadyExists(f"A service with the ID {self.id!r} already exists.")
+            # If not detaching, keep answering questions until the subscriber times out (or forever if there's no
+            # timeout).
+            if not detach:
+                try:
+                    future.result(timeout=timeout)
+                except (TimeoutError, concurrent.futures.TimeoutError, KeyboardInterrupt):
+                    future.cancel()
 
         finally:
-            if delete_topic_and_subscription_on_exit:
-                try:
-                    if subscription.creation_triggered_locally:
-                        subscription.delete()
+            # If not detaching, delete the topic and subscription deletion if required and close the subscriber.
+            if not detach:
+                if delete_topic_and_subscription_on_exit:
+                    try:
+                        if subscription.creation_triggered_locally:
+                            subscription.delete()
 
-                    if topic.creation_triggered_locally:
-                        topic.delete()
+                        if topic.creation_triggered_locally:
+                            topic.delete()
 
-                except Exception:
-                    logger.error("Deletion of topic and/or subscription %r failed.", topic.name)
+                    except Exception:
+                        logger.error("Deletion of topic and/or subscription %r failed.", topic.name)
 
-            subscriber.close()
+                subscriber.close()
+
+        return future, subscriber
 
     def answer(self, question, answer_topic=None, heartbeat_interval=120, timeout=30):
         """Answer a question from a parent - i.e. run the child's app on the given data and return the output values.
