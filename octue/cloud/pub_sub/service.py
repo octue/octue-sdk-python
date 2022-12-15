@@ -395,16 +395,18 @@ class Service:
     def _send_message(self, message, topic, timeout=30, **attributes):
         """Send a JSON-serialised message to the given topic with optional message attributes.
 
-        :param any message: any JSON-serialisable python primitive to send as a message
+        :param dict message: JSON-serialisable data to send as a message
         :param octue.cloud.pub_sub.topic.Topic topic: the Pub/Sub topic to send the message to
         :param int|float timeout: the timeout for sending the message in seconds
         :param attributes: key-value pairs to attach to the message - the values must be strings or bytes
         :return None:
         """
         with send_message_lock:
-            attributes.update(
-                {"message_number": topic.messages_published, "octue_sdk_version": self._local_sdk_version}
-            )
+            attributes["octue_sdk_version"] = self._local_sdk_version
+
+            # This would be better placed in the Pub/Sub message's attributes but has been left in `message` for
+            # inter-service backwards compatibility.
+            message["message_number"] = topic.messages_published
             converted_attributes = {}
 
             for key, value in attributes.items():

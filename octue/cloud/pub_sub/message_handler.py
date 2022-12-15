@@ -230,7 +230,7 @@ class OrderedMessageHandler:
                 self._heartbeat_checker.cancel()
 
         message = json.loads(answer.message.data.decode())
-        self._waiting_messages[int(answer.message.attributes["message_number"])] = message
+        self._waiting_messages[int(message["message_number"])] = message
 
     def _attempt_to_handle_queued_messages(self):
         """Attempt to handle messages in the pulled message queue. If these messages aren't consecutive with the last
