@@ -687,9 +687,8 @@ class TestService(BaseTestCase):
             analysis.output_values = {"tada": True}
             return analysis
 
-        backend = GCPPubSubBackend(project_name="octue-amy")
-        child = MockService(backend=backend, run_function=run_function)
-        parent = MockService(backend=backend, children={child.id: child})
+        child = MockService(backend=BACKEND, run_function=run_function)
+        parent = MockService(backend=BACKEND, children={child.id: child})
 
         with self.service_patcher:
             child.serve()
