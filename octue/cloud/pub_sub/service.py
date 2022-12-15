@@ -392,18 +392,20 @@ class Service:
         :param attributes: key-value pairs to attach to the message - the values must be strings or bytes
         :return None:
         """
-        attributes.update({"message_number": topic.messages_published, "octue_sdk_version": self._local_sdk_version})
-        converted_attributes = {}
-
-        for key, value in attributes.items():
-            if isinstance(value, bool):
-                value = str(int(value))
-            elif isinstance(value, (int, float)):
-                value = str(value)
-
-            converted_attributes[key] = value
-
         with send_message_lock:
+            attributes.update(
+                {"message_number": topic.messages_published, "octue_sdk_version": self._local_sdk_version}
+            )
+            converted_attributes = {}
+
+            for key, value in attributes.items():
+                if isinstance(value, bool):
+                    value = str(int(value))
+                elif isinstance(value, (int, float)):
+                    value = str(value)
+
+                converted_attributes[key] = value
+
             self.publisher.publish(
                 topic=topic.path,
                 data=json.dumps(message, cls=OctueJSONEncoder).encode(),
