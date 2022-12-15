@@ -1,10 +1,13 @@
 import copy
 import json
 import os
+import random
 import tempfile
+import time
 import uuid
 from unittest.mock import Mock, patch
 
+import coolname
 from jsonschema.validators import RefResolver
 
 import twined
@@ -557,6 +560,41 @@ class TestRunner(BaseTestCase):
             questions[1]["messages"][1]["exception_message"],
             "Error in <MockService('octue/yet-another-child:latest')>: Deliberately raised for testing.",
         )
+
+    def test_set_up_periodic_monitor_messages(self):
+        """Test that multilple periodic monitor messages can be set up from an analysis."""
+        monitor_messages = []
+
+        def app(analysis):
+            analysis.set_up_periodic_monitor_message(
+                create_monitor_message=lambda: {"random_integer": random.randint(0, 10000)},
+                period=0.05,
+            )
+
+            analysis.set_up_periodic_monitor_message(
+                create_monitor_message=lambda: {"random_word": coolname.generate_slug(2)},
+                period=0.01,
+            )
+
+            time.sleep(0.5)
+            analysis.output_values = {"The": "output"}
+
+        runner = Runner(app_src=app, twine={"monitor_message_schema": {}, "output_values_schema": {}})
+        analysis = runner.run(handle_monitor_message=monitor_messages.append)
+        self.assertEqual(analysis.output_values, {"The": "output"})
+
+        # Check that messages have been sent and that the data is different each time.
+        self.assertTrue(len(monitor_messages) > 2)
+
+        # Check that both types of monitor message were sent.
+        monitor_message_types = {list(message.keys())[0] for message in monitor_messages}
+        self.assertEqual(monitor_message_types, {"random_word", "random_integer"})
+
+        # Check that the periodic monitor message thread has been stopped.
+        time.sleep(0.5)
+
+        for thread in analysis._periodic_monitor_message_sender_threads:
+            self.assertFalse(thread.is_alive())
 
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):

@@ -4,6 +4,7 @@ import datetime
 import functools
 import json
 import logging
+import threading
 import uuid
 
 import google.api_core.exceptions
@@ -25,6 +26,7 @@ from octue.utils.threads import RepeatingTimer
 
 
 logger = logging.getLogger(__name__)
+send_message_lock = threading.Lock()
 
 DEFAULT_NAMESPACE = "default"
 ANSWERS_NAMESPACE = "answers"
@@ -99,14 +101,15 @@ class Service:
             return self._message_handler.received_messages
         return None
 
-    def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False, allow_existing=False):
+    def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False, allow_existing=False, detach=False):
         """Start the service as a child, waiting to accept questions from any other Octue service using Google Pub/Sub
         on the same Google Cloud project. Questions are accepted, processed, and answered asynchronously.
 
         :param float|None timeout: time in seconds after which to shut down the child
         :param bool delete_topic_and_subscription_on_exit: if `True`, delete the child's topic and subscription on exiting serving mode
         :param bool allow_existing: if `True`, allow starting a service for which the topic and/or subscription already exists (indicating an existing service) - this connects this service to the existing service's topic and subscription
-        :return None:
+        :param bool detach: if `True`, detach from the subscription future. The future and subscriber are returned so can still be cancelled and closed manually. Note that the topic and subscription are not automatically deleted on exit if this option is chosen.
+        :return (google.cloud.pubsub_v1.subscriber.futures.StreamingPullFuture, google.cloud.pubsub_v1.SubscriberClient):
         """
         logger.info("Starting %r.", self)
 
@@ -119,11 +122,15 @@ class Service:
             expiration_time=None,
         )
 
-        subscriber = pubsub_v1.SubscriberClient()
-
         try:
             topic.create(allow_existing=allow_existing)
             subscription.create(allow_existing=allow_existing)
+        except google.api_core.exceptions.AlreadyExists:
+            raise octue.exceptions.ServiceAlreadyExists(f"A service with the ID {self.id!r} already exists.")
+
+        subscriber = pubsub_v1.SubscriberClient()
+
+        try:
             future = subscriber.subscribe(subscription=subscription.path, callback=self.answer)
 
             logger.info(
@@ -131,27 +138,31 @@ class Service:
                 self.id,
             )
 
-            try:
-                future.result(timeout=timeout)
-            except (TimeoutError, concurrent.futures.TimeoutError, KeyboardInterrupt):
-                future.cancel()
-
-        except google.api_core.exceptions.AlreadyExists:
-            raise octue.exceptions.ServiceAlreadyExists(f"A service with the ID {self.id!r} already exists.")
+            # If not detaching, keep answering questions until the subscriber times out (or forever if there's no
+            # timeout).
+            if not detach:
+                try:
+                    future.result(timeout=timeout)
+                except (TimeoutError, concurrent.futures.TimeoutError, KeyboardInterrupt):
+                    future.cancel()
 
         finally:
-            if delete_topic_and_subscription_on_exit:
-                try:
-                    if subscription.creation_triggered_locally:
-                        subscription.delete()
+            # If not detaching, delete the topic and subscription deletion if required and close the subscriber.
+            if not detach:
+                if delete_topic_and_subscription_on_exit:
+                    try:
+                        if subscription.creation_triggered_locally:
+                            subscription.delete()
 
-                    if topic.creation_triggered_locally:
-                        topic.delete()
+                        if topic.creation_triggered_locally:
+                            topic.delete()
 
-                except Exception:
-                    logger.error("Deletion of topic and/or subscription %r failed.", topic.name)
+                    except Exception:
+                        logger.error("Deletion of topic and/or subscription %r failed.", topic.name)
 
-            subscriber.close()
+                subscriber.close()
+
+        return future, subscriber
 
     def answer(self, question, answer_topic=None, heartbeat_interval=120, timeout=30):
         """Answer a question from a parent - i.e. run the child's app on the given data and return the output values.
@@ -214,7 +225,6 @@ class Service:
                     "type": "result",
                     "output_values": analysis.output_values,
                     "output_manifest": serialised_output_manifest,
-                    "message_number": topic.messages_published,
                 },
                 topic=topic,
                 timeout=timeout,
@@ -377,7 +387,6 @@ class Service:
                 "exception_type": exception["type"],
                 "exception_message": exception_message,
                 "traceback": exception["traceback"],
-                "message_number": topic.messages_published,
             },
             topic=topic,
             timeout=timeout,
@@ -386,28 +395,36 @@ class Service:
     def _send_message(self, message, topic, timeout=30, **attributes):
         """Send a JSON-serialised message to the given topic with optional message attributes.
 
-        :param any message: any JSON-serialisable python primitive to send as a message
+        :param dict message: JSON-serialisable data to send as a message
         :param octue.cloud.pub_sub.topic.Topic topic: the Pub/Sub topic to send the message to
         :param int|float timeout: the timeout for sending the message in seconds
         :param attributes: key-value pairs to attach to the message - the values must be strings or bytes
         :return None:
         """
-        attributes["octue_sdk_version"] = self._local_sdk_version
-        converted_attributes = {}
+        with send_message_lock:
+            attributes["octue_sdk_version"] = self._local_sdk_version
 
-        for key, value in attributes.items():
-            if isinstance(value, bool):
-                value = str(int(value))
-            converted_attributes[key] = value
+            # This would be better placed in the Pub/Sub message's attributes but has been left in `message` for
+            # inter-service backwards compatibility.
+            message["message_number"] = topic.messages_published
+            converted_attributes = {}
 
-        self.publisher.publish(
-            topic=topic.path,
-            data=json.dumps(message, cls=OctueJSONEncoder).encode(),
-            retry=retry.Retry(deadline=timeout),
-            **converted_attributes,
-        )
+            for key, value in attributes.items():
+                if isinstance(value, bool):
+                    value = str(int(value))
+                elif isinstance(value, (int, float)):
+                    value = str(value)
 
-        topic.messages_published += 1
+                converted_attributes[key] = value
+
+            self.publisher.publish(
+                topic=topic.path,
+                data=json.dumps(message, cls=OctueJSONEncoder).encode(),
+                retry=retry.Retry(deadline=timeout),
+                **converted_attributes,
+            )
+
+            topic.messages_published += 1
 
     def _send_delivery_acknowledgment(self, topic, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
@@ -416,17 +433,16 @@ class Service:
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
-        logger.info("%r acknowledged receipt of question.", self)
-
         self._send_message(
             {
                 "type": "delivery_acknowledgement",
                 "delivery_time": str(datetime.datetime.now()),
-                "message_number": topic.messages_published,
             },
             topic=topic,
             timeout=timeout,
         )
+
+        logger.info("%r acknowledged receipt of question.", self)
 
     def _send_heartbeat(self, topic, timeout=30):
         """Send a heartbeat to the parent, indicating that the service is alive.
@@ -439,13 +455,12 @@ class Service:
             {
                 "type": "heartbeat",
                 "time": str(datetime.datetime.now()),
-                "message_number": topic.messages_published,
             },
             topic=topic,
             timeout=timeout,
         )
 
-        logger.debug("Heartbeat sent.")
+        logger.debug("Heartbeat sent by %r.", self)
 
     def _send_monitor_message(self, data, topic, timeout=30):
         """Send a monitor message to the parent.
@@ -455,17 +470,16 @@ class Service:
         :param float timeout: time in seconds to retry sending the message
         :return None:
         """
-        logger.debug("%r sending monitor message.", self)
-
         self._send_message(
             {
                 "type": "monitor_message",
                 "data": json.dumps(data, cls=OctueJSONEncoder),
-                "message_number": topic.messages_published,
             },
             topic=topic,
             timeout=timeout,
         )
+
+        logger.debug("Monitor message sent by %r.", self)
 
     def _parse_question(self, question):
         """Parse a question in the Google Cloud Pub/Sub or Google Cloud Run format.

@@ -88,7 +88,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         self.output_location = kwargs.pop("output_location", None)
 
         self._calculate_strand_hashes(strands=strand_kwargs)
-        self._periodic_monitor_message_sender = None
+        self._periodic_monitor_message_sender_threads = []
         self._finalised = False
         super().__init__(**kwargs)
 
@@ -125,13 +125,15 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         :param int|float period: the repetition period in seconds
         :return None:
         """
-        self._periodic_monitor_message_sender = RepeatingTimer(
+        thread = RepeatingTimer(
             interval=period,
             function=lambda: self.send_monitor_message(data=create_monitor_message()),
         )
 
-        self._periodic_monitor_message_sender.daemon = True
-        self._periodic_monitor_message_sender.start()
+        thread.daemon = True
+        thread.start()
+
+        self._periodic_monitor_message_sender_threads.append(thread)
         logger.info("Periodic monitor message set up to send every %ss.", period)
 
     def finalise(self, upload_output_datasets_to=None):
