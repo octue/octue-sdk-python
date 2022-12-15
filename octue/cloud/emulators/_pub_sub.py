@@ -93,20 +93,40 @@ class MockSubscription(Subscription):
 class MockFuture:
     """A mock future that is returned when publishing or subscribing."""
 
+    def __init__(self):
+        self._cancelled = False
+        self._returned = False
+
+    @property
+    def returned(self):
+        """Check if the future has had its `result` method called.
+
+        :return bool:
+        """
+        return self._returned
+
+    @property
+    def cancelled(self):
+        """Check if the future has been cancelled.
+
+        :return bool:
+        """
+        return self._cancelled
+
     def result(self, timeout=None):
-        """Do nothing.
+        """Mark the future as returned.
 
         :param float timeout:
         :return None:
         """
-        pass
+        self._returned = True
 
     def cancel(self):
-        """Do nothing.
+        """Mark the future as cancelled.
 
         :return None:
         """
-        pass
+        self._cancelled = True
 
 
 class MockPublisher:

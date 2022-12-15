@@ -74,9 +74,27 @@ class TestService(BaseTestCase):
                     MockService(backend=BACKEND, service_id="my-org/existing-service:latest").serve()
 
     def test_serve(self):
-        """Test that serving works with a unique service ID."""
+        """Test that serving works with a unique service ID. Test that the returned future has itself been returned and
+        that the returned subscriber has been closed.
+        """
         with self.service_patcher:
-            MockService(backend=BACKEND, service_id="my-org/existing-service:latest").serve()
+            future, subscriber = MockService(backend=BACKEND, service_id="my-org/existing-service:latest").serve()
+
+        self.assertFalse(future.cancelled)
+        self.assertTrue(future.returned)
+        self.assertTrue(subscriber.closed)
+
+    def test_serve_detached(self):
+        """Test that, when serving a service in detached mode, the returned future is not cancelled or returned and that
+        the returned subscriber is not closed.
+        """
+        with self.service_patcher:
+            service = MockService(backend=BACKEND, service_id="my-org/existing-service-d:latest")
+            future, subscriber = service.serve(detach=True)
+
+        self.assertFalse(future.cancelled)
+        self.assertFalse(future.returned)
+        self.assertFalse(subscriber.closed)
 
     def test_ask_on_non_existent_service_results_in_error(self):
         """Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
