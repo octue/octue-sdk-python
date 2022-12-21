@@ -15,7 +15,7 @@ RUN if [ -f "pyproject.toml" ]; then curl -sSL https://install.python-poetry.org
 
 # Copy in the dependencies file(s) for caching. `requirements.txt`, `setup.py`, and `pyproject.toml and `poetry.lock`
 # are supported.
-COPY requirements.txt? setup.py? pyproject.toml? poetry.lock? ./
+COPY requirements.tx[t] setup.p[y] pyproject.tom[l] poetry.loc[k] ./
 
 # If `pyproject.toml` is present, install  the dependencies only to utilise layer caching for quick rebuilds.
 RUN if [ -f "pyproject.toml" ]; then poetry install --no-ansi --no-interaction --no-cache --no-root --only main; fi
