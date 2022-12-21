@@ -11,8 +11,7 @@ RUN apt-get update -y && apt-get install -y --fix-missing build-essential && rm 
 # Install poetry if a `pyproject.toml` file is present.
 ENV POETRY_HOME=/root/.poetry
 ENV PATH "$POETRY_HOME/bin:$PATH"
-RUN if [ -f "pyproject.toml" ]; then curl -sSL https://install.python-poetry.org | python3 -  \
-    && poetry config virtualenvs.create false; fi
+RUN curl -sSL https://install.python-poetry.org | python3 - && poetry config virtualenvs.create false;
 
 # Copy in the dependencies file(s) for caching. One or more of `requirements.txt`, `setup.py`, and `pyproject.toml and
 # `poetry.lock` must be present.
