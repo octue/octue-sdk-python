@@ -23,7 +23,7 @@ RUN if [ -f "pyproject.toml" ]; then poetry install  \
     --no-interaction  \
     --no-cache  \
     --no-root  \
-    --only main;1  \
+    --only main;  \
     fi
 
 # Copy local code to the application root directory.
