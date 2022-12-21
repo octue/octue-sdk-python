@@ -8,11 +8,10 @@ WORKDIR $PROJECT_ROOT
 
 RUN apt-get update -y && apt-get install -y --fix-missing build-essential && rm -rf /var/lib/apt/lists/*
 
-# Install poetry if a `pyproject.toml` file is present.
-ENV POETRY_HOME=/etc/poetry
+# Install poetry.
+ENV POETRY_HOME=/root/.poetry
 ENV PATH "$POETRY_HOME/bin:$PATH"
-RUN if [ -f "pyproject.toml" ]; then curl -sSL https://install.python-poetry.org | python3 -  \
-    && poetry config virtualenvs.create false; fi
+RUN curl -sSL https://install.python-poetry.org | python3 - && poetry config virtualenvs.create false;
 
 # Copy in the dependencies file(s) for caching. One or more of `requirements.txt`, `setup.py`, and `pyproject.toml and
 # `poetry.lock` must be present.
@@ -24,8 +23,7 @@ RUN if [ -f "pyproject.toml" ]; then poetry install  \
     --no-interaction  \
     --no-cache  \
     --no-root  \
-    --only main  \
-    -E hdf5;  \
+    --only main;  \
     fi
 
 # Copy local code to the application root directory.
