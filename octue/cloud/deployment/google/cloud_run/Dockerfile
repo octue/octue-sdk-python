@@ -9,7 +9,7 @@ WORKDIR $PROJECT_ROOT
 RUN apt-get update -y && apt-get install -y --fix-missing build-essential && rm -rf /var/lib/apt/lists/*
 
 # Install poetry if a `pyproject.toml` file is present.
-ENV POETRY_HOME=/etc/poetry
+ENV POETRY_HOME=/root/.poetry
 ENV PATH "$POETRY_HOME/bin:$PATH"
 RUN if [ -f "pyproject.toml" ]; then curl -sSL https://install.python-poetry.org | python3 -  \
     && poetry config virtualenvs.create false; fi
