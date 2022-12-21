@@ -3,7 +3,7 @@ FROM windpioneers/gdal-python:little-gecko-gdal-2.4.1-python-3.9-slim
 # Ensure print statements and log messages appear promptly in Cloud Logging.
 ENV PYTHONUNBUFFERED True
 
-ENV PROJECT_ROOT=/app
+ENV PROJECT_ROOT=/workspace
 WORKDIR $PROJECT_ROOT
 
 RUN apt-get update -y && apt-get install -y --fix-missing build-essential && rm -rf /var/lib/apt/lists/*
