@@ -1,6 +1,6 @@
 FROM windpioneers/gdal-python:little-gecko-gdal-2.4.1-python-3.9-slim
 
-# Allow statements and log messages to immediately appear in the Knative logs on Google Cloud.
+# Ensure print statements and log messages appear promptly in Cloud Logging.
 ENV PYTHONUNBUFFERED True
 
 ENV PROJECT_ROOT=/app
@@ -8,19 +8,26 @@ WORKDIR $PROJECT_ROOT
 
 RUN apt-get update -y && apt-get install -y --fix-missing build-essential curl && rm -rf /var/lib/apt/lists/*
 
-COPY . .
-
-# Install poetry if necessary.
+# Install poetry if a `pyproject.toml` file is present.
 ENV POETRY_HOME=/etc/poetry
 ENV PATH "$POETRY_HOME/bin:$PATH"
 RUN if [ -f "pyproject.toml" ]; then curl -sSL https://install.python-poetry.org | python3 - && poetry config virtualenvs.create false; fi
 
-# Install dependencies - supports `setup.py`, `requirements.txt`, and `pyproject.toml` via poetry. All dependency files
-# are installed from if present.
-RUN if [ ! -f "requirements.txt" ] && [ ! -f "setup.py" ] && [ ! -f "pyproject.toml" ]; then exit 1; fi
+# Copy in the dependencies file(s) for caching. `requirements.txt`, `setup.py`, and `pyproject.toml and `poetry.lock`
+# are supported.
+COPY requirements.txt? setup.py? pyproject.toml? poetry.lock? ./
+
+# If `pyproject.toml` is present, install  the dependencies only to utilise layer caching for quick rebuilds.
+RUN if [ -f "pyproject.toml" ]; then poetry install --no-ansi --no-interaction --no-cache --no-root --only main; fi
+
+# Copy local code to the application root directory.
+COPY . .
+
+# Install local packages if using poetry. Otherwise, install everything if using `setup.py` or `requirements.txt`. All
+# dependency files are installed from if present.
+RUN if [ -f "pyproject.toml" ]; then poetry install --only main; fi
 RUN if [ -f "requirements.txt" ]; then pip install --upgrade pip && pip install -r requirements.txt; fi
 RUN if [ -f "setup.py" ]; then pip install --upgrade pip && pip install -e .; fi
-RUN if [ -f "pyproject.toml" ]; then poetry install --no-ansi --no-interaction --no-cache --only main; fi
 
 EXPOSE $PORT
 
