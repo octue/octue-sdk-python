@@ -24,7 +24,6 @@ RUN if [ -f "pyproject.toml" ]; then poetry install  \
     --no-cache  \
     --no-root  \
     --only main  \
-    -E hdf5;  \
     fi
 
 # Copy local code to the application root directory.
