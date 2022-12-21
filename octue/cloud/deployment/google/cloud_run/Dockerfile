@@ -1,4 +1,4 @@
-FROM python:3.9-slim-buster
+FROM windpioneers/gdal-python:little-gecko-gdal-2.4.1-python-3.9-slim
 
 # Allow statements and log messages to immediately appear in the Knative logs on Google Cloud.
 ENV PYTHONUNBUFFERED True
@@ -20,7 +20,7 @@ RUN if [ -f "pyproject.toml" ]; then curl -sSL https://install.python-poetry.org
 RUN if [ ! -f "requirements.txt" ] && [ ! -f "setup.py" ] && [ ! -f "pyproject.toml" ]; then exit 1; fi
 RUN if [ -f "requirements.txt" ]; then pip install --upgrade pip && pip install -r requirements.txt; fi
 RUN if [ -f "setup.py" ]; then pip install --upgrade pip && pip install -e .; fi
-RUN if [ -f "pyproject.toml" ]; then poetry install --only main; fi
+RUN if [ -f "pyproject.toml" ]; then poetry install --no-ansi --no-interaction --no-cache --only main; fi
 
 EXPOSE $PORT
 
