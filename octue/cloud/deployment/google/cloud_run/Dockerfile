@@ -11,11 +11,12 @@ RUN apt-get update -y && apt-get install -y --fix-missing build-essential && rm 
 # Install poetry if a `pyproject.toml` file is present.
 ENV POETRY_HOME=/etc/poetry
 ENV PATH "$POETRY_HOME/bin:$PATH"
-RUN if [ -f "pyproject.toml" ]; then curl -sSL https://install.python-poetry.org | python3 - && poetry config virtualenvs.create false; fi
+RUN if [ -f "pyproject.toml" ]; then curl -sSL https://install.python-poetry.org | python3 - \
+    && poetry config virtualenvs.create false; fi
 
-# Copy in the dependencies file(s) for caching. `requirements.txt`, `setup.py`, and `pyproject.toml and `poetry.lock`
-# are supported.
-COPY requirements.tx[t] setup.p[y] pyproject.tom[l] poetry.loc[k] ./
+# Copy in the dependencies file(s) for caching. One or more of `requirements.txt`, `setup.py`, and `pyproject.toml and
+# `poetry.lock` must be present.
+COPY pyproject.tom[l] poetry.loc[k] setup.p[y] requirements.tx[t] ./
 
 # If `pyproject.toml` is present, install  the dependencies only to utilise layer caching for quick rebuilds.
 RUN if [ -f "pyproject.toml" ]; then poetry install --no-ansi --no-interaction --no-cache --no-root --only main; fi
@@ -23,11 +24,10 @@ RUN if [ -f "pyproject.toml" ]; then poetry install --no-ansi --no-interaction -
 # Copy local code to the application root directory.
 COPY . .
 
-# Install local packages if using poetry. Otherwise, install everything if using `setup.py` or `requirements.txt`. All
-# dependency files are installed from if present.
-RUN if [ -f "pyproject.toml" ]; then poetry install --only main; fi
-RUN if [ -f "requirements.txt" ]; then pip install --upgrade pip && pip install -r requirements.txt; fi
-RUN if [ -f "setup.py" ]; then pip install --upgrade pip && pip install -e .; fi
+# Install local packages if using poetry. Otherwise, install everything if using `setup.py` or `requirements.txt`.
+RUN if [ -f "pyproject.toml" ]; then poetry install --only main; \
+    elif [ -f "setup.py" ]; then pip install --upgrade pip && pip install -e .; \
+    elif [ -f "requirements.txt" ]; then pip install --upgrade pip && pip install -r requirements.txt; fi
 
 EXPOSE $PORT
 
