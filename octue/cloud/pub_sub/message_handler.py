@@ -56,7 +56,7 @@ class OrderedMessageHandler:
         self.service_name = service_name
 
         self.received_messages = []
-        self.received_delivery_acknowledgement = None
+        self.received_response_from_child = None
         self._subscriber = SubscriberClient()
         self._child_sdk_version = None
         self._heartbeat_checker = None
@@ -98,7 +98,7 @@ class OrderedMessageHandler:
         :raise TimeoutError: if the timeout is exceeded before receiving the final message
         :return dict: the first result returned by a message handler
         """
-        self.received_delivery_acknowledgement = False
+        self.received_response_from_child = False
         self._waiting_messages = {}
         self._previous_message_number = -1
 
@@ -205,7 +205,7 @@ class OrderedMessageHandler:
                         f"No message received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
                     )
 
-                if not self.received_delivery_acknowledgement:
+                if not self.received_response_from_child:
                     if run_time > delivery_acknowledgement_timeout:
                         raise QuestionNotDelivered(
                             f"No delivery acknowledgement received for topic {self.subscription.topic.path!r} "
@@ -263,7 +263,9 @@ class OrderedMessageHandler:
         self._previous_message_number += 1
 
         try:
-            return self._message_handlers[message["type"]](message)
+            result = self._message_handlers[message["type"]](message)
+            self.received_response_from_child = True
+            return result
 
         except Exception as error:
             warn_if_incompatible(
@@ -289,7 +291,6 @@ class OrderedMessageHandler:
         :param dict message:
         :return None:
         """
-        self.received_delivery_acknowledgement = True
         logger.info("%r's question was delivered at %s.", self.receiving_service, message["delivery_time"])
 
     def _handle_heartbeat(self, message):

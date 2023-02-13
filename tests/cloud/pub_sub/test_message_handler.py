@@ -201,7 +201,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 receiving_service=self.receiving_service,
             )
 
-        self.assertFalse(message_handler.received_delivery_acknowledgement)
+        self.assertFalse(message_handler.received_response_from_child)
 
         with patch(
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
@@ -219,7 +219,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         ):
             result = message_handler.handle_messages()
 
-        self.assertTrue(message_handler.received_delivery_acknowledgement)
+        self.assertTrue(message_handler.received_response_from_child)
         self.assertEqual(result, {"output_values": None, "output_manifest": None})
 
     def test_error_raised_if_heartbeat_not_received_before_checked(self):
