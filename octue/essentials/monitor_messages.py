@@ -1,5 +1,5 @@
 """A module containing helper functions for sending monitor messages that conform to the Octue essential monitor
-message schema https://refs.schema.octue.com/octue/essential-monitors/0.0.2.json
+message schema https://jsonschema.registry.octue.com/octue/essential-monitors/0.0.2.json
 """
 import logging
 from datetime import datetime, timezone
