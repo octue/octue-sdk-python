@@ -55,6 +55,7 @@ class OrderedMessageHandler:
         self.record_messages = record_messages
         self.service_name = service_name
 
+        self.question_uuid = self.subscription.topic.path.split(".")[-1]
         self.received_messages = []
         self.received_response_from_child = None
         self._subscriber = SubscriberClient()
@@ -213,12 +214,7 @@ class OrderedMessageHandler:
                         )
 
         self._subscriber.acknowledge(request={"subscription": self.subscription.path, "ack_ids": [answer.ack_id]})
-
-        logger.debug(
-            "%r received a message related to question %r.",
-            self.receiving_service,
-            self.subscription.topic.path.split(".")[-1],
-        )
+        logger.debug("%r received a message related to question %r.", self.receiving_service, self.question_uuid)
 
         # Get the child's Octue SDK version from the first message.
         if not self._child_sdk_version:
@@ -300,7 +296,7 @@ class OrderedMessageHandler:
         :return None:
         """
         self._last_heartbeat = datetime.now()
-        logger.info("Heartbeat received from service %r.", self.service_name)
+        logger.info("Heartbeat received from service %r for question %r.", self.service_name, self.question_uuid)
 
     def _handle_monitor_message(self, message):
         """Send a monitor message to the handler if one has been provided.
@@ -373,11 +369,7 @@ class OrderedMessageHandler:
         :param dict message:
         :return dict:
         """
-        logger.info(
-            "%r received an answer to question %r.",
-            self.receiving_service,
-            self.subscription.topic.path.split(".")[-1],
-        )
+        logger.info("%r received an answer to question %r.", self.receiving_service, self.question_uuid)
 
         if message["output_manifest"] is None:
             output_manifest = None
