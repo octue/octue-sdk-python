@@ -255,11 +255,11 @@ class OrderedMessageHandler:
         :param dict message:
         :return dict|None:
         """
+        self.received_response_from_child = True
         self._previous_message_number += 1
 
         try:
             result = self._message_handlers[message["type"]](message)
-            self.received_response_from_child = True
             return result
 
         except Exception as error:
