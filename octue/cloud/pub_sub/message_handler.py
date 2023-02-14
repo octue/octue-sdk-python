@@ -206,12 +206,11 @@ class OrderedMessageHandler:
                         f"No message received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
                     )
 
-                if not self.received_response_from_child:
-                    if run_time > delivery_acknowledgement_timeout:
-                        raise QuestionNotDelivered(
-                            f"No delivery acknowledgement received for topic {self.subscription.topic.path!r} "
-                            f"after {delivery_acknowledgement_timeout} seconds."
-                        )
+                if not self.received_response_from_child and run_time > delivery_acknowledgement_timeout:
+                    raise QuestionNotDelivered(
+                        f"No delivery acknowledgement received for topic {self.subscription.topic.path!r} after "
+                        f"{delivery_acknowledgement_timeout} seconds."
+                    )
 
         self._subscriber.acknowledge(request={"subscription": self.subscription.path, "ack_ids": [answer.ack_id]})
         logger.debug("%r received a message related to question %r.", self.receiving_service, self.question_uuid)
