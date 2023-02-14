@@ -338,7 +338,8 @@ class Service:
         """
         if subscription.is_push_subscription:
             raise octue.exceptions.PushSubscriptionCannotBePulled(
-                f"Cannot pull from {subscription.path!r} subscription as it is a push subscription."
+                f"{subscription.path!r} is a push subscription so it cannot be waited on for an answer. Please check "
+                f"its push endpoint at {subscription.push_endpoint!r}."
             )
 
         self._message_handler = OrderedMessageHandler(
