@@ -1,5 +1,6 @@
 import json
 import logging
+import math
 import os
 import re
 import time
@@ -66,6 +67,7 @@ class OrderedMessageHandler:
         self._start_time = None
         self._waiting_messages = None
         self._previous_message_number = -1
+        self._earliest_message_number_received = math.inf
 
         self._message_handlers = message_handlers or {
             "delivery_acknowledgement": self._handle_delivery_acknowledgement,
@@ -240,20 +242,43 @@ class OrderedMessageHandler:
                 self._heartbeat_checker.cancel()
 
         message = json.loads(answer.message.data.decode())
-        self._waiting_messages[int(message["message_number"])] = message
 
-    def _attempt_to_handle_queued_messages(self):
+        message_number = int(message["message_number"])
+        self._waiting_messages[message_number] = message
+        self._earliest_message_number_received = min(self._earliest_message_number_received, message_number)
+
+    def _attempt_to_handle_queued_messages(self, skip_first_messages_after=60):
         """Attempt to handle messages in the pulled message queue. If these messages aren't consecutive with the last
         handled message (i.e. if messages have been received out of order and the next in-order message hasn't been
         received yet), just return.
 
+        :param int|float skip_first_messages_after: the number of seconds after which to skip the first n messages if they haven't arrived but subsequent messages have
         :return any|None: either a non-`None` result from a message handler or `None` if nothing was returned by the message handlers or if the next in-order message hasn't been received yet
         """
         while self._waiting_messages:
             try:
                 message = self._waiting_messages.pop(self._previous_message_number + 1)
+
             except KeyError:
-                return
+
+                if self.total_run_time > skip_first_messages_after:
+                    try:
+                        message = self._waiting_messages.pop(self._earliest_message_number_received)
+                    except KeyError:
+                        return
+
+                    logger.warning(
+                        "%r: The first %d messages for question %s weren't received after %fs - skipping to the "
+                        "earliest received message (message number %d).",
+                        self.receiving_service,
+                        self._earliest_message_number_received,
+                        self.question_uuid,
+                        skip_first_messages_after,
+                        self._earliest_message_number_received,
+                    )
+
+                else:
+                    return
 
             if self.record_messages:
                 self.received_messages.append(message)
