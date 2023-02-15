@@ -289,9 +289,6 @@ class OrderedMessageHandler:
                 else:
                     return
 
-            if self.record_messages:
-                self.received_messages.append(message)
-
             result = self._handle_message(message)
 
             if result is not None:
@@ -305,6 +302,9 @@ class OrderedMessageHandler:
         """
         self.received_response_from_child = True
         self._previous_message_number += 1
+
+        if self.record_messages:
+            self.received_messages.append(message)
 
         try:
             result = self._message_handlers[message["type"]](message)
