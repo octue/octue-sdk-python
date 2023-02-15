@@ -269,22 +269,10 @@ class OrderedMessageHandler:
             except KeyError:
 
                 if self.total_run_time > skip_first_messages_after:
-                    try:
-                        message = self._waiting_messages.pop(self._earliest_message_number_received)
-                    except KeyError:
+                    message = self._get_earliest_received_message(skip_first_messages_after)
+
+                    if not message:
                         return
-
-                    self._previous_message_number = self._earliest_message_number_received - 1
-
-                    logger.warning(
-                        "%r: The first %d messages for question %r weren't received after %ds - skipping to the "
-                        "earliest received message (message number %d).",
-                        self.receiving_service,
-                        self._earliest_message_number_received,
-                        self.question_uuid,
-                        skip_first_messages_after,
-                        self._earliest_message_number_received,
-                    )
 
                 else:
                     return
@@ -293,6 +281,31 @@ class OrderedMessageHandler:
 
             if result is not None:
                 return result
+
+    def _get_earliest_received_message(self, skip_first_messages_after):
+        """Get the earliest received message from the waiting message queue.
+
+        :param int|float skip_first_messages_after: the number of seconds after which to skip the first n messages if they haven't arrived but subsequent messages have
+        :return dict|None:
+        """
+        try:
+            message = self._waiting_messages.pop(self._earliest_message_number_received)
+        except KeyError:
+            return
+
+        self._previous_message_number = self._earliest_message_number_received - 1
+
+        logger.warning(
+            "%r: The first %d messages for question %r weren't received after %ds - skipping to the "
+            "earliest received message (message number %d).",
+            self.receiving_service,
+            self._earliest_message_number_received,
+            self.question_uuid,
+            skip_first_messages_after,
+            self._earliest_message_number_received,
+        )
+
+        return message
 
     def _handle_message(self, message):
         """Pass a message to its handler and update the previous message number.
