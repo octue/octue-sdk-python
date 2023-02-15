@@ -249,20 +249,19 @@ class OrderedMessageHandler:
 
         :return any|None: either a non-`None` result from a message handler or `None` if nothing was returned by the message handlers or if the next in-order message hasn't been received yet
         """
-        try:
-            while self._waiting_messages:
+        while self._waiting_messages:
+            try:
                 message = self._waiting_messages.pop(self._previous_message_number + 1)
+            except KeyError:
+                return
 
-                if self.record_messages:
-                    self.received_messages.append(message)
+            if self.record_messages:
+                self.received_messages.append(message)
 
-                result = self._handle_message(message)
+            result = self._handle_message(message)
 
-                if result is not None:
-                    return result
-
-        except KeyError:
-            return
+            if result is not None:
+                return result
 
     def _handle_message(self, message):
         """Pass a message to its handler and update the previous message number.
