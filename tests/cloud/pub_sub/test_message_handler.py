@@ -222,6 +222,33 @@ class TestOrderedMessageHandler(BaseTestCase):
         self.assertTrue(message_handler.received_response_from_child)
         self.assertEqual(result, {"output_values": None, "output_manifest": None})
 
+    def test_delivery_acknowledgement_if_delivery_acknowledgement_message_missed(self):
+        """Test that delivery of a question is acknowledged by receipt of another message type if the delivery
+        acknowledgement message is missed.
+        """
+        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
+            message_handler = OrderedMessageHandler(
+                subscription=self.mock_subscription,
+                receiving_service=self.receiving_service,
+            )
+
+        self.assertFalse(message_handler.received_response_from_child)
+
+        with patch(
+            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
+            new=MockMessagePuller(
+                [
+                    {"type": "monitor_message", "data": "splat", "message_number": 0},
+                    {"type": "result", "output_values": None, "output_manifest": None, "message_number": 1},
+                ],
+                message_handler=message_handler,
+            ).pull,
+        ):
+            result = message_handler.handle_messages()
+
+        self.assertTrue(message_handler.received_response_from_child)
+        self.assertEqual(result, {"output_values": None, "output_manifest": None})
+
     def test_error_raised_if_heartbeat_not_received_before_checked(self):
         """Test that an error is raised if a heartbeat isn't received before a heartbeat is first checked for."""
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
