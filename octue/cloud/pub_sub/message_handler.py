@@ -307,9 +307,7 @@ class OrderedMessageHandler:
             self.received_messages.append(message)
 
         try:
-            result = self._message_handlers[message["type"]](message)
-            return result
-
+            return self._message_handlers[message["type"]](message)
         except Exception as error:
             self._warn_of_or_raise_invalid_message_error(message, error)
 
