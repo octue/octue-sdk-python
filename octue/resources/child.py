@@ -104,5 +104,7 @@ class Child:
         def ask(question):
             return self.ask(**question)
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        max_workers = min(32, len(questions))
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             return list(executor.map(ask, questions))
