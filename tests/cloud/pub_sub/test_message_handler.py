@@ -316,3 +316,14 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         self.assertIsNone(message_handler._time_since_last_heartbeat)
+
+    def test_total_run_time_is_none_if_handle_messages_has_not_been_called(self):
+        """Test that the total run time for the message handler is `None` if the `handle_messages` method has not been
+        called.
+        """
+        message_handler = OrderedMessageHandler(
+            subscription=self.mock_subscription,
+            receiving_service=self.receiving_service,
+        )
+
+        self.assertIsNone(message_handler.total_run_time)
