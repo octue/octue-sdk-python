@@ -103,13 +103,20 @@ class OrderedMessageHandler:
 
         return datetime.now() - self._last_heartbeat
 
-    def handle_messages(self, timeout=60, delivery_acknowledgement_timeout=120, maximum_heartbeat_interval=300):
+    def handle_messages(
+        self,
+        timeout=60,
+        delivery_acknowledgement_timeout=120,
+        maximum_heartbeat_interval=300,
+        skip_first_messages_after=60,
+    ):
         """Pull messages and handle them in the order they were sent until a result is returned by a message handler,
         then return that result.
 
         :param float|None timeout: how long to wait for an answer before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long to wait for a delivery acknowledgement before raising `QuestionNotDelivered`
         :param int|float maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
+        :param int|float skip_first_messages_after: the number of seconds after which to skip the first n messages if they haven't arrived but subsequent messages have
         :raise TimeoutError: if the timeout is exceeded before receiving the final message
         :return dict: the first result returned by a message handler
         """
@@ -136,7 +143,7 @@ class OrderedMessageHandler:
                     delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
                 )
 
-                result = self._attempt_to_handle_queued_messages()
+                result = self._attempt_to_handle_queued_messages(skip_first_messages_after)
 
                 if result is not None:
                     return result
@@ -267,8 +274,10 @@ class OrderedMessageHandler:
                     except KeyError:
                         return
 
+                    self._previous_message_number = self._earliest_message_number_received - 1
+
                     logger.warning(
-                        "%r: The first %d messages for question %s weren't received after %fs - skipping to the "
+                        "%r: The first %d messages for question %r weren't received after %ds - skipping to the "
                         "earliest received message (message number %d).",
                         self.receiving_service,
                         self._earliest_message_number_received,
