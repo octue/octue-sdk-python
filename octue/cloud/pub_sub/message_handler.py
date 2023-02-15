@@ -311,22 +311,32 @@ class OrderedMessageHandler:
             return result
 
         except Exception as error:
-            warn_if_incompatible(
-                parent_sdk_version=pkg_resources.get_distribution("octue").version,
-                child_sdk_version=self._child_sdk_version,
+            self._warn_of_or_raise_invalid_message_error(message, error)
+
+    def _warn_of_or_raise_invalid_message_error(self, message, error):
+        """Issue a warning if the error is due to a message of an unknown type or raise the error if it's due to
+        anything else. Issue an additional warning if the parent and child SDK versions are incompatible.
+
+        :param dict message:
+        :param Exception error:
+        :return None:
+        """
+        warn_if_incompatible(
+            parent_sdk_version=pkg_resources.get_distribution("octue").version,
+            child_sdk_version=self._child_sdk_version,
+        )
+
+        # Just log a warning if an unknown message type has been received - it's likely not to be a big problem.
+        if isinstance(error, KeyError):
+            logger.warning(
+                "%r received a message of unknown type %r.",
+                self.receiving_service,
+                message.get("type", "unknown"),
             )
+            return
 
-            # Just log a warning if an unknown message type has been received - it's likely not to be a big problem.
-            if isinstance(error, KeyError):
-                logger.warning(
-                    "%r received a message of unknown type %r.",
-                    self.receiving_service,
-                    message.get("type", "unknown"),
-                )
-                return
-
-            # Raise all other errors.
-            raise error
+        # Raise all other errors.
+        raise error
 
     def _handle_delivery_acknowledgement(self, message):
         """Mark the question as delivered to prevent resending it.
