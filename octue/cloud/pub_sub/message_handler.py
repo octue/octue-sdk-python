@@ -63,7 +63,7 @@ class OrderedMessageHandler:
         self._heartbeat_checker = None
         self._last_heartbeat = None
         self._alive = True
-        self._start_time = time.perf_counter()
+        self._start_time = None
         self._waiting_messages = None
         self._previous_message_number = -1
 
@@ -77,6 +77,18 @@ class OrderedMessageHandler:
         }
 
         self._log_message_colours = [COLOUR_PALETTE[1], *COLOUR_PALETTE[3:]]
+
+    @property
+    def total_run_time(self):
+        """Get the amount of time elapsed since `self.handle_messages` was called. If it hasn't been called yet, it will
+        be `None`.
+
+        :return float|None: the amount of time since `self.handle_messages` was called (in seconds)
+        """
+        if not self._start_time:
+            return
+
+        return time.perf_counter() - self._start_time
 
     @property
     def _time_since_last_heartbeat(self):
@@ -99,6 +111,7 @@ class OrderedMessageHandler:
         :raise TimeoutError: if the timeout is exceeded before receiving the final message
         :return dict: the first result returned by a message handler
         """
+        self._start_time = time.perf_counter()
         self.received_response_from_child = False
         self._waiting_messages = {}
         self._previous_message_number = -1
@@ -161,14 +174,16 @@ class OrderedMessageHandler:
         if timeout is None:
             return None
 
-        run_time = time.perf_counter() - self._start_time
+        # Get the total run time once in case it's very close to the timeout - this rules out a negative pull timeout
+        # being returned below.
+        total_run_time = self.total_run_time
 
-        if run_time > timeout:
+        if total_run_time > timeout:
             raise TimeoutError(
                 f"No final answer received from topic {self.subscription.topic.path!r} after {timeout} seconds."
             )
 
-        return timeout - run_time
+        return timeout - total_run_time
 
     def _pull_and_enqueue_message(self, timeout, delivery_acknowledgement_timeout):
         """Pull a message from the subscription and enqueue it in `self._waiting_messages`, raising a `TimeoutError` if
@@ -180,7 +195,7 @@ class OrderedMessageHandler:
         :raise octue.exceptions.QuestionNotDelivered: if a delivery acknowledgement is not received in time
         :return None:
         """
-        start_time = time.perf_counter()
+        pull_start_time = time.perf_counter()
         attempt = 1
 
         while True:
@@ -199,14 +214,14 @@ class OrderedMessageHandler:
                 logger.debug("Google Pub/Sub pull response timed out early.")
                 attempt += 1
 
-                run_time = time.perf_counter() - start_time
+                pull_run_time = time.perf_counter() - pull_start_time
 
-                if timeout is not None and run_time > timeout:
+                if timeout is not None and pull_run_time > timeout:
                     raise TimeoutError(
                         f"No message received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
                     )
 
-                if not self.received_response_from_child and run_time > delivery_acknowledgement_timeout:
+                if not self.received_response_from_child and self.total_run_time > delivery_acknowledgement_timeout:
                     raise QuestionNotDelivered(
                         f"No delivery acknowledgement received for topic {self.subscription.topic.path!r} after "
                         f"{delivery_acknowledgement_timeout} seconds."
