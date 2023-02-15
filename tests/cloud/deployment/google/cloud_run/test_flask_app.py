@@ -73,3 +73,35 @@ class TestFlaskApp(TestCase):
 
         self.assertEqual(response.status_code, 204)
         mock_answer_question.assert_not_called()
+
+    def test_set_of_delivered_questions_is_created_and_stored_when_local_metadata_file_did_not_previously_exist(self):
+        """Test that the set of delivered questions is created and stored in the local metadata when the local metadata
+        file didn't previously exist.
+        """
+        question_uuid = "fcd7aad7-dbf0-47d2-8984-220d493df2c1"
+        local_metadata = {}
+
+        with mock.patch(
+            "octue.cloud.deployment.google.cloud_run.flask_app.load_local_metadata_file",
+            return_value=local_metadata,
+        ):
+            with mock.patch("octue.cloud.deployment.google.cloud_run.flask_app.overwrite_local_metadata_file"):
+                with flask_app.app.test_client() as client:
+                    with mock.patch(
+                        "octue.cloud.deployment.google.cloud_run.flask_app.answer_question"
+                    ) as mock_answer_question:
+
+                        response = client.post(
+                            "/",
+                            json={
+                                "subscription": "projects/my-project/subscriptions/my-subscription",
+                                "message": {
+                                    "data": {},
+                                    "attributes": {"question_uuid": question_uuid, "forward_logs": "1"},
+                                },
+                            },
+                        )
+
+        self.assertEqual(response.status_code, 204)
+        mock_answer_question.assert_called_once()
+        self.assertEqual(local_metadata, {"delivered_questions": {question_uuid}})
