@@ -55,6 +55,8 @@ class Child:
         allow_save_diagnostics_data_on_crash=True,
         question_uuid=None,
         timeout=86400,
+        delivery_acknowledgement_timeout=120,
+        maximum_heartbeat_interval=300,
     ):
         """Ask the child a question and wait for its answer - i.e. send it input values and/or an input manifest and
         wait for it to analyse them and return output values and/or an output manifest. The input values and manifest
@@ -70,6 +72,8 @@ class Child:
         :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved by the child if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
+        :param float|int delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
+        :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
         :return dict: a dictionary containing the keys "output_values" and "output_manifest"
         """
@@ -91,6 +95,8 @@ class Child:
             record_messages=record_messages,
             service_name=self.id,
             timeout=timeout,
+            delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
+            maximum_heartbeat_interval=maximum_heartbeat_interval,
         )
 
     def ask_multiple(self, *questions):

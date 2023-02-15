@@ -330,7 +330,7 @@ class Service:
         :param bool record_messages: if `True`, record messages received from the child in the `received_messages` attribute
         :param str service_name: a name by which to refer to the child subscribed to (used for labelling its log messages if subscribed to)
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
-        :param float delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
+        :param float|int delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded
         :raise octue.exceptions.QuestionNotDelivered: if a delivery acknowledgement is not received in time
