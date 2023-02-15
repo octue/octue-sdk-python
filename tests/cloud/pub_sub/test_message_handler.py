@@ -327,3 +327,33 @@ class TestOrderedMessageHandler(BaseTestCase):
         )
 
         self.assertIsNone(message_handler.total_run_time)
+
+    def test_handler_can_skip_first_n_messages_if_missed(self):
+        """Test that the first n messages can be skipped if they aren't received after a given time period if subsequent
+        messages have been received.
+        """
+        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
+            message_handler = OrderedMessageHandler(
+                subscription=self.mock_subscription,
+                receiving_service=self.receiving_service,
+                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            )
+
+        # Simulate the first two messages not being received.
+        message_handler._earliest_message_number_received = 2
+
+        messages = [
+            {"type": "test", "message_number": 2},
+            {"type": "test", "message_number": 3},
+            {"type": "test", "message_number": 4},
+            {"type": "finish-test", "message_number": 5},
+        ]
+
+        with patch(
+            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
+            new=MockMessagePuller(messages=messages, message_handler=message_handler).pull,
+        ):
+            result = message_handler.handle_messages(skip_first_messages_after=0)
+
+        self.assertEqual(result, "This is the result.")
+        self.assertEqual(message_handler.received_messages, messages)
