@@ -425,7 +425,7 @@ class TestPullAndEnqueueMessage(BaseTestCase):
             MESSAGES["octue.services.world"] = []
 
             with self.assertRaises(TimeoutError):
-                message_handler._pull_and_enqueue_message(timeout=0.01, delivery_acknowledgement_timeout=100)
+                message_handler._pull_and_enqueue_message(timeout=1e-6, delivery_acknowledgement_timeout=100)
 
             self.assertEqual(message_handler._earliest_message_number_received, math.inf)
 
