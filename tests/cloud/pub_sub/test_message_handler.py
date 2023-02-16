@@ -357,3 +357,29 @@ class TestOrderedMessageHandler(BaseTestCase):
 
         self.assertEqual(result, "This is the result.")
         self.assertEqual(message_handler.received_messages, messages)
+
+    def test_later_missing_messages_cannot_be_skipped(self):
+        """Test that missing messages that aren't in the first n messages cannot be skipped."""
+        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
+            message_handler = OrderedMessageHandler(
+                subscription=self.mock_subscription,
+                receiving_service=self.receiving_service,
+                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            )
+
+        messages = [
+            {"type": "test", "message_number": 0},
+            {"type": "test", "message_number": 1},
+            {"type": "test", "message_number": 2},
+            {"type": "finish-test", "message_number": 5},
+        ]
+
+        with patch(
+            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
+            new=MockMessagePuller(messages=messages, message_handler=message_handler).pull,
+        ):
+            with self.assertRaises(TimeoutError):
+                message_handler.handle_messages(timeout=0.5, skip_first_messages_after=0)
+
+        # Check that only the first three messages were handled.
+        self.assertEqual(message_handler.received_messages, messages[:3])
