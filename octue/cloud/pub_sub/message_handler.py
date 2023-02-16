@@ -57,7 +57,7 @@ class OrderedMessageHandler:
         self.service_name = service_name
 
         self.question_uuid = self.subscription.topic.path.split(".")[-1]
-        self.received_messages = []
+        self.handled_messages = []
         self.received_response_from_child = None
         self._subscriber = SubscriberClient()
         self._child_sdk_version = None
@@ -319,7 +319,7 @@ class OrderedMessageHandler:
         self._previous_message_number += 1
 
         if self.record_messages:
-            self.received_messages.append(message)
+            self.handled_messages.append(message)
 
         try:
             return self._message_handlers[message["type"]](message)

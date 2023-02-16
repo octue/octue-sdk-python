@@ -98,7 +98,7 @@ class Service:
         :return list(dict)|None:
         """
         if self._message_handler:
-            return self._message_handler.received_messages
+            return self._message_handler.handled_messages
         return None
 
     def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False, allow_existing=False, detach=False):

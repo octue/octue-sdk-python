@@ -83,7 +83,7 @@ class TestOrderedMessageHandler(BaseTestCase):
             result = message_handler.handle_messages()
 
         self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handler.received_messages, messages)
+        self.assertEqual(message_handler.handled_messages, messages)
 
     def test_out_of_order_messages_are_handled_in_order(self):
         """Test that messages received out of order are handled in order."""
@@ -109,7 +109,7 @@ class TestOrderedMessageHandler(BaseTestCase):
 
         self.assertEqual(result, "This is the result.")
         self.assertEqual(
-            message_handler.received_messages,
+            message_handler.handled_messages,
             [
                 {"type": "test", "message_number": 0},
                 {"type": "test", "message_number": 1},
@@ -146,7 +146,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         self.assertEqual(result, "This is the result.")
 
         self.assertEqual(
-            message_handler.received_messages,
+            message_handler.handled_messages,
             [
                 {"type": "test", "message_number": 0},
                 {"type": "test", "message_number": 1},
@@ -177,7 +177,7 @@ class TestOrderedMessageHandler(BaseTestCase):
             result = message_handler.handle_messages(timeout=None)
 
         self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handler.received_messages, messages)
+        self.assertEqual(message_handler.handled_messages, messages)
 
     def test_error_raised_if_delivery_acknowledgement_not_received_in_time(self):
         """Test that an error is raised if delivery acknowledgement isn't received before the given acknowledgement
@@ -356,7 +356,7 @@ class TestOrderedMessageHandler(BaseTestCase):
             result = message_handler.handle_messages(skip_first_messages_after=0)
 
         self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handler.received_messages, messages)
+        self.assertEqual(message_handler.handled_messages, messages)
 
     def test_later_missing_messages_cannot_be_skipped(self):
         """Test that missing messages that aren't in the first n messages cannot be skipped."""
@@ -382,4 +382,4 @@ class TestOrderedMessageHandler(BaseTestCase):
                 message_handler.handle_messages(timeout=0.5, skip_first_messages_after=0)
 
         # Check that only the first three messages were handled.
-        self.assertEqual(message_handler.received_messages, messages[:3])
+        self.assertEqual(message_handler.handled_messages, messages[:3])
