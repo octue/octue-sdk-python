@@ -87,7 +87,7 @@ class OrderedMessageHandler:
 
         :return float|None: the amount of time since `self.handle_messages` was called (in seconds)
         """
-        if not self._start_time:
+        if self._start_time is None:
             return
 
         return time.perf_counter() - self._start_time
