@@ -269,7 +269,7 @@ class OrderedMessageHandler:
             except KeyError:
 
                 if self.total_run_time > skip_first_messages_after:
-                    message = self._get_earliest_received_message(skip_first_messages_after)
+                    message = self._get_and_start_from_earliest_received_message(skip_first_messages_after)
 
                     if not message:
                         return
@@ -282,8 +282,9 @@ class OrderedMessageHandler:
             if result is not None:
                 return result
 
-    def _get_earliest_received_message(self, skip_first_messages_after):
-        """Get the earliest received message from the waiting message queue.
+    def _get_and_start_from_earliest_received_message(self, skip_first_messages_after):
+        """Get the earliest received message from the waiting message queue and set the message handler up to start from
+        it instead of the first message sent by the child.
 
         :param int|float skip_first_messages_after: the number of seconds after which to skip the first n messages if they haven't arrived but subsequent messages have
         :return dict|None:
