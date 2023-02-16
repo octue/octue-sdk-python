@@ -257,7 +257,8 @@ class OrderedMessageHandler:
     def _attempt_to_handle_queued_messages(self, skip_first_messages_after=60):
         """Attempt to handle messages in the pulled message queue. If these messages aren't consecutive with the last
         handled message (i.e. if messages have been received out of order and the next in-order message hasn't been
-        received yet), just return.
+        received yet), just return. After the given amount of time, if the first n messages haven't arrived but
+        subsequent ones have, skip to the earliest received message and continue from there.
 
         :param int|float skip_first_messages_after: the number of seconds after which to skip the first n messages if they haven't arrived but subsequent messages have
         :return any|None: either a non-`None` result from a message handler or `None` if nothing was returned by the message handlers or if the next in-order message hasn't been received yet
@@ -268,7 +269,7 @@ class OrderedMessageHandler:
 
             except KeyError:
 
-                if self.total_run_time > skip_first_messages_after:
+                if self.total_run_time > skip_first_messages_after and self._previous_message_number == -1:
                     message = self._get_and_start_from_earliest_received_message(skip_first_messages_after)
 
                     if not message:
