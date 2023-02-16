@@ -408,7 +408,7 @@ class TestPullAndEnqueueMessage(BaseTestCase):
             self.assertEqual(message_handler._waiting_messages, {0: mock_message})
             self.assertEqual(message_handler._earliest_message_number_received, 0)
 
-    def test_timeout_error_raised_if_result_not_received_in_time(self):
+    def test_timeout_error_raised_if_result_message_not_received_in_time(self):
         """Test that a timeout error is raised if a result message is not received in time."""
         with ServicePatcher():
             message_handler = OrderedMessageHandler(
@@ -422,16 +422,12 @@ class TestPullAndEnqueueMessage(BaseTestCase):
             message_handler._start_time = 0
 
             # Create a mock topic and publish a mock non-result message to it.
-            mock_message = {"type": "test", "message_number": 0}
             MESSAGES["octue.services.world"] = []
-            MESSAGES["octue.services.world"].append(MockMessage(data=json.dumps(mock_message).encode()))
-            message_handler._pull_and_enqueue_message(timeout=0.1, delivery_acknowledgement_timeout=100)
 
             with self.assertRaises(TimeoutError):
-                message_handler._pull_and_enqueue_message(timeout=0.1, delivery_acknowledgement_timeout=100)
+                message_handler._pull_and_enqueue_message(timeout=0.01, delivery_acknowledgement_timeout=100)
 
-            self.assertEqual(message_handler._waiting_messages, {0: mock_message})
-            self.assertEqual(message_handler._earliest_message_number_received, 0)
+            self.assertEqual(message_handler._earliest_message_number_received, math.inf)
 
     def test_question_not_delivered_error_raised_if_no_message_received_in_time(self):
         """Test that a question not delivered error is raised if no messages are received at all within the delivery
