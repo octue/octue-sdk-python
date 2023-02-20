@@ -104,8 +104,8 @@ class TestChild(BaseTestCase):
                     ],
                 )
 
-    def test_error_raised_when_using_ask_many_and_one_question_fails(self):
-        """Test that an error is raised if any of the questions given to `Child.ask_many` fail."""
+    def test_error_raised_when_using_ask_multiple_and_one_question_fails(self):
+        """Test that an error is raised if any of the questions given to `Child.ask_multiple` fail."""
 
         def mock_run_function_that_sometimes_fails(analysis_id, input_values, *args, **kwargs):
             kwargs["runs"].value += 1
