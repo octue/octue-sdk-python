@@ -331,8 +331,8 @@ class OrderedMessageHandler:
         """Issue a warning if the error is due to a message of an unknown type or raise the error if it's due to
         anything else. Issue an additional warning if the parent and child SDK versions are incompatible.
 
-        :param dict message:
-        :param Exception error:
+        :param dict message: the message whose handling has caused an error
+        :param Exception error: the error caused by handling the message
         :return None:
         """
         warn_if_incompatible(
