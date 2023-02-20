@@ -363,7 +363,11 @@ class MockMessagePuller:
 
         :return None:
         """
-        message = self.messages[self.message_number]
+        try:
+            message = self.messages[self.message_number]
+        except IndexError:
+            return
+
         self.message_handler._waiting_messages[int(message["message_number"])] = message
         self.message_number += 1
 

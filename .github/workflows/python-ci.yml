@@ -58,8 +58,8 @@ jobs:
         with:
           # NOTE: If setting create_credentials_file=true, .dockerignore file must include `gha-creds-*.json` to avoid baking these credentials into build
           create_credentials_file: true
-          workload_identity_provider: "projects/481503880524/locations/global/workloadIdentityPools/github-actions-pool-2/providers/github-actions-provider-2"
-          service_account: "gha-sdk-python@octue-amy.iam.gserviceaccount.com"
+          workload_identity_provider: "projects/437801218871/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider"
+          service_account: "github-actions@octue-sdk-python.iam.gserviceaccount.com"
 
       - name: Run tests
         env:

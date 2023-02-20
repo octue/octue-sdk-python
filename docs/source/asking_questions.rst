@@ -186,7 +186,7 @@ For example, if the child requires these children in its app configuration:
             "id": "template-child-services/wind-speed-service:latest",
             "backend": {
                 "name": "GCPPubSubBackend",
-                "project_name": "octue-amy"
+                "project_name": "octue-sdk-python"
             },
         },
         {
@@ -194,7 +194,7 @@ For example, if the child requires these children in its app configuration:
             "id": "template-child-services/elevation-service:latest",
             "backend": {
                 "name": "GCPPubSubBackend",
-                "project_name": "octue-amy"
+                "project_name": "octue-sdk-python"
             },
         }
     ]
@@ -211,7 +211,7 @@ then you can override them like this:
                 "id": "my/own-service:latest",
                 "backend": {
                     "name": "GCPPubSubBackend",
-                    "project_name": "octue-amy"
+                    "project_name": "octue-sdk-python"
                 },
             },
             {
@@ -219,7 +219,7 @@ then you can override them like this:
                 "id": "organisation/another-service:latest",
                 "backend": {
                     "name": "GCPPubSubBackend",
-                    "project_name": "octue-amy"
+                    "project_name": "octue-sdk-python"
                 },
             },
         ],

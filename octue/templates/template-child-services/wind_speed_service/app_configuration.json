@@ -1,8 +1,8 @@
 {
-    "configuration_values": {
-        "backend": {
-            "name": "GCPPubSubBackend",
-            "project_name": "octue-amy"
-        }
+  "configuration_values": {
+    "backend": {
+      "name": "GCPPubSubBackend",
+      "project_name": "octue-sdk-python"
     }
+  }
 }

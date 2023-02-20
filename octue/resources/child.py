@@ -55,6 +55,8 @@ class Child:
         allow_save_diagnostics_data_on_crash=True,
         question_uuid=None,
         timeout=86400,
+        delivery_acknowledgement_timeout=120,
+        maximum_heartbeat_interval=300,
     ):
         """Ask the child a question and wait for its answer - i.e. send it input values and/or an input manifest and
         wait for it to analyse them and return output values and/or an output manifest. The input values and manifest
@@ -70,6 +72,8 @@ class Child:
         :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved by the child if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
+        :param float|int delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
+        :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
         :return dict: a dictionary containing the keys "output_values" and "output_manifest"
         """
@@ -91,18 +95,24 @@ class Child:
             record_messages=record_messages,
             service_name=self.id,
             timeout=timeout,
+            delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
+            maximum_heartbeat_interval=maximum_heartbeat_interval,
         )
 
     def ask_multiple(self, *questions):
         """Ask the child multiple questions in parallel and wait for the answers. Each question should be provided as a
-        dictionary of `Child.ask` keyword arguments.
+        dictionary of `Child.ask` keyword arguments. An error is raised and no answers are returned if any of the
+        individual questions raise an error.
 
         :param questions: any number of questions provided as dictionaries of arguments to the `Child.ask` method
+        :raises Exception: if any question raises an error.
         :return list: the answers to the questions in the same order as the questions
         """
 
         def ask(question):
             return self.ask(**question)
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        max_workers = min(32, len(questions))
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             return list(executor.map(ask, questions))

@@ -32,10 +32,12 @@ def index():
     question_uuid = question["attributes"]["question_uuid"]
 
     local_metadata = load_local_metadata_file()
-    delivered_questions = local_metadata.get("delivered_questions", set())
+
+    # Get the set of delivered questions or, in the case where the local metadata file did not already exist, create it.
+    local_metadata["delivered_questions"] = local_metadata.get("delivered_questions", set())
 
     # Acknowledge questions that are redelivered to stop further redelivery and redundant processing.
-    if question_uuid in delivered_questions:
+    if question_uuid in local_metadata["delivered_questions"]:
         logger.warning(
             "Question %r has already been received by the service. It will now be acknowledged to prevent further "
             "redundant redelivery.",
@@ -44,7 +46,7 @@ def index():
         return ("", 204)
 
     # Otherwise add the question UUID to the set.
-    delivered_questions.add(question_uuid)
+    local_metadata["delivered_questions"].add(question_uuid)
     logger.info("Adding question UUID %r to the set of delivered questions.", question_uuid)
     overwrite_local_metadata_file(local_metadata)
 

@@ -5,7 +5,7 @@
       "id": "template-child-services/wind-speed-service",
       "backend": {
         "name": "GCPPubSubBackend",
-        "project_name": "octue-amy"
+        "project_name": "octue-sdk-python"
       }
     },
     {
@@ -13,7 +13,7 @@
       "id": "template-child-services/elevation-service",
       "backend": {
         "name": "GCPPubSubBackend",
-        "project_name": "octue-amy"
+        "project_name": "octue-sdk-python"
       }
     }
   ]

@@ -98,7 +98,7 @@ class Service:
         :return list(dict)|None:
         """
         if self._message_handler:
-            return self._message_handler.received_messages
+            return self._message_handler.handled_messages
         return None
 
     def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False, allow_existing=False, detach=False):
@@ -330,7 +330,7 @@ class Service:
         :param bool record_messages: if `True`, record messages received from the child in the `received_messages` attribute
         :param str service_name: a name by which to refer to the child subscribed to (used for labelling its log messages if subscribed to)
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
-        :param float delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
+        :param float|int delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded
         :raise octue.exceptions.QuestionNotDelivered: if a delivery acknowledgement is not received in time
@@ -338,7 +338,8 @@ class Service:
         """
         if subscription.is_push_subscription:
             raise octue.exceptions.PushSubscriptionCannotBePulled(
-                f"Cannot pull from {subscription.path!r} subscription as it is a push subscription."
+                f"{subscription.path!r} is a push subscription so it cannot be waited on for an answer. Please check "
+                f"its push endpoint at {subscription.push_endpoint!r}."
             )
 
         self._message_handler = OrderedMessageHandler(

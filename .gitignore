@@ -99,5 +99,7 @@ ENV/
 google_credentials.json
 gha-creds-*.json
 gcp-creds-*.json
+terraform/gcp-credentials.json
+.terraform
 
 *.jsonl

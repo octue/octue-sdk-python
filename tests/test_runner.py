@@ -704,7 +704,7 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
 
     def test_validate_input_manifest_with_required_tags_for_remote_tag_template_schema(self):
         """Test that a remote tag template can be used for validating tags on the datafiles in a manifest."""
-        schema_url = "https://refs.schema.octue.com/octue/my-file-type-tag-template/0.0.0.json"
+        schema_url = "https://jsonschema.registry.octue.com/octue/my-file-type-tag-template/0.0.0.json"
 
         twine_with_input_manifest_with_remote_tag_template = {
             "input_manifest": {

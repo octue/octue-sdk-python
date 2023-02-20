@@ -15,10 +15,10 @@ jobs:
     if: "github.event.pull_request.merged == true"
     runs-on: ${{ matrix.os }}
     env:
-      USING_COVERAGE: '3.9'
+      USING_COVERAGE: "3.9"
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     permissions:
       id-token: write
     steps:
@@ -49,8 +49,8 @@ jobs:
         with:
           # NOTE: If setting create_credentials_file=true, .dockerignore file must include `gha-creds-*.json` to avoid baking these credentials into build
           create_credentials_file: true
-          workload_identity_provider: 'projects/481503880524/locations/global/workloadIdentityPools/github-actions-pool-2/providers/github-actions-provider-2'
-          service_account: 'gha-sdk-python@octue-amy.iam.gserviceaccount.com'
+          workload_identity_provider: "projects/437801218871/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider"
+          service_account: "github-actions@octue-sdk-python.iam.gserviceaccount.com"
 
       - name: Run tests
         env:
@@ -71,18 +71,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: run-tests
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Create Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, no need to create your own.
-      with:
-        tag_name: ${{ needs.run-tests.outputs.package_version }}
-        release_name: ${{ github.event.pull_request.title }}
-        body: ${{ github.event.pull_request.body }}
-        draft: false
-        prerelease: false
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, no need to create your own.
+        with:
+          tag_name: ${{ needs.run-tests.outputs.package_version }}
+          release_name: ${{ github.event.pull_request.title }}
+          body: ${{ github.event.pull_request.body }}
+          draft: false
+          prerelease: false
 
   publish:
     runs-on: ubuntu-latest

@@ -1,6 +1,8 @@
+import functools
 import os
 import random
 import time
+from multiprocessing import Value
 from unittest.mock import patch
 
 from google.auth.exceptions import DefaultCredentialsError
@@ -68,7 +70,7 @@ class TestChild(BaseTestCase):
                 self.assertEqual(child.ask([5, 6, 7, 8])["output_values"], [5, 6, 7, 8])
 
     def test_child_can_be_asked_questions_in_parallel(self):
-        """Test that a child can be asked multiple questions in parallel and receive the answers in the correct order."""
+        """Test that a child can be asked multiple questions in parallel and return the answers in the correct order."""
 
         def mock_run_function(analysis_id, input_values, *args, **kwargs):
             time.sleep(random.randint(0, 2))
@@ -101,3 +103,37 @@ class TestChild(BaseTestCase):
                         {"output_values": [5, 6, 7, 8], "output_manifest": None},
                     ],
                 )
+
+    def test_error_raised_when_using_ask_multiple_and_one_question_fails(self):
+        """Test that an error is raised if any of the questions given to `Child.ask_multiple` fail."""
+
+        def mock_run_function_that_sometimes_fails(analysis_id, input_values, *args, **kwargs):
+            kwargs["runs"].value += 1
+
+            if kwargs["runs"].value % 2 == 0:
+                raise Exception("Deliberately raised for `Child.ask_multiple` test.")
+
+            time.sleep(random.randint(0, 2))
+            return MockAnalysis(output_values=input_values)
+
+        responding_service = MockService(
+            backend=GCPPubSubBackend(project_name="blah"),
+            service_id="testing/service-for-parallelised-questions-failure:latest",
+            run_function=functools.partial(mock_run_function_that_sometimes_fails, runs=Value("d", 0)),
+        )
+
+        with ServicePatcher():
+            with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
+                responding_service.serve()
+
+                child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_name": "blah"})
+
+                # Make sure the child's underlying mock service knows how to access the mock responding service.
+                child._service.children[responding_service.id] = responding_service
+
+                with self.assertRaises(Exception):
+                    child.ask_multiple(
+                        {"input_values": [1, 2, 3, 4]},
+                        {"input_values": [5, 6, 7, 8]},
+                        {"input_values": [9, 10, 11, 12]},
+                    )

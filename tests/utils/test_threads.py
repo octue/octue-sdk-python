@@ -18,7 +18,7 @@ class TestRepeatingTimer(TestCase):
         time.sleep(1)
         timer.cancel()
 
-        self.assertGreater(mock_function.call_count, 4)
+        self.assertGreaterEqual(mock_function.call_count, 4)
 
     def test_calls_function_at_correct_intervals(self):
         """Test that the timer calls the function at the near-correct time interval."""

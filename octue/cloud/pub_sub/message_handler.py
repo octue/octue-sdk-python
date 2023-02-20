@@ -1,5 +1,6 @@
 import json
 import logging
+import math
 import os
 import re
 import time
@@ -29,7 +30,8 @@ logger = logging.getLogger(__name__)
 
 
 class OrderedMessageHandler:
-    """A handler for Google Pub/Sub messages that ensures messages are handled in the order they were sent.
+    """A handler for Google Pub/Sub messages received via a pull subscription that ensures messages are handled in the
+    order they were sent.
 
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
     :param octue.cloud.pub_sub.service.Service receiving_service: the service that's receiving the messages
@@ -55,16 +57,18 @@ class OrderedMessageHandler:
         self.record_messages = record_messages
         self.service_name = service_name
 
-        self.received_messages = []
-        self.received_delivery_acknowledgement = None
+        self.question_uuid = self.subscription.topic.path.split(".")[-1]
+        self.handled_messages = []
+        self.received_response_from_child = None
         self._subscriber = SubscriberClient()
         self._child_sdk_version = None
         self._heartbeat_checker = None
         self._last_heartbeat = None
         self._alive = True
-        self._start_time = time.perf_counter()
+        self._start_time = None
         self._waiting_messages = None
         self._previous_message_number = -1
+        self._earliest_message_number_received = math.inf
 
         self._message_handlers = message_handlers or {
             "delivery_acknowledgement": self._handle_delivery_acknowledgement,
@@ -78,6 +82,18 @@ class OrderedMessageHandler:
         self._log_message_colours = [COLOUR_PALETTE[1], *COLOUR_PALETTE[3:]]
 
     @property
+    def total_run_time(self):
+        """Get the amount of time elapsed since `self.handle_messages` was called. If it hasn't been called yet, it will
+        be `None`.
+
+        :return float|None: the amount of time since `self.handle_messages` was called (in seconds)
+        """
+        if self._start_time is None:
+            return
+
+        return time.perf_counter() - self._start_time
+
+    @property
     def _time_since_last_heartbeat(self):
         """Get the time period since the last heartbeat was received.
 
@@ -88,17 +104,25 @@ class OrderedMessageHandler:
 
         return datetime.now() - self._last_heartbeat
 
-    def handle_messages(self, timeout=60, delivery_acknowledgement_timeout=120, maximum_heartbeat_interval=300):
+    def handle_messages(
+        self,
+        timeout=60,
+        delivery_acknowledgement_timeout=120,
+        maximum_heartbeat_interval=300,
+        skip_first_messages_after=60,
+    ):
         """Pull messages and handle them in the order they were sent until a result is returned by a message handler,
         then return that result.
 
         :param float|None timeout: how long to wait for an answer before raising a `TimeoutError`
         :param float delivery_acknowledgement_timeout: how long to wait for a delivery acknowledgement before raising `QuestionNotDelivered`
         :param int|float maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
+        :param int|float skip_first_messages_after: the number of seconds after which to skip the first n messages if they haven't arrived but subsequent messages have
         :raise TimeoutError: if the timeout is exceeded before receiving the final message
         :return dict: the first result returned by a message handler
         """
-        self.received_delivery_acknowledgement = False
+        self._start_time = time.perf_counter()
+        self.received_response_from_child = False
         self._waiting_messages = {}
         self._previous_message_number = -1
 
@@ -120,7 +144,7 @@ class OrderedMessageHandler:
                     delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
                 )
 
-                result = self._attempt_to_handle_queued_messages()
+                result = self._attempt_to_handle_queued_messages(skip_first_messages_after)
 
                 if result is not None:
                     return result
@@ -160,14 +184,16 @@ class OrderedMessageHandler:
         if timeout is None:
             return None
 
-        run_time = time.perf_counter() - self._start_time
+        # Get the total run time once in case it's very close to the timeout - this rules out a negative pull timeout
+        # being returned below.
+        total_run_time = self.total_run_time
 
-        if run_time > timeout:
+        if total_run_time > timeout:
             raise TimeoutError(
                 f"No final answer received from topic {self.subscription.topic.path!r} after {timeout} seconds."
             )
 
-        return timeout - run_time
+        return timeout - total_run_time
 
     def _pull_and_enqueue_message(self, timeout, delivery_acknowledgement_timeout):
         """Pull a message from the subscription and enqueue it in `self._waiting_messages`, raising a `TimeoutError` if
@@ -179,7 +205,7 @@ class OrderedMessageHandler:
         :raise octue.exceptions.QuestionNotDelivered: if a delivery acknowledgement is not received in time
         :return None:
         """
-        start_time = time.perf_counter()
+        pull_start_time = time.perf_counter()
         attempt = 1
 
         while True:
@@ -198,27 +224,21 @@ class OrderedMessageHandler:
                 logger.debug("Google Pub/Sub pull response timed out early.")
                 attempt += 1
 
-                run_time = time.perf_counter() - start_time
+                pull_run_time = time.perf_counter() - pull_start_time
 
-                if timeout is not None and run_time > timeout:
+                if timeout is not None and pull_run_time > timeout:
                     raise TimeoutError(
                         f"No message received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
                     )
 
-                if not self.received_delivery_acknowledgement:
-                    if run_time > delivery_acknowledgement_timeout:
-                        raise QuestionNotDelivered(
-                            f"No delivery acknowledgement received for topic {self.subscription.topic.path!r} "
-                            f"after {delivery_acknowledgement_timeout} seconds."
-                        )
+                if not self.received_response_from_child and self.total_run_time > delivery_acknowledgement_timeout:
+                    raise QuestionNotDelivered(
+                        f"No delivery acknowledgement received for topic {self.subscription.topic.path!r} after "
+                        f"{delivery_acknowledgement_timeout} seconds."
+                    )
 
         self._subscriber.acknowledge(request={"subscription": self.subscription.path, "ack_ids": [answer.ack_id]})
-
-        logger.debug(
-            "%r received a message related to question %r.",
-            self.receiving_service,
-            self.subscription.topic.path.split(".")[-1],
-        )
+        logger.debug("%r received a message related to question %r.", self.receiving_service, self.question_uuid)
 
         # Get the child's Octue SDK version from the first message.
         if not self._child_sdk_version:
@@ -230,29 +250,65 @@ class OrderedMessageHandler:
                 self._heartbeat_checker.cancel()
 
         message = json.loads(answer.message.data.decode())
-        self._waiting_messages[int(message["message_number"])] = message
 
-    def _attempt_to_handle_queued_messages(self):
+        message_number = int(message["message_number"])
+        self._waiting_messages[message_number] = message
+        self._earliest_message_number_received = min(self._earliest_message_number_received, message_number)
+
+    def _attempt_to_handle_queued_messages(self, skip_first_messages_after=60):
         """Attempt to handle messages in the pulled message queue. If these messages aren't consecutive with the last
         handled message (i.e. if messages have been received out of order and the next in-order message hasn't been
-        received yet), just return.
+        received yet), just return. After the given amount of time, if the first n messages haven't arrived but
+        subsequent ones have, skip to the earliest received message and continue from there.
 
+        :param int|float skip_first_messages_after: the number of seconds after which to skip the first n messages if they haven't arrived but subsequent messages have
         :return any|None: either a non-`None` result from a message handler or `None` if nothing was returned by the message handlers or if the next in-order message hasn't been received yet
         """
-        try:
-            while self._waiting_messages:
+        while self._waiting_messages:
+            try:
                 message = self._waiting_messages.pop(self._previous_message_number + 1)
 
-                if self.record_messages:
-                    self.received_messages.append(message)
+            except KeyError:
 
-                result = self._handle_message(message)
+                if self.total_run_time > skip_first_messages_after and self._previous_message_number == -1:
+                    message = self._get_and_start_from_earliest_received_message(skip_first_messages_after)
 
-                if result is not None:
-                    return result
+                    if not message:
+                        return
 
+                else:
+                    return
+
+            result = self._handle_message(message)
+
+            if result is not None:
+                return result
+
+    def _get_and_start_from_earliest_received_message(self, skip_first_messages_after):
+        """Get the earliest received message from the waiting message queue and set the message handler up to start from
+        it instead of the first message sent by the child.
+
+        :param int|float skip_first_messages_after: the number of seconds after which to skip the first n messages if they haven't arrived but subsequent messages have
+        :return dict|None:
+        """
+        try:
+            message = self._waiting_messages.pop(self._earliest_message_number_received)
         except KeyError:
             return
+
+        self._previous_message_number = self._earliest_message_number_received - 1
+
+        logger.warning(
+            "%r: The first %d messages for question %r weren't received after %ds - skipping to the "
+            "earliest received message (message number %d).",
+            self.receiving_service,
+            self._earliest_message_number_received,
+            self.question_uuid,
+            skip_first_messages_after,
+            self._earliest_message_number_received,
+        )
+
+        return message
 
     def _handle_message(self, message):
         """Pass a message to its handler and update the previous message number.
@@ -260,28 +316,41 @@ class OrderedMessageHandler:
         :param dict message:
         :return dict|None:
         """
+        self.received_response_from_child = True
         self._previous_message_number += 1
+
+        if self.record_messages:
+            self.handled_messages.append(message)
 
         try:
             return self._message_handlers[message["type"]](message)
-
         except Exception as error:
-            warn_if_incompatible(
-                parent_sdk_version=pkg_resources.get_distribution("octue").version,
-                child_sdk_version=self._child_sdk_version,
+            self._warn_of_or_raise_invalid_message_error(message, error)
+
+    def _warn_of_or_raise_invalid_message_error(self, message, error):
+        """Issue a warning if the error is due to a message of an unknown type or raise the error if it's due to
+        anything else. Issue an additional warning if the parent and child SDK versions are incompatible.
+
+        :param dict message: the message whose handling has caused an error
+        :param Exception error: the error caused by handling the message
+        :return None:
+        """
+        warn_if_incompatible(
+            parent_sdk_version=pkg_resources.get_distribution("octue").version,
+            child_sdk_version=self._child_sdk_version,
+        )
+
+        # Just log a warning if an unknown message type has been received - it's likely not to be a big problem.
+        if isinstance(error, KeyError):
+            logger.warning(
+                "%r received a message of unknown type %r.",
+                self.receiving_service,
+                message.get("type", "unknown"),
             )
+            return
 
-            # Just log a warning if an unknown message type has been received - it's likely not to be a big problem.
-            if isinstance(error, KeyError):
-                logger.warning(
-                    "%r received a message of unknown type %r.",
-                    self.receiving_service,
-                    message.get("type", "unknown"),
-                )
-                return
-
-            # Raise all other errors.
-            raise error
+        # Raise all other errors.
+        raise error
 
     def _handle_delivery_acknowledgement(self, message):
         """Mark the question as delivered to prevent resending it.
@@ -289,7 +358,6 @@ class OrderedMessageHandler:
         :param dict message:
         :return None:
         """
-        self.received_delivery_acknowledgement = True
         logger.info("%r's question was delivered at %s.", self.receiving_service, message["delivery_time"])
 
     def _handle_heartbeat(self, message):
@@ -299,7 +367,7 @@ class OrderedMessageHandler:
         :return None:
         """
         self._last_heartbeat = datetime.now()
-        logger.info("Heartbeat received from service %r.", self.service_name)
+        logger.info("Heartbeat received from service %r for question %r.", self.service_name, self.question_uuid)
 
     def _handle_monitor_message(self, message):
         """Send a monitor message to the handler if one has been provided.
@@ -372,11 +440,7 @@ class OrderedMessageHandler:
         :param dict message:
         :return dict:
         """
-        logger.info(
-            "%r received an answer to question %r.",
-            self.receiving_service,
-            self.subscription.topic.path.split(".")[-1],
-        )
+        logger.info("%r received an answer to question %r.", self.receiving_service, self.question_uuid)
 
         if message["output_manifest"] is None:
             output_manifest = None

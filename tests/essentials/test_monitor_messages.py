@@ -60,7 +60,7 @@ ESSENTIAL_MONITORS_SCHEMA = {
 
 class TestMonitorMessages(BaseTestCase):
     analysis = Analysis(
-        twine='{"monitor_message_schema": {"$ref": "https://refs.schema.octue.com/octue/essential-monitors/0.0.2.json"}}'
+        twine='{"monitor_message_schema": {"$ref": "https://jsonschema.registry.octue.com/octue/essential-monitors/0.0.2.json"}}'
     )
 
     def test_send_status_text(self):
