@@ -30,7 +30,8 @@ logger = logging.getLogger(__name__)
 
 
 class OrderedMessageHandler:
-    """A handler for Google Pub/Sub messages that ensures messages are handled in the order they were sent.
+    """A handler for Google Pub/Sub messages received via a pull subscription that ensures messages are handled in the
+    order they were sent.
 
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
     :param octue.cloud.pub_sub.service.Service receiving_service: the service that's receiving the messages
