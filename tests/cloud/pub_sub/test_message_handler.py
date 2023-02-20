@@ -404,7 +404,7 @@ class TestPullAndEnqueueMessage(BaseTestCase):
             MESSAGES["octue.services.world"] = []
             MESSAGES["octue.services.world"].append(MockMessage(data=json.dumps(mock_message).encode()))
 
-            message_handler._pull_and_enqueue_message(timeout=1000, delivery_acknowledgement_timeout=1000)
+            message_handler._pull_and_enqueue_message(timeout=10, delivery_acknowledgement_timeout=10)
             self.assertEqual(message_handler._waiting_messages, {0: mock_message})
             self.assertEqual(message_handler._earliest_message_number_received, 0)
 
@@ -448,7 +448,7 @@ class TestPullAndEnqueueMessage(BaseTestCase):
             MESSAGES["octue.services.world"] = []
 
             with self.assertRaises(QuestionNotDelivered):
-                message_handler._pull_and_enqueue_message(timeout=100, delivery_acknowledgement_timeout=0.1)
+                message_handler._pull_and_enqueue_message(timeout=100, delivery_acknowledgement_timeout=1e-6)
 
             self.assertEqual(message_handler._waiting_messages, {})
             self.assertEqual(message_handler._earliest_message_number_received, math.inf)
