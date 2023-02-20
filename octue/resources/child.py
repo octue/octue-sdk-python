@@ -101,9 +101,11 @@ class Child:
 
     def ask_multiple(self, *questions):
         """Ask the child multiple questions in parallel and wait for the answers. Each question should be provided as a
-        dictionary of `Child.ask` keyword arguments.
+        dictionary of `Child.ask` keyword arguments. An error is raised and no answers are returned if any of the
+        individual questions raise an error.
 
         :param questions: any number of questions provided as dictionaries of arguments to the `Child.ask` method
+        :raises Exception: if any question raises an error.
         :return list: the answers to the questions in the same order as the questions
         """
 
