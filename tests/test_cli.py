@@ -196,7 +196,7 @@ class TestStartCommand(BaseTestCase):
                             "y_range": [-1.26, 1.26],
                             "backend": {
                                 "name": "GCPPubSubBackend",
-                                "project_name": "octue-amy",
+                                "project_name": "octue-sdk-python",
                             },
                         }
                     }
