@@ -258,8 +258,12 @@ class TestOrderedMessageHandler(BaseTestCase):
                 receiving_service=receiving_service,
             )
 
-        with self.assertRaises(TimeoutError) as error:
-            message_handler.handle_messages(maximum_heartbeat_interval=0)
+        with patch(
+            "octue.cloud.pub_sub.message_handler.OrderedMessageHandler._attempt_to_handle_queued_messages",
+            return_value=None,
+        ):
+            with self.assertRaises(TimeoutError) as error:
+                message_handler.handle_messages(maximum_heartbeat_interval=0)
 
         self.assertIn("heartbeat", error.exception.args[0])
 
