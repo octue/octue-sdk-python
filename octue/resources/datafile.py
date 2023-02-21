@@ -31,6 +31,9 @@ from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file, ov
 logger = logging.getLogger(__name__)
 
 
+# Local paths to datafiles downloaded during the python session are registered here.
+downloaded_files = []
+
 OCTUE_METADATA_NAMESPACE = "octue"
 
 
@@ -426,6 +429,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
         # Now use hash value of local file instead of cloud file.
         self.reset_hash()
+        downloaded_files.append(self._local_path)
         return self._local_path
 
     def metadata(self, include_id=True, include_sdk_version=True, use_octue_namespace=True):

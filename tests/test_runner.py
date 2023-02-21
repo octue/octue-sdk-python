@@ -596,6 +596,36 @@ class TestRunner(BaseTestCase):
         for thread in analysis._periodic_monitor_message_sender_threads:
             self.assertFalse(thread.is_alive())
 
+    def test_error_raised_if_output_location_invalid(self):
+        """Test that an error is raised if an invalid output location is given."""
+        with self.assertRaises(exceptions.InvalidInputException):
+            Runner(".", twine="{}", output_location="not_a_cloud_path")
+
+    def test_valid_output_location(self):
+        """Test that a valid cloud path passes output location validation."""
+        Runner(".", twine="{}", output_location="gs://my-bucket/blah")
+
+    def test_downloaded_datafiles_are_deleted_when_runner_finishes(self):
+        """Test that datafiles downloaded during an analysis are deleted when the runner finishes."""
+        twine = {
+            "output_values_schema": {
+                "type": "object",
+                "properties": {"downloaded_file_path": {"type": "string"}},
+                "required": ["downloaded_file_path"],
+            }
+        }
+
+        cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "some-file.txt")
+        GoogleCloudStorageClient().upload_from_string(string="Aaaaaaaaa", cloud_path=cloud_path)
+
+        def app_that_downloads_datafile(analysis):
+            datafile = Datafile(cloud_path)
+            datafile.download()
+            analysis.output_values = {"downloaded_file_path": datafile.local_path}
+
+        analysis = Runner(app_src=app_that_downloads_datafile, twine=twine).run()
+        self.assertFalse(os.path.exists(analysis.output_values["downloaded_file_path"]))
+
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
 
@@ -807,15 +837,6 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
 
             runner = Runner(app_src=app, twine=twine_with_input_manifest_with_required_tags_for_multiple_datasets)
             runner.run(input_manifest=input_manifest)
-
-    def test_error_raised_if_output_location_invalid(self):
-        """Test that an error is raised if an invalid output location is given."""
-        with self.assertRaises(exceptions.InvalidInputException):
-            Runner(".", twine="{}", output_location="not_a_cloud_path")
-
-    def test_valid_output_location(self):
-        """Test that a valid cloud path passes output location validation."""
-        Runner(".", twine="{}", output_location="gs://my-bucket/blah")
 
     def _make_serialised_input_manifest_with_correct_dataset_file_tags(self, dataset_path):
         """Make a serialised input manifest and create one dataset and its metadata on the filesystem so that, when

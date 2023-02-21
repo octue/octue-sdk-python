@@ -18,6 +18,7 @@ from octue.cloud.storage import GoogleCloudStorageClient
 from octue.log_handlers import AnalysisLogHandlerSwitcher
 from octue.resources import Child, Dataset
 from octue.resources.analysis import CLASS_MAP, Analysis
+from octue.resources.datafile import downloaded_files
 from octue.utils import gen_uuid
 from octue.utils.encoders import OctueJSONEncoder
 from twined import Twine
@@ -41,6 +42,7 @@ class Runner:
     :param str|None crash_diagnostics_cloud_path: the path to a cloud directory to store crash diagnostics in the event that the service fails while processing a question (this includes the configuration, input values and manifest, and logs)
     :param str|None project_name: name of Google Cloud project to get credentials from
     :param str|None service_id: the ID of the service being run
+    :param bool delete_local_files: if `True`, delete any files downloaded during the call to `Runner.run` once the analysis has finished
     :return None:
     """
 
@@ -55,6 +57,7 @@ class Runner:
         crash_diagnostics_cloud_path=None,
         project_name=None,
         service_id=None,
+        delete_local_files=True,
     ):
         self.app_source = app_src
         self.children = children
@@ -92,6 +95,7 @@ class Runner:
         logger.debug("Configuration validated.")
 
         self.service_id = service_id
+        self.delete_local_files = delete_local_files
         self._project_name = project_name
 
     def __repr__(self):
@@ -221,6 +225,20 @@ class Runner:
 
             if not analysis.finalised:
                 analysis.finalise()
+
+            if self.delete_local_files:
+                logger.warning(
+                    "Deleting files downloaded during analysis. This is not thread-safe - set "
+                    "`delete_local_files=False` at instantiation of `Runner` to switch this off."
+                )
+
+                for path in downloaded_files:
+                    logger.debug("Deleting downloaded file at %r.", path)
+
+                    try:
+                        os.remove(path)
+                    except FileNotFoundError:
+                        logger.debug("Couldn't delete %r - it was already deleted.", path)
 
             return analysis
 
