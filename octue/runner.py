@@ -228,7 +228,11 @@ class Runner:
 
             if self.delete_local_files:
                 for path in downloaded_files:
-                    os.remove(path)
+                    try:
+                        logger.debug("Deleting downloaded file at %r.", path)
+                        os.remove(path)
+                    except FileNotFoundError:
+                        pass
 
             return analysis
 
