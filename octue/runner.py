@@ -227,6 +227,11 @@ class Runner:
                 analysis.finalise()
 
             if self.delete_local_files:
+                logger.warning(
+                    "Deleting files downloaded during analysis. This is not thread-safe - set "
+                    "`delete_local_files=False` at instantiation of `Runner` to switch this off."
+                )
+
                 for path in downloaded_files:
                     logger.debug("Deleting downloaded file at %r.", path)
 
