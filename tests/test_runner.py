@@ -605,8 +605,8 @@ class TestRunner(BaseTestCase):
         """Test that a valid cloud path passes output location validation."""
         Runner(".", twine="{}", output_location="gs://my-bucket/blah")
 
-    def test_downloaded_files_are_deleted_when_runner_finishes(self):
-        """Test that files downloaded during an analysis are deleted when the runner finishes."""
+    def test_downloaded_datafiles_are_deleted_when_runner_finishes(self):
+        """Test that datafiles downloaded during an analysis are deleted when the runner finishes."""
         twine = {
             "output_values_schema": {
                 "type": "object",
@@ -615,10 +615,11 @@ class TestRunner(BaseTestCase):
             }
         }
 
-        with Datafile(storage.path.generate_gs_path(TEST_BUCKET_NAME, "some-file.txt"), mode="w") as (datafile, f):
-            f.write("Aaaaaaaaa")
+        cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "some-file.txt")
+        GoogleCloudStorageClient().upload_from_string(string="Aaaaaaaaa", cloud_path=cloud_path)
 
         def app_that_downloads_datafile(analysis):
+            datafile = Datafile(cloud_path)
             datafile.download()
             analysis.output_values = {"downloaded_file_path": datafile.local_path}
 
