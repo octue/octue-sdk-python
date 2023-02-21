@@ -605,6 +605,26 @@ class TestRunner(BaseTestCase):
         """Test that a valid cloud path passes output location validation."""
         Runner(".", twine="{}", output_location="gs://my-bucket/blah")
 
+    def test_downloaded_files_are_deleted_when_runner_finishes(self):
+        """Test that files downloaded during an analysis are deleted when the runner finishes."""
+        twine = {
+            "output_values_schema": {
+                "type": "object",
+                "properties": {"downloaded_file_path": {"type": "string"}},
+                "required": ["downloaded_file_path"],
+            }
+        }
+
+        with Datafile(storage.path.generate_gs_path(TEST_BUCKET_NAME, "some-file.txt"), mode="w") as (datafile, f):
+            f.write("Aaaaaaaaa")
+
+        def app_that_downloads_datafile(analysis):
+            datafile.download()
+            analysis.output_values = {"downloaded_file_path": datafile.local_path}
+
+        analysis = Runner(app_src=app_that_downloads_datafile, twine=twine).run()
+        self.assertFalse(os.path.exists(analysis.output_values["downloaded_file_path"]))
+
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
 
