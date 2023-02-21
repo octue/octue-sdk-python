@@ -233,7 +233,7 @@ class Runner:
                     try:
                         os.remove(path)
                     except FileNotFoundError:
-                        pass
+                        logger.debug("Couldn't delete %r - it was already deleted.", path)
 
             return analysis
 
