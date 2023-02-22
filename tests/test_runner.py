@@ -308,7 +308,11 @@ class TestRunner(BaseTestCase):
             dataset = Dataset(dataset_path, labels={f"some-{data_type}-metadata"})
             dataset.update_cloud_metadata()
 
-            manifests[data_type] = {"id": str(uuid.uuid4()), "datasets": {"met_mast_data": dataset_path}}
+            manifests[data_type] = {
+                "id": str(uuid.uuid4()),
+                "datasets": {"met_mast_data": dataset_path},
+                "ignore_stored_metadata": False,
+            }
 
         runner = Runner(
             app_src=app,
