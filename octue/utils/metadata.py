@@ -1,3 +1,4 @@
+import copy
 import json
 import logging
 import os
@@ -72,7 +73,7 @@ def _get_metadata_from_cache(absolute_path):
     :return dict|None: the metadata or, if the file hasn't been cached, `None`
     """
     logger.info("Using cached local metadata.")
-    return cached_local_metadata_files.get(absolute_path)
+    return copy.deepcopy(cached_local_metadata_files.get(absolute_path))
 
 
 def _overwrite_metadata_cache(absolute_path, data):
@@ -82,5 +83,5 @@ def _overwrite_metadata_cache(absolute_path, data):
     :param dict data: the data to overwrite the existing cache entry with.
     :return None:
     """
-    cached_local_metadata_files[absolute_path] = data
+    cached_local_metadata_files[absolute_path] = copy.deepcopy(data)
     logger.info("Updated local metadata cache.")
