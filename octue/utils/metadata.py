@@ -21,13 +21,10 @@ def load_local_metadata_file(path=METADATA_FILENAME):
     :return dict:
     """
     absolute_path = os.path.abspath(path)
+    cached_metadata = _get_metadata_from_cache(absolute_path)
 
-    try:
-        cached_metadata = cached_local_metadata_files[absolute_path]
-        logger.info("Using cached local metadata.")
+    if cached_metadata:
         return cached_metadata
-    except KeyError:
-        pass
 
     if not os.path.exists(path):
         local_metadata = {}
@@ -43,7 +40,7 @@ def load_local_metadata_file(path=METADATA_FILENAME):
                 )
                 local_metadata = {}
 
-    cached_local_metadata_files[absolute_path] = local_metadata
+    _overwrite_metadata_cache(absolute_path, local_metadata)
     return local_metadata
 
 
@@ -54,15 +51,36 @@ def overwrite_local_metadata_file(data, path=METADATA_FILENAME):
     :param str path:
     :return None:
     """
-    cached_metadata = cached_local_metadata_files.get(os.path.abspath(path))
+    absolute_path = os.path.abspath(path)
+    cached_metadata = _get_metadata_from_cache(absolute_path)
 
     if data == cached_metadata:
-        logger.info("Avoiding overwriting local metadata file as it's the same as what's cached.")
+        logger.info("Avoiding overwriting local metadata file - its data is already in sync with the cache.")
         return
 
-    cached_local_metadata_files[os.path.abspath(path)] = data
-    logger.info("Updated local metadata cache.")
+    _overwrite_metadata_cache(absolute_path, data)
 
     with open(path, "w") as f:
         json.dump(data, f, cls=OctueJSONEncoder, indent=4)
         f.write("\n")
+
+
+def _get_metadata_from_cache(absolute_path):
+    """Get the metadata for the given local metadata file. If it's not cached, return `None`.
+
+    :param str absolute_path: the path to the local metadata file
+    :return dict|None: the metadata or, if the file hasn't been cached, `None`
+    """
+    logger.info("Using cached local metadata.")
+    return cached_local_metadata_files.get(absolute_path)
+
+
+def _overwrite_metadata_cache(absolute_path, data):
+    """Overwrite the metadata cache entry for the given local metadata file.
+
+    :param str absolute_path: the path to the local metadata file
+    :param dict data: the data to overwrite the existing cache entry with.
+    :return None:
+    """
+    cached_local_metadata_files[absolute_path] = data
+    logger.info("Updated local metadata cache.")
