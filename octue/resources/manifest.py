@@ -37,11 +37,11 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
 
     @classmethod
     def from_cloud(cls, cloud_path, ignore_stored_metadata=False):
-        """Instantiate a Manifest from Google Cloud storage.
+        """Instantiate a manifest from a JSON serialisation of one in Google Cloud Storage.
 
         :param str cloud_path: full path to manifest in cloud storage (e.g. `gs://bucket_name/path/to/manifest.json`)
-        :param bool ignore_stored_metadata: if `True`, ignore any metadata stored for the manifest's datasets and datafiles locally or in the cloud
-        :return Dataset:
+        :param bool ignore_stored_metadata: if `True`, ignore any metadata stored for the manifest's datasets and datafiles in the cloud
+        :return octue.resources.manifest.Manifest:
         """
         serialised_manifest = json.loads(GoogleCloudStorageClient().download_as_string(cloud_path))
 
