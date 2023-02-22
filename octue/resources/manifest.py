@@ -47,7 +47,7 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
         return Manifest(
             id=serialised_manifest["id"],
             datasets=serialised_manifest["datasets"],
-            ignore_stored_metadata=serialised_manifest["ignore_stored_metadata"],
+            ignore_stored_metadata=serialised_manifest.get("ignore_stored_metadata", False),
         )
 
     @property
