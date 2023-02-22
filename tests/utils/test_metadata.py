@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import tempfile
 from unittest.mock import patch
 
@@ -28,8 +29,8 @@ class TestMetadata(BaseTestCase):
 
     def test_empty_dictionary_returned_if_local_metadata_file_does_not_exist(self):
         """Test that an empty dictionary is returned if trying to load a local metadata file that doesn't exist."""
-        with patch("os.path.exists", return_value=False):
-            self.assertEqual(load_local_metadata_file(), {})
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            self.assertEqual(load_local_metadata_file(path=os.path.join(temporary_directory, ".octue")), {})
 
     def test_local_metadata_is_cached_once_loaded_in_python_session(self):
         """Test that, if a local metadata file has been loaded once during the python session, it is loaded from the
