@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import tempfile
+from unittest.mock import patch
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
@@ -156,6 +157,7 @@ class TestManifest(BaseTestCase):
 
             self.assertEqual(persisted_manifest.id, manifest.id)
             self.assertEqual(persisted_manifest.hash_value, manifest.hash_value)
+
             self.assertEqual(
                 {dataset.name for dataset in persisted_manifest.datasets.values()},
                 {dataset.name for dataset in manifest.datasets.values()},
@@ -251,3 +253,33 @@ class TestManifest(BaseTestCase):
 
         # Check the third dataset's path is unmodified.
         self.assertEqual(manifest.datasets["dataset_2"].path, os.path.join("path", "to", "dataset_2"))
+
+    def test_ignore_stored_metadata(self):
+        """Test that a manifest's datasets' and datafiles' metadata can be ignored."""
+        dataset_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "yet_another_dataset")
+
+        with Dataset(dataset_cloud_path) as dataset:
+            dataset.labels = ["wham", "bam", "slam"]
+
+        datafile_cloud_path = storage.path.join(dataset_cloud_path, "another-file.dat")
+
+        with Datafile(datafile_cloud_path, mode="w") as (datafile, f):
+            f.write("Zapppppp")
+            datafile.tags = {"hippy": "dippy"}
+
+        with patch("octue.resources.Dataset._use_cloud_metadata") as mock_dataset_use_cloud_metadata:
+            with patch("octue.resources.Datafile._use_cloud_metadata") as mock_datafile_use_cloud_metadata:
+                manifest = Manifest(datasets={"my-dataset": dataset_cloud_path}, ignore_stored_metadata=True)
+
+        dataset_in_manifest = manifest.datasets["my-dataset"]
+        datafile_in_manifest = dataset_in_manifest.files.one()
+
+        # Test that the manifest's dataset's files are included.
+        self.assertEqual(datafile_in_manifest.cloud_path, datafile_cloud_path)
+
+        # Test that the manifest's dataset's and datafile's metadata are ignored.
+        mock_datafile_use_cloud_metadata.assert_not_called()
+        self.assertEqual(datafile_in_manifest.tags, {})
+
+        mock_dataset_use_cloud_metadata.assert_not_called()
+        self.assertEqual(dataset_in_manifest.labels, set())

@@ -18,6 +18,7 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
     (or leaving), a data service for an analysis at the configuration, input or output stage.
 
     :param dict(str, octue.resources.dataset.Dataset|dict|str)|None datasets: a mapping of dataset names to `Dataset` instances, serialised datasets, or paths to datasets
+    :param bool ignore_stored_metadata: if `True`, ignore any metadata stored for the manifest's datasets and datafiles locally or in the cloud
     :param str|None id: the UUID of the manifest (a UUID is generated if one isn't given)
     :param str|None name: an optional name to give to the manifest
     :return None:
@@ -29,22 +30,25 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
     # Paths to datasets are added to the serialisation in `Manifest.to_primitive`.
     _SERIALISE_FIELDS = (*_METADATA_ATTRIBUTES, "name")
 
-    def __init__(self, datasets=None, id=None, name=None):
+    def __init__(self, datasets=None, ignore_stored_metadata=False, id=None, name=None):
         super().__init__(id=id, name=name)
+        self._ignore_stored_metadata = ignore_stored_metadata
         self.datasets = self._instantiate_datasets(datasets or {})
 
     @classmethod
-    def from_cloud(cls, cloud_path):
-        """Instantiate a Manifest from Google Cloud storage.
+    def from_cloud(cls, cloud_path, ignore_stored_metadata=False):
+        """Instantiate a manifest from a JSON serialisation of one in Google Cloud Storage.
 
         :param str cloud_path: full path to manifest in cloud storage (e.g. `gs://bucket_name/path/to/manifest.json`)
-        :return Dataset:
+        :param bool ignore_stored_metadata: if `True`, ignore any metadata stored for the manifest's datasets and datafiles in the cloud
+        :return octue.resources.manifest.Manifest:
         """
         serialised_manifest = json.loads(GoogleCloudStorageClient().download_as_string(cloud_path))
 
         return Manifest(
             id=serialised_manifest["id"],
-            datasets={key: Dataset(path=dataset) for key, dataset in serialised_manifest["datasets"].items()},
+            datasets=serialised_manifest["datasets"],
+            ignore_stored_metadata=ignore_stored_metadata,
         )
 
     @property
@@ -115,7 +119,7 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
         for key, dataset_specification in data["datasets"].items():
             # TODO generate a unique name based on the filter key, label datasets so that the label filters in the spec
             #  apply automatically and generate a description of the dataset
-            self.datasets[key] = Dataset(path=key)
+            self.datasets[key] = Dataset(path=key, ignore_stored_metadata=self._ignore_stored_metadata)
 
         return self
 
@@ -167,13 +171,21 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
 
         # If `dataset` is just a path to a dataset:
         if isinstance(dataset, str):
-            return (key, Dataset(path=dataset, recursive=True))
+            return (key, Dataset(path=dataset, recursive=True, ignore_stored_metadata=self._ignore_stored_metadata))
 
         # If `dataset` is a cloud dataset and is represented as a dictionary including a "path" key:
         if storage.path.is_cloud_path(dataset.get("path", "")):
-            return (key, Dataset(path=dataset["path"], files=dataset.get("files"), recursive=True))
+            return (
+                key,
+                Dataset(
+                    path=dataset["path"],
+                    files=dataset.get("files"),
+                    recursive=True,
+                    ignore_stored_metadata=self._ignore_stored_metadata,
+                ),
+            )
 
-        return (key, Dataset(**dataset))
+        return (key, Dataset(**dataset, ignore_stored_metadata=self._ignore_stored_metadata))
 
     def _set_metadata(self, metadata):
         """Set the manifest's metadata.
