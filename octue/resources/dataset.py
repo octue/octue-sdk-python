@@ -439,11 +439,11 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         for level, (directory_path, _, filenames) in enumerate(os.walk(path)):
             for filename in filenames:
 
-                if not self._include_octue_metadata_files and filename == METADATA_FILENAME:
-                    continue
-
                 if not self._recursive and level > 0:
                     break
+
+                if not self._include_octue_metadata_files and filename == METADATA_FILENAME:
+                    continue
 
                 self.files.add(
                     Datafile(
