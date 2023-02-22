@@ -69,7 +69,6 @@ class TestManifest(BaseTestCase):
                         "my_dataset_0": dataset_0_path,
                         "my_dataset_1": dataset_1_path,
                     },
-                    "ignore_stored_metadata": manifest._ignore_stored_metadata,
                 },
             )
 
@@ -115,7 +114,6 @@ class TestManifest(BaseTestCase):
                         "my_dataset_0": manifest.datasets["my_dataset_0"].to_primitive(),
                         "my_dataset_1": manifest.datasets["my_dataset_1"].to_primitive(),
                     },
-                    "ignore_stored_metadata": manifest._ignore_stored_metadata,
                 },
             )
 

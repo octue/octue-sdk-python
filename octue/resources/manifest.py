@@ -25,7 +25,7 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
     """
 
     _ATTRIBUTES_TO_HASH = ("datasets",)
-    _METADATA_ATTRIBUTES = ("id", "_ignore_stored_metadata")
+    _METADATA_ATTRIBUTES = ("id",)
 
     # Paths to datasets are added to the serialisation in `Manifest.to_primitive`.
     _SERIALISE_FIELDS = (*_METADATA_ATTRIBUTES, "name")
@@ -36,10 +36,11 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
         self.datasets = self._instantiate_datasets(datasets or {})
 
     @classmethod
-    def from_cloud(cls, cloud_path):
+    def from_cloud(cls, cloud_path, ignore_stored_metadata=False):
         """Instantiate a Manifest from Google Cloud storage.
 
         :param str cloud_path: full path to manifest in cloud storage (e.g. `gs://bucket_name/path/to/manifest.json`)
+        :param bool ignore_stored_metadata: if `True`, ignore any metadata stored for the manifest's datasets and datafiles locally or in the cloud
         :return Dataset:
         """
         serialised_manifest = json.loads(GoogleCloudStorageClient().download_as_string(cloud_path))
@@ -47,7 +48,7 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
         return Manifest(
             id=serialised_manifest["id"],
             datasets=serialised_manifest["datasets"],
-            ignore_stored_metadata=serialised_manifest.get("ignore_stored_metadata", False),
+            ignore_stored_metadata=ignore_stored_metadata,
         )
 
     @property
@@ -130,9 +131,6 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
         """
         self_as_primitive = super().to_primitive()
         self_as_primitive["datasets"] = {}
-
-        # Remove the leading underscore from attribute name so it can be used as the equivalent instantiation argument.
-        self_as_primitive["ignore_stored_metadata"] = self_as_primitive.pop("_ignore_stored_metadata")
 
         for name, dataset in self.datasets.items():
             if dataset._instantiated_from_files_argument:
