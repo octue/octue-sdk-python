@@ -56,7 +56,7 @@ def overwrite_local_metadata_file(data, path=METADATA_FILENAME):
     cached_metadata = _get_metadata_from_cache(absolute_path)
 
     if data == cached_metadata:
-        logger.info("Avoiding overwriting local metadata file - its data is already in sync with the cache.")
+        logger.debug("Avoiding overwriting local metadata file - its data is already in sync with the cache.")
         return
 
     _overwrite_metadata_cache(absolute_path, data)
@@ -72,7 +72,7 @@ def _get_metadata_from_cache(absolute_path):
     :param str absolute_path: the path to the local metadata file
     :return dict|None: the metadata or, if the file hasn't been cached, `None`
     """
-    logger.info("Using cached local metadata.")
+    logger.debug("Using cached local metadata.")
     return copy.deepcopy(cached_local_metadata_files.get(absolute_path))
 
 
@@ -84,4 +84,4 @@ def _overwrite_metadata_cache(absolute_path, data):
     :return None:
     """
     cached_local_metadata_files[absolute_path] = copy.deepcopy(data)
-    logger.info("Updated local metadata cache.")
+    logger.debug("Updated local metadata cache.")
