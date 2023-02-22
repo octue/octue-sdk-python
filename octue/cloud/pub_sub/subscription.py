@@ -59,7 +59,7 @@ class Subscription:
         self.ack_deadline = ack_deadline
         self.message_retention_duration = Duration(seconds=message_retention_duration)
 
-        # If expiration_time is None, the subscription will never expire.
+        # If expiration_time is `None`, the subscription will never expire.
         if expiration_time is None:
             self.expiration_policy = ExpirationPolicy(mapping=None)
         else:

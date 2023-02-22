@@ -428,6 +428,15 @@ def dataflow(service_config, no_cache, update, dataflow_job_only, image_uri, rev
 @click.argument("service_name")
 @click.argument("push_endpoint")
 @click.option(
+    "--expiration-time",
+    type=click.FLOAT,
+    is_flag=False,
+    default=None,
+    show_default=True,
+    help="The number of seconds of inactivity after which the subscription should expire. If not provided, no "
+    "expiration time is applied to the subscription.",
+)
+@click.option(
     "--revision-tag",
     is_flag=False,
     default=None,
@@ -435,7 +444,14 @@ def dataflow(service_config, no_cache, update, dataflow_job_only, image_uri, rev
     help="The service revision tag (e.g. 1.0.7). If this option isn't given, a random 'cool name' tag is generated e.g"
     ". 'curious-capybara'.",
 )
-def create_push_subscription(project_name, service_namespace, service_name, push_endpoint, revision_tag):
+def create_push_subscription(
+    project_name,
+    service_namespace,
+    service_name,
+    push_endpoint,
+    expiration_time,
+    revision_tag,
+):
     """Create a push subscription on Google Pub/Sub from the Octue service to the push endpoint. If a corresponding
     topic doesn't exist, it will be created. The subscription name is printed on completion.
 
@@ -454,7 +470,14 @@ def create_push_subscription(project_name, service_namespace, service_name, push
     topic = Topic(name=pub_sub_sruid, project_name=project_name)
     topic.create(allow_existing=True)
 
-    subscription = Subscription(name=pub_sub_sruid, topic=topic, project_name=project_name, push_endpoint=push_endpoint)
+    subscription = Subscription(
+        name=pub_sub_sruid,
+        topic=topic,
+        project_name=project_name,
+        expiration_time=expiration_time,
+        push_endpoint=push_endpoint,
+    )
+
     subscription.create()
     click.echo(service_sruid)
 
