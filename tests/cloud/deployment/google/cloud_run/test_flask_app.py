@@ -51,10 +51,10 @@ class TestFlaskApp(TestCase):
         question_uuid = "fcd7aad7-dbf0-47d2-8984-220d493df2c1"
 
         with mock.patch(
-            "octue.cloud.deployment.google.cloud_run.flask_app.load_local_metadata_file",
+            "octue.utils.metadata.load_local_metadata_file",
             return_value={"delivered_questions": {question_uuid}},
         ):
-            with mock.patch("octue.cloud.deployment.google.cloud_run.flask_app.overwrite_local_metadata_file"):
+            with mock.patch("octue.utils.metadata.overwrite_local_metadata_file"):
                 with flask_app.app.test_client() as client:
                     with mock.patch(
                         "octue.cloud.deployment.google.cloud_run.flask_app.answer_question"
@@ -81,11 +81,8 @@ class TestFlaskApp(TestCase):
         question_uuid = "fcd7aad7-dbf0-47d2-8984-220d493df2c1"
         local_metadata = {}
 
-        with mock.patch(
-            "octue.cloud.deployment.google.cloud_run.flask_app.load_local_metadata_file",
-            return_value=local_metadata,
-        ):
-            with mock.patch("octue.cloud.deployment.google.cloud_run.flask_app.overwrite_local_metadata_file"):
+        with mock.patch("octue.utils.metadata.load_local_metadata_file", return_value=local_metadata):
+            with mock.patch("octue.utils.metadata.overwrite_local_metadata_file"):
                 with flask_app.app.test_client() as client:
                     with mock.patch(
                         "octue.cloud.deployment.google.cloud_run.flask_app.answer_question"

@@ -3,7 +3,7 @@ import logging
 from flask import Flask, request
 
 from octue.cloud.deployment.google.answer_pub_sub_question import answer_question
-from octue.utils.metadata import load_local_metadata_file, overwrite_local_metadata_file
+from octue.utils.metadata import UpdateLocalMetadata
 
 
 logger = logging.getLogger(__name__)
@@ -31,24 +31,22 @@ def index():
 
     question_uuid = question["attributes"]["question_uuid"]
 
-    local_metadata = load_local_metadata_file()
+    with UpdateLocalMetadata() as local_metadata:
+        # Get the set of delivered questions or, in the case where the local metadata file did not already exist, create it.
+        local_metadata["delivered_questions"] = local_metadata.get("delivered_questions", set())
 
-    # Get the set of delivered questions or, in the case where the local metadata file did not already exist, create it.
-    local_metadata["delivered_questions"] = local_metadata.get("delivered_questions", set())
+        # Acknowledge questions that are redelivered to stop further redelivery and redundant processing.
+        if question_uuid in local_metadata["delivered_questions"]:
+            logger.warning(
+                "Question %r has already been received by the service. It will now be acknowledged to prevent further "
+                "redundant redelivery.",
+                question_uuid,
+            )
+            return ("", 204)
 
-    # Acknowledge questions that are redelivered to stop further redelivery and redundant processing.
-    if question_uuid in local_metadata["delivered_questions"]:
-        logger.warning(
-            "Question %r has already been received by the service. It will now be acknowledged to prevent further "
-            "redundant redelivery.",
-            question_uuid,
-        )
-        return ("", 204)
-
-    # Otherwise add the question UUID to the set.
-    local_metadata["delivered_questions"].add(question_uuid)
-    logger.info("Adding question UUID %r to the set of delivered questions.", question_uuid)
-    overwrite_local_metadata_file(local_metadata)
+        # Otherwise add the question UUID to the set.
+        local_metadata["delivered_questions"].add(question_uuid)
+        logger.info("Adding question UUID %r to the set of delivered questions.", question_uuid)
 
     project_name = envelope["subscription"].split("/")[1]
     answer_question(question=question, project_name=project_name)

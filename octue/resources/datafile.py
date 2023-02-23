@@ -25,7 +25,7 @@ from octue.exceptions import CloudLocationNotSpecified, FileNotFoundException, R
 from octue.mixins import CloudPathable, Filterable, Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils.decoders import OctueJSONDecoder
-from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file, overwrite_local_metadata_file
+from octue.utils.metadata import METADATA_FILENAME, UpdateLocalMetadata, load_local_metadata_file
 
 
 logger = logging.getLogger(__name__)
@@ -475,13 +475,11 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
         :return None:
         """
-        existing_metadata_records = load_local_metadata_file(self._local_metadata_path)
+        with UpdateLocalMetadata(self._local_metadata_path) as existing_metadata_records:
+            if not existing_metadata_records.get("datafiles"):
+                existing_metadata_records["datafiles"] = {}
 
-        if not existing_metadata_records.get("datafiles"):
-            existing_metadata_records["datafiles"] = {}
-
-        existing_metadata_records["datafiles"][self.name] = self.metadata(use_octue_namespace=False)
-        overwrite_local_metadata_file(data=existing_metadata_records, path=self._local_metadata_path)
+            existing_metadata_records["datafiles"][self.name] = self.metadata(use_octue_namespace=False)
 
     def generate_signed_url(self, expiration=datetime.timedelta(days=7)):
         """Generate a signed URL for the datafile.
