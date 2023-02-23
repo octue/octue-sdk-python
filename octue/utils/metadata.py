@@ -15,8 +15,8 @@ METADATA_FILENAME = ".octue"
 
 
 class UpdateLocalMetadata:
-    """A context manager that provides the contents of the given local metadata file (either from disk or from the
-    cache) and updates it with any changes made to it within its context.
+    """A context manager that provides the contents of the given local metadata file and updates it with any changes
+    made within its context. The local metadata is retrieved either from the disk or from the cache as appropriate.
 
     :param str path: the path to the local metadata. The file must be in JSON format.
     :return None:
@@ -44,10 +44,10 @@ class UpdateLocalMetadata:
 
 def load_local_metadata_file(path=METADATA_FILENAME):
     """Load metadata from a local metadata records file, returning an empty dictionary if the file does not exist or is
-    incorrectly formatted.
+    incorrectly formatted. If the file has already been cached, its contents are retrieved from the cache.
 
-    :param str path:
-    :return dict:
+    :param str path: the path to the local metadata file
+    :return dict: the contents of the local metadata file
     """
     absolute_path = os.path.abspath(path)
     cached_metadata = _get_metadata_from_cache(absolute_path)
@@ -74,10 +74,12 @@ def load_local_metadata_file(path=METADATA_FILENAME):
 
 
 def overwrite_local_metadata_file(data, path=METADATA_FILENAME):
-    """Create or overwrite the given local metadata file with the given data.
+    """Create or overwrite the given local metadata file with the given data. If the data to overwrite the file with is
+    the same as the file's cache entry, no changes are made. If it's not, the cache entry is updated and the file is
+    overwritten.
 
-    :param dict data:
-    :param str path:
+    :param dict data: the data to overwrite the local metadata file with
+    :param str path: the path to the local metadata file
     :return None:
     """
     absolute_path = os.path.abspath(path)
