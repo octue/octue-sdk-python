@@ -6,6 +6,7 @@ import logging
 import os
 import shutil
 import tempfile
+import warnings
 
 import pkg_resources
 import requests
@@ -61,16 +62,8 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
     """
 
     _CLOUD_PATH_ATTRIBUTE_NAME = "_cloud_path"
-
     _METADATA_ATTRIBUTES = ("id", "timestamp", "tags", "labels")
-
-    _SERIALISE_FIELDS = (
-        *_METADATA_ATTRIBUTES,
-        "name",
-        "path",
-        "cloud_path",
-        "_cloud_metadata",
-    )
+    _SERIALISE_FIELDS = (*_METADATA_ATTRIBUTES, "name", "local_path", "cloud_path", "_cloud_metadata")
 
     def __init__(
         self,
@@ -271,10 +264,17 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
     @property
     def path(self):
-        """Alias to the `local_path` property.
+        """A deprecated alias to the `local_path` property. Please use `local_path` instead.
 
         :return str:
         """
+        warnings.warn(
+            DeprecationWarning(
+                "The `Datafile.path` property is deprecated and will be removed soon. Please use the "
+                "`Datafile.local_path` property instead."
+            )
+        )
+
         return self.local_path
 
     @local_path.setter
@@ -493,6 +493,22 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             )
 
         return GoogleCloudStorageClient().generate_signed_url(cloud_path=self.cloud_path, expiration=expiration)
+
+    def to_primitive(self):
+        """Convert the datafile to a dictionary of primitives. A `path` key is added to the primitive to facilitate
+        easier deserialisation as datafile instantiation requires a `path` parameter. The value mapped to this key is
+        the local path if the datafile has one, or the cloud path if it doesn't.
+
+        :return dict:
+        """
+        self_as_primitive = super().to_primitive()
+
+        if self._local_path:
+            self_as_primitive["path"] = self._local_path
+        else:
+            self_as_primitive["path"] = self.cloud_path
+
+        return self_as_primitive
 
     def _instantiate_from_cloud_object(self, path, local_path, ignore_stored_metadata):
         """Instantiate the datafile from a cloud object.
