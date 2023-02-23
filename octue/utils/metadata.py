@@ -14,6 +14,34 @@ cached_local_metadata_files = {}
 METADATA_FILENAME = ".octue"
 
 
+class UpdateLocalMetadata:
+    """A context manager that provides the contents of the given local metadata file (either from disk or from the
+    cache) and updates it with any changes made to it within its context.
+
+    :param str path: the path to the local metadata. The file must be in JSON format.
+    :return None:
+    """
+
+    def __init__(self, path=METADATA_FILENAME):
+        self.path = path
+        self._local_metadata = None
+
+    def __enter__(self):
+        """Load the local metadata file and return its contents.
+
+        :return any: the contents of the local metadata file (converted from the JSON in the local metadata file)
+        """
+        self._local_metadata = load_local_metadata_file(self.path)
+        return self._local_metadata
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Write any changes to the contents of the file.
+
+        :return None:
+        """
+        overwrite_local_metadata_file(self._local_metadata, self.path)
+
+
 def load_local_metadata_file(path=METADATA_FILENAME):
     """Load metadata from a local metadata records file, returning an empty dictionary if the file does not exist or is
     incorrectly formatted.

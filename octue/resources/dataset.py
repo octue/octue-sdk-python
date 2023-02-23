@@ -16,7 +16,7 @@ from octue.mixins import CloudPathable, Hashable, Identifiable, Labelable, Metad
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.utils.encoders import OctueJSONEncoder
-from octue.utils.metadata import METADATA_FILENAME, load_local_metadata_file, overwrite_local_metadata_file
+from octue.utils.metadata import METADATA_FILENAME, UpdateLocalMetadata, load_local_metadata_file
 
 
 logger = logging.getLogger(__name__)
@@ -249,10 +249,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         :return None:
         """
-        existing_metadata_records = load_local_metadata_file(self._metadata_path)
-        existing_metadata_records["dataset"] = self.to_primitive(include_files=False)
-        os.makedirs(self.path, exist_ok=True)
-        overwrite_local_metadata_file(data=existing_metadata_records, path=self._metadata_path)
+        with UpdateLocalMetadata(self._metadata_path) as existing_metadata_records:
+            existing_metadata_records["dataset"] = self.to_primitive(include_files=False)
+            os.makedirs(self.path, exist_ok=True)
 
     def generate_signed_url(self, expiration=datetime.timedelta(days=7)):
         """Generate a signed URL for the dataset. This is done by uploading a uniquely named metadata file containing
