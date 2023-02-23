@@ -9,8 +9,8 @@ from tests.base import BaseTestCase
 
 
 class TestMetadata(BaseTestCase):
-    def test_warning_raised_if_local_metadata_file_corrupted(self):
-        """Test that a warning is raised and an emptry dictionary is returned if trying to load a corrupted local
+    def test_warning_raised_and_empty_dictionary_returned_if_local_metadata_file_corrupted(self):
+        """Test that a warning is raised and an empty dictionary is returned if trying to load a corrupted local
         metadata file (e.g. not in JSON format).
         """
         with tempfile.NamedTemporaryFile() as temporary_file:
@@ -60,9 +60,11 @@ class TestMetadata(BaseTestCase):
             overwrite_local_metadata_file(data={"some": "data"}, path=temporary_file.name)
             self.assertEqual(cached_local_metadata_files[temporary_file.name], {"some": "data"})
 
+            # Check the file has been written correctly.
             with open(temporary_file.name) as f:
                 self.assertEqual(json.load(f), {"some": "data"})
 
+            # Check that it's not loaded from disk again.
             with patch("builtins.open") as mock_open:
                 local_metadata = load_local_metadata_file(temporary_file.name)
 
@@ -82,10 +84,16 @@ class TestMetadata(BaseTestCase):
             self.assertEqual(cached_local_metadata_files[temporary_file.name], {"some": "data"})
 
             # Overwrite the metadata file with the same data.
-            with patch("builtins.open") as mock_open:
-                overwrite_local_metadata_file({"some": "data"}, path=temporary_file.name)
+            with self.assertLogs(level=logging.DEBUG) as logging_context:
+                with patch("builtins.open") as mock_open:
+                    overwrite_local_metadata_file({"some": "data"}, path=temporary_file.name)
 
         mock_open.assert_not_called()
+
+        self.assertIn(
+            "Avoiding overwriting local metadata file - its data is already in sync with the cache.",
+            logging_context.records[1].message,
+        )
 
     def test_cache_busted_if_overwriting_with_new_data(self):
         """Test that the cache is busted and the local metadata file is rewritten if trying to overwrite it with
@@ -99,7 +107,11 @@ class TestMetadata(BaseTestCase):
             load_local_metadata_file(temporary_file.name)
             self.assertEqual(cached_local_metadata_files[temporary_file.name], {"some": "data"})
 
-            with patch("builtins.open") as mock_open:
-                overwrite_local_metadata_file({"new": "information"}, path=temporary_file.name)
+            overwrite_local_metadata_file({"new": "information"}, path=temporary_file.name)
 
-        mock_open.assert_called_once()
+            # Check the metadata file has been overwritten.
+            with open(temporary_file.name) as f:
+                self.assertEqual(json.load(f), {"new": "information"})
+
+        # Check the cache entry has been updated.
+        self.assertEqual(cached_local_metadata_files[temporary_file.name], {"new": "information"})
