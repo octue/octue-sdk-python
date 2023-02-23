@@ -41,7 +41,7 @@ def load_local_metadata_file(path=METADATA_FILENAME):
                 )
                 local_metadata = {}
 
-    _overwrite_metadata_cache(absolute_path, local_metadata)
+    _overwrite_cache_entry(absolute_path, local_metadata)
     return local_metadata
 
 
@@ -59,7 +59,7 @@ def overwrite_local_metadata_file(data, path=METADATA_FILENAME):
         logger.debug("Avoiding overwriting local metadata file - its data is already in sync with the cache.")
         return
 
-    _overwrite_metadata_cache(absolute_path, data)
+    _overwrite_cache_entry(absolute_path, data)
 
     with open(path, "w") as f:
         json.dump(data, f, cls=OctueJSONEncoder, indent=4)
@@ -67,7 +67,7 @@ def overwrite_local_metadata_file(data, path=METADATA_FILENAME):
 
 
 def _get_metadata_from_cache(absolute_path):
-    """Get the metadata for the given local metadata file. If it's not cached, return `None`.
+    """Get the metadata for the given local metadata file from the cache. If it's not cached, return `None`.
 
     :param str absolute_path: the path to the local metadata file
     :return dict|None: the metadata or, if the file hasn't been cached, `None`
@@ -76,7 +76,7 @@ def _get_metadata_from_cache(absolute_path):
     return copy.deepcopy(cached_local_metadata_files.get(absolute_path))
 
 
-def _overwrite_metadata_cache(absolute_path, data):
+def _overwrite_cache_entry(absolute_path, data):
     """Overwrite the metadata cache entry for the given local metadata file.
 
     :param str absolute_path: the path to the local metadata file
