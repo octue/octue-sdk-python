@@ -13,7 +13,7 @@ class TestMetadata(BaseTestCase):
         """Test that a warning is raised and an empty dictionary is returned if trying to load a corrupted local
         metadata file (e.g. not in JSON format).
         """
-        with tempfile.NamedTemporaryFile() as temporary_file:
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "w") as f:
                 f.write("some gobbledeegook")
 
@@ -36,7 +36,7 @@ class TestMetadata(BaseTestCase):
         """Test that, if a local metadata file has been loaded once during the python session, it is loaded from the
         cache instead of from disk for the rest of the session.
         """
-        with tempfile.NamedTemporaryFile() as temporary_file:
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "w") as f:
                 json.dump({"some": "data"}, f)
 
@@ -55,7 +55,7 @@ class TestMetadata(BaseTestCase):
         """Test that, if a local metadata file has been written to during the python session, it is loaded from the
         cache instead of from disk for the rest of the session.
         """
-        with tempfile.NamedTemporaryFile() as temporary_file:
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             # Write the metadata file and check its contents have been cached.
             overwrite_local_metadata_file(data={"some": "data"}, path=temporary_file.name)
             self.assertEqual(cached_local_metadata_files[temporary_file.name], {"some": "data"})
@@ -75,7 +75,7 @@ class TestMetadata(BaseTestCase):
         """Test that the cache is not busted and the local metadata file is not rewritten if trying to overwrite it with
         the same data as is in the cache.
         """
-        with tempfile.NamedTemporaryFile() as temporary_file:
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "w") as f:
                 json.dump({"some": "data"}, f)
 
@@ -99,7 +99,7 @@ class TestMetadata(BaseTestCase):
         """Test that the cache is busted and the local metadata file is rewritten if trying to overwrite it with
         data different from what's in the cache.
         """
-        with tempfile.NamedTemporaryFile() as temporary_file:
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "w") as f:
                 json.dump({"some": "data"}, f)
 
