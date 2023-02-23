@@ -56,4 +56,8 @@ class GooglePubSubHandler(logging.Handler):
         serialised_record["args"] = None
         serialised_record["exc_info"] = None
         serialised_record.pop("message", None)
+
+        if not serialised_record.get("levelno"):
+            serialised_record["levelno"] = logging.INFO
+
         return serialised_record
