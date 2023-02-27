@@ -3,12 +3,10 @@ import json
 import math
 from unittest.mock import patch
 
-from octue import exceptions
 from octue.cloud.emulators._pub_sub import (
     MESSAGES,
     MockMessage,
     MockMessagePuller,
-    MockPullResponse,
     MockService,
     MockSubscriber,
     MockSubscription,
@@ -16,7 +14,6 @@ from octue.cloud.emulators._pub_sub import (
 )
 from octue.cloud.emulators.child import ServicePatcher
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
-from octue.exceptions import QuestionNotDelivered
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
@@ -180,20 +177,6 @@ class TestOrderedMessageHandler(BaseTestCase):
         self.assertEqual(result, "This is the result.")
         self.assertEqual(message_handler.handled_messages, messages)
 
-    def test_error_raised_if_delivery_acknowledgement_not_received_in_time(self):
-        """Test that an error is raised if delivery acknowledgement isn't received before the given acknowledgement
-        timeout.
-        """
-        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(
-                subscription=mock_subscription,
-                receiving_service=receiving_service,
-            )
-
-        with patch("octue.cloud.emulators._pub_sub.MockSubscriber.pull", return_value=MockPullResponse()):
-            with self.assertRaises(exceptions.QuestionNotDelivered):
-                message_handler.handle_messages(delivery_acknowledgement_timeout=0)
-
     def test_delivery_acknowledgement(self):
         """Test that a delivery acknowledgement message is handled correctly."""
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
@@ -201,8 +184,6 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
             )
-
-        self.assertFalse(message_handler.received_response_from_child)
 
         with patch(
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
@@ -220,34 +201,6 @@ class TestOrderedMessageHandler(BaseTestCase):
         ):
             result = message_handler.handle_messages()
 
-        self.assertTrue(message_handler.received_response_from_child)
-        self.assertEqual(result, {"output_values": None, "output_manifest": None})
-
-    def test_delivery_acknowledgement_if_delivery_acknowledgement_message_missed(self):
-        """Test that delivery of a question is acknowledged by receipt of another message type if the delivery
-        acknowledgement message is missed.
-        """
-        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(
-                subscription=mock_subscription,
-                receiving_service=receiving_service,
-            )
-
-        self.assertFalse(message_handler.received_response_from_child)
-
-        with patch(
-            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
-            new=MockMessagePuller(
-                [
-                    {"type": "monitor_message", "data": "splat", "message_number": 0},
-                    {"type": "result", "output_values": None, "output_manifest": None, "message_number": 1},
-                ],
-                message_handler=message_handler,
-            ).pull,
-        ):
-            result = message_handler.handle_messages()
-
-        self.assertTrue(message_handler.received_response_from_child)
         self.assertEqual(result, {"output_values": None, "output_manifest": None})
 
     def test_error_raised_if_heartbeat_not_received_before_checked(self):
@@ -406,7 +359,7 @@ class TestPullAndEnqueueMessage(BaseTestCase):
             MESSAGES["octue.services.world"] = []
             MESSAGES["octue.services.world"].append(MockMessage(data=json.dumps(mock_message).encode()))
 
-            message_handler._pull_and_enqueue_message(timeout=10, delivery_acknowledgement_timeout=10)
+            message_handler._pull_and_enqueue_message(timeout=10)
             self.assertEqual(message_handler._waiting_messages, {0: mock_message})
             self.assertEqual(message_handler._earliest_message_number_received, 0)
 
@@ -427,30 +380,6 @@ class TestPullAndEnqueueMessage(BaseTestCase):
             MESSAGES["octue.services.world"] = []
 
             with self.assertRaises(TimeoutError):
-                message_handler._pull_and_enqueue_message(timeout=1e-6, delivery_acknowledgement_timeout=100)
+                message_handler._pull_and_enqueue_message(timeout=1e-6)
 
-            self.assertEqual(message_handler._earliest_message_number_received, math.inf)
-
-    def test_question_not_delivered_error_raised_if_no_message_received_in_time(self):
-        """Test that a question not delivered error is raised if no messages are received at all within the delivery
-        acknowledgement deadline.
-        """
-        with ServicePatcher():
-            message_handler = OrderedMessageHandler(
-                subscription=mock_subscription,
-                receiving_service=receiving_service,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
-            )
-
-            message_handler._child_sdk_version = "0.1.3"
-            message_handler._waiting_messages = {}
-            message_handler._start_time = 0
-
-            # Create a mock topic.
-            MESSAGES["octue.services.world"] = []
-
-            with self.assertRaises(QuestionNotDelivered):
-                message_handler._pull_and_enqueue_message(timeout=100, delivery_acknowledgement_timeout=1e-6)
-
-            self.assertEqual(message_handler._waiting_messages, {})
             self.assertEqual(message_handler._earliest_message_number_received, math.inf)
