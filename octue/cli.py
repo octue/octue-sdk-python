@@ -429,7 +429,6 @@ def dataflow(service_config, no_cache, update, dataflow_job_only, image_uri, rev
 @click.argument("push_endpoint")
 @click.option(
     "--expiration-time",
-    type=click.FLOAT,
     is_flag=False,
     default=None,
     show_default=True,
@@ -469,6 +468,12 @@ def create_push_subscription(
 
     topic = Topic(name=pub_sub_sruid, project_name=project_name)
     topic.create(allow_existing=True)
+
+    if expiration_time:
+        expiration_time = float(expiration_time)
+    else:
+        # Convert empty string to `None`.
+        expiration_time = None
 
     subscription = Subscription(
         name=pub_sub_sruid,
