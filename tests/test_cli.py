@@ -11,9 +11,8 @@ from click.testing import CliRunner
 
 from octue.cli import octue_cli
 from octue.cloud import storage
-from octue.cloud.emulators._pub_sub import MockService, MockSubscription, MockTopic
+from octue.cloud.emulators._pub_sub import MockService, MockTopic
 from octue.cloud.emulators.child import ServicePatcher
-from octue.cloud.pub_sub import Subscription, Topic
 from octue.configuration import AppConfiguration, ServiceConfiguration
 from octue.resources import Dataset
 from octue.utils.patches import MultiPatcher
@@ -423,34 +422,37 @@ class TestDeployCommand(BaseTestCase):
         self.assertIsInstance(result.exception, ImportWarning)
 
     def test_create_push_subscription(self):
-        """Test that a push subscription can be created using the `octue deploy create-push-subscription` command."""
-        with MultiPatcher(
-            patches=[patch("octue.cli.Topic", new=MockTopic), patch("octue.cli.Subscription", new=MockSubscription)]
+        """Test that a push subscription can be created using the `octue deploy create-push-subscription` command and
+        that its expiry time is correct.
+        """
+        for expiration_time_option, expected_expiration_time in (
+            ([], None),
+            (["--expiration-time="], None),
+            (["--expiration-time=100"], 100),
         ):
-            result = CliRunner().invoke(
-                octue_cli,
-                [
-                    "deploy",
-                    "create-push-subscription",
-                    "my-project",
-                    "octue",
-                    "example-service",
-                    "https://example.com/endpoint",
-                    "--revision-tag=3.5.0",
-                ],
-            )
+            with self.subTest(expiration_time_option=expiration_time_option):
+                with patch("octue.cli.Topic", new=MockTopic):
+                    with patch("octue.cli.Subscription") as mock_subscription:
+                        result = CliRunner().invoke(
+                            octue_cli,
+                            [
+                                "deploy",
+                                "create-push-subscription",
+                                "my-project",
+                                "octue",
+                                "example-service",
+                                "https://example.com/endpoint",
+                                *expiration_time_option,
+                                "--revision-tag=3.5.0",
+                            ],
+                        )
 
-        with MultiPatcher(
-            patches=[
-                patch("tests.test_cli.Topic", new=MockTopic),
-                patch("tests.test_cli.Subscription", new=MockSubscription),
-            ]
-        ):
-            topic = Topic(name="octue.example-service.3-5-0", project_name="my-project")
-            self.assertTrue(topic.exists())
+                    self.assertIsNone(result.exception)
+                    self.assertEqual(result.exit_code, 0)
 
-            subscription = Subscription(name="octue.example-service.3-5-0", topic=topic, project_name="my-project")
-            self.assertTrue(subscription.exists())
-
-        self.assertIsNone(result.exception)
-        self.assertEqual(result.exit_code, 0)
+                    self.assertEqual(mock_subscription.call_args.kwargs["name"], "octue.example-service.3-5-0")
+                    self.assertEqual(
+                        mock_subscription.call_args.kwargs["push_endpoint"],
+                        "https://example.com/endpoint",
+                    )
+                    self.assertEqual(mock_subscription.call_args.kwargs["expiration_time"], expected_expiration_time)

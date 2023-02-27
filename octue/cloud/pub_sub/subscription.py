@@ -30,7 +30,7 @@ class Subscription:
     :param str project_name: the name of the Google Cloud project that the subscription belongs to
     :param int ack_deadline: the time in seconds after which, if the subscriber hasn't acknowledged a message, to retry sending it to the subscription
     :param int message_retention_duration: unacknowledged message retention time in seconds
-    :param int|None expiration_time: number of seconds after which the subscription is deleted (infinite time if None)
+    :param int|float|None expiration_time: number of seconds of inactivity after which the subscription is deleted (infinite time if `None`)
     :param float minimum_retry_backoff: minimum number of seconds after the acknowledgement deadline has passed to exponentially retry delivering a message to the subscription
     :param float maximum_retry_backoff: maximum number of seconds after the acknowledgement deadline has passed to exponentially retry delivering a message to the subscription
     :param str|None push_endpoint: if this is a push subscription, this is the URL to which messages should be pushed; leave as `None` if this is a pull subscription
