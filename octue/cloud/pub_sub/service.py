@@ -319,7 +319,6 @@ class Service:
         record_messages=True,
         service_name="REMOTE",
         timeout=60,
-        delivery_acknowledgement_timeout=120,
         maximum_heartbeat_interval=300,
     ):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
@@ -333,7 +332,6 @@ class Service:
         :param float|int delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded
-        :raise octue.exceptions.QuestionNotDelivered: if a delivery acknowledgement is not received in time
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
         if subscription.is_push_subscription:
@@ -353,7 +351,6 @@ class Service:
         try:
             return self._message_handler.handle_messages(
                 timeout=timeout,
-                delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
                 maximum_heartbeat_interval=maximum_heartbeat_interval,
             )
 

@@ -55,7 +55,6 @@ class Child:
         allow_save_diagnostics_data_on_crash=True,
         question_uuid=None,
         timeout=86400,
-        delivery_acknowledgement_timeout=120,
         maximum_heartbeat_interval=300,
     ):
         """Ask the child a question and wait for its answer - i.e. send it input values and/or an input manifest and
@@ -95,7 +94,6 @@ class Child:
             record_messages=record_messages,
             service_name=self.id,
             timeout=timeout,
-            delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
             maximum_heartbeat_interval=maximum_heartbeat_interval,
         )
 

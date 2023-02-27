@@ -13,7 +13,6 @@ from google.cloud.pubsub_v1 import SubscriberClient
 from octue.cloud import EXCEPTIONS_MAPPING
 from octue.compatibility import warn_if_incompatible
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
-from octue.exceptions import QuestionNotDelivered
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
 from octue.utils.threads import RepeatingTimer
@@ -59,7 +58,6 @@ class OrderedMessageHandler:
 
         self.question_uuid = self.subscription.topic.path.split(".")[-1]
         self.handled_messages = []
-        self.received_response_from_child = None
         self._subscriber = SubscriberClient()
         self._child_sdk_version = None
         self._heartbeat_checker = None
@@ -104,25 +102,17 @@ class OrderedMessageHandler:
 
         return datetime.now() - self._last_heartbeat
 
-    def handle_messages(
-        self,
-        timeout=60,
-        delivery_acknowledgement_timeout=120,
-        maximum_heartbeat_interval=300,
-        skip_first_messages_after=60,
-    ):
+    def handle_messages(self, timeout=60, maximum_heartbeat_interval=300, skip_first_messages_after=60):
         """Pull messages and handle them in the order they were sent until a result is returned by a message handler,
         then return that result.
 
         :param float|None timeout: how long to wait for an answer before raising a `TimeoutError`
-        :param float delivery_acknowledgement_timeout: how long to wait for a delivery acknowledgement before raising `QuestionNotDelivered`
         :param int|float maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :param int|float skip_first_messages_after: the number of seconds after which to skip the first n messages if they haven't arrived but subsequent messages have
         :raise TimeoutError: if the timeout is exceeded before receiving the final message
         :return dict: the first result returned by a message handler
         """
         self._start_time = time.perf_counter()
-        self.received_response_from_child = False
         self._waiting_messages = {}
         self._previous_message_number = -1
 
@@ -138,12 +128,7 @@ class OrderedMessageHandler:
 
             while self._alive:
                 pull_timeout = self._check_timeout_and_get_pull_timeout(timeout)
-
-                self._pull_and_enqueue_message(
-                    timeout=pull_timeout,
-                    delivery_acknowledgement_timeout=delivery_acknowledgement_timeout,
-                )
-
+                self._pull_and_enqueue_message(timeout=pull_timeout)
                 result = self._attempt_to_handle_queued_messages(skip_first_messages_after)
 
                 if result is not None:
@@ -195,14 +180,12 @@ class OrderedMessageHandler:
 
         return timeout - total_run_time
 
-    def _pull_and_enqueue_message(self, timeout, delivery_acknowledgement_timeout):
+    def _pull_and_enqueue_message(self, timeout):
         """Pull a message from the subscription and enqueue it in `self._waiting_messages`, raising a `TimeoutError` if
         the timeout is exceeded before succeeding.
 
         :param float|None timeout: how long to wait in seconds for the message before raising a `TimeoutError`
-        :param float delivery_acknowledgement_timeout: how long to wait for a delivery acknowledgement before raising `QuestionNotDelivered`
         :raise TimeoutError|concurrent.futures.TimeoutError: if the timeout is exceeded
-        :raise octue.exceptions.QuestionNotDelivered: if a delivery acknowledgement is not received in time
         :return None:
         """
         pull_start_time = time.perf_counter()
@@ -229,12 +212,6 @@ class OrderedMessageHandler:
                 if timeout is not None and pull_run_time > timeout:
                     raise TimeoutError(
                         f"No message received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
-                    )
-
-                if not self.received_response_from_child and self.total_run_time > delivery_acknowledgement_timeout:
-                    raise QuestionNotDelivered(
-                        f"No delivery acknowledgement received for topic {self.subscription.topic.path!r} after "
-                        f"{delivery_acknowledgement_timeout} seconds."
                     )
 
         self._subscriber.acknowledge(request={"subscription": self.subscription.path, "ack_ids": [answer.ack_id]})
@@ -316,7 +293,6 @@ class OrderedMessageHandler:
         :param dict message:
         :return dict|None:
         """
-        self.received_response_from_child = True
         self._previous_message_number += 1
 
         if self.record_messages:
