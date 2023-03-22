@@ -192,11 +192,10 @@ def get_log_record_attributes_for_environment():
     return LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP
 
 
-class AnalysisLogHandlerSwitcher:
-    """A context manager that, when activated, takes the given logger, removes its handlers, and adds a local handler
-    and any other handlers provided to it. A formatter is applied to the handlers that includes the given analysis ID
-    in the logging context. On leaving the context, the logger's initial handlers are restored to it and any that were
-    added to it in the context are removed.
+class AnalysisLogFormatterSwitcher:
+    """A context manager that, when activated, removes any formatters from its handlers, adds any extra handlers
+    provided, and adds formatters that include the analysis ID. On leaving the context, the logger is restored to its
+    initial state.
 
     :param str analysis_id:
     :param logger.Logger logger:
