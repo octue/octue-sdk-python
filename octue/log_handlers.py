@@ -199,7 +199,7 @@ class AnalysisLogFormatterSwitcher:
 
     :param str analysis_id:
     :param logger.Logger logger:
-    :param str analysis_log_level:
+    :param str|int analysis_log_level:
     :param list(logging.Handler) extra_log_handlers:
     :return None:
     """
