@@ -21,6 +21,16 @@ LOG_RECORD_ATTRIBUTES_WITHOUT_TIMESTAMP = LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP[1
 COLOUR_PALETTE = ["0173b2", "de8f05", "029e73", "d55e00", "cc78bc", "ca9161", "fbafe4", "949494", "ece133", "56b4e9"]
 
 
+def should_use_octue_log_handler():
+    """Check if the `USE_OCTUE_LOG_HANDLER` environment variable is present and set to "1". The default value for this
+    is "0" because `octue` is a package that is primarily imported - the importer may not want to use this log handler
+    if they have their own.
+
+    :return bool: `True` if the `USE_OCTUE_LOG_HANDLER` environment variable is present and set to "1"
+    """
+    return int(os.environ.get("USE_OCTUE_LOG_HANDLER", "0")) == 1
+
+
 def create_octue_formatter(
     *log_record_attributes,
     include_line_number=False,
@@ -193,14 +203,18 @@ def get_log_record_attributes_for_environment():
 
 
 class AnalysisLogFormatterSwitcher:
-    """A context manager that, when activated, removes any formatters from its handlers, adds any extra handlers
-    provided, and adds formatters that include the analysis ID. On leaving the context, the logger is restored to its
-    initial state.
+    """A context manager that, when activated, removes any formatters from the logger's handlers, adds any extra
+    handlers provided, and adds formatters that include the analysis ID to all the handlers. On leaving the context, the
+    logger is restored to its initial state.
 
-    :param str analysis_id:
-    :param logger.Logger logger:
-    :param str|int analysis_log_level:
-    :param list(logging.Handler) extra_log_handlers:
+    If the `USE_OCTUE_LOG_HANDLER` environment variable is not set to "1" and the logger has handlers, their formatters
+    are left unchanged and the extra log handlers are added with the logger's zeroth handler's formatter applied to
+    them.
+
+    :param str analysis_id: the ID of the analysis to add to the log formatters
+    :param logger.Logger logger: the logger whose handlers' formatters should be switched
+    :param str|int analysis_log_level: the log level to apply to any extra log handlers
+    :param list(logging.Handler) extra_log_handlers: any extra log handlers to add to the logger
     :return None:
     """
 
@@ -211,17 +225,22 @@ class AnalysisLogFormatterSwitcher:
         self.extra_log_handlers = extra_log_handlers or []
         self.initial_formatters = [(handler, handler.formatter) for handler in self.logger.handlers]
 
-        # Create formatters that include the analysis ID in the logging metadata.
-        self.coloured_octue_formatter = create_octue_formatter(
-            get_log_record_attributes_for_environment(),
-            [f"analysis-{self.analysis_id}"],
-        )
+        if should_use_octue_log_handler() or not self.logger.handlers:
+            # Create formatters that include the analysis ID in the logging metadata.
+            self.coloured_octue_formatter = create_octue_formatter(
+                get_log_record_attributes_for_environment(),
+                [f"analysis-{self.analysis_id}"],
+            )
 
-        self.uncoloured_octue_formatter = create_octue_formatter(
-            get_log_record_attributes_for_environment(),
-            [f"analysis-{self.analysis_id}"],
-            use_colour=False,
-        )
+            self.uncoloured_octue_formatter = create_octue_formatter(
+                get_log_record_attributes_for_environment(),
+                [f"analysis-{self.analysis_id}"],
+                use_colour=False,
+            )
+
+        else:
+            self.coloured_octue_formatter = self.logger.handlers[0].formatter
+            self.uncoloured_octue_formatter = self.logger.handlers[0].formatter
 
     def __enter__(self):
         """Carry out the following:
@@ -232,8 +251,10 @@ class AnalysisLogFormatterSwitcher:
 
         :return None:
         """
-        self._remove_formatters()
-        self._add_analysis_formatter_to_log_handlers()
+        if should_use_octue_log_handler():
+            self._remove_formatters()
+            self._add_analysis_formatter_to_log_handlers()
+
         self._add_extra_handlers()
 
     def __exit__(self, *args):
@@ -246,8 +267,10 @@ class AnalysisLogFormatterSwitcher:
         :return None:
         """
         self._remove_extra_handlers()
-        self._remove_formatters()
-        self._restore_initial_formatters()
+
+        if should_use_octue_log_handler():
+            self._remove_formatters()
+            self._restore_initial_formatters()
 
     def _remove_formatters(self):
         """Remove the formatters from any handlers the logger currently has.
@@ -274,7 +297,7 @@ class AnalysisLogFormatterSwitcher:
             handler.setFormatter(self.coloured_octue_formatter)
 
     def _add_extra_handlers(self):
-        """Add any extra log handlers to the logger.
+        """Add any extra log handlers to the logger and add the relevant Octue log formatter to them.
 
         :return None:
         """

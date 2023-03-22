@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 from unittest import mock
+from unittest.mock import patch
 
 from octue.log_handlers import (
     LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP,
@@ -123,6 +124,27 @@ class TestGetRemoteHandler(BaseTestCase):
 
 
 class TestAnalysisLogFormatterSwitcher(BaseTestCase):
+    def test_octue_formatter_not_applied_to_existing_handler_if_use_octue_log_handler_environment_variable_is_0(self):
+        """Test that the Octue formatter isn't applied to the logger's existing handler if the `USE_OCTUE_LOG_HANDLER`
+        environment variable is set to "0".
+        """
+        with patch.dict(os.environ, {"USE_OCTUE_LOG_HANDLER": "0"}):
+            root_logger = logging.getLogger()
+            initial_formatter = root_logger.handlers[0].formatter
+
+            analysis_log_handler_switcher = AnalysisLogFormatterSwitcher(
+                analysis_id="hello-moto",
+                logger=root_logger,
+                analysis_log_level=logging.INFO,
+            )
+
+            with analysis_log_handler_switcher:
+                analysis_formatter = root_logger.handlers[0].formatter
+                self.assertIs(analysis_formatter, initial_formatter)
+                self.assertNotIn("[analysis-hello-moto]", analysis_formatter._fmt)
+
+            self.assertIs(root_logger.handlers[0].formatter, initial_formatter)
+
     def test_octue_formatter_applied_to_existing_handler(self):
         """Test that the Octue formatter is applied to an existing handler while in the context of the analysis log
         formatter switcher and that the logger has the same handler after exiting the context.
@@ -162,6 +184,28 @@ class TestAnalysisLogFormatterSwitcher(BaseTestCase):
 
         self.assertNotIn(extra_handler, root_logger.handlers)
         self.assertIs(root_logger.handlers[0], initial_handler)
+
+    def test_extra_handlers_have_initial_logger_formatter_if_use_octue_log_handler_environment_variable_is_0(self):
+        """Test that extra handlers have the logger's initial handler's initial formatter if the `USE_OCTUE_LOG_HANDLER`
+        environment variable is set to "0".
+        """
+        with patch.dict(os.environ, {"USE_OCTUE_LOG_HANDLER": "0"}):
+            root_logger = logging.getLogger()
+            initial_formatter = root_logger.handlers[0].formatter
+            extra_handler = logging.Handler()
+
+            analysis_log_handler_switcher = AnalysisLogFormatterSwitcher(
+                analysis_id="hello-moto",
+                logger=root_logger,
+                analysis_log_level=logging.INFO,
+                extra_log_handlers=[extra_handler],
+            )
+
+            with analysis_log_handler_switcher:
+                for handler in root_logger.handlers:
+                    self.assertIs(handler.formatter, initial_formatter)
+
+            self.assertIs(root_logger.handlers[0].formatter, initial_formatter)
 
     def test_log_messages_handled_via_root_logger_are_capturable(self):
         """Test that log messages handled via the root logger are still capturable when in the context of the analysis
