@@ -210,76 +210,115 @@ class AnalysisLogHandlerSwitcher:
         self.logger = logger
         self.analysis_log_level = analysis_log_level
         self.extra_log_handlers = extra_log_handlers or []
-        self.initial_handlers = []
+        self.initial_formatters = [(handler, handler.formatter) for handler in self.logger.handlers]
 
-    def __enter__(self):
-        """Remove the initial handlers from the logger, create a formatter that includes the analysis ID, use the
-        formatter on the local and extra handlers, and add these handlers to the logger.
-
-        :return None:
-        """
-        self.initial_handlers = list(self.logger.handlers)
-        self._remove_log_handlers()
-
-        # Add the analysis ID to the logging metadata.
-        octue_formatter = create_octue_formatter(
+        # Create formatters that include the analysis ID in the logging metadata.
+        self.coloured_octue_formatter = create_octue_formatter(
             get_log_record_attributes_for_environment(),
             [f"analysis-{self.analysis_id}"],
         )
 
-        # Apply a local console `StreamHandler` to the logger.
-        apply_log_handler(formatter=octue_formatter, log_level=self.analysis_log_level)
-
-        if not self.extra_log_handlers:
-            return
-
-        uncoloured_octue_formatter = create_octue_formatter(
+        self.uncoloured_octue_formatter = create_octue_formatter(
             get_log_record_attributes_for_environment(),
             [f"analysis-{self.analysis_id}"],
             use_colour=False,
         )
 
+    def __enter__(self):
+        """Carry out the following:
+
+        1. Remove the initial formatters from the logger's handlers
+        2. Apply an Octue formatter including the analysis ID to the logger's current handlers and any extra handlers
+        3. Apply the extra handlers to the logger
+
+        :return None:
+        """
+        self._remove_formatters()
+        self._add_analysis_formatter_to_log_handlers()
+        self._add_extra_handlers()
+
+    def __exit__(self, *args):
+        """Carry out the following:
+
+        1. Remove the extra handlers from the logger
+        2. Remove the analysis log formatter from the logger's initial handlers
+        3. Restore the initial formatters to the logger's initial handlers
+
+        :return None:
+        """
+        self._remove_extra_handlers()
+        self._remove_formatters()
+        self._restore_initial_formatters()
+
+    def _remove_formatters(self):
+        """Remove the formatters from any handlers the logger currently has.
+
+        :return None:
+        """
+        for handler in self.logger.handlers:
+            handler.formatter = None
+
+    def _remove_extra_handlers(self):
+        """Remove any extra handlers from the logger.
+
+        :return None:
+        """
+        for handler in self.extra_log_handlers:
+            self.logger.removeHandler(handler)
+
+    def _add_analysis_formatter_to_log_handlers(self):
+        """Apply the coloured Octue log formatter to the logger's current handlers.
+
+        :return None:
+        """
+        for handler in self.logger.handlers:
+            handler.setFormatter(self.coloured_octue_formatter)
+
+    def _add_extra_handlers(self):
+        """Add any extra log handlers to the logger.
+
+        :return None:
+        """
+        if not self.extra_log_handlers:
+            return
+
         # Apply any other given handlers to the logger.
         for extra_handler in self.extra_log_handlers:
-
             # Apply an uncoloured log formatter to any file log handlers to keep them readable (i.e. to avoid the ANSI
             # escape codes).
             if type(extra_handler).__name__ == "FileHandler":
                 apply_log_handler(
+                    logger=self.logger,
                     handler=extra_handler,
                     log_level=self.analysis_log_level,
-                    formatter=uncoloured_octue_formatter,
+                    formatter=self.uncoloured_octue_formatter,
                 )
-                continue
 
-            if (
+            elif (
                 type(extra_handler).__name__ == "MemoryHandler"
                 and getattr(extra_handler, "target")
                 and type(getattr(extra_handler, "target")).__name__ == "FileHandler"
             ):
                 apply_log_handler(
+                    logger=self.logger,
                     handler=extra_handler.target,
                     log_level=self.analysis_log_level,
-                    formatter=uncoloured_octue_formatter,
+                    formatter=self.uncoloured_octue_formatter,
                 )
-                continue
 
-            apply_log_handler(handler=extra_handler, log_level=self.analysis_log_level, formatter=octue_formatter)
+            else:
+                # Apply a coloured log formatter to any other types of log handler.
+                apply_log_handler(
+                    logger=self.logger,
+                    handler=extra_handler,
+                    log_level=self.analysis_log_level,
+                    formatter=self.coloured_octue_formatter,
+                )
 
-    def __exit__(self, *args):
-        """Remove the new handlers from the logger and re-add the initial handlers.
-
-        :return None:
-        """
-        self._remove_log_handlers()
-
-        for handler in self.initial_handlers:
-            self.logger.addHandler(handler)
-
-    def _remove_log_handlers(self):
-        """Remove all handlers from the logger.
+    def _restore_initial_formatters(self):
+        """Restore the initial formatters to the logger's initial handlers.
 
         :return None:
         """
-        for handler in list(self.logger.handlers):
-            self.logger.removeHandler(handler)
+        for handler, formatter in self.initial_formatters:
+            handler.setFormatter(formatter)
