@@ -7,6 +7,8 @@ from unittest import mock
 from octue.log_handlers import (
     LOG_RECORD_ATTRIBUTES_WITH_TIMESTAMP,
     LOG_RECORD_ATTRIBUTES_WITHOUT_TIMESTAMP,
+    AnalysisLogFormatterSwitcher,
+    apply_log_handler,
     get_remote_handler,
 )
 from tests.base import BaseTestCase
@@ -118,3 +120,65 @@ class TestGetRemoteHandler(BaseTestCase):
         with mock.patch("logging.handlers.SocketHandler.emit") as mock_emit:
             logger.debug("Hello")
             mock_emit.assert_called()
+
+
+class TestAnalysisLogFormatterSwitcher(BaseTestCase):
+    def test_octue_formatter_applied_to_existing_handler(self):
+        """Test that the Octue formatter is applied to an existing handler while in the context of the analysis log
+        formatter switcher and that the logger has the same handler after exiting the context.
+        """
+        root_logger = logging.getLogger()
+        initial_handler = root_logger.handlers[0]
+        self.assertNotIn("[analysis-hello-moto]", initial_handler.formatter._fmt)
+
+        analysis_log_handler_switcher = AnalysisLogFormatterSwitcher(
+            analysis_id="hello-moto",
+            logger=root_logger,
+            analysis_log_level=logging.INFO,
+        )
+
+        with analysis_log_handler_switcher:
+            self.assertIn("[analysis-hello-moto]", initial_handler.formatter._fmt)
+
+        self.assertIs(root_logger.handlers[0], initial_handler)
+
+    def test_extra_handlers_are_added_while_in_context_then_removed(self):
+        """Test that extra handlers are added to the logger when in the context of the analysis log formatter switcher
+        and are removed when the context is exited.
+        """
+        root_logger = logging.getLogger()
+        initial_handler = root_logger.handlers[0]
+        extra_handler = logging.Handler()
+
+        analysis_log_handler_switcher = AnalysisLogFormatterSwitcher(
+            analysis_id="hello-moto",
+            logger=root_logger,
+            analysis_log_level=logging.INFO,
+            extra_log_handlers=[extra_handler],
+        )
+
+        with analysis_log_handler_switcher:
+            self.assertIn(extra_handler, root_logger.handlers)
+
+        self.assertNotIn(extra_handler, root_logger.handlers)
+        self.assertIs(root_logger.handlers[0], initial_handler)
+
+    def test_log_messages_handled_via_root_logger_are_capturable(self):
+        """Test that log messages handled via the root logger are still capturable when in the context of the analysis
+        log formatter switcher.
+        """
+        root_logger = logging.getLogger()
+        apply_log_handler(logger=root_logger)
+
+        analysis_log_handler_switcher = AnalysisLogFormatterSwitcher(
+            analysis_id="hello-moto",
+            logger=root_logger,
+            analysis_log_level=logging.INFO,
+        )
+
+        with self.assertLogs() as logging_context:
+            with analysis_log_handler_switcher:
+                root_logger.info("Log message to be captured.")
+
+        self.assertIn("[analysis-hello-moto]", logging_context.output[0])
+        self.assertEqual(logging_context.records[0].message, "Log message to be captured.")
