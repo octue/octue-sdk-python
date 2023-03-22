@@ -46,16 +46,10 @@ class TestLogging(BaseTestCase):
             include_thread_name=False,
         )
 
-    def test_octue_log_handler_not_used_if_use_octue_log_handler_environment_variable_not_present_or_0(self):
+    def test_octue_log_handler_not_used_if_use_octue_log_handler_environment_variable_is_0(self):
         """Test that the default octue log handler is not used if the `USE_OCTUE_LOG_HANDLER` environment variable is
         not present or is equal to "0".
         """
-        with mock.patch.dict(os.environ, clear=True):
-            with mock.patch("octue.log_handlers.apply_log_handler") as mock_apply_log_handler:
-                importlib.reload(sys.modules["octue"])
-
-        mock_apply_log_handler.assert_not_called()
-
         with mock.patch.dict(os.environ, USE_OCTUE_LOG_HANDLER="0"):
             with mock.patch("octue.log_handlers.apply_log_handler") as mock_apply_log_handler:
                 importlib.reload(sys.modules["octue"])

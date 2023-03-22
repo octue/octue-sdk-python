@@ -11,7 +11,7 @@ class TestRunLoggedSubprocess(TestCase):
         """Test that an error is raised if the subprocess fails."""
         with self.assertRaises(subprocess.CalledProcessError):
             with patch(
-                "octue.utils.threads.Popen",
+                "octue.utils.processes.Popen",
                 return_value=MockPopen(stdout_messages=[b"bash: blah: command not found"], return_code=1),
             ):
                 run_logged_subprocess(command=["blah"], logger=logging.getLogger(), shell=True)
@@ -21,7 +21,7 @@ class TestRunLoggedSubprocess(TestCase):
         mock_logger = Mock()
 
         with patch(
-            "octue.utils.threads.Popen", return_value=MockPopen(stdout_messages=[b"hello", b"goodbye"], return_code=0)
+            "octue.utils.processes.Popen", return_value=MockPopen(stdout_messages=[b"hello", b"goodbye"], return_code=0)
         ):
             process = run_logged_subprocess(command=["echo hello && echo goodbye"], logger=mock_logger, shell=True)
 
