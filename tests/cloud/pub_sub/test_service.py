@@ -266,7 +266,7 @@ class TestService(BaseTestCase):
         for record in logs_context_manager.records:
             if (
                 record.levelno == logging.ERROR
-                and "An example exception to log and forward to the parent." in record.message
+                and "An example exception to log and forward to the parent." in record.msg
                 and "This is an OSError" in record.exc_text
             ):
                 error_logged = True

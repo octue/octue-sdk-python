@@ -1,10 +1,9 @@
 =======
 Logging
 =======
-By default, ``octue`` leaves handling of log messages raised by your app to you. However, if you just want a simple,
-readable logging arrangement, you can let ``octue`` format and stream your logs to ``stderr``. If this is for you,
-simply set ``USE_OCTUE_LOG_HANDLER=1`` in the environment running your app. This will attach the Octue log handler to
-the root python logger.
+By default, ``octue`` streams your logs to ``stderr`` in a nice, readable format so your log messages are immediately
+visible when you start developing without any extra configuration. If you prefer to use your own handlers or formatters,
+simply set ``USE_OCTUE_LOG_HANDLER=0`` in the environment running your app.
 
 
 Readable logs

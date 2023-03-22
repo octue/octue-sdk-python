@@ -15,7 +15,7 @@ from octue import exceptions
 from octue.app_loading import AppFrom
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.log_handlers import AnalysisLogHandlerSwitcher
+from octue.log_handlers import AnalysisLogFormatterSwitcher
 from octue.resources import Child, Dataset
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.resources.datafile import downloaded_files
@@ -173,7 +173,7 @@ class Runner:
 
         # Temporarily replace the root logger's handlers with a `StreamHandler` and the analysis log handler that
         # include the analysis ID in the logging metadata.
-        with AnalysisLogHandlerSwitcher(
+        with AnalysisLogFormatterSwitcher(
             analysis_id=analysis_id,
             logger=logging.getLogger(),
             analysis_log_level=analysis_log_level,
@@ -301,7 +301,7 @@ class Runner:
                 except ValidationError as e:
                     message = (
                         e.message + f" for files in the {dataset_name!r} dataset. The affected datafile is "
-                        f"{file.path!r}. Add the property to the datafile as a tag to fix this."
+                        f"{file.name!r}. Add the property to the datafile as a tag to fix this."
                     )
 
                     raise twined.exceptions.invalid_contents_map[manifest_kind](message)
