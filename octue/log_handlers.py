@@ -28,7 +28,7 @@ def should_use_octue_log_handler():
 
     :return bool: `True` if the `USE_OCTUE_LOG_HANDLER` environment variable is present and set to "1"
     """
-    return int(os.environ.get("USE_OCTUE_LOG_HANDLER", "0")) == 1
+    return int(os.environ.get("USE_OCTUE_LOG_HANDLER", "1")) == 1
 
 
 def create_octue_formatter(
