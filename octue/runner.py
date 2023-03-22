@@ -301,7 +301,7 @@ class Runner:
                 except ValidationError as e:
                     message = (
                         e.message + f" for files in the {dataset_name!r} dataset. The affected datafile is "
-                        f"{file.path!r}. Add the property to the datafile as a tag to fix this."
+                        f"{file.name!r}. Add the property to the datafile as a tag to fix this."
                     )
 
                     raise twined.exceptions.invalid_contents_map[manifest_kind](message)
