@@ -400,7 +400,6 @@ class TestDeployCommand(BaseTestCase):
     def test_deploy_command_group(self):
         """Test that the `dataflow` command is a subcommand of the `deploy` command."""
         result = CliRunner().invoke(octue_cli, ["deploy", "--help"])
-        self.assertIn("cloud-run ", result.output)
         self.assertIn("dataflow ", result.output)
 
     def test_deploy_dataflow_fails_if_apache_beam_not_available(self):

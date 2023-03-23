@@ -11,7 +11,6 @@ import pkg_resources
 from google import auth
 
 from octue.cloud import storage
-from octue.cloud.deployment.google.cloud_run.deployer import CloudRunDeployer
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import Service
 from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_sruid, get_service_sruid_parts
@@ -350,30 +349,6 @@ def get_crash_diagnostics(cloud_path, local_path, download_datasets):
 @octue_cli.group()
 def deploy():
     """Deploy a python app to the cloud as an Octue service or digital twin."""
-
-
-@deploy.command()
-@click.option(
-    "-c",
-    "--service-config",
-    type=click.Path(exists=True, dir_okay=False),
-    default="octue.yaml",
-    show_default=True,
-    help="The path to an `octue.yaml` file defining the service to deploy.",
-)
-@click.option("--no-cache", is_flag=True, help="If provided, don't use the Docker cache.")
-@click.option("--update", is_flag=True, help="If provided, allow updates to an existing service.")
-@click.option(
-    "--revision-tag",
-    type=str,
-    default=None,
-    help="A tag to use for this revision of the service (e.g. 1.3.7). This overrides the `OCTUE_SERVICE_REVISION_TAG` "
-    "environment variable if it's present. If this option isn't given and the environment variable isn't present, a "
-    "random 'cool name' tag is generated e.g 'curious-capybara'.",
-)
-def cloud_run(service_config, update, no_cache, revision_tag):
-    """Deploy a python app to Google Cloud Run as an Octue service or digital twin."""
-    CloudRunDeployer(service_config, revision_tag=revision_tag).deploy(update=update, no_cache=no_cache)
 
 
 @deploy.command()
