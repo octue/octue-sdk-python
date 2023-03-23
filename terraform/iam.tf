@@ -42,14 +42,34 @@ resource "google_project_iam_binding" "pubsub_editor" {
 }
 
 
-#resource "google_project_iam_binding" "storage_objectadmin" {
-#  project = var.project
-#  role = "roles/storage.objectAdmin"
-#  members = [
-#    "serviceAccount:${google_service_account.dev_cortadocodes_service_account.email}",
-#    "serviceAccount:${google_service_account.github_actions_service_account.email}",
-#  ]
-#}
+# Allows the GHA to call "namespaces get" for Cloud Run to determine the resulting run URLs of the services.
+# This should also allow a service to get its own name by using:
+#   https://stackoverflow.com/questions/65628822/google-cloud-run-can-a-service-know-its-own-url/65634104#65634104
+resource "google_project_iam_binding" "run_developer" {
+  project = var.project
+  role    = "roles/run.developer"
+  members = [
+    "serviceAccount:${google_service_account.github_actions_service_account.email}",
+  ]
+}
+
+
+resource "google_project_iam_binding" "artifactregistry_writer" {
+  project = var.project
+  role    = "roles/artifactregistry.writer"
+  members = [
+    "serviceAccount:${google_service_account.github_actions_service_account.email}",
+  ]
+}
+
+
+resource "google_project_iam_binding" "storage_objectadmin" {
+  project = var.project
+  role = "roles/storage.objectAdmin"
+  members = [
+    "serviceAccount:${google_service_account.github_actions_service_account.email}",
+  ]
+}
 
 
 resource "google_project_iam_binding" "errorreporting_writer" {
