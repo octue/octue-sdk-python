@@ -1,5 +1,6 @@
 import copy
 import json
+import logging
 import os
 import random
 import tempfile
@@ -254,6 +255,26 @@ class TestRunner(BaseTestCase):
         """Test that apps can be provided as a module containing a function named "run"."""
         analysis = Runner(app_src=app, twine={"output_values_schema": {}}).run()
         self.assertEqual(analysis.output_values, {"width": 3})
+
+    def test_app_submodule_logs_are_handled(self):
+        """Test that log messages from modules imported into an app are handled and capturable."""
+        runner = Runner(
+            app_src=os.path.join(TESTS_DIR, "test_app_modules", "app_using_submodule"),
+            twine={},
+        )
+
+        analysis_id = "0add0168-48ea-48ba-8b82-1bfa24ee8c28"
+
+        with self.assertLogs(level=logging.INFO) as logging_context:
+            runner.run(analysis_id=analysis_id)
+
+        self.assertIn(f"[analysis-{analysis_id}]", logging_context.output[0])
+        self.assertEqual(logging_context.records[0].name, "app")
+        self.assertEqual(logging_context.records[0].message, "Log message from app.")
+
+        self.assertIn(f"[analysis-{analysis_id}]", logging_context.output[1])
+        self.assertEqual(logging_context.records[1].name, "tests.test_app_modules.app_using_submodule.submodule")
+        self.assertEqual(logging_context.records[1].message, "Log message from submodule.")
 
     def test_analysis_finalised_by_runner_if_not_finalised_in_app(self):
         """Test that analyses are finalised automatically if they're not finalised within their app."""

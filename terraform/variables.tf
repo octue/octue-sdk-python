@@ -27,3 +27,13 @@ variable "credentials_file" {
   type    = string
   default = "gcp-credentials.json"
 }
+
+variable "service_namespace" {
+  type    = string
+  default = "octue"
+}
+
+variable "service_name" {
+  type    = string
+  default = "example-service-cloud-run"
+}

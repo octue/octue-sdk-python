@@ -13,6 +13,7 @@ from octue.log_handlers import (
     get_remote_handler,
 )
 from tests.base import BaseTestCase
+from tests.test_app_modules.app_using_submodule.app import run as app_using_submodule
 
 
 class TestLogging(BaseTestCase):
@@ -220,3 +221,28 @@ class TestAnalysisLogFormatterSwitcher(BaseTestCase):
 
         self.assertIn("[analysis-hello-moto]", logging_context.output[0])
         self.assertEqual(logging_context.records[0].message, "Log message to be captured.")
+
+    def test_submodule_logs_are_handled_and_capturable(self):
+        """Test that log messages from modules imported in the context of the analysis log formatter switcher are
+        handled and capturable.
+        """
+        root_logger = logging.getLogger()
+        apply_log_handler(logger=root_logger)
+
+        analysis_log_handler_switcher = AnalysisLogFormatterSwitcher(
+            analysis_id="hello-moto",
+            logger=root_logger,
+            analysis_log_level=logging.INFO,
+        )
+
+        with self.assertLogs(level=logging.INFO) as logging_context:
+            with analysis_log_handler_switcher:
+                app_using_submodule(None)
+
+        self.assertIn("[analysis-hello-moto]", logging_context.output[0])
+        self.assertEqual(logging_context.records[0].name, "tests.test_app_modules.app_using_submodule.app")
+        self.assertEqual(logging_context.records[0].message, "Log message from app.")
+
+        self.assertIn("[analysis-hello-moto]", logging_context.output[1])
+        self.assertEqual(logging_context.records[1].name, "tests.test_app_modules.app_using_submodule.submodule")
+        self.assertEqual(logging_context.records[1].message, "Log message from submodule.")
