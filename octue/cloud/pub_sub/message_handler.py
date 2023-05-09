@@ -15,6 +15,7 @@ from octue.compatibility import warn_if_incompatible
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
+from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.threads import RepeatingTimer
 
 
@@ -226,7 +227,7 @@ class OrderedMessageHandler:
             if not self._child_sdk_version:
                 self._heartbeat_checker.cancel()
 
-        message = json.loads(answer.message.data.decode())
+        message = json.loads(answer.message.data.decode(), cls=OctueJSONDecoder)
 
         message_number = int(message["message_number"])
         self._waiting_messages[message_number] = message
@@ -354,7 +355,7 @@ class OrderedMessageHandler:
         logger.debug("%r received a monitor message.", self.receiving_service)
 
         if self.handle_monitor_message is not None:
-            self.handle_monitor_message(json.loads(message["data"]))
+            self.handle_monitor_message(json.loads(message["data"], cls=OctueJSONDecoder))
 
     def _handle_log_message(self, message):
         """Deserialise the message into a log record and pass it to the local log handlers, adding [<service-name>] to
