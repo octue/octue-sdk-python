@@ -350,6 +350,33 @@ class TestService(BaseTestCase):
 
         self.assertEqual(monitoring_data, [{"status": "my first monitor message"}])
 
+    def test_ask_with_non_json_python_primitive_input_values(self):
+        """Test that non-JSON python primitive values (in this case a set and a datetime) can be sent and received by
+        services.
+        """
+
+        def run_function(analysis_id, input_values, *args, **kwargs):
+            return MockAnalysis(output_values=input_values)
+
+        child = MockService(backend=BACKEND, run_function=lambda *args, **kwargs: run_function(*args, **kwargs))
+        parent = MockService(backend=BACKEND, children={child.id: child})
+
+        input_values = {"my_set": {1, 2, 3}, "my_datetime": datetime.datetime.now()}
+
+        with self.service_patcher:
+            child.serve()
+
+            subscription, _ = parent.ask(
+                service_id=child.id,
+                input_values=input_values,
+                subscribe_to_logs=True,
+                allow_save_diagnostics_data_on_crash=True,
+            )
+
+            answer = parent.wait_for_answer(subscription, service_name="my-super-service")
+
+        self.assertEqual(answer["output_values"], input_values)
+
     def test_ask_with_input_manifest(self):
         """Test that a service can ask a question including an input manifest to another service that is serving and
         receive an answer.

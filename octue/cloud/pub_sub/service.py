@@ -489,7 +489,7 @@ class Service:
 
         try:
             # Parse question directly from Pub/Sub or Dataflow.
-            data = json.loads(question.data.decode())
+            data = json.loads(question.data.decode(), cls=OctueJSONDecoder)
 
             # Acknowledge it if it's directly from Pub/Sub
             if hasattr(question, "ack"):
@@ -497,7 +497,7 @@ class Service:
 
         except Exception:
             # Parse question from Google Cloud Run.
-            data = json.loads(base64.b64decode(question["data"]).decode("utf-8").strip())
+            data = json.loads(base64.b64decode(question["data"]).decode("utf-8").strip(), cls=OctueJSONDecoder)
 
         # Keep backwards compatibility with questions from Octue services running `octue<0.41.1`.
         if isinstance(data["input_manifest"], str):
