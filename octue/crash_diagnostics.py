@@ -105,14 +105,18 @@ class CrashDiagnostics:
             manifest_type = f"{data_type}_manifest"
 
             if getattr(self, values_type) is not None:
-                if isinstance(getattr(self, values_type), str):
-                    setattr(self, values_type, self._attempt_deserialise_json(getattr(self, values_type)))
+                values = getattr(self, values_type)
+
+                if isinstance(values, str):
+                    setattr(self, values_type, self._attempt_deserialise_json(values))
 
                 self._upload_values(values_type, question_diagnostics_path)
 
             if getattr(self, manifest_type) is not None:
-                if isinstance(getattr(self, manifest_type), str):
-                    setattr(self, manifest_type, self._attempt_deserialise_json(getattr(self, manifest_type)))
+                manifest = getattr(self, manifest_type)
+
+                if isinstance(manifest, str):
+                    setattr(self, manifest_type, self._attempt_deserialise_json(manifest))
 
                 self._upload_manifest(manifest_type, question_diagnostics_path)
 
@@ -140,8 +144,10 @@ class CrashDiagnostics:
         :param str question_diagnostics_path: the path to a cloud directory to upload the values into
         :return None:
         """
+        values = getattr(self, values_type)
+
         self._storage_client.upload_from_string(
-            json.dumps(getattr(self, values_type), cls=OctueJSONEncoder),
+            json.dumps(values, cls=OctueJSONEncoder),
             cloud_path=storage.path.join(question_diagnostics_path, f"{values_type}.json"),
         )
 
