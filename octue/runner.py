@@ -406,13 +406,15 @@ class Runner:
 
             if self.crash_diagnostics[values_type] is not None:
                 if isinstance(self.crash_diagnostics[values_type], str):
-                    self.crash_diagnostics[values_type] = self._attempt_json_load(self.crash_diagnostics[values_type])
+                    self.crash_diagnostics[values_type] = self._attempt_deserialise_json(
+                        self.crash_diagnostics[values_type]
+                    )
 
                 self._upload_values(values_type, question_diagnostics_path)
 
             if self.crash_diagnostics[manifest_type] is not None:
                 if isinstance(self.crash_diagnostics[manifest_type], str):
-                    self.crash_diagnostics[manifest_type] = self._attempt_json_load(
+                    self.crash_diagnostics[manifest_type] = self._attempt_deserialise_json(
                         self.crash_diagnostics[manifest_type]
                     )
 
@@ -424,12 +426,11 @@ class Runner:
             cloud_path=storage.path.join(question_diagnostics_path, "questions.json"),
         )
 
-    def _attempt_json_load(self, string):
-        """Attempt to load the given string as a python object, assuming it's JSON-encoded. If loading fails, the
-        original string is returned.
+    def _attempt_deserialise_json(self, string):
+        """Attempt to deserialise the given string from JSON. If deserialisation fails, the original string is returned.
 
-        :param str string: the string to attempt to load
-        :return any: the JSON-converted python object or the original string
+        :param str string: the string to attempt to deserialise
+        :return any: the deserialised python object or the original string
         """
         try:
             return json.loads(string)
