@@ -69,6 +69,7 @@ class Runner:
 
         self.output_location = output_location
 
+        # Get configuration before any transformations have been applied.
         self.crash_diagnostics = {
             "questions": [],
             "configuration_values": copy.deepcopy(configuration_values),
@@ -128,6 +129,7 @@ class Runner:
         :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved if the analysis fails
         :return octue.resources.analysis.Analysis:
         """
+        # Get inputs before any transformations have been applied.
         self.crash_diagnostics["input_values"] = copy.deepcopy(input_values)
         self.crash_diagnostics["input_manifest"] = copy.deepcopy(input_manifest)
 
@@ -403,9 +405,19 @@ class Runner:
             manifest_type = f"{data_type}_manifest"
 
             if self.crash_diagnostics[values_type] is not None:
+                if isinstance(self.crash_diagnostics[values_type], str):
+                    self.crash_diagnostics[values_type] = self._attempt_deserialise_json(
+                        self.crash_diagnostics[values_type]
+                    )
+
                 self._upload_values(values_type, question_diagnostics_path)
 
             if self.crash_diagnostics[manifest_type] is not None:
+                if isinstance(self.crash_diagnostics[manifest_type], str):
+                    self.crash_diagnostics[manifest_type] = self._attempt_deserialise_json(
+                        self.crash_diagnostics[manifest_type]
+                    )
+
                 self._upload_manifest(manifest_type, question_diagnostics_path)
 
         # Upload the messages received from any children before the crash.
@@ -413,6 +425,17 @@ class Runner:
             string=json.dumps(self.crash_diagnostics["questions"], cls=OctueJSONEncoder),
             cloud_path=storage.path.join(question_diagnostics_path, "questions.json"),
         )
+
+    def _attempt_deserialise_json(self, string):
+        """Attempt to deserialise the given string from JSON. If deserialisation fails, the original string is returned.
+
+        :param str string: the string to attempt to deserialise
+        :return any: the deserialised python object or the original string
+        """
+        try:
+            return json.loads(string)
+        except json.decoder.JSONDecodeError:
+            return string
 
     def _upload_values(self, values_type, question_diagnostics_path):
         """Upload the values of the given type as part of the crash diagnostics.
@@ -437,6 +460,12 @@ class Runner:
 
         # Upload each dataset and update its path in the manifest.
         for dataset_name, dataset_path in manifest["datasets"].items():
+
+            # Handle manifests containing serialised datasets instead of just the datasets' paths. Datasets can be in
+            # this state if they were instantiated using the `files` argument.
+            if isinstance(dataset_path, dict):
+                dataset_path = dataset_path["path"]
+
             new_dataset_path = storage.path.join(
                 question_diagnostics_path,
                 f"{manifest_type}_datasets",
