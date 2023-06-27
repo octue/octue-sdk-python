@@ -73,8 +73,8 @@ class Runner:
         self.crash_diagnostics = CrashDiagnostics(cloud_path=crash_diagnostics_cloud_path)
 
         self.crash_diagnostics.add_data(
-            configuration_values=copy.deepcopy(configuration_values),
-            configuration_manifest=copy.deepcopy(configuration_manifest),
+            configuration_values=configuration_values,
+            configuration_manifest=configuration_manifest,
         )
 
         self._storage_client = None
@@ -132,8 +132,8 @@ class Runner:
         # Get inputs before any transformations have been applied.
         self.crash_diagnostics.add_data(
             analysis_id=analysis_id,
-            input_values=copy.deepcopy(input_values),
-            input_manifest=copy.deepcopy(input_manifest),
+            input_values=input_values,
+            input_manifest=input_manifest,
         )
 
         if hasattr(self.twine, "credentials"):
@@ -339,7 +339,7 @@ class Runner:
             try:
                 return original_ask_method(**kwargs)
             finally:
-                self.crash_diagnostics.questions.append(
+                self.crash_diagnostics.add_question(
                     {"id": child.id, "key": key, **kwargs, "messages": child.received_messages}
                 )
 
@@ -377,6 +377,12 @@ class Runner:
 
 
 class CrashDiagnostics:
+    """A handler for crash diagnostics that allows adding and uploading of configuration and input data.
+
+    :param str cloud_path: the cloud path of a directory to upload the accumulated data into
+    :return None:
+    """
+
     def __init__(self, cloud_path):
         self.cloud_path = cloud_path
         self.configuration_values = None
@@ -393,25 +399,39 @@ class CrashDiagnostics:
         configuration_manifest=None,
         input_values=None,
         input_manifest=None,
-        questions=None,
     ):
+        """Add an analysis ID, configuration values, a configuration manifest, input values, or an input manifest to the
+        crash diagnostics. The values and manifests are deep-copied before being added.
+
+        :param str analysis_id: the ID of the analysis to save crash diagnostics for
+        :param any configuration_values: configuration values to save
+        :param any configuration_manifest: a configuration values to save
+        :param any input_values: input values to save
+        :param any input_manifest: an input manifest to save
+        :return None:
+        """
         if analysis_id:
             self.analysis_id = analysis_id
 
         if configuration_values:
-            self.configuration_values = configuration_values
+            self.configuration_values = copy.deepcopy(configuration_values)
 
         if configuration_manifest:
-            self.configuration_manifest = configuration_manifest
+            self.configuration_manifest = copy.deepcopy(configuration_manifest)
 
         if input_values:
-            self.input_values = input_values
+            self.input_values = copy.deepcopy(input_values)
 
         if input_manifest:
-            self.input_manifest = input_manifest
+            self.input_manifest = copy.deepcopy(input_manifest)
 
-        if questions:
-            self.questions = questions
+    def add_question(self, question):
+        """Add a question to the list of questions to save.
+
+        :param dict question:
+        :return None:
+        """
+        self.questions.append(question)
 
     def save(self):
         """Save the following data to the crash diagnostics cloud path:
