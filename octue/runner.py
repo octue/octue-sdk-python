@@ -69,6 +69,7 @@ class Runner:
 
         self.output_location = output_location
 
+        # Get configuration before any transformations have been applied.
         self.crash_diagnostics = {
             "questions": [],
             "configuration_values": copy.deepcopy(configuration_values),
@@ -128,6 +129,7 @@ class Runner:
         :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved if the analysis fails
         :return octue.resources.analysis.Analysis:
         """
+        # Get inputs before any transformations have been applied.
         self.crash_diagnostics["input_values"] = copy.deepcopy(input_values)
         self.crash_diagnostics["input_manifest"] = copy.deepcopy(input_manifest)
 
@@ -457,6 +459,8 @@ class Runner:
 
         # Upload each dataset and update its path in the manifest.
         for dataset_name, dataset_path in manifest["datasets"].items():
+
+            # Handle serialised manifests containing serialised datasets instead of the datasets' paths.
             if isinstance(dataset_path, dict):
                 dataset_path = dataset_path["path"]
 
