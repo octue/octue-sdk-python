@@ -703,6 +703,11 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
 
 class TestRunnerCrashDiagnostics(BaseTestCase):
     def _generate_manifests(self, serialise=False):
+        """Generate configuration and input manifests containing dummy data.
+
+        :param bool serialise: if this is `True`, serialise the manifests and use the dataset serialisation within them instead of the dataset paths
+        :return tuple(octue.resources.manifest.Manifest, octue.resources.manifest.Manifest): the input and configuration manifests
+        """
         manifests = {}
 
         for data_type in ("configuration", "input"):
@@ -721,7 +726,7 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
             else:
                 manifests[data_type] = {"id": str(uuid.uuid4()), "datasets": {"met_mast_data": dataset_path}}
 
-        return manifests
+        return manifests["configuration"], manifests["input"]
 
     def test_crash_diagnostics_with_unserialised_and_serialised_data(self):
         """Test that unserialised and serialised analysis configurations and inputs are saved to the crash diagnostics
@@ -743,7 +748,7 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
         for serialise in (False, True):
             for values in ({"hello": "world"}, '{"hello": "world"}'):
                 with self.subTest(serialise=serialise, values=values):
-                    manifests = self._generate_manifests(serialise=serialise)
+                    configuration_manifest, input_manifest = self._generate_manifests(serialise=serialise)
 
                     runner = Runner(
                         app_src=app,
@@ -758,7 +763,7 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
                             "input_manifest": {"datasets": {}},
                         },
                         configuration_values=values,
-                        configuration_manifest=manifests["configuration"],
+                        configuration_manifest=configuration_manifest,
                         children=[
                             {
                                 "key": "my-child",
@@ -806,7 +811,7 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
                             runner.run(
                                 analysis_id=analysis_id,
                                 input_values=values,
-                                input_manifest=manifests["input"],
+                                input_manifest=input_manifest,
                                 allow_save_diagnostics_data_on_crash=True,
                             )
 
