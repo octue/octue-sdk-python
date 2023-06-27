@@ -199,8 +199,6 @@ class Runner:
                 raise ModuleNotFoundError(f"{e.msg} in {os.path.abspath(self.app_source)!r}.")
 
             except Exception as analysis_error:
-                logger.error(str(analysis_error))
-
                 if allow_save_diagnostics_data_on_crash:
                     self.crash_diagnostics.save()
 

@@ -80,17 +80,16 @@ class CrashDiagnostics:
         """
         if not self.cloud_path:
             logger.warning(
-                "Cannot save crash diagnostics as the child doesn't have the `crash_diagnostics_cloud_path` field set "
-                "in its service configuration (`octue.yaml` file)."
+                "Cannot upload crash diagnostics as the child doesn't have the `crash_diagnostics_cloud_path` field "
+                "set in its service configuration (`octue.yaml` file)."
             )
             return
 
         try:
             self._upload()
-            logger.warning("Crash diagnostics saved.")
-        except Exception as crash_diagnostics_save_error:
-            logger.error("Failed to save crash diagnostics.")
-            raise crash_diagnostics_save_error
+            logger.info("Crash diagnostics uploaded.")
+        except Exception:
+            logger.exception("Failed to upload crash diagnostics.")
 
     def _upload(self):
         """Upload the crash diagnostics data to the crash diagnostics cloud path.
@@ -98,7 +97,7 @@ class CrashDiagnostics:
         :return None:
         """
         question_diagnostics_path = storage.path.join(self.cloud_path, self.analysis_id)
-        logger.warning("Saving crash diagnostics to %r.", question_diagnostics_path)
+        logger.warning("App failed - saving crash diagnostics to %r.", question_diagnostics_path)
 
         for data_type in ("configuration", "input"):
             values_type = f"{data_type}_values"
