@@ -23,6 +23,7 @@ class CrashDiagnostics:
 
     def __init__(self, cloud_path):
         self.cloud_path = cloud_path
+        self.analysis_id = None
         self.configuration_values = None
         self.configuration_manifest = None
         self.input_values = None
@@ -128,7 +129,8 @@ class CrashDiagnostics:
             cloud_path=storage.path.join(question_diagnostics_path, "questions.json"),
         )
 
-    def _attempt_deserialise_json(self, string):
+    @staticmethod
+    def _attempt_deserialise_json(string):
         """Attempt to deserialise the given string from JSON. If deserialisation fails, the original string is returned.
 
         :param str string: the string to attempt to deserialise
