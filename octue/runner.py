@@ -403,9 +403,17 @@ class Runner:
             manifest_type = f"{data_type}_manifest"
 
             if self.crash_diagnostics[values_type] is not None:
+                if isinstance(self.crash_diagnostics[values_type], str):
+                    self.crash_diagnostics[values_type] = self._attempt_json_load(self.crash_diagnostics[values_type])
+
                 self._upload_values(values_type, question_diagnostics_path)
 
             if self.crash_diagnostics[manifest_type] is not None:
+                if isinstance(self.crash_diagnostics[manifest_type], str):
+                    self.crash_diagnostics[manifest_type] = self._attempt_json_load(
+                        self.crash_diagnostics[manifest_type]
+                    )
+
                 self._upload_manifest(manifest_type, question_diagnostics_path)
 
         # Upload the messages received from any children before the crash.
@@ -413,6 +421,18 @@ class Runner:
             string=json.dumps(self.crash_diagnostics["questions"], cls=OctueJSONEncoder),
             cloud_path=storage.path.join(question_diagnostics_path, "questions.json"),
         )
+
+    def _attempt_json_load(self, string):
+        """Attempt to load the given string as a python object, assuming it's JSON-encoded. If loading fails, the
+        original string is returned.
+
+        :param str string: the string to attempt to load
+        :return any: the JSON-converted python object or the original string
+        """
+        try:
+            return json.loads(string)
+        except json.decoder.JSONDecodeError:
+            return string
 
     def _upload_values(self, values_type, question_diagnostics_path):
         """Upload the values of the given type as part of the crash diagnostics.
