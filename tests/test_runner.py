@@ -702,24 +702,7 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
 
 
 class TestRunnerCrashDiagnostics(BaseTestCase):
-    def test_crash_diagnostics_with_unserialized_data(self):
-        """Test that unserialized analysis configuration and inputs are saved in their original state to the crash
-        diagnostics cloud path if the app crashes when the runner has been allowed to save them.
-        """
-        crash_diagnostics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_diagnostics")
-
-        def app(analysis):
-            # Mutate the configuration and input attributes so we can test the originals are preserved for crash
-            # diagnostics.
-            analysis.configuration_values = None
-            analysis.configuration_manifest = None
-            analysis.input_values = None
-            analysis.input_manifest = None
-
-            analysis.children["my-child"].ask(input_values=[1, 2, 3, 4])
-            analysis.children["another-child"].ask(input_values="miaow")
-            raise ValueError("This is deliberately raised to simulate app failure.")
-
+    def _generate_manifests(self, serialise=False):
         manifests = {}
 
         for data_type in ("configuration", "input"):
@@ -731,170 +714,23 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
 
             dataset = Dataset(dataset_path, labels={f"some-{data_type}-metadata"})
             dataset.update_cloud_metadata()
-            manifests[data_type] = {"id": str(uuid.uuid4()), "datasets": {"met_mast_data": dataset_path}}
 
-        runner = Runner(
-            app_src=app,
-            twine={
-                "configuration_values_schema": {"properties": {}},
-                "configuration_manifest": {"datasets": {}},
-                "children": [
-                    {"key": "my-child"},
-                    {"key": "another-child"},
-                ],
-                "input_values_schema": {},
-                "input_manifest": {"datasets": {}},
-            },
-            configuration_values={"getting": "ready"},
-            configuration_manifest=manifests["configuration"],
-            children=[
-                {
-                    "key": "my-child",
-                    "id": "octue/a-child:latest",
-                    "backend": {
-                        "name": "GCPPubSubBackend",
-                        "project_name": "my-project",
-                    },
-                },
-                {
-                    "key": "another-child",
-                    "id": "octue/another-child:latest",
-                    "backend": {
-                        "name": "GCPPubSubBackend",
-                        "project_name": "my-project",
-                    },
-                },
-            ],
-            crash_diagnostics_cloud_path=crash_diagnostics_cloud_path,
-            service_id="octue/my-app:2.5.7",
-        )
+            if serialise:
+                dataset._instantiated_from_files_argument = True
+                manifests[data_type] = Manifest(datasets={"met_mast_data": dataset}, id=str(uuid.uuid4())).serialise()
+            else:
+                manifests[data_type] = {"id": str(uuid.uuid4()), "datasets": {"met_mast_data": dataset_path}}
 
-        emulated_children = [
-            ChildEmulator(
-                id="octue/a-child:latest",
-                messages=[
-                    {"type": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
-                ],
-            ),
-            ChildEmulator(
-                id="octue/another-child:latest",
-                messages=[
-                    {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
-                    {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
-                    {"type": "result", "output_values": "woof", "output_manifest": None},
-                ],
-            ),
-        ]
+        return manifests
 
-        analysis_id = "4b91e3f0-4492-49e3-8061-34f1942dc68a"
-
-        # Run the app.
-        with patch("octue.runner.Child", side_effect=emulated_children):
-            with self.assertRaises(ValueError):
-                runner.run(
-                    analysis_id=analysis_id,
-                    input_values={"hello": "world"},
-                    input_manifest=manifests["input"],
-                    allow_save_diagnostics_data_on_crash=True,
-                )
-
-        storage_client = GoogleCloudStorageClient()
-        question_crash_diagnostics_path = storage.path.join(crash_diagnostics_cloud_path, analysis_id)
-
-        # Check the configuration values.
-        self.assertEqual(
-            storage_client.download_as_string(
-                storage.path.join(question_crash_diagnostics_path, "configuration_values.json")
-            ),
-            json.dumps({"getting": "ready"}),
-        )
-
-        # Check the input values.
-        self.assertEqual(
-            storage_client.download_as_string(storage.path.join(question_crash_diagnostics_path, "input_values.json")),
-            json.dumps({"hello": "world"}),
-        )
-
-        # Check the configuration manifest and dataset.
-        configuration_manifest = Manifest.from_cloud(
-            storage.path.join(question_crash_diagnostics_path, "configuration_manifest.json")
-        )
-        configuration_dataset = configuration_manifest.datasets["met_mast_data"]
-        self.assertEqual(configuration_dataset.labels, {"some-configuration-metadata"})
-
-        configuration_file = configuration_dataset.files.one()
-        self.assertEqual(configuration_file.tags, {"some": "configuration_info"})
-
-        with configuration_file.open() as f:
-            self.assertEqual(f.read(), "configuration manifest data")
-
-        # Check the configuration dataset's path is in the crash diagnostics cloud directory.
-        self.assertEqual(
-            configuration_dataset.path,
-            storage.path.join(question_crash_diagnostics_path, "configuration_manifest_datasets", "met_mast_data"),
-        )
-
-        self.assertEqual(
-            configuration_file.cloud_path,
-            storage.path.join(
-                question_crash_diagnostics_path,
-                "configuration_manifest_datasets",
-                "met_mast_data",
-                "my_file.txt",
-            ),
-        )
-
-        # Check the input manifest and dataset.
-        input_manifest = Manifest.from_cloud(storage.path.join(question_crash_diagnostics_path, "input_manifest.json"))
-        input_dataset = input_manifest.datasets["met_mast_data"]
-        self.assertEqual(input_dataset.labels, {"some-input-metadata"})
-
-        input_file = input_dataset.files.one()
-        self.assertEqual(input_file.tags, {"some": "input_info"})
-
-        with input_file.open() as f:
-            self.assertEqual(f.read(), "input manifest data")
-
-        # Check the input dataset's path is in the crash diagnostics cloud directory.
-        self.assertEqual(
-            input_dataset.path,
-            storage.path.join(question_crash_diagnostics_path, "input_manifest_datasets", "met_mast_data"),
-        )
-
-        self.assertEqual(
-            input_file.cloud_path,
-            storage.path.join(
-                question_crash_diagnostics_path, "input_manifest_datasets", "met_mast_data", "my_file.txt"
-            ),
-        )
-
-        # Check that messages from the children have been recorded.
-        with Datafile(storage.path.join(question_crash_diagnostics_path, "questions.json")) as (_, f):
-            questions = json.load(f)
-
-        # First question.
-        self.assertEqual(questions[0]["key"], "my-child")
-        self.assertEqual(questions[0]["id"], "octue/a-child:latest")
-        self.assertEqual(questions[0]["input_values"], [1, 2, 3, 4])
-        self.assertEqual(len(questions[0]["messages"]), 2)
-
-        # Second question.
-        self.assertEqual(questions[1]["key"], "another-child")
-        self.assertEqual(questions[1]["id"], "octue/another-child:latest")
-        self.assertEqual(questions[1]["input_values"], "miaow")
-
-        # This should be 4 but log messages aren't currently being handled by the child emulator correctly.
-        self.assertEqual(len(questions[1]["messages"]), 2)
-
-    def test_crash_diagnostics_with_serialised_data(self):
-        """Test that input values given as JSON strings and a serialized input manifests whose datasets are given in
-        serialized form instead of as the paths to the dataset are successfully uploaded as crash diagnostics.
+    def test_crash_diagnostics_with_unserialised_and_serialised_data(self):
+        """Test that unserialised and serialised analysis configurations and inputs are saved to the crash diagnostics
+        cloud path if the app crashes when the runner has been allowed to save them.
         """
         crash_diagnostics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_diagnostics")
 
         def app(analysis):
-            # Mutate the configuration and input attributes so we can test the originals are preserved for crash
-            # diagnostics.
+            # Mutate the configuration and inputs so we can test the originals are preserved for crash diagnostics.
             analysis.configuration_values = None
             analysis.configuration_manifest = None
             analysis.input_values = None
@@ -904,169 +740,171 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
             analysis.children["another-child"].ask(input_values="miaow")
             raise ValueError("This is deliberately raised to simulate app failure.")
 
-        manifests = {}
+        for serialise in (False, True):
+            for values in ({"hello": "world"}, '{"hello": "world"}'):
+                with self.subTest(serialise=serialise, values=values):
+                    manifests = self._generate_manifests(serialise=serialise)
 
-        for data_type in ("configuration", "input"):
-            dataset_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my_datasets", f"{data_type}_dataset")
-            datafile = Datafile(storage.path.join(dataset_path, "my_file.txt"), tags={"some": f"{data_type}_info"})
+                    runner = Runner(
+                        app_src=app,
+                        twine={
+                            "configuration_values_schema": {"properties": {}},
+                            "configuration_manifest": {"datasets": {}},
+                            "children": [
+                                {"key": "my-child"},
+                                {"key": "another-child"},
+                            ],
+                            "input_values_schema": {},
+                            "input_manifest": {"datasets": {}},
+                        },
+                        configuration_values=values,
+                        configuration_manifest=manifests["configuration"],
+                        children=[
+                            {
+                                "key": "my-child",
+                                "id": "octue/a-child:latest",
+                                "backend": {
+                                    "name": "GCPPubSubBackend",
+                                    "project_name": "my-project",
+                                },
+                            },
+                            {
+                                "key": "another-child",
+                                "id": "octue/another-child:latest",
+                                "backend": {
+                                    "name": "GCPPubSubBackend",
+                                    "project_name": "my-project",
+                                },
+                            },
+                        ],
+                        crash_diagnostics_cloud_path=crash_diagnostics_cloud_path,
+                        service_id="octue/my-app:2.5.7",
+                    )
 
-            with datafile.open("w") as f:
-                f.write(f"{data_type} manifest data")
+                    emulated_children = [
+                        ChildEmulator(
+                            id="octue/a-child:latest",
+                            messages=[
+                                {"type": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
+                            ],
+                        ),
+                        ChildEmulator(
+                            id="octue/another-child:latest",
+                            messages=[
+                                {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
+                                {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
+                                {"type": "result", "output_values": "woof", "output_manifest": None},
+                            ],
+                        ),
+                    ]
 
-            dataset = Dataset(dataset_path, labels={f"some-{data_type}-metadata"})
-            dataset.update_cloud_metadata()
-            dataset._instantiated_from_files_argument = True
-            manifests[data_type] = Manifest(datasets={"met_mast_data": dataset}, id=str(uuid.uuid4())).serialise()
+                    analysis_id = "4b91e3f0-4492-49e3-8061-34f1942dc68a"
 
-        runner = Runner(
-            app_src=app,
-            twine={
-                "configuration_values_schema": {"properties": {}},
-                "configuration_manifest": {"datasets": {}},
-                "children": [
-                    {"key": "my-child"},
-                    {"key": "another-child"},
-                ],
-                "input_values_schema": {},
-                "input_manifest": {"datasets": {}},
-            },
-            configuration_values={"getting": "ready"},
-            configuration_manifest=manifests["configuration"],
-            children=[
-                {
-                    "key": "my-child",
-                    "id": "octue/a-child:latest",
-                    "backend": {
-                        "name": "GCPPubSubBackend",
-                        "project_name": "my-project",
-                    },
-                },
-                {
-                    "key": "another-child",
-                    "id": "octue/another-child:latest",
-                    "backend": {
-                        "name": "GCPPubSubBackend",
-                        "project_name": "my-project",
-                    },
-                },
-            ],
-            crash_diagnostics_cloud_path=crash_diagnostics_cloud_path,
-            service_id="octue/my-app:2.5.7",
-        )
+                    # Run the app.
+                    with patch("octue.runner.Child", side_effect=emulated_children):
+                        with self.assertRaises(ValueError):
+                            runner.run(
+                                analysis_id=analysis_id,
+                                input_values=values,
+                                input_manifest=manifests["input"],
+                                allow_save_diagnostics_data_on_crash=True,
+                            )
 
-        emulated_children = [
-            ChildEmulator(
-                id="octue/a-child:latest",
-                messages=[
-                    {"type": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
-                ],
-            ),
-            ChildEmulator(
-                id="octue/another-child:latest",
-                messages=[
-                    {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
-                    {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
-                    {"type": "result", "output_values": "woof", "output_manifest": None},
-                ],
-            ),
-        ]
+                    storage_client = GoogleCloudStorageClient()
+                    question_crash_diagnostics_path = storage.path.join(crash_diagnostics_cloud_path, analysis_id)
 
-        analysis_id = "4b91e3f0-4492-49e3-8061-34f1942dc68a"
+                    if isinstance(values, str):
+                        expected_values = values
+                    else:
+                        expected_values = json.dumps(values)
 
-        # Run the app.
-        with patch("octue.runner.Child", side_effect=emulated_children):
-            with self.assertRaises(ValueError):
-                runner.run(
-                    analysis_id=analysis_id,
-                    input_values='{"hello": "world"}',
-                    input_manifest=manifests["input"],
-                    allow_save_diagnostics_data_on_crash=True,
-                )
+                    # Check the configuration values.
+                    self.assertEqual(
+                        storage_client.download_as_string(
+                            storage.path.join(question_crash_diagnostics_path, "configuration_values.json")
+                        ),
+                        expected_values,
+                    )
 
-        storage_client = GoogleCloudStorageClient()
-        question_crash_diagnostics_path = storage.path.join(crash_diagnostics_cloud_path, analysis_id)
+                    # Check the input values.
+                    self.assertEqual(
+                        storage_client.download_as_string(
+                            storage.path.join(question_crash_diagnostics_path, "input_values.json")
+                        ),
+                        expected_values,
+                    )
 
-        # Check the configuration values.
-        self.assertEqual(
-            storage_client.download_as_string(
-                storage.path.join(question_crash_diagnostics_path, "configuration_values.json")
-            ),
-            json.dumps({"getting": "ready"}),
-        )
+                    # Check the configuration manifest and dataset.
+                    configuration_manifest = Manifest.from_cloud(
+                        storage.path.join(question_crash_diagnostics_path, "configuration_manifest.json")
+                    )
+                    configuration_dataset = configuration_manifest.datasets["met_mast_data"]
+                    self.assertEqual(configuration_dataset.labels, {"some-configuration-metadata"})
 
-        # Check the input values.
-        self.assertEqual(
-            storage_client.download_as_string(storage.path.join(question_crash_diagnostics_path, "input_values.json")),
-            json.dumps({"hello": "world"}),
-        )
+                    configuration_file = configuration_dataset.files.one()
+                    self.assertEqual(configuration_file.tags, {"some": "configuration_info"})
 
-        # Check the configuration manifest and dataset.
-        configuration_manifest = Manifest.from_cloud(
-            storage.path.join(question_crash_diagnostics_path, "configuration_manifest.json")
-        )
-        configuration_dataset = configuration_manifest.datasets["met_mast_data"]
-        self.assertEqual(configuration_dataset.labels, {"some-configuration-metadata"})
+                    with configuration_file.open() as f:
+                        self.assertEqual(f.read(), "configuration manifest data")
 
-        configuration_file = configuration_dataset.files.one()
-        self.assertEqual(configuration_file.tags, {"some": "configuration_info"})
+                    # Check the configuration dataset's path is in the crash diagnostics cloud directory.
+                    self.assertEqual(
+                        configuration_dataset.path,
+                        storage.path.join(
+                            question_crash_diagnostics_path, "configuration_manifest_datasets", "met_mast_data"
+                        ),
+                    )
 
-        with configuration_file.open() as f:
-            self.assertEqual(f.read(), "configuration manifest data")
+                    self.assertEqual(
+                        configuration_file.cloud_path,
+                        storage.path.join(
+                            question_crash_diagnostics_path,
+                            "configuration_manifest_datasets",
+                            "met_mast_data",
+                            "my_file.txt",
+                        ),
+                    )
 
-        # Check the configuration dataset's path is in the crash diagnostics cloud directory.
-        self.assertEqual(
-            configuration_dataset.path,
-            storage.path.join(question_crash_diagnostics_path, "configuration_manifest_datasets", "met_mast_data"),
-        )
+                    # Check the input manifest and dataset.
+                    input_manifest = Manifest.from_cloud(
+                        storage.path.join(question_crash_diagnostics_path, "input_manifest.json")
+                    )
+                    input_dataset = input_manifest.datasets["met_mast_data"]
+                    self.assertEqual(input_dataset.labels, {"some-input-metadata"})
 
-        self.assertEqual(
-            configuration_file.cloud_path,
-            storage.path.join(
-                question_crash_diagnostics_path,
-                "configuration_manifest_datasets",
-                "met_mast_data",
-                "my_file.txt",
-            ),
-        )
+                    input_file = input_dataset.files.one()
+                    self.assertEqual(input_file.tags, {"some": "input_info"})
 
-        # Check the input manifest and dataset.
-        input_manifest = Manifest.from_cloud(storage.path.join(question_crash_diagnostics_path, "input_manifest.json"))
-        input_dataset = input_manifest.datasets["met_mast_data"]
-        self.assertEqual(input_dataset.labels, {"some-input-metadata"})
+                    with input_file.open() as f:
+                        self.assertEqual(f.read(), "input manifest data")
 
-        input_file = input_dataset.files.one()
-        self.assertEqual(input_file.tags, {"some": "input_info"})
+                    # Check the input dataset's path is in the crash diagnostics cloud directory.
+                    self.assertEqual(
+                        input_dataset.path,
+                        storage.path.join(question_crash_diagnostics_path, "input_manifest_datasets", "met_mast_data"),
+                    )
 
-        with input_file.open() as f:
-            self.assertEqual(f.read(), "input manifest data")
+                    self.assertEqual(
+                        input_file.cloud_path,
+                        storage.path.join(
+                            question_crash_diagnostics_path, "input_manifest_datasets", "met_mast_data", "my_file.txt"
+                        ),
+                    )
 
-        # Check the input dataset's path is in the crash diagnostics cloud directory.
-        self.assertEqual(
-            input_dataset.path,
-            storage.path.join(question_crash_diagnostics_path, "input_manifest_datasets", "met_mast_data"),
-        )
+                    # Check that messages from the children have been recorded.
+                    with Datafile(storage.path.join(question_crash_diagnostics_path, "questions.json")) as (_, f):
+                        questions = json.load(f)
 
-        self.assertEqual(
-            input_file.cloud_path,
-            storage.path.join(
-                question_crash_diagnostics_path, "input_manifest_datasets", "met_mast_data", "my_file.txt"
-            ),
-        )
+                    # First question.
+                    self.assertEqual(questions[0]["key"], "my-child")
+                    self.assertEqual(questions[0]["id"], "octue/a-child:latest")
+                    self.assertEqual(questions[0]["input_values"], [1, 2, 3, 4])
+                    self.assertEqual(len(questions[0]["messages"]), 2)
 
-        # Check that messages from the children have been recorded.
-        with Datafile(storage.path.join(question_crash_diagnostics_path, "questions.json")) as (_, f):
-            questions = json.load(f)
+                    # Second question.
+                    self.assertEqual(questions[1]["key"], "another-child")
+                    self.assertEqual(questions[1]["id"], "octue/another-child:latest")
+                    self.assertEqual(questions[1]["input_values"], "miaow")
 
-        # First question.
-        self.assertEqual(questions[0]["key"], "my-child")
-        self.assertEqual(questions[0]["id"], "octue/a-child:latest")
-        self.assertEqual(questions[0]["input_values"], [1, 2, 3, 4])
-        self.assertEqual(len(questions[0]["messages"]), 2)
-
-        # Second question.
-        self.assertEqual(questions[1]["key"], "another-child")
-        self.assertEqual(questions[1]["id"], "octue/another-child:latest")
-        self.assertEqual(questions[1]["input_values"], "miaow")
-
-        # This should be 4 but log messages aren't currently being handled by the child emulator correctly.
-        self.assertEqual(len(questions[1]["messages"]), 2)
+                    # This should be 4 but log messages aren't currently being handled by the child emulator correctly.
+                    self.assertEqual(len(questions[1]["messages"]), 2)
