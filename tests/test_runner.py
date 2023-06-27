@@ -705,7 +705,7 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
     def _generate_manifests(self, serialise=False):
         """Generate configuration and input manifests containing dummy data.
 
-        :param bool serialise: if this is `True`, serialise the manifests and use the dataset serialisation within them instead of the dataset paths
+        :param bool serialise: if this is `True`, serialise the manifests and use the dataset serialisation within them instead of dataset paths
         :return tuple(octue.resources.manifest.Manifest, octue.resources.manifest.Manifest): the input and configuration manifests
         """
         manifests = {}
@@ -722,7 +722,7 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
 
             if serialise:
                 dataset._instantiated_from_files_argument = True
-                manifests[data_type] = Manifest(datasets={"met_mast_data": dataset}, id=str(uuid.uuid4())).serialise()
+                manifests[data_type] = Manifest(datasets={"met_mast_data": dataset}).serialise()
             else:
                 manifests[data_type] = {"id": str(uuid.uuid4()), "datasets": {"met_mast_data": dataset_path}}
 
@@ -904,12 +904,14 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
                     self.assertEqual(questions[0]["key"], "my-child")
                     self.assertEqual(questions[0]["id"], "octue/a-child:latest")
                     self.assertEqual(questions[0]["input_values"], [1, 2, 3, 4])
+                    self.assertEqual(questions[0]["messages"][1]["output_values"], [1, 4, 9, 16])
                     self.assertEqual(len(questions[0]["messages"]), 2)
 
                     # Second question.
                     self.assertEqual(questions[1]["key"], "another-child")
                     self.assertEqual(questions[1]["id"], "octue/another-child:latest")
                     self.assertEqual(questions[1]["input_values"], "miaow")
+                    self.assertEqual(questions[1]["messages"][1]["output_values"], "woof")
 
                     # This should be 4 but log messages aren't currently being handled by the child emulator correctly.
                     self.assertEqual(len(questions[1]["messages"]), 2)
