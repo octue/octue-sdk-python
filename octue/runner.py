@@ -1,5 +1,4 @@
 import copy
-import json
 import logging
 import logging.handlers
 import os
@@ -13,14 +12,12 @@ from jsonschema import ValidationError, validate as jsonschema_validate
 import twined.exceptions
 from octue import exceptions
 from octue.app_loading import AppFrom
-from octue.cloud import storage
-from octue.cloud.storage import GoogleCloudStorageClient
+from octue.crash_diagnostics import CrashDiagnostics
 from octue.log_handlers import AnalysisLogFormatterSwitcher
-from octue.resources import Child, Dataset
+from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.resources.datafile import downloaded_files
 from octue.utils import gen_uuid
-from octue.utils.encoders import OctueJSONEncoder
 from twined import Twine
 
 
@@ -70,13 +67,13 @@ class Runner:
         self.output_location = output_location
 
         # Get configuration before any transformations have been applied.
-        self.crash_diagnostics = {
-            "questions": [],
-            "configuration_values": copy.deepcopy(configuration_values),
-            "configuration_manifest": copy.deepcopy(configuration_manifest),
-        }
+        self.crash_diagnostics = CrashDiagnostics(cloud_path=crash_diagnostics_cloud_path)
 
-        self.crash_diagnostics_cloud_path = crash_diagnostics_cloud_path
+        self.crash_diagnostics.add_data(
+            configuration_values=configuration_values,
+            configuration_manifest=configuration_manifest,
+        )
+
         self._storage_client = None
 
         # Ensure the twine is present and instantiate it.
@@ -130,8 +127,11 @@ class Runner:
         :return octue.resources.analysis.Analysis:
         """
         # Get inputs before any transformations have been applied.
-        self.crash_diagnostics["input_values"] = copy.deepcopy(input_values)
-        self.crash_diagnostics["input_manifest"] = copy.deepcopy(input_manifest)
+        self.crash_diagnostics.add_data(
+            analysis_id=analysis_id,
+            input_values=input_values,
+            input_manifest=input_manifest,
+        )
 
         if hasattr(self.twine, "credentials"):
             self._populate_environment_with_google_cloud_secrets()
@@ -199,24 +199,8 @@ class Runner:
                 raise ModuleNotFoundError(f"{e.msg} in {os.path.abspath(self.app_source)!r}.")
 
             except Exception as analysis_error:
-                logger.error(str(analysis_error))
-
                 if allow_save_diagnostics_data_on_crash:
-                    if not self.crash_diagnostics_cloud_path:
-                        logger.warning(
-                            "Cannot save crash diagnostics as the child doesn't have the "
-                            "`crash_diagnostics_cloud_path` field set in its service configuration (`octue.yaml` file)."
-                        )
-
-                    else:
-                        logger.warning("Saving crash diagnostics to %r.", self.crash_diagnostics_cloud_path)
-
-                        try:
-                            self._save_crash_diagnostics_data(analysis)
-                            logger.warning("Crash diagnostics saved.")
-                        except Exception as crash_diagnostics_save_error:
-                            logger.error("Failed to save crash diagnostics.")
-                            raise crash_diagnostics_save_error
+                    self.crash_diagnostics.upload()
 
                 raise analysis_error
 
@@ -350,7 +334,7 @@ class Runner:
             try:
                 return original_ask_method(**kwargs)
             finally:
-                self.crash_diagnostics["questions"].append(
+                self.crash_diagnostics.add_question(
                     {"id": child.id, "key": key, **kwargs, "messages": child.received_messages}
                 )
 
@@ -385,98 +369,3 @@ class Runner:
 
         # App as a function that takes "analysis" as an argument.
         self.app_source(analysis)
-
-    def _save_crash_diagnostics_data(self, analysis):
-        """Save the following data to the crash diagnostics cloud path:
-        - Configuration values
-        - Configuration manifest and datasets
-        - Input values
-        - Input manifest and datasets
-        - Questions asked to any children during the analysis and any responses received
-
-        :param octue.resources.analysis.Analysis analysis:
-        :return None:
-        """
-        self._storage_client = GoogleCloudStorageClient()
-        question_diagnostics_path = storage.path.join(self.crash_diagnostics_cloud_path, analysis.id)
-
-        for data_type in ("configuration", "input"):
-            values_type = f"{data_type}_values"
-            manifest_type = f"{data_type}_manifest"
-
-            if self.crash_diagnostics[values_type] is not None:
-                if isinstance(self.crash_diagnostics[values_type], str):
-                    self.crash_diagnostics[values_type] = self._attempt_deserialise_json(
-                        self.crash_diagnostics[values_type]
-                    )
-
-                self._upload_values(values_type, question_diagnostics_path)
-
-            if self.crash_diagnostics[manifest_type] is not None:
-                if isinstance(self.crash_diagnostics[manifest_type], str):
-                    self.crash_diagnostics[manifest_type] = self._attempt_deserialise_json(
-                        self.crash_diagnostics[manifest_type]
-                    )
-
-                self._upload_manifest(manifest_type, question_diagnostics_path)
-
-        # Upload the messages received from any children before the crash.
-        self._storage_client.upload_from_string(
-            string=json.dumps(self.crash_diagnostics["questions"], cls=OctueJSONEncoder),
-            cloud_path=storage.path.join(question_diagnostics_path, "questions.json"),
-        )
-
-    def _attempt_deserialise_json(self, string):
-        """Attempt to deserialise the given string from JSON. If deserialisation fails, the original string is returned.
-
-        :param str string: the string to attempt to deserialise
-        :return any: the deserialised python object or the original string
-        """
-        try:
-            return json.loads(string)
-        except json.decoder.JSONDecodeError:
-            return string
-
-    def _upload_values(self, values_type, question_diagnostics_path):
-        """Upload the values of the given type as part of the crash diagnostics.
-
-        :param str values_type: one of "configuration_values" or "input_values"
-        :param str question_diagnostics_path: the path to a cloud directory to upload the values into
-        :return None:
-        """
-        self._storage_client.upload_from_string(
-            json.dumps(self.crash_diagnostics[values_type], cls=OctueJSONEncoder),
-            cloud_path=storage.path.join(question_diagnostics_path, f"{values_type}.json"),
-        )
-
-    def _upload_manifest(self, manifest_type, question_diagnostics_path):
-        """Upload the serialised manifest of the given type as part of the crash diagnostics.
-
-        :param str manifest_type: one of "configuration_manifest" or "input_manifest"
-        :param str question_diagnostics_path: the path to a cloud directory to upload the manifest into
-        :return None:
-        """
-        manifest = self.crash_diagnostics[manifest_type]
-
-        # Upload each dataset and update its path in the manifest.
-        for dataset_name, dataset_path in manifest["datasets"].items():
-
-            # Handle manifests containing serialised datasets instead of just the datasets' paths. Datasets can be in
-            # this state if they were instantiated using the `files` argument.
-            if isinstance(dataset_path, dict):
-                dataset_path = dataset_path["path"]
-
-            new_dataset_path = storage.path.join(
-                question_diagnostics_path,
-                f"{manifest_type}_datasets",
-                dataset_name,
-            )
-
-            Dataset(dataset_path).upload(new_dataset_path)
-            manifest["datasets"][dataset_name] = new_dataset_path
-
-        # Upload manifest.
-        self._storage_client.upload_from_string(
-            json.dumps(manifest, cls=OctueJSONEncoder),
-            cloud_path=storage.path.join(question_diagnostics_path, f"{manifest_type}.json"),
-        )
