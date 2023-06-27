@@ -457,8 +457,8 @@ class Runner:
 
         # Upload each dataset and update its path in the manifest.
         for dataset_name, dataset_path in manifest["datasets"].items():
-            if not isinstance(dataset_path, str):
-                continue
+            if isinstance(dataset_path, dict):
+                dataset_path = dataset_path["path"]
 
             new_dataset_path = storage.path.join(
                 question_diagnostics_path,
