@@ -461,7 +461,8 @@ class Runner:
         # Upload each dataset and update its path in the manifest.
         for dataset_name, dataset_path in manifest["datasets"].items():
 
-            # Handle serialised manifests containing serialised datasets instead of the datasets' paths.
+            # Handle manifests containing serialised datasets instead of just the datasets' paths. Datasets can be in
+            # this state if they were instantiated using the `files` argument.
             if isinstance(dataset_path, dict):
                 dataset_path = dataset_path["path"]
 
