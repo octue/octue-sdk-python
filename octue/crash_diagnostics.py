@@ -2,6 +2,8 @@ import copy
 import json
 import logging
 
+import coolname
+
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Dataset
@@ -12,9 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 class CrashDiagnostics:
-    """A handler for crash diagnostics that allows adding and uploading of configuration and input data.
+    """A handler for crash diagnostics that allows uploading of explicitly added configuration and input data and any
+    questions asked to the cloud.
 
-    :param str cloud_path: the cloud path of a directory to upload the accumulated data into
+    :param str cloud_path: the cloud path of a directory to upload any added data into
     :return None:
     """
 
@@ -35,12 +38,14 @@ class CrashDiagnostics:
         input_values=None,
         input_manifest=None,
     ):
-        """Add an analysis ID, configuration values, a configuration manifest, input values, or an input manifest to the
-        crash diagnostics. The values and manifests are deep-copied before being added.
+        """Add an analysis ID, configuration values, a configuration manifest, input values, and/or an input manifest to
+        the crash diagnostics. The values and manifests are deep-copied before being added. This method can be called
+        multiple times as data becomes available. Calling again with the same keyword arguments will overwrite any data
+        of that type added previously.
 
         :param str analysis_id: the ID of the analysis to save crash diagnostics for
         :param any configuration_values: configuration values to save
-        :param any configuration_manifest: a configuration values to save
+        :param any configuration_manifest: a configuration manifest to save
         :param any input_values: input values to save
         :param any input_manifest: an input manifest to save
         :return None:
@@ -63,18 +68,14 @@ class CrashDiagnostics:
     def add_question(self, question):
         """Add a question to the list of questions to save.
 
-        :param dict question:
+        :param dict question: the question to add
         :return None:
         """
         self.questions.append(question)
 
-    def save(self):
-        """Save the following data to the crash diagnostics cloud path:
-        - Configuration values
-        - Configuration manifest and datasets
-        - Input values
-        - Input manifest and datasets
-        - Questions asked to any children during the analysis and any responses received
+    def upload(self):
+        """Check that a cloud path has been provided before uploading any added data to the crash diagnostics cloud
+        path. Any errors encountered during upload are caught and logged.
 
         :return None:
         """
@@ -85,6 +86,9 @@ class CrashDiagnostics:
             )
             return
 
+        if not self.analysis_id:
+            self.analysis_id = coolname.generate_slug(3)
+
         try:
             self._upload()
             logger.info("Crash diagnostics uploaded.")
@@ -92,7 +96,7 @@ class CrashDiagnostics:
             logger.exception("Failed to upload crash diagnostics.")
 
     def _upload(self):
-        """Upload the crash diagnostics data to the crash diagnostics cloud path.
+        """Upload any added data to the crash diagnostics cloud path.
 
         :return None:
         """
@@ -101,19 +105,18 @@ class CrashDiagnostics:
 
         for data_type in ("configuration", "input"):
             values_type = f"{data_type}_values"
-            manifest_type = f"{data_type}_manifest"
+            values = getattr(self, values_type)
 
-            if getattr(self, values_type) is not None:
-                values = getattr(self, values_type)
-
+            if values is not None:
                 if isinstance(values, str):
                     setattr(self, values_type, self._attempt_deserialise_json(values))
 
                 self._upload_values(values_type, question_diagnostics_path)
 
-            if getattr(self, manifest_type) is not None:
-                manifest = getattr(self, manifest_type)
+            manifest_type = f"{data_type}_manifest"
+            manifest = getattr(self, manifest_type)
 
+            if manifest is not None:
                 if isinstance(manifest, str):
                     setattr(self, manifest_type, self._attempt_deserialise_json(manifest))
 
@@ -151,7 +154,7 @@ class CrashDiagnostics:
         )
 
     def _upload_manifest(self, manifest_type, question_diagnostics_path):
-        """Upload the serialised manifest of the given type as part of the crash diagnostics.
+        """Upload the serialised manifest of the given type and its datasets as part of the crash diagnostics.
 
         :param str manifest_type: one of "configuration_manifest" or "input_manifest"
         :param str question_diagnostics_path: the path to a cloud directory to upload the manifest into
@@ -163,7 +166,7 @@ class CrashDiagnostics:
         for dataset_name, dataset_path in manifest["datasets"].items():
 
             # Handle manifests containing serialised datasets instead of just the datasets' paths. Datasets can be in
-            # this state if they were instantiated using the `files` argument.
+            # this state when serialised if they were instantiated using the `files` argument.
             if isinstance(dataset_path, dict):
                 dataset_path = dataset_path["path"]
 
@@ -176,7 +179,7 @@ class CrashDiagnostics:
             Dataset(dataset_path).upload(new_dataset_path)
             manifest["datasets"][dataset_name] = new_dataset_path
 
-        # Upload manifest.
+        # Upload the serialised manifest.
         self._storage_client.upload_from_string(
             json.dumps(manifest, cls=OctueJSONEncoder),
             cloud_path=storage.path.join(question_diagnostics_path, f"{manifest_type}.json"),

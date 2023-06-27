@@ -200,7 +200,7 @@ class Runner:
 
             except Exception as analysis_error:
                 if allow_save_diagnostics_data_on_crash:
-                    self.crash_diagnostics.save()
+                    self.crash_diagnostics.upload()
 
                 raise analysis_error
 
