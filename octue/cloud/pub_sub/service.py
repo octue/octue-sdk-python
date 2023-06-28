@@ -133,7 +133,7 @@ class Service:
     :return None:
     """
 
-    def __init__(self, backend, service_id=None, run_function=None, name=None):
+    def __init__(self, backend, service_id=None, run_function=None):
         self.backend = backend
 
         if service_id is None:
@@ -159,14 +159,13 @@ class Service:
             self.id = service_id
 
         self.run_function = run_function
-        self.name = name
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
         self._local_sdk_version = pkg_resources.get_distribution("octue").version
         self._publisher = None
         self._message_handler = None
 
     def __repr__(self):
-        return f"<{type(self).__name__}({self.name or self.id!r})>"
+        return f"<{type(self).__name__}({self.id!r})>"
 
     @property
     def publisher(self):
