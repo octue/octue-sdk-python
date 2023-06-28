@@ -4,7 +4,7 @@ import logging
 import random
 import tempfile
 import time
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import google.api_core.exceptions
 
@@ -21,7 +21,7 @@ from octue.cloud.emulators._pub_sub import (
 )
 from octue.cloud.emulators.child import ServicePatcher
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
-from octue.cloud.pub_sub.service import Service
+from octue.cloud.pub_sub.service import Service, get_latest_service_revision_tag
 from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Analysis, Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
@@ -33,6 +33,42 @@ logger = logging.getLogger(__name__)
 
 
 BACKEND = GCPPubSubBackend(project_name=TEST_PROJECT_NAME)
+
+
+class TestGetLatestServiceRevisionTag(BaseTestCase):
+    def test_with_region(self):
+        """Test that the latest tag for a service can be found when a region is given."""
+        with patch(
+            "octue.cloud.pub_sub.service.run_v2.ServicesClient.get_service",
+            return_value=Mock(traffic=[Mock(tag="1.3.9")]),
+        ):
+            latest_tag = get_latest_service_revision_tag(
+                project_name="my-project",
+                namespace="my-org",
+                name="my-service",
+                region="some-region",
+            )
+
+        self.assertEqual(latest_tag, "1.3.9")
+
+    def test_without_region(self):
+        """Test that the latest tag for a service can be found when a region is not given and the first region tried has
+        no service with the given name.
+        """
+        with patch(
+            "octue.cloud.pub_sub.service.run_v2.ServicesClient.get_service",
+            side_effect=[
+                google.api_core.exceptions.NotFound("blah"),
+                Mock(traffic=[Mock(tag="1.3.9")]),
+            ],
+        ):
+            latest_tag = get_latest_service_revision_tag(
+                project_name="my-project",
+                namespace="my-org",
+                name="my-service",
+            )
+
+        self.assertEqual(latest_tag, "1.3.9")
 
 
 class TestService(BaseTestCase):
