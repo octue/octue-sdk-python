@@ -162,3 +162,20 @@ def convert_service_id_to_pub_sub_form(service_id):
         service_id = service_id + "." + service_revision_tag.replace(".", "-")
 
     return service_id
+
+
+def split_service_id(service_id):
+    """Split a service ID into its namespace, name, and, if present, its revision tag.
+
+    :param str service_id: a service ID
+    :return tuple(str, str, str|None): the namespace, name, and revision tag
+    """
+    namespace, name_and_revision_tag = service_id.split("/")
+
+    try:
+        name, revision_tag = name_and_revision_tag.split(":")
+    except ValueError:
+        name = name_and_revision_tag
+        revision_tag = None
+
+    return namespace, name, revision_tag

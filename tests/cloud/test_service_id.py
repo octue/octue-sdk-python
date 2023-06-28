@@ -3,7 +3,12 @@ import os
 import unittest
 from unittest.mock import patch
 
-from octue.cloud.service_id import convert_service_id_to_pub_sub_form, get_service_sruid_parts, validate_service_sruid
+from octue.cloud.service_id import (
+    convert_service_id_to_pub_sub_form,
+    get_service_sruid_parts,
+    split_service_id,
+    validate_service_sruid,
+)
 from octue.configuration import ServiceConfiguration
 from octue.exceptions import InvalidServiceID
 
@@ -162,3 +167,19 @@ class TestValidateServiceSRUID(unittest.TestCase):
         ):
             with self.subTest(namespace=namespace, name=name, revision_tag=revision_tag):
                 validate_service_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
+
+
+class TestSplitServiceID(unittest.TestCase):
+    def test_split_sruid(self):
+        """Test that a valid SRUID can be split into its namespace, name, and revision tag."""
+        namespace, name, revision_tag = split_service_id("octue/my-service:latest")
+        self.assertEqual(namespace, "octue")
+        self.assertEqual(name, "my-service")
+        self.assertEqual(revision_tag, "latest")
+
+    def test_split_service_id(self):
+        """Test that a service ID without a revision tag can be split into its namespace and name."""
+        namespace, name, revision_tag = split_service_id("octue/my-service")
+        self.assertEqual(namespace, "octue")
+        self.assertEqual(name, "my-service")
+        self.assertIsNone(revision_tag)
