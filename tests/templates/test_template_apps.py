@@ -140,12 +140,12 @@ class TemplateAppsTestCase(BaseTestCase):
             app_src=parent_service_path,
             twine=os.path.join(parent_service_path, "twine.json"),
             children=children,
-            service_id="template-child-services/parent-service:latest",
+            service_id="template-child-services/parent-service:2.3.0",
         )
 
         emulated_children = [
             ChildEmulator(
-                id="template-child-services/wind-speed-service:latest",
+                id="template-child-services/wind-speed-service:2.3.0",
                 internal_service_name=runner.service_id,
                 messages=[
                     {"type": "log_record", "log_record": {"msg": "This is an emulated child log message."}},
@@ -153,7 +153,7 @@ class TemplateAppsTestCase(BaseTestCase):
                 ],
             ),
             ChildEmulator(
-                id="template-child-services/elevation-service:latest",
+                id="template-child-services/elevation-service:2.3.0",
                 internal_service_name=runner.service_id,
                 messages=[
                     {"type": "result", "output_values": [300], "output_manifest": None},

@@ -1,6 +1,6 @@
 [
   {
-    "id": "octue/my-child:latest",
+    "id": "octue/my-child:2.3.0",
     "messages": [
       {
         "type": "log_record",

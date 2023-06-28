@@ -41,8 +41,8 @@ class TestRunner(BaseTestCase):
 
     def test_repr(self):
         """Test that runners are represented as a string correctly."""
-        runner = Runner(app_src=".", twine="{}", service_id="octue/my-service:latest")
-        self.assertEqual(repr(runner), "<Runner('octue/my-service:latest')>")
+        runner = Runner(app_src=".", twine="{}", service_id="octue/my-service:2.3.0")
+        self.assertEqual(repr(runner), "<Runner('octue/my-service:2.3.0')>")
 
     def test_run_with_configuration_passes(self):
         """Ensures that runs can be made with configuration only"""
@@ -319,7 +319,7 @@ class TestRunner(BaseTestCase):
             children=[
                 {
                     "key": "my-child",
-                    "id": "octue/the-child:latest",
+                    "id": "octue/the-child:2.3.0",
                     "backend": {
                         "name": "GCPPubSubBackend",
                         "project_name": "my-project",
@@ -327,7 +327,7 @@ class TestRunner(BaseTestCase):
                 },
                 {
                     "key": "another-child",
-                    "id": "octue/yet-another-child:latest",
+                    "id": "octue/yet-another-child:2.3.0",
                     "backend": {
                         "name": "GCPPubSubBackend",
                         "project_name": "my-project",
@@ -340,13 +340,13 @@ class TestRunner(BaseTestCase):
 
         emulated_children = [
             ChildEmulator(
-                id="octue/the-child:latest",
+                id="octue/the-child:2.3.0",
                 messages=[
                     {"type": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
                 ],
             ),
             ChildEmulator(
-                id="octue/yet-another-child:latest",
+                id="octue/yet-another-child:2.3.0",
                 messages=[
                     {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
                     {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
@@ -381,20 +381,20 @@ class TestRunner(BaseTestCase):
 
         # First question.
         self.assertEqual(questions[0]["key"], "my-child")
-        self.assertEqual(questions[0]["id"], "octue/the-child:latest")
+        self.assertEqual(questions[0]["id"], "octue/the-child:2.3.0")
         self.assertEqual(questions[0]["input_values"], [1, 2, 3, 4])
         self.assertEqual(len(questions[0]["messages"]), 2)
 
         # Second question.
         self.assertEqual(questions[1]["key"], "another-child")
-        self.assertEqual(questions[1]["id"], "octue/yet-another-child:latest")
+        self.assertEqual(questions[1]["id"], "octue/yet-another-child:2.3.0")
         self.assertEqual(questions[1]["input_values"], "miaow")
 
         self.assertEqual(questions[1]["messages"][1]["type"], "exception")
         self.assertEqual(questions[1]["messages"][1]["exception_type"], "ValueError")
         self.assertEqual(
             questions[1]["messages"][1]["exception_message"],
-            "Error in <MockService('octue/yet-another-child:latest')>: Deliberately raised for testing.",
+            "Error in <MockService('octue/yet-another-child:2.3.0')>: Deliberately raised for testing.",
         )
 
     def test_set_up_periodic_monitor_messages(self):
@@ -766,7 +766,7 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
                     children=[
                         {
                             "key": "my-child",
-                            "id": "octue/a-child:latest",
+                            "id": "octue/a-child:2.3.0",
                             "backend": {
                                 "name": "GCPPubSubBackend",
                                 "project_name": "my-project",
@@ -774,7 +774,7 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
                         },
                         {
                             "key": "another-child",
-                            "id": "octue/another-child:latest",
+                            "id": "octue/another-child:2.3.0",
                             "backend": {
                                 "name": "GCPPubSubBackend",
                                 "project_name": "my-project",
@@ -787,13 +787,13 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
 
                 emulated_children = [
                     ChildEmulator(
-                        id="octue/a-child:latest",
+                        id="octue/a-child:2.3.0",
                         messages=[
                             {"type": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
                         ],
                     ),
                     ChildEmulator(
-                        id="octue/another-child:latest",
+                        id="octue/another-child:2.3.0",
                         messages=[
                             {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
                             {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
@@ -901,14 +901,14 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
 
                 # First question.
                 self.assertEqual(questions[0]["key"], "my-child")
-                self.assertEqual(questions[0]["id"], "octue/a-child:latest")
+                self.assertEqual(questions[0]["id"], "octue/a-child:2.3.0")
                 self.assertEqual(questions[0]["input_values"], [1, 2, 3, 4])
                 self.assertEqual(questions[0]["messages"][1]["output_values"], [1, 4, 9, 16])
                 self.assertEqual(len(questions[0]["messages"]), 2)
 
                 # Second question.
                 self.assertEqual(questions[1]["key"], "another-child")
-                self.assertEqual(questions[1]["id"], "octue/another-child:latest")
+                self.assertEqual(questions[1]["id"], "octue/another-child:2.3.0")
                 self.assertEqual(questions[1]["input_values"], "miaow")
                 self.assertEqual(questions[1]["messages"][1]["output_values"], "woof")
 

@@ -100,11 +100,6 @@ class TestService(BaseTestCase):
         service = Service(backend=BACKEND)
         self.assertEqual(repr(service), f"<Service({service.id!r})>")
 
-    def test_repr_with_name(self):
-        """Test that services are represented using their name if they have one."""
-        service = Service(backend=BACKEND, name="octue/blah-service:latest")
-        self.assertEqual(repr(service), "<Service('octue/blah-service:latest')>")
-
     def test_service_id_cannot_be_non_none_empty_value(self):
         """Ensure that a ValueError is raised if a non-None empty value is provided as the service_id."""
         with self.assertRaises(ValueError):
@@ -124,14 +119,14 @@ class TestService(BaseTestCase):
                 side_effect=google.api_core.exceptions.AlreadyExists(""),
             ):
                 with self.assertRaises(exceptions.ServiceAlreadyExists):
-                    MockService(backend=BACKEND, service_id="my-org/existing-service:latest").serve()
+                    MockService(backend=BACKEND, service_id="my-org/existing-service:2.3.0").serve()
 
     def test_serve(self):
         """Test that serving works with a unique service ID. Test that the returned future has itself been returned and
         that the returned subscriber has been closed.
         """
         with self.service_patcher:
-            future, subscriber = MockService(backend=BACKEND, service_id="my-org/existing-service:latest").serve()
+            future, subscriber = MockService(backend=BACKEND, service_id="my-org/existing-service:2.3.0").serve()
 
         self.assertFalse(future.cancelled)
         self.assertTrue(future.returned)
@@ -142,7 +137,7 @@ class TestService(BaseTestCase):
         the returned subscriber is not closed.
         """
         with self.service_patcher:
-            service = MockService(backend=BACKEND, service_id="my-org/existing-service-d:latest")
+            service = MockService(backend=BACKEND, service_id="my-org/existing-service-d:2.3.0")
             future, subscriber = service.serve(detach=True)
 
         self.assertFalse(future.cancelled)
@@ -155,7 +150,7 @@ class TestService(BaseTestCase):
         """
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with self.assertRaises(exceptions.ServiceNotFound):
-                MockService(backend=BACKEND).ask(service_id="my-org/existing-service:latest", input_values=[1, 2, 3, 4])
+                MockService(backend=BACKEND).ask(service_id="my-org/existing-service:2.3.0", input_values=[1, 2, 3, 4])
 
     def test_timeout_error_raised_if_no_messages_received_when_waiting(self):
         """Test that a TimeoutError is raised if no messages are received while waiting."""
@@ -496,7 +491,7 @@ class TestService(BaseTestCase):
         """
         with self.assertRaises(exceptions.FileLocationError):
             MockService(backend=BACKEND).ask(
-                service_id="octue/test-service:latest",
+                service_id="octue/test-service:2.3.0",
                 input_values={},
                 input_manifest=self.create_valid_manifest(),
             )
@@ -828,7 +823,7 @@ class TestService(BaseTestCase):
         static_children = [
             {
                 "key": "expected_child",
-                "id": "octue/static-child-of-child:latest",
+                "id": "octue/static-child-of-child:2.3.0",
                 "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
             },
         ]
@@ -841,24 +836,24 @@ class TestService(BaseTestCase):
                 "output_values_schema": {},
             },
             children=static_children,
-            service_id="octue/child:latest",
+            service_id="octue/child:2.3.0",
         )
 
         static_child_of_child = self.make_new_child(
             backend=BACKEND,
-            service_id="octue/static-child-of-child:latest",
+            service_id="octue/static-child-of-child:2.3.0",
             run_function_returnee=MockAnalysis(output_values="I am the static child."),
         )
 
         dynamic_child_of_child = self.make_new_child(
             backend=BACKEND,
-            service_id="octue/dynamic-child-of-child:latest",
+            service_id="octue/dynamic-child-of-child:2.3.0",
             run_function_returnee=MockAnalysis(output_values="I am the dynamic child."),
         )
 
         child = MockService(
             backend=BACKEND,
-            service_id="octue/child:latest",
+            service_id="octue/child:2.3.0",
             run_function=runner.run,
             children={
                 static_child_of_child.id: static_child_of_child,
@@ -866,12 +861,12 @@ class TestService(BaseTestCase):
             },
         )
 
-        parent = MockService(backend=BACKEND, service_id="octue/parent:latest", children={child.id: child})
+        parent = MockService(backend=BACKEND, service_id="octue/parent:2.3.0", children={child.id: child})
 
         dynamic_children = [
             {
                 "key": "expected_child",
-                "id": "octue/dynamic-child-of-child:latest",
+                "id": "octue/dynamic-child-of-child:2.3.0",
                 "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
             },
         ]

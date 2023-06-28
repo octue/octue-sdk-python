@@ -316,7 +316,7 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
             with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "questions.json")) as f:
                 questions = json.load(f)
 
-            self.assertEqual(questions[0]["id"], "octue/my-child:latest")
+            self.assertEqual(questions[0]["id"], "octue/my-child:2.3.0")
 
             self.assertEqual(
                 questions[0]["messages"],
@@ -383,7 +383,7 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
             with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "questions.json")) as f:
                 questions = json.load(f)
 
-            self.assertEqual(questions[0]["id"], "octue/my-child:latest")
+            self.assertEqual(questions[0]["id"], "octue/my-child:2.3.0")
 
             self.assertEqual(
                 questions[0]["messages"],

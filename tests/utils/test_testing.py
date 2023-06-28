@@ -26,7 +26,7 @@ class TestTesting(TestCase):
         self.assertIn("input_dataset", input_manifest.datasets)
 
         self.assertEqual(len(child_emulators), 1)
-        self.assertEqual(child_emulators[0].id, "octue/my-child:latest")
+        self.assertEqual(child_emulators[0].id, "octue/my-child:2.3.0")
         self.assertEqual(
             child_emulators[0].messages[2:],
             [

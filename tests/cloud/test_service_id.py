@@ -172,7 +172,7 @@ class TestValidateServiceSRUID(unittest.TestCase):
 class TestSplitServiceID(unittest.TestCase):
     def test_split_sruid(self):
         """Test that a valid SRUID can be split into its namespace, name, and revision tag."""
-        namespace, name, revision_tag = split_service_id("octue/my-service:latest")
+        namespace, name, revision_tag = split_service_id("octue/my-service:2.3.0")
         self.assertEqual(namespace, "octue")
         self.assertEqual(name, "my-service")
         self.assertEqual(revision_tag, "latest")

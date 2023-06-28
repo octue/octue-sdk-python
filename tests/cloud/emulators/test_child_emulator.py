@@ -19,8 +19,8 @@ class TestChildEmulatorAsk(BaseTestCase):
     def test_representation(self):
         """Test that child emulators are represented correctly."""
         self.assertEqual(
-            repr(ChildEmulator(id="octue/emulated-child:latest")),
-            "<ChildEmulator('octue/emulated-child:latest')>",
+            repr(ChildEmulator(id="octue/emulated-child:2.3.0")),
+            "<ChildEmulator('octue/emulated-child:2.3.0')>",
         )
 
     def test_ask_with_non_dictionary_message(self):
@@ -319,9 +319,9 @@ class TestChildEmulatorJSONFiles(BaseTestCase):
         asked a question, and produce the correct messages.
         """
         child_emulator = ChildEmulator.from_file(os.path.join(self.TEST_FILES_DIRECTORY, "full_file.json"))
-        self.assertEqual(child_emulator.id, "octue/my-child:latest")
+        self.assertEqual(child_emulator.id, "octue/my-child:2.3.0")
         self.assertEqual(child_emulator._child.backend.project_name, "blah")
-        self.assertEqual(child_emulator._parent.id, "octue/my-service:latest")
+        self.assertEqual(child_emulator._parent.id, "octue/my-service:2.3.0")
 
         monitor_messages = []
 
