@@ -175,7 +175,7 @@ class TestSplitServiceID(unittest.TestCase):
         namespace, name, revision_tag = split_service_id("octue/my-service:2.3.0")
         self.assertEqual(namespace, "octue")
         self.assertEqual(name, "my-service")
-        self.assertEqual(revision_tag, "latest")
+        self.assertEqual(revision_tag, "2.3.0")
 
     def test_split_service_id(self):
         """Test that a service ID without a revision tag can be split into its namespace and name."""
