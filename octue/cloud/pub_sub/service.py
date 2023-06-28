@@ -40,9 +40,50 @@ ANSWERS_NAMESPACE = "answers"
 # microservices publishing single messages in a request-response sequence.
 BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_latency=0.01, max_messages=1)
 
+GOOGLE_CLOUD_REGIONS = [
+    "europe-central2",
+    "europe-north1",
+    "europe-southwest1",
+    "europe-west1",
+    "europe-west12",
+    "europe-west2",
+    "europe-west3",
+    "europe-west4",
+    "europe-west6",
+    "europe-west8",
+    "europe-west9",
+    "asia-east1",
+    "asia-east2",
+    "asia-northeast1",
+    "asia-northeast2",
+    "asia-northeast3",
+    "asia-south1",
+    "asia-south2",
+    "asia-southeast1",
+    "asia-southeast2",
+    "australia-southeast1",
+    "australia-southeast2",
+    "me-central1",
+    "me-west1",
+    "northamerica-northeast1",
+    "northamerica-northeast2",
+    "southamerica-east1",
+    "southamerica-west1",
+    "us-central1",
+    "us-east1",
+    "us-east4",
+    "us-east5",
+    "us-south1",
+    "us-west1",
+    "us-west2",
+    "us-west3",
+    "us-west4",
+]
 
-def get_latest_service_revision_tag(project_name, namespace, name, region):
-    """Get the latest revision tag for the service with the given namespace and name.
+
+def get_latest_service_revision_tag(project_name, namespace, name, region=None):
+    """Get the latest revision tag for the service with the given namespace and name. If the region isn't given,
+    currently known Google Cloud regions supporting Cloud Run are tried until a matching service is found.
 
     :param str project_name: the name of the project the service is deployed in
     :param str namespace: the namespace of the service
@@ -50,9 +91,20 @@ def get_latest_service_revision_tag(project_name, namespace, name, region):
     :param str region: the Google Cloud region the service is deployed to
     :return str: the revision tag of the latest revision of the service
     """
-    service_path = f"projects/{project_name}/locations/{region}/services/{namespace}-{name}"
-    service = run_v2.ServicesClient().get_service(name=service_path)
-    return list(service.traffic)[-1].tag.strip("v").replace("-", ".")
+
+    def _get_service_revision_tag(project_name, namespace, name, region):
+        service_path = f"projects/{project_name}/locations/{region}/services/{namespace}-{name}"
+        service = run_v2.ServicesClient().get_service(name=service_path)
+        return list(service.traffic)[-1].tag.strip("v").replace("-", ".")
+
+    if region:
+        return _get_service_revision_tag(project_name, namespace, name, region)
+
+    for region in GOOGLE_CLOUD_REGIONS:
+        try:
+            return _get_service_revision_tag(project_name, namespace, name, region)
+        except google.api_core.exceptions.NotFound:
+            continue
 
 
 class Service:
