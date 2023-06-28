@@ -144,16 +144,20 @@ class Service:
             raise ValueError(f"`service_id` should be `None` or a non-falsey value; received {service_id!r} instead.")
 
         else:
-            name, namespace, revision_tag = split_service_id(service_id)
+            service_namespace, service_name, service_revision_tag = split_service_id(service_id)
 
-            if revision_tag is None or revision_tag == "latest":
-                revision_tag = get_latest_service_revision_tag(
+            if service_revision_tag is None or service_revision_tag == "latest":
+                service_revision_tag = get_latest_service_revision_tag(
                     project_name=self.backend.project_name,
-                    namespace=namespace,
-                    name=name,
+                    namespace=service_namespace,
+                    name=service_name,
                 )
 
-                service_id = create_service_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
+                service_id = create_service_sruid(
+                    namespace=service_namespace,
+                    name=service_name,
+                    revision_tag=service_revision_tag,
+                )
 
             validate_service_sruid(service_id)
             self.id = service_id
