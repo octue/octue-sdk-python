@@ -16,7 +16,12 @@ import octue.exceptions
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
-from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_sruid, validate_service_sruid
+from octue.cloud.service_id import (
+    convert_service_id_to_pub_sub_form,
+    create_service_sruid,
+    split_service_id,
+    validate_service_sruid,
+)
 from octue.compatibility import warn_if_incompatible
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
@@ -68,6 +73,8 @@ class Service:
     """
 
     def __init__(self, backend, service_id=None, run_function=None, name=None):
+        self.backend = backend
+
         if service_id is None:
             self.id = create_service_sruid(namespace=DEFAULT_NAMESPACE, name=str(uuid.uuid4()))
 
@@ -76,10 +83,20 @@ class Service:
             raise ValueError(f"`service_id` should be `None` or a non-falsey value; received {service_id!r} instead.")
 
         else:
+            name, namespace, revision_tag = split_service_id(service_id)
+
+            if revision_tag is None or revision_tag == "latest":
+                revision_tag = get_latest_service_revision_tag(
+                    project_name=self.backend.project_name,
+                    namespace=namespace,
+                    name=name,
+                )
+
+                service_id = create_service_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
+
             validate_service_sruid(service_id)
             self.id = service_id
 
-        self.backend = backend
         self.run_function = run_function
         self.name = name
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
