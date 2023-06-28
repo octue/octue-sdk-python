@@ -44,6 +44,7 @@ cachetools = { version = ">=3.1.0,<5", optional = true }
 google-apitools = { version = ">=0.5.31,<0.5.32", optional = true }
 google-auth-httplib2 = { version = ">=0.1.0,<0.2.0", optional = true }
 google-cloud-datastore = { version = ">=1.8.0,<2", optional = true }
+google-cloud-run = "^0.8.0"
 
 [tool.poetry.extras]
 hdf5 = ["h5py"]

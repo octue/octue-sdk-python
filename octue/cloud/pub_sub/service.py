@@ -10,7 +10,7 @@ import uuid
 import google.api_core.exceptions
 import pkg_resources
 from google.api_core import retry
-from google.cloud import pubsub_v1
+from google.cloud import pubsub_v1, run_v2
 
 import octue.exceptions
 from octue.cloud.pub_sub import Subscription, Topic
@@ -34,6 +34,20 @@ ANSWERS_NAMESPACE = "answers"
 # Switch message batching off by setting `max_messages` to 1. This minimises latency and is recommended for
 # microservices publishing single messages in a request-response sequence.
 BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_latency=0.01, max_messages=1)
+
+
+def get_latest_service_revision_tag(project_name, namespace, name, region):
+    """Get the latest revision tag for the service with the given namespace and name.
+
+    :param str project_name: the name of the project the service is deployed in
+    :param str namespace: the namespace of the service
+    :param str name: the name of the service
+    :param str region: the Google Cloud region the service is deployed to
+    :return str: the revision tag of the latest revision of the service
+    """
+    service_path = f"projects/{project_name}/locations/{region}/services/{namespace}-{name}"
+    service = run_v2.ServicesClient().get_service(name=service_path)
+    return list(service.traffic)[-1].tag.strip("v").replace("-", ".")
 
 
 class Service:
