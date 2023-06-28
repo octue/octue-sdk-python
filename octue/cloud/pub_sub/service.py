@@ -92,17 +92,17 @@ def get_latest_service_revision_tag(project_name, namespace, name, region=None):
     :return str: the revision tag of the latest revision of the service
     """
 
-    def _get_service_revision_tag(project_name, namespace, name, region):
+    def _get_latest_service_revision_tag(project_name, namespace, name, region):
         service_path = f"projects/{project_name}/locations/{region}/services/{namespace}-{name}"
         service = run_v2.ServicesClient().get_service(name=service_path)
         return list(service.traffic)[-1].tag.strip("v").replace("-", ".")
 
     if region:
-        return _get_service_revision_tag(project_name, namespace, name, region)
+        return _get_latest_service_revision_tag(project_name, namespace, name, region)
 
     for region in GOOGLE_CLOUD_REGIONS:
         try:
-            return _get_service_revision_tag(project_name, namespace, name, region)
+            return _get_latest_service_revision_tag(project_name, namespace, name, region)
         except google.api_core.exceptions.NotFound:
             continue
 
