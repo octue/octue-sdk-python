@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 
 import google.api_core.exceptions
 
+import octue.exceptions
 import twined.exceptions
 from octue import Runner, exceptions
 from octue.cloud.emulators._pub_sub import (
@@ -36,6 +37,22 @@ BACKEND = GCPPubSubBackend(project_name=TEST_PROJECT_NAME)
 
 
 class TestGetLatestServiceRevisionTag(BaseTestCase):
+    def test_error_raised_if_revision_not_found(self):
+        """Test that an error is raised if no revision is found for the given service."""
+        for region in ["some-region", None]:
+            with self.subTest(region=region):
+                with patch(
+                    "octue.cloud.pub_sub.service.run_v2.ServicesClient.get_service",
+                    side_effect=google.api_core.exceptions.NotFound("blah"),
+                ):
+                    with self.assertRaises(octue.exceptions.ServiceNotFound):
+                        get_latest_service_revision_tag(
+                            project_name="my-project",
+                            namespace="my-org",
+                            name="my-service",
+                            region=region,
+                        )
+
     def test_with_region(self):
         """Test that the latest tag for a service can be found when a region is given."""
         with patch(

@@ -88,9 +88,13 @@ def get_latest_service_revision_tag(project_name, namespace, name, region=None):
     :param str project_name: the name of the project the service is deployed in
     :param str namespace: the namespace of the service
     :param str name: the name of the service
-    :param str region: the Google Cloud region the service is deployed to
-    :return str: the revision tag of the latest revision of the service
+    :param str|None region: the Google Cloud region the service is deployed to
+    :raise octue.exceptions.ServiceNotFound: if a revision can't be found for the service
+    :return str: the revision tag of the latest revision of the service if a revision exists
     """
+    service_not_found_error = octue.exceptions.ServiceNotFound(
+        f"No service named {namespace + '/' + name!r} was found in {region or GOOGLE_CLOUD_REGIONS!r}."
+    )
 
     def _get_latest_service_revision_tag(project_name, namespace, name, region):
         service_path = f"projects/{project_name}/locations/{region}/services/{namespace}-{name}"
@@ -98,13 +102,18 @@ def get_latest_service_revision_tag(project_name, namespace, name, region=None):
         return list(service.traffic)[-1].tag.strip("v").replace("-", ".")
 
     if region:
-        return _get_latest_service_revision_tag(project_name, namespace, name, region)
+        try:
+            return _get_latest_service_revision_tag(project_name, namespace, name, region)
+        except google.api_core.exceptions.NotFound:
+            raise service_not_found_error
 
     for region in GOOGLE_CLOUD_REGIONS:
         try:
             return _get_latest_service_revision_tag(project_name, namespace, name, region)
         except google.api_core.exceptions.NotFound:
             continue
+
+    raise service_not_found_error
 
 
 class Service:
