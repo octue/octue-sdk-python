@@ -146,7 +146,7 @@ class Service:
         else:
             service_namespace, service_name, service_revision_tag = split_service_id(service_id)
 
-            if service_revision_tag is None or service_revision_tag == "latest":
+            if not service_revision_tag or service_revision_tag == "latest":
                 service_revision_tag = get_latest_service_revision_tag(
                     project_name=self.backend.project_name,
                     namespace=service_namespace,
