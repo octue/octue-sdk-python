@@ -46,6 +46,7 @@ class TestAnswerPubSubQuestion(TestCase):
                 "crash_diagnostics_cloud_path": None,
                 "project_name": "a-project-name",
                 "service_id": "testing/test-service:blah",
+                "service_registries": None,
             }
         )
 
@@ -100,5 +101,6 @@ class TestAnswerPubSubQuestion(TestCase):
                 "crash_diagnostics_cloud_path": None,
                 "project_name": "a-project-name",
                 "service_id": "testing/test-service:blah",
+                "service_registries": None,
             }
         )
