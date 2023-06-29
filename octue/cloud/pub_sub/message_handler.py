@@ -1,3 +1,4 @@
+import importlib.metadata
 import json
 import logging
 import math
@@ -6,7 +7,6 @@ import re
 import time
 from datetime import datetime, timedelta
 
-import pkg_resources
 from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
 
@@ -313,7 +313,7 @@ class OrderedMessageHandler:
         :return None:
         """
         warn_if_incompatible(
-            parent_sdk_version=pkg_resources.get_distribution("octue").version,
+            parent_sdk_version=importlib.metadata.version("octue"),
             child_sdk_version=self._child_sdk_version,
         )
 

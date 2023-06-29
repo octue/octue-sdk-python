@@ -2,13 +2,13 @@ import base64
 import concurrent.futures
 import datetime
 import functools
+import importlib.metadata
 import json
 import logging
 import threading
 import uuid
 
 import google.api_core.exceptions
-import pkg_resources
 from google.api_core import retry
 from google.cloud import pubsub_v1
 
@@ -85,7 +85,7 @@ class Service:
         ]
 
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
-        self._local_sdk_version = pkg_resources.get_distribution("octue").version
+        self._local_sdk_version = importlib.metadata.version("octue")
         self._publisher = None
         self._message_handler = None
 

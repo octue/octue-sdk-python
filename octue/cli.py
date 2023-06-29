@@ -1,5 +1,6 @@
 import copy
 import functools
+import importlib.metadata
 import importlib.util
 import json
 import logging
@@ -7,7 +8,6 @@ import os
 import sys
 
 import click
-import pkg_resources
 from google import auth
 
 from octue.cloud import storage
@@ -53,7 +53,7 @@ global_cli_context = {}
     show_default=True,
     help="Forces a reset of analysis cache and outputs [For future use, currently not implemented]",
 )
-@click.version_option(version=pkg_resources.get_distribution("octue").version)
+@click.version_option(version=importlib.metadata.version("octue"))
 def octue_cli(id, logger_uri, log_level, force_reset):
     """The CLI for the Octue SDK. Use it to start an Octue data service or digital twin locally or run an analysis on
     one locally.

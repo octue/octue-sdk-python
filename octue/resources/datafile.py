@@ -1,6 +1,7 @@
 import copy
 import datetime
 import functools
+import importlib.metadata
 import json
 import logging
 import os
@@ -8,7 +9,6 @@ import shutil
 import tempfile
 import warnings
 
-import pkg_resources
 import requests
 from google_crc32c import Checksum
 
@@ -709,9 +709,9 @@ class _DatafileContextManager:
 
         if self.datafile.extension == "hdf5":
             try:
-                pkg_resources.get_distribution("h5py")
+                importlib.metadata.version("h5py")
                 self._fp = h5py.File(self.datafile.local_path, self.mode, **self.kwargs)
-            except pkg_resources.DistributionNotFound:
+            except importlib.metadata.PackageNotFoundError:
                 raise ImportError(
                     "To use datafiles with HDF5 files, please install octue with the 'hdf5' option i.e. "
                     "`pip install octue[hdf5]`."
