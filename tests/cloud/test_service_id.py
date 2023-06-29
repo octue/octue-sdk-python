@@ -194,7 +194,7 @@ class TestGetLatestServiceRevisionSRUID(unittest.TestCase):
     SERVICE_REGISTRIES = [{"name": "Octue Registry", "endpoint": "blah.com/services"}]
 
     def test_error_raised_if_revision_not_found(self):
-        """Test that an error is raised if no revision is found for the given service."""
+        """Test that an error is raised if no revision is found for the service in the given registries."""
         mock_response = requests.Response()
         mock_response.status_code = 404
 
@@ -207,22 +207,22 @@ class TestGetLatestServiceRevisionSRUID(unittest.TestCase):
                 )
 
     def test_get_latest_service_revision_sruid(self):
-        """Test that the latest tag for a service can be found."""
+        """Test that the latest SRUID for a service can be found."""
         mock_response = requests.Response()
         mock_response.status_code = 200
         mock_response._content = json.dumps({"revision_tag": "1.3.9"}).encode()
 
         with patch("requests.get", return_value=mock_response):
-            latest_tag = get_latest_service_revision_sruid(
+            latest_sruid = get_latest_service_revision_sruid(
                 namespace="my-org",
                 name="my-service",
                 service_registries=self.SERVICE_REGISTRIES,
             )
 
-        self.assertEqual(latest_tag, "my-org/my-service:1.3.9")
+        self.assertEqual(latest_sruid, "my-org/my-service:1.3.9")
 
     def test_get_latest_service_revision_sruid_when_not_in_first_registry(self):
-        """Test that the latest tag for a service can be found when the service isn't in the first registry."""
+        """Test that the latest SRUID for a service can be found when the service isn't in the first registry."""
         mock_failure_response = requests.Response()
         mock_failure_response.status_code = 404
 
