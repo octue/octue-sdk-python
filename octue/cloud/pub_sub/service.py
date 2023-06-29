@@ -44,7 +44,9 @@ BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_l
 
 
 def get_latest_service_revision_sruid(namespace, name, service_registries):
-    """Get the SRUID of the latest revision of the service named `<namespace>/<name>`.
+    """Get the SRUID of the latest revision of the service `<namespace>/<name>` if it exists in one of the specified
+    service registries. The registries should be provided in priority order so that, if more than one registry contains
+    a matching service, the revision that's returned is taken from the highest priority (first) registry.
 
     :param str namespace: the namespace of the service
     :param str name: the name of the service
@@ -52,15 +54,17 @@ def get_latest_service_revision_sruid(namespace, name, service_registries):
     :raise octue.exceptions.ServiceNotFound: if a revision can't be found for the service in the service registries
     :return str: the SRUID of the latest revision of the service
     """
+    service_id = f"{namespace}/{name}"
+
     for registry in service_registries:
-        response = requests.get(f"{registry['endpoint']}/{namespace}/{name}")
+        response = requests.get(f"{registry['endpoint']}/{service_id}")
 
         if response.ok:
+            logger.info("Found service %r in %r registry.", service_id, registry["name"])
             return create_service_sruid(namespace=namespace, name=name, revision_tag=response.json()["revision_tag"])
 
     raise octue.exceptions.ServiceNotFound(
-        f"No service named {namespace + '/' + name!r} was found in the "
-        f"{[registry['name'] for registry in service_registries]!r} service registries."
+        f"No service named {service_id!r} was found in any of the specified service registries: {service_registries!r}"
     )
 
 
