@@ -1,6 +1,5 @@
 import datetime
 import functools
-import json
 import logging
 import random
 import tempfile
@@ -8,9 +7,7 @@ import time
 from unittest.mock import patch
 
 import google.api_core.exceptions
-import requests
 
-import octue.exceptions
 import twined.exceptions
 from octue import Runner, exceptions
 from octue.cloud.emulators._pub_sub import (
@@ -24,7 +21,7 @@ from octue.cloud.emulators._pub_sub import (
 )
 from octue.cloud.emulators.child import ServicePatcher
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
-from octue.cloud.pub_sub.service import Service, get_latest_service_revision_sruid
+from octue.cloud.pub_sub.service import Service
 from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Analysis, Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
@@ -36,57 +33,6 @@ logger = logging.getLogger(__name__)
 
 
 BACKEND = GCPPubSubBackend(project_name=TEST_PROJECT_NAME)
-
-
-class TestGetLatestServiceRevisionSRUID(BaseTestCase):
-    SERVICE_REGISTRIES = [{"name": "Octue Registry", "endpoint": "blah.com/services"}]
-
-    def test_error_raised_if_revision_not_found(self):
-        """Test that an error is raised if no revision is found for the given service."""
-        mock_response = requests.Response()
-        mock_response.status_code = 404
-
-        with patch("requests.get", return_value=mock_response):
-            with self.assertRaises(octue.exceptions.ServiceNotFound):
-                get_latest_service_revision_sruid(
-                    namespace="my-org",
-                    name="my-service",
-                    service_registries=self.SERVICE_REGISTRIES,
-                )
-
-    def test_get_latest_service_revision_sruid(self):
-        """Test that the latest tag for a service can be found."""
-        mock_response = requests.Response()
-        mock_response.status_code = 200
-        mock_response._content = json.dumps({"revision_tag": "1.3.9"}).encode()
-
-        with patch("requests.get", return_value=mock_response):
-            latest_tag = get_latest_service_revision_sruid(
-                namespace="my-org",
-                name="my-service",
-                service_registries=self.SERVICE_REGISTRIES,
-            )
-
-        self.assertEqual(latest_tag, "my-org/my-service:1.3.9")
-
-    def test_get_latest_service_revision_sruid_when_not_in_first_registry(self):
-        """Test that the latest tag for a service can be found when the service isn't in the first registry."""
-        mock_failure_response = requests.Response()
-        mock_failure_response.status_code = 404
-
-        mock_success_response = requests.Response()
-        mock_success_response.status_code = 200
-        mock_success_response._content = json.dumps({"revision_tag": "1.3.9"}).encode()
-
-        with patch("requests.get", side_effect=[mock_failure_response, mock_success_response]):
-            latest_sruid = get_latest_service_revision_sruid(
-                namespace="my-org",
-                name="my-service",
-                service_registries=self.SERVICE_REGISTRIES
-                + [{"name": "Another Registry", "endpoint": "cats.com/services"}],
-            )
-
-        self.assertEqual(latest_sruid, "my-org/my-service:1.3.9")
 
 
 class TestService(BaseTestCase):

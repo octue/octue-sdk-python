@@ -1,10 +1,15 @@
+import json
 import logging
 import os
 import unittest
 from unittest.mock import patch
 
+import requests
+
+import octue.exceptions
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
+    get_latest_service_revision_sruid,
     get_service_sruid_parts,
     split_service_id,
     validate_service_sruid,
@@ -183,3 +188,54 @@ class TestSplitServiceID(unittest.TestCase):
         self.assertEqual(namespace, "octue")
         self.assertEqual(name, "my-service")
         self.assertIsNone(revision_tag)
+
+
+class TestGetLatestServiceRevisionSRUID(unittest.TestCase):
+    SERVICE_REGISTRIES = [{"name": "Octue Registry", "endpoint": "blah.com/services"}]
+
+    def test_error_raised_if_revision_not_found(self):
+        """Test that an error is raised if no revision is found for the given service."""
+        mock_response = requests.Response()
+        mock_response.status_code = 404
+
+        with patch("requests.get", return_value=mock_response):
+            with self.assertRaises(octue.exceptions.ServiceNotFound):
+                get_latest_service_revision_sruid(
+                    namespace="my-org",
+                    name="my-service",
+                    service_registries=self.SERVICE_REGISTRIES,
+                )
+
+    def test_get_latest_service_revision_sruid(self):
+        """Test that the latest tag for a service can be found."""
+        mock_response = requests.Response()
+        mock_response.status_code = 200
+        mock_response._content = json.dumps({"revision_tag": "1.3.9"}).encode()
+
+        with patch("requests.get", return_value=mock_response):
+            latest_tag = get_latest_service_revision_sruid(
+                namespace="my-org",
+                name="my-service",
+                service_registries=self.SERVICE_REGISTRIES,
+            )
+
+        self.assertEqual(latest_tag, "my-org/my-service:1.3.9")
+
+    def test_get_latest_service_revision_sruid_when_not_in_first_registry(self):
+        """Test that the latest tag for a service can be found when the service isn't in the first registry."""
+        mock_failure_response = requests.Response()
+        mock_failure_response.status_code = 404
+
+        mock_success_response = requests.Response()
+        mock_success_response.status_code = 200
+        mock_success_response._content = json.dumps({"revision_tag": "1.3.9"}).encode()
+
+        with patch("requests.get", side_effect=[mock_failure_response, mock_success_response]):
+            latest_sruid = get_latest_service_revision_sruid(
+                namespace="my-org",
+                name="my-service",
+                service_registries=self.SERVICE_REGISTRIES
+                + [{"name": "Another Registry", "endpoint": "cats.com/services"}],
+            )
+
+        self.assertEqual(latest_sruid, "my-org/my-service:1.3.9")

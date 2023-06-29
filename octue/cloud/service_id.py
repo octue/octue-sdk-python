@@ -3,6 +3,7 @@ import os
 import re
 
 import coolname
+import requests
 
 import octue.exceptions
 
@@ -179,3 +180,28 @@ def split_service_id(service_id):
         revision_tag = None
 
     return namespace, name, revision_tag
+
+
+def get_latest_service_revision_sruid(namespace, name, service_registries):
+    """Get the SRUID of the latest revision of the service `<namespace>/<name>` if it exists in one of the specified
+    service registries. The registries should be provided in priority order so that, if more than one registry contains
+    a matching service, the revision that's returned is taken from the highest priority (first) registry.
+
+    :param str namespace: the namespace of the service
+    :param str name: the name of the service
+    :param iter(dict) service_registries: the registries to look for the service in; the registries should be in priority order in case more than one has a service with the given namespace and name
+    :raise octue.exceptions.ServiceNotFound: if a revision can't be found for the service in the service registries
+    :return str: the SRUID of the latest revision of the service
+    """
+    service_id = f"{namespace}/{name}"
+
+    for registry in service_registries:
+        response = requests.get(f"{registry['endpoint']}/{service_id}")
+
+        if response.ok:
+            logger.info("Found service %r in %r registry.", service_id, registry["name"])
+            return create_service_sruid(namespace=namespace, name=name, revision_tag=response.json()["revision_tag"])
+
+    raise octue.exceptions.ServiceNotFound(
+        f"No service named {service_id!r} was found in any of the specified service registries: {service_registries!r}"
+    )
