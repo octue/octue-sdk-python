@@ -82,7 +82,7 @@ class Service:
     :param str|None service_id: a unique ID to give to the service (any string); a UUID is generated if none is given
     :param callable|None run_function: the function the service should run when it is called
     :param str|None name: an optional name to use for the service to override its ID in its string representation
-    :param iter(dict)|None service_registries:
+    :param iter(dict)|None service_registries: the names and endpoints of the registries used to resolve service revisions when asking questions; these should be in priority order (highest priority first)
     :return None:
     """
 

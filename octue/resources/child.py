@@ -15,7 +15,7 @@ class Child:
     :param str id: the ID of the child
     :param dict backend: must include the key "name" with a value of the name of the type of backend e.g. "GCPPubSubBackend" and key-value pairs for any other parameters the chosen backend expects
     :param str internal_service_name: the name to give to the internal service used to ask questions to the child
-    :param iter(dict)|None service_registries:
+    :param iter(dict)|None service_registries: the names and endpoints of the registries used to resolve the child's service revision when asking it questions; these should be in priority order (highest priority first)
     :return None:
     """
 
