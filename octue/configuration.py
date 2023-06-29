@@ -28,6 +28,7 @@ class ServiceConfiguration:
         twine_path="twine.json",
         app_configuration_path=None,
         crash_diagnostics_cloud_path=None,
+        service_registries=None,
         repository_name=None,
         repository_owner=None,
         project_name=None,
@@ -55,6 +56,7 @@ class ServiceConfiguration:
         self.twine_path = twine_path
         self.app_configuration_path = app_configuration_path
         self.crash_diagnostics_cloud_path = crash_diagnostics_cloud_path
+        self.service_registries = service_registries
 
         # Deployed services only.
         self.repository_name = repository_name

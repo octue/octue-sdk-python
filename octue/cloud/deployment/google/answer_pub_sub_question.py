@@ -46,6 +46,7 @@ def answer_question(question, project_name):
             crash_diagnostics_cloud_path=service_configuration.crash_diagnostics_cloud_path,
             project_name=project_name,
             service_id=service_sruid,
+            service_registries=service_configuration.service_registries,
         )
 
         service.run_function = runner.run

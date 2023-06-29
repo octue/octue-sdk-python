@@ -9,6 +9,7 @@ import uuid
 
 import google.api_core.exceptions
 import pkg_resources
+import requests
 from google.api_core import retry
 from google.cloud import pubsub_v1
 
@@ -35,10 +36,32 @@ send_message_lock = threading.Lock()
 
 DEFAULT_NAMESPACE = "default"
 ANSWERS_NAMESPACE = "answers"
+OCTUE_SERVICE_REGISTRY_ENDPOINT = "services.registry.octue.com"
 
 # Switch message batching off by setting `max_messages` to 1. This minimises latency and is recommended for
 # microservices publishing single messages in a request-response sequence.
 BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_latency=0.01, max_messages=1)
+
+
+def get_latest_service_revision_sruid(namespace, name, service_registries):
+    """Get the SRUID of the latest revision of the service named `<namespace>/<name>`.
+
+    :param str namespace: the namespace of the service
+    :param str name: the name of the service
+    :param iter(dict) service_registries: the registries to look for the service in; the registries should be in priority order in case more than one has a service with the given namespace and name
+    :raise octue.exceptions.ServiceNotFound: if a revision can't be found for the service in the service registries
+    :return str: the SRUID of the latest revision of the service
+    """
+    for registry in service_registries:
+        response = requests.get(f"{registry['endpoint']}/{namespace}/{name}")
+
+        if response.ok:
+            return create_service_sruid(namespace=namespace, name=name, revision_tag=response.json()["revision_tag"])
+
+    raise octue.exceptions.ServiceNotFound(
+        f"No service named {namespace + '/' + name!r} was found in the "
+        f"{[registry['name'] for registry in service_registries]!r} service registries."
+    )
 
 
 class Service:
@@ -55,12 +78,11 @@ class Service:
     :param str|None service_id: a unique ID to give to the service (any string); a UUID is generated if none is given
     :param callable|None run_function: the function the service should run when it is called
     :param str|None name: an optional name to use for the service to override its ID in its string representation
+    :param iter(dict)|None service_registries:
     :return None:
     """
 
-    def __init__(self, backend, service_id=None, run_function=None, name=None):
-        self.backend = backend
-
+    def __init__(self, backend, service_id=None, run_function=None, name=None, service_registries=None):
         if service_id is None:
             self.id = create_service_sruid(namespace=DEFAULT_NAMESPACE, name=str(uuid.uuid4()))
 
@@ -69,26 +91,20 @@ class Service:
             raise ValueError(f"`service_id` should be `None` or a non-falsey value; received {service_id!r} instead.")
 
         else:
-            service_namespace, service_name, service_revision_tag = split_service_id(service_id)
-
-            if not service_revision_tag or service_revision_tag == "latest":
-                service_revision_tag = get_latest_service_revision_tag(
-                    project_name=self.backend.project_name,
-                    namespace=service_namespace,
-                    name=service_name,
-                )
-
-                service_id = create_service_sruid(
-                    namespace=service_namespace,
-                    name=service_name,
-                    revision_tag=service_revision_tag,
-                )
-
             validate_service_sruid(service_id)
             self.id = service_id
 
+        self.backend = backend
         self.run_function = run_function
         self.name = name
+
+        self.service_registries = service_registries or [
+            {
+                "name": "Octue Registry",
+                "endpoint": OCTUE_SERVICE_REGISTRY_ENDPOINT,
+            },
+        ]
+
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
         self._local_sdk_version = pkg_resources.get_distribution("octue").version
         self._publisher = None
@@ -289,7 +305,17 @@ class Service:
         :param float|None timeout: time in seconds to keep retrying sending the question
         :return (octue.cloud.pub_sub.subscription.Subscription, str): the answer subscription and question UUID
         """
-        validate_service_sruid(service_id)
+        service_namespace, service_name, service_revision_tag = split_service_id(service_id)
+
+        if not service_revision_tag or service_revision_tag == "latest":
+            service_id = get_latest_service_revision_sruid(
+                namespace=service_namespace,
+                name=service_name,
+                service_registries=self.service_registries,
+            )
+
+        else:
+            validate_service_sruid(service_id)
 
         if not allow_local_files:
             if (input_manifest is not None) and (not input_manifest.all_datasets_are_in_cloud):

@@ -137,6 +137,7 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
         children=app_configuration.children,
         output_location=app_configuration.output_location,
         crash_diagnostics_cloud_path=service_configuration.crash_diagnostics_cloud_path,
+        service_registries=service_configuration.service_registries,
     )
 
     if monitor_messages_file:
