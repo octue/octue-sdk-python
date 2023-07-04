@@ -206,3 +206,42 @@ Overriding beyond the first generation
 It's an intentional choice to only go one generation deep with overriding children. If you need to be able to specify a
 whole tree of children, grandchildren, and so on, please `upvote this issue.
 <https://github.com/octue/octue-sdk-python/issues/528>`_
+
+
+Using a service registry
+========================
+When asking a question, you can optionally specify one or more service registries to resolve SRUIDs against. This is
+analogous to specifying a different ``pip`` index for resolving package names when using ``pip install``. If you don't
+specify any registries, the default Octue service registry is used.
+
+Specifying service registries can be useful if:
+
+- You have your own private services that aren't on the default Octue service registry
+- You want services from one service registry with the same name as in another service registry to be prioritised
+
+Specifying service registries
+-----------------------------
+You can specify service registries in two ways:
+
+1. Globally for all questions asked inside a service. In the service configuration (``octue.yaml`` file):
+
+    .. code-block:: yaml
+
+        services:
+          - namespace: my-organisation
+            name: my-app
+            service_registries:
+              - name: my-registry
+                endpoint: blah.com/services
+
+2. For questions to a specific child, inside or outside a service:
+
+    .. code-block:: python
+
+        child = Child(
+            id="my-organisation/my-service:latest",
+            backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
+            service_registries=[
+                {"name": "my-registry", "endpoint": "blah.com/services"},
+            ]
+        )
