@@ -234,7 +234,7 @@ def split_service_id(service_id):
     return namespace, name, revision_tag
 
 
-def get_latest_service_revision_sruid(namespace, name, service_registries):
+def get_latest_sruid(namespace, name, service_registries):
     """Get the SRUID of the latest revision of the service `<namespace>/<name>` if it exists in one of the specified
     service registries. The registries should be provided in priority order so that, if more than one registry contains
     a matching service, the revision that's returned is taken from the highest priority (first) registry.
