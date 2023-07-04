@@ -113,12 +113,10 @@ Dockerfile (optional)
 
         As always, if you need help with this, feel free to drop us a message or raise an issue!
 
-Naming services
-===============
-See :ref:`here <service_naming>` for service naming requirements.
 
 Where to specify the namespace, name, and revision tag
 ------------------------------------------------------
+See :ref:`here <service_naming>` for service naming requirements.
 
 **Namespace**
 

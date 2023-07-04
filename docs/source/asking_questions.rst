@@ -35,9 +35,11 @@ and/or an input manifest.
 
 .. note::
 
-    Using the ``latest`` service revision tag or not including one at all will cause your question to be sent the latest
-    deployed instance of the service. However, this will only work if the service has been added to a service registry.
-    If it hasn't been added or you find the service isn't found, a specific service revision tag must be used.
+    Using the ``latest`` service revision tag, or not including one at all, will cause your question to be sent to the
+    latest deployed revision of the service. This is determined by making a request to a `service registry
+    <https://django-twined.readthedocs.io/en/latest/>`_ if one or more :ref:`registries are defined
+    <using_service_registries>`. If none of the service registries contain an entry for this service, a specific service
+    revision tag must be used.
 
 You can also set the following options when you call :mod:`Child.ask <octue.resources.child.Child.ask>`:
 
@@ -208,11 +210,14 @@ whole tree of children, grandchildren, and so on, please `upvote this issue.
 <https://github.com/octue/octue-sdk-python/issues/528>`_
 
 
+.. _using_service_registries:
+
 Using a service registry
 ========================
-When asking a question, you can optionally specify one or more service registries to resolve SRUIDs against. This is
-analogous to specifying a different ``pip`` index for resolving package names when using ``pip install``. If you don't
-specify any registries, the default Octue service registry is used.
+When asking a question, you can optionally specify one or more `service registries
+<https://django-twined.readthedocs.io/en/latest/>`_ to resolve SRUIDs against. This is analogous to specifying a
+different ``pip`` index for resolving package names when using ``pip install``. If you don't specify any registries, the
+default Octue service registry is used.
 
 Specifying service registries can be useful if:
 
