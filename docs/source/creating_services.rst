@@ -115,44 +115,7 @@ Dockerfile (optional)
 
 Naming services
 ===============
-
-.. admonition:: Definitions
-
-    Service revision
-        A specific instance of an Octue service that can be individually addressed. The revision could correspond to a
-        version of the service, a dynamic development branch for it, or a deliberate duplication or variation of it.
-
-    Service revision unique identifier (SRUID)
-        The combination of a service revisions's namespace, name, and revision tag that uniquely identifies it. For
-        example, ``octue/my-service:1.3.0`` where the namespace is ``octue``, the name is ``my-service``, and the
-        revision tag is ``1.3.0``.
-
-    Service namespace
-        The group to which the service belongs e.g. your name or your organisation's name. If in doubt, use the GitHub
-        handle of the user or organisation publishing the services.
-
-        Namespaces must be lower kebab case (i.e. they may contain the letters [a-z], numbers [0-9], and hyphens [-]).
-        They may not begin or end with hyphens.
-
-    Service name
-        A name to uniquely identify the service within its namespace. This usually corresponds to the name of the GitHub
-        repository for the service. Names must be lower kebab case (i.e. they may contain the letters [a-z],
-        numbers [0-9] and hyphens [-]). They may not begin or end with hyphens.
-
-    Service revision tag
-        A tag that uniquely identifies a particular revision of a service. The revision tag could correspond to a commit
-        hash like ``a3eb45``, a release number like ``0.12.4``, a branch name (e.g. ``development``), a particular
-        environment the service is deployed in (e.g. ``production``), or a combination like ``0.12.4-production``. Tags
-        may contain lowercase and uppercase letters, numbers, underscores, periods, and hyphens, but can't start with a
-        period or a dash. They can contain a maximum of 128 characters. These requirements are the same as the `Docker
-        tag format <https://docs.docker.com/engine/reference/commandline/tag/>`_.
-
-    Service ID
-        The SRUID is a special case of the service ID. A service ID can be an SRUID or just the service namespace and
-        name. It can be used to ask a question to a service without specifying a specific revision of it. This enables
-        asking questions to, for example, the service ``octue/my-service`` and automatically having them routed to its
-        latest revision. Note that this will be a future feature; currently, you will still be required to provide a
-        revision tag (i.e. a full SRUID).
+See :ref:`here <service_naming>` for service naming requirements.
 
 Where to specify the namespace, name, and revision tag
 ------------------------------------------------------

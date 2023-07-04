@@ -4,43 +4,11 @@
 Asking services questions
 =========================
 
-Octue services
-==============
-
-There's a growing range of live :ref:`services <service_definition>` in the Octue ecosystem that you can ask questions
-to and get answers from. Currently, all of them are related to wind energy. Here's a quick glossary of terms before we
-tell you more:
-
-.. admonition:: Definitions
-
-    Child
-        An Octue service that can be asked a question. This name reflects the tree structure of services (specifically,
-        `a DAG <https://en.wikipedia.org/wiki/Directed_acyclic_graph>`_) formed by the service asking the question (the
-        parent), the child it asks the question to, any children that the child asks questions to as part of forming
-        its answer, and so on.
-
-    Parent
-        An Octue service that asks a question to another Octue service (a child).
-
-    Asking a question
-        Sending data (input values and/or an input manifest) to a child for processing/analysis.
-
-    Receiving an answer
-       Receiving data (output values and/or an output manifest) from a child you asked a question to.
-
-    Octue ecosystem
-       The set of services running the ``octue`` SDK as their backend. These services guarantee:
-
-       - Defined JSON schemas and validation for input and output data
-       - An easy interface for asking them questions and receiving their answers
-       - Logs and exceptions (and potentially monitor messages) forwarded to you
-       - High availability if deployed in the cloud
-
-
 How to ask a question
 =====================
-You can ask any service a question if you have its service ID, project name, and permissions. The question is formed of
-input values and/or an input manifest.
+Questions are always asked to a *revision* of a service. You can ask a service a question if you have its
+:ref:`SRUID <sruid_definition>`, project name, and the necessary permissions. The question is formed of input values
+and/or an input manifest.
 
 .. code-block:: python
 
@@ -63,11 +31,13 @@ input values and/or an input manifest.
     >>> <FilterSet({<Datafile('my_file.csv')>, <Datafile('another_file.csv')>})>
 
 
+.. _using_latest_revision_tag:
+
 .. note::
 
-    Using the ``latest`` service revision tag will send your question to the latest deployed version of the service.
-    However, this will only work if the service has been added to a service registry. If it hasn't or the service isn't
-    found, use a specific service revision tag.
+    Using the ``latest`` service revision tag or not including one at all will cause your question to be sent the latest
+    deployed instance of the service. However, this will only work if the service has been added to a service registry.
+    If it hasn't been added or you find the service isn't found, a specific service revision tag must be used.
 
 You can also set the following options when you call :mod:`Child.ask <octue.resources.child.Child.ask>`:
 
