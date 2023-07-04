@@ -63,6 +63,12 @@ input values and/or an input manifest.
     >>> <FilterSet({<Datafile('my_file.csv')>, <Datafile('another_file.csv')>})>
 
 
+.. note::
+
+    Using the ``latest`` service revision tag will send your question to the latest deployed version of the service.
+    However, this will only work if the service has been added to a service registry. If it hasn't or the service isn't
+    found, use a specific service revision tag.
+
 You can also set the following options when you call :mod:`Child.ask <octue.resources.child.Child.ask>`:
 
 - ``children`` - If the child has children of its own (i.e. grandchildren of the parent), this optional argument can be used to override the child's "default" children. This allows you to specify particular versions of grandchildren to use (see :ref:`this subsection below <overriding_children>`).
