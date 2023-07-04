@@ -95,6 +95,7 @@ class TestValidateServiceSRUID(unittest.TestCase):
         for service_id in (
             "1.9.4",
             "my-service",
+            "my-service:",
             "my-service:1.9.4",
             "my-org/my-service",
             "-my-org/my-service:1.9.4",
@@ -108,6 +109,8 @@ class TestValidateServiceSRUID(unittest.TestCase):
             "my-org/MY-SERVICE:1.9.4",
             "my-org/MY-SERVICE:@",
             f"my-org/my-service:{'1'*129}",
+            "/my-service",
+            "/my-service:",
         ):
             with self.subTest(service_id=service_id):
                 with self.assertRaises(InvalidServiceID):
