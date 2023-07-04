@@ -10,7 +10,7 @@ import octue.exceptions
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     get_latest_sruid,
-    get_service_sruid_parts,
+    get_sruid_parts,
     split_service_id,
     validate_sruid,
 )
@@ -18,14 +18,14 @@ from octue.configuration import ServiceConfiguration
 from octue.exceptions import InvalidServiceID
 
 
-class TestGetServiceSRUIDParts(unittest.TestCase):
+class TestGetSRUIDParts(unittest.TestCase):
     SERVICE_CONFIGURATION = ServiceConfiguration(namespace="octue", name="my-service")
 
     def test_with_namespace_environment_variable_overriding_service_configuration(self):
         """Test that the service configuration namespace is overridden if the relevant environment variable is present."""
         with patch.dict(os.environ, {"OCTUE_SERVICE_NAMESPACE": "my-org"}):
             with self.assertLogs(level=logging.WARNING) as logging_context:
-                namespace, name, revision_tag = get_service_sruid_parts(self.SERVICE_CONFIGURATION)
+                namespace, name, revision_tag = get_sruid_parts(self.SERVICE_CONFIGURATION)
 
         self.assertEqual(
             logging_context.records[0].message,
@@ -41,7 +41,7 @@ class TestGetServiceSRUIDParts(unittest.TestCase):
         """Test that the service configuration name is overridden if the relevant environment variable is present."""
         with patch.dict(os.environ, {"OCTUE_SERVICE_NAME": "another-service"}):
             with self.assertLogs(level=logging.WARNING) as logging_context:
-                namespace, name, revision_tag = get_service_sruid_parts(self.SERVICE_CONFIGURATION)
+                namespace, name, revision_tag = get_sruid_parts(self.SERVICE_CONFIGURATION)
 
         self.assertEqual(
             logging_context.records[0].message,
@@ -59,7 +59,7 @@ class TestGetServiceSRUIDParts(unittest.TestCase):
         """
         with patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "this-is-a-tag"}):
             with self.assertLogs(level=logging.INFO) as logging_context:
-                namespace, name, revision_tag = get_service_sruid_parts(self.SERVICE_CONFIGURATION)
+                namespace, name, revision_tag = get_sruid_parts(self.SERVICE_CONFIGURATION)
 
         self.assertEqual(
             logging_context.records[0].message,

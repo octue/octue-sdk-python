@@ -13,7 +13,7 @@ from google import auth
 from octue.cloud import storage
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import Service
-from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_sruid, get_service_sruid_parts
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_sruid, get_sruid_parts
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.configuration import load_service_and_app_configuration
 from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
@@ -213,7 +213,7 @@ def start(service_config, revision_tag, timeout, no_rm):
     """
     service_revision_tag_override = revision_tag
     service_configuration, app_configuration = load_service_and_app_configuration(service_config)
-    service_namespace, service_name, service_revision_tag = get_service_sruid_parts(service_configuration)
+    service_namespace, service_name, service_revision_tag = get_sruid_parts(service_configuration)
 
     if service_revision_tag_override and service_revision_tag:
         logger.warning(
@@ -223,7 +223,7 @@ def start(service_config, revision_tag, timeout, no_rm):
             service_revision_tag_override,
         )
 
-    service_sruid = create_service_sruid(
+    service_sruid = create_sruid(
         namespace=service_namespace,
         name=service_name,
         revision_tag=service_revision_tag_override or service_revision_tag,
@@ -263,7 +263,7 @@ def start(service_config, revision_tag, timeout, no_rm):
 
     except ServiceAlreadyExists:
         # Generate and use a new revision tag if the service already exists.
-        service_sruid = create_service_sruid(namespace=service_namespace, name=service_name)
+        service_sruid = create_sruid(namespace=service_namespace, name=service_name)
 
         while True:
             user_confirmation = input(
@@ -439,7 +439,7 @@ def create_push_subscription(
     PUSH_ENDPOINT is the HTTP/HTTPS endpoint of the service to push to. It should be fully formed and include the
     'https://' prefix
     """
-    service_sruid = create_service_sruid(namespace=service_namespace, name=service_name, revision_tag=revision_tag)
+    service_sruid = create_sruid(namespace=service_namespace, name=service_name, revision_tag=revision_tag)
     pub_sub_sruid = convert_service_id_to_pub_sub_form(service_sruid)
 
     topic = Topic(name=pub_sub_sruid, project_name=project_name)

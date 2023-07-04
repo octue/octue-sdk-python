@@ -19,14 +19,11 @@ COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN = re.compile(SERVICE_NAMESPACE_AND_N
 REVISION_TAG_PATTERN = r"([A-z0-9_])+([-.]*([A-z0-9_])+)*"
 COMPILED_REVISION_TAG_PATTERN = re.compile(REVISION_TAG_PATTERN)
 
-SERVICE_SRUID_PATTERN = (
-    rf"^{SERVICE_NAMESPACE_AND_NAME_PATTERN}\/{SERVICE_NAMESPACE_AND_NAME_PATTERN}:{REVISION_TAG_PATTERN}$"
-)
-
-COMPILED_SERVICE_SRUID_PATTERN = re.compile(SERVICE_SRUID_PATTERN)
+SRUID_PATTERN = rf"^{SERVICE_NAMESPACE_AND_NAME_PATTERN}\/{SERVICE_NAMESPACE_AND_NAME_PATTERN}:{REVISION_TAG_PATTERN}$"
+COMPILED_SRUID_PATTERN = re.compile(SRUID_PATTERN)
 
 
-def get_service_sruid_parts(service_configuration):
+def get_sruid_parts(service_configuration):
     """Get the namespace, name, and revision tag for the service from either the service environment variables or the
     service configuration (in that order of precedence). The service revision tag is `None` if it's not provided in the
     `OCTUE_SERVICE_REVISION_TAG` environment variable as it can't be specified in the service configuration.
@@ -67,7 +64,7 @@ def get_service_sruid_parts(service_configuration):
     return service_namespace, service_name, service_revision_tag
 
 
-def create_service_sruid(namespace, name, revision_tag=None):
+def create_sruid(namespace, name, revision_tag=None):
     """Create and validate a service revision unique identifier (SRUID) from a namespace, name, and revision tag. If no
     revision tag is given, a "cool name" revision tag is generated.
 
@@ -94,7 +91,7 @@ def validate_sruid(sruid=None, namespace=None, name=None, revision_tag=None):
     :return None:
     """
     if sruid:
-        if not COMPILED_SERVICE_SRUID_PATTERN.fullmatch(sruid):
+        if not COMPILED_SRUID_PATTERN.fullmatch(sruid):
             raise octue.exceptions.InvalidServiceID(
                 f"{sruid!r} is not a valid service revision unique identifier (SRUID). It must be in the format "
                 f"<namespace>/<name>:<revision_tag>. The namespace and name must be lower kebab case (i.e. only "
@@ -252,7 +249,7 @@ def get_latest_sruid(namespace, name, service_registries):
 
         if response.ok:
             logger.info("Found service %r in %r registry.", service_id, registry["name"])
-            return create_service_sruid(namespace=namespace, name=name, revision_tag=response.json()["revision_tag"])
+            return create_sruid(namespace=namespace, name=name, revision_tag=response.json()["revision_tag"])
 
     raise octue.exceptions.ServiceNotFound(
         f"No service named {service_id!r} was found in any of the specified service registries: {service_registries!r}"

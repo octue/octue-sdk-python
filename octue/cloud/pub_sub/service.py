@@ -18,7 +18,7 @@ from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
-    create_service_sruid,
+    create_sruid,
     get_latest_sruid,
     split_service_id,
     validate_sruid,
@@ -63,7 +63,7 @@ class Service:
 
     def __init__(self, backend, service_id=None, run_function=None, name=None, service_registries=None):
         if service_id is None:
-            self.id = create_service_sruid(namespace=DEFAULT_NAMESPACE, name=str(uuid.uuid4()))
+            self.id = create_sruid(namespace=DEFAULT_NAMESPACE, name=str(uuid.uuid4()))
 
         # Raise an error if the service ID is some kind of falsey object that isn't `None`.
         elif not service_id:

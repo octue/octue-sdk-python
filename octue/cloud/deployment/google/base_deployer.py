@@ -7,7 +7,7 @@ from abc import abstractmethod
 import coolname
 import yaml
 
-from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_sruid, get_service_sruid_parts
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_sruid, get_sruid_parts
 from octue.configuration import ServiceConfiguration
 from octue.exceptions import DeploymentError
 
@@ -56,7 +56,7 @@ class BaseDeployer:
         self.build_trigger_description = None
         self.generated_cloud_build_configuration = None
 
-        self.service_namespace, self.service_name, self.service_revision_tag = get_service_sruid_parts(
+        self.service_namespace, self.service_name, self.service_revision_tag = get_sruid_parts(
             self.service_configuration
         )
 
@@ -66,7 +66,7 @@ class BaseDeployer:
         if not self.service_revision_tag:
             self.service_revision_tag = coolname.generate_slug(2)
 
-        self.service_sruid = create_service_sruid(
+        self.service_sruid = create_sruid(
             namespace=self.service_namespace,
             name=self.service_name,
             revision_tag=self.service_revision_tag,
