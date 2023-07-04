@@ -119,17 +119,8 @@ def validate_service_sruid(service_sruid=None, namespace=None, name=None, revisi
             "`revision_tag` arguments must be provided instead."
         )
 
-    if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.fullmatch(namespace):
-        raise octue.exceptions.InvalidServiceID(
-            f"{namespace!r} is not a valid namespace for a service. It must be lower kebab case (i.e. only contain "
-            "the letters [a-z], numbers [0-9], and hyphens [-]) and not begin or end with a hyphen."
-        )
-
-    if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.fullmatch(name):
-        raise octue.exceptions.InvalidServiceID(
-            f"{name!r} is not a valid name for a service. It must be lower kebab case (i.e. only contain the letters "
-            f"[a-z], numbers [0-9], and hyphens [-]) and not begin or end with a hyphen."
-        )
+    validate_namespace(namespace)
+    validate_name(name)
 
     if len(revision_tag) > 128:
         raise octue.exceptions.InvalidServiceID(
@@ -170,12 +161,29 @@ def validate_service_id(service_id=None, namespace=None, name=None):
             "arguments must be provided instead."
         )
 
+    validate_namespace(namespace)
+    validate_name(name)
+
+
+def validate_namespace(namespace):
+    """Raise an error if the service namespace doesn't meet the required patterns.
+
+    :param str|None namespace: the namespace to validate
+    :return None:
+    """
     if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.fullmatch(namespace):
         raise octue.exceptions.InvalidServiceID(
             f"{namespace!r} is not a valid namespace for a service. It must be lower kebab case (i.e. only contain "
             "the letters [a-z], numbers [0-9], and hyphens [-]) and not begin or end with a hyphen."
         )
 
+
+def validate_name(name):
+    """Raise an error if the service name doesn't meet the required patterns.
+
+    :param str|None name: the namespace to validate
+    :return None:
+    """
     if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.fullmatch(name):
         raise octue.exceptions.InvalidServiceID(
             f"{name!r} is not a valid name for a service. It must be lower kebab case (i.e. only contain the letters "
