@@ -14,7 +14,7 @@ from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.cloud.service_id import create_sruid
 from octue.resources.manifest import Manifest
 from octue.utils.processes import ProcessesContextManager
-from tests import TEST_BUCKET_NAME
+from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME
 from tests.base import BaseTestCase
 
 
@@ -140,12 +140,12 @@ class TemplateAppsTestCase(BaseTestCase):
             app_src=parent_service_path,
             twine=os.path.join(parent_service_path, "twine.json"),
             children=children,
-            service_id="template-child-services/parent-service:2.3.0",
+            service_id=f"template-child-services/parent-service:{MOCK_SERVICE_REVISION_TAG}",
         )
 
         emulated_children = [
             ChildEmulator(
-                id="template-child-services/wind-speed-service:2.3.0",
+                id=f"template-child-services/wind-speed-service:{MOCK_SERVICE_REVISION_TAG}",
                 internal_service_name=runner.service_id,
                 messages=[
                     {"type": "log_record", "log_record": {"msg": "This is an emulated child log message."}},
@@ -153,7 +153,7 @@ class TemplateAppsTestCase(BaseTestCase):
                 ],
             ),
             ChildEmulator(
-                id="template-child-services/elevation-service:2.3.0",
+                id=f"template-child-services/elevation-service:{MOCK_SERVICE_REVISION_TAG}",
                 internal_service_name=runner.service_id,
                 messages=[
                     {"type": "result", "output_values": [300], "output_manifest": None},

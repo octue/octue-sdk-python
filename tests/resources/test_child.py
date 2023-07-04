@@ -11,6 +11,7 @@ from octue.cloud.emulators._pub_sub import MockAnalysis, MockService, MockSubscr
 from octue.cloud.emulators.child import ServicePatcher
 from octue.resources.child import Child
 from octue.resources.service_backends import GCPPubSubBackend
+from tests import MOCK_SERVICE_REVISION_TAG
 from tests.base import BaseTestCase
 
 
@@ -18,7 +19,12 @@ class TestChild(BaseTestCase):
     def test_representation(self):
         """Test that children are represented correctly as a string."""
         self.assertEqual(
-            repr(Child(id="octue/my-child:2.3.0", backend={"name": "GCPPubSubBackend", "project_name": "blah"})),
+            repr(
+                Child(
+                    id=f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}",
+                    backend={"name": "GCPPubSubBackend", "project_name": "blah"},
+                )
+            ),
             "<Child('octue/my-child:2.3.0')>",
         )
 
@@ -26,7 +32,7 @@ class TestChild(BaseTestCase):
         """Test that a child can be instantiated without Google Cloud credentials."""
         with patch.dict(os.environ, clear=True):
             Child(
-                id="octue/my-child:2.3.0",
+                id=f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}",
                 backend={"name": "GCPPubSubBackend", "project_name": "blah"},
             )
 
@@ -39,7 +45,7 @@ class TestChild(BaseTestCase):
                         with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):
 
                             child = Child(
-                                id="octue/my-child:2.3.0",
+                                id=f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}",
                                 backend={"name": "GCPPubSubBackend", "project_name": "blah"},
                             )
 
@@ -54,7 +60,7 @@ class TestChild(BaseTestCase):
 
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
-            service_id="testing/wind-speed:2.3.0",
+            service_id=f"testing/wind-speed:{MOCK_SERVICE_REVISION_TAG}",
             run_function=mock_run_function,
         )
 
@@ -78,7 +84,7 @@ class TestChild(BaseTestCase):
 
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
-            service_id="testing/service-for-parallelised-questions:2.3.0",
+            service_id=f"testing/service-for-parallelised-questions:{MOCK_SERVICE_REVISION_TAG}",
             run_function=mock_run_function,
         )
 
@@ -118,7 +124,7 @@ class TestChild(BaseTestCase):
 
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
-            service_id="testing/service-for-parallelised-questions-failure:2.3.0",
+            service_id=f"testing/service-for-parallelised-questions-failure:{MOCK_SERVICE_REVISION_TAG}",
             run_function=functools.partial(mock_run_function_that_sometimes_fails, runs=Value("d", 0)),
         )
 

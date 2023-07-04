@@ -2,7 +2,7 @@ import os
 from unittest import TestCase
 
 from octue.utils.testing import load_test_fixture_from_crash_diagnostics
-from tests import TESTS_DIR
+from tests import MOCK_SERVICE_REVISION_TAG, TESTS_DIR
 
 
 TEST_CRASH_DIAGNOSTICS_PATH = os.path.join(TESTS_DIR, "data", "crash_diagnostics")
@@ -26,7 +26,7 @@ class TestTesting(TestCase):
         self.assertIn("input_dataset", input_manifest.datasets)
 
         self.assertEqual(len(child_emulators), 1)
-        self.assertEqual(child_emulators[0].id, "octue/my-child:2.3.0")
+        self.assertEqual(child_emulators[0].id, f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}")
         self.assertEqual(
             child_emulators[0].messages[2:],
             [

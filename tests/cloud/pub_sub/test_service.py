@@ -25,7 +25,7 @@ from octue.cloud.pub_sub.service import Service
 from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Analysis, Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
-from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
+from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 
 
@@ -71,14 +71,20 @@ class TestService(BaseTestCase):
                 side_effect=google.api_core.exceptions.AlreadyExists(""),
             ):
                 with self.assertRaises(exceptions.ServiceAlreadyExists):
-                    MockService(backend=BACKEND, service_id="my-org/existing-service:2.3.0").serve()
+                    MockService(
+                        backend=BACKEND,
+                        service_id=f"my-org/existing-service:{MOCK_SERVICE_REVISION_TAG}",
+                    ).serve()
 
     def test_serve(self):
         """Test that serving works with a unique service ID. Test that the returned future has itself been returned and
         that the returned subscriber has been closed.
         """
         with self.service_patcher:
-            future, subscriber = MockService(backend=BACKEND, service_id="my-org/existing-service:2.3.0").serve()
+            future, subscriber = MockService(
+                backend=BACKEND,
+                service_id=f"my-org/existing-service:{MOCK_SERVICE_REVISION_TAG}",
+            ).serve()
 
         self.assertFalse(future.cancelled)
         self.assertTrue(future.returned)
@@ -89,7 +95,7 @@ class TestService(BaseTestCase):
         the returned subscriber is not closed.
         """
         with self.service_patcher:
-            service = MockService(backend=BACKEND, service_id="my-org/existing-service-d:2.3.0")
+            service = MockService(backend=BACKEND, service_id=f"my-org/existing-service-d:{MOCK_SERVICE_REVISION_TAG}")
             future, subscriber = service.serve(detach=True)
 
         self.assertFalse(future.cancelled)
@@ -102,7 +108,10 @@ class TestService(BaseTestCase):
         """
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
             with self.assertRaises(exceptions.ServiceNotFound):
-                MockService(backend=BACKEND).ask(service_id="my-org/existing-service:2.3.0", input_values=[1, 2, 3, 4])
+                MockService(backend=BACKEND).ask(
+                    service_id=f"my-org/existing-service:{MOCK_SERVICE_REVISION_TAG}",
+                    input_values=[1, 2, 3, 4],
+                )
 
     def test_timeout_error_raised_if_no_messages_received_when_waiting(self):
         """Test that a TimeoutError is raised if no messages are received while waiting."""
@@ -443,7 +452,7 @@ class TestService(BaseTestCase):
         """
         with self.assertRaises(exceptions.FileLocationError):
             MockService(backend=BACKEND).ask(
-                service_id="octue/test-service:2.3.0",
+                service_id=f"octue/test-service:{MOCK_SERVICE_REVISION_TAG}",
                 input_values={},
                 input_manifest=self.create_valid_manifest(),
             )
@@ -775,7 +784,7 @@ class TestService(BaseTestCase):
         static_children = [
             {
                 "key": "expected_child",
-                "id": "octue/static-child-of-child:2.3.0",
+                "id": f"octue/static-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
                 "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
             },
         ]
@@ -788,24 +797,24 @@ class TestService(BaseTestCase):
                 "output_values_schema": {},
             },
             children=static_children,
-            service_id="octue/child:2.3.0",
+            service_id=f"octue/child:{MOCK_SERVICE_REVISION_TAG}",
         )
 
         static_child_of_child = self.make_new_child(
             backend=BACKEND,
-            service_id="octue/static-child-of-child:2.3.0",
+            service_id=f"octue/static-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
             run_function_returnee=MockAnalysis(output_values="I am the static child."),
         )
 
         dynamic_child_of_child = self.make_new_child(
             backend=BACKEND,
-            service_id="octue/dynamic-child-of-child:2.3.0",
+            service_id=f"octue/dynamic-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
             run_function_returnee=MockAnalysis(output_values="I am the dynamic child."),
         )
 
         child = MockService(
             backend=BACKEND,
-            service_id="octue/child:2.3.0",
+            service_id=f"octue/child:{MOCK_SERVICE_REVISION_TAG}",
             run_function=runner.run,
             children={
                 static_child_of_child.id: static_child_of_child,
@@ -813,12 +822,16 @@ class TestService(BaseTestCase):
             },
         )
 
-        parent = MockService(backend=BACKEND, service_id="octue/parent:2.3.0", children={child.id: child})
+        parent = MockService(
+            backend=BACKEND,
+            service_id=f"octue/parent:{MOCK_SERVICE_REVISION_TAG}",
+            children={child.id: child},
+        )
 
         dynamic_children = [
             {
                 "key": "expected_child",
-                "id": "octue/dynamic-child-of-child:2.3.0",
+                "id": f"octue/dynamic-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
                 "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
             },
         ]

@@ -16,6 +16,7 @@ from octue.cloud.service_id import (
 )
 from octue.configuration import ServiceConfiguration
 from octue.exceptions import InvalidServiceID
+from tests import MOCK_SERVICE_REVISION_TAG
 
 
 class TestGetSRUIDParts(unittest.TestCase):
@@ -180,10 +181,10 @@ class TestValidateSRUID(unittest.TestCase):
 class TestSplitServiceID(unittest.TestCase):
     def test_split_sruid(self):
         """Test that a valid SRUID can be split into its namespace, name, and revision tag."""
-        namespace, name, revision_tag = split_service_id("octue/my-service:2.3.0")
+        namespace, name, revision_tag = split_service_id(f"octue/my-service:{MOCK_SERVICE_REVISION_TAG}")
         self.assertEqual(namespace, "octue")
         self.assertEqual(name, "my-service")
-        self.assertEqual(revision_tag, "2.3.0")
+        self.assertEqual(revision_tag, MOCK_SERVICE_REVISION_TAG)
 
     def test_split_service_id(self):
         """Test that a service ID without a revision tag can be split into its namespace and name."""
