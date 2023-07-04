@@ -210,9 +210,11 @@ def convert_service_id_to_pub_sub_form(service_id):
 
 
 def split_service_id(service_id):
-    """Split a service ID into its namespace, name, and, if present, its revision tag.
+    """Split an SRUID or service ID into its namespace, name, and, if present, its revision tag. The split parts are
+    validated before being returned.
 
-    :param str service_id: a service ID
+    :param str service_id: the SRUID or service ID to split
+    :raise octue.exceptions.InvalidServiceID: if any of the namespace, name, or revision tag are invalid
     :return tuple(str, str, str|None): the namespace, name, and revision tag
     """
     namespace, name_and_revision_tag = service_id.split("/")

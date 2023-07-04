@@ -293,9 +293,6 @@ class Service:
                 service_registries=self.service_registries,
             )
 
-        else:
-            validate_sruid(service_id)
-
         if not allow_local_files:
             if (input_manifest is not None) and (not input_manifest.all_datasets_are_in_cloud):
                 raise octue.exceptions.FileLocationError(
