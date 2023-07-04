@@ -78,25 +78,25 @@ def create_service_sruid(namespace, name, revision_tag=None):
     :return str: the valid SRUID comprising the namespace, name, and revision tag
     """
     revision_tag = revision_tag or coolname.generate_slug(2)
-    validate_service_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
+    validate_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
     return f"{namespace}/{name}:{revision_tag}"
 
 
-def validate_service_sruid(service_sruid=None, namespace=None, name=None, revision_tag=None):
+def validate_sruid(sruid=None, namespace=None, name=None, revision_tag=None):
     """Raise an error if the service revision unique identifier (SRUID) or its components don't meet the required
     patterns. Either the `service_id` or all of the `namespace`, `name`, and `revision_tag` arguments must be given.
 
-    :param str|None service_sruid: the service SRUID to validate
+    :param str|None sruid: the service SRUID to validate
     :param str|None namespace: the namespace of a service to validate
     :param str|None name: the name of a service to validate
     :param str|None revision_tag: the revision tag of a service to validate
     :raise octue.exceptions.InvalidServiceID: if the service SRUID or any of its components are invalid
     :return None:
     """
-    if service_sruid:
-        if not COMPILED_SERVICE_SRUID_PATTERN.fullmatch(service_sruid):
+    if sruid:
+        if not COMPILED_SERVICE_SRUID_PATTERN.fullmatch(sruid):
             raise octue.exceptions.InvalidServiceID(
-                f"{service_sruid!r} is not a valid service revision unique identifier (SRUID). It must be in the format "
+                f"{sruid!r} is not a valid service revision unique identifier (SRUID). It must be in the format "
                 f"<namespace>/<name>:<revision_tag>. The namespace and name must be lower kebab case (i.e. only "
                 f"contain the letters [a-z], numbers [0-9], and hyphens [-]) and not begin or end with a hyphen. The "
                 f"revision tag can contain lowercase and uppercase letters, numbers, underscores, periods, and "
@@ -104,7 +104,7 @@ def validate_service_sruid(service_sruid=None, namespace=None, name=None, revisi
                 f"requirements are the same as the Docker tag format."
             )
 
-        revision_tag = service_sruid.split(":")[-1]
+        revision_tag = sruid.split(":")[-1]
 
         if len(revision_tag) > 128:
             raise octue.exceptions.InvalidServiceID(
@@ -229,7 +229,7 @@ def split_service_id(service_id):
     if revision_tag is None:
         validate_service_id(namespace=namespace, name=name)
     else:
-        validate_service_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
+        validate_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
 
     return namespace, name, revision_tag
 

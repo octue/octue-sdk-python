@@ -12,7 +12,7 @@ from octue.cloud.service_id import (
     get_latest_sruid,
     get_service_sruid_parts,
     split_service_id,
-    validate_service_sruid,
+    validate_sruid,
 )
 from octue.configuration import ServiceConfiguration
 from octue.exceptions import InvalidServiceID
@@ -89,7 +89,7 @@ class TestConvertServiceIDToPubSubForm(unittest.TestCase):
                 self.assertEqual(convert_service_id_to_pub_sub_form(service_id), pub_sub_service_id)
 
 
-class TestValidateServiceSRUID(unittest.TestCase):
+class TestValidateSRUID(unittest.TestCase):
     def test_error_raised_if_service_id_invalid(self):
         """Test that an error is raised if an invalid SRUID is given."""
         for service_id in (
@@ -114,7 +114,7 @@ class TestValidateServiceSRUID(unittest.TestCase):
         ):
             with self.subTest(service_id=service_id):
                 with self.assertRaises(InvalidServiceID):
-                    validate_service_sruid(service_sruid=service_id)
+                    validate_sruid(sruid=service_id)
 
     def test_no_error_raised_if_sruid_valid(self):
         """Test that no error is raised if a valid SRUID is given."""
@@ -128,7 +128,7 @@ class TestValidateServiceSRUID(unittest.TestCase):
             "my-org/my-service:some_TAG",
         ):
             with self.subTest(service_id=service_id):
-                validate_service_sruid(service_sruid=service_id)
+                validate_sruid(sruid=service_id)
 
     def test_error_raised_if_not_all_sruid_components_provided(self):
         """Test that an error is raised if, when not providing the `service_id` argument, not all of the `namespace,
@@ -141,9 +141,9 @@ class TestValidateServiceSRUID(unittest.TestCase):
         ):
             with self.subTest(namespace=namespace, name=name, revision_tag=revision_tag):
                 with self.assertRaises(ValueError):
-                    validate_service_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
+                    validate_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
 
-    def test_error_raised_if_service_sruid_components_invalid(self):
+    def test_error_raised_if_sruid_components_invalid(self):
         """Test that an error is raised if any of the SRUID components are individually invalid."""
         for namespace, name, revision_tag in (
             ("-my-org", "my-service", "1.9.4"),
@@ -160,9 +160,9 @@ class TestValidateServiceSRUID(unittest.TestCase):
         ):
             with self.subTest(namespace=namespace, name=name, revision_tag=revision_tag):
                 with self.assertRaises(InvalidServiceID):
-                    validate_service_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
+                    validate_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
 
-    def test_no_error_raised_if_service_sruid_components_valid(self):
+    def test_no_error_raised_if_sruid_components_valid(self):
         """Test that no error is raised if all components of the SRUID are valid."""
         for namespace, name, revision_tag in (
             ("my-org", "my-service", "1.9.4"),
@@ -174,7 +174,7 @@ class TestValidateServiceSRUID(unittest.TestCase):
             ("my-org", "my-service", "some_TAG"),
         ):
             with self.subTest(namespace=namespace, name=name, revision_tag=revision_tag):
-                validate_service_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
+                validate_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
 
 
 class TestSplitServiceID(unittest.TestCase):

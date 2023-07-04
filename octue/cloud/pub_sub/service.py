@@ -21,7 +21,7 @@ from octue.cloud.service_id import (
     create_service_sruid,
     get_latest_sruid,
     split_service_id,
-    validate_service_sruid,
+    validate_sruid,
 )
 from octue.compatibility import warn_if_incompatible
 from octue.utils.decoders import OctueJSONDecoder
@@ -70,7 +70,7 @@ class Service:
             raise ValueError(f"`service_id` should be `None` or a non-falsey value; received {service_id!r} instead.")
 
         else:
-            validate_service_sruid(service_id)
+            validate_sruid(service_id)
             self.id = service_id
 
         self.backend = backend
@@ -294,7 +294,7 @@ class Service:
             )
 
         else:
-            validate_service_sruid(service_id)
+            validate_sruid(service_id)
 
         if not allow_local_files:
             if (input_manifest is not None) and (not input_manifest.all_datasets_are_in_cloud):
