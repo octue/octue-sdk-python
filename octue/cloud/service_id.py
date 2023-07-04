@@ -113,7 +113,7 @@ def validate_service_sruid(service_sruid=None, namespace=None, name=None, revisi
 
         return
 
-    if not (namespace and name and revision_tag):
+    if any((namespace is None, name is None, revision_tag is None)):
         raise ValueError(
             "If not providing the `service_id` argument for SRUID validation, all of the `namespace`, `name`, and "
             "`revision_tag` arguments must be provided instead."
