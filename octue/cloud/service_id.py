@@ -178,7 +178,7 @@ def validate_namespace(namespace):
 def validate_name(name):
     """Raise an error if the service name doesn't meet the required patterns.
 
-    :param str|None name: the namespace to validate
+    :param str|None name: the name to validate
     :return None:
     """
     if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.fullmatch(name):
@@ -250,9 +250,10 @@ def get_latest_sruid(namespace, name, service_registries):
         response = requests.get(f"{registry['endpoint']}/{service_id}")
 
         if response.ok:
-            logger.info("Found service %r in %r registry.", service_id, registry["name"])
+            logger.info("Found revision for service %r in %r registry.", service_id, registry["name"])
             return create_sruid(namespace=namespace, name=name, revision_tag=response.json()["revision_tag"])
 
     raise octue.exceptions.ServiceNotFound(
-        f"No service named {service_id!r} was found in any of the specified service registries: {service_registries!r}"
+        f"No revisions for the service {service_id!r} were found in any of the specified service registries: "
+        f"{service_registries!r}"
     )
