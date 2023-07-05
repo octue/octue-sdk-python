@@ -42,7 +42,7 @@ class TestRunner(BaseTestCase):
     def test_repr(self):
         """Test that runners are represented as a string correctly."""
         runner = Runner(app_src=".", twine="{}", service_id=f"octue/my-service:{MOCK_SERVICE_REVISION_TAG}")
-        self.assertEqual(repr(runner), "<Runner('octue/my-service:2.3.0')>")
+        self.assertEqual(repr(runner), f"<Runner('octue/my-service:{MOCK_SERVICE_REVISION_TAG}')>")
 
     def test_run_with_configuration_passes(self):
         """Ensures that runs can be made with configuration only"""
@@ -394,7 +394,8 @@ class TestRunner(BaseTestCase):
         self.assertEqual(questions[1]["messages"][1]["exception_type"], "ValueError")
         self.assertEqual(
             questions[1]["messages"][1]["exception_message"],
-            "Error in <MockService('octue/yet-another-child:2.3.0')>: Deliberately raised for testing.",
+            f"Error in <MockService('octue/yet-another-child:{MOCK_SERVICE_REVISION_TAG}')>: Deliberately raised for "
+            f"testing.",
         )
 
     def test_set_up_periodic_monitor_messages(self):

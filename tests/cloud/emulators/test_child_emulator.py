@@ -20,7 +20,7 @@ class TestChildEmulatorAsk(BaseTestCase):
         """Test that child emulators are represented correctly."""
         self.assertEqual(
             repr(ChildEmulator(id=f"octue/emulated-child:{MOCK_SERVICE_REVISION_TAG}")),
-            "<ChildEmulator('octue/emulated-child:2.3.0')>",
+            f"<ChildEmulator('octue/emulated-child:{MOCK_SERVICE_REVISION_TAG}')>",
         )
 
     def test_ask_with_non_dictionary_message(self):

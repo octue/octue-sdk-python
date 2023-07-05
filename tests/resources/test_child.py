@@ -25,7 +25,7 @@ class TestChild(BaseTestCase):
                     backend={"name": "GCPPubSubBackend", "project_name": "blah"},
                 )
             ),
-            "<Child('octue/my-child:2.3.0')>",
+            f"<Child('octue/my-child:{MOCK_SERVICE_REVISION_TAG}')>",
         )
 
     def test_instantiating_child_without_credentials(self):
