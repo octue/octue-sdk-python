@@ -16,7 +16,7 @@ from octue.cloud.emulators.child import ServicePatcher
 from octue.configuration import AppConfiguration, ServiceConfiguration
 from octue.resources import Dataset
 from octue.utils.patches import MultiPatcher
-from tests import TEST_BUCKET_NAME, TESTS_DIR
+from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
 from tests.mocks import MockOpen
 
@@ -316,7 +316,7 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
             with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "questions.json")) as f:
                 questions = json.load(f)
 
-            self.assertEqual(questions[0]["id"], "octue/my-child:latest")
+            self.assertEqual(questions[0]["id"], f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}")
 
             self.assertEqual(
                 questions[0]["messages"],
@@ -383,7 +383,7 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
             with open(os.path.join(temporary_directory, self.ANALYSIS_ID, "questions.json")) as f:
                 questions = json.load(f)
 
-            self.assertEqual(questions[0]["id"], "octue/my-child:latest")
+            self.assertEqual(questions[0]["id"], f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}")
 
             self.assertEqual(
                 questions[0]["messages"],

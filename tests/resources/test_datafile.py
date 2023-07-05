@@ -1,4 +1,5 @@
 import copy
+import importlib.metadata
 import json
 import os
 import pickle
@@ -8,7 +9,6 @@ from datetime import datetime, timezone
 from unittest.mock import patch
 
 import h5py
-import pkg_resources
 
 from octue import exceptions
 from octue.cloud import storage
@@ -783,7 +783,7 @@ class TestDatafile(BaseTestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             datafile = Datafile(path=os.path.join(temporary_directory, "my-file.hdf5"))
 
-            with patch("pkg_resources.get_distribution", side_effect=pkg_resources.DistributionNotFound()):
+            with patch("importlib.metadata.version", side_effect=importlib.metadata.PackageNotFoundError()):
                 with self.assertRaises(ImportError):
                     with datafile.open("w") as f:
                         f["dataset"] = range(10)

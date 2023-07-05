@@ -3,6 +3,7 @@ import os
 import re
 
 import coolname
+import requests
 
 import octue.exceptions
 
@@ -18,14 +19,11 @@ COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN = re.compile(SERVICE_NAMESPACE_AND_N
 REVISION_TAG_PATTERN = r"([A-z0-9_])+([-.]*([A-z0-9_])+)*"
 COMPILED_REVISION_TAG_PATTERN = re.compile(REVISION_TAG_PATTERN)
 
-SERVICE_SRUID_PATTERN = (
-    rf"^{SERVICE_NAMESPACE_AND_NAME_PATTERN}\/{SERVICE_NAMESPACE_AND_NAME_PATTERN}:{REVISION_TAG_PATTERN}$"
-)
-
-COMPILED_SERVICE_SRUID_PATTERN = re.compile(SERVICE_SRUID_PATTERN)
+SRUID_PATTERN = rf"^{SERVICE_NAMESPACE_AND_NAME_PATTERN}\/{SERVICE_NAMESPACE_AND_NAME_PATTERN}:{REVISION_TAG_PATTERN}$"
+COMPILED_SRUID_PATTERN = re.compile(SRUID_PATTERN)
 
 
-def get_service_sruid_parts(service_configuration):
+def get_sruid_parts(service_configuration):
     """Get the namespace, name, and revision tag for the service from either the service environment variables or the
     service configuration (in that order of precedence). The service revision tag is `None` if it's not provided in the
     `OCTUE_SERVICE_REVISION_TAG` environment variable as it can't be specified in the service configuration.
@@ -66,7 +64,7 @@ def get_service_sruid_parts(service_configuration):
     return service_namespace, service_name, service_revision_tag
 
 
-def create_service_sruid(namespace, name, revision_tag=None):
+def create_sruid(namespace, name, revision_tag=None):
     """Create and validate a service revision unique identifier (SRUID) from a namespace, name, and revision tag. If no
     revision tag is given, a "cool name" revision tag is generated.
 
@@ -77,25 +75,25 @@ def create_service_sruid(namespace, name, revision_tag=None):
     :return str: the valid SRUID comprising the namespace, name, and revision tag
     """
     revision_tag = revision_tag or coolname.generate_slug(2)
-    validate_service_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
+    validate_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
     return f"{namespace}/{name}:{revision_tag}"
 
 
-def validate_service_sruid(service_sruid=None, namespace=None, name=None, revision_tag=None):
+def validate_sruid(sruid=None, namespace=None, name=None, revision_tag=None):
     """Raise an error if the service revision unique identifier (SRUID) or its components don't meet the required
     patterns. Either the `service_id` or all of the `namespace`, `name`, and `revision_tag` arguments must be given.
 
-    :param str|None service_sruid: the service SRUID to validate
+    :param str|None sruid: the service SRUID to validate
     :param str|None namespace: the namespace of a service to validate
     :param str|None name: the name of a service to validate
     :param str|None revision_tag: the revision tag of a service to validate
     :raise octue.exceptions.InvalidServiceID: if the service SRUID or any of its components are invalid
     :return None:
     """
-    if service_sruid:
-        if not COMPILED_SERVICE_SRUID_PATTERN.fullmatch(service_sruid):
+    if sruid:
+        if not COMPILED_SRUID_PATTERN.fullmatch(sruid):
             raise octue.exceptions.InvalidServiceID(
-                f"{service_sruid!r} is not a valid service revision unique identifier (SRUID). It must be in the format "
+                f"{sruid!r} is not a valid service revision unique identifier (SRUID). It must be in the format "
                 f"<namespace>/<name>:<revision_tag>. The namespace and name must be lower kebab case (i.e. only "
                 f"contain the letters [a-z], numbers [0-9], and hyphens [-]) and not begin or end with a hyphen. The "
                 f"revision tag can contain lowercase and uppercase letters, numbers, underscores, periods, and "
@@ -103,7 +101,7 @@ def validate_service_sruid(service_sruid=None, namespace=None, name=None, revisi
                 f"requirements are the same as the Docker tag format."
             )
 
-        revision_tag = service_sruid.split(":")[-1]
+        revision_tag = sruid.split(":")[-1]
 
         if len(revision_tag) > 128:
             raise octue.exceptions.InvalidServiceID(
@@ -112,23 +110,14 @@ def validate_service_sruid(service_sruid=None, namespace=None, name=None, revisi
 
         return
 
-    if not (namespace and name and revision_tag):
+    if any((namespace is None, name is None, revision_tag is None)):
         raise ValueError(
             "If not providing the `service_id` argument for SRUID validation, all of the `namespace`, `name`, and "
             "`revision_tag` arguments must be provided instead."
         )
 
-    if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.fullmatch(namespace):
-        raise octue.exceptions.InvalidServiceID(
-            f"{namespace!r} is not a valid namespace for a service. It must be lower kebab case (i.e. only contain "
-            "the letters [a-z], numbers [0-9], and hyphens [-]) and not begin or end with a hyphen."
-        )
-
-    if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.fullmatch(name):
-        raise octue.exceptions.InvalidServiceID(
-            f"{name!r} is not a valid name for a service. It must be lower kebab case (i.e. only contain the letters "
-            f"[a-z], numbers [0-9], and hyphens [-]) and not begin or end with a hyphen."
-        )
+    validate_namespace(namespace)
+    validate_name(name)
 
     if len(revision_tag) > 128:
         raise octue.exceptions.InvalidServiceID(
@@ -140,6 +129,62 @@ def validate_service_sruid(service_sruid=None, namespace=None, name=None, revisi
             f"{revision_tag!r} is not a valid revision tag for a service. It can contain lowercase and uppercase "
             "letters, numbers, underscores, periods, and hyphens, but can't start with a period or a dash. It can "
             "contain a maximum of 128 characters. These requirements are the same as the Docker tag format."
+        )
+
+
+def validate_service_id(service_id=None, namespace=None, name=None):
+    """Raise an error if the service ID or its components don't meet the required patterns. Either the `service_id` or
+    both the `namespace` and `name` arguments must be given.
+
+    :param str|None service_id: the service ID to validate
+    :param str|None namespace: the namespace of a service to validate
+    :param str|None name: the name of a service to validate
+    :raise octue.exceptions.InvalidServiceID: if the service ID or any of its components are invalid
+    :return None:
+    """
+    if service_id:
+        if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.fullmatch(service_id):
+            raise octue.exceptions.InvalidServiceID(
+                f"{service_id!r} is not a valid service ID. It must be in the format <namespace>/<name>. The namespace "
+                "and name must be lower kebab case (i.e. only contain the letters [a-z], numbers [0-9], and hyphens [-]"
+                ") and not begin or end with a hyphen."
+            )
+
+        return
+
+    if any((namespace is None, name is None)):
+        raise ValueError(
+            "If not providing the `service_id` argument for service ID validation, both the `namespace` and `name` "
+            "arguments must be provided instead."
+        )
+
+    validate_namespace(namespace)
+    validate_name(name)
+
+
+def validate_namespace(namespace):
+    """Raise an error if the service namespace doesn't meet the required patterns.
+
+    :param str|None namespace: the namespace to validate
+    :return None:
+    """
+    if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.fullmatch(namespace):
+        raise octue.exceptions.InvalidServiceID(
+            f"{namespace!r} is not a valid namespace for a service. It must be lower kebab case (i.e. only contain "
+            "the letters [a-z], numbers [0-9], and hyphens [-]) and not begin or end with a hyphen."
+        )
+
+
+def validate_name(name):
+    """Raise an error if the service name doesn't meet the required patterns.
+
+    :param str|None name: the name to validate
+    :return None:
+    """
+    if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.fullmatch(name):
+        raise octue.exceptions.InvalidServiceID(
+            f"{name!r} is not a valid name for a service. It must be lower kebab case (i.e. only contain the letters "
+            f"[a-z], numbers [0-9], and hyphens [-]) and not begin or end with a hyphen."
         )
 
 
@@ -162,3 +207,53 @@ def convert_service_id_to_pub_sub_form(service_id):
         service_id = service_id + "." + service_revision_tag.replace(".", "-")
 
     return service_id
+
+
+def split_service_id(service_id):
+    """Split an SRUID or service ID into its namespace, name, and, if present, its revision tag. The split parts are
+    validated before being returned.
+
+    :param str service_id: the SRUID or service ID to split
+    :raise octue.exceptions.InvalidServiceID: if any of the namespace, name, or revision tag are invalid
+    :return tuple(str, str, str|None): the namespace, name, and revision tag
+    """
+    namespace, name_and_revision_tag = service_id.split("/")
+
+    try:
+        name, revision_tag = name_and_revision_tag.split(":")
+    except ValueError:
+        name = name_and_revision_tag
+        revision_tag = None
+
+    if revision_tag is None:
+        validate_service_id(namespace=namespace, name=name)
+    else:
+        validate_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
+
+    return namespace, name, revision_tag
+
+
+def get_latest_sruid(namespace, name, service_registries):
+    """Get the SRUID of the latest revision of the service `<namespace>/<name>` if it exists in one of the specified
+    service registries. The registries should be provided in priority order so that, if more than one registry contains
+    a matching service, the revision that's returned is taken from the highest priority (first) registry.
+
+    :param str namespace: the namespace of the service
+    :param str name: the name of the service
+    :param iter(dict) service_registries: the registries to look for the service in; the registries should be in priority order in case more than one has a service with the given namespace and name
+    :raise octue.exceptions.ServiceNotFound: if a revision can't be found for the service in the service registries
+    :return str: the SRUID of the latest revision of the service
+    """
+    service_id = f"{namespace}/{name}"
+
+    for registry in service_registries:
+        response = requests.get(f"{registry['endpoint']}/{service_id}")
+
+        if response.ok:
+            logger.info("Found revision for service %r in %r registry.", service_id, registry["name"])
+            return create_sruid(namespace=namespace, name=name, revision_tag=response.json()["revision_tag"])
+
+    raise octue.exceptions.ServiceNotFound(
+        f"No revisions for the service {service_id!r} were found in any of the specified service registries: "
+        f"{service_registries!r}"
+    )

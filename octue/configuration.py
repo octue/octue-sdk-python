@@ -17,6 +17,7 @@ class ServiceConfiguration:
     :param str twine_path: the path to the twine file defining the schema for input, output, and configuration data for the service
     :param str|None app_configuration_path: the path to the app configuration file containing configuration data for the service; if this is `None`, the default application configuration is used
     :param str|None crash_diagnostics_cloud_path: the path to a cloud directory to store crash diagnostics in the event that the service fails while processing a question (this includes the configuration, input values and manifest, and logs)
+    :param iter(dict)|None service_registries: the names and endpoints of the registries used to resolve service revisions when asking questions; these should be in priority order (highest priority first)
     :return None:
     """
 
@@ -28,6 +29,7 @@ class ServiceConfiguration:
         twine_path="twine.json",
         app_configuration_path=None,
         crash_diagnostics_cloud_path=None,
+        service_registries=None,
         repository_name=None,
         repository_owner=None,
         project_name=None,
@@ -55,6 +57,7 @@ class ServiceConfiguration:
         self.twine_path = twine_path
         self.app_configuration_path = app_configuration_path
         self.crash_diagnostics_cloud_path = crash_diagnostics_cloud_path
+        self.service_registries = service_registries
 
         # Deployed services only.
         self.repository_name = repository_name

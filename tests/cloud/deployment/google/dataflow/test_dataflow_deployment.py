@@ -2,6 +2,7 @@ import os
 import unittest
 
 from octue.resources import Child
+from tests import MOCK_SERVICE_REVISION_TAG
 from tests.base import BaseTestCase
 
 
@@ -15,7 +16,7 @@ class TestDataflowDeployment(BaseTestCase):
         in response.
         """
         child = Child(
-            id="octue/example-service-dataflow:latest",
+            id=f"octue/example-service-dataflow:{MOCK_SERVICE_REVISION_TAG}",
             backend={"name": "GCPPubSubBackend", "project_name": os.environ["TEST_PROJECT_NAME"]},
         )
 

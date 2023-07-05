@@ -8,7 +8,7 @@ from octue.cloud.emulators.child import ChildEmulator, ServicePatcher
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Manifest
 from octue.resources.service_backends import GCPPubSubBackend
-from tests import TEST_BUCKET_NAME, TESTS_DIR
+from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
 
 
@@ -19,8 +19,8 @@ class TestChildEmulatorAsk(BaseTestCase):
     def test_representation(self):
         """Test that child emulators are represented correctly."""
         self.assertEqual(
-            repr(ChildEmulator(id="octue/emulated-child:latest")),
-            "<ChildEmulator('octue/emulated-child:latest')>",
+            repr(ChildEmulator(id=f"octue/emulated-child:{MOCK_SERVICE_REVISION_TAG}")),
+            f"<ChildEmulator('octue/emulated-child:{MOCK_SERVICE_REVISION_TAG}')>",
         )
 
     def test_ask_with_non_dictionary_message(self):
@@ -319,9 +319,9 @@ class TestChildEmulatorJSONFiles(BaseTestCase):
         asked a question, and produce the correct messages.
         """
         child_emulator = ChildEmulator.from_file(os.path.join(self.TEST_FILES_DIRECTORY, "full_file.json"))
-        self.assertEqual(child_emulator.id, "octue/my-child:latest")
+        self.assertEqual(child_emulator.id, f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}")
         self.assertEqual(child_emulator._child.backend.project_name, "blah")
-        self.assertEqual(child_emulator._parent.id, "octue/my-service:latest")
+        self.assertEqual(child_emulator._parent.id, f"octue/my-service:{MOCK_SERVICE_REVISION_TAG}")
 
         monitor_messages = []
 

@@ -54,6 +54,7 @@ class Runner:
         crash_diagnostics_cloud_path=None,
         project_name=None,
         service_id=None,
+        service_registries=None,
         delete_local_files=True,
     ):
         self.app_source = app_src
@@ -93,6 +94,7 @@ class Runner:
         logger.debug("Configuration validated.")
 
         self.service_id = service_id
+        self.service_registries = service_registries
         self.delete_local_files = delete_local_files
         self._project_name = project_name
 
@@ -307,6 +309,7 @@ class Runner:
                 id=uninstantiated_child["id"],
                 backend=uninstantiated_child["backend"],
                 internal_service_name=self.service_id,
+                service_registries=self.service_registries,
             )
 
             child.ask = self._add_child_question_and_response_recording(child, uninstantiated_child["key"])

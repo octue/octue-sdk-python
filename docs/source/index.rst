@@ -10,8 +10,8 @@ groundwork so you have more time for the science!
 .. admonition:: Definition
 
     Octue service
-        An Octue data service, digital twin, or application that can be asked questions, process them, and send answers.
-        Octue services can communicate with each other with no extra setup.
+        An Octue data service, digital twin, or application that can be asked questions, process them, and return
+        answers. Octue services can communicate with each other with minimal extra setup.
 
 
 Key features
@@ -82,6 +82,7 @@ We use `GitHub Issues <https://github.com/octue/octue-sdk-python/issues>`_ [#]_ 
    datafile
    dataset
    manifest
+   services
    asking_questions
    creating_services
    running_services_locally

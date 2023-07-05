@@ -2,13 +2,13 @@ import base64
 import concurrent.futures
 import datetime
 import functools
+import importlib.metadata
 import json
 import logging
 import threading
 import uuid
 
 import google.api_core.exceptions
-import pkg_resources
 from google.api_core import retry
 from google.cloud import pubsub_v1
 
@@ -16,7 +16,13 @@ import octue.exceptions
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
-from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_service_sruid, validate_service_sruid
+from octue.cloud.service_id import (
+    convert_service_id_to_pub_sub_form,
+    create_sruid,
+    get_latest_sruid,
+    split_service_id,
+    validate_sruid,
+)
 from octue.compatibility import warn_if_incompatible
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
@@ -30,6 +36,7 @@ send_message_lock = threading.Lock()
 
 DEFAULT_NAMESPACE = "default"
 ANSWERS_NAMESPACE = "answers"
+OCTUE_SERVICE_REGISTRY_ENDPOINT = "services.registry.octue.com"
 
 # Switch message batching off by setting `max_messages` to 1. This minimises latency and is recommended for
 # microservices publishing single messages in a request-response sequence.
@@ -50,26 +57,35 @@ class Service:
     :param str|None service_id: a unique ID to give to the service (any string); a UUID is generated if none is given
     :param callable|None run_function: the function the service should run when it is called
     :param str|None name: an optional name to use for the service to override its ID in its string representation
+    :param iter(dict)|None service_registries: the names and endpoints of the registries used to resolve service revisions when asking questions; these should be in priority order (highest priority first)
     :return None:
     """
 
-    def __init__(self, backend, service_id=None, run_function=None, name=None):
+    def __init__(self, backend, service_id=None, run_function=None, name=None, service_registries=None):
         if service_id is None:
-            self.id = create_service_sruid(namespace=DEFAULT_NAMESPACE, name=str(uuid.uuid4()))
+            self.id = create_sruid(namespace=DEFAULT_NAMESPACE, name=str(uuid.uuid4()))
 
         # Raise an error if the service ID is some kind of falsey object that isn't `None`.
         elif not service_id:
             raise ValueError(f"`service_id` should be `None` or a non-falsey value; received {service_id!r} instead.")
 
         else:
-            validate_service_sruid(service_id)
+            validate_sruid(service_id)
             self.id = service_id
 
         self.backend = backend
         self.run_function = run_function
         self.name = name
+
+        self.service_registries = service_registries or [
+            {
+                "name": "Octue Registry",
+                "endpoint": OCTUE_SERVICE_REGISTRY_ENDPOINT,
+            },
+        ]
+
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
-        self._local_sdk_version = pkg_resources.get_distribution("octue").version
+        self._local_sdk_version = importlib.metadata.version("octue")
         self._publisher = None
         self._message_handler = None
 
@@ -268,7 +284,14 @@ class Service:
         :param float|None timeout: time in seconds to keep retrying sending the question
         :return (octue.cloud.pub_sub.subscription.Subscription, str): the answer subscription and question UUID
         """
-        validate_service_sruid(service_id)
+        service_namespace, service_name, service_revision_tag = split_service_id(service_id)
+
+        if not service_revision_tag or service_revision_tag == "latest":
+            service_id = get_latest_sruid(
+                namespace=service_namespace,
+                name=service_name,
+                service_registries=self.service_registries,
+            )
 
         if not allow_local_files:
             if (input_manifest is not None) and (not input_manifest.all_datasets_are_in_cloud):

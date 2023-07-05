@@ -1,21 +1,32 @@
+import json
 import logging
 import os
 import unittest
 from unittest.mock import patch
 
-from octue.cloud.service_id import convert_service_id_to_pub_sub_form, get_service_sruid_parts, validate_service_sruid
+import requests
+
+import octue.exceptions
+from octue.cloud.service_id import (
+    convert_service_id_to_pub_sub_form,
+    get_latest_sruid,
+    get_sruid_parts,
+    split_service_id,
+    validate_sruid,
+)
 from octue.configuration import ServiceConfiguration
 from octue.exceptions import InvalidServiceID
+from tests import MOCK_SERVICE_REVISION_TAG
 
 
-class TestGetServiceSRUIDParts(unittest.TestCase):
+class TestGetSRUIDParts(unittest.TestCase):
     SERVICE_CONFIGURATION = ServiceConfiguration(namespace="octue", name="my-service")
 
     def test_with_namespace_environment_variable_overriding_service_configuration(self):
         """Test that the service configuration namespace is overridden if the relevant environment variable is present."""
         with patch.dict(os.environ, {"OCTUE_SERVICE_NAMESPACE": "my-org"}):
             with self.assertLogs(level=logging.WARNING) as logging_context:
-                namespace, name, revision_tag = get_service_sruid_parts(self.SERVICE_CONFIGURATION)
+                namespace, name, revision_tag = get_sruid_parts(self.SERVICE_CONFIGURATION)
 
         self.assertEqual(
             logging_context.records[0].message,
@@ -31,7 +42,7 @@ class TestGetServiceSRUIDParts(unittest.TestCase):
         """Test that the service configuration name is overridden if the relevant environment variable is present."""
         with patch.dict(os.environ, {"OCTUE_SERVICE_NAME": "another-service"}):
             with self.assertLogs(level=logging.WARNING) as logging_context:
-                namespace, name, revision_tag = get_service_sruid_parts(self.SERVICE_CONFIGURATION)
+                namespace, name, revision_tag = get_sruid_parts(self.SERVICE_CONFIGURATION)
 
         self.assertEqual(
             logging_context.records[0].message,
@@ -49,7 +60,7 @@ class TestGetServiceSRUIDParts(unittest.TestCase):
         """
         with patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "this-is-a-tag"}):
             with self.assertLogs(level=logging.INFO) as logging_context:
-                namespace, name, revision_tag = get_service_sruid_parts(self.SERVICE_CONFIGURATION)
+                namespace, name, revision_tag = get_sruid_parts(self.SERVICE_CONFIGURATION)
 
         self.assertEqual(
             logging_context.records[0].message,
@@ -79,12 +90,13 @@ class TestConvertServiceIDToPubSubForm(unittest.TestCase):
                 self.assertEqual(convert_service_id_to_pub_sub_form(service_id), pub_sub_service_id)
 
 
-class TestValidateServiceSRUID(unittest.TestCase):
+class TestValidateSRUID(unittest.TestCase):
     def test_error_raised_if_service_id_invalid(self):
         """Test that an error is raised if an invalid SRUID is given."""
         for service_id in (
             "1.9.4",
             "my-service",
+            "my-service:",
             "my-service:1.9.4",
             "my-org/my-service",
             "-my-org/my-service:1.9.4",
@@ -98,10 +110,12 @@ class TestValidateServiceSRUID(unittest.TestCase):
             "my-org/MY-SERVICE:1.9.4",
             "my-org/MY-SERVICE:@",
             f"my-org/my-service:{'1'*129}",
+            "/my-service",
+            "/my-service:",
         ):
             with self.subTest(service_id=service_id):
                 with self.assertRaises(InvalidServiceID):
-                    validate_service_sruid(service_sruid=service_id)
+                    validate_sruid(sruid=service_id)
 
     def test_no_error_raised_if_sruid_valid(self):
         """Test that no error is raised if a valid SRUID is given."""
@@ -115,7 +129,7 @@ class TestValidateServiceSRUID(unittest.TestCase):
             "my-org/my-service:some_TAG",
         ):
             with self.subTest(service_id=service_id):
-                validate_service_sruid(service_sruid=service_id)
+                validate_sruid(sruid=service_id)
 
     def test_error_raised_if_not_all_sruid_components_provided(self):
         """Test that an error is raised if, when not providing the `service_id` argument, not all of the `namespace,
@@ -128,9 +142,9 @@ class TestValidateServiceSRUID(unittest.TestCase):
         ):
             with self.subTest(namespace=namespace, name=name, revision_tag=revision_tag):
                 with self.assertRaises(ValueError):
-                    validate_service_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
+                    validate_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
 
-    def test_error_raised_if_service_sruid_components_invalid(self):
+    def test_error_raised_if_sruid_components_invalid(self):
         """Test that an error is raised if any of the SRUID components are individually invalid."""
         for namespace, name, revision_tag in (
             ("-my-org", "my-service", "1.9.4"),
@@ -147,9 +161,9 @@ class TestValidateServiceSRUID(unittest.TestCase):
         ):
             with self.subTest(namespace=namespace, name=name, revision_tag=revision_tag):
                 with self.assertRaises(InvalidServiceID):
-                    validate_service_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
+                    validate_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
 
-    def test_no_error_raised_if_service_sruid_components_valid(self):
+    def test_no_error_raised_if_sruid_components_valid(self):
         """Test that no error is raised if all components of the SRUID are valid."""
         for namespace, name, revision_tag in (
             ("my-org", "my-service", "1.9.4"),
@@ -161,4 +175,71 @@ class TestValidateServiceSRUID(unittest.TestCase):
             ("my-org", "my-service", "some_TAG"),
         ):
             with self.subTest(namespace=namespace, name=name, revision_tag=revision_tag):
-                validate_service_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
+                validate_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
+
+
+class TestSplitServiceID(unittest.TestCase):
+    def test_split_sruid(self):
+        """Test that a valid SRUID can be split into its namespace, name, and revision tag."""
+        namespace, name, revision_tag = split_service_id(f"octue/my-service:{MOCK_SERVICE_REVISION_TAG}")
+        self.assertEqual(namespace, "octue")
+        self.assertEqual(name, "my-service")
+        self.assertEqual(revision_tag, MOCK_SERVICE_REVISION_TAG)
+
+    def test_split_service_id(self):
+        """Test that a service ID without a revision tag can be split into its namespace and name."""
+        namespace, name, revision_tag = split_service_id("octue/my-service")
+        self.assertEqual(namespace, "octue")
+        self.assertEqual(name, "my-service")
+        self.assertIsNone(revision_tag)
+
+
+class TestGetLatestSRUID(unittest.TestCase):
+    SERVICE_REGISTRIES = [{"name": "Octue Registry", "endpoint": "blah.com/services"}]
+
+    def test_error_raised_if_revision_not_found(self):
+        """Test that an error is raised if no revision is found for the service in the given registries."""
+        mock_response = requests.Response()
+        mock_response.status_code = 404
+
+        with patch("requests.get", return_value=mock_response):
+            with self.assertRaises(octue.exceptions.ServiceNotFound):
+                get_latest_sruid(
+                    namespace="my-org",
+                    name="my-service",
+                    service_registries=self.SERVICE_REGISTRIES,
+                )
+
+    def test_get_latest_sruid(self):
+        """Test that the latest SRUID for a service can be found."""
+        mock_response = requests.Response()
+        mock_response.status_code = 200
+        mock_response._content = json.dumps({"revision_tag": "1.3.9"}).encode()
+
+        with patch("requests.get", return_value=mock_response):
+            latest_sruid = get_latest_sruid(
+                namespace="my-org",
+                name="my-service",
+                service_registries=self.SERVICE_REGISTRIES,
+            )
+
+        self.assertEqual(latest_sruid, "my-org/my-service:1.3.9")
+
+    def test_get_latest_sruid_when_not_in_first_registry(self):
+        """Test that the latest SRUID for a service can be found when the service isn't in the first registry."""
+        mock_failure_response = requests.Response()
+        mock_failure_response.status_code = 404
+
+        mock_success_response = requests.Response()
+        mock_success_response.status_code = 200
+        mock_success_response._content = json.dumps({"revision_tag": "1.3.9"}).encode()
+
+        with patch("requests.get", side_effect=[mock_failure_response, mock_success_response]):
+            latest_sruid = get_latest_sruid(
+                namespace="my-org",
+                name="my-service",
+                service_registries=self.SERVICE_REGISTRIES
+                + [{"name": "Another Registry", "endpoint": "cats.com/services"}],
+            )
+
+        self.assertEqual(latest_sruid, "my-org/my-service:1.3.9")

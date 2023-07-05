@@ -4,43 +4,11 @@
 Asking services questions
 =========================
 
-Octue services
-==============
-
-There's a growing range of live :ref:`services <service_definition>` in the Octue ecosystem that you can ask questions
-to and get answers from. Currently, all of them are related to wind energy. Here's a quick glossary of terms before we
-tell you more:
-
-.. admonition:: Definitions
-
-    Child
-        An Octue service that can be asked a question. This name reflects the tree structure of services (specifically,
-        `a DAG <https://en.wikipedia.org/wiki/Directed_acyclic_graph>`_) formed by the service asking the question (the
-        parent), the child it asks the question to, any children that the child asks questions to as part of forming
-        its answer, and so on.
-
-    Parent
-        An Octue service that asks a question to another Octue service (a child).
-
-    Asking a question
-        Sending data (input values and/or an input manifest) to a child for processing/analysis.
-
-    Receiving an answer
-       Receiving data (output values and/or an output manifest) from a child you asked a question to.
-
-    Octue ecosystem
-       The set of services running the ``octue`` SDK as their backend. These services guarantee:
-
-       - Defined JSON schemas and validation for input and output data
-       - An easy interface for asking them questions and receiving their answers
-       - Logs and exceptions (and potentially monitor messages) forwarded to you
-       - High availability if deployed in the cloud
-
-
 How to ask a question
 =====================
-You can ask any service a question if you have its service ID, project name, and permissions. The question is formed of
-input values and/or an input manifest.
+Questions are always asked to a *revision* of a service. You can ask a service a question if you have its
+:ref:`SRUID <sruid_definition>`, project name, and the necessary permissions. The question is formed of input values
+and/or an input manifest.
 
 .. code-block:: python
 
@@ -62,6 +30,16 @@ input values and/or an input manifest.
     answer["output_manifest"]["my_dataset"].files
     >>> <FilterSet({<Datafile('my_file.csv')>, <Datafile('another_file.csv')>})>
 
+
+.. _using_latest_revision_tag:
+
+.. note::
+
+    Using the ``latest`` service revision tag, or not including one at all, will cause your question to be sent to the
+    latest deployed revision of the service. This is determined by making a request to a `service registry
+    <https://django-twined.readthedocs.io/en/latest/>`_ if one or more :ref:`registries are defined
+    <using_service_registries>`. If none of the service registries contain an entry for this service, a specific service
+    revision tag must be used.
 
 You can also set the following options when you call :mod:`Child.ask <octue.resources.child.Child.ask>`:
 
@@ -230,3 +208,45 @@ Overriding beyond the first generation
 It's an intentional choice to only go one generation deep with overriding children. If you need to be able to specify a
 whole tree of children, grandchildren, and so on, please `upvote this issue.
 <https://github.com/octue/octue-sdk-python/issues/528>`_
+
+
+.. _using_service_registries:
+
+Using a service registry
+========================
+When asking a question, you can optionally specify one or more `service registries
+<https://django-twined.readthedocs.io/en/latest/>`_ to resolve SRUIDs against. This is analogous to specifying a
+different ``pip`` index for resolving package names when using ``pip install``. If you don't specify any registries, the
+default Octue service registry is used.
+
+Specifying service registries can be useful if:
+
+- You have your own private services that aren't on the default Octue service registry
+- You want services from one service registry with the same name as in another service registry to be prioritised
+
+Specifying service registries
+-----------------------------
+You can specify service registries in two ways:
+
+1. Globally for all questions asked inside a service. In the service configuration (``octue.yaml`` file):
+
+    .. code-block:: yaml
+
+        services:
+          - namespace: my-organisation
+            name: my-app
+            service_registries:
+              - name: my-registry
+                endpoint: blah.com/services
+
+2. For questions to a specific child, inside or outside a service:
+
+    .. code-block:: python
+
+        child = Child(
+            id="my-organisation/my-service:latest",
+            backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
+            service_registries=[
+                {"name": "my-registry", "endpoint": "blah.com/services"},
+            ]
+        )

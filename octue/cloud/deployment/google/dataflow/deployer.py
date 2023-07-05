@@ -1,4 +1,4 @@
-import pkg_resources
+import importlib.metadata
 
 from octue.cloud.deployment.google.base_deployer import BaseDeployer, ProgressMessage
 from octue.cloud.deployment.google.dataflow.pipeline import (
@@ -12,7 +12,7 @@ DEFAULT_DATAFLOW_DOCKERFILE_URL = (
     "https://raw.githubusercontent.com/octue/octue-sdk-python/main/octue/cloud/deployment/google/dataflow/Dockerfile"
 )
 
-OCTUE_SDK_PYTHON_IMAGE_URI = f"octue/octue-sdk-python:{pkg_resources.get_distribution('octue').version}-slim"
+OCTUE_SDK_PYTHON_IMAGE_URI = f"octue/octue-sdk-python:{importlib.metadata.version('octue')}-slim"
 
 
 class DataflowDeployer(BaseDeployer):

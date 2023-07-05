@@ -15,17 +15,22 @@ class Child:
     :param str id: the ID of the child
     :param dict backend: must include the key "name" with a value of the name of the type of backend e.g. "GCPPubSubBackend" and key-value pairs for any other parameters the chosen backend expects
     :param str internal_service_name: the name to give to the internal service used to ask questions to the child
+    :param iter(dict)|None service_registries: the names and endpoints of the registries used to resolve the child's service revision when asking it questions; these should be in priority order (highest priority first)
     :return None:
     """
 
-    def __init__(self, id, backend, internal_service_name="local/local:local"):
+    def __init__(self, id, backend, internal_service_name="local/local:local", service_registries=None):
         self.id = id
 
         backend = copy.deepcopy(backend)
         backend_type_name = backend.pop("name")
         backend = service_backends.get_backend(backend_type_name)(**backend)
 
-        self._service = BACKEND_TO_SERVICE_MAPPING[backend_type_name](name=internal_service_name, backend=backend)
+        self._service = BACKEND_TO_SERVICE_MAPPING[backend_type_name](
+            name=internal_service_name,
+            backend=backend,
+            service_registries=service_registries,
+        )
 
     def __repr__(self):
         """Represent the child as a string.
