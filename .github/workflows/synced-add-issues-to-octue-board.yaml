@@ -10,3 +10,5 @@ on:
 jobs:
   add-issues-to-octue-board:
     uses: octue/.github/.github/workflows/synced-add-issues-to-octue-board.yaml@main
+    secrets:
+      github-token: ${{ secrets.PROJECT_AUTOMATION_GITHUB_TOKEN_2 }}
