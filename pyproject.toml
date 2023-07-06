@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "octue"
-version = "0.47.0"
+version = "0.47.1"
 description = "A package providing template applications for data services, and a python SDK to the Octue API."
 readme = "README.md"
 authors = ["Marcus Lugg <marcus@octue.com>", "Thomas Clark <support@octue.com>"]
@@ -35,7 +35,7 @@ pyyaml = "^6"
 h5py = { version = "^3.6", optional = true }
 apache-beam = { version = "^2.37", optional = true }
 twined = "^0.5.1"
-packaging = ">=20.4,<22"
+packaging = ">=20.4"
 # The following dependencies are from apache-beam[gcp]. They're provided here to a) avoid dependency resolution problems
 # and b) to reduce our total number of dependencies (we only need a small number of the dependencies the "gcp" extra
 # provides). Update these if you update apache-beam. See https://github.com/apache/beam/issues/21019 and
