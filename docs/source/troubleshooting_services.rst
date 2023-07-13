@@ -79,7 +79,7 @@ your service to fail.
     children = [
         {
             "key": "my_child",
-            "id": "octue/my-child-service:latest",
+            "id": "octue/my-child-service:2.1.0",
             "backend": {
                 "name": "GCPPubSubBackend",
                 "project_name": "my-project",
@@ -87,7 +87,7 @@ your service to fail.
         },
         {
             "key": "another_child",
-            "id": "octue/another-child-service:latest",
+            "id": "octue/another-child-service:2.1.0",
             "backend": {
                 "name": "GCPPubSubBackend",
                 "project_name": "my-project",
@@ -101,7 +101,7 @@ your service to fail.
         children=children,
         configuration_values=configuration_values,
         configuration_manifest=configuration_manifest,
-        service_id="your-org/your-service:latest",
+        service_id="your-org/your-service:2.1.0",
     )
 
     with patch("octue.runner.Child", side_effect=child_emulators):
@@ -117,7 +117,7 @@ For example:
 .. code-block:: python
 
     child = Child(
-        id="my-organisation/my-service:latest",
+        id="my-organisation/my-service:2.1.0",
         backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
     )
 

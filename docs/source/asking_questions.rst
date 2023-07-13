@@ -15,7 +15,7 @@ and/or an input manifest.
     from octue.resources import Child
 
     child = Child(
-        id="my-organisation/my-service:latest",
+        id="my-organisation/my-service:2.1.7",
         backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
     )
 
@@ -31,15 +31,15 @@ and/or an input manifest.
     >>> <FilterSet({<Datafile('my_file.csv')>, <Datafile('another_file.csv')>})>
 
 
-.. _using_latest_revision_tag:
+.. _using_default_revision_tag:
 
 .. note::
 
-    Using the ``latest`` service revision tag, or not including one at all, will cause your question to be sent to the
-    latest deployed revision of the service. This is determined by making a request to a `service registry
-    <https://django-twined.readthedocs.io/en/latest/>`_ if one or more :ref:`registries are defined
-    <using_service_registries>`. If none of the service registries contain an entry for this service, a specific service
-    revision tag must be used.
+    Not including a service revision tag will cause your question to be sent to the default revision of the service (
+    usually the latest deployed version). This is determined by making a request to a `service registry
+    <https://django-twined.readthedocs.io/en/latest/>`_ if one or more
+    :ref:`registries are defined <using_service_registries>`. If none of the service registries contain an entry for
+    this service, a specific service revision tag must be used.
 
 You can also set the following options when you call :mod:`Child.ask <octue.resources.child.Child.ask>`:
 
@@ -100,7 +100,7 @@ if your app configuration file is:
       "children": [
         {
           "key": "wind_speed",
-          "id": "template-child-services/wind-speed-service:latest",
+          "id": "template-child-services/wind-speed-service:2.1.1",
           "backend": {
             "name": "GCPPubSubBackend",
             "project_name": "my-project"
@@ -108,7 +108,7 @@ if your app configuration file is:
         },
         {
           "key": "elevation",
-          "id": "template-child-services/elevation-service:latest",
+          "id": "template-child-services/elevation-service:3.1.9",
           "backend": {
             "name": "GCPPubSubBackend",
             "project_name": "my-project"
@@ -161,7 +161,7 @@ For example, if the child requires these children in its app configuration:
     [
         {
             "key": "wind_speed",
-            "id": "template-child-services/wind-speed-service:latest",
+            "id": "template-child-services/wind-speed-service:2.1.1",
             "backend": {
                 "name": "GCPPubSubBackend",
                 "project_name": "octue-sdk-python"
@@ -169,7 +169,7 @@ For example, if the child requires these children in its app configuration:
         },
         {
             "key": "elevation",
-            "id": "template-child-services/elevation-service:latest",
+            "id": "template-child-services/elevation-service:3.1.9",
             "backend": {
                 "name": "GCPPubSubBackend",
                 "project_name": "octue-sdk-python"
@@ -186,7 +186,7 @@ then you can override them like this:
         children=[
             {
                 "key": "wind_speed",
-                "id": "my/own-service:latest",
+                "id": "my/own-service:1.0.0",
                 "backend": {
                     "name": "GCPPubSubBackend",
                     "project_name": "octue-sdk-python"
@@ -194,7 +194,7 @@ then you can override them like this:
             },
             {
                 "key": "elevation",
-                "id": "organisation/another-service:latest",
+                "id": "organisation/another-service:0.1.0",
                 "backend": {
                     "name": "GCPPubSubBackend",
                     "project_name": "octue-sdk-python"
@@ -244,7 +244,7 @@ You can specify service registries in two ways:
     .. code-block:: python
 
         child = Child(
-            id="my-organisation/my-service:latest",
+            id="my-organisation/my-service:1.1.0",
             backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
             service_registries=[
                 {"name": "my-registry", "endpoint": "blah.com/services"},

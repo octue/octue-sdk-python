@@ -286,7 +286,7 @@ class Service:
         """
         service_namespace, service_name, service_revision_tag = split_service_id(service_id)
 
-        if not service_revision_tag or service_revision_tag == "latest":
+        if not service_revision_tag:
             service_id = get_latest_sruid(
                 namespace=service_namespace,
                 name=service_name,
