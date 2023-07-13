@@ -35,8 +35,8 @@ and/or an input manifest.
 
 .. note::
 
-    Not including a service revision tag will cause your question to be sent to the default revision of the service (
-    usually the latest deployed version). This is determined by making a request to a `service registry
+    Not including a service revision tag will cause your question to be sent to the default revision of the service
+    (usually the latest deployed version). This is determined by making a request to a `service registry
     <https://django-twined.readthedocs.io/en/latest/>`_ if one or more
     :ref:`registries are defined <using_service_registries>`. If none of the service registries contain an entry for
     this service, a specific service revision tag must be used.
