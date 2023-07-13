@@ -87,4 +87,4 @@ They look like ``namespace/name:tag`` where the tag is often a semantic version 
         The SRUID is a special case of a service ID. A service ID can be an SRUID or just the service namespace and
         name. It can be used to ask a question to a service without specifying a specific revision of it. This enables
         asking questions to, for example, the service ``octue/my-service`` and automatically having them routed to its
-        latest revision. :ref:`See here for more info<using_latest_revision_tag>`.
+        default (usually latest) revision. :ref:`See here for more info<using_default_revision_tag>`.

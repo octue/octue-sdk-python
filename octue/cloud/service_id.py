@@ -233,8 +233,8 @@ def split_service_id(service_id):
     return namespace, name, revision_tag
 
 
-def get_latest_sruid(namespace, name, service_registries):
-    """Get the SRUID of the latest revision of the service `<namespace>/<name>` if it exists in one of the specified
+def get_default_sruid(namespace, name, service_registries):
+    """Get the SRUID of the default revision of the service `<namespace>/<name>` if it exists in one of the specified
     service registries. The registries should be provided in priority order so that, if more than one registry contains
     a matching service, the revision that's returned is taken from the highest priority (first) registry.
 
@@ -242,7 +242,7 @@ def get_latest_sruid(namespace, name, service_registries):
     :param str name: the name of the service
     :param iter(dict) service_registries: the registries to look for the service in; the registries should be in priority order in case more than one has a service with the given namespace and name
     :raise octue.exceptions.ServiceNotFound: if a revision can't be found for the service in the service registries
-    :return str: the SRUID of the latest revision of the service
+    :return str: the SRUID of the default revision of the service
     """
     service_id = f"{namespace}/{name}"
 

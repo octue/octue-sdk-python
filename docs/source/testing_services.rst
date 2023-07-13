@@ -160,7 +160,7 @@ To emulate your children in tests, patch the :mod:`Child <octue.resources.child.
     children = [
         {
             "key": "my_child",
-            "id": "octue/my-child-service:latest",
+            "id": "octue/my-child-service:2.1.0",
             "backend": {
                 "name": "GCPPubSubBackend",
                 "project_name": "my-project"
@@ -172,13 +172,13 @@ To emulate your children in tests, patch the :mod:`Child <octue.resources.child.
         app_src=app_directory_path,
         twine=os.path.join(app_directory_path, "twine.json"),
         children=children,
-        service_id="your-org/your-service:latest",
+        service_id="your-org/your-service:2.1.0",
     )
 
     emulated_children = [
         ChildEmulator(
-            id="octue/my-child-service:latest",
-            internal_service_name="you/your-service:latest",
+            id="octue/my-child-service:2.1.0",
+            internal_service_name="you/your-service:2.1.0",
             messages=[
                 {
                     "type": "result",
@@ -222,7 +222,7 @@ child.
 
 
     child = Child(
-        id="octue/my-child:latest",
+        id="octue/my-child:2.1.0",
         backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
     )
 

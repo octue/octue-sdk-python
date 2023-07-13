@@ -19,7 +19,7 @@ from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     create_sruid,
-    get_latest_sruid,
+    get_default_sruid,
     split_service_id,
     validate_sruid,
 )
@@ -286,8 +286,8 @@ class Service:
         """
         service_namespace, service_name, service_revision_tag = split_service_id(service_id)
 
-        if not service_revision_tag or service_revision_tag == "latest":
-            service_id = get_latest_sruid(
+        if not service_revision_tag:
+            service_id = get_default_sruid(
                 namespace=service_namespace,
                 name=service_name,
                 service_registries=self.service_registries,
