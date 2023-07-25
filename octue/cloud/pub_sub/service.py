@@ -136,6 +136,7 @@ class Service:
             name=self._pub_sub_id,
             topic=self._topic,
             project_name=self.backend.project_name,
+            filter='attributes.is_question = "1"',
             expiration_time=None,
         )
 
@@ -332,6 +333,7 @@ class Service:
             question_uuid=question_uuid,
             forward_logs=subscribe_to_logs,
             allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
+            is_question=True,
         )
 
         logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
