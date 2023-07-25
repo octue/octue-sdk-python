@@ -249,6 +249,7 @@ class Service:
                 topic=self._topic,
                 timeout=timeout,
                 question_uuid=question_uuid,
+                is_question=False,
             )
 
             heartbeater.cancel()
@@ -318,7 +319,7 @@ class Service:
             name=topic.name,
             topic=topic,
             project_name=self.backend.project_name,
-            filter=f'attributes.question_uuid = "{question_uuid}"',
+            filter=f'attributes.question_uuid = "{question_uuid}" AND attributes.is_question = "0"',
             push_endpoint=push_endpoint,
         )
         answer_subscription.create(allow_existing=False)
@@ -405,6 +406,7 @@ class Service:
             topic=topic,
             timeout=timeout,
             question_uuid=question_uuid,
+            is_question=False,
         )
 
     def _send_message(self, message, topic, timeout=30, **attributes):
@@ -457,6 +459,7 @@ class Service:
             topic=topic,
             timeout=timeout,
             question_uuid=question_uuid,
+            is_question=False,
         )
 
         logger.info("%r acknowledged receipt of question.", self)
@@ -477,6 +480,7 @@ class Service:
             topic=topic,
             timeout=timeout,
             question_uuid=question_uuid,
+            is_question=False,
         )
 
         logger.debug("Heartbeat sent by %r.", self)
@@ -498,6 +502,7 @@ class Service:
             topic=topic,
             timeout=timeout,
             question_uuid=question_uuid,
+            is_question=False,
         )
 
         logger.debug("Monitor message sent by %r.", self)
