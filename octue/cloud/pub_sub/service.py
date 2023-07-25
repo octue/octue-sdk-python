@@ -317,6 +317,7 @@ class Service:
             name=topic.name,
             topic=topic,
             project_name=self.backend.project_name,
+            filter=f'attributes.question_uuid = "{question_uuid}"',
             push_endpoint=push_endpoint,
         )
         answer_subscription.create(allow_existing=False)
