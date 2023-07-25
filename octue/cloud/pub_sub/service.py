@@ -199,12 +199,12 @@ class Service:
             allow_save_diagnostics_data_on_crash,
         ) = self._parse_question(question)
 
-        self._send_delivery_acknowledgment(self._topic)
+        self._send_delivery_acknowledgment(self._topic, question_uuid)
 
         heartbeater = RepeatingTimer(
             interval=heartbeat_interval,
             function=self._send_heartbeat,
-            kwargs={"topic": self._topic},
+            kwargs={"topic": self._topic, "question_uuid": question_uuid},
         )
 
         heartbeater.daemon = True
@@ -226,7 +226,11 @@ class Service:
                 input_manifest=data["input_manifest"],
                 children=data.get("children"),
                 analysis_log_handler=analysis_log_handler,
-                handle_monitor_message=functools.partial(self._send_monitor_message, topic=self._topic),
+                handle_monitor_message=functools.partial(
+                    self._send_monitor_message,
+                    topic=self._topic,
+                    question_uuid=question_uuid,
+                ),
                 allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
             )
 
@@ -243,6 +247,7 @@ class Service:
                 },
                 topic=self._topic,
                 timeout=timeout,
+                question_uuid=question_uuid,
             )
 
             heartbeater.cancel()
@@ -251,7 +256,7 @@ class Service:
         except BaseException as error:  # noqa
             heartbeater.cancel()
             warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
-            self.send_exception(self._topic, timeout)
+            self.send_exception(self._topic, question_uuid, timeout=timeout)
             raise error
 
     def ask(
@@ -376,10 +381,11 @@ class Service:
         finally:
             subscription.delete()
 
-    def send_exception(self, topic, timeout=30):
+    def send_exception(self, topic, question_uuid, timeout=30):
         """Serialise and send the exception being handled to the parent.
 
         :param octue.cloud.pub_sub.topic.Topic topic:
+        :param str question_uuid:
         :param float|None timeout: time in seconds to keep retrying sending of the exception
         :return None:
         """
@@ -395,6 +401,7 @@ class Service:
             },
             topic=topic,
             timeout=timeout,
+            question_uuid=question_uuid,
         )
 
     def _send_message(self, message, topic, timeout=30, **attributes):
@@ -431,10 +438,11 @@ class Service:
 
             topic.messages_published += 1
 
-    def _send_delivery_acknowledgment(self, topic, timeout=30):
+    def _send_delivery_acknowledgment(self, topic, question_uuid, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
 
         :param octue.cloud.pub_sub.topic.Topic topic: topic to send the acknowledgement to
+        :param str question_uuid:
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -445,14 +453,16 @@ class Service:
             },
             topic=topic,
             timeout=timeout,
+            question_uuid=question_uuid,
         )
 
         logger.info("%r acknowledged receipt of question.", self)
 
-    def _send_heartbeat(self, topic, timeout=30):
+    def _send_heartbeat(self, topic, question_uuid, timeout=30):
         """Send a heartbeat to the parent, indicating that the service is alive.
 
         :param octue.cloud.pub_sub.topic.Topic topic: topic to send the heartbeat to
+        :param str question_uuid:
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -463,15 +473,17 @@ class Service:
             },
             topic=topic,
             timeout=timeout,
+            question_uuid=question_uuid,
         )
 
         logger.debug("Heartbeat sent by %r.", self)
 
-    def _send_monitor_message(self, data, topic, timeout=30):
+    def _send_monitor_message(self, data, topic, question_uuid, timeout=30):
         """Send a monitor message to the parent.
 
         :param any data: the data to send as a monitor message
         :param octue.cloud.pub_sub.topic.Topic topic: the topic to send the message to
+        :param str question_uuid:
         :param float timeout: time in seconds to retry sending the message
         :return None:
         """
@@ -482,6 +494,7 @@ class Service:
             },
             topic=topic,
             timeout=timeout,
+            question_uuid=question_uuid,
         )
 
         logger.debug("Monitor message sent by %r.", self)
