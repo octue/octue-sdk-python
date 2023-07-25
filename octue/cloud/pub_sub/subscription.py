@@ -28,6 +28,7 @@ class Subscription:
     :param str name: the name of the subscription excluding "projects/<project_name>/subscriptions/<namespace>"
     :param octue.cloud.pub_sub.topic.Topic topic: the topic the subscription is attached to
     :param str project_name: the name of the Google Cloud project that the subscription belongs to
+    :param str|None filter:
     :param int ack_deadline: the time in seconds after which, if the subscriber hasn't acknowledged a message, to retry sending it to the subscription
     :param int message_retention_duration: unacknowledged message retention time in seconds
     :param int|float|None expiration_time: number of seconds of inactivity after which the subscription is deleted (infinite time if `None`)
@@ -42,6 +43,7 @@ class Subscription:
         name,
         topic,
         project_name,
+        filter=None,
         ack_deadline=600,
         message_retention_duration=600,
         expiration_time=THIRTY_ONE_DAYS,
@@ -55,6 +57,7 @@ class Subscription:
             self.name = name
 
         self.topic = topic
+        self.filter = filter
         self.path = self.generate_subscription_path(project_name, self.name)
         self.ack_deadline = ack_deadline
         self.message_retention_duration = Duration(seconds=message_retention_duration)
@@ -105,7 +108,7 @@ class Subscription:
 
         :return str:
         """
-        return f"<{type(self).__name__}({self.name})>"
+        return f"<{type(self).__name__}(name={self.name!r}, filter={self.filter!r})>"
 
     def create(self, allow_existing=False):
         """Create a Google Pub/Sub subscription that can be subscribed to.
@@ -189,6 +192,7 @@ class Subscription:
             mapping=None,
             name=self.path,  # noqa
             topic=self.topic.path,
+            filter=self.filter,
             ack_deadline_seconds=self.ack_deadline,  # noqa
             message_retention_duration=self.message_retention_duration,  # noqa
             expiration_policy=self.expiration_policy,  # noqa
