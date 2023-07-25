@@ -5,7 +5,8 @@ import logging
 import google.api_core
 
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.service import Service
+from octue.cloud.pub_sub.service import ANSWERS_NAMESPACE, Service
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form
 from octue.resources import Manifest
 from octue.utils.encoders import OctueJSONEncoder
 
@@ -144,7 +145,7 @@ class MockPublisher:
         :param google.api_core.retry.Retry|None retry:
         :return MockFuture:
         """
-        MESSAGES[get_service_id(topic)].append(MockMessage(data=data, **attributes))
+        MESSAGES[get_service_pub_sub_name(topic)].append(MockMessage(data=data, **attributes))
         return MockFuture()
 
 
@@ -188,10 +189,15 @@ class MockSubscriber:
         if self.closed:
             raise ValueError("ValueError: Cannot invoke RPC: Channel closed!")
 
+        service_pub_sub_name = get_service_pub_sub_name(request["subscription"])
+
         try:
             return MockPullResponse(
-                received_messages=[MockMessageWrapper(message=MESSAGES[get_service_id(request["subscription"])].pop(0))]
+                received_messages=[
+                    MockMessageWrapper(message=MESSAGES[service_pub_sub_name].pop(0)),
+                ]
             )
+
         except IndexError:
             return MockPullResponse(received_messages=[])
 
@@ -334,11 +340,15 @@ class MockService(Service):
                     forward_logs=subscribe_to_logs,
                     octue_sdk_version=parent_sdk_version,
                     allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
+                    is_question=True,
                 )
             )
         except Exception as e:  # noqa
             logger.exception(e)
 
+        # Delete question from messages sent to topic so the parent doesn't pick it up as a response message. We do this
+        # as subscription filtering isn't implemented in this set of mocks.
+        MESSAGES["octue.services." + convert_service_id_to_pub_sub_form(service_id)].pop(0)
         return response_subscription, question_uuid
 
 
@@ -406,11 +416,11 @@ class MockSubscriptionCreationResponse:
         self.__dict__ = vars(request)
 
 
-def get_service_id(path):
-    """Get the service ID (e.g. octue.services.<uuid>) from a topic or subscription path (e.g.
-    projects/<project-name>/topics/octue.services.<uuid>)
+def get_service_pub_sub_name(path):
+    """Get the Pub/Sub name of the service (e.g. "octue.services.<uuid>") from a topic or subscription path (e.g.
+    "projects/<project-name>/topics/octue.services.<uuid>.<other-stuff>").
 
     :param str path:
     :return str:
     """
-    return path.split("/")[-1]
+    return path.split("/")[-1].split(ANSWERS_NAMESPACE)[0].strip(".")
