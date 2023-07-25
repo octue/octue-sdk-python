@@ -316,7 +316,7 @@ class Service:
         question_uuid = question_uuid or str(uuid.uuid4())
 
         answer_subscription = Subscription(
-            name=topic.name,
+            name=".".join((topic.name, ANSWERS_NAMESPACE, question_uuid)),
             topic=topic,
             project_name=self.backend.project_name,
             filter=f'attributes.question_uuid = "{question_uuid}" AND attributes.is_question = "0"',
