@@ -33,7 +33,6 @@ def answer_question(question, project_name):
     service = Service(service_id=service_sruid, backend=GCPPubSubBackend(project_name=project_name))
 
     question_uuid = get_nested_attribute(question, "attributes.question_uuid")
-    answer_topic = service.instantiate_answer_topic(question_uuid)
 
     try:
         runner = Runner(
@@ -51,10 +50,10 @@ def answer_question(question, project_name):
 
         service.run_function = runner.run
 
-        service.answer(question, answer_topic=answer_topic)
+        service.answer(question)
         logger.info("Analysis successfully run and response sent for question %r.", question_uuid)
 
     # Forward any errors in the deployment configuration (errors in the analysis are already forwarded by the service).
     except BaseException as error:  # noqa
-        service.send_exception(topic=answer_topic)
+        service.send_exception(topic=service._topic)
         logger.exception(error)

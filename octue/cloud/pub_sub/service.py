@@ -86,6 +86,7 @@ class Service:
 
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
         self._local_sdk_version = importlib.metadata.version("octue")
+        self._topic = None
         self._publisher = None
         self._message_handler = None
 
@@ -129,17 +130,17 @@ class Service:
         """
         logger.info("Starting %r.", self)
 
-        topic = Topic(name=self._pub_sub_id, project_name=self.backend.project_name)
+        self._topic = Topic(name=self._pub_sub_id, project_name=self.backend.project_name)
 
         subscription = Subscription(
             name=self._pub_sub_id,
-            topic=topic,
+            topic=self._topic,
             project_name=self.backend.project_name,
             expiration_time=None,
         )
 
         try:
-            topic.create(allow_existing=allow_existing)
+            self._topic.create(allow_existing=allow_existing)
             subscription.create(allow_existing=allow_existing)
         except google.api_core.exceptions.AlreadyExists:
             raise octue.exceptions.ServiceAlreadyExists(f"A service with the ID {self.id!r} already exists.")
@@ -170,22 +171,21 @@ class Service:
                         if subscription.creation_triggered_locally:
                             subscription.delete()
 
-                        if topic.creation_triggered_locally:
-                            topic.delete()
+                        if self._topic.creation_triggered_locally:
+                            self._topic.delete()
 
                     except Exception:
-                        logger.error("Deletion of topic and/or subscription %r failed.", topic.name)
+                        logger.error("Deletion of topic and/or subscription %r failed.", self._topic.name)
 
                 subscriber.close()
 
         return future, subscriber
 
-    def answer(self, question, answer_topic=None, heartbeat_interval=120, timeout=30):
+    def answer(self, question, heartbeat_interval=120, timeout=30):
         """Answer a question from a parent - i.e. run the child's app on the given data and return the output values.
         Answers conform to the output values and output manifest schemas specified in the child's Twine file.
 
         :param dict|Message question:
-        :param octue.cloud.pub_sub.topic.Topic|None answer_topic: provide if messages need to be sent to the parent from outside the `Service` instance (e.g. in octue.cloud.deployment.google.cloud_run.flask_app)
         :param int|float heartbeat_interval: the time interval, in seconds, at which to send heartbeats
         :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
@@ -199,13 +199,12 @@ class Service:
             allow_save_diagnostics_data_on_crash,
         ) = self._parse_question(question)
 
-        topic = answer_topic or self.instantiate_answer_topic(question_uuid)
-        self._send_delivery_acknowledgment(topic)
+        self._send_delivery_acknowledgment(self._topic)
 
         heartbeater = RepeatingTimer(
             interval=heartbeat_interval,
             function=self._send_heartbeat,
-            kwargs={"topic": topic},
+            kwargs={"topic": self._topic},
         )
 
         heartbeater.daemon = True
@@ -215,7 +214,7 @@ class Service:
             if forward_logs:
                 analysis_log_handler = GooglePubSubHandler(
                     message_sender=self._send_message,
-                    topic=topic,
+                    topic=self._topic,
                     analysis_id=question_uuid,
                 )
             else:
@@ -227,7 +226,7 @@ class Service:
                 input_manifest=data["input_manifest"],
                 children=data.get("children"),
                 analysis_log_handler=analysis_log_handler,
-                handle_monitor_message=functools.partial(self._send_monitor_message, topic=topic),
+                handle_monitor_message=functools.partial(self._send_monitor_message, topic=self._topic),
                 allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
             )
 
@@ -242,7 +241,7 @@ class Service:
                     "output_values": analysis.output_values,
                     "output_manifest": serialised_output_manifest,
                 },
-                topic=topic,
+                topic=self._topic,
                 timeout=timeout,
             )
 
@@ -252,7 +251,7 @@ class Service:
         except BaseException as error:  # noqa
             heartbeater.cancel()
             warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
-            self.send_exception(topic, timeout)
+            self.send_exception(self._topic, timeout)
             raise error
 
     def ask(
@@ -302,19 +301,16 @@ class Service:
                 )
 
         pub_sub_service_id = convert_service_id_to_pub_sub_form(service_id)
-        question_topic = Topic(name=pub_sub_service_id, project_name=self.backend.project_name)
+        topic = Topic(name=pub_sub_service_id, project_name=self.backend.project_name)
 
-        if not question_topic.exists(timeout=timeout):
+        if not topic.exists(timeout=timeout):
             raise octue.exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
 
         question_uuid = question_uuid or str(uuid.uuid4())
 
-        answer_topic = self.instantiate_answer_topic(question_uuid, pub_sub_service_id)
-        answer_topic.create(allow_existing=False)
-
         answer_subscription = Subscription(
-            name=answer_topic.name,
-            topic=answer_topic,
+            name=topic.name,
+            topic=topic,
             project_name=self.backend.project_name,
             push_endpoint=push_endpoint,
         )
@@ -326,7 +322,7 @@ class Service:
 
         self._send_message(
             {"input_values": input_values, "input_manifest": input_manifest, "children": children},
-            topic=question_topic,
+            topic=topic,
             question_uuid=question_uuid,
             forward_logs=subscribe_to_logs,
             allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
@@ -379,18 +375,6 @@ class Service:
 
         finally:
             subscription.delete()
-
-    def instantiate_answer_topic(self, question_uuid, service_id=None):
-        """Instantiate the answer topic for the given question UUID and child service ID.
-
-        :param str question_uuid:
-        :param str|None service_id: the ID of the child to ask the question to in Pub/Sub form
-        :return octue.cloud.pub_sub.topic.Topic:
-        """
-        return Topic(
-            name=".".join((service_id or self._pub_sub_id, ANSWERS_NAMESPACE, question_uuid)),
-            project_name=self.backend.project_name,
-        )
 
     def send_exception(self, topic, timeout=30):
         """Serialise and send the exception being handled to the parent.
