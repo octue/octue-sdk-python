@@ -40,7 +40,7 @@ Key features
 **Create, run, and deploy your apps as services**
 
 - No need to change your app - just wrap it
-- Use the ``octue`` CLI to run your service locally or deploy it to Google Cloud Run or Google Dataflow
+- Use the ``octue`` CLI to run your service locally or deploy it to Google Cloud Run
 - Create JSON-schema interfaces to explicitly define the form of configuration, input, and output data
 - Ask other services questions as part of your app (i.e. build trees of services)
 - Automatically display readable, colourised logs, or use your own log handler

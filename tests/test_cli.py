@@ -398,27 +398,9 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
 
 class TestDeployCommand(BaseTestCase):
     def test_deploy_command_group(self):
-        """Test that the `dataflow` command is a subcommand of the `deploy` command."""
+        """Test that the `create-push-subscription` command is a subcommand of the `deploy` command."""
         result = CliRunner().invoke(octue_cli, ["deploy", "--help"])
-        self.assertIn("dataflow ", result.output)
-
-    def test_deploy_dataflow_fails_if_apache_beam_not_available(self):
-        """Test that an `ImportWarning` is raised if the `dataflow deploy` CLI command is used when `apache_beam` is
-        not available.
-        """
-        with mock.patch("importlib.util.find_spec", return_value=None):
-            with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
-                result = CliRunner().invoke(
-                    octue_cli,
-                    [
-                        "deploy",
-                        "dataflow",
-                        f"--service-config={temporary_file.name}",
-                    ],
-                )
-
-        self.assertEqual(result.exit_code, 1)
-        self.assertIsInstance(result.exception, ImportWarning)
+        self.assertIn("create-push-subscription ", result.output)
 
     def test_create_push_subscription(self):
         """Test that a push subscription can be created using the `octue deploy create-push-subscription` command and
