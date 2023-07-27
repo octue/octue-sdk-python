@@ -4,7 +4,7 @@ import math
 from unittest.mock import patch
 
 from octue.cloud.emulators._pub_sub import (
-    MESSAGES,
+    SUBSCRIPTIONS,
     MockMessage,
     MockMessagePuller,
     MockService,
@@ -19,9 +19,11 @@ from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 
 
-mock_topic = MockTopic(name="world", project_name=TEST_PROJECT_NAME)
-receiving_service = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
-mock_subscription = MockSubscription(name="world", topic=mock_topic, project_name=TEST_PROJECT_NAME)
+mock_topic = MockTopic(name="my-org.my-service.1-0-0", project_name=TEST_PROJECT_NAME)
+mock_subscription = MockSubscription(name="my-org.my-service.1-0-0", topic=mock_topic, project_name=TEST_PROJECT_NAME)
+receiving_service = MockService(
+    service_id="my-org/my-service:1.0.0", backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME)
+)
 
 
 class TestOrderedMessageHandler(BaseTestCase):
@@ -344,7 +346,15 @@ class TestOrderedMessageHandler(BaseTestCase):
 class TestPullAndEnqueueMessage(BaseTestCase):
     def test_pull_and_enqueue_message(self):
         """Test that pulling and enqueuing a message works."""
+        question_uuid = "4d31bb46-66c4-4e68-831f-e51e17e651ef"
+
         with ServicePatcher():
+            mock_subscription = MockSubscription(
+                name=f"my-org.my-service.1-0-0.answers.{question_uuid}",
+                topic=mock_topic,
+                project_name=TEST_PROJECT_NAME,
+            )
+
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
@@ -354,10 +364,12 @@ class TestPullAndEnqueueMessage(BaseTestCase):
             message_handler._child_sdk_version = "0.1.3"
             message_handler._waiting_messages = {}
 
-            # Create a mock topic and publish a mock message to it.
+            # Enqueue a mock message for a mock subscription to receive.
             mock_message = {"type": "test", "message_number": 0}
-            MESSAGES["octue.services.world"] = []
-            MESSAGES["octue.services.world"].append(MockMessage(data=json.dumps(mock_message).encode()))
+
+            SUBSCRIPTIONS[mock_subscription.name] = [
+                MockMessage(data=json.dumps(mock_message).encode(), is_question=False)
+            ]
 
             message_handler._pull_and_enqueue_message(timeout=10)
             self.assertEqual(message_handler._waiting_messages, {0: mock_message})
@@ -365,7 +377,15 @@ class TestPullAndEnqueueMessage(BaseTestCase):
 
     def test_timeout_error_raised_if_result_message_not_received_in_time(self):
         """Test that a timeout error is raised if a result message is not received in time."""
+        question_uuid = "4d31bb46-66c4-4e68-831f-e51e17e651ef"
+
         with ServicePatcher():
+            mock_subscription = MockSubscription(
+                name=f"my-org.my-service.1-0-0.answers.{question_uuid}",
+                topic=mock_topic,
+                project_name=TEST_PROJECT_NAME,
+            )
+
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
@@ -376,8 +396,8 @@ class TestPullAndEnqueueMessage(BaseTestCase):
             message_handler._waiting_messages = {}
             message_handler._start_time = 0
 
-            # Create a mock topic and publish a mock non-result message to it.
-            MESSAGES["octue.services.world"] = []
+            # Create a mock subscription.
+            SUBSCRIPTIONS[mock_subscription.name] = []
 
             with self.assertRaises(TimeoutError):
                 message_handler._pull_and_enqueue_message(timeout=1e-6)

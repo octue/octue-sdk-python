@@ -13,7 +13,7 @@ from octue.utils.encoders import OctueJSONEncoder
 
 logger = logging.getLogger(__name__)
 
-MESSAGES = {}
+TOPICS = {}
 SUBSCRIPTIONS = {}
 
 
@@ -32,7 +32,7 @@ class MockTopic(Topic):
                 raise google.api_core.exceptions.AlreadyExists(f"Topic {self.path!r} already exists.")
 
         if not self.exists():
-            MESSAGES[self.name] = []
+            TOPICS[self.name] = []
             self._created = True
 
     def delete(self):
@@ -41,7 +41,7 @@ class MockTopic(Topic):
         :return None:
         """
         try:
-            del MESSAGES[self.name]
+            del TOPICS[self.name]
         except KeyError:
             pass
 
@@ -51,7 +51,7 @@ class MockTopic(Topic):
         :param float timeout:
         :return bool:
         """
-        return self.name in MESSAGES
+        return self.name in TOPICS
 
 
 class MockSubscription(Subscription):
@@ -145,7 +145,8 @@ class MockPublisher:
         :param google.api_core.retry.Retry|None retry:
         :return MockFuture:
         """
-        MESSAGES[get_service_pub_sub_name(topic)].append(MockMessage(data=data, **attributes))
+        subscription_name = ".".join((get_pub_sub_resource_name(topic), ANSWERS_NAMESPACE, attributes["question_uuid"]))
+        SUBSCRIPTIONS[subscription_name].append(MockMessage(data=data, **attributes))
         return MockFuture()
 
 
@@ -189,12 +190,12 @@ class MockSubscriber:
         if self.closed:
             raise ValueError("ValueError: Cannot invoke RPC: Channel closed!")
 
-        service_pub_sub_name = get_service_pub_sub_name(request["subscription"])
+        subscription_name = get_pub_sub_resource_name(request["subscription"])
 
         try:
             return MockPullResponse(
                 received_messages=[
-                    MockMessageWrapper(message=MESSAGES[service_pub_sub_name].pop(0)),
+                    MockMessageWrapper(message=SUBSCRIPTIONS[subscription_name].pop(0)),
                 ]
             )
 
@@ -329,6 +330,11 @@ class MockService(Service):
         if input_manifest is not None:
             input_manifest = input_manifest.serialise()
 
+        # Delete question from messages sent to topic so the parent doesn't pick it up as a response message. We do this
+        # as subscription filtering isn't implemented in this set of mocks.
+        subscription_name = ".".join((convert_service_id_to_pub_sub_form(service_id), ANSWERS_NAMESPACE, question_uuid))
+        SUBSCRIPTIONS["octue.services." + subscription_name].pop(0)
+
         try:
             self.children[service_id].answer(
                 MockMessage(
@@ -346,9 +352,6 @@ class MockService(Service):
         except Exception as e:  # noqa
             logger.exception(e)
 
-        # Delete question from messages sent to topic so the parent doesn't pick it up as a response message. We do this
-        # as subscription filtering isn't implemented in this set of mocks.
-        MESSAGES["octue.services." + convert_service_id_to_pub_sub_form(service_id)].pop(0)
         return response_subscription, question_uuid
 
 
@@ -416,11 +419,11 @@ class MockSubscriptionCreationResponse:
         self.__dict__ = vars(request)
 
 
-def get_service_pub_sub_name(path):
-    """Get the Pub/Sub name of the service (e.g. "octue.services.<uuid>") from a topic or subscription path (e.g.
-    "projects/<project-name>/topics/octue.services.<uuid>.<other-stuff>").
+def get_pub_sub_resource_name(path):
+    """Get the Pub/Sub resource name of the topic or subscription (e.g. "octue.services.<uuid>") from its path (e.g.
+    "projects/<project-name>/topics/octue.services.<uuid>").
 
     :param str path:
     :return str:
     """
-    return path.split("/")[-1].split(ANSWERS_NAMESPACE)[0].strip(".")
+    return path.split("/")[-1]
