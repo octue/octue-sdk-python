@@ -16,11 +16,10 @@ class GooglePubSubHandler(logging.Handler):
     :return None:
     """
 
-    def __init__(self, message_sender, topic, analysis_id, message_number, timeout=60, *args, **kwargs):
+    def __init__(self, message_sender, topic, analysis_id, timeout=60, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.topic = topic
         self.analysis_id = analysis_id
-        self.message_number = message_number
         self.timeout = timeout
         self._send_message = message_sender
 
@@ -36,11 +35,9 @@ class GooglePubSubHandler(logging.Handler):
                     "type": "log_record",
                     "log_record": self._convert_log_record_to_primitives(record),
                     "analysis_id": self.analysis_id,
-                    "message_number": self.message_number,
                 },
                 topic=self.topic,
                 question_uuid=self.analysis_id,
-                message_number=self.message_number,
             )
 
         except Exception:  # noqa
