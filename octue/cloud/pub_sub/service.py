@@ -85,8 +85,8 @@ class Service:
         ]
 
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
+        self.topic = Topic(name=self._pub_sub_id, project_name=self.backend.project_name)
         self._local_sdk_version = importlib.metadata.version("octue")
-        self._topic = None
         self._publisher = None
         self._message_handler = None
 
@@ -130,18 +130,16 @@ class Service:
         """
         logger.info("Starting %r.", self)
 
-        self._topic = Topic(name=self._pub_sub_id, project_name=self.backend.project_name)
-
         subscription = Subscription(
             name=self._pub_sub_id,
-            topic=self._topic,
+            topic=self.topic,
             project_name=self.backend.project_name,
             filter='attributes.is_question = "1"',
             expiration_time=None,
         )
 
         try:
-            self._topic.create(allow_existing=allow_existing)
+            self.topic.create(allow_existing=allow_existing)
             subscription.create(allow_existing=allow_existing)
         except google.api_core.exceptions.AlreadyExists:
             raise octue.exceptions.ServiceAlreadyExists(f"A service with the ID {self.id!r} already exists.")
@@ -172,11 +170,11 @@ class Service:
                         if subscription.creation_triggered_locally:
                             subscription.delete()
 
-                        if self._topic.creation_triggered_locally:
-                            self._topic.delete()
+                        if self.topic.creation_triggered_locally:
+                            self.topic.delete()
 
                     except Exception:
-                        logger.error("Deletion of topic and/or subscription %r failed.", self._topic.name)
+                        logger.error("Deletion of topic and/or subscription %r failed.", self.topic.name)
 
                 subscriber.close()
 
@@ -204,12 +202,12 @@ class Service:
         # message number variable is created for each question. The message number is enclosed inside a dictionary to
         # make it mutable.
         message_number = {"value": 0}
-        self._send_delivery_acknowledgment(self._topic, question_uuid, message_number)
+        self._send_delivery_acknowledgment(self.topic, question_uuid, message_number)
 
         heartbeater = RepeatingTimer(
             interval=heartbeat_interval,
             function=self._send_heartbeat,
-            kwargs={"topic": self._topic, "question_uuid": question_uuid, "message_number": message_number},
+            kwargs={"topic": self.topic, "question_uuid": question_uuid, "message_number": message_number},
         )
 
         heartbeater.daemon = True
@@ -219,7 +217,7 @@ class Service:
             if forward_logs:
                 analysis_log_handler = GooglePubSubHandler(
                     message_sender=self._send_message,
-                    topic=self._topic,
+                    topic=self.topic,
                     analysis_id=question_uuid,
                     message_number=message_number,
                 )
@@ -234,7 +232,7 @@ class Service:
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=functools.partial(
                     self._send_monitor_message,
-                    topic=self._topic,
+                    topic=self.topic,
                     question_uuid=question_uuid,
                     message_number=message_number,
                 ),
@@ -252,7 +250,7 @@ class Service:
                     "output_values": analysis.output_values,
                     "output_manifest": serialised_output_manifest,
                 },
-                topic=self._topic,
+                topic=self.topic,
                 message_number=message_number,
                 timeout=timeout,
                 question_uuid=question_uuid,
@@ -265,7 +263,7 @@ class Service:
         except BaseException as error:  # noqa
             heartbeater.cancel()
             warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
-            self.send_exception(self._topic, question_uuid, message_number, timeout=timeout)
+            self.send_exception(self.topic, question_uuid, message_number, timeout=timeout)
             raise error
 
     def ask(

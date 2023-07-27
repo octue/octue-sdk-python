@@ -139,13 +139,12 @@ class TestService(BaseTestCase):
 
     def test_exceptions_in_responder_are_handled_and_sent_to_asker(self):
         """Test that exceptions raised in the child service are handled and sent back to the asker."""
-        child = self.make_new_child_with_error(
-            twined.exceptions.InvalidManifestContents("'met_mast_id' is a required property")
-        )
-
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
         with self.service_patcher:
+            child = self.make_new_child_with_error(
+                twined.exceptions.InvalidManifestContents("'met_mast_id' is a required property")
+            )
+
+            parent = MockService(backend=BACKEND, children={child.id: child})
             child.serve()
             subscription, _ = parent.ask(service_id=child.id, input_values={})
 
@@ -158,11 +157,11 @@ class TestService(BaseTestCase):
         """Test that exceptions with multiple arguments raised in the child service are handled and sent back to
         the asker.
         """
-        child = self.make_new_child_with_error(FileNotFoundError(2, "No such file or directory: 'blah'"))
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
         with self.service_patcher:
+            child = self.make_new_child_with_error(FileNotFoundError(2, "No such file or directory: 'blah'"))
+            parent = MockService(backend=BACKEND, children={child.id: child})
             child.serve()
+
             subscription, _ = parent.ask(service_id=child.id, input_values={})
 
             with self.assertRaises(FileNotFoundError) as context:
@@ -176,11 +175,11 @@ class TestService(BaseTestCase):
         class AnUnknownException(Exception):
             pass
 
-        child = self.make_new_child_with_error(AnUnknownException("This is an exception unknown to the asker."))
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
         with self.service_patcher:
+            child = self.make_new_child_with_error(AnUnknownException("This is an exception unknown to the asker."))
+            parent = MockService(backend=BACKEND, children={child.id: child})
             child.serve()
+
             subscription, _ = parent.ask(service_id=child.id, input_values={})
 
             with self.assertRaises(Exception) as context:
@@ -194,11 +193,11 @@ class TestService(BaseTestCase):
         run function rather than a mock so that the underlying `Runner` instance is used, and check that remote log
         messages aren't forwarded to the local logger.
         """
-        child = MockService(backend=BACKEND, run_function=self.create_run_function())
-        parent = MockService(backend=BACKEND, children={child.id: child})
+        with self.service_patcher:
+            child = MockService(backend=BACKEND, run_function=self.create_run_function())
+            parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with self.assertLogs() as logging_context:
-            with self.service_patcher:
+            with self.assertLogs() as logging_context:
                 child.serve()
                 subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=False)
                 answer = parent.wait_for_answer(subscription)
@@ -215,11 +214,11 @@ class TestService(BaseTestCase):
         run function rather than a mock so that the underlying `Runner` instance is used, and check that remote log
         messages are forwarded to the local logger.
         """
-        child = MockService(backend=BACKEND, run_function=self.create_run_function())
-        parent = MockService(backend=BACKEND, children={child.id: child})
+        with self.service_patcher:
+            child = MockService(backend=BACKEND, run_function=self.create_run_function())
+            parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with self.assertLogs() as logs_context_manager:
-            with self.service_patcher:
+            with self.assertLogs() as logs_context_manager:
                 child.serve()
                 subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
                 answer = parent.wait_for_answer(subscription, service_name="my-super-service")
@@ -261,11 +260,11 @@ class TestService(BaseTestCase):
 
             return Runner(app_src=mock_app, twine='{"input_values_schema": {"type": "object", "required": []}}').run
 
-        child = MockService(backend=BACKEND, run_function=create_exception_logging_run_function())
-        parent = MockService(backend=BACKEND, children={child.id: child})
+        with self.service_patcher:
+            child = MockService(backend=BACKEND, run_function=create_exception_logging_run_function())
+            parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with self.assertLogs(level=logging.ERROR) as logs_context_manager:
-            with self.service_patcher:
+            with self.assertLogs(level=logging.ERROR) as logs_context_manager:
                 child.serve()
                 subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
                 parent.wait_for_answer(subscription, service_name="my-super-service")
@@ -304,11 +303,11 @@ class TestService(BaseTestCase):
 
             return Runner(app_src=mock_app, twine=twine).run
 
-        child = MockService(backend=BACKEND, run_function=create_run_function_with_monitoring())
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
         with self.service_patcher:
+            child = MockService(backend=BACKEND, run_function=create_run_function_with_monitoring())
+            parent = MockService(backend=BACKEND, children={child.id: child})
             child.serve()
+
             subscription, _ = parent.ask(child.id, input_values={})
 
             monitoring_data = []
@@ -343,11 +342,11 @@ class TestService(BaseTestCase):
 
             return Runner(app_src=mock_app, twine=twine).run
 
-        child = MockService(backend=BACKEND, run_function=create_run_function_with_monitoring())
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
         with self.service_patcher:
+            child = MockService(backend=BACKEND, run_function=create_run_function_with_monitoring())
+            parent = MockService(backend=BACKEND, children={child.id: child})
             child.serve()
+
             subscription, _ = parent.ask(child.id, input_values={})
             monitoring_data = []
 
@@ -367,12 +366,11 @@ class TestService(BaseTestCase):
         def run_function(analysis_id, input_values, *args, **kwargs):
             return MockAnalysis(output_values=input_values)
 
-        child = MockService(backend=BACKEND, run_function=lambda *args, **kwargs: run_function(*args, **kwargs))
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
         input_values = {"my_set": {1, 2, 3}, "my_datetime": datetime.datetime.now()}
 
         with self.service_patcher:
+            child = MockService(backend=BACKEND, run_function=lambda *args, **kwargs: run_function(*args, **kwargs))
+            parent = MockService(backend=BACKEND, children={child.id: child})
             child.serve()
 
             subscription, _ = parent.ask(
@@ -390,9 +388,6 @@ class TestService(BaseTestCase):
         """Test that a service can ask a question including an input manifest to another service that is serving and
         receive an answer.
         """
-        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
         dataset_path = f"gs://{TEST_BUCKET_NAME}/my-dataset"
 
         input_manifest = Manifest(
@@ -405,6 +400,8 @@ class TestService(BaseTestCase):
         )
 
         with self.service_patcher:
+            child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
+            parent = MockService(backend=BACKEND, children={child.id: child})
             child.serve()
 
             with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
@@ -420,9 +417,6 @@ class TestService(BaseTestCase):
         """Test that a service can ask a question including an input manifest and no input values to another service
         that is serving and receive an answer.
         """
-        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
         dataset_path = f"gs://{TEST_BUCKET_NAME}/my-dataset"
 
         input_manifest = Manifest(
@@ -435,6 +429,8 @@ class TestService(BaseTestCase):
         )
 
         with self.service_patcher:
+            child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
+            parent = MockService(backend=BACKEND, children={child.id: child})
             child.serve()
 
             with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
@@ -476,10 +472,9 @@ class TestService(BaseTestCase):
             with open(temporary_local_path) as f:
                 return MockAnalysis(output_values=f.read())
 
-        child = MockService(backend=BACKEND, run_function=run_function)
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
         with self.service_patcher:
+            child = MockService(backend=BACKEND, run_function=run_function)
+            parent = MockService(backend=BACKEND, children={child.id: child})
             child.serve()
 
             subscription, _ = parent.ask(
@@ -495,10 +490,9 @@ class TestService(BaseTestCase):
 
     def test_ask_with_output_manifest(self):
         """Test that a service can receive an output manifest as part of the answer to a question."""
-        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysisWithOutputManifest())
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
         with self.service_patcher:
+            child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysisWithOutputManifest())
+            parent = MockService(backend=BACKEND, children={child.id: child})
             child.serve()
             subscription, _ = parent.ask(service_id=child.id, input_values={})
             answer = parent.wait_for_answer(subscription)
@@ -508,11 +502,11 @@ class TestService(BaseTestCase):
 
     def test_service_can_ask_multiple_questions_to_child(self):
         """Test that a service can ask multiple questions to the same child and expect replies to them all."""
-        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
         with self.service_patcher:
+            child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
+            parent = MockService(backend=BACKEND, children={child.id: child})
             child.serve()
+
             answers = []
 
             for i in range(5):
@@ -527,12 +521,11 @@ class TestService(BaseTestCase):
 
     def test_service_can_ask_questions_to_multiple_children(self):
         """Test that a service can ask questions to different children and expect replies to them all."""
-        child_1 = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
-        child_2 = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis())
-
-        parent = MockService(backend=BACKEND, children={child_1.id: child_1, child_2.id: child_2})
-
         with self.service_patcher:
+            child_1 = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
+            child_2 = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis())
+            parent = MockService(backend=BACKEND, children={child_1.id: child_1, child_2.id: child_2})
+
             child_1.serve()
             child_2.serve()
 
@@ -557,21 +550,20 @@ class TestService(BaseTestCase):
 
     def test_child_can_ask_its_own_child_questions(self):
         """Test that a child can contact its own child while answering a question from a parent."""
-        child_of_child = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis())
-
-        def child_run_function(analysis_id, input_values, *args, **kwargs):
-            subscription, _ = child.ask(service_id=child_of_child.id, input_values=input_values)
-            return MockAnalysis(output_values={input_values["question"]: child.wait_for_answer(subscription)})
-
-        child = MockService(
-            backend=BACKEND,
-            run_function=child_run_function,
-            children={child_of_child.id: child_of_child},
-        )
-
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
         with self.service_patcher:
+            child_of_child = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis())
+
+            def child_run_function(analysis_id, input_values, *args, **kwargs):
+                subscription, _ = child.ask(service_id=child_of_child.id, input_values=input_values)
+                return MockAnalysis(output_values={input_values["question"]: child.wait_for_answer(subscription)})
+
+            child = MockService(
+                backend=BACKEND,
+                run_function=child_run_function,
+                children={child_of_child.id: child_of_child},
+            )
+
+            parent = MockService(backend=BACKEND, children={child.id: child})
             child.serve()
             child_of_child.serve()
 
@@ -597,29 +589,31 @@ class TestService(BaseTestCase):
 
     def test_child_can_ask_its_own_children_questions(self):
         """Test that a child can contact more than one of its own children while answering a question from a parent."""
-        first_child_of_child = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis())
-        second_child_of_child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
+        with self.service_patcher:
+            first_child_of_child = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis())
+            second_child_of_child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
 
-        def child_run_function(analysis_id, input_values, *args, **kwargs):
-            subscription_1, _ = child.ask(service_id=first_child_of_child.id, input_values=input_values)
-            subscription_2, _ = child.ask(service_id=second_child_of_child.id, input_values=input_values)
+            def child_run_function(analysis_id, input_values, *args, **kwargs):
+                subscription_1, _ = child.ask(service_id=first_child_of_child.id, input_values=input_values)
+                subscription_2, _ = child.ask(service_id=second_child_of_child.id, input_values=input_values)
 
-            return MockAnalysis(
-                output_values={
-                    "first_child_of_child": child.wait_for_answer(subscription_1),
-                    "second_child_of_child": child.wait_for_answer(subscription_2),
-                }
+                return MockAnalysis(
+                    output_values={
+                        "first_child_of_child": child.wait_for_answer(subscription_1),
+                        "second_child_of_child": child.wait_for_answer(subscription_2),
+                    }
+                )
+
+            child = MockService(
+                backend=BACKEND,
+                run_function=child_run_function,
+                children={
+                    first_child_of_child.id: first_child_of_child,
+                    second_child_of_child.id: second_child_of_child,
+                },
             )
 
-        child = MockService(
-            backend=BACKEND,
-            run_function=child_run_function,
-            children={first_child_of_child.id: first_child_of_child, second_child_of_child.id: second_child_of_child},
-        )
-
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
-        with self.service_patcher:
+            parent = MockService(backend=BACKEND, children={child.id: child})
             child.serve()
             first_child_of_child.serve()
             second_child_of_child.serve()
@@ -650,11 +644,11 @@ class TestService(BaseTestCase):
 
     def test_child_messages_can_be_recorded_by_parent(self):
         """Test that the parent can record messages it receives from its child to a JSON file."""
-        child = MockService(backend=BACKEND, run_function=self.create_run_function())
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
         with self.service_patcher:
+            child = MockService(backend=BACKEND, run_function=self.create_run_function())
+            parent = MockService(backend=BACKEND, children={child.id: child})
             child.serve()
+
             subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
             parent.wait_for_answer(subscription, service_name="my-super-service")
 
@@ -671,10 +665,9 @@ class TestService(BaseTestCase):
 
     def test_child_exception_message_can_be_recorded_by_parent(self):
         """Test that the parent can record exceptions raised by the child."""
-        child = self.make_new_child_with_error(ValueError("Oh no."))
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
         with self.service_patcher:
+            child = self.make_new_child_with_error(ValueError("Oh no."))
+            parent = MockService(backend=BACKEND, children={child.id: child})
             child.serve()
 
             with self.assertRaises(ValueError):
@@ -694,10 +687,9 @@ class TestService(BaseTestCase):
             time.sleep(0.3)
             return MockAnalysis()
 
-        child = MockService(backend=BACKEND, run_function=lambda *args, **kwargs: run_function())
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
         with self.service_patcher:
+            child = MockService(backend=BACKEND, run_function=lambda *args, **kwargs: run_function())
+            parent = MockService(backend=BACKEND, children={child.id: child})
             child.serve()
 
             with patch(
@@ -741,10 +733,9 @@ class TestService(BaseTestCase):
             analysis.output_values = {"tada": True}
             return analysis
 
-        child = MockService(backend=BACKEND, run_function=run_function)
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
         with self.service_patcher:
+            child = MockService(backend=BACKEND, run_function=run_function)
+            parent = MockService(backend=BACKEND, children={child.id: child})
             child.serve()
 
             subscription, _ = parent.ask(
@@ -800,43 +791,44 @@ class TestService(BaseTestCase):
             service_id=f"octue/child:{MOCK_SERVICE_REVISION_TAG}",
         )
 
-        static_child_of_child = self.make_new_child(
-            backend=BACKEND,
-            service_id=f"octue/static-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
-            run_function_returnee=MockAnalysis(output_values="I am the static child."),
-        )
-
-        dynamic_child_of_child = self.make_new_child(
-            backend=BACKEND,
-            service_id=f"octue/dynamic-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
-            run_function_returnee=MockAnalysis(output_values="I am the dynamic child."),
-        )
-
-        child = MockService(
-            backend=BACKEND,
-            service_id=f"octue/child:{MOCK_SERVICE_REVISION_TAG}",
-            run_function=runner.run,
-            children={
-                static_child_of_child.id: static_child_of_child,
-                dynamic_child_of_child.id: dynamic_child_of_child,
-            },
-        )
-
-        parent = MockService(
-            backend=BACKEND,
-            service_id=f"octue/parent:{MOCK_SERVICE_REVISION_TAG}",
-            children={child.id: child},
-        )
-
-        dynamic_children = [
-            {
-                "key": "expected_child",
-                "id": f"octue/dynamic-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
-                "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
-            },
-        ]
-
         with self.service_patcher:
+
+            static_child_of_child = self.make_new_child(
+                backend=BACKEND,
+                service_id=f"octue/static-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
+                run_function_returnee=MockAnalysis(output_values="I am the static child."),
+            )
+
+            dynamic_child_of_child = self.make_new_child(
+                backend=BACKEND,
+                service_id=f"octue/dynamic-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
+                run_function_returnee=MockAnalysis(output_values="I am the dynamic child."),
+            )
+
+            child = MockService(
+                backend=BACKEND,
+                service_id=f"octue/child:{MOCK_SERVICE_REVISION_TAG}",
+                run_function=runner.run,
+                children={
+                    static_child_of_child.id: static_child_of_child,
+                    dynamic_child_of_child.id: dynamic_child_of_child,
+                },
+            )
+
+            parent = MockService(
+                backend=BACKEND,
+                service_id=f"octue/parent:{MOCK_SERVICE_REVISION_TAG}",
+                children={child.id: child},
+            )
+
+            dynamic_children = [
+                {
+                    "key": "expected_child",
+                    "id": f"octue/dynamic-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
+                    "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
+                },
+            ]
+
             static_child_of_child.serve()
             dynamic_child_of_child.serve()
             child.serve()
