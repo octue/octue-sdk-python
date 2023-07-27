@@ -29,7 +29,6 @@ class Topic:
             self.name = name
 
         self.path = self.generate_topic_path(project_name, self.name)
-        self.messages_published = 0
         self._publisher = PublisherClient()
         self._created = False
 

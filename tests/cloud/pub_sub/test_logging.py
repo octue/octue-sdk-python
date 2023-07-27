@@ -33,6 +33,7 @@ class TestGooglePubSubHandler(BaseTestCase):
             message_sender=service._send_message,
             topic=topic,
             analysis_id=question_uuid,
+            message_number={"value": 0},
         ).emit(log_record)
 
         self.assertEqual(
@@ -61,7 +62,12 @@ class TestGooglePubSubHandler(BaseTestCase):
         service = MockService(backend=backend)
 
         with patch("octue.cloud.emulators._pub_sub.MockPublisher.publish") as mock_publish:
-            GooglePubSubHandler(service._send_message, topic, "analysis-id").emit(record)
+            GooglePubSubHandler(
+                message_sender=service._send_message,
+                topic=topic,
+                analysis_id="analysis-id",
+                message_number={"value": 0},
+            ).emit(record)
 
         self.assertEqual(
             json.loads(mock_publish.call_args.kwargs["data"].decode())["log_record"]["msg"],

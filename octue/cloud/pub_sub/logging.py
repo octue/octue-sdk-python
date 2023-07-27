@@ -11,14 +11,16 @@ class GooglePubSubHandler(logging.Handler):
     :param callable message_sender: the `_send_message` method of the service that instantiated this instance
     :param octue.cloud.pub_sub.topic.Topic topic: topic to publish log records to
     :param str analysis_id: the UUID of the analysis the instance is handling the log records for
+    :param dict message_number:
     :param float timeout: timeout in seconds for attempting to publish each log record
     :return None:
     """
 
-    def __init__(self, message_sender, topic, analysis_id, timeout=60, *args, **kwargs):
+    def __init__(self, message_sender, topic, analysis_id, message_number, timeout=60, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.topic = topic
         self.analysis_id = analysis_id
+        self.message_number = message_number
         self.timeout = timeout
         self._send_message = message_sender
 
@@ -34,10 +36,11 @@ class GooglePubSubHandler(logging.Handler):
                     "type": "log_record",
                     "log_record": self._convert_log_record_to_primitives(record),
                     "analysis_id": self.analysis_id,
-                    "message_number": self.topic.messages_published,
+                    "message_number": self.message_number,
                 },
                 topic=self.topic,
                 question_uuid=self.analysis_id,
+                message_number=self.message_number,
             )
 
         except Exception:  # noqa

@@ -200,12 +200,16 @@ class Service:
             allow_save_diagnostics_data_on_crash,
         ) = self._parse_question(question)
 
-        self._send_delivery_acknowledgment(self._topic, question_uuid)
+        # The message number cannot be an instance attribute as it is tied to a specific question; instead, a separate
+        # message number variable is created for each question. The message number is enclosed inside a dictionary to
+        # make it mutable.
+        message_number = {"value": 0}
+        self._send_delivery_acknowledgment(self._topic, question_uuid, message_number)
 
         heartbeater = RepeatingTimer(
             interval=heartbeat_interval,
             function=self._send_heartbeat,
-            kwargs={"topic": self._topic, "question_uuid": question_uuid},
+            kwargs={"topic": self._topic, "question_uuid": question_uuid, "message_number": message_number},
         )
 
         heartbeater.daemon = True
@@ -217,6 +221,7 @@ class Service:
                     message_sender=self._send_message,
                     topic=self._topic,
                     analysis_id=question_uuid,
+                    message_number=message_number,
                 )
             else:
                 analysis_log_handler = None
@@ -231,6 +236,7 @@ class Service:
                     self._send_monitor_message,
                     topic=self._topic,
                     question_uuid=question_uuid,
+                    message_number=message_number,
                 ),
                 allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
             )
@@ -247,6 +253,7 @@ class Service:
                     "output_manifest": serialised_output_manifest,
                 },
                 topic=self._topic,
+                message_number=message_number,
                 timeout=timeout,
                 question_uuid=question_uuid,
                 is_question=False,
@@ -258,7 +265,7 @@ class Service:
         except BaseException as error:  # noqa
             heartbeater.cancel()
             warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
-            self.send_exception(self._topic, question_uuid, timeout=timeout)
+            self.send_exception(self._topic, question_uuid, message_number, timeout=timeout)
             raise error
 
     def ask(
@@ -332,6 +339,7 @@ class Service:
             {"input_values": input_values, "input_manifest": input_manifest, "children": children},
             topic=topic,
             question_uuid=question_uuid,
+            message_number={"value": 0},
             forward_logs=subscribe_to_logs,
             allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
             is_question=True,
@@ -385,11 +393,12 @@ class Service:
         finally:
             subscription.delete()
 
-    def send_exception(self, topic, question_uuid, timeout=30):
+    def send_exception(self, topic, question_uuid, message_number, timeout=30):
         """Serialise and send the exception being handled to the parent.
 
         :param octue.cloud.pub_sub.topic.Topic topic:
         :param str question_uuid:
+        :param dict message_number:
         :param float|None timeout: time in seconds to keep retrying sending of the exception
         :return None:
         """
@@ -404,16 +413,18 @@ class Service:
                 "traceback": exception["traceback"],
             },
             topic=topic,
+            message_number=message_number,
             timeout=timeout,
             question_uuid=question_uuid,
             is_question=False,
         )
 
-    def _send_message(self, message, topic, timeout=30, **attributes):
+    def _send_message(self, message, topic, message_number, timeout=30, **attributes):
         """Send a JSON-serialised message to the given topic with optional message attributes.
 
         :param dict message: JSON-serialisable data to send as a message
         :param octue.cloud.pub_sub.topic.Topic topic: the Pub/Sub topic to send the message to
+        :param dict message_number:
         :param int|float timeout: the timeout for sending the message in seconds
         :param attributes: key-value pairs to attach to the message - the values must be strings or bytes
         :return None:
@@ -423,7 +434,7 @@ class Service:
 
             # This would be better placed in the Pub/Sub message's attributes but has been left in `message` for
             # inter-service backwards compatibility.
-            message["message_number"] = topic.messages_published
+            message["message_number"] = message_number["value"]
             converted_attributes = {}
 
             for key, value in attributes.items():
@@ -441,13 +452,14 @@ class Service:
                 **converted_attributes,
             )
 
-            topic.messages_published += 1
+            message_number["value"] += 1
 
-    def _send_delivery_acknowledgment(self, topic, question_uuid, timeout=30):
+    def _send_delivery_acknowledgment(self, topic, question_uuid, message_number, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
 
         :param octue.cloud.pub_sub.topic.Topic topic: topic to send the acknowledgement to
         :param str question_uuid:
+        :param dict message_number:
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -457,6 +469,7 @@ class Service:
                 "delivery_time": str(datetime.datetime.now()),
             },
             topic=topic,
+            message_number=message_number,
             timeout=timeout,
             question_uuid=question_uuid,
             is_question=False,
@@ -464,11 +477,12 @@ class Service:
 
         logger.info("%r acknowledged receipt of question.", self)
 
-    def _send_heartbeat(self, topic, question_uuid, timeout=30):
+    def _send_heartbeat(self, topic, question_uuid, message_number, timeout=30):
         """Send a heartbeat to the parent, indicating that the service is alive.
 
         :param octue.cloud.pub_sub.topic.Topic topic: topic to send the heartbeat to
         :param str question_uuid:
+        :param dict message_number:
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -478,6 +492,7 @@ class Service:
                 "time": str(datetime.datetime.now()),
             },
             topic=topic,
+            message_number=message_number,
             timeout=timeout,
             question_uuid=question_uuid,
             is_question=False,
@@ -485,12 +500,13 @@ class Service:
 
         logger.debug("Heartbeat sent by %r.", self)
 
-    def _send_monitor_message(self, data, topic, question_uuid, timeout=30):
+    def _send_monitor_message(self, data, topic, question_uuid, message_number, timeout=30):
         """Send a monitor message to the parent.
 
         :param any data: the data to send as a monitor message
         :param octue.cloud.pub_sub.topic.Topic topic: the topic to send the message to
         :param str question_uuid:
+        :param dict message_number:
         :param float timeout: time in seconds to retry sending the message
         :return None:
         """
@@ -500,6 +516,7 @@ class Service:
                 "data": json.dumps(data, cls=OctueJSONEncoder),
             },
             topic=topic,
+            message_number=message_number,
             timeout=timeout,
             question_uuid=question_uuid,
             is_question=False,
