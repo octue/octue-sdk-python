@@ -255,6 +255,9 @@ class MockMessage:
         for key, value in attributes.items():
             self.attributes[key] = value
 
+    def __repr__(self):
+        return f"<{type(self).__name__}(data={self.data!r})>"
+
     def ack(self):
         """Do nothing.
 
