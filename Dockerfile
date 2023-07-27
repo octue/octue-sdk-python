@@ -10,9 +10,8 @@ RUN poetry config virtualenvs.create false
 # Install python dependencies. Note that poetry installs any root packages by default, but this is not available at this
 # stage of caching dependencies. So we do a dependency-only install here to cache the dependencies, then a full poetry
 # install post-create to install the root package, which will change more rapidly than dependencies.
-COPY octue/cloud/deployment/google/dataflow/setup.py setup.py
 COPY pyproject.toml poetry.lock ./
-RUN poetry install --no-ansi --no-interaction -E dataflow --only=main --no-root -v
+RUN poetry install --no-ansi --no-interaction --only=main --no-root -v
 
 COPY . .
-RUN poetry install --no-ansi --no-interaction -E dataflow --only=main -v
+RUN poetry install --no-ansi --no-interaction --only=main -v

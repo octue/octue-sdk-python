@@ -71,8 +71,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: run-tests
     steps:
-      - uses: actions/checkout@v3
-
       - name: Create Release
         uses: actions/create-release@v1
         env:

@@ -30,25 +30,6 @@ class ServiceConfiguration:
         app_configuration_path=None,
         crash_diagnostics_cloud_path=None,
         service_registries=None,
-        repository_name=None,
-        repository_owner=None,
-        project_name=None,
-        region=None,
-        dockerfile_path=None,
-        cloud_build_configuration_path=None,
-        maximum_instances=10,
-        branch_pattern="^main$",
-        environment_variables=None,
-        secrets=None,
-        concurrency=10,
-        memory="128Mi",
-        cpus=1,
-        minimum_instances=0,
-        execution_environment="gen2",
-        temporary_files_location=None,
-        setup_file_path=None,
-        service_account_email=None,
-        machine_type=None,
         **kwargs,
     ):
         self.name = name
@@ -58,31 +39,6 @@ class ServiceConfiguration:
         self.app_configuration_path = app_configuration_path
         self.crash_diagnostics_cloud_path = crash_diagnostics_cloud_path
         self.service_registries = service_registries
-
-        # Deployed services only.
-        self.repository_name = repository_name
-        self.repository_owner = repository_owner
-        self.project_name = project_name
-        self.region = region
-        self.dockerfile_path = dockerfile_path
-        self.provided_cloud_build_configuration_path = cloud_build_configuration_path
-        self.maximum_instances = maximum_instances
-        self.branch_pattern = branch_pattern
-        self.environment_variables = environment_variables or []
-        self.secrets = secrets or {}
-
-        # Cloud Run services only.
-        self.concurrency = concurrency
-        self.memory = memory
-        self.cpus = cpus
-        self.minimum_instances = minimum_instances
-        self.execution_environment = execution_environment
-
-        # Dataflow services only.
-        self.temporary_files_location = temporary_files_location
-        self.setup_file_path = setup_file_path
-        self.service_account_email = service_account_email
-        self.worker_machine_type = machine_type
 
         if kwargs:
             logger.warning(f"The following keyword arguments were not used by {type(self).__name__}: {kwargs!r}.")

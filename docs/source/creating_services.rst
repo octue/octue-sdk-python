@@ -5,7 +5,7 @@ One of the main features of the Octue SDK is to allow you to easily create servi
 return answers. They can run locally on any machine or be deployed to the cloud. Currently:
 
 - The backend communication between twins uses Google Pub/Sub whether they're local or deployed
-- The deployment options are Google Cloud Run or Google Dataflow
+- Services are deployed to Google Cloud Run
 - The language of the entrypoint must by ``python3`` (you can call processes using other languages within this though)
 
 
@@ -96,7 +96,6 @@ Dockerfile (optional)
         provides a default ``Dockerfile`` for these purposes that will work for most cases:
 
         - For deploying to `Google Cloud Run <https://github.com/octue/octue-sdk-python/blob/main/octue/cloud/deployment/google/cloud_run/Dockerfile>`_
-        - For deploying to `Google Dataflow <https://github.com/octue/octue-sdk-python/blob/main/octue/cloud/deployment/google/dataflow/Dockerfile>`_
 
         However, you may need to write and provide your own ``Dockerfile`` if your app requires:
 
