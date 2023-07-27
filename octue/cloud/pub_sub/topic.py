@@ -29,8 +29,21 @@ class Topic:
             self.name = name
 
         self.path = self.generate_topic_path(project_name, self.name)
-        self._publisher = PublisherClient()
+        self._publisher = None
         self._created = False
+
+    @property
+    def publisher(self):
+        """Get or instantiate the publisher client for the topic. No publisher is instantiated until this property is
+        called for the first time. This allows checking for the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to
+        be put off until it's needed.
+
+        :return google.cloud.pubsub_v1.PublisherClient:
+        """
+        if not self._publisher:
+            self._publisher = PublisherClient()
+
+        return self._publisher
 
     @property
     def creation_triggered_locally(self):
@@ -57,7 +70,7 @@ class Topic:
         posix_timestamp_with_no_decimals = str(datetime.now().timestamp()).split(".")[0]
 
         if not allow_existing:
-            self._publisher.create_topic(
+            self.publisher.create_topic(
                 request=Topic_(name=self.path, labels={"created": posix_timestamp_with_no_decimals})
             )
             self._created = True
@@ -65,7 +78,7 @@ class Topic:
             return
 
         try:
-            self._publisher.create_topic(
+            self.publisher.create_topic(
                 request=Topic_(name=self.path, labels={"created": posix_timestamp_with_no_decimals})
             )
             self._created = True
@@ -79,14 +92,14 @@ class Topic:
 
         :return list(str):
         """
-        return list(self._publisher.list_topic_subscriptions(topic=self.path))
+        return list(self.publisher.list_topic_subscriptions(topic=self.path))
 
     def delete(self):
         """Delete the topic from Google Pub/Sub.
 
         :return None:
         """
-        self._publisher.delete_topic(topic=self.path)
+        self.publisher.delete_topic(topic=self.path)
         logger.info("Topic %r deleted.", self.path)
 
     def exists(self, timeout=10):
@@ -99,7 +112,7 @@ class Topic:
 
         while time.time() - start_time <= timeout:
             try:
-                self._publisher.get_topic(topic=self.path)
+                self.publisher.get_topic(topic=self.path)
                 return True
             except google.api_core.exceptions.NotFound:
                 time.sleep(1)
