@@ -31,14 +31,15 @@ class ChildEmulator:
         backend_type_name = backend.pop("name")
         backend = service_backends.get_backend(backend_type_name)(**backend)
 
-        self._child = MockService(service_id=id, backend=backend, run_function=self._emulate_analysis)
-        self.id = self._child.id
+        with ServicePatcher():
+            self._child = MockService(service_id=id, backend=backend, run_function=self._emulate_analysis)
+            self.id = self._child.id
 
-        self._parent = MockService(
-            backend=backend,
-            service_id=internal_service_name,
-            children={self._child.id: self._child},
-        )
+            self._parent = MockService(
+                backend=backend,
+                service_id=internal_service_name,
+                children={self._child.id: self._child},
+            )
 
         self._message_handlers = {
             "delivery_acknowledgement": self._handle_delivery_acknowledgement,

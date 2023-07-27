@@ -245,10 +245,9 @@ class TestChildEmulatorAsk(BaseTestCase):
         def error_run_function(*args, **kwargs):
             raise OSError("Oh no. Some error has been raised for testing.")
 
-        child = MockService(backend=backend, run_function=error_run_function)
-        parent = MockService(backend=backend, children={child.id: child})
-
         with ServicePatcher():
+            child = MockService(backend=backend, run_function=error_run_function)
+            parent = MockService(backend=backend, children={child.id: child})
             child.serve()
 
             with self.assertRaises(OSError):
