@@ -14,12 +14,18 @@ class MultiPatcher:
 
         :return list(unittest.mock.MagicMock):
         """
-        return [patch.start() for patch in self.patches]
+        return self.start()
 
     def __exit__(self, *args, **kwargs):
         """Stop the patches.
 
         :return None:
         """
+        self.stop()
+
+    def start(self):
+        return [patch.start() for patch in self.patches]
+
+    def stop(self):
         for patch in self.patches:
             patch.stop()
