@@ -55,5 +55,5 @@ def answer_question(question, project_name):
 
     # Forward any errors in the deployment configuration (errors in the analysis are already forwarded by the service).
     except BaseException as error:  # noqa
-        service.send_exception(topic=service.topic, question_uuid=question_uuid)
+        service.send_exception(question_uuid=question_uuid)
         logger.exception(error)

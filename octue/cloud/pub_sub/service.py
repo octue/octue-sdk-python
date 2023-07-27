@@ -202,12 +202,12 @@ class Service:
         # message number variable is created for each question. The message number is enclosed inside a dictionary to
         # make it mutable.
         message_number = {"value": 0}
-        self._send_delivery_acknowledgment(self.topic, question_uuid, message_number)
+        self._send_delivery_acknowledgment(question_uuid, message_number)
 
         heartbeater = RepeatingTimer(
             interval=heartbeat_interval,
             function=self._send_heartbeat,
-            kwargs={"topic": self.topic, "question_uuid": question_uuid, "message_number": message_number},
+            kwargs={"question_uuid": question_uuid, "message_number": message_number},
         )
 
         heartbeater.daemon = True
@@ -217,7 +217,6 @@ class Service:
             if forward_logs:
                 analysis_log_handler = GooglePubSubHandler(
                     message_sender=self._send_message,
-                    topic=self.topic,
                     analysis_id=question_uuid,
                     message_number=message_number,
                 )
@@ -232,7 +231,6 @@ class Service:
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=functools.partial(
                     self._send_monitor_message,
-                    topic=self.topic,
                     question_uuid=question_uuid,
                     message_number=message_number,
                 ),
@@ -250,7 +248,6 @@ class Service:
                     "output_values": analysis.output_values,
                     "output_manifest": serialised_output_manifest,
                 },
-                topic=self.topic,
                 message_number=message_number,
                 timeout=timeout,
                 question_uuid=question_uuid,
@@ -263,7 +260,7 @@ class Service:
         except BaseException as error:  # noqa
             heartbeater.cancel()
             warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
-            self.send_exception(self.topic, question_uuid, message_number, timeout=timeout)
+            self.send_exception(question_uuid, message_number, timeout=timeout)
             raise error
 
     def ask(
@@ -391,7 +388,7 @@ class Service:
         finally:
             subscription.delete()
 
-    def send_exception(self, topic, question_uuid, message_number, timeout=30):
+    def send_exception(self, question_uuid, message_number, timeout=30):
         """Serialise and send the exception being handled to the parent.
 
         :param octue.cloud.pub_sub.topic.Topic topic:
@@ -410,19 +407,18 @@ class Service:
                 "exception_message": exception_message,
                 "traceback": exception["traceback"],
             },
-            topic=topic,
             message_number=message_number,
             timeout=timeout,
             question_uuid=question_uuid,
             is_question=False,
         )
 
-    def _send_message(self, message, topic, message_number, timeout=30, **attributes):
+    def _send_message(self, message, message_number, topic=None, timeout=30, **attributes):
         """Send a JSON-serialised message to the given topic with optional message attributes.
 
         :param dict message: JSON-serialisable data to send as a message
-        :param octue.cloud.pub_sub.topic.Topic topic: the Pub/Sub topic to send the message to
         :param dict message_number:
+        :param octue.cloud.pub_sub.topic.Topic|None topic:
         :param int|float timeout: the timeout for sending the message in seconds
         :param attributes: key-value pairs to attach to the message - the values must be strings or bytes
         :return None:
@@ -443,6 +439,8 @@ class Service:
 
                 converted_attributes[key] = value
 
+            topic = topic or self.topic
+
             self.publisher.publish(
                 topic=topic.path,
                 data=json.dumps(message, cls=OctueJSONEncoder).encode(),
@@ -452,10 +450,9 @@ class Service:
 
             message_number["value"] += 1
 
-    def _send_delivery_acknowledgment(self, topic, question_uuid, message_number, timeout=30):
+    def _send_delivery_acknowledgment(self, question_uuid, message_number, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
 
-        :param octue.cloud.pub_sub.topic.Topic topic: topic to send the acknowledgement to
         :param str question_uuid:
         :param dict message_number:
         :param float timeout: time in seconds after which to give up sending
@@ -466,7 +463,6 @@ class Service:
                 "type": "delivery_acknowledgement",
                 "delivery_time": str(datetime.datetime.now()),
             },
-            topic=topic,
             message_number=message_number,
             timeout=timeout,
             question_uuid=question_uuid,
@@ -475,10 +471,9 @@ class Service:
 
         logger.info("%r acknowledged receipt of question.", self)
 
-    def _send_heartbeat(self, topic, question_uuid, message_number, timeout=30):
+    def _send_heartbeat(self, question_uuid, message_number, timeout=30):
         """Send a heartbeat to the parent, indicating that the service is alive.
 
-        :param octue.cloud.pub_sub.topic.Topic topic: topic to send the heartbeat to
         :param str question_uuid:
         :param dict message_number:
         :param float timeout: time in seconds after which to give up sending
@@ -489,7 +484,6 @@ class Service:
                 "type": "heartbeat",
                 "time": str(datetime.datetime.now()),
             },
-            topic=topic,
             message_number=message_number,
             timeout=timeout,
             question_uuid=question_uuid,
@@ -498,10 +492,9 @@ class Service:
 
         logger.debug("Heartbeat sent by %r.", self)
 
-    def _send_monitor_message(self, data, topic, question_uuid, message_number, timeout=30):
+    def _send_monitor_message(self, data, question_uuid, message_number, timeout=30):
         """Send a monitor message to the parent.
 
-        :param any data: the data to send as a monitor message
         :param octue.cloud.pub_sub.topic.Topic topic: the topic to send the message to
         :param str question_uuid:
         :param dict message_number:
@@ -513,7 +506,6 @@ class Service:
                 "type": "monitor_message",
                 "data": json.dumps(data, cls=OctueJSONEncoder),
             },
-            topic=topic,
             message_number=message_number,
             timeout=timeout,
             question_uuid=question_uuid,
