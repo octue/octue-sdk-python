@@ -37,6 +37,7 @@ class GooglePubSubHandler(logging.Handler):
                     "message_number": self.topic.messages_published,
                 },
                 topic=self.topic,
+                question_uuid=self.analysis_id,
             )
 
         except Exception:  # noqa
