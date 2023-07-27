@@ -57,7 +57,7 @@ class OrderedMessageHandler:
         self.record_messages = record_messages
         self.service_name = service_name
 
-        self.question_uuid = self.subscription.topic.path.split(".")[-1]
+        self.question_uuid = self.subscription.path.split(".")[-1]
         self.handled_messages = []
         self._subscriber = SubscriberClient()
         self._child_sdk_version = None
