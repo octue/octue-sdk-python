@@ -246,9 +246,8 @@ class Service:
                     "output_manifest": serialised_output_manifest,
                 },
                 topic=topic,
+                attributes={"question_uuid": question_uuid, "is_question": False},
                 timeout=timeout,
-                question_uuid=question_uuid,
-                is_question=False,
             )
 
             heartbeater.cancel()
@@ -330,10 +329,12 @@ class Service:
         self._send_message(
             {"input_values": input_values, "input_manifest": input_manifest, "children": children},
             topic=topic,
-            question_uuid=question_uuid,
-            forward_logs=subscribe_to_logs,
-            allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
-            is_question=True,
+            attributes={
+                "question_uuid": question_uuid,
+                "is_question": True,
+                "forward_logs": subscribe_to_logs,
+                "allow_save_diagnostics_data_on_crash": allow_save_diagnostics_data_on_crash,
+            },
         )
 
         logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
@@ -403,20 +404,21 @@ class Service:
                 "traceback": exception["traceback"],
             },
             topic=topic,
+            attributes={"question_uuid": question_uuid, "is_question": False},
             timeout=timeout,
-            question_uuid=question_uuid,
-            is_question=False,
         )
 
-    def _send_message(self, message, topic, timeout=30, **attributes):
+    def _send_message(self, message, topic, attributes=None, timeout=30):
         """Send a JSON-serialised message to the given topic with optional message attributes.
 
         :param dict message: JSON-serialisable data to send as a message
         :param octue.cloud.pub_sub.topic.Topic topic: the Pub/Sub topic to send the message to
+        :param dict attributes: key-value pairs to attach to the message - the values must be strings or bytes
         :param int|float timeout: the timeout for sending the message in seconds
-        :param attributes: key-value pairs to attach to the message - the values must be strings or bytes
         :return None:
         """
+        attributes = attributes or {}
+
         with send_message_lock:
             attributes["octue_sdk_version"] = self._local_sdk_version
             attributes["message_number"] = topic.messages_published
@@ -454,8 +456,7 @@ class Service:
             },
             topic=topic,
             timeout=timeout,
-            question_uuid=question_uuid,
-            is_question=False,
+            attributes={"question_uuid": question_uuid, "is_question": False},
         )
 
         logger.info("%r acknowledged receipt of question.", self)
@@ -475,8 +476,7 @@ class Service:
             },
             topic=topic,
             timeout=timeout,
-            question_uuid=question_uuid,
-            is_question=False,
+            attributes={"question_uuid": question_uuid, "is_question": False},
         )
 
         logger.debug("Heartbeat sent by %r.", self)
@@ -497,8 +497,7 @@ class Service:
             },
             topic=topic,
             timeout=timeout,
-            question_uuid=question_uuid,
-            is_question=False,
+            attributes={"question_uuid": question_uuid, "is_question": False},
         )
 
         logger.debug("Monitor message sent by %r.", self)

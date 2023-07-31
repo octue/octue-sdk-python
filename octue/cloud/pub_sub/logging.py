@@ -36,8 +36,7 @@ class GooglePubSubHandler(logging.Handler):
                     "analysis_id": self.analysis_id,
                 },
                 topic=self.topic,
-                question_uuid=self.analysis_id,
-                is_question=False,
+                attributes={"question_uuid": self.analysis_id, "is_question": False},
             )
 
         except Exception:  # noqa
