@@ -222,11 +222,6 @@ class OrderedMessageHandler:
         if not self._child_sdk_version:
             self._child_sdk_version = answer.message.attributes.get("octue_sdk_version")
 
-            # If the child hasn't provided its Octue SDK version, it's too old to send heartbeats - so, cancel the
-            # heartbeat checker to maintain compatibility.
-            if not self._child_sdk_version:
-                self._heartbeat_checker.cancel()
-
         message_number = int(answer.message.attributes["message_number"])
         message = json.loads(answer.message.data.decode(), cls=OctueJSONDecoder)
 
