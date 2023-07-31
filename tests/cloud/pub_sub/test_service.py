@@ -666,7 +666,7 @@ class TestService(BaseTestCase):
 
         self.assertEqual(
             parent.received_messages[4],
-            {"type": "result", "output_values": "Hello! It worked!", "output_manifest": None, "message_number": 4},
+            {"type": "result", "output_values": "Hello! It worked!", "output_manifest": None},
         )
 
     def test_child_exception_message_can_be_recorded_by_parent(self):

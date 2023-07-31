@@ -39,7 +39,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         with patch(
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
             new=MockMessagePuller(
-                messages=[{"type": "test", "message_number": 0}],
+                messages=[MockMessage(b"")],
                 message_handler=message_handler,
             ).pull,
         ):
@@ -56,7 +56,7 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         with self.assertLogs() as logging_context:
-            message_handler._handle_message({"type": "blah", "message_number": 0})
+            message_handler._handle_message({"type": "blah"})
 
         self.assertIn("received a message of unknown type", logging_context.output[1])
 
@@ -70,10 +70,10 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         messages = [
-            {"type": "test", "message_number": 0},
-            {"type": "test", "message_number": 1},
-            {"type": "test", "message_number": 2},
-            {"type": "finish-test", "message_number": 3},
+            MockMessage(json.dumps({"type": "test"}).encode(), message_number=0),
+            MockMessage(json.dumps({"type": "test"}).encode(), message_number=1),
+            MockMessage(json.dumps({"type": "test"}).encode(), message_number=2),
+            MockMessage(json.dumps({"type": "finish-test"}).encode(), message_number=3),
         ]
 
         with patch(
@@ -83,7 +83,7 @@ class TestOrderedMessageHandler(BaseTestCase):
             result = message_handler.handle_messages()
 
         self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handler.handled_messages, messages)
+        self.assertEqual(message_handler.handled_messages, [json.loads(message.data.decode()) for message in messages])
 
     def test_out_of_order_messages_are_handled_in_order(self):
         """Test that messages received out of order are handled in order."""
@@ -95,10 +95,10 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         messages = [
-            {"type": "test", "message_number": 1},
-            {"type": "test", "message_number": 2},
-            {"type": "test", "message_number": 0},
-            {"type": "finish-test", "message_number": 3},
+            MockMessage(data=json.dumps({"type": "test", "order": 1}).encode(), message_number=1),
+            MockMessage(data=json.dumps({"type": "test", "order": 2}).encode(), message_number=2),
+            MockMessage(data=json.dumps({"type": "test", "order": 0}).encode(), message_number=0),
+            MockMessage(data=json.dumps({"type": "finish-test", "order": 3}).encode(), message_number=3),
         ]
 
         with patch(
@@ -111,10 +111,10 @@ class TestOrderedMessageHandler(BaseTestCase):
         self.assertEqual(
             message_handler.handled_messages,
             [
-                {"type": "test", "message_number": 0},
-                {"type": "test", "message_number": 1},
-                {"type": "test", "message_number": 2},
-                {"type": "finish-test", "message_number": 3},
+                {"type": "test", "order": 0},
+                {"type": "test", "order": 1},
+                {"type": "test", "order": 2},
+                {"type": "finish-test", "order": 3},
             ],
         )
 
@@ -133,10 +133,10 @@ class TestOrderedMessageHandler(BaseTestCase):
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
             new=MockMessagePuller(
                 messages=[
-                    {"type": "finish-test", "message_number": 3},
-                    {"type": "test", "message_number": 1},
-                    {"type": "test", "message_number": 2},
-                    {"type": "test", "message_number": 0},
+                    MockMessage(data=json.dumps({"type": "finish-test", "order": 3}).encode(), message_number=3),
+                    MockMessage(data=json.dumps({"type": "test", "order": 1}).encode(), message_number=1),
+                    MockMessage(data=json.dumps({"type": "test", "order": 2}).encode(), message_number=2),
+                    MockMessage(data=json.dumps({"type": "test", "order": 0}).encode(), message_number=0),
                 ],
                 message_handler=message_handler,
             ).pull,
@@ -148,10 +148,10 @@ class TestOrderedMessageHandler(BaseTestCase):
         self.assertEqual(
             message_handler.handled_messages,
             [
-                {"type": "test", "message_number": 0},
-                {"type": "test", "message_number": 1},
-                {"type": "test", "message_number": 2},
-                {"type": "finish-test", "message_number": 3},
+                {"type": "test", "order": 0},
+                {"type": "test", "order": 1},
+                {"type": "test", "order": 2},
+                {"type": "finish-test", "order": 3},
             ],
         )
 
@@ -165,9 +165,9 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         messages = [
-            {"type": "test", "message_number": 0},
-            {"type": "test", "message_number": 1},
-            {"type": "finish-test", "message_number": 2},
+            MockMessage(data=json.dumps({"type": "test", "order": 0}).encode(), message_number=0),
+            MockMessage(data=json.dumps({"type": "test", "order": 1}).encode(), message_number=1),
+            MockMessage(data=json.dumps({"type": "finish-test", "order": 2}).encode(), message_number=2),
         ]
 
         with patch(
@@ -177,7 +177,10 @@ class TestOrderedMessageHandler(BaseTestCase):
             result = message_handler.handle_messages(timeout=None)
 
         self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handler.handled_messages, messages)
+        self.assertEqual(
+            message_handler.handled_messages,
+            [{"type": "test", "order": 0}, {"type": "test", "order": 1}, {"type": "finish-test", "order": 2}],
+        )
 
     def test_delivery_acknowledgement(self):
         """Test that a delivery acknowledgement message is handled correctly."""
@@ -191,12 +194,19 @@ class TestOrderedMessageHandler(BaseTestCase):
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
             new=MockMessagePuller(
                 [
-                    {
-                        "type": "delivery_acknowledgement",
-                        "delivery_time": "2021-11-17 17:33:59.717428",
-                        "message_number": 0,
-                    },
-                    {"type": "result", "output_values": None, "output_manifest": None, "message_number": 1},
+                    MockMessage(
+                        data=json.dumps(
+                            {
+                                "type": "delivery_acknowledgement",
+                                "delivery_time": "2021-11-17 17:33:59.717428",
+                            }
+                        ).encode(),
+                        message_number=0,
+                    ),
+                    MockMessage(
+                        data=json.dumps({"type": "result", "output_values": None, "output_manifest": None}).encode(),
+                        message_number=1,
+                    ),
                 ],
                 message_handler=message_handler,
             ).pull,
@@ -249,12 +259,19 @@ class TestOrderedMessageHandler(BaseTestCase):
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
             new=MockMessagePuller(
                 messages=[
-                    {
-                        "type": "delivery_acknowledgement",
-                        "delivery_time": "2021-11-17 17:33:59.717428",
-                        "message_number": 0,
-                    },
-                    {"type": "result", "output_values": None, "output_manifest": None, "message_number": 1},
+                    MockMessage(
+                        data=json.dumps(
+                            {
+                                "type": "delivery_acknowledgement",
+                                "delivery_time": "2021-11-17 17:33:59.717428",
+                            },
+                        ).encode(),
+                        message_number=0,
+                    ),
+                    MockMessage(
+                        data=json.dumps({"type": "result", "output_values": None, "output_manifest": None}).encode(),
+                        message_number=1,
+                    ),
                 ],
                 message_handler=message_handler,
             ).pull,
@@ -301,10 +318,10 @@ class TestOrderedMessageHandler(BaseTestCase):
         message_handler._earliest_message_number_received = 2
 
         messages = [
-            {"type": "test", "message_number": 2},
-            {"type": "test", "message_number": 3},
-            {"type": "test", "message_number": 4},
-            {"type": "finish-test", "message_number": 5},
+            MockMessage(data=json.dumps({"type": "test", "order": 2}).encode(), message_number=2),
+            MockMessage(data=json.dumps({"type": "test", "order": 3}).encode(), message_number=3),
+            MockMessage(data=json.dumps({"type": "test", "order": 4}).encode(), message_number=4),
+            MockMessage(data=json.dumps({"type": "finish-test", "order": 5}).encode(), message_number=5),
         ]
 
         with patch(
@@ -314,7 +331,15 @@ class TestOrderedMessageHandler(BaseTestCase):
             result = message_handler.handle_messages(skip_first_messages_after=0)
 
         self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handler.handled_messages, messages)
+        self.assertEqual(
+            message_handler.handled_messages,
+            [
+                {"type": "test", "order": 2},
+                {"type": "test", "order": 3},
+                {"type": "test", "order": 4},
+                {"type": "finish-test", "order": 5},
+            ],
+        )
 
     def test_later_missing_messages_cannot_be_skipped(self):
         """Test that missing messages that aren't in the first n messages cannot be skipped."""
@@ -326,10 +351,10 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         messages = [
-            {"type": "test", "message_number": 0},
-            {"type": "test", "message_number": 1},
-            {"type": "test", "message_number": 2},
-            {"type": "finish-test", "message_number": 5},
+            MockMessage(json.dumps({"type": "test", "order": 0}).encode(), message_number=0),
+            MockMessage(json.dumps({"type": "test", "order": 1}).encode(), message_number=1),
+            MockMessage(json.dumps({"type": "test", "order": 2}).encode(), message_number=2),
+            MockMessage(json.dumps({"type": "finish-test", "order": 5}).encode(), message_number=5),
         ]
 
         with patch(
@@ -340,7 +365,14 @@ class TestOrderedMessageHandler(BaseTestCase):
                 message_handler.handle_messages(timeout=0.5, skip_first_messages_after=0)
 
         # Check that only the first three messages were handled.
-        self.assertEqual(message_handler.handled_messages, messages[:3])
+        self.assertEqual(
+            message_handler.handled_messages,
+            [
+                {"type": "test", "order": 0},
+                {"type": "test", "order": 1},
+                {"type": "test", "order": 2},
+            ],
+        )
 
 
 class TestPullAndEnqueueMessage(BaseTestCase):
@@ -365,10 +397,14 @@ class TestPullAndEnqueueMessage(BaseTestCase):
             message_handler._waiting_messages = {}
 
             # Enqueue a mock message for a mock subscription to receive.
-            mock_message = {"type": "test", "message_number": 0}
+            mock_message = {"type": "test"}
 
             SUBSCRIPTIONS[mock_subscription.name] = [
-                MockMessage(data=json.dumps(mock_message).encode(), is_question=False)
+                MockMessage(
+                    data=json.dumps(mock_message).encode(),
+                    is_question=False,
+                    message_number=0,
+                )
             ]
 
             message_handler._pull_and_enqueue_message(timeout=10)

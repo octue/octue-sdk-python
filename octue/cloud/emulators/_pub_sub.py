@@ -363,7 +363,7 @@ class MockMessagePuller:
     initialisation. This is meant for patching
     `octue.cloud.pub_sub.message_handler.OrderedMessageHandler._pull_and_enqueue_message` in tests.
 
-    :param iter(dict) messages:
+    :param iter(octue.cloud.pub_sub.emulators._pub_sub.MockMessage) messages:
     :param octue.cloud.pub_sub.message_handler.OrderedMessageHandler message_handler:
     :return None:
     """
@@ -371,7 +371,7 @@ class MockMessagePuller:
     def __init__(self, messages, message_handler):
         self.messages = messages
         self.message_handler = message_handler
-        self.message_number = 0
+        self.current_message = 0
 
     def pull(self, timeout):
         """Get the next message from the messages given at instantiation and enqueue it for handling in the message
@@ -380,12 +380,13 @@ class MockMessagePuller:
         :return None:
         """
         try:
-            message = self.messages[self.message_number]
+            message = self.messages[self.current_message]
         except IndexError:
             return
 
-        self.message_handler._waiting_messages[int(message["message_number"])] = message
-        self.message_number += 1
+        message_number = int(message.attributes["message_number"])
+        self.message_handler._waiting_messages[message_number] = json.loads(message.data.decode())
+        self.current_message += 1
 
 
 class MockAnalysis:

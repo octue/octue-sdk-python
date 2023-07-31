@@ -11,7 +11,6 @@ class GooglePubSubHandler(logging.Handler):
     :param callable message_sender: the `_send_message` method of the service that instantiated this instance
     :param octue.cloud.pub_sub.topic.Topic topic: topic to publish log records to
     :param str analysis_id: the UUID of the analysis the instance is handling the log records for
-    :param dict message_number:
     :param float timeout: timeout in seconds for attempting to publish each log record
     :return None:
     """

@@ -419,10 +419,7 @@ class Service:
         """
         with send_message_lock:
             attributes["octue_sdk_version"] = self._local_sdk_version
-
-            # This would be better placed in the Pub/Sub message's attributes but has been left in `message` for
-            # inter-service backwards compatibility.
-            message["message_number"] = topic.messages_published
+            attributes["message_number"] = topic.messages_published
             converted_attributes = {}
 
             for key, value in attributes.items():

@@ -227,9 +227,9 @@ class OrderedMessageHandler:
             if not self._child_sdk_version:
                 self._heartbeat_checker.cancel()
 
+        message_number = int(answer.message.attributes["message_number"])
         message = json.loads(answer.message.data.decode(), cls=OctueJSONDecoder)
 
-        message_number = int(message["message_number"])
         self._waiting_messages[message_number] = message
         self._earliest_message_number_received = min(self._earliest_message_number_received, message_number)
 
