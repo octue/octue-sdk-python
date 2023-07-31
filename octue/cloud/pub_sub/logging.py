@@ -33,7 +33,6 @@ class GooglePubSubHandler(logging.Handler):
                 {
                     "type": "log_record",
                     "log_record": self._convert_log_record_to_primitives(record),
-                    "question_uuid": self.question_uuid,
                 },
                 topic=self.topic,
                 attributes={"question_uuid": self.question_uuid, "is_question": False},

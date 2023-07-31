@@ -364,7 +364,7 @@ class OrderedMessageHandler:
         # Add information about the immediate child sending the message and colour it with the first colour in the
         # colour palette.
         immediate_child_analysis_section = colourise(
-            f"[{self.service_name} | analysis-{message['question_uuid']}]",
+            f"[{self.service_name} | analysis-{self.question_uuid}]",
             text_colour=self._log_message_colours[0],
         )
 
