@@ -526,9 +526,8 @@ class Service:
         forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
         parent_sdk_version = get_nested_attribute(question, "attributes.octue_sdk_version")
 
-        allow_save_diagnostics_data_on_crash = get_nested_attribute(
-            question,
-            "attributes.allow_save_diagnostics_data_on_crash",
+        allow_save_diagnostics_data_on_crash = bool(
+            int(get_nested_attribute(question, "attributes.allow_save_diagnostics_data_on_crash"))
         )
 
         logger.info("%r parsed the question successfully.", self)
