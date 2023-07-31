@@ -59,13 +59,13 @@ class OrderedMessageHandler:
 
         self.question_uuid = self.subscription.path.split(".")[-1]
         self.handled_messages = []
+        self.waiting_messages = None
         self._subscriber = SubscriberClient()
         self._child_sdk_version = None
         self._heartbeat_checker = None
         self._last_heartbeat = None
         self._alive = True
         self._start_time = None
-        self._waiting_messages = None
         self._previous_message_number = -1
         self._earliest_message_number_received = math.inf
 
@@ -114,7 +114,7 @@ class OrderedMessageHandler:
         :return dict: the first result returned by a message handler
         """
         self._start_time = time.perf_counter()
-        self._waiting_messages = {}
+        self.waiting_messages = {}
         self._previous_message_number = -1
 
         self._heartbeat_checker = RepeatingTimer(
@@ -182,7 +182,7 @@ class OrderedMessageHandler:
         return timeout - total_run_time
 
     def _pull_and_enqueue_message(self, timeout):
-        """Pull a message from the subscription and enqueue it in `self._waiting_messages`, raising a `TimeoutError` if
+        """Pull a message from the subscription and enqueue it in `self.waiting_messages`, raising a `TimeoutError` if
         the timeout is exceeded before succeeding.
 
         :param float|None timeout: how long to wait in seconds for the message before raising a `TimeoutError`
@@ -225,7 +225,7 @@ class OrderedMessageHandler:
         message_number = int(answer.message.attributes["message_number"])
         message = json.loads(answer.message.data.decode(), cls=OctueJSONDecoder)
 
-        self._waiting_messages[message_number] = message
+        self.waiting_messages[message_number] = message
         self._earliest_message_number_received = min(self._earliest_message_number_received, message_number)
 
     def _attempt_to_handle_queued_messages(self, skip_first_messages_after=60):
@@ -237,9 +237,9 @@ class OrderedMessageHandler:
         :param int|float skip_first_messages_after: the number of seconds after which to skip the first n messages if they haven't arrived but subsequent messages have
         :return any|None: either a non-`None` result from a message handler or `None` if nothing was returned by the message handlers or if the next in-order message hasn't been received yet
         """
-        while self._waiting_messages:
+        while self.waiting_messages:
             try:
-                message = self._waiting_messages.pop(self._previous_message_number + 1)
+                message = self.waiting_messages.pop(self._previous_message_number + 1)
 
             except KeyError:
 
@@ -265,7 +265,7 @@ class OrderedMessageHandler:
         :return dict|None:
         """
         try:
-            message = self._waiting_messages.pop(self._earliest_message_number_received)
+            message = self.waiting_messages.pop(self._earliest_message_number_received)
         except KeyError:
             return
 

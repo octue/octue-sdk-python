@@ -394,7 +394,7 @@ class TestPullAndEnqueueMessage(BaseTestCase):
             )
 
             message_handler._child_sdk_version = "0.1.3"
-            message_handler._waiting_messages = {}
+            message_handler.waiting_messages = {}
 
             # Enqueue a mock message for a mock subscription to receive.
             mock_message = {"type": "test"}
@@ -408,7 +408,7 @@ class TestPullAndEnqueueMessage(BaseTestCase):
             ]
 
             message_handler._pull_and_enqueue_message(timeout=10)
-            self.assertEqual(message_handler._waiting_messages, {0: mock_message})
+            self.assertEqual(message_handler.waiting_messages, {0: mock_message})
             self.assertEqual(message_handler._earliest_message_number_received, 0)
 
     def test_timeout_error_raised_if_result_message_not_received_in_time(self):
@@ -429,7 +429,7 @@ class TestPullAndEnqueueMessage(BaseTestCase):
             )
 
             message_handler._child_sdk_version = "0.1.3"
-            message_handler._waiting_messages = {}
+            message_handler.waiting_messages = {}
             message_handler._start_time = 0
 
             # Create a mock subscription.

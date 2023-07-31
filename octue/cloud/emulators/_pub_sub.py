@@ -385,7 +385,7 @@ class MockMessagePuller:
             return
 
         message_number = int(message.attributes["message_number"])
-        self.message_handler._waiting_messages[message_number] = json.loads(message.data.decode())
+        self.message_handler.waiting_messages[message_number] = json.loads(message.data.decode())
         self.current_message += 1
 
 
