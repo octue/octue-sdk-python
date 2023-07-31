@@ -70,10 +70,10 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         messages = [
-            MockMessage(json.dumps({"type": "test"}).encode(), message_number=0),
-            MockMessage(json.dumps({"type": "test"}).encode(), message_number=1),
-            MockMessage(json.dumps({"type": "test"}).encode(), message_number=2),
-            MockMessage(json.dumps({"type": "finish-test"}).encode(), message_number=3),
+            MockMessage(json.dumps({"type": "test"}).encode(), attributes={"message_number": 0}),
+            MockMessage(json.dumps({"type": "test"}).encode(), attributes={"message_number": 1}),
+            MockMessage(json.dumps({"type": "test"}).encode(), attributes={"message_number": 2}),
+            MockMessage(json.dumps({"type": "finish-test"}).encode(), attributes={"message_number": 3}),
         ]
 
         with patch(
@@ -95,10 +95,13 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         messages = [
-            MockMessage(data=json.dumps({"type": "test", "order": 1}).encode(), message_number=1),
-            MockMessage(data=json.dumps({"type": "test", "order": 2}).encode(), message_number=2),
-            MockMessage(data=json.dumps({"type": "test", "order": 0}).encode(), message_number=0),
-            MockMessage(data=json.dumps({"type": "finish-test", "order": 3}).encode(), message_number=3),
+            MockMessage(data=json.dumps({"type": "test", "order": 1}).encode(), attributes={"message_number": 1}),
+            MockMessage(data=json.dumps({"type": "test", "order": 2}).encode(), attributes={"message_number": 2}),
+            MockMessage(data=json.dumps({"type": "test", "order": 0}).encode(), attributes={"message_number": 0}),
+            MockMessage(
+                data=json.dumps({"type": "finish-test", "order": 3}).encode(),
+                attributes={"message_number": 3},
+            ),
         ]
 
         with patch(
@@ -133,10 +136,22 @@ class TestOrderedMessageHandler(BaseTestCase):
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
             new=MockMessagePuller(
                 messages=[
-                    MockMessage(data=json.dumps({"type": "finish-test", "order": 3}).encode(), message_number=3),
-                    MockMessage(data=json.dumps({"type": "test", "order": 1}).encode(), message_number=1),
-                    MockMessage(data=json.dumps({"type": "test", "order": 2}).encode(), message_number=2),
-                    MockMessage(data=json.dumps({"type": "test", "order": 0}).encode(), message_number=0),
+                    MockMessage(
+                        data=json.dumps({"type": "finish-test", "order": 3}).encode(),
+                        attributes={"message_number": 3},
+                    ),
+                    MockMessage(
+                        data=json.dumps({"type": "test", "order": 1}).encode(),
+                        attributes={"message_number": 1},
+                    ),
+                    MockMessage(
+                        data=json.dumps({"type": "test", "order": 2}).encode(),
+                        attributes={"message_number": 2},
+                    ),
+                    MockMessage(
+                        data=json.dumps({"type": "test", "order": 0}).encode(),
+                        attributes={"message_number": 0},
+                    ),
                 ],
                 message_handler=message_handler,
             ).pull,
@@ -165,9 +180,12 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         messages = [
-            MockMessage(data=json.dumps({"type": "test", "order": 0}).encode(), message_number=0),
-            MockMessage(data=json.dumps({"type": "test", "order": 1}).encode(), message_number=1),
-            MockMessage(data=json.dumps({"type": "finish-test", "order": 2}).encode(), message_number=2),
+            MockMessage(data=json.dumps({"type": "test", "order": 0}).encode(), attributes={"message_number": 0}),
+            MockMessage(data=json.dumps({"type": "test", "order": 1}).encode(), attributes={"message_number": 1}),
+            MockMessage(
+                data=json.dumps({"type": "finish-test", "order": 2}).encode(),
+                attributes={"message_number": 2},
+            ),
         ]
 
         with patch(
@@ -201,11 +219,11 @@ class TestOrderedMessageHandler(BaseTestCase):
                                 "delivery_time": "2021-11-17 17:33:59.717428",
                             }
                         ).encode(),
-                        message_number=0,
+                        attributes={"message_number": 0},
                     ),
                     MockMessage(
                         data=json.dumps({"type": "result", "output_values": None, "output_manifest": None}).encode(),
-                        message_number=1,
+                        attributes={"message_number": 1},
                     ),
                 ],
                 message_handler=message_handler,
@@ -266,11 +284,11 @@ class TestOrderedMessageHandler(BaseTestCase):
                                 "delivery_time": "2021-11-17 17:33:59.717428",
                             },
                         ).encode(),
-                        message_number=0,
+                        attributes={"message_number": 0},
                     ),
                     MockMessage(
                         data=json.dumps({"type": "result", "output_values": None, "output_manifest": None}).encode(),
-                        message_number=1,
+                        attributes={"message_number": 1},
                     ),
                 ],
                 message_handler=message_handler,
@@ -318,10 +336,13 @@ class TestOrderedMessageHandler(BaseTestCase):
         message_handler._earliest_message_number_received = 2
 
         messages = [
-            MockMessage(data=json.dumps({"type": "test", "order": 2}).encode(), message_number=2),
-            MockMessage(data=json.dumps({"type": "test", "order": 3}).encode(), message_number=3),
-            MockMessage(data=json.dumps({"type": "test", "order": 4}).encode(), message_number=4),
-            MockMessage(data=json.dumps({"type": "finish-test", "order": 5}).encode(), message_number=5),
+            MockMessage(data=json.dumps({"type": "test", "order": 2}).encode(), attributes={"message_number": 2}),
+            MockMessage(data=json.dumps({"type": "test", "order": 3}).encode(), attributes={"message_number": 3}),
+            MockMessage(data=json.dumps({"type": "test", "order": 4}).encode(), attributes={"message_number": 4}),
+            MockMessage(
+                data=json.dumps({"type": "finish-test", "order": 5}).encode(),
+                attributes={"message_number": 5},
+            ),
         ]
 
         with patch(
@@ -351,10 +372,10 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         messages = [
-            MockMessage(json.dumps({"type": "test", "order": 0}).encode(), message_number=0),
-            MockMessage(json.dumps({"type": "test", "order": 1}).encode(), message_number=1),
-            MockMessage(json.dumps({"type": "test", "order": 2}).encode(), message_number=2),
-            MockMessage(json.dumps({"type": "finish-test", "order": 5}).encode(), message_number=5),
+            MockMessage(json.dumps({"type": "test", "order": 0}).encode(), attributes={"message_number": 0}),
+            MockMessage(json.dumps({"type": "test", "order": 1}).encode(), attributes={"message_number": 1}),
+            MockMessage(json.dumps({"type": "test", "order": 2}).encode(), attributes={"message_number": 2}),
+            MockMessage(json.dumps({"type": "finish-test", "order": 5}).encode(), attributes={"message_number": 5}),
         ]
 
         with patch(
@@ -402,8 +423,7 @@ class TestPullAndEnqueueMessage(BaseTestCase):
             SUBSCRIPTIONS[mock_subscription.name] = [
                 MockMessage(
                     data=json.dumps(mock_message).encode(),
-                    is_question=False,
-                    message_number=0,
+                    attributes={"is_question": False, "message_number": 0},
                 )
             ]
 

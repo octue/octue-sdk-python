@@ -146,7 +146,7 @@ class MockPublisher:
         :return MockFuture:
         """
         subscription_name = ".".join((get_pub_sub_resource_name(topic), ANSWERS_NAMESPACE, attributes["question_uuid"]))
-        SUBSCRIPTIONS[subscription_name].append(MockMessage(data=data, **attributes))
+        SUBSCRIPTIONS[subscription_name].append(MockMessage(data=data, attributes=attributes))
         return MockFuture()
 
 
@@ -249,11 +249,9 @@ class MockMessage:
     :return None:
     """
 
-    def __init__(self, data, **attributes):
+    def __init__(self, data, attributes=None):
         self.data = data
-        self.attributes = {}
-        for key, value in attributes.items():
-            self.attributes[key] = value
+        self.attributes = attributes or {}
 
     def __repr__(self):
         return f"<{type(self).__name__}(data={self.data!r})>"
@@ -345,11 +343,13 @@ class MockService(Service):
                         {"input_values": input_values, "input_manifest": input_manifest, "children": children},
                         cls=OctueJSONEncoder,
                     ).encode(),
-                    question_uuid=question_uuid,
-                    forward_logs=subscribe_to_logs,
-                    octue_sdk_version=parent_sdk_version,
-                    allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
-                    is_question=True,
+                    attributes={
+                        "question_uuid": question_uuid,
+                        "forward_logs": subscribe_to_logs,
+                        "octue_sdk_version": parent_sdk_version,
+                        "allow_save_diagnostics_data_on_crash": allow_save_diagnostics_data_on_crash,
+                        "is_question": True,
+                    },
                 )
             )
         except Exception as e:  # noqa
