@@ -31,7 +31,6 @@ def answer_question(question, project_name):
     )
 
     service = Service(service_id=service_sruid, backend=GCPPubSubBackend(project_name=project_name))
-
     question_uuid = get_nested_attribute(question, "attributes.question_uuid")
 
     try:
@@ -49,7 +48,6 @@ def answer_question(question, project_name):
         )
 
         service.run_function = runner.run
-
         service.answer(question)
         logger.info("Analysis successfully run and response sent for question %r.", question_uuid)
 

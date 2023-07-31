@@ -199,18 +199,20 @@ class Service:
         ) = self._parse_question(question)
 
         topic = Topic(name=self._pub_sub_id, project_name=self.backend.project_name)
-        self._send_delivery_acknowledgment(topic, question_uuid)
-
-        heartbeater = RepeatingTimer(
-            interval=heartbeat_interval,
-            function=self._send_heartbeat,
-            kwargs={"topic": topic, "question_uuid": question_uuid},
-        )
-
-        heartbeater.daemon = True
-        heartbeater.start()
+        heartbeater = None
 
         try:
+            self._send_delivery_acknowledgment(topic, question_uuid)
+
+            heartbeater = RepeatingTimer(
+                interval=heartbeat_interval,
+                function=self._send_heartbeat,
+                kwargs={"topic": topic, "question_uuid": question_uuid},
+            )
+
+            heartbeater.daemon = True
+            heartbeater.start()
+
             if forward_logs:
                 analysis_log_handler = GooglePubSubHandler(
                     message_sender=self._send_message,
@@ -254,7 +256,9 @@ class Service:
             logger.info("%r answered question %r.", self, question_uuid)
 
         except BaseException as error:  # noqa
-            heartbeater.cancel()
+            if heartbeater is not None:
+                heartbeater.cancel()
+
             warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
             self.send_exception(topic, question_uuid, timeout=timeout)
             raise error
