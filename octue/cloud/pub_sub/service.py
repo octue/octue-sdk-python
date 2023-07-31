@@ -523,10 +523,6 @@ class Service:
             # Parse question from Google Cloud Run.
             data = json.loads(base64.b64decode(question["data"]).decode("utf-8").strip(), cls=OctueJSONDecoder)
 
-        # Keep backwards compatibility with questions from Octue services running `octue<0.41.1`.
-        if isinstance(data["input_manifest"], str):
-            data["input_manifest"] = json.loads(data["input_manifest"], cls=OctueJSONDecoder)
-
         question_uuid = get_nested_attribute(question, "attributes.question_uuid")
         forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
 
