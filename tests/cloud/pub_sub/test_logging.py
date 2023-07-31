@@ -32,7 +32,7 @@ class TestGooglePubSubHandler(BaseTestCase):
         GooglePubSubHandler(
             message_sender=service._send_message,
             topic=topic,
-            analysis_id=question_uuid,
+            question_uuid=question_uuid,
         ).emit(log_record)
 
         self.assertEqual(
@@ -64,7 +64,7 @@ class TestGooglePubSubHandler(BaseTestCase):
             GooglePubSubHandler(
                 message_sender=service._send_message,
                 topic=topic,
-                analysis_id="analysis-id",
+                question_uuid="question-uuid",
             ).emit(record)
 
         self.assertEqual(

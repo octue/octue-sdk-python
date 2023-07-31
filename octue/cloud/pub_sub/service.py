@@ -215,7 +215,7 @@ class Service:
                 analysis_log_handler = GooglePubSubHandler(
                     message_sender=self._send_message,
                     topic=topic,
-                    analysis_id=question_uuid,
+                    question_uuid=question_uuid,
                 )
             else:
                 analysis_log_handler = None
@@ -413,7 +413,7 @@ class Service:
 
         :param dict message: JSON-serialisable data to send as a message
         :param octue.cloud.pub_sub.topic.Topic topic: the Pub/Sub topic to send the message to
-        :param dict attributes: key-value pairs to attach to the message - the values must be strings or bytes
+        :param dict|None attributes: key-value pairs to attach to the message - the values must be strings or bytes
         :param int|float timeout: the timeout for sending the message in seconds
         :return None:
         """
