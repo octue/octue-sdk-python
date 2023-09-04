@@ -20,6 +20,7 @@ from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     create_sruid,
     get_default_sruid,
+    raise_if_revision_not_registered,
     split_service_id,
     validate_sruid,
 )
@@ -77,12 +78,7 @@ class Service:
         self.run_function = run_function
         self.name = name
 
-        self.service_registries = service_registries or [
-            {
-                "name": "Octue Registry",
-                "endpoint": OCTUE_SERVICE_REGISTRY_ENDPOINT,
-            },
-        ]
+        self.service_registries = None
 
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
         self._local_sdk_version = importlib.metadata.version("octue")
@@ -286,11 +282,20 @@ class Service:
         """
         service_namespace, service_name, service_revision_tag = split_service_id(service_id)
 
-        if not service_revision_tag:
-            service_id = get_default_sruid(
-                namespace=service_namespace,
-                name=service_name,
-                service_registries=self.service_registries,
+        if self.service_registries:
+            if service_revision_tag:
+                raise_if_revision_not_registered(sruid=service_id, service_registries=self.service_registries)
+
+            if not service_revision_tag:
+                service_id = get_default_sruid(
+                    namespace=service_namespace,
+                    name=service_name,
+                    service_registries=self.service_registries,
+                )
+
+        elif not service_revision_tag:
+            raise octue.exceptions.InvalidServiceID(
+                f"A service revision tag for {service_id!r} must be provided if service registries aren't used."
             )
 
         if not allow_local_files:
