@@ -86,6 +86,10 @@ class Service:
         self._message_handler = None
 
     def __repr__(self):
+        """Represent the service as a string.
+
+        :return str: the service represented as a string
+        """
         return f"<{type(self).__name__}({self.name or self.id!r})>"
 
     @property
