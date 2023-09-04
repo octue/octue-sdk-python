@@ -209,11 +209,12 @@ def convert_service_id_to_pub_sub_form(service_id):
     return service_id
 
 
-def split_service_id(service_id):
+def split_service_id(service_id, require_revision_tag=False):
     """Split an SRUID or service ID into its namespace, name, and, if present, its revision tag. The split parts are
     validated before being returned.
 
     :param str service_id: the SRUID or service ID to split
+    :param bool require_revision_tag: if `True`, require the service ID to include a revision tag (i.e. require the service ID to be an SRUID)
     :raise octue.exceptions.InvalidServiceID: if any of the namespace, name, or revision tag are invalid
     :return tuple(str, str, str|None): the namespace, name, and revision tag
     """
@@ -225,7 +226,7 @@ def split_service_id(service_id):
         name = name_and_revision_tag
         revision_tag = None
 
-    if revision_tag is None:
+    if revision_tag is None and not require_revision_tag:
         validate_service_id(namespace=namespace, name=name)
     else:
         validate_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
@@ -256,4 +257,26 @@ def get_default_sruid(namespace, name, service_registries):
     raise octue.exceptions.ServiceNotFound(
         f"No revisions for the service {service_id!r} were found in any of the specified service registries: "
         f"{service_registries!r}"
+    )
+
+
+def raise_if_revision_not_registered(sruid, service_registries):
+    """Raise an error if the service revision isn't registered in the given service registries.
+
+    :param str sruid: the SRUID of the service revision
+    :param iter(dict) service_registries: the registries to look for the service revision in
+    :raise octue.exceptions.ServiceNotFound: if the service revision isn't registered in any of the service registries
+    :return None:
+    """
+    namespace, name, revision_tag = split_service_id(sruid, require_revision_tag=True)
+
+    for registry in service_registries:
+        response = requests.get(f"{registry['endpoint']}/{namespace}/{name}?revision_tag={revision_tag}")
+
+        if response.ok:
+            logger.info("Found service revision %r in %r registry.", sruid, registry["name"])
+            return
+
+    raise octue.exceptions.ServiceNotFound(
+        f"Service revision {sruid!r} was not found in any of the specified service registries: {service_registries!r}"
     )
