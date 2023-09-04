@@ -78,7 +78,7 @@ class Service:
         self.run_function = run_function
         self.name = name
 
-        self.service_registries = None
+        self.service_registries = service_registries
 
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
         self._local_sdk_version = importlib.metadata.version("octue")
@@ -299,7 +299,7 @@ class Service:
 
         elif not service_revision_tag:
             raise octue.exceptions.InvalidServiceID(
-                f"A service revision tag for {service_id!r} must be provided if service registries aren't used."
+                f"A service revision tag for {service_id!r} must be provided if service registries aren't being used."
             )
 
         if not allow_local_files:
