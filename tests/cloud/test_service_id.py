@@ -196,7 +196,7 @@ class TestSplitServiceID(unittest.TestCase):
 
 
 class TestGetLatestSRUID(unittest.TestCase):
-    SERVICE_REGISTRIES = [{"name": "Octue Registry", "endpoint": "blah.com/services"}]
+    SERVICE_REGISTRIES = [{"name": "Octue Registry", "endpoint": "https://blah.com/services"}]
 
     def test_error_raised_if_revision_not_found(self):
         """Test that an error is raised if no revision is found for the service in the given registries."""
@@ -247,7 +247,7 @@ class TestGetLatestSRUID(unittest.TestCase):
 
 
 class TestRaiseIfRevisionNotRegistered(unittest.TestCase):
-    SERVICE_REGISTRIES = [{"name": "Octue Registry", "endpoint": "blah.com/services"}]
+    SERVICE_REGISTRIES = [{"name": "Octue Registry", "endpoint": "https://blah.com/services"}]
 
     def test_error_raised_if_revision_not_found(self):
         """Test that an error is raised if no revision is found for the service in the given registries."""
