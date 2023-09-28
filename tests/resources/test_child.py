@@ -181,6 +181,7 @@ class TestChild(BaseTestCase):
                     {"input_values": [9, 10, 11, 12]},
                     raise_errors=False,
                 )
+
         successful_answers = []
         failed_answers = []
 
