@@ -162,7 +162,7 @@ class TestChild(BaseTestCase):
 
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
-            service_id=f"testing/service-for-parallelised-questions-failure:{MOCK_SERVICE_REVISION_TAG}",
+            service_id=f"testing/service-for-parallelised-questions-failure-2:{MOCK_SERVICE_REVISION_TAG}",
             run_function=functools.partial(mock_run_function_that_sometimes_fails, runs=Value("d", 0)),
         )
 
