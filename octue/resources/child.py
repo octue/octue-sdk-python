@@ -126,7 +126,7 @@ class Child:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_question_index_mapping = {
-                executor.submit(ask, question): questions.index(question) for question in questions
+                executor.submit(ask, question): i for i, question in enumerate(questions)
             }
 
             for future in concurrent.futures.as_completed(future_to_question_index_mapping):
