@@ -110,14 +110,16 @@ class TestChild(BaseTestCase):
                     ],
                 )
 
-    def test_error_raised_when_using_ask_multiple_and_one_question_fails(self):
-        """Test that an error is raised if any of the questions given to `Child.ask_multiple` fail."""
+    def test_error_raised_when_using_ask_multiple_and_one_question_fails_when_raise_errors_is_true(self):
+        """Test that an error is raised if any of the questions given to `Child.ask_multiple` fail when `raise_errors`
+        is `True`.
+        """
 
         def mock_run_function_that_sometimes_fails(analysis_id, input_values, *args, **kwargs):
             kwargs["runs"].value += 1
 
             if kwargs["runs"].value % 2 == 0:
-                raise Exception("Deliberately raised for `Child.ask_multiple` test.")
+                raise ValueError("Deliberately raised for `Child.ask_multiple` test.")
 
             time.sleep(random.randint(0, 2))
             return MockAnalysis(output_values=input_values)
@@ -137,9 +139,58 @@ class TestChild(BaseTestCase):
                 # Make sure the child's underlying mock service knows how to access the mock responding service.
                 child._service.children[responding_service.id] = responding_service
 
-                with self.assertRaises(Exception):
+                with self.assertRaises(ValueError):
                     child.ask_multiple(
                         {"input_values": [1, 2, 3, 4]},
                         {"input_values": [5, 6, 7, 8]},
                         {"input_values": [9, 10, 11, 12]},
                     )
+
+    def test_error_not_raised_when_using_ask_multiple_and_one_question_fails_when_raise_errors_is_false(self):
+        """Test that an error is not raised if any of the questions given to `Child.ask_multiple` fail when
+        `raise_errors` is `False`.
+        """
+
+        def mock_run_function_that_sometimes_fails(analysis_id, input_values, *args, **kwargs):
+            kwargs["runs"].value += 1
+
+            if kwargs["runs"].value % 2 == 0:
+                raise ValueError("Deliberately raised for `Child.ask_multiple` test.")
+
+            time.sleep(random.randint(0, 2))
+            return MockAnalysis(output_values=input_values)
+
+        responding_service = MockService(
+            backend=GCPPubSubBackend(project_name="blah"),
+            service_id=f"testing/service-for-parallelised-questions-failure-2:{MOCK_SERVICE_REVISION_TAG}",
+            run_function=functools.partial(mock_run_function_that_sometimes_fails, runs=Value("d", 0)),
+        )
+
+        with ServicePatcher():
+            with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
+                responding_service.serve()
+
+                child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_name": "blah"})
+
+                # Make sure the child's underlying mock service knows how to access the mock responding service.
+                child._service.children[responding_service.id] = responding_service
+
+                answers = child.ask_multiple(
+                    {"input_values": [1, 2, 3, 4]},
+                    {"input_values": [5, 6, 7, 8]},
+                    {"input_values": [9, 10, 11, 12]},
+                    raise_errors=False,
+                )
+
+        successful_answers = []
+        failed_answers = []
+
+        for answer in answers:
+            if isinstance(answer, Exception):
+                failed_answers.append(answer)
+            else:
+                successful_answers.append(answer)
+
+        self.assertEqual(len(successful_answers), 2)
+        self.assertEqual(len(failed_answers), 1)
+        self.assertIn("Deliberately raised for `Child.ask_multiple` test.", failed_answers[0].args[0])
