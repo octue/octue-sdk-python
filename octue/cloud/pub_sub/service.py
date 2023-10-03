@@ -289,8 +289,7 @@ class Service:
         if self.service_registries:
             if service_revision_tag:
                 raise_if_revision_not_registered(sruid=service_id, service_registries=self.service_registries)
-
-            if not service_revision_tag:
+            else:
                 service_id = get_default_sruid(
                     namespace=service_namespace,
                     name=service_name,
