@@ -262,6 +262,7 @@ class TestRaiseIfRevisionNotRegistered(unittest.TestCase):
                 )
 
     def test_no_error_raised_if_service_revision_registered(self):
+        """Test that no error is raised if a revision is found for the service in the given registries."""
         mock_response = requests.Response()
         mock_response.status_code = 200
         mock_response._content = json.dumps({"revision_tag": "1.0.0"}).encode()
