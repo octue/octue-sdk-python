@@ -63,7 +63,9 @@ sent back to the parent. If you're not sure how long a particular analysis might
 
 Asking multiple questions in parallel
 =====================================
-You can also ask multiple questions to a service in parallel.
+You can also ask multiple questions to a service in parallel. By default, if any of the questions fail, an error is
+raised and no answers are returned. If ``raise_errors=False`` is provided, answers are returned for all successful
+questions while errors are returned unraised for unsuccessful ones.
 
 .. code-block:: python
 

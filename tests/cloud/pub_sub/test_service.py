@@ -7,6 +7,7 @@ import time
 from unittest.mock import patch
 
 import google.api_core.exceptions
+import requests
 
 import twined.exceptions
 from octue import Runner, exceptions
@@ -107,11 +108,64 @@ class TestService(BaseTestCase):
         results in an error.
         """
         with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            service = MockService(backend=BACKEND)
+
             with self.assertRaises(exceptions.ServiceNotFound):
-                MockService(backend=BACKEND).ask(
+                service.ask(
                     service_id=f"my-org/existing-service:{MOCK_SERVICE_REVISION_TAG}",
                     input_values=[1, 2, 3, 4],
                 )
+
+    def test_ask_unregistered_service_revision_when_service_registries_specified_results_in_error(self):
+        """Test that an error is raised if attempting to ask an unregistered service a question when service registries
+        are being used.
+        """
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            service = MockService(
+                backend=BACKEND,
+                service_registries=[{"name": "Octue Registry", "endpoint": "https://blah.com/services"}],
+            )
+
+            mock_response = requests.Response()
+            mock_response.status_code = 404
+
+            with patch("requests.get", return_value=mock_response):
+                with self.assertRaises(exceptions.ServiceNotFound):
+                    service.ask(
+                        service_id=f"my-org/unregistered-service:{MOCK_SERVICE_REVISION_TAG}",
+                        input_values=[1, 2, 3, 4],
+                    )
+
+    def test_ask_unregistered_service_with_no_revision_tag_when_service_registries_specified_results_in_error(self):
+        """Test that an error is raised when attempting to ask a question to an unregistered service without including
+        revision tag when service registries are being used.
+        """
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            service = MockService(
+                backend=BACKEND,
+                service_registries=[{"name": "Octue Registry", "endpoint": "https://blah.com/services"}],
+            )
+
+            mock_response = requests.Response()
+            mock_response.status_code = 404
+
+            with patch("requests.get", return_value=mock_response):
+                with self.assertRaises(exceptions.ServiceNotFound):
+                    service.ask(service_id="my-org/unregistered-service", input_values=[1, 2, 3, 4])
+
+    def test_ask_service_with_no_revision_tag_when_service_registries_not_specified_results_in_error(self):
+        """Test that an error is raised when attempting to ask a question to a service without including a revision tag
+        when service registries are not being used.
+        """
+        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
+            service = MockService(backend=BACKEND)
+
+            mock_response = requests.Response()
+            mock_response.status_code = 404
+
+            with patch("requests.get", return_value=mock_response):
+                with self.assertRaises(exceptions.InvalidServiceID):
+                    service.ask(service_id="my-org/unregistered-service", input_values=[1, 2, 3, 4])
 
     def test_timeout_error_raised_if_no_messages_received_when_waiting(self):
         """Test that a TimeoutError is raised if no messages are received while waiting."""
@@ -450,8 +504,10 @@ class TestService(BaseTestCase):
         """Test that an error is raised if an input manifest whose datasets and/or files are not located in the cloud
         is used in a question.
         """
+        service = MockService(backend=BACKEND)
+
         with self.assertRaises(exceptions.FileLocationError):
-            MockService(backend=BACKEND).ask(
+            service.ask(
                 service_id=f"octue/test-service:{MOCK_SERVICE_REVISION_TAG}",
                 input_values={},
                 input_manifest=self.create_valid_manifest(),
