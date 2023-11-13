@@ -27,7 +27,7 @@ def mock_run_function_that_fails_every_other_time(analysis_id, input_values, *ar
         if kwargs["runs"].value % 2 == 0:
             raise ValueError("Deliberately raised for `Child.ask_multiple` test.")
 
-    time.sleep(random.randint(0, 2))
+    time.sleep(random.random() * 0.1)
     return MockAnalysis(output_values=input_values)
 
 
