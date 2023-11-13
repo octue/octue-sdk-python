@@ -145,13 +145,17 @@ class Child:
                     logger.exception("Question %d failed.", question_index)
 
         if retry_failed_questions:
-            failed_questions = {i: questions[i] for i, answer in enumerate(answers) if isinstance(answer, Exception)}
+            failed_questions = {
+                question_index: questions[question_index]
+                for question_index, answer in answers.items()
+                if isinstance(answer, Exception)
+            }
 
             if failed_questions:
                 retried_answers = self.ask_multiple(*failed_questions.values(), raise_errors=False)
 
-                for index, answer in zip(failed_questions.keys(), retried_answers):
-                    answers[index] = answer
+                for question_index, answer in zip(failed_questions.keys(), retried_answers):
+                    answers[question_index] = answer
 
         # Convert dictionary to list in asking order.
         return [answer[1] for answer in sorted(answers.items(), key=lambda item: item[0])]
