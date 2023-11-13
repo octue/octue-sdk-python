@@ -16,6 +16,21 @@ from tests import MOCK_SERVICE_REVISION_TAG
 from tests.base import BaseTestCase
 
 
+lock = threading.Lock()
+
+
+def mock_run_function_that_sometimes_fails(analysis_id, input_values, *args, **kwargs):
+    with lock:
+        kwargs["runs"].value += 1
+
+        # Every other question will fail.
+        if kwargs["runs"].value % 2 == 0:
+            raise ValueError("Deliberately raised for `Child.ask_multiple` test.")
+
+    time.sleep(random.randint(0, 2))
+    return MockAnalysis(output_values=input_values)
+
+
 class TestChild(BaseTestCase):
     def test_representation(self):
         """Test that children are represented correctly as a string."""
@@ -151,17 +166,6 @@ class TestChild(BaseTestCase):
         """Test that an error is not raised if any of the questions given to `Child.ask_multiple` fail when
         `raise_errors` is `False`.
         """
-
-        def mock_run_function_that_sometimes_fails(analysis_id, input_values, *args, **kwargs):
-            kwargs["runs"].value += 1
-
-            # Every other question will fail.
-            if kwargs["runs"].value % 2 == 0:
-                raise ValueError("Deliberately raised for `Child.ask_multiple` test.")
-
-            time.sleep(random.randint(0, 2))
-            return MockAnalysis(output_values=input_values)
-
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
             service_id=f"testing/service-for-parallelised-questions-failure-2:{MOCK_SERVICE_REVISION_TAG}",
@@ -205,19 +209,6 @@ class TestChild(BaseTestCase):
         2. Second question fails
         3. Second question is retried and succeeds
         """
-        lock = threading.Lock()
-
-        def mock_run_function_that_sometimes_fails(analysis_id, input_values, *args, **kwargs):
-            with lock:
-                kwargs["runs"].value += 1
-
-                # Every other question will fail.
-                if kwargs["runs"].value % 2 == 0:
-                    raise ValueError("Deliberately raised for `Child.ask_multiple` test.")
-
-            time.sleep(random.randint(0, 2))
-            return MockAnalysis(output_values=input_values)
-
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
             service_id=f"testing/service-for-parallelised-questions-failure-3:{MOCK_SERVICE_REVISION_TAG}",
@@ -262,19 +253,6 @@ class TestChild(BaseTestCase):
         6. Fourth question is retried and fails
         7. Fourth question is retried again and succeeds
         """
-        lock = threading.Lock()
-
-        def mock_run_function_that_sometimes_fails(analysis_id, input_values, *args, **kwargs):
-            with lock:
-                kwargs["runs"].value += 1
-
-                # Every other question will fail.
-                if kwargs["runs"].value % 2 == 0:
-                    raise ValueError("Deliberately raised for `Child.ask_multiple` test.")
-
-            time.sleep(random.randint(0, 2))
-            return MockAnalysis(output_values=input_values)
-
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
             service_id=f"testing/service-for-parallelised-questions-failure-4:{MOCK_SERVICE_REVISION_TAG}",
