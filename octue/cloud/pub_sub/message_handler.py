@@ -319,11 +319,7 @@ class OrderedMessageHandler:
 
         # Just log a warning if an unknown message type has been received - it's likely not to be a big problem.
         if isinstance(error, KeyError):
-            logger.warning(
-                "%r received a message of unknown type %r.",
-                self.receiving_service,
-                message.get("type", "unknown"),
-            )
+            logger.warning("%r received a message of unknown type: %r.", self.receiving_service, message)
             return
 
         # Raise all other errors.
