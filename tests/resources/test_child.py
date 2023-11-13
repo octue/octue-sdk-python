@@ -220,7 +220,7 @@ class TestChild(BaseTestCase):
 
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
-            service_id=f"testing/service-for-parallelised-questions-failure-2:{MOCK_SERVICE_REVISION_TAG}",
+            service_id=f"testing/service-for-parallelised-questions-failure-3:{MOCK_SERVICE_REVISION_TAG}",
             run_function=functools.partial(mock_run_function_that_sometimes_fails, runs=Value("d", 0)),
         )
 
@@ -238,7 +238,7 @@ class TestChild(BaseTestCase):
                     {"input_values": [1, 2, 3, 4]},
                     {"input_values": [5, 6, 7, 8]},
                     raise_errors=False,
-                    retry_failed_questions=True,
+                    max_retries=1,
                 )
 
         # Check that both questions succeeded.
@@ -247,5 +247,66 @@ class TestChild(BaseTestCase):
             [
                 {"output_manifest": None, "output_values": [1, 2, 3, 4]},
                 {"output_manifest": None, "output_values": [5, 6, 7, 8]},
+            ],
+        )
+
+    def test_ask_multiple_with_multiple_failed_question_retries(self):
+        """Test that repeatedly failed questions can be automatically retried more than once. We use a lock in the run
+        function so that the questions always succeed/fail in this order (which is the order the questions end up being
+        asked by the thread pool, not necessarily the order they're asked by the caller of `Child.ask_multiple`):
+        1. First question succeeds
+        2. Second question fails
+        3. Third question succeeds
+        4. Fourth question fails
+        5. Second question is retried and succeeds
+        6. Fourth question is retried and fails
+        7. Fourth question is retried again and succeeds
+        """
+        lock = threading.Lock()
+
+        def mock_run_function_that_sometimes_fails(analysis_id, input_values, *args, **kwargs):
+            with lock:
+                kwargs["runs"].value += 1
+
+                # Every other question will fail.
+                if kwargs["runs"].value % 2 == 0:
+                    raise ValueError("Deliberately raised for `Child.ask_multiple` test.")
+
+            time.sleep(random.randint(0, 2))
+            return MockAnalysis(output_values=input_values)
+
+        responding_service = MockService(
+            backend=GCPPubSubBackend(project_name="blah"),
+            service_id=f"testing/service-for-parallelised-questions-failure-4:{MOCK_SERVICE_REVISION_TAG}",
+            run_function=functools.partial(mock_run_function_that_sometimes_fails, runs=Value("d", 0)),
+        )
+
+        with ServicePatcher():
+            with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
+                responding_service.serve()
+
+                child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_name": "blah"})
+
+                # Make sure the child's underlying mock service knows how to access the mock responding service.
+                child._service.children[responding_service.id] = responding_service
+
+                # Only ask two questions so the question success/failure order plays out as desired.
+                answers = child.ask_multiple(
+                    {"input_values": [1, 2, 3, 4]},
+                    {"input_values": [5, 6, 7, 8]},
+                    {"input_values": [9, 10, 11, 12]},
+                    {"input_values": [13, 14, 15, 16]},
+                    raise_errors=False,
+                    max_retries=2,
+                )
+
+        # Check that both questions succeeded.
+        self.assertEqual(
+            answers,
+            [
+                {"output_manifest": None, "output_values": [1, 2, 3, 4]},
+                {"output_manifest": None, "output_values": [5, 6, 7, 8]},
+                {"output_manifest": None, "output_values": [9, 10, 11, 12]},
+                {"output_manifest": None, "output_values": [13, 14, 15, 16]},
             ],
         )

@@ -105,7 +105,7 @@ class Child:
             maximum_heartbeat_interval=maximum_heartbeat_interval,
         )
 
-    def ask_multiple(self, *questions, raise_errors=True, retry_failed_questions=False):
+    def ask_multiple(self, *questions, raise_errors=True, max_retries=0):
         """Ask the child multiple questions in parallel and wait for the answers. Each question should be provided as a
         dictionary of `Child.ask` keyword arguments. If `raise_errors` is `True`, an error is raised and no answers are
         returned if any of the individual questions raise an error; if it's `False`, answers are returned for all
@@ -113,7 +113,7 @@ class Child:
 
         :param questions: any number of questions provided as dictionaries of arguments to the `Child.ask` method
         :param bool raise_errors: if `True`, an error is raised and no answers are returned if any of the individual questions raise an error; if `False`, answers are returned for all successful questions while errors are returned unraised for any failed ones
-        :param bool retry_failed_questions: if `True`, retry any questions that failed one time (note: this will have no effect unless `raise_errors=False`)
+        :param int max_retries: retry any questions that failed up to this number of times (note: this will have no effect unless `raise_errors=False`)
         :raises Exception: if any question raises an error if `raise_errors` is `True`
         :return list: the answers or caught errors of the questions in the same order as asked
         """
@@ -144,18 +144,20 @@ class Child:
                     answers[question_index] = e
                     logger.exception("Question %d failed.", question_index)
 
-        if retry_failed_questions:
+        for retry in range(max_retries):
             failed_questions = {
                 question_index: questions[question_index]
                 for question_index, answer in answers.items()
                 if isinstance(answer, Exception)
             }
 
-            if failed_questions:
-                retried_answers = self.ask_multiple(*failed_questions.values(), raise_errors=False)
+            if not failed_questions:
+                break
 
-                for question_index, answer in zip(failed_questions.keys(), retried_answers):
-                    answers[question_index] = answer
+            retried_answers = self.ask_multiple(*failed_questions.values(), raise_errors=False)
+
+            for question_index, answer in zip(failed_questions.keys(), retried_answers):
+                answers[question_index] = answer
 
         # Convert dictionary to list in asking order.
         return [answer[1] for answer in sorted(answers.items(), key=lambda item: item[0])]
