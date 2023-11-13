@@ -19,7 +19,7 @@ from tests.base import BaseTestCase
 lock = threading.Lock()
 
 
-def mock_run_function_that_sometimes_fails(analysis_id, input_values, *args, **kwargs):
+def mock_run_function_that_fails_every_other_time(analysis_id, input_values, *args, **kwargs):
     with lock:
         kwargs["runs"].value += 1
 
@@ -159,7 +159,7 @@ class TestChild(BaseTestCase):
         """
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
-            run_function=functools.partial(mock_run_function_that_sometimes_fails, runs=Value("d", 0)),
+            run_function=functools.partial(mock_run_function_that_fails_every_other_time, runs=Value("d", 0)),
         )
 
         with ServicePatcher():
@@ -201,7 +201,7 @@ class TestChild(BaseTestCase):
         """
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
-            run_function=functools.partial(mock_run_function_that_sometimes_fails, runs=Value("d", 0)),
+            run_function=functools.partial(mock_run_function_that_fails_every_other_time, runs=Value("d", 0)),
         )
 
         with ServicePatcher():
@@ -244,7 +244,7 @@ class TestChild(BaseTestCase):
         """
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
-            run_function=functools.partial(mock_run_function_that_sometimes_fails, runs=Value("d", 0)),
+            run_function=functools.partial(mock_run_function_that_fails_every_other_time, runs=Value("d", 0)),
         )
 
         with ServicePatcher():
@@ -281,7 +281,7 @@ class TestChild(BaseTestCase):
         """Test that retries can be prevented for specific exception types."""
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
-            run_function=functools.partial(mock_run_function_that_sometimes_fails, runs=Value("d", 0)),
+            run_function=functools.partial(mock_run_function_that_fails_every_other_time, runs=Value("d", 0)),
         )
 
         with ServicePatcher():
