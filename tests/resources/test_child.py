@@ -154,7 +154,7 @@ class TestChild(BaseTestCase):
                     )
 
     def test_error_not_raised_by_ask_multiple_if_one_question_fails_when_raise_errors_is_false(self):
-        """Test that an error is not raised if any of the questions given to `Child.ask_multiple` fail when
+        """Test that an error is not raised if one of the questions given to `Child.ask_multiple` fail when
         `raise_errors` is `False`.
         """
         responding_service = MockService(
@@ -278,7 +278,7 @@ class TestChild(BaseTestCase):
         )
 
     def test_ask_multiple_with_prevented_retries(self):
-        """Test that retries can be prevented for specific exception types."""
+        """Test that retries can be prevented for specified exception types."""
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
             run_function=functools.partial(mock_run_function_that_fails_every_other_time, runs=Value("d", 0)),
