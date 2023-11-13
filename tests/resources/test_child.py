@@ -1,6 +1,7 @@
 import functools
 import os
 import random
+import threading
 import time
 from multiprocessing import Value
 from unittest.mock import patch
@@ -75,7 +76,7 @@ class TestChild(BaseTestCase):
                 self.assertEqual(child.ask([1, 2, 3, 4])["output_values"], [1, 2, 3, 4])
                 self.assertEqual(child.ask([5, 6, 7, 8])["output_values"], [5, 6, 7, 8])
 
-    def test_child_can_be_asked_questions_in_parallel(self):
+    def test_ask_multiple(self):
         """Test that a child can be asked multiple questions in parallel and return the answers in the correct order."""
 
         def mock_run_function(analysis_id, input_values, *args, **kwargs):
@@ -110,7 +111,7 @@ class TestChild(BaseTestCase):
                     ],
                 )
 
-    def test_error_raised_when_using_ask_multiple_and_one_question_fails_when_raise_errors_is_true(self):
+    def test_error_raised_in_ask_multiple_if_one_question_fails_when_raise_errors_is_true(self):
         """Test that an error is raised if any of the questions given to `Child.ask_multiple` fail when `raise_errors`
         is `True`.
         """
@@ -146,7 +147,7 @@ class TestChild(BaseTestCase):
                         {"input_values": [9, 10, 11, 12]},
                     )
 
-    def test_error_not_raised_when_using_ask_multiple_and_one_question_fails_when_raise_errors_is_false(self):
+    def test_error_not_raised_by_ask_multiple_if_one_question_fails_when_raise_errors_is_false(self):
         """Test that an error is not raised if any of the questions given to `Child.ask_multiple` fail when
         `raise_errors` is `False`.
         """
@@ -154,6 +155,7 @@ class TestChild(BaseTestCase):
         def mock_run_function_that_sometimes_fails(analysis_id, input_values, *args, **kwargs):
             kwargs["runs"].value += 1
 
+            # Every other question will fail.
             if kwargs["runs"].value % 2 == 0:
                 raise ValueError("Deliberately raised for `Child.ask_multiple` test.")
 
@@ -194,3 +196,56 @@ class TestChild(BaseTestCase):
         self.assertEqual(len(successful_answers), 2)
         self.assertEqual(len(failed_answers), 1)
         self.assertIn("Deliberately raised for `Child.ask_multiple` test.", failed_answers[0].args[0])
+
+    def test_ask_multiple_with_failed_question_retry(self):
+        """Test that failed questions can be automatically retried. We use a lock in the run function so that the
+        questions always succeed/fail in this order (which is the order the questions end up being asked by the thread
+        pool, not necessarily the order they're asked by the caller of `Child.ask_multiple`):
+        1. First question succeeds
+        2. Second question fails
+        3. Second question is retried and succeeds
+        """
+        lock = threading.Lock()
+
+        def mock_run_function_that_sometimes_fails(analysis_id, input_values, *args, **kwargs):
+            with lock:
+                kwargs["runs"].value += 1
+
+                # Every other question will fail.
+                if kwargs["runs"].value % 2 == 0:
+                    raise ValueError("Deliberately raised for `Child.ask_multiple` test.")
+
+            time.sleep(random.randint(0, 2))
+            return MockAnalysis(output_values=input_values)
+
+        responding_service = MockService(
+            backend=GCPPubSubBackend(project_name="blah"),
+            service_id=f"testing/service-for-parallelised-questions-failure-2:{MOCK_SERVICE_REVISION_TAG}",
+            run_function=functools.partial(mock_run_function_that_sometimes_fails, runs=Value("d", 0)),
+        )
+
+        with ServicePatcher():
+            with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
+                responding_service.serve()
+
+                child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_name": "blah"})
+
+                # Make sure the child's underlying mock service knows how to access the mock responding service.
+                child._service.children[responding_service.id] = responding_service
+
+                # Only ask two questions so the question success/failure order plays out as desired.
+                answers = child.ask_multiple(
+                    {"input_values": [1, 2, 3, 4]},
+                    {"input_values": [5, 6, 7, 8]},
+                    raise_errors=False,
+                    retry_failed_questions=True,
+                )
+
+        # Check that both questions succeeded.
+        self.assertEqual(
+            answers,
+            [
+                {"output_manifest": None, "output_values": [1, 2, 3, 4]},
+                {"output_manifest": None, "output_values": [5, 6, 7, 8]},
+            ],
+        )
