@@ -278,7 +278,7 @@ class TestChild(BaseTestCase):
                     max_retries=2,
                 )
 
-        # Check that both questions succeeded.
+        # Check that all four questions succeeded.
         self.assertEqual(
             answers,
             [
@@ -288,3 +288,42 @@ class TestChild(BaseTestCase):
                 {"output_manifest": None, "output_values": [13, 14, 15, 16]},
             ],
         )
+
+    def test_ask_multiple_with_prevented_retries(self):
+        """Test that retries can be prevented for specific exception types."""
+        responding_service = MockService(
+            backend=GCPPubSubBackend(project_name="blah"),
+            service_id=f"testing/service-for-parallelised-questions-failure-4:{MOCK_SERVICE_REVISION_TAG}",
+            run_function=functools.partial(mock_run_function_that_sometimes_fails, runs=Value("d", 0)),
+        )
+
+        with ServicePatcher():
+            with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
+                responding_service.serve()
+
+                child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_name": "blah"})
+
+                # Make sure the child's underlying mock service knows how to access the mock responding service.
+                child._service.children[responding_service.id] = responding_service
+
+                # Only ask two questions so the question success/failure order plays out as desired.
+                answers = child.ask_multiple(
+                    {"input_values": [1, 2, 3, 4]},
+                    {"input_values": [5, 6, 7, 8]},
+                    raise_errors=False,
+                    max_retries=1,
+                    prevent_retries_when=[ValueError],
+                )
+
+        successful_answers = []
+        failed_answers = []
+
+        for answer in answers:
+            if isinstance(answer, Exception):
+                failed_answers.append(answer)
+            else:
+                successful_answers.append(answer)
+
+        self.assertEqual(len(successful_answers), 1)
+        self.assertEqual(len(failed_answers), 1)
+        self.assertIn("Deliberately raised for `Child.ask_multiple` test.", failed_answers[0].args[0])
