@@ -74,11 +74,7 @@ class TestChild(BaseTestCase):
         def mock_run_function(analysis_id, input_values, *args, **kwargs):
             return MockAnalysis(output_values=input_values)
 
-        responding_service = MockService(
-            backend=GCPPubSubBackend(project_name="blah"),
-            service_id=f"testing/wind-speed:{MOCK_SERVICE_REVISION_TAG}",
-            run_function=mock_run_function,
-        )
+        responding_service = MockService(backend=GCPPubSubBackend(project_name="blah"), run_function=mock_run_function)
 
         with ServicePatcher():
             with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
@@ -98,11 +94,7 @@ class TestChild(BaseTestCase):
             time.sleep(random.randint(0, 2))
             return MockAnalysis(output_values=input_values)
 
-        responding_service = MockService(
-            backend=GCPPubSubBackend(project_name="blah"),
-            service_id=f"testing/service-for-parallelised-questions:{MOCK_SERVICE_REVISION_TAG}",
-            run_function=mock_run_function,
-        )
+        responding_service = MockService(backend=GCPPubSubBackend(project_name="blah"), run_function=mock_run_function)
 
         with ServicePatcher():
             with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
@@ -142,7 +134,6 @@ class TestChild(BaseTestCase):
 
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
-            service_id=f"testing/service-for-parallelised-questions-failure:{MOCK_SERVICE_REVISION_TAG}",
             run_function=functools.partial(mock_run_function_that_sometimes_fails, runs=Value("d", 0)),
         )
 
@@ -168,7 +159,6 @@ class TestChild(BaseTestCase):
         """
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
-            service_id=f"testing/service-for-parallelised-questions-failure-2:{MOCK_SERVICE_REVISION_TAG}",
             run_function=functools.partial(mock_run_function_that_sometimes_fails, runs=Value("d", 0)),
         )
 
@@ -211,7 +201,6 @@ class TestChild(BaseTestCase):
         """
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
-            service_id=f"testing/service-for-parallelised-questions-failure-3:{MOCK_SERVICE_REVISION_TAG}",
             run_function=functools.partial(mock_run_function_that_sometimes_fails, runs=Value("d", 0)),
         )
 
@@ -255,7 +244,6 @@ class TestChild(BaseTestCase):
         """
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
-            service_id=f"testing/service-for-parallelised-questions-failure-4:{MOCK_SERVICE_REVISION_TAG}",
             run_function=functools.partial(mock_run_function_that_sometimes_fails, runs=Value("d", 0)),
         )
 
@@ -293,7 +281,6 @@ class TestChild(BaseTestCase):
         """Test that retries can be prevented for specific exception types."""
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
-            service_id=f"testing/service-for-parallelised-questions-failure-4:{MOCK_SERVICE_REVISION_TAG}",
             run_function=functools.partial(mock_run_function_that_sometimes_fails, runs=Value("d", 0)),
         )
 
