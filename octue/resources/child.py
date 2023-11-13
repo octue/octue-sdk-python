@@ -114,7 +114,7 @@ class Child:
         :param questions: any number of questions provided as dictionaries of arguments to the `Child.ask` method
         :param bool raise_errors: if `True`, an error is raised and no answers are returned if any of the individual questions raise an error; if `False`, answers are returned for all successful questions while errors are returned unraised for any failed ones
         :param int max_retries: retry any questions that failed up to this number of times (note: this will have no effect unless `raise_errors=False`)
-        :param list|None prevent_retries_when: prevent retrying any questions that fail with an exception type in this list (note: this will have no effect unless `raise_errors=False`)
+        :param list(type)|None prevent_retries_when: prevent retrying any questions that fail with an exception type in this list (note: this will have no effect unless `raise_errors=False`)
         :raises Exception: if any question raises an error if `raise_errors` is `True`
         :return list: the answers or caught errors of the questions in the same order as asked
         """
