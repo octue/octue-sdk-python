@@ -967,10 +967,3 @@ class TestDatafile(BaseTestCase):
         # Update the cloud stored metadata and check it.
         datafile.update_metadata()
         self.assertEqual(Datafile(datafile.cloud_path).tags, {"hello": "world"})
-
-    def test_deprecation_warning_issued_if_using_path_property(self):
-        """Test that a deprecation warning is issued if using the `path` property of a datafile."""
-        datafile = Datafile("blah")
-
-        with self.assertWarns(DeprecationWarning):
-            datafile.path

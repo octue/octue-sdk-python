@@ -81,11 +81,15 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      - name: Install Poetry
+        uses: snok/install-poetry@v1.3.4
+
+      - name: Build a binary wheel and a source tarball
+        run: poetry build
+
       - name: Test package is publishable with PyPI test server
-        uses: JRubics/poetry-publish@v1.10
+        uses: pypa/gh-action-pypi-publish@v1.8.10
         with:
-          python_version: "3.9"
-          pypi_token: ${{ secrets.TEST_PYPI_TOKEN }}
-          repository_name: "testpypi"
-          repository_url: "https://test.pypi.org/legacy/"
-          ignore_dev_requirements: "yes"
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
+          verbose: true

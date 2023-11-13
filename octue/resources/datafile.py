@@ -7,7 +7,6 @@ import logging
 import os
 import shutil
 import tempfile
-import warnings
 
 import requests
 from google_crc32c import Checksum
@@ -261,21 +260,6 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             return self._local_path
 
         return self.download()
-
-    @property
-    def path(self):
-        """A deprecated alias to the `local_path` property. Please use `local_path` instead.
-
-        :return str:
-        """
-        warnings.warn(
-            DeprecationWarning(
-                "The `Datafile.path` property is deprecated and will be removed soon. Please use the "
-                "`Datafile.local_path` property instead."
-            )
-        )
-
-        return self.local_path
 
     @local_path.setter
     def local_path(self, path):
