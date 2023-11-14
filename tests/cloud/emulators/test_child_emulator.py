@@ -127,10 +127,14 @@ class TestChildEmulatorAsk(BaseTestCase):
             {
                 "type": "log_record",
                 "log_record": {"msg": "Starting analysis.", "levelno": 20, "levelname": "INFO"},
+                "analysis_id": "6000b2db-f29f-444c-8d46-8baf88648f35",
+                "message_number": 0,
             },
             {
                 "type": "log_record",
                 "log_record": {"msg": "Finishing analysis.", "levelno": 20, "levelname": "INFO"},
+                "analysis_id": "6000b2db-f29f-444c-8d46-8baf88648f35",
+                "message_number": 0,
             },
         ]
 

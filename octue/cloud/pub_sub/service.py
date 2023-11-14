@@ -9,6 +9,7 @@ import threading
 import uuid
 
 import google.api_core.exceptions
+import jsonschema
 from google.api_core import retry
 from google.cloud import pubsub_v1
 
@@ -16,6 +17,7 @@ import octue.exceptions
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
+from octue.cloud.pub_sub.validation import SERVICE_COMMUNICATION_SCHEMA, warn_of_or_raise_invalid_message_error
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     create_sruid,
@@ -549,6 +551,17 @@ class Service:
             )
         except AttributeError:
             allow_save_diagnostics_data_on_crash = False
+
+        try:
+            jsonschema.validate(data, {"$ref": SERVICE_COMMUNICATION_SCHEMA})
+        except jsonschema.ValidationError as error:
+            warn_of_or_raise_invalid_message_error(
+                message=data,
+                error=error,
+                receiving_service=self,
+                parent_sdk_version=parent_sdk_version,
+                child_sdk_version=importlib.metadata.version("octue"),
+            )
 
         logger.info("%r parsed the question successfully.", self)
         return data, question_uuid, forward_logs, parent_sdk_version, allow_save_diagnostics_data_on_crash

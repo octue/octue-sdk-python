@@ -12,7 +12,7 @@ from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
 
 from octue.cloud import EXCEPTIONS_MAPPING
-from octue.compatibility import warn_if_incompatible
+from octue.cloud.pub_sub.validation import SERVICE_COMMUNICATION_SCHEMA, warn_of_or_raise_invalid_message_error
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
@@ -29,10 +29,6 @@ else:
 logger = logging.getLogger(__name__)
 
 
-SERVICE_COMMUNICATION_SCHEMA = "https://jsonschema.registry.octue.com/octue/service-communication/0.1.1.json"
-SERVICE_COMMUNICATION_SCHEMA_INFO_URL = "https://strands.octue.com/octue/service-communication"
-
-
 class OrderedMessageHandler:
     """A handler for Google Pub/Sub messages received via a pull subscription that ensures messages are handled in the
     order they were sent.
@@ -43,7 +39,7 @@ class OrderedMessageHandler:
     :param bool record_messages: if `True`, record received messages in the `received_messages` attribute
     :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
     :param dict|None message_handlers: a mapping of message type names to callables that handle each type of message. The handlers should not mutate the messages.
-    :param str message_schema: the URI to the JSON schema to validate messages against
+    :param dict|str message_schema: the JSON schema (or URI of one) to validate messages against
     :return None:
     """
 
@@ -62,7 +58,11 @@ class OrderedMessageHandler:
         self.handle_monitor_message = handle_monitor_message
         self.record_messages = record_messages
         self.service_name = service_name
-        self.message_schema = message_schema
+
+        if isinstance(message_schema, str):
+            self.message_schema = {"$ref": message_schema}
+        else:
+            self.message_schema = message_schema
 
         self.question_uuid = self.subscription.topic.path.split(".")[-1]
         self.handled_messages = []
@@ -307,38 +307,18 @@ class OrderedMessageHandler:
             self.handled_messages.append(message)
 
         try:
-            jsonschema.validate(message, {"$ref": self.message_schema})
+            jsonschema.validate(message, self.message_schema)
         except jsonschema.ValidationError as error:
-            self._warn_of_or_raise_invalid_message_error(message, error)
-            return
-
-        return self._message_handlers[message["type"]](message)
-
-    def _warn_of_or_raise_invalid_message_error(self, message, error):
-        """Issue a warning if the error is due to a message of an unknown type or raise the error if it's due to
-        anything else. Issue an additional warning if the parent and child SDK versions are incompatible.
-
-        :param dict message: the message whose handling has caused an error
-        :param Exception error: the error caused by handling the message
-        :return None:
-        """
-        warn_if_incompatible(
-            parent_sdk_version=importlib.metadata.version("octue"),
-            child_sdk_version=self._child_sdk_version,
-        )
-
-        # Just log a warning if an unknown message type has been received - it's likely not to be a big problem.
-        if isinstance(error, jsonschema.ValidationError):
-            logger.exception(
-                "%r received a message that doesn't conform with the service communication schema (%s): %r.",
-                self.receiving_service,
-                SERVICE_COMMUNICATION_SCHEMA_INFO_URL,
-                message,
+            warn_of_or_raise_invalid_message_error(
+                message=message,
+                error=error,
+                receiving_service=self.receiving_service,
+                parent_sdk_version=importlib.metadata.version("octue"),
+                child_sdk_version=self._child_sdk_version,
             )
             return
 
-        # Raise all other errors.
-        raise error
+        return self._message_handlers[message["type"]](message)
 
     def _handle_delivery_acknowledgement(self, message):
         """Mark the question as delivered to prevent resending it.

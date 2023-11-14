@@ -327,7 +327,12 @@ class MockService(Service):
             self.children[service_id].answer(
                 MockMessage(
                     data=json.dumps(
-                        {"input_values": input_values, "input_manifest": input_manifest, "children": children},
+                        {
+                            "input_values": input_values,
+                            "input_manifest": input_manifest,
+                            "children": children,
+                            "message_number": 0,
+                        },
                         cls=OctueJSONEncoder,
                     ).encode(),
                     question_uuid=question_uuid,
