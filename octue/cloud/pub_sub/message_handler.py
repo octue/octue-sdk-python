@@ -7,6 +7,7 @@ import re
 import time
 from datetime import datetime, timedelta
 
+import jsonschema
 from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
 
@@ -25,8 +26,10 @@ if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in GOOGLE_COMPUTE_PROVIDERS:
 else:
     from octue.utils.colour import colourise
 
-
 logger = logging.getLogger(__name__)
+
+
+SERVICE_COMMUNICATION_SCHEMA = "https://jsonschema.registry.octue.com/octue/service-communication/0.1.0.json"
 
 
 class OrderedMessageHandler:
@@ -300,9 +303,11 @@ class OrderedMessageHandler:
             self.handled_messages.append(message)
 
         try:
-            return self._message_handlers[message["type"]](message)
-        except Exception as error:
+            jsonschema.validate(message, {"$ref": SERVICE_COMMUNICATION_SCHEMA})
+        except jsonschema.ValidationError as error:
             self._warn_of_or_raise_invalid_message_error(message, error)
+
+        return self._message_handlers[message["type"]](message)
 
     def _warn_of_or_raise_invalid_message_error(self, message, error):
         """Issue a warning if the error is due to a message of an unknown type or raise the error if it's due to
