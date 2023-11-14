@@ -120,9 +120,6 @@ class Child:
         """
         prevent_retries_when = prevent_retries_when or []
 
-        def ask(question):
-            return self.ask(**question)
-
         # Answers will come out of order, so use a dictionary to store them against their questions' original index.
         answers = {}
         max_workers = min(32, len(questions))
@@ -130,7 +127,7 @@ class Child:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_question_index_mapping = {
-                executor.submit(ask, question): i for i, question in enumerate(questions)
+                executor.submit(self.ask, **question): i for i, question in enumerate(questions)
             }
 
             for i, future in enumerate(concurrent.futures.as_completed(future_to_question_index_mapping)):
