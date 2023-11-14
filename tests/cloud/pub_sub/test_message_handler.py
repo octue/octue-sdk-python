@@ -32,6 +32,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: message},
+                message_schema={},
             )
 
         with patch(
@@ -56,7 +57,10 @@ class TestOrderedMessageHandler(BaseTestCase):
         with self.assertLogs() as logging_context:
             message_handler._handle_message({"type": "blah", "message_number": 0})
 
-        self.assertIn("received a message of unknown type", logging_context.output[1])
+        self.assertIn(
+            "received a message that doesn't conform with the service communication schema",
+            logging_context.output[1],
+        )
 
     def test_in_order_messages_are_handled_in_order(self):
         """Test that messages received in order are handled in order."""
@@ -65,6 +69,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                message_schema={},
             )
 
         messages = [
@@ -90,6 +95,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                message_schema={},
             )
 
         messages = [
@@ -125,6 +131,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                message_schema={},
             )
 
         with patch(
@@ -160,6 +167,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                message_schema={},
             )
 
         messages = [
@@ -293,6 +301,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                message_schema={},
             )
 
         # Simulate the first two messages not being received.
@@ -321,6 +330,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                message_schema={},
             )
 
         messages = [

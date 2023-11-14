@@ -29,7 +29,8 @@ else:
 logger = logging.getLogger(__name__)
 
 
-SERVICE_COMMUNICATION_SCHEMA = "https://jsonschema.registry.octue.com/octue/service-communication/0.1.0.json"
+SERVICE_COMMUNICATION_SCHEMA = "https://jsonschema.registry.octue.com/octue/service-communication/0.1.1.json"
+SERVICE_COMMUNICATION_SCHEMA_INFO_URL = "https://strands.octue.com/octue/service-communication"
 
 
 class OrderedMessageHandler:
@@ -42,6 +43,7 @@ class OrderedMessageHandler:
     :param bool record_messages: if `True`, record received messages in the `received_messages` attribute
     :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
     :param dict|None message_handlers: a mapping of message type names to callables that handle each type of message. The handlers should not mutate the messages.
+    :param str message_schema: the URI to the JSON schema to validate messages against
     :return None:
     """
 
@@ -53,12 +55,14 @@ class OrderedMessageHandler:
         record_messages=True,
         service_name="REMOTE",
         message_handlers=None,
+        message_schema=SERVICE_COMMUNICATION_SCHEMA,
     ):
         self.subscription = subscription
         self.receiving_service = receiving_service
         self.handle_monitor_message = handle_monitor_message
         self.record_messages = record_messages
         self.service_name = service_name
+        self.message_schema = message_schema
 
         self.question_uuid = self.subscription.topic.path.split(".")[-1]
         self.handled_messages = []
@@ -303,9 +307,10 @@ class OrderedMessageHandler:
             self.handled_messages.append(message)
 
         try:
-            jsonschema.validate(message, {"$ref": SERVICE_COMMUNICATION_SCHEMA})
+            jsonschema.validate(message, {"$ref": self.message_schema})
         except jsonschema.ValidationError as error:
             self._warn_of_or_raise_invalid_message_error(message, error)
+            return
 
         return self._message_handlers[message["type"]](message)
 
@@ -323,8 +328,13 @@ class OrderedMessageHandler:
         )
 
         # Just log a warning if an unknown message type has been received - it's likely not to be a big problem.
-        if isinstance(error, KeyError):
-            logger.warning("%r received a message of unknown type: %r.", self.receiving_service, message)
+        if isinstance(error, jsonschema.ValidationError):
+            logger.exception(
+                "%r received a message that doesn't conform with the service communication schema (%s): %r.",
+                self.receiving_service,
+                SERVICE_COMMUNICATION_SCHEMA_INFO_URL,
+                message,
+            )
             return
 
         # Raise all other errors.
