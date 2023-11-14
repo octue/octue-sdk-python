@@ -798,7 +798,7 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
                         messages=[
                             {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
                             {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
-                            {"type": "result", "output_values": "woof", "output_manifest": None},
+                            {"type": "result", "output_values": {"data": "woof"}, "output_manifest": None},
                         ],
                     ),
                 ]
@@ -911,7 +911,7 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
                 self.assertEqual(questions[1]["key"], "another-child")
                 self.assertEqual(questions[1]["id"], f"octue/another-child:{MOCK_SERVICE_REVISION_TAG}")
                 self.assertEqual(questions[1]["input_values"], "miaow")
-                self.assertEqual(questions[1]["messages"][1]["output_values"], "woof")
+                self.assertEqual(questions[1]["messages"][1]["output_values"], {"data": "woof"})
 
                 # This should be 4 but log messages aren't currently being handled by the child emulator correctly.
                 self.assertEqual(len(questions[1]["messages"]), 2)

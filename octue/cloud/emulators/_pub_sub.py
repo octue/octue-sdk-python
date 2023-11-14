@@ -380,18 +380,18 @@ class MockAnalysis:
     :return None:
     """
 
-    def __init__(self, output_values="Hello! It worked!", output_manifest=None):
+    def __init__(self, output_values={"data": "Hello! It worked!"}, output_manifest=None):
         self.output_values = output_values
         self.output_manifest = output_manifest
 
 
 class DifferentMockAnalysis:
-    output_values = "This is another successful analysis."
+    output_values = {"data": "This is another successful analysis."}
     output_manifest = None
 
 
 class MockAnalysisWithOutputManifest:
-    output_values = "This is an analysis with an empty output manifest."
+    output_values = {"data": "This is an analysis with an empty output manifest."}
     output_manifest = Manifest()
 
 

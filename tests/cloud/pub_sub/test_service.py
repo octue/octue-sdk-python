@@ -530,7 +530,7 @@ class TestService(BaseTestCase):
         # Get the child to open the local file itself and return the contents as output.
         def run_function(*args, **kwargs):
             with open(temporary_local_path) as f:
-                return MockAnalysis(output_values=f.read())
+                return MockAnalysis(output_values={"data": f.read()})
 
         child = MockService(backend=BACKEND, run_function=run_function)
         parent = MockService(backend=BACKEND, children={child.id: child})
@@ -547,7 +547,7 @@ class TestService(BaseTestCase):
 
             answer = parent.wait_for_answer(subscription)
 
-        self.assertEqual(answer["output_values"], "This is a local file.")
+        self.assertEqual(answer["output_values"], {"data": "This is a local file."})
 
     def test_ask_with_output_manifest(self):
         """Test that a service can receive an output manifest as part of the answer to a question."""
@@ -722,7 +722,12 @@ class TestService(BaseTestCase):
 
         self.assertEqual(
             parent.received_messages[4],
-            {"type": "result", "output_values": "Hello! It worked!", "output_manifest": None, "message_number": 4},
+            {
+                "type": "result",
+                "output_values": {"data": "Hello! It worked!"},
+                "output_manifest": None,
+                "message_number": 4,
+            },
         )
 
     def test_child_exception_message_can_be_recorded_by_parent(self):
@@ -859,13 +864,13 @@ class TestService(BaseTestCase):
         static_child_of_child = self.make_new_child(
             backend=BACKEND,
             service_id=f"octue/static-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
-            run_function_returnee=MockAnalysis(output_values="I am the static child."),
+            run_function_returnee=MockAnalysis(output_values={"data": "I am the static child."}),
         )
 
         dynamic_child_of_child = self.make_new_child(
             backend=BACKEND,
             service_id=f"octue/dynamic-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
-            run_function_returnee=MockAnalysis(output_values="I am the dynamic child."),
+            run_function_returnee=MockAnalysis(output_values={"data": "I am the dynamic child."}),
         )
 
         child = MockService(
@@ -900,7 +905,7 @@ class TestService(BaseTestCase):
             subscription, _ = parent.ask(service_id=child.id, input_values={}, children=dynamic_children)
             answer = parent.wait_for_answer(subscription)
 
-        self.assertEqual(answer["output_values"], "I am the dynamic child.")
+        self.assertEqual(answer["output_values"], {"data": "I am the dynamic child."})
 
     @staticmethod
     def make_new_child(backend, run_function_returnee, service_id=None):
@@ -941,7 +946,7 @@ class TestService(BaseTestCase):
 
         def mock_app(analysis):
             logger.info("Starting analysis.")
-            analysis.output_values = "Hello! It worked!"
+            analysis.output_values = {"data": "Hello! It worked!"}
             analysis.output_manifest = None
             logger.info("Finished analysis.")
 
