@@ -239,7 +239,7 @@ class Service:
             if analysis.output_manifest is None:
                 serialised_output_manifest = None
             else:
-                serialised_output_manifest = analysis.output_manifest.serialise()
+                serialised_output_manifest = analysis.output_manifest.to_primitive()
 
             self._send_message(
                 {

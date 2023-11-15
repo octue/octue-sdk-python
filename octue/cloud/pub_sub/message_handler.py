@@ -417,6 +417,6 @@ class OrderedMessageHandler:
         if message["output_manifest"] is None:
             output_manifest = None
         else:
-            output_manifest = Manifest.deserialise(message["output_manifest"], from_string=True)
+            output_manifest = Manifest.deserialise(message["output_manifest"])
 
         return {"output_values": message["output_values"], "output_manifest": output_manifest}
