@@ -17,7 +17,7 @@ import octue.exceptions
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
-from octue.cloud.pub_sub.validation import SERVICE_COMMUNICATION_SCHEMA, log_invalid_message
+from octue.cloud.pub_sub.validation import SERVICE_COMMUNICATION_SCHEMA, log_invalid_message, validate_message
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     create_sruid,
@@ -193,13 +193,16 @@ class Service:
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
         """
-        (
-            data,
-            question_uuid,
-            forward_logs,
-            parent_sdk_version,
-            allow_save_diagnostics_data_on_crash,
-        ) = self._parse_question(question)
+        try:
+            (
+                data,
+                question_uuid,
+                forward_logs,
+                parent_sdk_version,
+                allow_save_diagnostics_data_on_crash,
+            ) = self._parse_question(question)
+        except jsonschema.ValidationError:
+            return
 
         topic = answer_topic or self.instantiate_answer_topic(question_uuid)
         self._send_delivery_acknowledgment(topic)
@@ -536,13 +539,24 @@ class Service:
         if isinstance(data["input_manifest"], str):
             data["input_manifest"] = json.loads(data["input_manifest"], cls=OctueJSONDecoder)
 
-        question_uuid = get_nested_attribute(question, "attributes.question_uuid")
-        forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
-
         try:
             parent_sdk_version = get_nested_attribute(question, "attributes.octue_sdk_version")
         except AttributeError:
             parent_sdk_version = None
+
+        try:
+            validate_message(data, get_nested_attribute(question, "attributes"), {"$ref": SERVICE_COMMUNICATION_SCHEMA})
+        except jsonschema.ValidationError as error:
+            log_invalid_message(
+                message=data,
+                receiving_service=self,
+                parent_sdk_version=parent_sdk_version,
+                child_sdk_version=importlib.metadata.version("octue"),
+            )
+            raise error
+
+        question_uuid = get_nested_attribute(question, "attributes.question_uuid")
+        forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
 
         try:
             allow_save_diagnostics_data_on_crash = get_nested_attribute(
@@ -551,16 +565,6 @@ class Service:
             )
         except AttributeError:
             allow_save_diagnostics_data_on_crash = False
-
-        try:
-            jsonschema.validate(data, {"$ref": SERVICE_COMMUNICATION_SCHEMA})
-        except jsonschema.ValidationError:
-            log_invalid_message(
-                message=data,
-                receiving_service=self,
-                parent_sdk_version=parent_sdk_version,
-                child_sdk_version=importlib.metadata.version("octue"),
-            )
 
         logger.info("%r parsed the question successfully.", self)
         return data, question_uuid, forward_logs, parent_sdk_version, allow_save_diagnostics_data_on_crash

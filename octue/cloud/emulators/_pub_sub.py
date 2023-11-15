@@ -245,7 +245,14 @@ class MockMessage:
     def __init__(self, data, **attributes):
         self.data = data
         self.attributes = {}
+
+        # Encode the attributes as they would be in a real Pub/Sub message.
         for key, value in attributes.items():
+            if isinstance(value, bool):
+                value = str(int(value))
+            elif isinstance(value, (int, float)):
+                value = str(value)
+
             self.attributes[key] = value
 
     def ack(self):

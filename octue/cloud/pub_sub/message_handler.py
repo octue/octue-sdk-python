@@ -12,7 +12,7 @@ from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
 
 from octue.cloud import EXCEPTIONS_MAPPING
-from octue.cloud.pub_sub.validation import SERVICE_COMMUNICATION_SCHEMA, log_invalid_message
+from octue.cloud.pub_sub.validation import SERVICE_COMMUNICATION_SCHEMA, log_invalid_message, validate_message
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
@@ -236,6 +236,17 @@ class OrderedMessageHandler:
 
         message = json.loads(answer.message.data.decode(), cls=OctueJSONDecoder)
 
+        try:
+            validate_message(message, answer.message.attributes, self.message_schema)
+        except jsonschema.ValidationError:
+            log_invalid_message(
+                message=message,
+                receiving_service=self.receiving_service,
+                parent_sdk_version=importlib.metadata.version("octue"),
+                child_sdk_version=self._child_sdk_version,
+            )
+            return
+
         message_number = int(message["message_number"])
         self._waiting_messages[message_number] = message
         self._earliest_message_number_received = min(self._earliest_message_number_received, message_number)
@@ -306,18 +317,8 @@ class OrderedMessageHandler:
         if self.record_messages:
             self.handled_messages.append(message)
 
-        try:
-            jsonschema.validate(message, self.message_schema)
-        except jsonschema.ValidationError:
-            log_invalid_message(
-                message=message,
-                receiving_service=self.receiving_service,
-                parent_sdk_version=importlib.metadata.version("octue"),
-                child_sdk_version=self._child_sdk_version,
-            )
-            return
-
-        return self._message_handlers[message["type"]](message)
+        handler = self._message_handlers.get(message["type"])
+        return handler(message)
 
     def _handle_delivery_acknowledgement(self, message):
         """Mark the question as delivered to prevent resending it.

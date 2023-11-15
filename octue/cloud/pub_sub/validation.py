@@ -1,12 +1,18 @@
 import logging
 
+import jsonschema
+
 from octue.compatibility import warn_if_incompatible
 
 
 logger = logging.getLogger(__name__)
 
-SERVICE_COMMUNICATION_SCHEMA = "https://jsonschema.registry.octue.com/octue/service-communication/0.1.6.json"
+SERVICE_COMMUNICATION_SCHEMA = "https://jsonschema.registry.octue.com/octue/service-communication/0.2.0.json"
 SERVICE_COMMUNICATION_SCHEMA_INFO_URL = "https://strands.octue.com/octue/service-communication"
+
+
+def validate_message(message, attributes, schema):
+    jsonschema.validate({"data": message, "attributes": dict(attributes)}, schema)
 
 
 def log_invalid_message(message, receiving_service, parent_sdk_version, child_sdk_version):
