@@ -10,7 +10,6 @@ from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset
 from octue.resources.dataset import SIGNED_METADATA_DIRECTORY
-from octue.resources.filter_containers import FilterSet
 from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
 from tests.resources import create_dataset_with_two_files
@@ -341,7 +340,8 @@ class TestDataset(BaseTestCase):
         ]
 
         self.assertEqual(
-            Dataset(files=files).files.filter(name__icontains="txt").pop().path, FilterSet({files[1]}).pop().local_path
+            Dataset(files=files).files.filter(name__icontains="txt").pop().local_path,
+            files[1].local_path,
         )
 
     def test_filter_name_filters_exclude_path(self):

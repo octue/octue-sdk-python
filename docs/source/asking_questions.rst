@@ -63,7 +63,8 @@ sent back to the parent. If you're not sure how long a particular analysis might
 
 Asking multiple questions in parallel
 =====================================
-You can also ask multiple questions to a service in parallel.
+You can also ask multiple questions to a service in parallel. By default, if any of the questions fail, an error is
+raised and no answers are returned.
 
 .. code-block:: python
 
@@ -78,7 +79,16 @@ You can also ask multiple questions to a service in parallel.
             {"output_values": {"different": "result"}, "output_manifest": None},
         ]
 
-This method uses threads, allowing all the questions to be asked at once instead of one after another.
+This method uses multithreading, allowing all the questions to be asked at once instead of one after another.
+
+Options:
+
+- If ``raise_errors=False`` is provided, answers are returned for all successful questions while unraised errors are
+  returned for unsuccessful ones
+- If ``raise_errors=False`` is provided with ``max_retries > 0``, failed questions are retried up to this number of
+  times
+- If ``raise_errors=False`` is provided with ``max_retries > 0`` and ``prevent_retries_when`` is set to a list of
+  exception types, failed questions are retried except for those whose exception types are in the list
 
 
 Asking a question within a service

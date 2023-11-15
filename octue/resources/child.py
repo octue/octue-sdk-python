@@ -1,9 +1,12 @@
 import concurrent.futures
 import copy
+import logging
 
 from octue.cloud.pub_sub.service import Service
 from octue.resources import service_backends
 
+
+logger = logging.getLogger(__name__)
 
 BACKEND_TO_SERVICE_MAPPING = {"GCPPubSubBackend": Service}
 
@@ -102,20 +105,61 @@ class Child:
             maximum_heartbeat_interval=maximum_heartbeat_interval,
         )
 
-    def ask_multiple(self, *questions):
+    def ask_multiple(self, *questions, raise_errors=True, max_retries=0, prevent_retries_when=None):
         """Ask the child multiple questions in parallel and wait for the answers. Each question should be provided as a
-        dictionary of `Child.ask` keyword arguments. An error is raised and no answers are returned if any of the
-        individual questions raise an error.
+        dictionary of `Child.ask` keyword arguments. If `raise_errors` is `True`, an error is raised and no answers are
+        returned if any of the individual questions raise an error; if it's `False`, answers are returned for all
+        successful questions while errors are returned unraised for any failed ones.
 
         :param questions: any number of questions provided as dictionaries of arguments to the `Child.ask` method
-        :raises Exception: if any question raises an error.
-        :return list: the answers to the questions in the same order as the questions
+        :param bool raise_errors: if `True`, an error is raised and no answers are returned if any of the individual questions raise an error; if `False`, answers are returned for all successful questions while errors are returned unraised for any failed ones
+        :param int max_retries: retry any questions that failed up to this number of times (note: this will have no effect unless `raise_errors=False`)
+        :param list(type)|None prevent_retries_when: prevent retrying any questions that fail with an exception type in this list (note: this will have no effect unless `raise_errors=False`)
+        :raises Exception: if any question raises an error if `raise_errors` is `True`
+        :return list: the answers or caught errors of the questions in the same order as asked
         """
+        prevent_retries_when = prevent_retries_when or []
 
         def ask(question):
             return self.ask(**question)
 
+        # Answers will come out of order, so use a dictionary to store them against their questions' original index.
+        answers = {}
         max_workers = min(32, len(questions))
+        logger.info("Asking %d questions.", len(questions))
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            return list(executor.map(ask, questions))
+            future_to_question_index_mapping = {
+                executor.submit(ask, question): i for i, question in enumerate(questions)
+            }
+
+            for i, future in enumerate(concurrent.futures.as_completed(future_to_question_index_mapping)):
+                logger.info("%d of %d answers received.", i + 1, len(questions))
+                question_index = future_to_question_index_mapping[future]
+
+                try:
+                    answers[question_index] = future.result()
+                except Exception as e:
+                    if raise_errors:
+                        raise e
+
+                    answers[question_index] = e
+                    logger.exception("Question %d failed.", question_index)
+
+        for retry in range(max_retries):
+            failed_questions = {}
+
+            for question_index, answer in answers.items():
+                if isinstance(answer, Exception) and type(answer) not in prevent_retries_when:
+                    failed_questions[question_index] = questions[question_index]
+
+            if not failed_questions:
+                break
+
+            retried_answers = self.ask_multiple(*failed_questions.values(), raise_errors=False)
+
+            for question_index, answer in zip(failed_questions.keys(), retried_answers):
+                answers[question_index] = answer
+
+        # Convert dictionary to list in asking order.
+        return [answer[1] for answer in sorted(answers.items(), key=lambda item: item[0])]

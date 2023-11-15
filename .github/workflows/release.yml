@@ -83,18 +83,24 @@ jobs:
           prerelease: false
 
   publish:
-    runs-on: ubuntu-latest
     needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Build and publish latest package to PyPI
-        uses: JRubics/poetry-publish@v1.10
-        with:
-          python_version: "3.9"
-          pypi_token: ${{ secrets.PYPI_TOKEN }}
-          ignore_dev_requirements: "yes"
+      - name: Install Poetry
+        uses: snok/install-poetry@v1.3.4
+
+      - name: Build a binary wheel and a source tarball
+        run: poetry build
+
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.8.10
 
   docker:
     runs-on: ubuntu-latest

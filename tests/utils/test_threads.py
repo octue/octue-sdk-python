@@ -1,9 +1,8 @@
-import logging
 import time
 from unittest import TestCase
 from unittest.mock import Mock
 
-from octue.utils.threads import RepeatingTimer, run_logged_subprocess
+from octue.utils.threads import RepeatingTimer
 
 
 class TestRepeatingTimer(TestCase):
@@ -52,10 +51,3 @@ class TestRepeatingTimer(TestCase):
         timer.cancel()
 
         mock_function.assert_not_called()
-
-
-class TestRunLoggedSubprocess(TestCase):
-    def test_deprecation_warning_issued_if_using_path_property(self):
-        """Test that a deprecation warning is issued if using the old `run_logged_subprocess`."""
-        with self.assertWarns(DeprecationWarning):
-            run_logged_subprocess("pwd", logging.getLogger())

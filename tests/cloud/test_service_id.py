@@ -11,6 +11,7 @@ from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     get_default_sruid,
     get_sruid_parts,
+    raise_if_revision_not_registered,
     split_service_id,
     validate_sruid,
 )
@@ -195,7 +196,7 @@ class TestSplitServiceID(unittest.TestCase):
 
 
 class TestGetLatestSRUID(unittest.TestCase):
-    SERVICE_REGISTRIES = [{"name": "Octue Registry", "endpoint": "blah.com/services"}]
+    SERVICE_REGISTRIES = [{"name": "Octue Registry", "endpoint": "https://blah.com/services"}]
 
     def test_error_raised_if_revision_not_found(self):
         """Test that an error is raised if no revision is found for the service in the given registries."""
@@ -243,3 +244,31 @@ class TestGetLatestSRUID(unittest.TestCase):
             )
 
         self.assertEqual(latest_sruid, "my-org/my-service:1.3.9")
+
+
+class TestRaiseIfRevisionNotRegistered(unittest.TestCase):
+    SERVICE_REGISTRIES = [{"name": "Octue Registry", "endpoint": "https://blah.com/services"}]
+
+    def test_error_raised_if_revision_not_found(self):
+        """Test that an error is raised if no revision is found for the service in the given registries."""
+        mock_response = requests.Response()
+        mock_response.status_code = 404
+
+        with patch("requests.get", return_value=mock_response):
+            with self.assertRaises(octue.exceptions.ServiceNotFound):
+                raise_if_revision_not_registered(
+                    sruid="my-org/my-service:1.0.0",
+                    service_registries=self.SERVICE_REGISTRIES,
+                )
+
+    def test_no_error_raised_if_service_revision_registered(self):
+        """Test that no error is raised if a revision is found for the service in the given registries."""
+        mock_response = requests.Response()
+        mock_response.status_code = 200
+        mock_response._content = json.dumps({"revision_tag": "1.0.0"}).encode()
+
+        with patch("requests.get", return_value=mock_response):
+            raise_if_revision_not_registered(
+                sruid="my-org/my-service:1.0.0",
+                service_registries=self.SERVICE_REGISTRIES,
+            )
