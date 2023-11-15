@@ -7,12 +7,11 @@ import re
 import time
 from datetime import datetime, timedelta
 
-import jsonschema
 from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
 
 from octue.cloud import EXCEPTIONS_MAPPING
-from octue.cloud.pub_sub.validation import SERVICE_COMMUNICATION_SCHEMA, log_invalid_message, validate_message
+from octue.cloud.pub_sub.validation import SERVICE_COMMUNICATION_SCHEMA, is_message_valid, log_invalid_message
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
@@ -236,9 +235,7 @@ class OrderedMessageHandler:
 
         message = json.loads(answer.message.data.decode(), cls=OctueJSONDecoder)
 
-        try:
-            validate_message(message, answer.message.attributes, self.message_schema)
-        except jsonschema.ValidationError:
+        if not is_message_valid(message=message, attributes=answer.message.attributes, schema=self.message_schema):
             log_invalid_message(
                 message=message,
                 receiving_service=self.receiving_service,

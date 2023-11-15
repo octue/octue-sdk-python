@@ -11,8 +11,13 @@ SERVICE_COMMUNICATION_SCHEMA = "https://jsonschema.registry.octue.com/octue/serv
 SERVICE_COMMUNICATION_SCHEMA_INFO_URL = "https://strands.octue.com/octue/service-communication"
 
 
-def validate_message(message, attributes, schema):
-    jsonschema.validate({"data": message, "attributes": dict(attributes)}, schema)
+def is_message_valid(message, attributes, schema):
+    try:
+        jsonschema.validate({"data": message, "attributes": dict(attributes)}, schema)
+    except jsonschema.ValidationError:
+        return False
+
+    return True
 
 
 def log_invalid_message(message, receiving_service, parent_sdk_version, child_sdk_version):

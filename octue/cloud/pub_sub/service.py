@@ -17,7 +17,7 @@ import octue.exceptions
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
-from octue.cloud.pub_sub.validation import SERVICE_COMMUNICATION_SCHEMA, log_invalid_message, validate_message
+from octue.cloud.pub_sub.validation import SERVICE_COMMUNICATION_SCHEMA, is_message_valid, log_invalid_message
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     create_sruid,
@@ -544,16 +544,18 @@ class Service:
         except AttributeError:
             parent_sdk_version = None
 
-        try:
-            validate_message(data, get_nested_attribute(question, "attributes"), {"$ref": SERVICE_COMMUNICATION_SCHEMA})
-        except jsonschema.ValidationError as error:
+        if not is_message_valid(
+            message=data,
+            attributes=get_nested_attribute(question, "attributes"),
+            schema={"$ref": SERVICE_COMMUNICATION_SCHEMA},
+        ):
             log_invalid_message(
                 message=data,
                 receiving_service=self,
                 parent_sdk_version=parent_sdk_version,
                 child_sdk_version=importlib.metadata.version("octue"),
             )
-            raise error
+            raise jsonschema.ValidationError
 
         question_uuid = get_nested_attribute(question, "attributes.question_uuid")
         forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
