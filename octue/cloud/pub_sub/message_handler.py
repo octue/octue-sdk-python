@@ -12,7 +12,7 @@ from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
 
 from octue.cloud import EXCEPTIONS_MAPPING
-from octue.cloud.pub_sub.validation import SERVICE_COMMUNICATION_SCHEMA, warn_of_or_raise_invalid_message_error
+from octue.cloud.pub_sub.validation import SERVICE_COMMUNICATION_SCHEMA, log_invalid_message
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
@@ -308,10 +308,9 @@ class OrderedMessageHandler:
 
         try:
             jsonschema.validate(message, self.message_schema)
-        except jsonschema.ValidationError as error:
-            warn_of_or_raise_invalid_message_error(
+        except jsonschema.ValidationError:
+            log_invalid_message(
                 message=message,
-                error=error,
                 receiving_service=self.receiving_service,
                 parent_sdk_version=importlib.metadata.version("octue"),
                 child_sdk_version=self._child_sdk_version,
