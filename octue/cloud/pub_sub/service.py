@@ -191,7 +191,7 @@ class Service:
         :return None:
         """
         (
-            data,
+            question,
             question_uuid,
             forward_logs,
             parent_sdk_version,
@@ -224,9 +224,9 @@ class Service:
 
             analysis = self.run_function(
                 analysis_id=question_uuid,
-                input_values=data["input_values"],
-                input_manifest=data["input_manifest"],
-                children=data.get("children"),
+                input_values=question.get("input_values"),
+                input_manifest=question.get("input_manifest"),
+                children=question.get("children"),
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=functools.partial(
                     self._send_monitor_message,
@@ -236,17 +236,16 @@ class Service:
                 allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
             )
 
-            if analysis.output_manifest is None:
-                serialised_output_manifest = None
-            else:
-                serialised_output_manifest = analysis.output_manifest.to_primitive()
+            result = {"type": "result"}
+
+            if analysis.output_values is not None:
+                result["output_values"] = analysis.output_values
+
+            if analysis.output_manifest is not None:
+                result["output_manifest"] = analysis.output_manifest.to_primitive()
 
             self._send_message(
-                {
-                    "type": "result",
-                    "output_values": analysis.output_values,
-                    "output_manifest": serialised_output_manifest,
-                },
+                message=result,
                 topic=topic,
                 attributes={"question_uuid": question_uuid, "is_question": False},
                 timeout=timeout,
@@ -334,12 +333,20 @@ class Service:
         )
         answer_subscription.create(allow_existing=False)
 
+        question = {"type": "question"}
+
+        if input_values is not None:
+            question["input_values"] = input_values
+
         if input_manifest is not None:
             input_manifest.use_signed_urls_for_datasets()
-            input_manifest = input_manifest.to_primitive()
+            question["input_manifest"] = input_manifest.to_primitive()
+
+        if children is not None:
+            question["children"] = children
 
         self._send_message(
-            {"type": "question", "input_values": input_values, "input_manifest": input_manifest, "children": children},
+            message=question,
             topic=topic,
             attributes={
                 "question_uuid": question_uuid,

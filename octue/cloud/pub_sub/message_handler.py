@@ -414,9 +414,9 @@ class OrderedMessageHandler:
         """
         logger.info("%r received an answer to question %r.", self.receiving_service, self.question_uuid)
 
-        if message["output_manifest"] is None:
-            output_manifest = None
-        else:
+        if message.get("output_manifest"):
             output_manifest = Manifest.deserialise(message["output_manifest"])
+        else:
+            output_manifest = None
 
-        return {"output_values": message["output_values"], "output_manifest": output_manifest}
+        return {"output_values": message.get("output_values"), "output_manifest": output_manifest}
