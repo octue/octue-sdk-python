@@ -340,7 +340,12 @@ class MockService(Service):
             self.children[service_id].answer(
                 MockMessage(
                     data=json.dumps(
-                        {"input_values": input_values, "input_manifest": input_manifest, "children": children},
+                        {
+                            "type": "question",
+                            "input_values": input_values,
+                            "input_manifest": input_manifest,
+                            "children": children,
+                        },
                         cls=OctueJSONEncoder,
                     ).encode(),
                     attributes={
