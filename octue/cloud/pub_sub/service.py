@@ -339,7 +339,7 @@ class Service:
             input_manifest = input_manifest.to_primitive()
 
         self._send_message(
-            {"input_values": input_values, "input_manifest": input_manifest, "children": children},
+            {"type": "question", "input_values": input_values, "input_manifest": input_manifest, "children": children},
             topic=topic,
             attributes={
                 "question_uuid": question_uuid,
