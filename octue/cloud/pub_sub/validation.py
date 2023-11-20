@@ -11,9 +11,11 @@ SERVICE_COMMUNICATION_SCHEMA = "https://jsonschema.registry.octue.com/octue/serv
 SERVICE_COMMUNICATION_SCHEMA_INFO_URL = "https://strands.octue.com/octue/service-communication"
 
 
-def is_message_valid(message, attributes, schema):
+def is_message_valid(message, attributes, schema=None):
+    schema = schema or {"$ref": SERVICE_COMMUNICATION_SCHEMA}
+
     try:
-        jsonschema.validate({"data": message, "attributes": dict(attributes)}, schema)
+        jsonschema.validate({"event": message, "attributes": attributes}, schema)
     except jsonschema.ValidationError:
         return False
 
