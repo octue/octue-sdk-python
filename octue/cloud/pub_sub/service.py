@@ -17,7 +17,6 @@ import octue.exceptions
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
-from octue.cloud.pub_sub.validation import SERVICE_COMMUNICATION_SCHEMA, raise_if_message_is_invalid
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     create_sruid,
@@ -26,6 +25,7 @@ from octue.cloud.service_id import (
     split_service_id,
     validate_sruid,
 )
+from octue.cloud.validation import SERVICE_COMMUNICATION_SCHEMA, raise_if_message_is_invalid
 from octue.compatibility import warn_if_incompatible
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
