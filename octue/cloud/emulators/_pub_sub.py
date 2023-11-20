@@ -253,6 +253,15 @@ class MockMessage:
         self.data = data
         self.attributes = attributes or {}
 
+        # Encode the attributes as they would be in a real Pub/Sub message.
+        for key, value in attributes.items():
+            if isinstance(value, bool):
+                value = str(int(value))
+            elif isinstance(value, (int, float)):
+                value = str(value)
+
+            self.attributes[key] = value
+
     def __repr__(self):
         return f"<{type(self).__name__}(data={self.data!r})>"
 

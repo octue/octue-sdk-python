@@ -6,6 +6,10 @@ on:
 
 jobs:
   add-issues-to-octue-board:
-    uses: octue/.github/.github/workflows/reusable-add-issues-to-octue-board.yml@main
-    secrets:
-      github-token: ${{ secrets.PROJECT_AUTOMATION_GITHUB_TOKEN_2 }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add to Board
+        uses: actions/add-to-project@v0.5.0
+        with:
+          project-url: https://github.com/orgs/octue/projects/22
+          github-token: ${{ secrets.github-token }}

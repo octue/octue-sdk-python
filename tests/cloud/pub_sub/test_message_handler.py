@@ -34,6 +34,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: message},
+                message_schema={},
             )
 
         with patch(
@@ -46,20 +47,6 @@ class TestOrderedMessageHandler(BaseTestCase):
             with self.assertRaises(TimeoutError):
                 message_handler.handle_messages(timeout=0)
 
-    def test_unknown_message_type_raises_warning(self):
-        """Test that unknown message types result in a warning being logged."""
-        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(
-                subscription=mock_subscription,
-                receiving_service=receiving_service,
-                message_handlers={"finish-test": lambda message: message},
-            )
-
-        with self.assertLogs() as logging_context:
-            message_handler._handle_message({"type": "blah"})
-
-        self.assertIn("received a message of unknown type", logging_context.output[1])
-
     def test_in_order_messages_are_handled_in_order(self):
         """Test that messages received in order are handled in order."""
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
@@ -67,6 +54,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                message_schema={},
             )
 
         messages = [
@@ -92,6 +80,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                message_schema={},
             )
 
         messages = [
@@ -130,6 +119,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                message_schema={},
             )
 
         with patch(
@@ -177,6 +167,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                message_schema={},
             )
 
         messages = [
@@ -330,6 +321,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                message_schema={},
             )
 
         # Simulate the first two messages not being received.
@@ -369,6 +361,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                message_schema={},
             )
 
         messages = [
@@ -412,6 +405,7 @@ class TestPullAndEnqueueMessage(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                message_schema={},
             )
 
             message_handler._child_sdk_version = "0.1.3"

@@ -9,6 +9,7 @@ import threading
 import uuid
 
 import google.api_core.exceptions
+import jsonschema
 from google.api_core import retry
 from google.cloud import pubsub_v1
 
@@ -24,6 +25,7 @@ from octue.cloud.service_id import (
     split_service_id,
     validate_sruid,
 )
+from octue.cloud.validation import SERVICE_COMMUNICATION_SCHEMA, raise_if_message_is_invalid
 from octue.compatibility import warn_if_incompatible
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
@@ -190,13 +192,16 @@ class Service:
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
         """
-        (
-            question,
-            question_uuid,
-            forward_logs,
-            parent_sdk_version,
-            allow_save_diagnostics_data_on_crash,
-        ) = self._parse_question(question)
+        try:
+            (
+                question,
+                question_uuid,
+                forward_logs,
+                parent_sdk_version,
+                allow_save_diagnostics_data_on_crash,
+            ) = self._parse_question(question)
+        except jsonschema.ValidationError:
+            return
 
         topic = Topic(name=self._pub_sub_id, project_name=self.backend.project_name)
         heartbeater = None
@@ -547,6 +552,20 @@ class Service:
 
         allow_save_diagnostics_data_on_crash = bool(
             int(get_nested_attribute(question, "attributes.allow_save_diagnostics_data_on_crash"))
+        )
+
+        raise_if_message_is_invalid(
+            message=data,
+            attributes={
+                "question_uuid": question_uuid,
+                "forward_logs": forward_logs,
+                "parent_sdk_version": parent_sdk_version,
+                "allow_save_diagnostics_data_on_crash": allow_save_diagnostics_data_on_crash,
+            },
+            receiving_service=self,
+            parent_sdk_version=parent_sdk_version,
+            child_sdk_version=importlib.metadata.version("octue"),
+            schema={"$ref": SERVICE_COMMUNICATION_SCHEMA},
         )
 
         logger.info("%r parsed the question successfully.", self)

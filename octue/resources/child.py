@@ -79,7 +79,6 @@ class Child:
         :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved by the child if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
-        :param float|int delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
         :return dict: a dictionary containing the keys "output_values" and "output_manifest"
@@ -120,9 +119,6 @@ class Child:
         """
         prevent_retries_when = prevent_retries_when or []
 
-        def ask(question):
-            return self.ask(**question)
-
         # Answers will come out of order, so use a dictionary to store them against their questions' original index.
         answers = {}
         max_workers = min(32, len(questions))
@@ -130,7 +126,7 @@ class Child:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_question_index_mapping = {
-                executor.submit(ask, question): i for i, question in enumerate(questions)
+                executor.submit(self.ask, **question): i for i, question in enumerate(questions)
             }
 
             for i, future in enumerate(concurrent.futures.as_completed(future_to_question_index_mapping)):

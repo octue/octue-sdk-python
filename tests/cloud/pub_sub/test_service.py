@@ -719,11 +719,7 @@ class TestService(BaseTestCase):
         self.assertEqual(parent.received_messages[1]["type"], "log_record")
         self.assertEqual(parent.received_messages[2]["type"], "log_record")
         self.assertEqual(parent.received_messages[3]["type"], "log_record")
-
-        self.assertEqual(
-            parent.received_messages[4],
-            {"type": "result", "output_values": "Hello! It worked!"},
-        )
+        self.assertEqual(parent.received_messages[4], {"type": "result", "output_values": "Hello! It worked!"})
 
     def test_child_exception_message_can_be_recorded_by_parent(self):
         """Test that the parent can record exceptions raised by the child."""
