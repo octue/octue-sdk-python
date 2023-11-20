@@ -62,30 +62,13 @@ def raise_if_message_is_invalid(
     try:
         jsonschema.validate({"event": message, "attributes": dict(attributes)}, schema)
     except jsonschema.ValidationError as error:
-        log_invalid_message(
-            message=message,
-            receiving_service=receiving_service,
-            parent_sdk_version=parent_sdk_version,
-            child_sdk_version=child_sdk_version,
+        warn_if_incompatible(parent_sdk_version=parent_sdk_version, child_sdk_version=child_sdk_version)
+
+        logger.exception(
+            "%r received a message that doesn't conform with the service communication schema (%s): %r.",
+            receiving_service,
+            SERVICE_COMMUNICATION_SCHEMA_INFO_URL,
+            message,
         )
 
         raise error
-
-
-def log_invalid_message(message, receiving_service, parent_sdk_version, child_sdk_version):
-    """Log an invalid message and issue a warning if the parent and child SDK versions are incompatible.
-
-    :param dict message: the invalid message
-    :param octue.cloud.pub_sub.service.Service receiving_service: the service that received the invalid message
-    :param str parent_sdk_version: the semantic version of Octue SDK running the parent
-    :param str child_sdk_version: the semantic version of Octue SDK running the child
-    :return None:
-    """
-    warn_if_incompatible(parent_sdk_version=parent_sdk_version, child_sdk_version=child_sdk_version)
-
-    logger.exception(
-        "%r received a message that doesn't conform with the service communication schema (%s): %r.",
-        receiving_service,
-        SERVICE_COMMUNICATION_SCHEMA_INFO_URL,
-        message,
-    )
