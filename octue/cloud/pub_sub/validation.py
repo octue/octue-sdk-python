@@ -16,7 +16,7 @@ def is_message_valid(message, attributes, schema=None):
         schema = {"$ref": SERVICE_COMMUNICATION_SCHEMA}
 
     try:
-        jsonschema.validate({"event": message, "attributes": attributes}, schema)
+        jsonschema.validate({"event": message, "attributes": dict(attributes)}, schema)
     except jsonschema.ValidationError:
         return False
 
