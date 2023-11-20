@@ -17,7 +17,7 @@ import octue.exceptions
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
-from octue.cloud.pub_sub.validation import SERVICE_COMMUNICATION_SCHEMA, is_message_valid, log_invalid_message
+from octue.cloud.pub_sub.validation import SERVICE_COMMUNICATION_SCHEMA, raise_if_message_is_invalid
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     create_sruid,
@@ -554,7 +554,7 @@ class Service:
         except AttributeError:
             allow_save_diagnostics_data_on_crash = False
 
-        if not is_message_valid(
+        raise_if_message_is_invalid(
             message=data,
             attributes={
                 "question_uuid": question_uuid,
@@ -562,15 +562,11 @@ class Service:
                 "parent_sdk_version": parent_sdk_version,
                 "allow_save_diagnostics_data_on_crash": allow_save_diagnostics_data_on_crash,
             },
+            receiving_service=self,
+            parent_sdk_version=parent_sdk_version,
+            child_sdk_version=importlib.metadata.version("octue"),
             schema={"$ref": SERVICE_COMMUNICATION_SCHEMA},
-        ):
-            log_invalid_message(
-                message=data,
-                receiving_service=self,
-                parent_sdk_version=parent_sdk_version,
-                child_sdk_version=importlib.metadata.version("octue"),
-            )
-            raise jsonschema.ValidationError
+        )
 
         logger.info("%r parsed the question successfully.", self)
         return data, question_uuid, forward_logs, parent_sdk_version, allow_save_diagnostics_data_on_crash

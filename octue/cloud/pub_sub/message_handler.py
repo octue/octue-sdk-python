@@ -11,7 +11,7 @@ from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
 
 from octue.cloud import EXCEPTIONS_MAPPING
-from octue.cloud.pub_sub.validation import SERVICE_COMMUNICATION_SCHEMA, is_message_valid, log_invalid_message
+from octue.cloud.pub_sub.validation import SERVICE_COMMUNICATION_SCHEMA, is_message_valid
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
@@ -235,13 +235,14 @@ class OrderedMessageHandler:
 
         message = json.loads(answer.message.data.decode(), cls=OctueJSONDecoder)
 
-        if not is_message_valid(message=message, attributes=answer.message.attributes, schema=self.message_schema):
-            log_invalid_message(
-                message=message,
-                receiving_service=self.receiving_service,
-                parent_sdk_version=importlib.metadata.version("octue"),
-                child_sdk_version=self._child_sdk_version,
-            )
+        if not is_message_valid(
+            message=message,
+            attributes=dict(answer.message.attributes),
+            receiving_service=self.receiving_service,
+            parent_sdk_version=importlib.metadata.version("octue"),
+            child_sdk_version=self._child_sdk_version,
+            schema=self.message_schema,
+        ):
             return
 
         message_number = int(message["message_number"])
