@@ -12,7 +12,8 @@ SERVICE_COMMUNICATION_SCHEMA_INFO_URL = "https://strands.octue.com/octue/service
 
 
 def is_message_valid(message, attributes, schema=None):
-    schema = schema or {"$ref": SERVICE_COMMUNICATION_SCHEMA}
+    if schema is None:
+        schema = {"$ref": SERVICE_COMMUNICATION_SCHEMA}
 
     try:
         jsonschema.validate({"event": message, "attributes": attributes}, schema)
