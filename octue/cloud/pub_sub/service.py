@@ -544,9 +544,24 @@ class Service:
         except AttributeError:
             parent_sdk_version = None
 
+        question_uuid = get_nested_attribute(question, "attributes.question_uuid")
+        forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
+
+        try:
+            allow_save_diagnostics_data_on_crash = bool(
+                int(get_nested_attribute(question, "attributes.allow_save_diagnostics_data_on_crash"))
+            )
+        except AttributeError:
+            allow_save_diagnostics_data_on_crash = False
+
         if not is_message_valid(
             message=data,
-            attributes=get_nested_attribute(question, "attributes"),
+            attributes={
+                "question_uuid": question_uuid,
+                "forward_logs": forward_logs,
+                "parent_sdk_version": parent_sdk_version,
+                "allow_save_diagnostics_data_on_crash": allow_save_diagnostics_data_on_crash,
+            },
             schema={"$ref": SERVICE_COMMUNICATION_SCHEMA},
         ):
             log_invalid_message(
@@ -556,17 +571,6 @@ class Service:
                 child_sdk_version=importlib.metadata.version("octue"),
             )
             raise jsonschema.ValidationError
-
-        question_uuid = get_nested_attribute(question, "attributes.question_uuid")
-        forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
-
-        try:
-            allow_save_diagnostics_data_on_crash = get_nested_attribute(
-                question,
-                "attributes.allow_save_diagnostics_data_on_crash",
-            )
-        except AttributeError:
-            allow_save_diagnostics_data_on_crash = False
 
         logger.info("%r parsed the question successfully.", self)
         return data, question_uuid, forward_logs, parent_sdk_version, allow_save_diagnostics_data_on_crash
