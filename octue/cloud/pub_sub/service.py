@@ -26,7 +26,7 @@ from octue.cloud.service_id import (
     split_service_id,
     validate_sruid,
 )
-from octue.cloud.validation import raise_if_message_is_invalid
+from octue.cloud.validation import raise_if_event_is_invalid
 from octue.compatibility import warn_if_incompatible
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
@@ -546,8 +546,8 @@ class Service:
         if event.get("input_manifest"):
             event_for_validation["input_manifest"] = json.loads(event["input_manifest"], cls=OctueJSONDecoder)
 
-        raise_if_message_is_invalid(
-            message=event_for_validation,
+        raise_if_event_is_invalid(
+            event=event_for_validation,
             attributes=attributes,
             receiving_service=self,
             parent_sdk_version=attributes["octue_sdk_version"],
