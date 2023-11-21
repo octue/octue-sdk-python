@@ -254,7 +254,7 @@ class MockMessage:
         self.attributes = attributes or {}
 
         # Encode the attributes as they would be in a real Pub/Sub message.
-        for key, value in attributes.items():
+        for key, value in self.attributes.items():
             if isinstance(value, bool):
                 value = str(int(value))
             elif isinstance(value, (int, float)):
@@ -335,34 +335,35 @@ class MockService(Service):
             timeout=timeout,
         )
 
-        # Ignore any errors from the answering service as they will be raised on the remote service in practice, not
-        # locally as is done in this mock.
-        if input_manifest is not None:
-            input_manifest = input_manifest.serialise()
-
         # Delete question from messages sent to topic so the parent doesn't pick it up as a response message. We do this
         # as subscription filtering isn't implemented in this set of mocks.
         subscription_name = ".".join((convert_service_id_to_pub_sub_form(service_id), ANSWERS_NAMESPACE, question_uuid))
         SUBSCRIPTIONS["octue.services." + subscription_name].pop(0)
 
+        question = {"type": "question"}
+
+        if input_values is not None:
+            question["input_values"] = input_values
+
+        # Ignore any errors from the answering service as they will be raised on the remote service in practice, not
+        # locally as is done in this mock.
+        if input_manifest is not None:
+            question["input_manifest"] = input_manifest.serialise()
+
+        if children is not None:
+            question["children"] = children
+
         try:
             self.children[service_id].answer(
                 MockMessage(
-                    data=json.dumps(
-                        {
-                            "type": "question",
-                            "input_values": input_values,
-                            "input_manifest": input_manifest,
-                            "children": children,
-                        },
-                        cls=OctueJSONEncoder,
-                    ).encode(),
+                    data=json.dumps(question, cls=OctueJSONEncoder).encode(),
                     attributes={
+                        "is_question": True,
                         "question_uuid": question_uuid,
                         "forward_logs": subscribe_to_logs,
                         "octue_sdk_version": parent_sdk_version,
                         "allow_save_diagnostics_data_on_crash": allow_save_diagnostics_data_on_crash,
-                        "is_question": True,
+                        "message_number": 0,
                     },
                 )
             )

@@ -1,5 +1,5 @@
-import base64
 import concurrent.futures
+import copy
 import datetime
 import functools
 import importlib.metadata
@@ -17,6 +17,7 @@ import octue.exceptions
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
+from octue.cloud.pub_sub.messages import extract_event_and_attributes_from_pub_sub
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     create_sruid,
@@ -25,12 +26,11 @@ from octue.cloud.service_id import (
     split_service_id,
     validate_sruid,
 )
-from octue.cloud.validation import SERVICE_COMMUNICATION_SCHEMA, raise_if_message_is_invalid
+from octue.cloud.validation import raise_if_message_is_invalid
 from octue.compatibility import warn_if_incompatible
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
-from octue.utils.objects import get_nested_attribute
 from octue.utils.threads import RepeatingTimer
 
 
@@ -534,39 +534,32 @@ class Service:
         """
         logger.info("%r received a question.", self)
 
-        try:
-            # Parse question directly from Pub/Sub or Dataflow.
-            data = json.loads(question.data.decode(), cls=OctueJSONDecoder)
+        # Acknowledge it if it's directly from Pub/Sub
+        if hasattr(question, "ack"):
+            question.ack()
 
-            # Acknowledge it if it's directly from Pub/Sub
-            if hasattr(question, "ack"):
-                question.ack()
+        event, attributes = extract_event_and_attributes_from_pub_sub(question)
+        event_for_validation = copy.deepcopy(event)
 
-        except Exception:
-            # Parse question from Google Cloud Run.
-            data = json.loads(base64.b64decode(question["data"]).decode("utf-8").strip(), cls=OctueJSONDecoder)
-
-        question_uuid = get_nested_attribute(question, "attributes.question_uuid")
-        forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
-        parent_sdk_version = get_nested_attribute(question, "attributes.octue_sdk_version")
-
-        allow_save_diagnostics_data_on_crash = bool(
-            int(get_nested_attribute(question, "attributes.allow_save_diagnostics_data_on_crash"))
-        )
+        # Deserialise input manifest into primitives for validation but leave it serialised for the return value so
+        # Twine validation still works.
+        if event.get("input_manifest"):
+            event_for_validation["input_manifest"] = json.loads(event["input_manifest"], cls=OctueJSONDecoder)
 
         raise_if_message_is_invalid(
-            message=data,
-            attributes={
-                "question_uuid": question_uuid,
-                "forward_logs": forward_logs,
-                "parent_sdk_version": parent_sdk_version,
-                "allow_save_diagnostics_data_on_crash": allow_save_diagnostics_data_on_crash,
-            },
+            message=event_for_validation,
+            attributes=attributes,
             receiving_service=self,
-            parent_sdk_version=parent_sdk_version,
+            parent_sdk_version=attributes["octue_sdk_version"],
             child_sdk_version=importlib.metadata.version("octue"),
-            schema={"$ref": SERVICE_COMMUNICATION_SCHEMA},
         )
 
         logger.info("%r parsed the question successfully.", self)
-        return data, question_uuid, forward_logs, parent_sdk_version, allow_save_diagnostics_data_on_crash
+
+        return (
+            event,
+            attributes["question_uuid"],
+            attributes["forward_logs"],
+            attributes["octue_sdk_version"],
+            attributes["allow_save_diagnostics_data_on_crash"],
+        )

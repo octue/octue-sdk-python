@@ -417,7 +417,12 @@ class TestPullAndEnqueueMessage(BaseTestCase):
             SUBSCRIPTIONS[mock_subscription.name] = [
                 MockMessage(
                     data=json.dumps(mock_message).encode(),
-                    attributes={"is_question": False, "message_number": 0},
+                    attributes={
+                        "is_question": False,
+                        "message_number": 0,
+                        "question_uuid": question_uuid,
+                        "octue_sdk_version": "0.50.0",
+                    },
                 )
             ]
 

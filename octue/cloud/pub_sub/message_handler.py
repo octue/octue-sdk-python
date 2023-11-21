@@ -11,6 +11,7 @@ from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
 
 from octue.cloud import EXCEPTIONS_MAPPING
+from octue.cloud.pub_sub.messages import extract_event_and_attributes_from_pub_sub
 from octue.cloud.validation import SERVICE_COMMUNICATION_SCHEMA, is_message_valid
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.log_handlers import COLOUR_PALETTE
@@ -224,16 +225,16 @@ class OrderedMessageHandler:
         self._subscriber.acknowledge(request={"subscription": self.subscription.path, "ack_ids": [answer.ack_id]})
         logger.debug("%r received a message related to question %r.", self.receiving_service, self.question_uuid)
 
+        event, attributes = extract_event_and_attributes_from_pub_sub(answer.message)
+        message_number = attributes["message_number"]
+
         # Get the child's Octue SDK version from the first message.
         if not self._child_sdk_version:
-            self._child_sdk_version = answer.message.attributes.get("octue_sdk_version")
-
-        message_number = int(answer.message.attributes["message_number"])
-        message = json.loads(answer.message.data.decode(), cls=OctueJSONDecoder)
+            self._child_sdk_version = attributes["octue_sdk_version"]
 
         if not is_message_valid(
-            message=message,
-            attributes=dict(answer.message.attributes),
+            message=event,
+            attributes=attributes,
             receiving_service=self.receiving_service,
             parent_sdk_version=importlib.metadata.version("octue"),
             child_sdk_version=self._child_sdk_version,
@@ -241,7 +242,7 @@ class OrderedMessageHandler:
         ):
             return
 
-        self.waiting_messages[message_number] = message
+        self.waiting_messages[message_number] = event
         self._earliest_message_number_received = min(self._earliest_message_number_received, message_number)
 
     def _attempt_to_handle_queued_messages(self, skip_first_messages_after=60):
