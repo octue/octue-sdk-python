@@ -136,7 +136,7 @@ class Service:
             name=self._pub_sub_id,
             topic=topic,
             project_name=self.backend.project_name,
-            filter='attributes.is_question = "1"',
+            filter='attributes.sender_type = "parent"',
             expiration_time=None,
         )
 
@@ -252,7 +252,7 @@ class Service:
             self._send_message(
                 message=result,
                 topic=topic,
-                attributes={"question_uuid": question_uuid, "is_question": False},
+                attributes={"question_uuid": question_uuid, "sender_type": "child"},
                 timeout=timeout,
             )
 
@@ -333,7 +333,7 @@ class Service:
             name=".".join((topic.name, ANSWERS_NAMESPACE, question_uuid)),
             topic=topic,
             project_name=self.backend.project_name,
-            filter=f'attributes.question_uuid = "{question_uuid}" AND attributes.is_question = "0"',
+            filter=f'attributes.question_uuid = "{question_uuid}" AND attributes.sender_type = "child"',
             push_endpoint=push_endpoint,
         )
         answer_subscription.create(allow_existing=False)
@@ -355,7 +355,7 @@ class Service:
             topic=topic,
             attributes={
                 "question_uuid": question_uuid,
-                "is_question": True,
+                "sender_type": "parent",
                 "forward_logs": subscribe_to_logs,
                 "allow_save_diagnostics_data_on_crash": allow_save_diagnostics_data_on_crash,
             },
@@ -428,7 +428,7 @@ class Service:
                 "traceback": exception["traceback"],
             },
             topic=topic,
-            attributes={"question_uuid": question_uuid, "is_question": False},
+            attributes={"question_uuid": question_uuid, "sender_type": "child"},
             timeout=timeout,
         )
 
@@ -480,7 +480,7 @@ class Service:
             },
             topic=topic,
             timeout=timeout,
-            attributes={"question_uuid": question_uuid, "is_question": False},
+            attributes={"question_uuid": question_uuid, "sender_type": "child"},
         )
 
         logger.info("%r acknowledged receipt of question.", self)
@@ -500,7 +500,7 @@ class Service:
             },
             topic=topic,
             timeout=timeout,
-            attributes={"question_uuid": question_uuid, "is_question": False},
+            attributes={"question_uuid": question_uuid, "sender_type": "child"},
         )
 
         logger.debug("Heartbeat sent by %r.", self)
@@ -521,7 +521,7 @@ class Service:
             },
             topic=topic,
             timeout=timeout,
-            attributes={"question_uuid": question_uuid, "is_question": False},
+            attributes={"question_uuid": question_uuid, "sender_type": "child"},
         )
 
         logger.debug("Monitor message sent by %r.", self)

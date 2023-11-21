@@ -358,7 +358,7 @@ class MockService(Service):
                 MockMessage(
                     data=json.dumps(question, cls=OctueJSONEncoder).encode(),
                     attributes={
-                        "is_question": True,
+                        "sender_type": "parent",
                         "question_uuid": question_uuid,
                         "forward_logs": subscribe_to_logs,
                         "octue_sdk_version": parent_sdk_version,

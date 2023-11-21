@@ -8,7 +8,7 @@ from octue.utils.objects import getattr_or_subscribe
 def extract_event_and_attributes_from_pub_sub(message):
     # Cast attributes to dict to avoid defaultdict behaviour.
     attributes = dict(getattr_or_subscribe(message, "attributes"))
-    is_question = bool(int(attributes["is_question"]))
+    sender_type = attributes["sender_type"]
     question_uuid = attributes["question_uuid"]
     message_number = int(attributes["message_number"])
     octue_sdk_version = attributes["octue_sdk_version"]
@@ -35,7 +35,7 @@ def extract_event_and_attributes_from_pub_sub(message):
     return (
         event,
         {
-            "is_question": is_question,
+            "sender_type": sender_type,
             "question_uuid": question_uuid,
             "octue_sdk_version": octue_sdk_version,
             "message_number": message_number,

@@ -35,7 +35,7 @@ class GooglePubSubHandler(logging.Handler):
                     "log_record": self._convert_log_record_to_primitives(record),
                 },
                 topic=self.topic,
-                attributes={"question_uuid": self.question_uuid, "is_question": False},
+                attributes={"question_uuid": self.question_uuid, "sender_type": "child"},
             )
 
         except Exception:  # noqa

@@ -409,7 +409,7 @@ def create_push_subscription(
         name=pub_sub_sruid,
         topic=topic,
         project_name=project_name,
-        filter='attributes.is_question = "1"',
+        filter='attributes.sender_type = "parent"',
         expiration_time=expiration_time,
         push_endpoint=push_endpoint,
     )
