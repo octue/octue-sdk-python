@@ -812,7 +812,7 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
                             analysis_id=analysis_id,
                             input_values=values,
                             input_manifest=input_manifest,
-                            allow_save_diagnostics_data_on_crash=True,
+                            debug="DEBUG_ON_CRASH",
                         )
 
                 storage_client = GoogleCloudStorageClient()

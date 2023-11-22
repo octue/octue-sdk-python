@@ -198,7 +198,7 @@ class Service:
                 question_uuid,
                 forward_logs,
                 parent_sdk_version,
-                allow_save_diagnostics_data_on_crash,
+                debug,
             ) = self._parse_question(question)
         except jsonschema.ValidationError:
             return
@@ -238,7 +238,7 @@ class Service:
                     topic=topic,
                     question_uuid=question_uuid,
                 ),
-                allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
+                debug=debug,
             )
 
             result = {"type": "result"}
@@ -275,7 +275,7 @@ class Service:
         children=None,
         subscribe_to_logs=True,
         allow_local_files=False,
-        allow_save_diagnostics_data_on_crash=True,
+        debug="DEBUG_ON_CRASH",  # This is repeated as a string here to avoid a circular import.
         question_uuid=None,
         push_endpoint=None,
         timeout=86400,
@@ -290,7 +290,7 @@ class Service:
         :param list(dict)|None children: a list of children for the child to use instead of its default children (if it uses children). These should be in the same format as in an app's app configuration file and have the same keys.
         :param bool subscribe_to_logs: if `True`, subscribe to the child's logs and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will be able to access these local files
-        :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved by the child if it fails while processing them
+        :param str debug: must be one of {"DEBUG_OFF", "DEBUG_ON_CRASH", "DEBUG_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here; if they should be pulled, leave this as `None`
         :param float|None timeout: time in seconds to keep retrying sending the question
@@ -357,7 +357,7 @@ class Service:
                 "question_uuid": question_uuid,
                 "sender_type": "parent",
                 "forward_logs": subscribe_to_logs,
-                "allow_save_diagnostics_data_on_crash": allow_save_diagnostics_data_on_crash,
+                "debug": debug,
             },
         )
 
@@ -561,5 +561,5 @@ class Service:
             attributes["question_uuid"],
             attributes["forward_logs"],
             attributes["octue_sdk_version"],
-            attributes["allow_save_diagnostics_data_on_crash"],
+            attributes["debug"],
         )

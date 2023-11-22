@@ -19,11 +19,9 @@ def extract_event_and_attributes_from_pub_sub(message):
         forward_logs = {}
 
     try:
-        allow_save_diagnostics_data_on_crash = {
-            "allow_save_diagnostics_data_on_crash": bool(int(attributes["allow_save_diagnostics_data_on_crash"]))
-        }
+        debug = {"debug": attributes["debug"]}
     except KeyError:
-        allow_save_diagnostics_data_on_crash = {}
+        debug = {}
 
     try:
         # Parse event directly from Pub/Sub or Dataflow.
@@ -40,6 +38,6 @@ def extract_event_and_attributes_from_pub_sub(message):
             "octue_sdk_version": octue_sdk_version,
             "message_number": message_number,
             **forward_logs,
-            **allow_save_diagnostics_data_on_crash,
+            **debug,
         },
     )
