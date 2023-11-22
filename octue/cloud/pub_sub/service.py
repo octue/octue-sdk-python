@@ -553,7 +553,7 @@ class Service:
             event=event_for_validation,
             attributes=attributes,
             receiving_service=self,
-            parent_sdk_version=attributes["octue_sdk_version"],
+            parent_sdk_version=attributes.get("octue_sdk_version"),
             child_sdk_version=importlib.metadata.version("octue"),
         )
 
