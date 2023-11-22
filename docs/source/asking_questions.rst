@@ -48,7 +48,7 @@ You can also set the following options when you call :mod:`Child.ask <octue.reso
 - ``allow_local_files`` - if true, local files/datasets are allowed in any input manifest you supply
 - ``handle_monitor_message`` - if provided a function, it will be called on any monitor messages from the child
 - ``record_messages_to`` – if given a path to a JSON file, messages received from the parent while it processes the question are saved to it
-- ``allow_save_diagnostics_data_on_crash`` – if true, the input values and input manifest (including its datasets) will be saved by the child for future crash diagnostics if it fails while processing them
+- ``debug`` – must be one of {"DEBUG_OFF", "DEBUG_ON_CRASH", "DEBUG_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if the analysis fails
 - ``question_uuid`` - if provided, the question will use this UUID instead of a generated one
 - ``timeout`` - how long in seconds to wait for an answer (``None`` by default - i.e. don't time out)
 
