@@ -263,6 +263,10 @@ class MockMessage:
             self.attributes[key] = value
 
     def __repr__(self):
+        """Represent a mock message as a string.
+
+        :return str: the mock message as a string
+        """
         return f"<{type(self).__name__}(data={self.data!r})>"
 
     def ack(self):
@@ -335,8 +339,8 @@ class MockService(Service):
             timeout=timeout,
         )
 
-        # Delete question from messages sent to topic so the parent doesn't pick it up as a response message. We do this
-        # as subscription filtering isn't implemented in this set of mocks.
+        # Delete question from messages sent to subscription so the parent doesn't pick it up as a response message. We
+        # do this as subscription filtering isn't implemented in this set of mocks.
         subscription_name = ".".join((convert_service_id_to_pub_sub_form(service_id), ANSWERS_NAMESPACE, question_uuid))
         SUBSCRIPTIONS["octue.services." + subscription_name].pop(0)
 
