@@ -8,20 +8,19 @@ from octue.utils.objects import getattr_or_subscribe
 def extract_event_and_attributes_from_pub_sub(message):
     # Cast attributes to dict to avoid defaultdict behaviour.
     attributes = dict(getattr_or_subscribe(message, "attributes"))
-    sender_type = attributes["sender_type"]
-    question_uuid = attributes["question_uuid"]
-    message_number = int(attributes["message_number"])
-    octue_sdk_version = attributes["octue_sdk_version"]
 
-    try:
-        forward_logs = {"forward_logs": bool(int(attributes["forward_logs"]))}
-    except KeyError:
-        forward_logs = {}
+    converted_attributes = {
+        "sender_type": attributes["sender_type"],
+        "question_uuid": attributes["question_uuid"],
+        "message_number": int(attributes["message_number"]),
+        "octue_sdk_version": attributes["octue_sdk_version"],
+    }
 
-    try:
-        debug = {"debug": attributes["debug"]}
-    except KeyError:
-        debug = {}
+    if "forward_logs" in attributes:
+        converted_attributes["forward_logs"] = bool(int(attributes["forward_logs"]))
+
+    if "debug" in attributes:
+        converted_attributes["debug"] = attributes["debug"]
 
     try:
         # Parse event directly from Pub/Sub or Dataflow.
@@ -30,14 +29,4 @@ def extract_event_and_attributes_from_pub_sub(message):
         # Parse event from Google Cloud Run.
         event = json.loads(base64.b64decode(message["data"]).decode("utf-8").strip(), cls=OctueJSONDecoder)
 
-    return (
-        event,
-        {
-            "sender_type": sender_type,
-            "question_uuid": question_uuid,
-            "octue_sdk_version": octue_sdk_version,
-            "message_number": message_number,
-            **forward_logs,
-            **debug,
-        },
-    )
+    return event, converted_attributes
