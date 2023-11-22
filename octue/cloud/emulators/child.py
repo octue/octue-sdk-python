@@ -291,21 +291,15 @@ class ChildEmulator:
         if output_manifest and not isinstance(output_manifest, Manifest):
             output_manifest = Manifest.deserialise(output_manifest)
 
-        try:
-            return Analysis(
-                id=kwargs["analysis_id"],
-                twine={},
-                handle_monitor_message=kwargs["handle_monitor_message"],
-                input_values=kwargs["input_values"],
-                input_manifest=kwargs["input_manifest"],
-                output_values=message["output_values"],
-                output_manifest=output_manifest,
-            )
-
-        except KeyError:
-            raise ValueError(
-                "Result messages must be dictionaries containing the keys 'output_values' and 'output_manifest'."
-            )
+        return Analysis(
+            id=kwargs["analysis_id"],
+            twine={},
+            handle_monitor_message=kwargs["handle_monitor_message"],
+            input_values=kwargs["input_values"],
+            input_manifest=kwargs["input_manifest"],
+            output_values=message.get("output_values"),
+            output_manifest=output_manifest,
+        )
 
 
 class ServicePatcher(MultiPatcher):
