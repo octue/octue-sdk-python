@@ -226,22 +226,22 @@ class OrderedMessageHandler:
         logger.debug("%r received a message related to question %r.", self.receiving_service, self.question_uuid)
 
         event, attributes = extract_event_and_attributes_from_pub_sub(answer.message)
-        message_number = attributes["message_number"]
-
-        # Get the child's Octue SDK version from the first message.
-        if not self._child_sdk_version:
-            self._child_sdk_version = attributes["octue_sdk_version"]
 
         if not is_event_valid(
             event=event,
             attributes=attributes,
             receiving_service=self.receiving_service,
             parent_sdk_version=importlib.metadata.version("octue"),
-            child_sdk_version=self._child_sdk_version,
+            child_sdk_version=attributes.get("octue_sdk_version"),
             schema=self.schema,
         ):
             return
 
+        # Get the child's Octue SDK version from the first message.
+        if not self._child_sdk_version:
+            self._child_sdk_version = attributes["octue_sdk_version"]
+
+        message_number = attributes["message_number"]
         self.waiting_messages[message_number] = event
         self._earliest_message_number_received = min(self._earliest_message_number_received, message_number)
 
