@@ -186,7 +186,7 @@ class Service:
         """Answer a question from a parent - i.e. run the child's app on the given data and return the output values.
         Answers conform to the output values and output manifest schemas specified in the child's Twine file.
 
-        :param dict|Message question:
+        :param dict|google.cloud.pubsub_v1.subscriber.message.Message question:
         :param int|float heartbeat_interval: the time interval, in seconds, at which to send heartbeats
         :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
@@ -527,10 +527,10 @@ class Service:
         logger.debug("Monitor message sent by %r.", self)
 
     def _parse_question(self, question):
-        """Parse a question in the Google Cloud Pub/Sub or Google Cloud Run format.
+        """Parse a question in the Google Cloud Run or Google Pub/Sub format.
 
-        :param dict|Message question:
-        :return (dict, str, bool, str|None, bool):
+        :param dict|google.cloud.pubsub_v1.subscriber.message.Message question: the question to parse in Google Cloud Run or Google Pub/Sub format
+        :return (dict, str, bool, str, str): the question's event and its attributes (question UUID, whether to forward logs, the Octue SDK version of the parent, and whether to use debug mode)
         """
         logger.info("%r received a question.", self)
 

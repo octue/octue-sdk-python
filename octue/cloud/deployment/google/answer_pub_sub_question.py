@@ -18,7 +18,7 @@ DEFAULT_SERVICE_CONFIGURATION_PATH = "octue.yaml"
 def answer_question(question, project_name):
     """Answer a question sent to an app deployed in Google Cloud.
 
-    :param dict|tuple|apache_beam.io.gcp.pubsub.PubsubMessage question:
+    :param dict|tuple question:
     :param str project_name:
     :return None:
     """
