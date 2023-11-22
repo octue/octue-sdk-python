@@ -1,7 +1,8 @@
 import logging
 
+from octue.cloud.pub_sub import Topic
 from octue.cloud.pub_sub.service import Service
-from octue.cloud.service_id import create_sruid, get_sruid_parts
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_sruid, get_sruid_parts
 from octue.configuration import load_service_and_app_configuration
 from octue.resources.service_backends import GCPPubSubBackend
 from octue.runner import Runner
@@ -52,4 +53,9 @@ def answer_question(question, project_name):
         logger.info("Analysis successfully run and response sent for question %r.", question_uuid)
 
     except BaseException as error:  # noqa
+        service.send_exception(
+            topic=Topic(name=convert_service_id_to_pub_sub_form(service_sruid), project_name=project_name),
+            question_uuid=question_uuid,
+        )
+
         logger.exception(error)
