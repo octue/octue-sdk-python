@@ -11,7 +11,7 @@ from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
 
 from octue.cloud import EXCEPTIONS_MAPPING
-from octue.cloud.pub_sub.messages import extract_event_and_attributes_from_pub_sub
+from octue.cloud.pub_sub.events import extract_event_and_attributes_from_pub_sub
 from octue.cloud.validation import SERVICE_COMMUNICATION_SCHEMA, is_event_valid
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.log_handlers import COLOUR_PALETTE

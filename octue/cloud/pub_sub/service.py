@@ -15,9 +15,9 @@ from google.cloud import pubsub_v1
 
 import octue.exceptions
 from octue.cloud.pub_sub import Subscription, Topic
+from octue.cloud.pub_sub.events import extract_event_and_attributes_from_pub_sub
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
-from octue.cloud.pub_sub.messages import extract_event_and_attributes_from_pub_sub
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     create_sruid,
