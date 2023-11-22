@@ -39,7 +39,7 @@ class OrderedMessageHandler:
     :param bool record_messages: if `True`, record received messages in the `received_messages` attribute
     :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
     :param dict|None message_handlers: a mapping of message type names to callables that handle each type of message. The handlers should not mutate the messages.
-    :param dict|str message_schema: the JSON schema (or URI of one) to validate messages against
+    :param dict|str schema: the JSON schema (or URI of one) to validate messages against
     :return None:
     """
 
@@ -51,7 +51,7 @@ class OrderedMessageHandler:
         record_messages=True,
         service_name="REMOTE",
         message_handlers=None,
-        message_schema=SERVICE_COMMUNICATION_SCHEMA,
+        schema=SERVICE_COMMUNICATION_SCHEMA,
     ):
         self.subscription = subscription
         self.receiving_service = receiving_service
@@ -59,10 +59,10 @@ class OrderedMessageHandler:
         self.record_messages = record_messages
         self.service_name = service_name
 
-        if isinstance(message_schema, str):
-            self.message_schema = {"$ref": message_schema}
+        if isinstance(schema, str):
+            self.schema = {"$ref": schema}
         else:
-            self.message_schema = message_schema
+            self.schema = schema
 
         self.question_uuid = self.subscription.path.split(".")[-1]
         self.handled_messages = []
@@ -238,7 +238,7 @@ class OrderedMessageHandler:
             receiving_service=self.receiving_service,
             parent_sdk_version=importlib.metadata.version("octue"),
             child_sdk_version=self._child_sdk_version,
-            schema=self.message_schema,
+            schema=self.schema,
         ):
             return
 

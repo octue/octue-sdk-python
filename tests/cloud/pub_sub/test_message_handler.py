@@ -34,7 +34,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: message},
-                message_schema={},
+                schema={},
             )
 
         with patch(
@@ -54,7 +54,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
-                message_schema={},
+                schema={},
             )
 
         messages = [
@@ -80,7 +80,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
-                message_schema={},
+                schema={},
             )
 
         messages = [
@@ -119,7 +119,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
-                message_schema={},
+                schema={},
             )
 
         with patch(
@@ -167,7 +167,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
-                message_schema={},
+                schema={},
             )
 
         messages = [
@@ -321,7 +321,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
-                message_schema={},
+                schema={},
             )
 
         # Simulate the first two messages not being received.
@@ -361,7 +361,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
-                message_schema={},
+                schema={},
             )
 
         messages = [
@@ -405,7 +405,7 @@ class TestPullAndEnqueueMessage(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
-                message_schema={},
+                schema={},
             )
 
             message_handler._child_sdk_version = "0.1.3"
