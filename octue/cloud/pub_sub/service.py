@@ -45,6 +45,9 @@ OCTUE_SERVICE_REGISTRY_ENDPOINT = "services.registry.octue.com"
 # microservices publishing single messages in a request-response sequence.
 BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_latency=0.01, max_messages=1)
 
+PARENT_SENDER_TYPE = "parent"
+CHILD_SENDER_TYPE = "child"
+
 
 class Service:
     """An Octue service that can be used as a data service or digital twin in one of two modes:
@@ -136,7 +139,7 @@ class Service:
             name=self._pub_sub_id,
             topic=topic,
             project_name=self.backend.project_name,
-            filter='attributes.sender_type = "parent"',
+            filter=f'attributes.sender_type = "{PARENT_SENDER_TYPE}"',
             expiration_time=None,
         )
 
@@ -252,7 +255,7 @@ class Service:
             self._send_message(
                 message=result,
                 topic=topic,
-                attributes={"question_uuid": question_uuid, "sender_type": "child"},
+                attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
                 timeout=timeout,
             )
 
@@ -333,7 +336,7 @@ class Service:
             name=".".join((topic.name, ANSWERS_NAMESPACE, question_uuid)),
             topic=topic,
             project_name=self.backend.project_name,
-            filter=f'attributes.question_uuid = "{question_uuid}" AND attributes.sender_type = "child"',
+            filter=f'attributes.question_uuid = "{question_uuid}" AND attributes.sender_type = "{CHILD_SENDER_TYPE}"',
             push_endpoint=push_endpoint,
         )
         answer_subscription.create(allow_existing=False)
@@ -355,7 +358,7 @@ class Service:
             topic=topic,
             attributes={
                 "question_uuid": question_uuid,
-                "sender_type": "parent",
+                "sender_type": PARENT_SENDER_TYPE,
                 "forward_logs": subscribe_to_logs,
                 "debug": debug,
             },
@@ -428,7 +431,7 @@ class Service:
                 "traceback": exception["traceback"],
             },
             topic=topic,
-            attributes={"question_uuid": question_uuid, "sender_type": "child"},
+            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
             timeout=timeout,
         )
 
@@ -480,7 +483,7 @@ class Service:
             },
             topic=topic,
             timeout=timeout,
-            attributes={"question_uuid": question_uuid, "sender_type": "child"},
+            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
 
         logger.info("%r acknowledged receipt of question.", self)
@@ -500,7 +503,7 @@ class Service:
             },
             topic=topic,
             timeout=timeout,
-            attributes={"question_uuid": question_uuid, "sender_type": "child"},
+            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
 
         logger.debug("Heartbeat sent by %r.", self)
@@ -521,7 +524,7 @@ class Service:
             },
             topic=topic,
             timeout=timeout,
-            attributes={"question_uuid": question_uuid, "sender_type": "child"},
+            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
 
         logger.debug("Monitor message sent by %r.", self)

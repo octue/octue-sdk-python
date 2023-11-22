@@ -5,7 +5,7 @@ import logging
 import google.api_core
 
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.service import ANSWERS_NAMESPACE, Service
+from octue.cloud.pub_sub.service import ANSWERS_NAMESPACE, PARENT_SENDER_TYPE, Service
 from octue.cloud.service_id import convert_service_id_to_pub_sub_form
 from octue.resources import Manifest
 from octue.utils.encoders import OctueJSONEncoder
@@ -362,7 +362,7 @@ class MockService(Service):
                 MockMessage(
                     data=json.dumps(question, cls=OctueJSONEncoder).encode(),
                     attributes={
-                        "sender_type": "parent",
+                        "sender_type": PARENT_SENDER_TYPE,
                         "question_uuid": question_uuid,
                         "forward_logs": subscribe_to_logs,
                         "octue_sdk_version": parent_sdk_version,

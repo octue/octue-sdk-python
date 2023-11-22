@@ -12,7 +12,7 @@ from google import auth
 
 from octue.cloud import storage
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.service import Service
+from octue.cloud.pub_sub.service import PARENT_SENDER_TYPE, Service
 from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_sruid, get_sruid_parts
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.configuration import load_service_and_app_configuration
@@ -409,7 +409,7 @@ def create_push_subscription(
         name=pub_sub_sruid,
         topic=topic,
         project_name=project_name,
-        filter='attributes.sender_type = "parent"',
+        filter=f'attributes.sender_type = "{PARENT_SENDER_TYPE}"',
         expiration_time=expiration_time,
         push_endpoint=push_endpoint,
     )

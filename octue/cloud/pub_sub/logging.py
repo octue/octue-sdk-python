@@ -35,7 +35,10 @@ class GooglePubSubHandler(logging.Handler):
                     "log_record": self._convert_log_record_to_primitives(record),
                 },
                 topic=self.topic,
-                attributes={"question_uuid": self.question_uuid, "sender_type": "child"},
+                attributes={
+                    "question_uuid": self.question_uuid,
+                    "sender_type": "child",  # The sender type is repeated here as a string to avoid a circular import.
+                },
             )
 
         except Exception:  # noqa
