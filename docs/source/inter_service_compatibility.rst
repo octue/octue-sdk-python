@@ -8,7 +8,8 @@ all versions of ``octue`` could communicate with each other compatibly. To allow
 version ``0.51.0`` introduced a number of breaking changes to the standard meaning services running ``0.51.0`` or
 greater are only able to communicate with other services running ``0.51.0`` or greater. The table below shows which
 ``octue`` versions parents can run (rows) to send questions compatible with versions children are running (columns).
-Note that this table does not display whether childrens' responses are compatible with the parent,
+Note that this table does not display whether children's responses are compatible with the parent, just that a child is
+able to accept a question.
 
 **Key**
 
