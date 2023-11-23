@@ -479,7 +479,7 @@ class Service:
         self._send_message(
             {
                 "type": "delivery_acknowledgement",
-                "datetime": str(datetime.datetime.now()),
+                "datetime": datetime.datetime.utcnow().isoformat(),
             },
             topic=topic,
             timeout=timeout,
@@ -499,7 +499,7 @@ class Service:
         self._send_message(
             {
                 "type": "heartbeat",
-                "datetime": str(datetime.datetime.now()),
+                "datetime": datetime.datetime.utcnow().isoformat(),
             },
             topic=topic,
             timeout=timeout,
