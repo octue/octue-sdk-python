@@ -246,6 +246,7 @@ class MockMessage:
     """A mock Pub/Sub message containing serialised data and any number of attributes.
 
     :param bytes data:
+    :param dict|None attributes:
     :return None:
     """
 
@@ -261,6 +262,16 @@ class MockMessage:
                 value = str(value)
 
             self.attributes[key] = value
+
+    @classmethod
+    def from_primitive(cls, data, attributes):
+        """Instantiate a mock message from data in the form of a JSON-serialisable python primitive.
+
+        :param any data:
+        :param dict attributes:
+        :return MockMessage:
+        """
+        return cls(data=json.dumps(data, cls=OctueJSONEncoder).encode(), attributes=attributes)
 
     def __repr__(self):
         """Represent a mock message as a string.
@@ -359,8 +370,8 @@ class MockService(Service):
 
         try:
             self.children[service_id].answer(
-                MockMessage(
-                    data=json.dumps(question, cls=OctueJSONEncoder).encode(),
+                MockMessage.from_primitive(
+                    data=question,
                     attributes={
                         "sender_type": PARENT_SENDER_TYPE,
                         "question_uuid": question_uuid,
