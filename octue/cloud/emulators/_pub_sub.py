@@ -376,7 +376,7 @@ class MockService(Service):
                         "sender_type": PARENT_SENDER_TYPE,
                         "question_uuid": question_uuid,
                         "forward_logs": subscribe_to_logs,
-                        "octue_sdk_version": parent_sdk_version,
+                        "version": parent_sdk_version,
                         "debug": debug,
                         "message_number": 0,
                     },

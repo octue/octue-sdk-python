@@ -396,7 +396,7 @@ class TestPullAndEnqueueMessage(BaseTestCase):
                         "sender_type": "CHILD",
                         "message_number": 0,
                         "question_uuid": question_uuid,
-                        "octue_sdk_version": "0.50.0",
+                        "version": "0.50.0",
                     },
                 )
             ]

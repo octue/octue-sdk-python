@@ -232,14 +232,14 @@ class OrderedMessageHandler:
             attributes=attributes,
             receiving_service=self.receiving_service,
             parent_sdk_version=importlib.metadata.version("octue"),
-            child_sdk_version=attributes.get("octue_sdk_version"),
+            child_sdk_version=attributes.get("version"),
             schema=self.schema,
         ):
             return
 
         # Get the child's Octue SDK version from the first message.
         if not self._child_sdk_version:
-            self._child_sdk_version = attributes["octue_sdk_version"]
+            self._child_sdk_version = attributes["version"]
 
         message_number = attributes["message_number"]
         self.waiting_messages[message_number] = event

@@ -447,7 +447,7 @@ class Service:
         attributes = attributes or {}
 
         with send_message_lock:
-            attributes["octue_sdk_version"] = self._local_sdk_version
+            attributes["version"] = self._local_sdk_version
             attributes["message_number"] = topic.messages_published
             converted_attributes = {}
 
@@ -553,7 +553,7 @@ class Service:
             event=event_for_validation,
             attributes=attributes,
             receiving_service=self,
-            parent_sdk_version=attributes.get("octue_sdk_version"),
+            parent_sdk_version=attributes.get("version"),
             child_sdk_version=importlib.metadata.version("octue"),
         )
 
@@ -563,6 +563,6 @@ class Service:
             event,
             attributes["question_uuid"],
             attributes["forward_logs"],
-            attributes["octue_sdk_version"],
+            attributes["version"],
             attributes["debug"],
         )

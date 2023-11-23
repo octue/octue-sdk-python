@@ -19,7 +19,7 @@ def extract_event_and_attributes_from_pub_sub(message):
         "sender_type": attributes["sender_type"],
         "question_uuid": attributes["question_uuid"],
         "message_number": int(attributes["message_number"]),
-        "octue_sdk_version": attributes["octue_sdk_version"],
+        "version": attributes["version"],
     }
 
     if "forward_logs" in attributes:
