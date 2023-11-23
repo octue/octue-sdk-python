@@ -45,8 +45,8 @@ OCTUE_SERVICE_REGISTRY_ENDPOINT = "services.registry.octue.com"
 # microservices publishing single messages in a request-response sequence.
 BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_latency=0.01, max_messages=1)
 
-PARENT_SENDER_TYPE = "parent"
-CHILD_SENDER_TYPE = "child"
+PARENT_SENDER_TYPE = "PARENT"
+CHILD_SENDER_TYPE = "CHILD"
 
 
 class Service:

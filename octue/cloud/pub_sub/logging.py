@@ -37,7 +37,7 @@ class GooglePubSubHandler(logging.Handler):
                 topic=self.topic,
                 attributes={
                     "question_uuid": self.question_uuid,
-                    "sender_type": "child",  # The sender type is repeated here as a string to avoid a circular import.
+                    "sender_type": "CHILD",  # The sender type is repeated here as a string to avoid a circular import.
                 },
             )
 

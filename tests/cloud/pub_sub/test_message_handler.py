@@ -393,7 +393,7 @@ class TestPullAndEnqueueMessage(BaseTestCase):
                 MockMessage.from_primitive(
                     mock_message,
                     attributes={
-                        "sender_type": "child",
+                        "sender_type": "CHILD",
                         "message_number": 0,
                         "question_uuid": question_uuid,
                         "octue_sdk_version": "0.50.0",
