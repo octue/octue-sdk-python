@@ -1,12 +1,17 @@
 import copy
+import importlib.metadata
 import json
 import logging
 from unittest.mock import patch
 
 from octue.cloud import EXCEPTIONS_MAPPING
 from octue.cloud.emulators._pub_sub import MockService, MockSubscriber, MockSubscription, MockTopic
+from octue.cloud.validation import raise_if_event_is_invalid
 from octue.resources import Analysis, Manifest, service_backends
 from octue.utils.patches import MultiPatcher
+
+
+SDK_VERSION = importlib.metadata.version("octue")
 
 
 logger = logging.getLogger(__name__)
@@ -151,8 +156,8 @@ class ChildEmulator:
         :param str debug: must be one of {"DEBUG_OFF", "DEBUG_ON_CRASH", "DEBUG_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if the analysis fails
         :return octue.resources.analysis.Analysis:
         """
-        for message in self.messages:
-            self._validate_message(message)
+        for i, message in enumerate(self.messages):
+            self._validate_message(message, i, analysis_id)
             handler = self._message_handlers[message["type"]]
 
             result = handler(
@@ -180,7 +185,7 @@ class ChildEmulator:
             output_manifest=None,
         )
 
-    def _validate_message(self, message):
+    def _validate_message(self, message, message_number, question_uuid):
         """Validate the given message to ensure it can be handled.
 
         :param dict message:
@@ -188,19 +193,18 @@ class ChildEmulator:
         :raise ValueError: if the message doesn't contain a 'type' key or if the 'type' key maps to an invalid value
         :return None:
         """
-        if not isinstance(message, dict):
-            raise TypeError("Each message must be a dictionary.")
-
-        if "type" not in message:
-            raise ValueError(
-                f"Each message must contain a 'type' key mapping to one of: {self._valid_message_types!r}."
-            )
-
-        if message["type"] not in self._valid_message_types:
-            raise ValueError(
-                f"{message['type']!r} is an invalid message type for the ChildEmulator. The valid types are: "
-                f"{self._valid_message_types!r}."
-            )
+        raise_if_event_is_invalid(
+            event=message,
+            attributes={
+                "sender_type": "CHILD",
+                "message_number": message_number,
+                "question_uuid": question_uuid,
+                "octue_sdk_version": SDK_VERSION,
+            },
+            receiving_service=self._parent,
+            parent_sdk_version=SDK_VERSION,
+            child_sdk_version=SDK_VERSION,
+        )
 
     def _handle_delivery_acknowledgement(self, message, **kwargs):
         """A no-operation handler for delivery acknowledgement messages (these messages are ignored by the child
