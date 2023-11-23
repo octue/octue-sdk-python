@@ -323,7 +323,7 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
                 [
                     {"kind": "log_record", "log_record": {"msg": "Starting analysis."}},
                     {"kind": "log_record", "log_record": {"msg": "Finishing analysis."}},
-                    {"kind": "monitor_message", "data": '{"sample": "data"}'},
+                    {"kind": "monitor_message", "data": {"sample": "data"}},
                     {"kind": "result", "output_values": [1, 2, 3, 4, 5], "output_manifest": None},
                 ],
             )
@@ -390,7 +390,7 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
                 [
                     {"kind": "log_record", "log_record": {"msg": "Starting analysis."}},
                     {"kind": "log_record", "log_record": {"msg": "Finishing analysis."}},
-                    {"kind": "monitor_message", "data": '{"sample": "data"}'},
+                    {"kind": "monitor_message", "data": {"sample": "data"}},
                     {"kind": "result", "output_values": [1, 2, 3, 4, 5], "output_manifest": None},
                 ],
             )

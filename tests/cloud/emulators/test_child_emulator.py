@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 
@@ -204,7 +203,7 @@ class TestChildEmulatorAsk(BaseTestCase):
         messages = [
             {
                 "type": "monitor_message",
-                "data": json.dumps("A sample monitor message."),
+                "data": "A sample monitor message.",
             },
         ]
 

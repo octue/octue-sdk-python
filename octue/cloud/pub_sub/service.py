@@ -518,10 +518,7 @@ class Service:
         :return None:
         """
         self._send_message(
-            {
-                "kind": "monitor_message",
-                "data": json.dumps(data, cls=OctueJSONEncoder),
-            },
+            {"kind": "monitor_message", "data": data},
             topic=topic,
             timeout=timeout,
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},

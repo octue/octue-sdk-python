@@ -1,5 +1,4 @@
 import importlib.metadata
-import json
 import logging
 import math
 import os
@@ -16,7 +15,6 @@ from octue.cloud.validation import SERVICE_COMMUNICATION_SCHEMA, is_event_valid
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
-from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.threads import RepeatingTimer
 
 
@@ -340,7 +338,7 @@ class OrderedMessageHandler:
         logger.debug("%r received a monitor message.", self.receiving_service)
 
         if self.handle_monitor_message is not None:
-            self.handle_monitor_message(json.loads(message["data"], cls=OctueJSONDecoder))
+            self.handle_monitor_message(message["data"])
 
     def _handle_log_message(self, message):
         """Deserialise the message into a log record and pass it to the local log handlers, adding [<service-name>] to
