@@ -342,16 +342,16 @@ class TestRunner(BaseTestCase):
             ChildEmulator(
                 id=f"octue/the-child:{MOCK_SERVICE_REVISION_TAG}",
                 messages=[
-                    {"type": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
+                    {"kind": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
                 ],
             ),
             ChildEmulator(
                 id=f"octue/yet-another-child:{MOCK_SERVICE_REVISION_TAG}",
                 messages=[
-                    {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
-                    {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
+                    {"kind": "log_record", "log_record": {"msg": "Starting analysis."}},
+                    {"kind": "log_record", "log_record": {"msg": "Finishing analysis."}},
                     {
-                        "type": "exception",
+                        "kind": "exception",
                         "exception_type": "ValueError",
                         "exception_message": "Deliberately raised for testing.",
                     },
@@ -390,7 +390,7 @@ class TestRunner(BaseTestCase):
         self.assertEqual(questions[1]["id"], f"octue/yet-another-child:{MOCK_SERVICE_REVISION_TAG}")
         self.assertEqual(questions[1]["input_values"], "miaow")
 
-        self.assertEqual(questions[1]["messages"][1]["type"], "exception")
+        self.assertEqual(questions[1]["messages"][1]["kind"], "exception")
         self.assertEqual(questions[1]["messages"][1]["exception_type"], "ValueError")
         self.assertEqual(
             questions[1]["messages"][1]["exception_message"],
@@ -790,15 +790,15 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
                     ChildEmulator(
                         id=f"octue/a-child:{MOCK_SERVICE_REVISION_TAG}",
                         messages=[
-                            {"type": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
+                            {"kind": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
                         ],
                     ),
                     ChildEmulator(
                         id=f"octue/another-child:{MOCK_SERVICE_REVISION_TAG}",
                         messages=[
-                            {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
-                            {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
-                            {"type": "result", "output_values": "woof", "output_manifest": None},
+                            {"kind": "log_record", "log_record": {"msg": "Starting analysis."}},
+                            {"kind": "log_record", "log_record": {"msg": "Finishing analysis."}},
+                            {"kind": "result", "output_values": "woof", "output_manifest": None},
                         ],
                     ),
                 ]

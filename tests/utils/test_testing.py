@@ -31,6 +31,6 @@ class TestTesting(TestCase):
             child_emulators[0].messages[2:],
             [
                 {"kind": "monitor_message", "data": {"sample": "data"}},
-                {"kind": "result", "output_values": [1, 2, 3, 4, 5], "output_manifest": None},
+                {"kind": "result", "output_values": [1, 2, 3, 4, 5]},
             ],
         )

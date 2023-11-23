@@ -256,7 +256,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                         attributes={"message_number": 0},
                     ),
                     MockMessage.from_primitive(
-                        {"type": "result", "output_values": None, "output_manifest": None},
+                        {"kind": "result", "output_values": None, "output_manifest": None},
                         attributes={"message_number": 1},
                     ),
                 ],
@@ -306,10 +306,10 @@ class TestOrderedMessageHandler(BaseTestCase):
         message_handler._earliest_message_number_received = 2
 
         messages = [
-            MockMessage.from_primitive({"type": "test", "order": 2}, attributes={"message_number": 2}),
-            MockMessage.from_primitive({"type": "test", "order": 3}, attributes={"message_number": 3}),
-            MockMessage.from_primitive({"type": "test", "order": 4}, attributes={"message_number": 4}),
-            MockMessage.from_primitive({"type": "finish-test", "order": 5}, attributes={"message_number": 5}),
+            MockMessage.from_primitive({"kind": "test", "order": 2}, attributes={"message_number": 2}),
+            MockMessage.from_primitive({"kind": "test", "order": 3}, attributes={"message_number": 3}),
+            MockMessage.from_primitive({"kind": "test", "order": 4}, attributes={"message_number": 4}),
+            MockMessage.from_primitive({"kind": "finish-test", "order": 5}, attributes={"message_number": 5}),
         ]
 
         with patch(
@@ -322,10 +322,10 @@ class TestOrderedMessageHandler(BaseTestCase):
         self.assertEqual(
             message_handler.handled_messages,
             [
-                {"type": "test", "order": 2},
-                {"type": "test", "order": 3},
-                {"type": "test", "order": 4},
-                {"type": "finish-test", "order": 5},
+                {"kind": "test", "order": 2},
+                {"kind": "test", "order": 3},
+                {"kind": "test", "order": 4},
+                {"kind": "finish-test", "order": 5},
             ],
         )
 
@@ -340,10 +340,10 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         messages = [
-            MockMessage.from_primitive({"type": "test", "order": 0}, attributes={"message_number": 0}),
-            MockMessage.from_primitive({"type": "test", "order": 1}, attributes={"message_number": 1}),
-            MockMessage.from_primitive({"type": "test", "order": 2}, attributes={"message_number": 2}),
-            MockMessage.from_primitive({"type": "finish-test", "order": 5}, attributes={"message_number": 5}),
+            MockMessage.from_primitive({"kind": "test", "order": 0}, attributes={"message_number": 0}),
+            MockMessage.from_primitive({"kind": "test", "order": 1}, attributes={"message_number": 1}),
+            MockMessage.from_primitive({"kind": "test", "order": 2}, attributes={"message_number": 2}),
+            MockMessage.from_primitive({"kind": "finish-test", "order": 5}, attributes={"message_number": 5}),
         ]
 
         with patch(
@@ -357,9 +357,9 @@ class TestOrderedMessageHandler(BaseTestCase):
         self.assertEqual(
             message_handler.handled_messages,
             [
-                {"type": "test", "order": 0},
-                {"type": "test", "order": 1},
-                {"type": "test", "order": 2},
+                {"kind": "test", "order": 0},
+                {"kind": "test", "order": 1},
+                {"kind": "test", "order": 2},
             ],
         )
 
@@ -387,7 +387,7 @@ class TestPullAndEnqueueMessage(BaseTestCase):
             message_handler.waiting_messages = {}
 
             # Enqueue a mock message for a mock subscription to receive.
-            mock_message = {"type": "test"}
+            mock_message = {"kind": "test"}
 
             SUBSCRIPTIONS[mock_subscription.name] = [
                 MockMessage.from_primitive(
