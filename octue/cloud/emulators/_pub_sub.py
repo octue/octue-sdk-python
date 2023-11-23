@@ -316,7 +316,7 @@ class MockService(Service):
         children=None,
         subscribe_to_logs=True,
         allow_local_files=False,
-        debug="DEBUG_ON_CRASH",
+        save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
         question_uuid=None,
         push_endpoint=None,
         timeout=86400,
@@ -331,7 +331,7 @@ class MockService(Service):
         :param list(dict)|None children:
         :param bool subscribe_to_logs:
         :param bool allow_local_files:
-        :param str debug:
+        :param str save_diagnostics:
         :param str|None question_uuid:
         :param str|None push_endpoint:
         :param float|None timeout:
@@ -344,7 +344,7 @@ class MockService(Service):
             children=children,
             subscribe_to_logs=subscribe_to_logs,
             allow_local_files=allow_local_files,
-            debug=debug,
+            save_diagnostics=save_diagnostics,
             question_uuid=question_uuid,
             push_endpoint=push_endpoint,
             timeout=timeout,
@@ -377,7 +377,7 @@ class MockService(Service):
                         "question_uuid": question_uuid,
                         "forward_logs": subscribe_to_logs,
                         "version": parent_sdk_version,
-                        "debug": debug,
+                        "save_diagnostics": save_diagnostics,
                         "message_number": 0,
                     },
                 )

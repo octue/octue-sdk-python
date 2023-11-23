@@ -201,7 +201,7 @@ class Service:
                 question_uuid,
                 forward_logs,
                 parent_sdk_version,
-                debug,
+                save_diagnostics,
             ) = self._parse_question(question)
         except jsonschema.ValidationError:
             return
@@ -241,7 +241,7 @@ class Service:
                     topic=topic,
                     question_uuid=question_uuid,
                 ),
-                debug=debug,
+                save_diagnostics=save_diagnostics,
             )
 
             result = {"kind": "result"}
@@ -278,7 +278,7 @@ class Service:
         children=None,
         subscribe_to_logs=True,
         allow_local_files=False,
-        debug="DEBUG_ON_CRASH",  # This is repeated as a string here to avoid a circular import.
+        save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",  # This is repeated as a string here to avoid a circular import.
         question_uuid=None,
         push_endpoint=None,
         timeout=86400,
@@ -293,7 +293,7 @@ class Service:
         :param list(dict)|None children: a list of children for the child to use instead of its default children (if it uses children). These should be in the same format as in an app's app configuration file and have the same keys.
         :param bool subscribe_to_logs: if `True`, subscribe to the child's logs and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will be able to access these local files
-        :param str debug: must be one of {"DEBUG_OFF", "DEBUG_ON_CRASH", "DEBUG_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
+        :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here; if they should be pulled, leave this as `None`
         :param float|None timeout: time in seconds to keep retrying sending the question
@@ -360,7 +360,7 @@ class Service:
                 "question_uuid": question_uuid,
                 "sender_type": PARENT_SENDER_TYPE,
                 "forward_logs": subscribe_to_logs,
-                "debug": debug,
+                "save_diagnostics": save_diagnostics,
             },
         )
 
@@ -533,7 +533,7 @@ class Service:
         """Parse a question in the Google Cloud Run or Google Pub/Sub format.
 
         :param dict|google.cloud.pubsub_v1.subscriber.message.Message question: the question to parse in Google Cloud Run or Google Pub/Sub format
-        :return (dict, str, bool, str, str): the question's event and its attributes (question UUID, whether to forward logs, the Octue SDK version of the parent, and whether to use debug mode)
+        :return (dict, str, bool, str, str): the question's event and its attributes (question UUID, whether to forward logs, the Octue SDK version of the parent, and whether to save diagnostics)
         """
         logger.info("%r received a question.", self)
 
@@ -564,5 +564,5 @@ class Service:
             attributes["question_uuid"],
             attributes["forward_logs"],
             attributes["version"],
-            attributes["debug"],
+            attributes["save_diagnostics"],
         )

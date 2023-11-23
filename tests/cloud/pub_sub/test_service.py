@@ -433,7 +433,7 @@ class TestService(BaseTestCase):
                 service_id=child.id,
                 input_values=input_values,
                 subscribe_to_logs=True,
-                debug="DEBUG_ON_CRASH",
+                save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
             )
 
             answer = parent.wait_for_answer(subscription, service_name="my-super-service")
@@ -760,7 +760,7 @@ class TestService(BaseTestCase):
                     service_id=child.id,
                     input_values={},
                     subscribe_to_logs=True,
-                    debug="DEBUG_ON_CRASH",
+                    save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
                 )
 
                 parent.wait_for_answer(subscription, service_name="my-super-service")
@@ -803,7 +803,7 @@ class TestService(BaseTestCase):
                 service_id=child.id,
                 input_values={},
                 subscribe_to_logs=True,
-                debug="DEBUG_ON_CRASH",
+                save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
             )
 
             monitor_messages = []

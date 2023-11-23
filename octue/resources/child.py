@@ -60,7 +60,7 @@ class Child:
         allow_local_files=False,
         handle_monitor_message=None,
         record_messages=True,
-        debug="DEBUG_ON_CRASH",  # This is repeated as a string here to avoid a circular import.
+        save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",  # This is repeated as a string here to avoid a circular import.
         question_uuid=None,
         timeout=86400,
         maximum_heartbeat_interval=300,
@@ -76,7 +76,7 @@ class Child:
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will have access to these local files
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
         :param bool record_messages: if `True`, record messages received from the child in the `received_messages` property
-        :param str debug: must be one of {"DEBUG_OFF", "DEBUG_ON_CRASH", "DEBUG_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
+        :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
@@ -90,7 +90,7 @@ class Child:
             children=children,
             subscribe_to_logs=subscribe_to_logs,
             allow_local_files=allow_local_files,
-            debug=debug,
+            save_diagnostics=save_diagnostics,
             question_uuid=question_uuid,
             timeout=timeout,
         )

@@ -21,10 +21,10 @@ from octue.utils import gen_uuid
 from twined import Twine
 
 
-DEBUG_OFF = "DEBUG_OFF"
-DEBUG_ON_CRASH = "DEBUG_ON_CRASH"
-DEBUG_ON = "DEBUG_ON"
-DEBUG_MODES = {DEBUG_OFF, DEBUG_ON_CRASH, DEBUG_ON}
+SAVE_DIAGNOSTICS_OFF = "SAVE_DIAGNOSTICS_OFF"
+SAVE_DIAGNOSTICS_ON_CRASH = "SAVE_DIAGNOSTICS_ON_CRASH"
+SAVE_DIAGNOSTICS_ON = "SAVE_DIAGNOSTICS_ON"
+SAVE_DIAGNOSTICS_MODES = {SAVE_DIAGNOSTICS_OFF, SAVE_DIAGNOSTICS_ON_CRASH, SAVE_DIAGNOSTICS_ON}
 
 
 logger = logging.getLogger(__name__)
@@ -120,7 +120,7 @@ class Runner:
         analysis_log_level=logging.INFO,
         analysis_log_handler=None,
         handle_monitor_message=None,
-        debug=DEBUG_ON_CRASH,
+        save_diagnostics=SAVE_DIAGNOSTICS_ON_CRASH,
     ):
         """Run an analysis.
 
@@ -131,11 +131,13 @@ class Runner:
         :param str analysis_log_level: the level below which to ignore log messages
         :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run. Handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but should use the format defined above in LOG_FORMAT.
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
-        :param str debug: must be one of {"DEBUG_OFF", "DEBUG_ON_CRASH", "DEBUG_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved either all the time or just if the analysis fails
+        :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved either all the time or just if the analysis fails
         :return octue.resources.analysis.Analysis:
         """
-        if debug not in DEBUG_MODES:
-            raise ValueError(f"`debug` must be one of {DEBUG_MODES!r}; received {debug!r}.")
+        if save_diagnostics not in SAVE_DIAGNOSTICS_MODES:
+            raise ValueError(
+                f"`save_diagnostics` must be one of {SAVE_DIAGNOSTICS_MODES!r}; received {save_diagnostics!r}."
+            )
 
         # Get inputs before any transformations have been applied.
         self.crash_diagnostics.add_data(
@@ -210,7 +212,7 @@ class Runner:
                 raise ModuleNotFoundError(f"{e.msg} in {os.path.abspath(self.app_source)!r}.")
 
             except Exception as analysis_error:
-                if debug in {DEBUG_ON_CRASH, DEBUG_ON}:
+                if save_diagnostics in {SAVE_DIAGNOSTICS_ON_CRASH, SAVE_DIAGNOSTICS_ON}:
                     self.crash_diagnostics.upload()
 
                 raise analysis_error
@@ -223,7 +225,7 @@ class Runner:
             if not analysis.finalised:
                 analysis.finalise()
 
-            if debug == DEBUG_ON:
+            if save_diagnostics == SAVE_DIAGNOSTICS_ON:
                 self.crash_diagnostics.upload()
 
             if self.delete_local_files and downloaded_files:

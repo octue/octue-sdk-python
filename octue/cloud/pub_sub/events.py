@@ -25,8 +25,8 @@ def extract_event_and_attributes_from_pub_sub(message):
     if "forward_logs" in attributes:
         converted_attributes["forward_logs"] = bool(int(attributes["forward_logs"]))
 
-    if "debug" in attributes:
-        converted_attributes["debug"] = attributes["debug"]
+    if "save_diagnostics" in attributes:
+        converted_attributes["save_diagnostics"] = attributes["save_diagnostics"]
 
     try:
         # Parse event directly from Pub/Sub or Dataflow.
