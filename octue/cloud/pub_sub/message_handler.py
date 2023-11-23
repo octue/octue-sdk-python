@@ -311,7 +311,7 @@ class OrderedMessageHandler:
         if self.record_messages:
             self.handled_messages.append(message)
 
-        handler = self._message_handlers[message["type"]]
+        handler = self._message_handlers[message["kind"]]
         return handler(message)
 
     def _handle_delivery_acknowledgement(self, message):

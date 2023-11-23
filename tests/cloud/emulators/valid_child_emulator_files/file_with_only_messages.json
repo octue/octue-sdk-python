@@ -1,19 +1,19 @@
 {
   "messages": [
     {
-      "type": "log_record",
+      "kind": "log_record",
       "log_record": { "msg": "Starting analysis." }
     },
     {
-      "type": "log_record",
+      "kind": "log_record",
       "log_record": { "msg": "Finishing analysis." }
     },
     {
-      "type": "monitor_message",
+      "kind": "monitor_message",
       "data": "{\"sample\": \"data\"}"
     },
     {
-      "type": "result",
+      "kind": "result",
       "output_values": [1, 2, 3, 4, 5]
     }
   ]

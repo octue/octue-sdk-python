@@ -244,7 +244,7 @@ class Service:
                 debug=debug,
             )
 
-            result = {"type": "result"}
+            result = {"kind": "result"}
 
             if analysis.output_values is not None:
                 result["output_values"] = analysis.output_values
@@ -341,7 +341,7 @@ class Service:
         )
         answer_subscription.create(allow_existing=False)
 
-        question = {"type": "question"}
+        question = {"kind": "question"}
 
         if input_values is not None:
             question["input_values"] = input_values
@@ -425,7 +425,7 @@ class Service:
 
         self._send_message(
             {
-                "type": "exception",
+                "kind": "exception",
                 "exception_type": exception["type"],
                 "exception_message": exception_message,
                 "traceback": exception["traceback"],
@@ -478,7 +478,7 @@ class Service:
         """
         self._send_message(
             {
-                "type": "delivery_acknowledgement",
+                "kind": "delivery_acknowledgement",
                 "datetime": datetime.datetime.utcnow().isoformat(),
             },
             topic=topic,
@@ -498,7 +498,7 @@ class Service:
         """
         self._send_message(
             {
-                "type": "heartbeat",
+                "kind": "heartbeat",
                 "datetime": datetime.datetime.utcnow().isoformat(),
             },
             topic=topic,
@@ -519,7 +519,7 @@ class Service:
         """
         self._send_message(
             {
-                "type": "monitor_message",
+                "kind": "monitor_message",
                 "data": json.dumps(data, cls=OctueJSONEncoder),
             },
             topic=topic,

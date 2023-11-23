@@ -355,7 +355,7 @@ class MockService(Service):
         subscription_name = ".".join((convert_service_id_to_pub_sub_form(service_id), ANSWERS_NAMESPACE, question_uuid))
         SUBSCRIPTIONS["octue.services." + subscription_name].pop(0)
 
-        question = {"type": "question"}
+        question = {"kind": "question"}
 
         if input_values is not None:
             question["input_values"] = input_values

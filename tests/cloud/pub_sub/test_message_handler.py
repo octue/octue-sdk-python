@@ -58,10 +58,10 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         messages = [
-            MockMessage.from_primitive({"type": "test"}, attributes={"message_number": 0}),
-            MockMessage.from_primitive({"type": "test"}, attributes={"message_number": 1}),
-            MockMessage.from_primitive({"type": "test"}, attributes={"message_number": 2}),
-            MockMessage.from_primitive({"type": "finish-test"}, attributes={"message_number": 3}),
+            MockMessage.from_primitive({"kind": "test"}, attributes={"message_number": 0}),
+            MockMessage.from_primitive({"kind": "test"}, attributes={"message_number": 1}),
+            MockMessage.from_primitive({"kind": "test"}, attributes={"message_number": 2}),
+            MockMessage.from_primitive({"kind": "finish-test"}, attributes={"message_number": 3}),
         ]
 
         with patch(
@@ -84,10 +84,10 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         messages = [
-            MockMessage.from_primitive({"type": "test", "order": 1}, attributes={"message_number": 1}),
-            MockMessage.from_primitive({"type": "test", "order": 2}, attributes={"message_number": 2}),
-            MockMessage.from_primitive({"type": "test", "order": 0}, attributes={"message_number": 0}),
-            MockMessage.from_primitive({"type": "finish-test", "order": 3}, attributes={"message_number": 3}),
+            MockMessage.from_primitive({"kind": "test", "order": 1}, attributes={"message_number": 1}),
+            MockMessage.from_primitive({"kind": "test", "order": 2}, attributes={"message_number": 2}),
+            MockMessage.from_primitive({"kind": "test", "order": 0}, attributes={"message_number": 0}),
+            MockMessage.from_primitive({"kind": "finish-test", "order": 3}, attributes={"message_number": 3}),
         ]
 
         with patch(
@@ -100,10 +100,10 @@ class TestOrderedMessageHandler(BaseTestCase):
         self.assertEqual(
             message_handler.handled_messages,
             [
-                {"type": "test", "order": 0},
-                {"type": "test", "order": 1},
-                {"type": "test", "order": 2},
-                {"type": "finish-test", "order": 3},
+                {"kind": "test", "order": 0},
+                {"kind": "test", "order": 1},
+                {"kind": "test", "order": 2},
+                {"kind": "finish-test", "order": 3},
             ],
         )
 
@@ -123,10 +123,10 @@ class TestOrderedMessageHandler(BaseTestCase):
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
             new=MockMessagePuller(
                 messages=[
-                    MockMessage.from_primitive({"type": "finish-test", "order": 3}, attributes={"message_number": 3}),
-                    MockMessage.from_primitive({"type": "test", "order": 1}, attributes={"message_number": 1}),
-                    MockMessage.from_primitive({"type": "test", "order": 2}, attributes={"message_number": 2}),
-                    MockMessage.from_primitive({"type": "test", "order": 0}, attributes={"message_number": 0}),
+                    MockMessage.from_primitive({"kind": "finish-test", "order": 3}, attributes={"message_number": 3}),
+                    MockMessage.from_primitive({"kind": "test", "order": 1}, attributes={"message_number": 1}),
+                    MockMessage.from_primitive({"kind": "test", "order": 2}, attributes={"message_number": 2}),
+                    MockMessage.from_primitive({"kind": "test", "order": 0}, attributes={"message_number": 0}),
                 ],
                 message_handler=message_handler,
             ).pull,
@@ -138,10 +138,10 @@ class TestOrderedMessageHandler(BaseTestCase):
         self.assertEqual(
             message_handler.handled_messages,
             [
-                {"type": "test", "order": 0},
-                {"type": "test", "order": 1},
-                {"type": "test", "order": 2},
-                {"type": "finish-test", "order": 3},
+                {"kind": "test", "order": 0},
+                {"kind": "test", "order": 1},
+                {"kind": "test", "order": 2},
+                {"kind": "finish-test", "order": 3},
             ],
         )
 
@@ -156,9 +156,9 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         messages = [
-            MockMessage.from_primitive({"type": "test", "order": 0}, attributes={"message_number": 0}),
-            MockMessage.from_primitive({"type": "test", "order": 1}, attributes={"message_number": 1}),
-            MockMessage.from_primitive({"type": "finish-test", "order": 2}, attributes={"message_number": 2}),
+            MockMessage.from_primitive({"kind": "test", "order": 0}, attributes={"message_number": 0}),
+            MockMessage.from_primitive({"kind": "test", "order": 1}, attributes={"message_number": 1}),
+            MockMessage.from_primitive({"kind": "finish-test", "order": 2}, attributes={"message_number": 2}),
         ]
 
         with patch(
@@ -170,7 +170,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         self.assertEqual(result, "This is the result.")
         self.assertEqual(
             message_handler.handled_messages,
-            [{"type": "test", "order": 0}, {"type": "test", "order": 1}, {"type": "finish-test", "order": 2}],
+            [{"kind": "test", "order": 0}, {"kind": "test", "order": 1}, {"kind": "finish-test", "order": 2}],
         )
 
     def test_delivery_acknowledgement(self):
@@ -187,13 +187,13 @@ class TestOrderedMessageHandler(BaseTestCase):
                 [
                     MockMessage.from_primitive(
                         {
-                            "type": "delivery_acknowledgement",
+                            "kind": "delivery_acknowledgement",
                             "datetime": "2021-11-17 17:33:59.717428",
                         },
                         attributes={"message_number": 0},
                     ),
                     MockMessage.from_primitive(
-                        {"type": "result", "output_values": None, "output_manifest": None},
+                        {"kind": "result", "output_values": None, "output_manifest": None},
                         attributes={"message_number": 1},
                     ),
                 ],
@@ -250,7 +250,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 messages=[
                     MockMessage.from_primitive(
                         {
-                            "type": "delivery_acknowledgement",
+                            "kind": "delivery_acknowledgement",
                             "datetime": "2021-11-17 17:33:59.717428",
                         },
                         attributes={"message_number": 0},

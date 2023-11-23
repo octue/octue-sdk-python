@@ -31,7 +31,7 @@ class GooglePubSubHandler(logging.Handler):
         try:
             self._send_message(
                 {
-                    "type": "log_record",
+                    "kind": "log_record",
                     "log_record": self._convert_log_record_to_primitives(record),
                 },
                 topic=self.topic,

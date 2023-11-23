@@ -321,10 +321,10 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
             self.assertEqual(
                 questions[0]["messages"],
                 [
-                    {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
-                    {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
-                    {"type": "monitor_message", "data": '{"sample": "data"}'},
-                    {"type": "result", "output_values": [1, 2, 3, 4, 5], "output_manifest": None},
+                    {"kind": "log_record", "log_record": {"msg": "Starting analysis."}},
+                    {"kind": "log_record", "log_record": {"msg": "Finishing analysis."}},
+                    {"kind": "monitor_message", "data": '{"sample": "data"}'},
+                    {"kind": "result", "output_values": [1, 2, 3, 4, 5], "output_manifest": None},
                 ],
             )
 
@@ -388,10 +388,10 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
             self.assertEqual(
                 questions[0]["messages"],
                 [
-                    {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
-                    {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
-                    {"type": "monitor_message", "data": '{"sample": "data"}'},
-                    {"type": "result", "output_values": [1, 2, 3, 4, 5], "output_manifest": None},
+                    {"kind": "log_record", "log_record": {"msg": "Starting analysis."}},
+                    {"kind": "log_record", "log_record": {"msg": "Finishing analysis."}},
+                    {"kind": "monitor_message", "data": '{"sample": "data"}'},
+                    {"kind": "result", "output_values": [1, 2, 3, 4, 5], "output_manifest": None},
                 ],
             )
 
