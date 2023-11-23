@@ -131,13 +131,13 @@ class Runner:
         :param str analysis_log_level: the level below which to ignore log messages
         :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run. Handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but should use the format defined above in LOG_FORMAT.
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
-        :param str debug: must be one of {"DEBUG_OFF", "DEBUG_ON_CRASH", "DEBUG_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if the analysis fails
+        :param str debug: must be one of {"DEBUG_OFF", "DEBUG_ON_CRASH", "DEBUG_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved either all the time or just if the analysis fails
         :return octue.resources.analysis.Analysis:
         """
-        # Get inputs before any transformations have been applied.
         if debug not in DEBUG_MODES:
             raise ValueError(f"`debug` must be one of {DEBUG_MODES!r}; received {debug!r}.")
 
+        # Get inputs before any transformations have been applied.
         self.crash_diagnostics.add_data(
             analysis_id=analysis_id,
             input_values=input_values,
