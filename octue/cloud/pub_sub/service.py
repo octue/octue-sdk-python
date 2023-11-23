@@ -428,7 +428,7 @@ class Service:
                 "kind": "exception",
                 "exception_type": exception["type"],
                 "exception_message": exception_message,
-                "traceback": exception["traceback"],
+                "exception_traceback": exception["traceback"],
             },
             topic=topic,
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},

@@ -383,7 +383,7 @@ class OrderedMessageHandler:
             (
                 message["exception_message"],
                 f"The following traceback was captured from the remote service {self.service_name!r}:",
-                "".join(message["traceback"]),
+                "".join(message["exception_traceback"]),
             )
         )
 
