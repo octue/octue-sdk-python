@@ -320,7 +320,7 @@ class OrderedMessageHandler:
         :param dict message:
         :return None:
         """
-        logger.info("%r's question was delivered at %s.", self.receiving_service, message["delivery_time"])
+        logger.info("%r's question was delivered at %s.", self.receiving_service, message["datetime"])
 
     def _handle_heartbeat(self, message):
         """Record the time the heartbeat was received.

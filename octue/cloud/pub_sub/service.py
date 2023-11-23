@@ -479,7 +479,7 @@ class Service:
         self._send_message(
             {
                 "type": "delivery_acknowledgement",
-                "delivery_time": str(datetime.datetime.now()),
+                "datetime": str(datetime.datetime.now()),
             },
             topic=topic,
             timeout=timeout,
@@ -499,7 +499,7 @@ class Service:
         self._send_message(
             {
                 "type": "heartbeat",
-                "time": str(datetime.datetime.now()),
+                "datetime": str(datetime.datetime.now()),
             },
             topic=topic,
             timeout=timeout,

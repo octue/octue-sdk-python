@@ -206,7 +206,7 @@ class ChildEmulator:
         """A no-operation handler for delivery acknowledgement messages (these messages are ignored by the child
         emulator).
 
-        :param dict message: a dictionary containing the key "delivery_time"
+        :param dict message: a dictionary containing the key "datetime"
         :param kwargs: this should be empty
         :return None:
         """
@@ -215,7 +215,7 @@ class ChildEmulator:
     def _handle_heartbeat(self, message, **kwargs):
         """A no-operation handler for heartbeat messages (these messages are ignored by the child emulator).
 
-        :param dict message: a dictionary containing the key "time"
+        :param dict message: a dictionary containing the key "datetime"
         :param kwargs: this should be empty
         :return None:
         """

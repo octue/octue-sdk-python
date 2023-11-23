@@ -225,7 +225,7 @@ class TestChildEmulatorAsk(BaseTestCase):
         messages = [
             {
                 "type": "heartbeat",
-                "time": "2022-08-31 17:05:47.968419",
+                "datetime": "2022-08-31 17:05:47.968419",
             },
         ]
 

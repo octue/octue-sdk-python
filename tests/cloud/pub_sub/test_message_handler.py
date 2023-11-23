@@ -188,7 +188,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                     MockMessage.from_primitive(
                         {
                             "type": "delivery_acknowledgement",
-                            "delivery_time": "2021-11-17 17:33:59.717428",
+                            "datetime": "2021-11-17 17:33:59.717428",
                         },
                         attributes={"message_number": 0},
                     ),
@@ -251,7 +251,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                     MockMessage.from_primitive(
                         {
                             "type": "delivery_acknowledgement",
-                            "delivery_time": "2021-11-17 17:33:59.717428",
+                            "datetime": "2021-11-17 17:33:59.717428",
                         },
                         attributes={"message_number": 0},
                     ),
