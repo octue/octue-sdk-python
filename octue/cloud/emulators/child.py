@@ -49,7 +49,7 @@ class ChildEmulator:
             "result": self._handle_result,
         }
 
-        self._valid_message_types = set(self._message_handlers.keys())
+        self._valid_message_kinds = set(self._message_handlers.keys())
 
     @classmethod
     def from_file(cls, path):
@@ -153,7 +153,7 @@ class ChildEmulator:
         """
         for message in self.messages:
             self._validate_message(message)
-            handler = self._message_handlers[message["type"]]
+            handler = self._message_handlers[message["kind"]]
 
             result = handler(
                 message,
@@ -185,21 +185,21 @@ class ChildEmulator:
 
         :param dict message:
         :raise TypeError: if the message isn't a dictionary
-        :raise ValueError: if the message doesn't contain a 'type' key or if the 'type' key maps to an invalid value
+        :raise ValueError: if the message doesn't contain a 'kind' key or if the 'kind' key maps to an invalid value
         :return None:
         """
         if not isinstance(message, dict):
             raise TypeError("Each message must be a dictionary.")
 
-        if "type" not in message:
+        if "kind" not in message:
             raise ValueError(
-                f"Each message must contain a 'type' key mapping to one of: {self._valid_message_types!r}."
+                f"Each message must contain a 'kind' key mapping to one of: {self._valid_message_kinds!r}."
             )
 
-        if message["type"] not in self._valid_message_types:
+        if message["kind"] not in self._valid_message_kinds:
             raise ValueError(
-                f"{message['type']!r} is an invalid message type for the ChildEmulator. The valid types are: "
-                f"{self._valid_message_types!r}."
+                f"{message['kind']!r} is an invalid message kind for the ChildEmulator. The valid kinds are: "
+                f"{self._valid_message_kinds!r}."
             )
 
     def _handle_delivery_acknowledgement(self, message, **kwargs):
@@ -253,7 +253,7 @@ class ChildEmulator:
         :param kwargs: must include the "handle_monitor_message" key
         :return None:
         """
-        kwargs.get("handle_monitor_message")(json.loads(message["data"]))
+        kwargs.get("handle_monitor_message")(message["data"])
 
     def _handle_exception(self, message, **kwargs):
         """Raise the given exception.
