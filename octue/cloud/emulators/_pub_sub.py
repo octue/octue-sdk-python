@@ -363,7 +363,7 @@ class MockService(Service):
         # Ignore any errors from the answering service as they will be raised on the remote service in practice, not
         # locally as is done in this mock.
         if input_manifest is not None:
-            question["input_manifest"] = input_manifest.serialise()
+            question["input_manifest"] = input_manifest.to_primitive()
 
         if children is not None:
             question["children"] = children

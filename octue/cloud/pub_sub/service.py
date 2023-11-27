@@ -28,7 +28,6 @@ from octue.cloud.service_id import (
 )
 from octue.cloud.validation import raise_if_event_is_invalid
 from octue.compatibility import warn_if_incompatible
-from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
 from octue.utils.threads import RepeatingTimer
@@ -540,11 +539,6 @@ class Service:
 
         event, attributes = extract_event_and_attributes_from_pub_sub(question)
         event_for_validation = copy.deepcopy(event)
-
-        # Deserialise input manifest into primitives for validation but leave it serialised for the return value so
-        # Twine validation still works.
-        if event.get("input_manifest"):
-            event_for_validation["input_manifest"] = json.loads(event["input_manifest"], cls=OctueJSONDecoder)
 
         raise_if_event_is_invalid(
             event=event_for_validation,
