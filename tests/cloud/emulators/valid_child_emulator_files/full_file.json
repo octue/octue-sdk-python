@@ -16,7 +16,7 @@
     },
     {
       "kind": "monitor_message",
-      "data": "{\"sample\": \"data\"}"
+      "data": { "sample": "data" }
     },
     {
       "kind": "result",
