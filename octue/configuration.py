@@ -34,9 +34,14 @@ class ServiceConfiguration:
     ):
         self.name = name
         self.namespace = namespace
-        self.app_source_path = app_source_path
-        self.twine_path = twine_path
-        self.app_configuration_path = app_configuration_path
+        self.app_source_path = os.path.abspath(app_source_path)
+        self.twine_path = os.path.abspath(twine_path)
+
+        if app_configuration_path:
+            self.app_configuration_path = os.path.abspath(app_configuration_path)
+        else:
+            self.app_configuration_path = None
+
         self.crash_diagnostics_cloud_path = crash_diagnostics_cloud_path
         self.service_registries = service_registries
 
