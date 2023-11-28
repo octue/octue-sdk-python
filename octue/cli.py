@@ -22,7 +22,6 @@ from octue.log_handlers import apply_log_handler, get_remote_handler
 from octue.resources import Manifest, service_backends
 from octue.runner import Runner
 from octue.utils.encoders import OctueJSONEncoder
-from twined import Twine
 
 
 logger = logging.getLogger(__name__)
@@ -220,14 +219,9 @@ def start(service_config, revision_tag, timeout, no_rm):
         revision_tag=service_revision_tag_override or service_revision_tag,
     )
 
-    runner = Runner(
-        app_src=service_configuration.app_source_path,
-        twine=Twine(source=service_configuration.twine_path),
-        configuration_values=app_configuration.configuration_values,
-        configuration_manifest=app_configuration.configuration_manifest,
-        children=app_configuration.children,
-        output_location=app_configuration.output_location,
-        crash_diagnostics_cloud_path=service_configuration.crash_diagnostics_cloud_path,
+    runner = Runner.from_configuration(
+        service_configuration=service_configuration,
+        app_configuration=app_configuration,
         service_id=service_sruid,
     )
 
