@@ -129,16 +129,7 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
     if os.path.exists(input_manifest_path):
         input_manifest = input_manifest_path
 
-    runner = Runner(
-        app_src=service_configuration.app_source_path,
-        twine=Twine(source=service_configuration.twine_path),
-        configuration_values=app_configuration.configuration_values,
-        configuration_manifest=app_configuration.configuration_manifest,
-        children=app_configuration.children,
-        output_location=app_configuration.output_location,
-        crash_diagnostics_cloud_path=service_configuration.crash_diagnostics_cloud_path,
-        service_registries=service_configuration.service_registries,
-    )
+    runner = Runner.from_configuration(service_configuration=service_configuration, app_configuration=app_configuration)
 
     if monitor_messages_file:
         if not os.path.exists(os.path.dirname(monitor_messages_file)):

@@ -35,17 +35,11 @@ def answer_question(question, project_name):
     question_uuid = get_nested_attribute(question, "attributes.question_uuid")
 
     try:
-        runner = Runner(
-            app_src=service_configuration.app_source_path,
-            twine=service_configuration.twine_path,
-            configuration_values=app_configuration.configuration_values,
-            configuration_manifest=app_configuration.configuration_manifest,
-            children=app_configuration.children,
-            output_location=app_configuration.output_location,
-            crash_diagnostics_cloud_path=service_configuration.crash_diagnostics_cloud_path,
+        runner = Runner.from_configuration(
+            service_configuration=service_configuration,
+            app_configuration=app_configuration,
             project_name=project_name,
             service_id=service_sruid,
-            service_registries=service_configuration.service_registries,
         )
 
         service.run_function = runner.run

@@ -104,6 +104,29 @@ class Runner:
         self.delete_local_files = delete_local_files
         self._project_name = project_name
 
+    @classmethod
+    def from_configuration(cls, service_configuration, app_configuration, project_name=None, service_id=None):
+        """Instantiate a runner from a service and app configuration.
+
+        :param octue.configuration.ServiceConfiguration service_configuration:
+        :param octue.configuration.AppConfiguration app_configuration:
+        :param str|None project_name: name of Google Cloud project to get credentials from
+        :param str|None service_id: the ID of the service being run
+        :return octue.runner.Runner: a runner configured with the given service and app configuration
+        """
+        return cls(
+            app_src=service_configuration.app_source_path,
+            twine=service_configuration.twine_path,
+            configuration_values=app_configuration.configuration_values,
+            configuration_manifest=app_configuration.configuration_manifest,
+            children=app_configuration.children,
+            output_location=app_configuration.output_location,
+            crash_diagnostics_cloud_path=service_configuration.crash_diagnostics_cloud_path,
+            project_name=project_name,
+            service_id=service_id,
+            service_registries=service_configuration.service_registries,
+        )
+
     def __repr__(self):
         """Represent the runner as a string.
 
