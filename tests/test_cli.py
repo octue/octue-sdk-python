@@ -2,11 +2,9 @@ import json
 import logging
 import os
 import tempfile
-import unittest.mock
 from unittest import mock
 from unittest.mock import patch
 
-import yaml
 from click.testing import CliRunner
 
 from octue.cli import octue_cli
@@ -18,7 +16,6 @@ from octue.resources import Dataset
 from octue.utils.patches import MultiPatcher
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
-from tests.mocks import MockOpen
 
 
 TWINE_FILE_PATH = os.path.join(TESTS_DIR, "data", "twines", "valid_schema_twine.json")
@@ -87,28 +84,33 @@ class TestRunCommand(BaseTestCase):
 
     def test_run_with_output_manifest(self):
         """Test that the `run` CLI command runs the given service and stores the output manifest in a file."""
+        with tempfile.NamedTemporaryFile("w", delete=False, suffix=".json") as temporary_twine:
+            temporary_twine.write(
+                json.dumps({"input_values_schema": {}, "output_manifest": {"datasets": {}}, "output_values_schema": {}})
+            )
+
         mock_configurations = (
             ServiceConfiguration(
                 name="test-app",
                 namespace="testing",
                 app_source_path=os.path.join(TESTS_DIR, "test_app_modules", "app_module_with_output_manifest"),
-                twine_path={"input_values_schema": {}, "output_manifest": {"datasets": {}}, "output_values_schema": {}},
+                twine_path=temporary_twine.name,
             ),
             AppConfiguration(),
         )
 
-        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_manifest:
             with mock.patch("octue.cli.load_service_and_app_configuration", return_value=mock_configurations):
                 result = CliRunner().invoke(
                     octue_cli,
                     [
                         "run",
                         f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
-                        f"--output-manifest-file={temporary_file.name}",
+                        f"--output-manifest-file={temporary_manifest.name}",
                     ],
                 )
 
-            with open(temporary_file.name) as f:
+            with open(temporary_manifest.name) as f:
                 self.assertIn("datasets", json.load(f))
 
         self.assertIn(json.dumps({"width": 3}), result.output)
@@ -168,41 +170,29 @@ class TestStartCommand(BaseTestCase):
             "template-fractal",
         )
 
-        class MockOpenForConfigurationFiles(MockOpen):
-            path_to_contents_mapping = {
-                "octue.yaml": yaml.dump(
-                    {
-                        "services": [
-                            {
-                                "name": "test-service",
-                                "namespace": "testing",
-                                "app_source_path": cls.python_fractal_service_path,
-                                "twine_path": os.path.join(cls.python_fractal_service_path, "twine.json"),
-                                "app_configuration_path": "app_configuration.json",
-                            }
-                        ]
-                    }
-                ),
-                "app_configuration.json": json.dumps(
-                    {
-                        "configuration_values": {
-                            "width": 600,
-                            "height": 600,
-                            "n_iterations": 64,
-                            "color_scale": "YlGnBu",
-                            "type": "png",
-                            "x_range": [-1.5, 0.6],
-                            "y_range": [-1.26, 1.26],
-                            "backend": {
-                                "name": "GCPPubSubBackend",
-                                "project_name": "octue-sdk-python",
-                            },
-                        }
-                    }
-                ),
-            }
+        cls.service_configuration = ServiceConfiguration(
+            name="test-service",
+            namespace="testing",
+            app_source_path=cls.python_fractal_service_path,
+            twine_path=os.path.join(cls.python_fractal_service_path, "twine.json"),
+            app_configuration_path="app_configuration.json",
+        )
 
-        cls.MockOpenForConfigurationFiles = MockOpenForConfigurationFiles
+        cls.app_configuration = AppConfiguration(
+            configuration_values={
+                "width": 600,
+                "height": 600,
+                "n_iterations": 64,
+                "color_scale": "YlGnBu",
+                "type": "png",
+                "x_range": [-1.5, 0.6],
+                "y_range": [-1.26, 1.26],
+                "backend": {
+                    "name": "GCPPubSubBackend",
+                    "project_name": "octue-sdk-python",
+                },
+            },
+        )
 
     def test_start_command(self):
         """Test that the start command works without error and uses the revision tag supplied in the
@@ -211,8 +201,8 @@ class TestStartCommand(BaseTestCase):
         with MultiPatcher(
             patches=[
                 mock.patch(
-                    "octue.configuration.open",
-                    unittest.mock.mock_open(mock=self.MockOpenForConfigurationFiles),
+                    "octue.cli.load_service_and_app_configuration",
+                    return_value=(self.service_configuration, self.app_configuration),
                 ),
                 mock.patch("octue.cli.Service", MockService),
                 patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "goodbye"}),
@@ -222,7 +212,7 @@ class TestStartCommand(BaseTestCase):
                 with self.assertLogs(level=logging.INFO) as logging_context:
                     result = CliRunner().invoke(octue_cli, ["start", "--timeout=0"])
 
-        self.assertEqual(logging_context.records[3].message, "Starting <MockService('testing/test-service:goodbye')>.")
+        self.assertEqual(logging_context.records[1].message, "Starting <MockService('testing/test-service:goodbye')>.")
         self.assertIsNone(result.exception)
         self.assertEqual(result.exit_code, 0)
 
@@ -233,8 +223,8 @@ class TestStartCommand(BaseTestCase):
         with MultiPatcher(
             patches=[
                 mock.patch(
-                    "octue.configuration.open",
-                    unittest.mock.mock_open(mock=self.MockOpenForConfigurationFiles),
+                    "octue.cli.load_service_and_app_configuration",
+                    return_value=(self.service_configuration, self.app_configuration),
                 ),
                 mock.patch("octue.cli.Service", MockService),
                 patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "goodbye"}),
@@ -245,12 +235,12 @@ class TestStartCommand(BaseTestCase):
                     result = CliRunner().invoke(octue_cli, ["start", "--revision-tag=hello", "--timeout=0"])
 
         self.assertEqual(
-            logging_context.records[3].message,
+            logging_context.records[1].message,
             "The `OCTUE_SERVICE_REVISION_TAG` environment variable 'goodbye' has been overridden by the "
             "`--revision-tag` CLI option 'hello'.",
         )
 
-        self.assertEqual(logging_context.records[4].message, "Starting <MockService('testing/test-service:hello')>.")
+        self.assertEqual(logging_context.records[2].message, "Starting <MockService('testing/test-service:hello')>.")
         self.assertIsNone(result.exception)
         self.assertEqual(result.exit_code, 0)
 
