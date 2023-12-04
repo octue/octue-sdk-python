@@ -292,6 +292,9 @@ class ChildEmulator:
             output_manifest = Manifest.deserialise(output_manifest)
 
         try:
+            if kwargs["input_manifest"] is not None:
+                kwargs["input_manifest"] = Manifest.deserialise(kwargs["input_manifest"])
+
             return Analysis(
                 id=kwargs["analysis_id"],
                 twine={},
