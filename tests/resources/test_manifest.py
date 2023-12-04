@@ -283,3 +283,23 @@ class TestManifest(BaseTestCase):
 
         mock_dataset_use_cloud_metadata.assert_not_called()
         self.assertEqual(dataset_in_manifest.labels, set())
+
+    def test_use_signed_urls_for_datasets(self):
+        """Test that cloud URI dataset paths in a manifest can be swapped for signed URLs."""
+        manifest = Manifest(datasets={"my_dataset": self.create_nested_cloud_dataset()})
+        self.assertTrue(manifest.datasets["my_dataset"].path.startswith("gs://"))
+
+        manifest.use_signed_urls_for_datasets()
+        self.assertTrue(manifest.datasets["my_dataset"].path.startswith("http"))
+        self.assertIn(".signed_metadata_files", manifest.datasets["my_dataset"].path)
+
+    def test_use_signed_urls_for_datasets_is_idempotent(self):
+        """Test that calling `use_signed_urls_for_datasets` on a manifest that already has signed URLs for its datasets'
+        paths just leaves the paths as they are.
+        """
+        manifest = Manifest(datasets={"my_dataset": self.create_nested_cloud_dataset()})
+        manifest.use_signed_urls_for_datasets()
+        manifest.use_signed_urls_for_datasets()
+
+        self.assertTrue(manifest.datasets["my_dataset"].path.startswith("http"))
+        self.assertIn(".signed_metadata_files", manifest.datasets["my_dataset"].path)
