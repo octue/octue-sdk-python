@@ -5,6 +5,7 @@ import tempfile
 from unittest.mock import patch
 
 from octue.cloud import storage
+from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset, Manifest
 from tests import TEST_BUCKET_NAME
@@ -289,7 +290,9 @@ class TestManifest(BaseTestCase):
         manifest = Manifest(datasets={"my_dataset": self.create_nested_cloud_dataset()})
         self.assertTrue(manifest.datasets["my_dataset"].path.startswith("gs://"))
 
-        manifest.use_signed_urls_for_datasets()
+        with patch("google.cloud.storage.blob.Blob.generate_signed_url", mock_generate_signed_url):
+            manifest.use_signed_urls_for_datasets()
+
         self.assertTrue(manifest.datasets["my_dataset"].path.startswith("http"))
         self.assertIn(".signed_metadata_files", manifest.datasets["my_dataset"].path)
 
@@ -298,8 +301,10 @@ class TestManifest(BaseTestCase):
         paths just leaves the paths as they are.
         """
         manifest = Manifest(datasets={"my_dataset": self.create_nested_cloud_dataset()})
-        manifest.use_signed_urls_for_datasets()
-        manifest.use_signed_urls_for_datasets()
+
+        with patch("google.cloud.storage.blob.Blob.generate_signed_url", mock_generate_signed_url):
+            manifest.use_signed_urls_for_datasets()
+            manifest.use_signed_urls_for_datasets()
 
         self.assertTrue(manifest.datasets["my_dataset"].path.startswith("http"))
         self.assertIn(".signed_metadata_files", manifest.datasets["my_dataset"].path)
