@@ -88,6 +88,23 @@ class TestChildEmulatorAsk(BaseTestCase):
         self.assertEqual(result["output_values"], [1, 2, 3, 4])
         self.assertEqual(result["output_manifest"].id, output_manifest.id)
 
+    def test_ask_with_input_manifest(self):
+        """Test that a child emulator can accept an input manifest."""
+        input_manifest = Manifest()
+
+        messages = [
+            {
+                "type": "result",
+                "output_values": [1, 2, 3, 4],
+                "output_manifest": None,
+            },
+        ]
+
+        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
+
+        result = child_emulator.ask(input_values={"hello": "world"}, input_manifest=input_manifest)
+        self.assertEqual(result["output_values"], [1, 2, 3, 4])
+
     def test_empty_output_returned_by_ask_if_no_result_present_in_messages(self):
         """Test that an empty output is returned if no result message is present in the given messages."""
         child_emulator = ChildEmulator(backend=self.BACKEND, messages=[])

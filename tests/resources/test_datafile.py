@@ -920,6 +920,32 @@ class TestDatafile(BaseTestCase):
                 # self.assertEqual(datafile.hash_value, downloaded_datafile.hash_value)
                 # self.assertEqual(datafile.size_bytes, downloaded_datafile.size_bytes)
 
+    def test_signed_url_datafile_can_be_downloaded_to_non_existing_directory(self):
+        """Test that a signed URL datafile can be downloaded to a directory that doesn't yet exist (the directory is
+        created during the download).
+        """
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with Datafile(path=os.path.join(temporary_directory, "my-file.dat"), mode="w") as (datafile, f):
+                f.write("I will be signed")
+                datafile.tags = {"some": "metadata"}
+
+            datafile.upload(storage.path.generate_gs_path(TEST_BUCKET_NAME, "directory", "my-file.dat"))
+
+        with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
+            signed_url = datafile.generate_signed_url()
+
+        # Ensure the GOOGLE_APPLICATION_CREDENTIALS environment variable isn't available to ensure the signed URL works
+        # without any extra permissions.
+        with patch.dict(os.environ, clear=True):
+            datafile = Datafile(path=signed_url)
+
+            with tempfile.TemporaryDirectory() as temporary_directory:
+                local_path = os.path.join(temporary_directory, "non-existent", "my-file.dat")
+                datafile.download(local_path=local_path)
+
+                with open(local_path) as f:
+                    self.assertEqual(f.read(), "I will be signed")
+
     def test_error_raised_if_trying_to_modify_signed_url_datafile(self):
         """Test that an error is raised if trying to modify a datafile instantiated from a signed URL."""
         with tempfile.TemporaryDirectory() as temporary_directory:
