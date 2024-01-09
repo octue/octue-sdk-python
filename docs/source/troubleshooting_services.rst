@@ -15,7 +15,7 @@ Services save the following data to the cloud if they crash while processing a q
 
 .. important::
 
-    For this feature to be enabled, the child must have the ``crash_diagnostics_cloud_path`` field in its service
+    For this feature to be enabled, the child must have the ``diagnostics_cloud_path`` field in its service
     configuration (:ref:`octue.yaml <octue_yaml>` file) set to a Google Cloud Storage path.
 
 
