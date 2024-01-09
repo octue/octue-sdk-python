@@ -37,8 +37,10 @@ class TestAnswerPubSubQuestion(TestCase):
                     project_name="a-project-name",
                 )
 
-        self.assertEqual(mock_constructor.call_args.kwargs["service_configuration"].app_source_path, ".")
-        self.assertEqual(mock_constructor.call_args.kwargs["service_configuration"].twine_path, "twine.json")
+        self.assertTrue(
+            mock_constructor.call_args.kwargs["service_configuration"].app_source_path.endswith("octue-sdk-python")
+        )
+        self.assertTrue(mock_constructor.call_args.kwargs["service_configuration"].twine_path.endswith("twine.json"))
         self.assertIsNone(mock_constructor.call_args.kwargs["service_configuration"].crash_diagnostics_cloud_path)
         self.assertIsNone(mock_constructor.call_args.kwargs["service_configuration"].service_registries)
 
@@ -93,7 +95,9 @@ class TestAnswerPubSubQuestion(TestCase):
                 )
 
         self.assertEqual(mock_constructor.call_args.kwargs["service_configuration"].app_source_path, "/path/to/app_dir")
-        self.assertEqual(mock_constructor.call_args.kwargs["service_configuration"].twine_path, "path/to/twine.json")
+        self.assertTrue(
+            mock_constructor.call_args.kwargs["service_configuration"].twine_path.endswith("path/to/twine.json")
+        )
         self.assertIsNone(mock_constructor.call_args.kwargs["service_configuration"].crash_diagnostics_cloud_path)
         self.assertIsNone(mock_constructor.call_args.kwargs["service_configuration"].service_registries)
 
