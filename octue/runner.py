@@ -12,7 +12,7 @@ from jsonschema import ValidationError, validate as jsonschema_validate
 import twined.exceptions
 from octue import exceptions
 from octue.app_loading import AppFrom
-from octue.crash_diagnostics import CrashDiagnostics
+from octue.diagnostics import Diagnostics
 from octue.log_handlers import AnalysisLogFormatterSwitcher
 from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
@@ -42,7 +42,7 @@ class Runner:
     :param str|dict|None configuration_manifest: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|list(dict)|None children: The children strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|None output_location: the path to a cloud directory to save output datasets at
-    :param str|None crash_diagnostics_cloud_path: the path to a cloud directory to store crash diagnostics in the event that the service fails while processing a question (this includes the configuration, input values and manifest, and logs)
+    :param str|None diagnostics_cloud_path: the path to a cloud directory to store diagnostics in the event that the service fails while processing a question (this includes the configuration, input values and manifest, and logs)
     :param str|None project_name: name of Google Cloud project to get credentials from
     :param str|None service_id: the ID of the service being run
     :param bool delete_local_files: if `True`, delete any files downloaded during the call to `Runner.run` once the analysis has finished
@@ -57,7 +57,7 @@ class Runner:
         configuration_manifest=None,
         children=None,
         output_location=None,
-        crash_diagnostics_cloud_path=None,
+        diagnostics_cloud_path=None,
         project_name=None,
         service_id=None,
         service_registries=None,
@@ -74,9 +74,9 @@ class Runner:
         self.output_location = output_location
 
         # Get configuration before any transformations have been applied.
-        self.crash_diagnostics = CrashDiagnostics(cloud_path=crash_diagnostics_cloud_path)
+        self.diagnostics = Diagnostics(cloud_path=diagnostics_cloud_path)
 
-        self.crash_diagnostics.add_data(
+        self.diagnostics.add_data(
             configuration_values=configuration_values,
             configuration_manifest=configuration_manifest,
         )
@@ -121,7 +121,7 @@ class Runner:
             configuration_manifest=app_configuration.configuration_manifest,
             children=app_configuration.children,
             output_location=app_configuration.output_location,
-            crash_diagnostics_cloud_path=service_configuration.crash_diagnostics_cloud_path,
+            diagnostics_cloud_path=service_configuration.diagnostics_cloud_path,
             project_name=project_name,
             service_id=service_id,
             service_registries=service_configuration.service_registries,
@@ -163,7 +163,7 @@ class Runner:
             )
 
         # Get inputs before any transformations have been applied.
-        self.crash_diagnostics.add_data(
+        self.diagnostics.add_data(
             analysis_id=analysis_id,
             input_values=input_values,
             input_manifest=input_manifest,
@@ -236,7 +236,7 @@ class Runner:
 
             except Exception as analysis_error:
                 if save_diagnostics in {SAVE_DIAGNOSTICS_ON_CRASH, SAVE_DIAGNOSTICS_ON}:
-                    self.crash_diagnostics.upload()
+                    self.diagnostics.upload()
 
                 raise analysis_error
 
@@ -249,7 +249,7 @@ class Runner:
                 analysis.finalise()
 
             if save_diagnostics == SAVE_DIAGNOSTICS_ON:
-                self.crash_diagnostics.upload()
+                self.diagnostics.upload()
 
             if self.delete_local_files and downloaded_files:
                 logger.warning(
@@ -333,7 +333,7 @@ class Runner:
 
     def _instantiate_children(self, serialised_children):
         """Instantiate children from their serialised form (e.g. as given in the app configuration) so they are ready
-        to be asked questions. For crash diagnostics, each child's `ask` method is wrapped so the runner can record the
+        to be asked questions. For diagnostics, each child's `ask` method is wrapped so the runner can record the
         questions asked by the app, the responses received to each question, and the order the questions are asked in.
 
         :param list(dict) serialised_children: serialised children from e.g. the app configuration file
@@ -357,7 +357,7 @@ class Runner:
     def _add_child_question_and_response_recording(self, child, key):
         """Add question and response recording to the `ask` method of the given child. This allows the runner to record
         the questions asked by the app, the responses received to each question, and the order the questions are asked
-        in for crash diagnostics.
+        in for diagnostics.
 
         :param octue.resources.child.Child child: the child to add question and response recording to
         :param str key: the key used to identify the child within the service
@@ -374,7 +374,7 @@ class Runner:
             try:
                 return original_ask_method(**kwargs)
             finally:
-                self.crash_diagnostics.add_question(
+                self.diagnostics.add_question(
                     {"id": child.id, "key": key, **kwargs, "messages": child.received_messages}
                 )
 

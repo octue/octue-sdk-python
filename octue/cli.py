@@ -281,12 +281,12 @@ def start(service_config, revision_tag, timeout, no_rm):
 @click.option(
     "--download-datasets",
     is_flag=True,
-    help="If provided, download any datasets from the crash diagnostics and update their paths in the configuration and "
+    help="If provided, download any datasets from the diagnostics and update their paths in the configuration and "
     "input manifests to the new local paths.",
 )
-def get_crash_diagnostics(cloud_path, local_path, download_datasets):
-    """Download crash diagnostics for an analysis from the given directory in Google Cloud Storage. The cloud path
-    should end in the analysis ID.
+def get_diagnostics(cloud_path, local_path, download_datasets):
+    """Download diagnostics for a question from the given directory in Google Cloud Storage. The cloud path should end
+    in the question ID.
 
     CLOUD_PATH: The path to the directory in Google Cloud Storage containing the diagnostics data.
     """
@@ -329,7 +329,7 @@ def get_crash_diagnostics(cloud_path, local_path, download_datasets):
 
             manifest.to_file(manifest_path)
 
-    logger.info("Downloaded crash diagnostics from %r to %r.", cloud_path, local_path)
+    logger.info("Downloaded diagnostics from %r to %r.", cloud_path, local_path)
 
 
 @octue_cli.group()

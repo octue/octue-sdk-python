@@ -245,37 +245,37 @@ class TestStartCommand(BaseTestCase):
         self.assertEqual(result.exit_code, 0)
 
 
-class TestGetCrashDiagnosticsCommand(BaseTestCase):
-    CRASH_DIAGNOSTICS_CLOUD_PATH = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_diagnostics")
+class TestGetDiagnosticsCommand(BaseTestCase):
+    DIAGNOSTICS_CLOUD_PATH = storage.path.generate_gs_path(TEST_BUCKET_NAME, "diagnostics")
     ANALYSIS_ID = "dc1f09ca-7037-484f-a394-8bd04866f924"
 
     @classmethod
     def setUpClass(cls):
-        """Upload the test crash diagnostics data to the cloud storage emulator so the `octue get-crash-diagnostics`
-        CLI command can be tested.
+        """Upload the test diagnostics data to the cloud storage emulator so the `octue get-diagnostics` CLI command can
+        be tested.
 
         :return None:
         """
         super().setUpClass()
 
-        crash_diagnostics = Dataset(
-            path=os.path.join(TESTS_DIR, "data", "crash_diagnostics"),
+        diagnostics = Dataset(
+            path=os.path.join(TESTS_DIR, "data", "diagnostics"),
             recursive=True,
             include_octue_metadata_files=True,
         )
 
-        crash_diagnostics.upload(storage.path.join(cls.CRASH_DIAGNOSTICS_CLOUD_PATH, cls.ANALYSIS_ID))
+        diagnostics.upload(storage.path.join(cls.DIAGNOSTICS_CLOUD_PATH, cls.ANALYSIS_ID))
 
-    def test_get_crash_diagnostics(self):
+    def test_get_diagnostics(self):
         """Test that only the values files, manifests, and questions file are downloaded when using the
-        `get-crash-diagnostics` CLI command.
+        `get-diagnostics` CLI command.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
             result = CliRunner().invoke(
                 octue_cli,
                 [
-                    "get-crash-diagnostics",
-                    storage.path.join(self.CRASH_DIAGNOSTICS_CLOUD_PATH, self.ANALYSIS_ID),
+                    "get-diagnostics",
+                    storage.path.join(self.DIAGNOSTICS_CLOUD_PATH, self.ANALYSIS_ID),
                     "--local-path",
                     temporary_directory,
                 ],
@@ -318,16 +318,16 @@ class TestGetCrashDiagnosticsCommand(BaseTestCase):
                 ],
             )
 
-    def test_get_crash_diagnostics_with_datasets(self):
+    def test_get_diagnostics_with_datasets(self):
         """Test that datasets are downloaded as well as the values files, manifests, and questions file when the
-        `get-crash-diagnostics` CLI command is run with the `--download-datasets` flag.
+        `get-diagnostics` CLI command is run with the `--download-datasets` flag.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
             result = CliRunner().invoke(
                 octue_cli,
                 [
-                    "get-crash-diagnostics",
-                    storage.path.join(self.CRASH_DIAGNOSTICS_CLOUD_PATH, self.ANALYSIS_ID),
+                    "get-diagnostics",
+                    storage.path.join(self.DIAGNOSTICS_CLOUD_PATH, self.ANALYSIS_ID),
                     "--local-path",
                     temporary_directory,
                     "--download-datasets",
