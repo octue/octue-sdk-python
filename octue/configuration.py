@@ -16,8 +16,9 @@ class ServiceConfiguration:
     :param str app_source_path: the path to the directory containing the app's source code
     :param str twine_path: the path to the twine file defining the schema for input, output, and configuration data for the service
     :param str|None app_configuration_path: the path to the app configuration file containing configuration data for the service; if this is `None`, the default application configuration is used
-    :param str|None crash_diagnostics_cloud_path: the path to a cloud directory to store crash diagnostics in the event that the service fails while processing a question (this includes the configuration, input values and manifest, and logs)
+    :param str|None diagnostics_cloud_path: the path to a cloud directory to store diagnostics (this includes the configuration, input values and manifest, and logs)
     :param iter(dict)|None service_registries: the names and endpoints of the registries used to resolve service revisions when asking questions; these should be in priority order (highest priority first)
+    :param str|None directory: if provided, find the app source, twine, and app configuration relative to this directory
     :return None:
     """
 
@@ -28,16 +29,39 @@ class ServiceConfiguration:
         app_source_path=".",
         twine_path="twine.json",
         app_configuration_path=None,
-        crash_diagnostics_cloud_path=None,
+        diagnostics_cloud_path=None,
         service_registries=None,
+        directory=None,
         **kwargs,
     ):
         self.name = name
         self.namespace = namespace
-        self.app_source_path = app_source_path
-        self.twine_path = twine_path
-        self.app_configuration_path = app_configuration_path
-        self.crash_diagnostics_cloud_path = crash_diagnostics_cloud_path
+
+        if directory:
+            directory = os.path.abspath(directory)
+
+            if app_source_path == ".":
+                self.app_source_path = directory
+            else:
+                self.app_source_path = os.path.join(directory, app_source_path)
+
+            self.twine_path = os.path.join(directory, twine_path)
+
+            if app_configuration_path:
+                self.app_configuration_path = os.path.join(directory, app_configuration_path)
+            else:
+                self.app_configuration_path = None
+
+        else:
+            self.app_source_path = os.path.abspath(app_source_path)
+            self.twine_path = os.path.abspath(twine_path)
+
+            if app_configuration_path:
+                self.app_configuration_path = os.path.abspath(app_configuration_path)
+            else:
+                self.app_configuration_path = None
+
+        self.diagnostics_cloud_path = diagnostics_cloud_path
         self.service_registries = service_registries
 
         if kwargs:
@@ -53,10 +77,11 @@ class ServiceConfiguration:
         with open(path) as f:
             raw_service_configuration = yaml.load(f, Loader=yaml.SafeLoader)
 
-        logger.info("Service configuration loaded from %r.", os.path.abspath(path))
+        absolute_path = os.path.abspath(path)
+        logger.info("Service configuration loaded from %r.", absolute_path)
 
         # Ignore services other than the first for now.
-        return cls(**raw_service_configuration["services"][0])
+        return cls(**raw_service_configuration["services"][0], directory=os.path.dirname(absolute_path))
 
 
 class AppConfiguration:

@@ -1,5 +1,4 @@
 import importlib.metadata
-import json
 import logging
 import math
 import os
@@ -11,11 +10,11 @@ from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
 
 from octue.cloud import EXCEPTIONS_MAPPING
-from octue.compatibility import warn_if_incompatible
+from octue.cloud.pub_sub.events import extract_event_and_attributes_from_pub_sub
+from octue.cloud.validation import SERVICE_COMMUNICATION_SCHEMA, is_event_valid
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
-from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.threads import RepeatingTimer
 
 
@@ -24,7 +23,6 @@ if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in GOOGLE_COMPUTE_PROVIDERS:
     colourise = lambda string, text_colour=None, background_colour=None: string
 else:
     from octue.utils.colour import colourise
-
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +37,7 @@ class OrderedMessageHandler:
     :param bool record_messages: if `True`, record received messages in the `received_messages` attribute
     :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
     :param dict|None message_handlers: a mapping of message type names to callables that handle each type of message. The handlers should not mutate the messages.
+    :param dict|str schema: the JSON schema (or URI of one) to validate messages against
     :return None:
     """
 
@@ -50,6 +49,7 @@ class OrderedMessageHandler:
         record_messages=True,
         service_name="REMOTE",
         message_handlers=None,
+        schema=SERVICE_COMMUNICATION_SCHEMA,
     ):
         self.subscription = subscription
         self.receiving_service = receiving_service
@@ -57,15 +57,20 @@ class OrderedMessageHandler:
         self.record_messages = record_messages
         self.service_name = service_name
 
-        self.question_uuid = self.subscription.topic.path.split(".")[-1]
+        if isinstance(schema, str):
+            self.schema = {"$ref": schema}
+        else:
+            self.schema = schema
+
+        self.question_uuid = self.subscription.path.split(".")[-1]
         self.handled_messages = []
+        self.waiting_messages = None
         self._subscriber = SubscriberClient()
         self._child_sdk_version = None
         self._heartbeat_checker = None
         self._last_heartbeat = None
         self._alive = True
         self._start_time = None
-        self._waiting_messages = None
         self._previous_message_number = -1
         self._earliest_message_number_received = math.inf
 
@@ -114,7 +119,7 @@ class OrderedMessageHandler:
         :return dict: the first result returned by a message handler
         """
         self._start_time = time.perf_counter()
-        self._waiting_messages = {}
+        self.waiting_messages = {}
         self._previous_message_number = -1
 
         self._heartbeat_checker = RepeatingTimer(
@@ -182,7 +187,7 @@ class OrderedMessageHandler:
         return timeout - total_run_time
 
     def _pull_and_enqueue_message(self, timeout):
-        """Pull a message from the subscription and enqueue it in `self._waiting_messages`, raising a `TimeoutError` if
+        """Pull a message from the subscription and enqueue it in `self.waiting_messages`, raising a `TimeoutError` if
         the timeout is exceeded before succeeding.
 
         :param float|None timeout: how long to wait in seconds for the message before raising a `TimeoutError`
@@ -218,19 +223,24 @@ class OrderedMessageHandler:
         self._subscriber.acknowledge(request={"subscription": self.subscription.path, "ack_ids": [answer.ack_id]})
         logger.debug("%r received a message related to question %r.", self.receiving_service, self.question_uuid)
 
+        event, attributes = extract_event_and_attributes_from_pub_sub(answer.message)
+
+        if not is_event_valid(
+            event=event,
+            attributes=attributes,
+            receiving_service=self.receiving_service,
+            parent_sdk_version=importlib.metadata.version("octue"),
+            child_sdk_version=attributes.get("version"),
+            schema=self.schema,
+        ):
+            return
+
         # Get the child's Octue SDK version from the first message.
         if not self._child_sdk_version:
-            self._child_sdk_version = answer.message.attributes.get("octue_sdk_version")
+            self._child_sdk_version = attributes["version"]
 
-            # If the child hasn't provided its Octue SDK version, it's too old to send heartbeats - so, cancel the
-            # heartbeat checker to maintain compatibility.
-            if not self._child_sdk_version:
-                self._heartbeat_checker.cancel()
-
-        message = json.loads(answer.message.data.decode(), cls=OctueJSONDecoder)
-
-        message_number = int(message["message_number"])
-        self._waiting_messages[message_number] = message
+        message_number = attributes["message_number"]
+        self.waiting_messages[message_number] = event
         self._earliest_message_number_received = min(self._earliest_message_number_received, message_number)
 
     def _attempt_to_handle_queued_messages(self, skip_first_messages_after=60):
@@ -242,9 +252,9 @@ class OrderedMessageHandler:
         :param int|float skip_first_messages_after: the number of seconds after which to skip the first n messages if they haven't arrived but subsequent messages have
         :return any|None: either a non-`None` result from a message handler or `None` if nothing was returned by the message handlers or if the next in-order message hasn't been received yet
         """
-        while self._waiting_messages:
+        while self.waiting_messages:
             try:
-                message = self._waiting_messages.pop(self._previous_message_number + 1)
+                message = self.waiting_messages.pop(self._previous_message_number + 1)
 
             except KeyError:
 
@@ -270,7 +280,7 @@ class OrderedMessageHandler:
         :return dict|None:
         """
         try:
-            message = self._waiting_messages.pop(self._earliest_message_number_received)
+            message = self.waiting_messages.pop(self._earliest_message_number_received)
         except KeyError:
             return
 
@@ -299,35 +309,8 @@ class OrderedMessageHandler:
         if self.record_messages:
             self.handled_messages.append(message)
 
-        try:
-            return self._message_handlers[message["type"]](message)
-        except Exception as error:
-            self._warn_of_or_raise_invalid_message_error(message, error)
-
-    def _warn_of_or_raise_invalid_message_error(self, message, error):
-        """Issue a warning if the error is due to a message of an unknown type or raise the error if it's due to
-        anything else. Issue an additional warning if the parent and child SDK versions are incompatible.
-
-        :param dict message: the message whose handling has caused an error
-        :param Exception error: the error caused by handling the message
-        :return None:
-        """
-        warn_if_incompatible(
-            parent_sdk_version=importlib.metadata.version("octue"),
-            child_sdk_version=self._child_sdk_version,
-        )
-
-        # Just log a warning if an unknown message type has been received - it's likely not to be a big problem.
-        if isinstance(error, KeyError):
-            logger.warning(
-                "%r received a message of unknown type %r.",
-                self.receiving_service,
-                message.get("type", "unknown"),
-            )
-            return
-
-        # Raise all other errors.
-        raise error
+        handler = self._message_handlers[message["kind"]]
+        return handler(message)
 
     def _handle_delivery_acknowledgement(self, message):
         """Mark the question as delivered to prevent resending it.
@@ -335,7 +318,7 @@ class OrderedMessageHandler:
         :param dict message:
         :return None:
         """
-        logger.info("%r's question was delivered at %s.", self.receiving_service, message["delivery_time"])
+        logger.info("%r's question was delivered at %s.", self.receiving_service, message["datetime"])
 
     def _handle_heartbeat(self, message):
         """Record the time the heartbeat was received.
@@ -355,7 +338,7 @@ class OrderedMessageHandler:
         logger.debug("%r received a monitor message.", self.receiving_service)
 
         if self.handle_monitor_message is not None:
-            self.handle_monitor_message(json.loads(message["data"], cls=OctueJSONDecoder))
+            self.handle_monitor_message(message["data"])
 
     def _handle_log_message(self, message):
         """Deserialise the message into a log record and pass it to the local log handlers, adding [<service-name>] to
@@ -369,7 +352,7 @@ class OrderedMessageHandler:
         # Add information about the immediate child sending the message and colour it with the first colour in the
         # colour palette.
         immediate_child_analysis_section = colourise(
-            f"[{self.service_name} | analysis-{message['analysis_id']}]",
+            f"[{self.service_name} | analysis-{self.question_uuid}]",
             text_colour=self._log_message_colours[0],
         )
 
@@ -398,7 +381,7 @@ class OrderedMessageHandler:
             (
                 message["exception_message"],
                 f"The following traceback was captured from the remote service {self.service_name!r}:",
-                "".join(message["traceback"]),
+                "".join(message["exception_traceback"]),
             )
         )
 
@@ -419,9 +402,9 @@ class OrderedMessageHandler:
         """
         logger.info("%r received an answer to question %r.", self.receiving_service, self.question_uuid)
 
-        if message["output_manifest"] is None:
-            output_manifest = None
+        if message.get("output_manifest"):
+            output_manifest = Manifest.deserialise(message["output_manifest"])
         else:
-            output_manifest = Manifest.deserialise(message["output_manifest"], from_string=True)
+            output_manifest = None
 
-        return {"output_values": message["output_values"], "output_manifest": output_manifest}
+        return {"output_values": message.get("output_values"), "output_manifest": output_manifest}

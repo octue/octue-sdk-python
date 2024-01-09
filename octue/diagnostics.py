@@ -13,9 +13,9 @@ from octue.utils.encoders import OctueJSONEncoder
 logger = logging.getLogger(__name__)
 
 
-class CrashDiagnostics:
-    """A handler for crash diagnostics that allows uploading of explicitly added configuration and input data and any
-    questions asked to the cloud.
+class Diagnostics:
+    """A handler for question diagnostics that allows uploading of explicitly added configuration and input data and any
+    questions asked to other services.
 
     :param str cloud_path: the cloud path of a directory to upload any added data into
     :return None:
@@ -40,11 +40,11 @@ class CrashDiagnostics:
         input_manifest=None,
     ):
         """Add an analysis ID, configuration values, a configuration manifest, input values, and/or an input manifest to
-        the crash diagnostics. The values and manifests are deep-copied before being added. This method can be called
+        the diagnostics. The values and manifests are deep-copied before being added. This method can be called
         multiple times as data becomes available. Calling again with the same keyword arguments will overwrite any data
         of that type added previously.
 
-        :param str analysis_id: the ID of the analysis to save crash diagnostics for
+        :param str analysis_id: the ID of the analysis to save diagnostics for
         :param any configuration_values: configuration values to save
         :param any configuration_manifest: a configuration manifest to save
         :param any input_values: input values to save
@@ -75,15 +75,15 @@ class CrashDiagnostics:
         self.questions.append(question)
 
     def upload(self):
-        """Check that a cloud path has been provided before uploading any added data to the crash diagnostics cloud
+        """Check that a cloud path has been provided before uploading any added data to the diagnostics cloud
         path. Any errors encountered during upload are caught and logged.
 
         :return None:
         """
         if not self.cloud_path:
             logger.warning(
-                "Cannot upload crash diagnostics as the child doesn't have the `crash_diagnostics_cloud_path` field "
-                "set in its service configuration (`octue.yaml` file)."
+                "Cannot upload diagnostics as the child doesn't have the `diagnostics_cloud_path` field set in its "
+                "service configuration (`octue.yaml` file)."
             )
             return
 
@@ -92,17 +92,17 @@ class CrashDiagnostics:
 
         try:
             self._upload()
-            logger.info("Crash diagnostics uploaded.")
+            logger.info("Diagnostics uploaded.")
         except Exception:
-            logger.exception("Failed to upload crash diagnostics.")
+            logger.exception("Failed to upload diagnostics.")
 
     def _upload(self):
-        """Upload any added data to the crash diagnostics cloud path.
+        """Upload any added data to the diagnostics cloud path.
 
         :return None:
         """
         question_diagnostics_path = storage.path.join(self.cloud_path, self.analysis_id)
-        logger.warning("App failed - saving crash diagnostics to %r.", question_diagnostics_path)
+        logger.warning("App failed - saving diagnostics to %r.", question_diagnostics_path)
 
         for data_type in ("configuration", "input"):
             values_type = f"{data_type}_values"
@@ -123,7 +123,7 @@ class CrashDiagnostics:
 
                 self._upload_manifest(manifest_type, question_diagnostics_path)
 
-        # Upload the messages received from any children before the crash.
+        # Upload the messages received from any children.
         self._storage_client.upload_from_string(
             string=json.dumps(self.questions, cls=OctueJSONEncoder),
             cloud_path=storage.path.join(question_diagnostics_path, "questions.json"),
@@ -142,7 +142,7 @@ class CrashDiagnostics:
             return string
 
     def _upload_values(self, values_type, question_diagnostics_path):
-        """Upload the values of the given type as part of the crash diagnostics.
+        """Upload the values of the given type as part of the diagnostics.
 
         :param str values_type: one of "configuration_values" or "input_values"
         :param str question_diagnostics_path: the path to a cloud directory to upload the values into
@@ -156,7 +156,7 @@ class CrashDiagnostics:
         )
 
     def _upload_manifest(self, manifest_type, question_diagnostics_path):
-        """Upload the serialised manifest of the given type and its datasets as part of the crash diagnostics.
+        """Upload the serialised manifest of the given type and its datasets as part of the diagnostics.
 
         :param str manifest_type: one of "configuration_manifest" or "input_manifest"
         :param str question_diagnostics_path: the path to a cloud directory to upload the manifest into

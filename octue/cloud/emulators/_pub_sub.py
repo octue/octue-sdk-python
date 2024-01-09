@@ -5,14 +5,15 @@ import logging
 import google.api_core
 
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.service import Service
+from octue.cloud.pub_sub.service import ANSWERS_NAMESPACE, PARENT_SENDER_TYPE, Service
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form
 from octue.resources import Manifest
 from octue.utils.encoders import OctueJSONEncoder
 
 
 logger = logging.getLogger(__name__)
 
-MESSAGES = {}
+TOPICS = {}
 SUBSCRIPTIONS = {}
 
 
@@ -31,7 +32,7 @@ class MockTopic(Topic):
                 raise google.api_core.exceptions.AlreadyExists(f"Topic {self.path!r} already exists.")
 
         if not self.exists():
-            MESSAGES[self.name] = []
+            TOPICS[self.name] = []
             self._created = True
 
     def delete(self):
@@ -40,7 +41,7 @@ class MockTopic(Topic):
         :return None:
         """
         try:
-            del MESSAGES[self.name]
+            del TOPICS[self.name]
         except KeyError:
             pass
 
@@ -50,7 +51,7 @@ class MockTopic(Topic):
         :param float timeout:
         :return bool:
         """
-        return self.name in MESSAGES
+        return self.name in TOPICS
 
 
 class MockSubscription(Subscription):
@@ -144,7 +145,8 @@ class MockPublisher:
         :param google.api_core.retry.Retry|None retry:
         :return MockFuture:
         """
-        MESSAGES[get_service_id(topic)].append(MockMessage(data=data, **attributes))
+        subscription_name = ".".join((get_pub_sub_resource_name(topic), ANSWERS_NAMESPACE, attributes["question_uuid"]))
+        SUBSCRIPTIONS[subscription_name].append(MockMessage(data=data, attributes=attributes))
         return MockFuture()
 
 
@@ -188,10 +190,15 @@ class MockSubscriber:
         if self.closed:
             raise ValueError("ValueError: Cannot invoke RPC: Channel closed!")
 
+        subscription_name = get_pub_sub_resource_name(request["subscription"])
+
         try:
             return MockPullResponse(
-                received_messages=[MockMessageWrapper(message=MESSAGES[get_service_id(request["subscription"])].pop(0))]
+                received_messages=[
+                    MockMessageWrapper(message=SUBSCRIPTIONS[subscription_name].pop(0)),
+                ]
             )
+
         except IndexError:
             return MockPullResponse(received_messages=[])
 
@@ -239,14 +246,39 @@ class MockMessage:
     """A mock Pub/Sub message containing serialised data and any number of attributes.
 
     :param bytes data:
+    :param dict|None attributes:
     :return None:
     """
 
-    def __init__(self, data, **attributes):
+    def __init__(self, data, attributes=None):
         self.data = data
-        self.attributes = {}
-        for key, value in attributes.items():
+        self.attributes = attributes or {}
+
+        # Encode the attributes as they would be in a real Pub/Sub message.
+        for key, value in self.attributes.items():
+            if isinstance(value, bool):
+                value = str(int(value))
+            elif isinstance(value, (int, float)):
+                value = str(value)
+
             self.attributes[key] = value
+
+    @classmethod
+    def from_primitive(cls, data, attributes):
+        """Instantiate a mock message from data in the form of a JSON-serialisable python primitive.
+
+        :param any data:
+        :param dict attributes:
+        :return MockMessage:
+        """
+        return cls(data=json.dumps(data, cls=OctueJSONEncoder).encode(), attributes=attributes)
+
+    def __repr__(self):
+        """Represent a mock message as a string.
+
+        :return str: the mock message as a string
+        """
+        return f"<{type(self).__name__}(data={self.data!r})>"
 
     def ack(self):
         """Do nothing.
@@ -284,7 +316,7 @@ class MockService(Service):
         children=None,
         subscribe_to_logs=True,
         allow_local_files=False,
-        allow_save_diagnostics_data_on_crash=True,
+        save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
         question_uuid=None,
         push_endpoint=None,
         timeout=86400,
@@ -299,7 +331,7 @@ class MockService(Service):
         :param list(dict)|None children:
         :param bool subscribe_to_logs:
         :param bool allow_local_files:
-        :param bool allow_save_diagnostics_data_on_crash:
+        :param str save_diagnostics:
         :param str|None question_uuid:
         :param str|None push_endpoint:
         :param float|None timeout:
@@ -312,28 +344,42 @@ class MockService(Service):
             children=children,
             subscribe_to_logs=subscribe_to_logs,
             allow_local_files=allow_local_files,
-            allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
+            save_diagnostics=save_diagnostics,
             question_uuid=question_uuid,
             push_endpoint=push_endpoint,
             timeout=timeout,
         )
 
+        # Delete question from messages sent to subscription so the parent doesn't pick it up as a response message. We
+        # do this as subscription filtering isn't implemented in this set of mocks.
+        subscription_name = ".".join((convert_service_id_to_pub_sub_form(service_id), ANSWERS_NAMESPACE, question_uuid))
+        SUBSCRIPTIONS["octue.services." + subscription_name].pop(0)
+
+        question = {"kind": "question"}
+
+        if input_values is not None:
+            question["input_values"] = input_values
+
         # Ignore any errors from the answering service as they will be raised on the remote service in practice, not
         # locally as is done in this mock.
         if input_manifest is not None:
-            input_manifest = input_manifest.serialise()
+            question["input_manifest"] = input_manifest.to_primitive()
+
+        if children is not None:
+            question["children"] = children
 
         try:
             self.children[service_id].answer(
-                MockMessage(
-                    data=json.dumps(
-                        {"input_values": input_values, "input_manifest": input_manifest, "children": children},
-                        cls=OctueJSONEncoder,
-                    ).encode(),
-                    question_uuid=question_uuid,
-                    forward_logs=subscribe_to_logs,
-                    octue_sdk_version=parent_sdk_version,
-                    allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
+                MockMessage.from_primitive(
+                    data=question,
+                    attributes={
+                        "sender_type": PARENT_SENDER_TYPE,
+                        "question_uuid": question_uuid,
+                        "forward_logs": subscribe_to_logs,
+                        "version": parent_sdk_version,
+                        "save_diagnostics": save_diagnostics,
+                        "message_number": 0,
+                    },
                 )
             )
         except Exception as e:  # noqa
@@ -347,7 +393,7 @@ class MockMessagePuller:
     initialisation. This is meant for patching
     `octue.cloud.pub_sub.message_handler.OrderedMessageHandler._pull_and_enqueue_message` in tests.
 
-    :param iter(dict) messages:
+    :param iter(octue.cloud.pub_sub.emulators._pub_sub.MockMessage) messages:
     :param octue.cloud.pub_sub.message_handler.OrderedMessageHandler message_handler:
     :return None:
     """
@@ -355,7 +401,7 @@ class MockMessagePuller:
     def __init__(self, messages, message_handler):
         self.messages = messages
         self.message_handler = message_handler
-        self.message_number = 0
+        self.current_message = 0
 
     def pull(self, timeout):
         """Get the next message from the messages given at instantiation and enqueue it for handling in the message
@@ -364,12 +410,13 @@ class MockMessagePuller:
         :return None:
         """
         try:
-            message = self.messages[self.message_number]
+            message = self.messages[self.current_message]
         except IndexError:
             return
 
-        self.message_handler._waiting_messages[int(message["message_number"])] = message
-        self.message_number += 1
+        message_number = int(message.attributes["message_number"])
+        self.message_handler.waiting_messages[message_number] = json.loads(message.data.decode())
+        self.current_message += 1
 
 
 class MockAnalysis:
@@ -406,9 +453,9 @@ class MockSubscriptionCreationResponse:
         self.__dict__ = vars(request)
 
 
-def get_service_id(path):
-    """Get the service ID (e.g. octue.services.<uuid>) from a topic or subscription path (e.g.
-    projects/<project-name>/topics/octue.services.<uuid>)
+def get_pub_sub_resource_name(path):
+    """Get the Pub/Sub resource name of the topic or subscription (e.g. "octue.services.<uuid>") from its path (e.g.
+    "projects/<project-name>/topics/octue.services.<uuid>").
 
     :param str path:
     :return str:

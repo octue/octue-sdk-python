@@ -16,7 +16,7 @@ class TestSubscription(BaseTestCase):
 
     def test_repr(self):
         """Test that subscriptions are represented correctly."""
-        self.assertEqual(repr(self.subscription), "<Subscription(octue.services.world)>")
+        self.assertEqual(repr(self.subscription), "<Subscription(name='octue.services.world', filter=None)>")
 
     def test_namespace_only_in_name_once(self):
         """Test that the subscription's namespace only appears in its name once, even if it is repeated."""
@@ -70,7 +70,12 @@ class TestSubscription(BaseTestCase):
         project_name = os.environ["TEST_PROJECT_NAME"]
         topic = Topic(name="my-topic", project_name=project_name)
 
-        subscription = Subscription(name="world", topic=topic, project_name=project_name)
+        subscription = Subscription(
+            name="world",
+            topic=topic,
+            project_name=project_name,
+            filter='attributes.question_uuid = "abc"',
+        )
 
         for allow_existing in (True, False):
             with self.subTest(allow_existing=allow_existing):

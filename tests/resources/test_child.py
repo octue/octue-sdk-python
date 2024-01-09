@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from google.auth.exceptions import DefaultCredentialsError
 
-from octue.cloud.emulators._pub_sub import MockAnalysis, MockService, MockSubscriber, MockSubscription
+from octue.cloud.emulators._pub_sub import MockAnalysis, MockService, MockSubscriber, MockSubscription, MockTopic
 from octue.cloud.emulators.child import ServicePatcher
 from octue.resources.child import Child
 from octue.resources.service_backends import GCPPubSubBackend
@@ -55,7 +55,7 @@ class TestChild(BaseTestCase):
     def test_child_cannot_be_asked_question_without_credentials(self):
         """Test that a child cannot be asked a question without Google Cloud credentials being available."""
         with patch.dict(os.environ, clear=True):
-            with patch("octue.cloud.pub_sub.service.Topic"):
+            with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
                 with patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription):
                     with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
                         with patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber):

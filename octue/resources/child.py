@@ -60,7 +60,7 @@ class Child:
         allow_local_files=False,
         handle_monitor_message=None,
         record_messages=True,
-        allow_save_diagnostics_data_on_crash=True,
+        save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",  # This is repeated as a string here to avoid a circular import.
         question_uuid=None,
         timeout=86400,
         maximum_heartbeat_interval=300,
@@ -76,10 +76,9 @@ class Child:
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will have access to these local files
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
         :param bool record_messages: if `True`, record messages received from the child in the `received_messages` property
-        :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved by the child if it fails while processing them
+        :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
-        :param float|int delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
         :return dict: a dictionary containing the keys "output_values" and "output_manifest"
@@ -91,7 +90,7 @@ class Child:
             children=children,
             subscribe_to_logs=subscribe_to_logs,
             allow_local_files=allow_local_files,
-            allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
+            save_diagnostics=save_diagnostics,
             question_uuid=question_uuid,
             timeout=timeout,
         )
@@ -120,9 +119,6 @@ class Child:
         """
         prevent_retries_when = prevent_retries_when or []
 
-        def ask(question):
-            return self.ask(**question)
-
         # Answers will come out of order, so use a dictionary to store them against their questions' original index.
         answers = {}
         max_workers = min(32, len(questions))
@@ -130,7 +126,7 @@ class Child:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_question_index_mapping = {
-                executor.submit(ask, question): i for i, question in enumerate(questions)
+                executor.submit(self.ask, **question): i for i, question in enumerate(questions)
             }
 
             for i, future in enumerate(concurrent.futures.as_completed(future_to_question_index_mapping)):

@@ -1,5 +1,5 @@
-import base64
 import concurrent.futures
+import copy
 import datetime
 import functools
 import importlib.metadata
@@ -9,11 +9,13 @@ import threading
 import uuid
 
 import google.api_core.exceptions
+import jsonschema
 from google.api_core import retry
 from google.cloud import pubsub_v1
 
 import octue.exceptions
 from octue.cloud.pub_sub import Subscription, Topic
+from octue.cloud.pub_sub.events import extract_event_and_attributes_from_pub_sub
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
 from octue.cloud.service_id import (
@@ -24,11 +26,10 @@ from octue.cloud.service_id import (
     split_service_id,
     validate_sruid,
 )
+from octue.cloud.validation import raise_if_event_is_invalid
 from octue.compatibility import warn_if_incompatible
-from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
-from octue.utils.objects import get_nested_attribute
 from octue.utils.threads import RepeatingTimer
 
 
@@ -42,6 +43,9 @@ OCTUE_SERVICE_REGISTRY_ENDPOINT = "services.registry.octue.com"
 # Switch message batching off by setting `max_messages` to 1. This minimises latency and is recommended for
 # microservices publishing single messages in a request-response sequence.
 BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_latency=0.01, max_messages=1)
+
+PARENT_SENDER_TYPE = "PARENT"
+CHILD_SENDER_TYPE = "CHILD"
 
 
 class Service:
@@ -128,13 +132,13 @@ class Service:
         :return (google.cloud.pubsub_v1.subscriber.futures.StreamingPullFuture, google.cloud.pubsub_v1.SubscriberClient):
         """
         logger.info("Starting %r.", self)
-
         topic = Topic(name=self._pub_sub_id, project_name=self.backend.project_name)
 
         subscription = Subscription(
             name=self._pub_sub_id,
             topic=topic,
             project_name=self.backend.project_name,
+            filter=f'attributes.sender_type = "{PARENT_SENDER_TYPE}"',
             expiration_time=None,
         )
 
@@ -180,69 +184,77 @@ class Service:
 
         return future, subscriber
 
-    def answer(self, question, answer_topic=None, heartbeat_interval=120, timeout=30):
+    def answer(self, question, heartbeat_interval=120, timeout=30):
         """Answer a question from a parent - i.e. run the child's app on the given data and return the output values.
         Answers conform to the output values and output manifest schemas specified in the child's Twine file.
 
-        :param dict|Message question:
-        :param octue.cloud.pub_sub.topic.Topic|None answer_topic: provide if messages need to be sent to the parent from outside the `Service` instance (e.g. in octue.cloud.deployment.google.cloud_run.flask_app)
+        :param dict|google.cloud.pubsub_v1.subscriber.message.Message question:
         :param int|float heartbeat_interval: the time interval, in seconds, at which to send heartbeats
         :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
         """
-        (
-            data,
-            question_uuid,
-            forward_logs,
-            parent_sdk_version,
-            allow_save_diagnostics_data_on_crash,
-        ) = self._parse_question(question)
+        try:
+            (
+                question,
+                question_uuid,
+                forward_logs,
+                parent_sdk_version,
+                save_diagnostics,
+            ) = self._parse_question(question)
+        except jsonschema.ValidationError:
+            return
 
-        topic = answer_topic or self.instantiate_answer_topic(question_uuid)
-        self._send_delivery_acknowledgment(topic)
-
-        heartbeater = RepeatingTimer(
-            interval=heartbeat_interval,
-            function=self._send_heartbeat,
-            kwargs={"topic": topic},
-        )
-
-        heartbeater.daemon = True
-        heartbeater.start()
+        topic = Topic(name=self._pub_sub_id, project_name=self.backend.project_name)
+        heartbeater = None
 
         try:
+            self._send_delivery_acknowledgment(topic, question_uuid)
+
+            heartbeater = RepeatingTimer(
+                interval=heartbeat_interval,
+                function=self._send_heartbeat,
+                kwargs={"topic": topic, "question_uuid": question_uuid},
+            )
+
+            heartbeater.daemon = True
+            heartbeater.start()
+
             if forward_logs:
                 analysis_log_handler = GooglePubSubHandler(
                     message_sender=self._send_message,
                     topic=topic,
-                    analysis_id=question_uuid,
+                    question_uuid=question_uuid,
                 )
             else:
                 analysis_log_handler = None
 
             analysis = self.run_function(
                 analysis_id=question_uuid,
-                input_values=data["input_values"],
-                input_manifest=data["input_manifest"],
-                children=data.get("children"),
+                input_values=question.get("input_values"),
+                input_manifest=question.get("input_manifest"),
+                children=question.get("children"),
                 analysis_log_handler=analysis_log_handler,
-                handle_monitor_message=functools.partial(self._send_monitor_message, topic=topic),
-                allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
+                handle_monitor_message=functools.partial(
+                    self._send_monitor_message,
+                    topic=topic,
+                    question_uuid=question_uuid,
+                ),
+                save_diagnostics=save_diagnostics,
             )
 
-            if analysis.output_manifest is None:
-                serialised_output_manifest = None
-            else:
-                serialised_output_manifest = analysis.output_manifest.serialise()
+            result = {"kind": "result"}
+
+            if analysis.output_values is not None:
+                result["output_values"] = analysis.output_values
+
+            if analysis.output_manifest is not None:
+                result["output_manifest"] = analysis.output_manifest.to_primitive()
 
             self._send_message(
-                {
-                    "type": "result",
-                    "output_values": analysis.output_values,
-                    "output_manifest": serialised_output_manifest,
-                },
+                message=result,
                 topic=topic,
+                attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
                 timeout=timeout,
             )
 
@@ -250,9 +262,11 @@ class Service:
             logger.info("%r answered question %r.", self, question_uuid)
 
         except BaseException as error:  # noqa
-            heartbeater.cancel()
+            if heartbeater is not None:
+                heartbeater.cancel()
+
             warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
-            self.send_exception(topic, timeout)
+            self.send_exception(topic, question_uuid, timeout=timeout)
             raise error
 
     def ask(
@@ -263,7 +277,7 @@ class Service:
         children=None,
         subscribe_to_logs=True,
         allow_local_files=False,
-        allow_save_diagnostics_data_on_crash=True,
+        save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",  # This is repeated as a string here to avoid a circular import.
         question_uuid=None,
         push_endpoint=None,
         timeout=86400,
@@ -278,7 +292,7 @@ class Service:
         :param list(dict)|None children: a list of children for the child to use instead of its default children (if it uses children). These should be in the same format as in an app's app configuration file and have the same keys.
         :param bool subscribe_to_logs: if `True`, subscribe to the child's logs and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will be able to access these local files
-        :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved by the child if it fails while processing them
+        :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here; if they should be pulled, leave this as `None`
         :param float|None timeout: time in seconds to keep retrying sending the question
@@ -310,34 +324,43 @@ class Service:
                 )
 
         pub_sub_service_id = convert_service_id_to_pub_sub_form(service_id)
-        question_topic = Topic(name=pub_sub_service_id, project_name=self.backend.project_name)
+        topic = Topic(name=pub_sub_service_id, project_name=self.backend.project_name)
 
-        if not question_topic.exists(timeout=timeout):
+        if not topic.exists(timeout=timeout):
             raise octue.exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
 
         question_uuid = question_uuid or str(uuid.uuid4())
 
-        answer_topic = self.instantiate_answer_topic(question_uuid, pub_sub_service_id)
-        answer_topic.create(allow_existing=False)
-
         answer_subscription = Subscription(
-            name=answer_topic.name,
-            topic=answer_topic,
+            name=".".join((topic.name, ANSWERS_NAMESPACE, question_uuid)),
+            topic=topic,
             project_name=self.backend.project_name,
+            filter=f'attributes.question_uuid = "{question_uuid}" AND attributes.sender_type = "{CHILD_SENDER_TYPE}"',
             push_endpoint=push_endpoint,
         )
         answer_subscription.create(allow_existing=False)
 
+        question = {"kind": "question"}
+
+        if input_values is not None:
+            question["input_values"] = input_values
+
         if input_manifest is not None:
             input_manifest.use_signed_urls_for_datasets()
-            input_manifest = input_manifest.to_primitive()
+            question["input_manifest"] = input_manifest.to_primitive()
+
+        if children is not None:
+            question["children"] = children
 
         self._send_message(
-            {"input_values": input_values, "input_manifest": input_manifest, "children": children},
-            topic=question_topic,
-            question_uuid=question_uuid,
-            forward_logs=subscribe_to_logs,
-            allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
+            message=question,
+            topic=topic,
+            attributes={
+                "question_uuid": question_uuid,
+                "sender_type": PARENT_SENDER_TYPE,
+                "forward_logs": subscribe_to_logs,
+                "save_diagnostics": save_diagnostics,
+            },
         )
 
         logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
@@ -388,22 +411,11 @@ class Service:
         finally:
             subscription.delete()
 
-    def instantiate_answer_topic(self, question_uuid, service_id=None):
-        """Instantiate the answer topic for the given question UUID and child service ID.
-
-        :param str question_uuid:
-        :param str|None service_id: the ID of the child to ask the question to in Pub/Sub form
-        :return octue.cloud.pub_sub.topic.Topic:
-        """
-        return Topic(
-            name=".".join((service_id or self._pub_sub_id, ANSWERS_NAMESPACE, question_uuid)),
-            project_name=self.backend.project_name,
-        )
-
-    def send_exception(self, topic, timeout=30):
+    def send_exception(self, topic, question_uuid, timeout=30):
         """Serialise and send the exception being handled to the parent.
 
         :param octue.cloud.pub_sub.topic.Topic topic:
+        :param str question_uuid:
         :param float|None timeout: time in seconds to keep retrying sending of the exception
         :return None:
         """
@@ -412,30 +424,30 @@ class Service:
 
         self._send_message(
             {
-                "type": "exception",
+                "kind": "exception",
                 "exception_type": exception["type"],
                 "exception_message": exception_message,
-                "traceback": exception["traceback"],
+                "exception_traceback": exception["traceback"],
             },
             topic=topic,
+            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
             timeout=timeout,
         )
 
-    def _send_message(self, message, topic, timeout=30, **attributes):
+    def _send_message(self, message, topic, attributes=None, timeout=30):
         """Send a JSON-serialised message to the given topic with optional message attributes.
 
         :param dict message: JSON-serialisable data to send as a message
         :param octue.cloud.pub_sub.topic.Topic topic: the Pub/Sub topic to send the message to
+        :param dict|None attributes: key-value pairs to attach to the message - the values must be strings or bytes
         :param int|float timeout: the timeout for sending the message in seconds
-        :param attributes: key-value pairs to attach to the message - the values must be strings or bytes
         :return None:
         """
-        with send_message_lock:
-            attributes["octue_sdk_version"] = self._local_sdk_version
+        attributes = attributes or {}
 
-            # This would be better placed in the Pub/Sub message's attributes but has been left in `message` for
-            # inter-service backwards compatibility.
-            message["message_number"] = topic.messages_published
+        with send_message_lock:
+            attributes["version"] = self._local_sdk_version
+            attributes["message_number"] = topic.messages_published
             converted_attributes = {}
 
             for key, value in attributes.items():
@@ -455,100 +467,93 @@ class Service:
 
             topic.messages_published += 1
 
-    def _send_delivery_acknowledgment(self, topic, timeout=30):
+    def _send_delivery_acknowledgment(self, topic, question_uuid, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
 
         :param octue.cloud.pub_sub.topic.Topic topic: topic to send the acknowledgement to
+        :param str question_uuid:
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
         self._send_message(
             {
-                "type": "delivery_acknowledgement",
-                "delivery_time": str(datetime.datetime.now()),
+                "kind": "delivery_acknowledgement",
+                "datetime": datetime.datetime.utcnow().isoformat(),
             },
             topic=topic,
             timeout=timeout,
+            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
 
         logger.info("%r acknowledged receipt of question.", self)
 
-    def _send_heartbeat(self, topic, timeout=30):
+    def _send_heartbeat(self, topic, question_uuid, timeout=30):
         """Send a heartbeat to the parent, indicating that the service is alive.
 
         :param octue.cloud.pub_sub.topic.Topic topic: topic to send the heartbeat to
+        :param str question_uuid:
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
         self._send_message(
             {
-                "type": "heartbeat",
-                "time": str(datetime.datetime.now()),
+                "kind": "heartbeat",
+                "datetime": datetime.datetime.utcnow().isoformat(),
             },
             topic=topic,
             timeout=timeout,
+            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
 
         logger.debug("Heartbeat sent by %r.", self)
 
-    def _send_monitor_message(self, data, topic, timeout=30):
+    def _send_monitor_message(self, data, topic, question_uuid, timeout=30):
         """Send a monitor message to the parent.
 
         :param any data: the data to send as a monitor message
         :param octue.cloud.pub_sub.topic.Topic topic: the topic to send the message to
+        :param str question_uuid:
         :param float timeout: time in seconds to retry sending the message
         :return None:
         """
         self._send_message(
-            {
-                "type": "monitor_message",
-                "data": json.dumps(data, cls=OctueJSONEncoder),
-            },
+            {"kind": "monitor_message", "data": data},
             topic=topic,
             timeout=timeout,
+            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
 
         logger.debug("Monitor message sent by %r.", self)
 
     def _parse_question(self, question):
-        """Parse a question in the Google Cloud Pub/Sub or Google Cloud Run format.
+        """Parse a question in the Google Cloud Run or Google Pub/Sub format.
 
-        :param dict|Message question:
-        :return (dict, str, bool, str|None, bool):
+        :param dict|google.cloud.pubsub_v1.subscriber.message.Message question: the question to parse in Google Cloud Run or Google Pub/Sub format
+        :return (dict, str, bool, str, str): the question's event and its attributes (question UUID, whether to forward logs, the Octue SDK version of the parent, and whether to save diagnostics)
         """
         logger.info("%r received a question.", self)
 
-        try:
-            # Parse question directly from Pub/Sub or Dataflow.
-            data = json.loads(question.data.decode(), cls=OctueJSONDecoder)
+        # Acknowledge it if it's directly from Pub/Sub
+        if hasattr(question, "ack"):
+            question.ack()
 
-            # Acknowledge it if it's directly from Pub/Sub
-            if hasattr(question, "ack"):
-                question.ack()
+        event, attributes = extract_event_and_attributes_from_pub_sub(question)
+        event_for_validation = copy.deepcopy(event)
 
-        except Exception:
-            # Parse question from Google Cloud Run.
-            data = json.loads(base64.b64decode(question["data"]).decode("utf-8").strip(), cls=OctueJSONDecoder)
-
-        # Keep backwards compatibility with questions from Octue services running `octue<0.41.1`.
-        if isinstance(data["input_manifest"], str):
-            data["input_manifest"] = json.loads(data["input_manifest"], cls=OctueJSONDecoder)
-
-        question_uuid = get_nested_attribute(question, "attributes.question_uuid")
-        forward_logs = bool(int(get_nested_attribute(question, "attributes.forward_logs")))
-
-        try:
-            parent_sdk_version = get_nested_attribute(question, "attributes.octue_sdk_version")
-        except AttributeError:
-            parent_sdk_version = None
-
-        try:
-            allow_save_diagnostics_data_on_crash = get_nested_attribute(
-                question,
-                "attributes.allow_save_diagnostics_data_on_crash",
-            )
-        except AttributeError:
-            allow_save_diagnostics_data_on_crash = False
+        raise_if_event_is_invalid(
+            event=event_for_validation,
+            attributes=attributes,
+            receiving_service=self,
+            parent_sdk_version=attributes.get("version"),
+            child_sdk_version=importlib.metadata.version("octue"),
+        )
 
         logger.info("%r parsed the question successfully.", self)
-        return data, question_uuid, forward_logs, parent_sdk_version, allow_save_diagnostics_data_on_crash
+
+        return (
+            event,
+            attributes["question_uuid"],
+            attributes["forward_logs"],
+            attributes["version"],
+            attributes["save_diagnostics"],
+        )

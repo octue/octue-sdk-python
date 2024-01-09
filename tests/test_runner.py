@@ -301,7 +301,7 @@ class TestRunner(BaseTestCase):
 
     def test_child_messages_saved_even_if_child_ask_method_raises_error(self):
         """Test that messages from the child are still saved even if an error is raised within the `Child.ask` method."""
-        crash_diagnostics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_diagnostics")
+        diagnostics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "diagnostics")
 
         def app(analysis):
             analysis.children["my-child"].ask(input_values=[1, 2, 3, 4])
@@ -334,7 +334,7 @@ class TestRunner(BaseTestCase):
                     },
                 },
             ],
-            crash_diagnostics_cloud_path=crash_diagnostics_cloud_path,
+            diagnostics_cloud_path=diagnostics_cloud_path,
             service_id="octue/my-app:2.5.8",
         )
 
@@ -342,16 +342,16 @@ class TestRunner(BaseTestCase):
             ChildEmulator(
                 id=f"octue/the-child:{MOCK_SERVICE_REVISION_TAG}",
                 messages=[
-                    {"type": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
+                    {"kind": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
                 ],
             ),
             ChildEmulator(
                 id=f"octue/yet-another-child:{MOCK_SERVICE_REVISION_TAG}",
                 messages=[
-                    {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
-                    {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
+                    {"kind": "log_record", "log_record": {"msg": "Starting analysis."}},
+                    {"kind": "log_record", "log_record": {"msg": "Finishing analysis."}},
                     {
-                        "type": "exception",
+                        "kind": "exception",
                         "exception_type": "ValueError",
                         "exception_message": "Deliberately raised for testing.",
                     },
@@ -367,16 +367,16 @@ class TestRunner(BaseTestCase):
                 runner.run(analysis_id=analysis_id, input_values={"hello": "world"})
 
         storage_client = GoogleCloudStorageClient()
-        question_crash_diagnostics_path = storage.path.join(crash_diagnostics_cloud_path, analysis_id)
+        question_diagnostics_path = storage.path.join(diagnostics_cloud_path, analysis_id)
 
         # Check the input values.
         self.assertEqual(
-            storage_client.download_as_string(storage.path.join(question_crash_diagnostics_path, "input_values.json")),
+            storage_client.download_as_string(storage.path.join(question_diagnostics_path, "input_values.json")),
             json.dumps({"hello": "world"}),
         )
 
         # Check that messages from the children have been recorded.
-        with Datafile(storage.path.join(question_crash_diagnostics_path, "questions.json")) as (_, f):
+        with Datafile(storage.path.join(question_diagnostics_path, "questions.json")) as (_, f):
             questions = json.load(f)
 
         # First question.
@@ -390,7 +390,7 @@ class TestRunner(BaseTestCase):
         self.assertEqual(questions[1]["id"], f"octue/yet-another-child:{MOCK_SERVICE_REVISION_TAG}")
         self.assertEqual(questions[1]["input_values"], "miaow")
 
-        self.assertEqual(questions[1]["messages"][1]["type"], "exception")
+        self.assertEqual(questions[1]["messages"][1]["kind"], "exception")
         self.assertEqual(questions[1]["messages"][1]["exception_type"], "ValueError")
         self.assertEqual(
             questions[1]["messages"][1]["exception_message"],
@@ -702,7 +702,7 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
         return input_manifest
 
 
-class TestRunnerCrashDiagnostics(BaseTestCase):
+class TestRunnerDiagnostics(BaseTestCase):
     def _generate_manifests(self, serialise=False):
         """Generate configuration and input manifests containing dummy data.
 
@@ -729,14 +729,14 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
 
         return manifests["configuration"], manifests["input"]
 
-    def test_crash_diagnostics_with_unserialised_and_serialised_data(self):
-        """Test that unserialised and serialised analysis configurations and inputs are saved to the crash diagnostics
+    def test_diagnostics_with_unserialised_and_serialised_data(self):
+        """Test that unserialised and serialised analysis configurations and inputs are saved to the diagnostics
         cloud path if the app crashes when the runner has been allowed to save them.
         """
-        crash_diagnostics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "crash_diagnostics")
+        diagnostics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "diagnostics")
 
         def app(analysis):
-            # Mutate the configuration and inputs so we can test the originals are preserved for crash diagnostics.
+            # Mutate the configuration and inputs so we can test the originals are preserved for diagnostics.
             analysis.configuration_values = None
             analysis.configuration_manifest = None
             analysis.input_values = None
@@ -782,7 +782,7 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
                             },
                         },
                     ],
-                    crash_diagnostics_cloud_path=crash_diagnostics_cloud_path,
+                    diagnostics_cloud_path=diagnostics_cloud_path,
                     service_id="octue/my-app:2.5.7",
                 )
 
@@ -790,15 +790,15 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
                     ChildEmulator(
                         id=f"octue/a-child:{MOCK_SERVICE_REVISION_TAG}",
                         messages=[
-                            {"type": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
+                            {"kind": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
                         ],
                     ),
                     ChildEmulator(
                         id=f"octue/another-child:{MOCK_SERVICE_REVISION_TAG}",
                         messages=[
-                            {"type": "log_record", "log_record": {"msg": "Starting analysis."}},
-                            {"type": "log_record", "log_record": {"msg": "Finishing analysis."}},
-                            {"type": "result", "output_values": "woof", "output_manifest": None},
+                            {"kind": "log_record", "log_record": {"msg": "Starting analysis."}},
+                            {"kind": "log_record", "log_record": {"msg": "Finishing analysis."}},
+                            {"kind": "result", "output_values": "woof", "output_manifest": None},
                         ],
                     ),
                 ]
@@ -812,11 +812,11 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
                             analysis_id=analysis_id,
                             input_values=values,
                             input_manifest=input_manifest,
-                            allow_save_diagnostics_data_on_crash=True,
+                            save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
                         )
 
                 storage_client = GoogleCloudStorageClient()
-                question_crash_diagnostics_path = storage.path.join(crash_diagnostics_cloud_path, analysis_id)
+                question_diagnostics_path = storage.path.join(diagnostics_cloud_path, analysis_id)
 
                 if isinstance(values, str):
                     expected_values = values
@@ -826,7 +826,7 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
                 # Check the configuration values.
                 self.assertEqual(
                     storage_client.download_as_string(
-                        storage.path.join(question_crash_diagnostics_path, "configuration_values.json")
+                        storage.path.join(question_diagnostics_path, "configuration_values.json")
                     ),
                     expected_values,
                 )
@@ -834,14 +834,14 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
                 # Check the input values.
                 self.assertEqual(
                     storage_client.download_as_string(
-                        storage.path.join(question_crash_diagnostics_path, "input_values.json")
+                        storage.path.join(question_diagnostics_path, "input_values.json")
                     ),
                     expected_values,
                 )
 
                 # Check the configuration manifest and dataset.
                 configuration_manifest = Manifest.from_cloud(
-                    storage.path.join(question_crash_diagnostics_path, "configuration_manifest.json")
+                    storage.path.join(question_diagnostics_path, "configuration_manifest.json")
                 )
                 configuration_dataset = configuration_manifest.datasets["met_mast_data"]
                 self.assertEqual(configuration_dataset.labels, {"some-configuration-metadata"})
@@ -852,18 +852,16 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
                 with configuration_file.open() as f:
                     self.assertEqual(f.read(), "configuration manifest data")
 
-                # Check the configuration dataset's path is in the crash diagnostics cloud directory.
+                # Check the configuration dataset's path is in the diagnostics cloud directory.
                 self.assertEqual(
                     configuration_dataset.path,
-                    storage.path.join(
-                        question_crash_diagnostics_path, "configuration_manifest_datasets", "met_mast_data"
-                    ),
+                    storage.path.join(question_diagnostics_path, "configuration_manifest_datasets", "met_mast_data"),
                 )
 
                 self.assertEqual(
                     configuration_file.cloud_path,
                     storage.path.join(
-                        question_crash_diagnostics_path,
+                        question_diagnostics_path,
                         "configuration_manifest_datasets",
                         "met_mast_data",
                         "my_file.txt",
@@ -872,7 +870,7 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
 
                 # Check the input manifest and dataset.
                 input_manifest = Manifest.from_cloud(
-                    storage.path.join(question_crash_diagnostics_path, "input_manifest.json")
+                    storage.path.join(question_diagnostics_path, "input_manifest.json")
                 )
                 input_dataset = input_manifest.datasets["met_mast_data"]
                 self.assertEqual(input_dataset.labels, {"some-input-metadata"})
@@ -883,21 +881,21 @@ class TestRunnerCrashDiagnostics(BaseTestCase):
                 with input_file.open() as f:
                     self.assertEqual(f.read(), "input manifest data")
 
-                # Check the input dataset's path is in the crash diagnostics cloud directory.
+                # Check the input dataset's path is in the diagnostics cloud directory.
                 self.assertEqual(
                     input_dataset.path,
-                    storage.path.join(question_crash_diagnostics_path, "input_manifest_datasets", "met_mast_data"),
+                    storage.path.join(question_diagnostics_path, "input_manifest_datasets", "met_mast_data"),
                 )
 
                 self.assertEqual(
                     input_file.cloud_path,
                     storage.path.join(
-                        question_crash_diagnostics_path, "input_manifest_datasets", "met_mast_data", "my_file.txt"
+                        question_diagnostics_path, "input_manifest_datasets", "met_mast_data", "my_file.txt"
                     ),
                 )
 
                 # Check that messages from the children have been recorded.
-                with Datafile(storage.path.join(question_crash_diagnostics_path, "questions.json")) as (_, f):
+                with Datafile(storage.path.join(question_diagnostics_path, "questions.json")) as (_, f):
                     questions = json.load(f)
 
                 # First question.

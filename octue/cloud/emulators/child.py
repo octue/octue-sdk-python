@@ -49,7 +49,7 @@ class ChildEmulator:
             "result": self._handle_result,
         }
 
-        self._valid_message_types = set(self._message_handlers.keys())
+        self._valid_message_kinds = set(self._message_handlers.keys())
 
     @classmethod
     def from_file(cls, path):
@@ -138,7 +138,7 @@ class ChildEmulator:
         children,
         analysis_log_handler,
         handle_monitor_message,
-        allow_save_diagnostics_data_on_crash,
+        save_diagnostics,
     ):
         """Emulate analysis of a question by handling the messages given at instantiation in the order given.
 
@@ -148,12 +148,12 @@ class ChildEmulator:
         :param list(dict)|None children: a list of children for the child to use instead of its default children (if it uses children). These should be in the same format as in an app's app configuration file and have the same keys. (this is ignored by the emulator)
         :param logging.Handler|None analysis_log_handler: the `logging.Handler` instance which will be used to handle logs for this analysis run (this is ignored by the emulator)
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
-        :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved if the analysis fails
+        :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if the analysis fails
         :return octue.resources.analysis.Analysis:
         """
         for message in self.messages:
             self._validate_message(message)
-            handler = self._message_handlers[message["type"]]
+            handler = self._message_handlers[message["kind"]]
 
             result = handler(
                 message,
@@ -163,7 +163,7 @@ class ChildEmulator:
                 children=children,
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=handle_monitor_message,
-                allow_save_diagnostics_data_on_crash=allow_save_diagnostics_data_on_crash,
+                save_diagnostics=save_diagnostics,
             )
 
             if result:
@@ -185,28 +185,28 @@ class ChildEmulator:
 
         :param dict message:
         :raise TypeError: if the message isn't a dictionary
-        :raise ValueError: if the message doesn't contain a 'type' key or if the 'type' key maps to an invalid value
+        :raise ValueError: if the message doesn't contain a 'kind' key or if the 'kind' key maps to an invalid value
         :return None:
         """
         if not isinstance(message, dict):
             raise TypeError("Each message must be a dictionary.")
 
-        if "type" not in message:
+        if "kind" not in message:
             raise ValueError(
-                f"Each message must contain a 'type' key mapping to one of: {self._valid_message_types!r}."
+                f"Each message must contain a 'kind' key mapping to one of: {self._valid_message_kinds!r}."
             )
 
-        if message["type"] not in self._valid_message_types:
+        if message["kind"] not in self._valid_message_kinds:
             raise ValueError(
-                f"{message['type']!r} is an invalid message type for the ChildEmulator. The valid types are: "
-                f"{self._valid_message_types!r}."
+                f"{message['kind']!r} is an invalid message kind for the ChildEmulator. The valid kinds are: "
+                f"{self._valid_message_kinds!r}."
             )
 
     def _handle_delivery_acknowledgement(self, message, **kwargs):
         """A no-operation handler for delivery acknowledgement messages (these messages are ignored by the child
         emulator).
 
-        :param dict message: a dictionary containing the key "delivery_time"
+        :param dict message: a dictionary containing the key "datetime"
         :param kwargs: this should be empty
         :return None:
         """
@@ -215,7 +215,7 @@ class ChildEmulator:
     def _handle_heartbeat(self, message, **kwargs):
         """A no-operation handler for heartbeat messages (these messages are ignored by the child emulator).
 
-        :param dict message: a dictionary containing the key "time"
+        :param dict message: a dictionary containing the key "datetime"
         :param kwargs: this should be empty
         :return None:
         """
@@ -253,7 +253,7 @@ class ChildEmulator:
         :param kwargs: must include the "handle_monitor_message" key
         :return None:
         """
-        kwargs.get("handle_monitor_message")(json.loads(message["data"]))
+        kwargs.get("handle_monitor_message")(message["data"])
 
     def _handle_exception(self, message, **kwargs):
         """Raise the given exception.
@@ -286,29 +286,24 @@ class ChildEmulator:
         :raise ValueError: if the result doesn't contain the "output_values" and "output_manifest" keys
         :return octue.resources.analysis.Analysis: an `Analysis` instance containing the emulated outputs
         """
+        input_manifest = kwargs.get("input_manifest")
         output_manifest = message.get("output_manifest")
+
+        if input_manifest and not isinstance(input_manifest, Manifest):
+            input_manifest = Manifest.deserialise(input_manifest)
 
         if output_manifest and not isinstance(output_manifest, Manifest):
             output_manifest = Manifest.deserialise(output_manifest)
 
-        try:
-            if kwargs["input_manifest"] is not None:
-                kwargs["input_manifest"] = Manifest.deserialise(kwargs["input_manifest"])
-
-            return Analysis(
-                id=kwargs["analysis_id"],
-                twine={},
-                handle_monitor_message=kwargs["handle_monitor_message"],
-                input_values=kwargs["input_values"],
-                input_manifest=kwargs["input_manifest"],
-                output_values=message["output_values"],
-                output_manifest=output_manifest,
-            )
-
-        except KeyError:
-            raise ValueError(
-                "Result messages must be dictionaries containing the keys 'output_values' and 'output_manifest'."
-            )
+        return Analysis(
+            id=kwargs["analysis_id"],
+            twine={},
+            handle_monitor_message=kwargs["handle_monitor_message"],
+            input_values=kwargs["input_values"],
+            input_manifest=input_manifest,
+            output_values=message.get("output_values"),
+            output_manifest=output_manifest,
+        )
 
 
 class ServicePatcher(MultiPatcher):

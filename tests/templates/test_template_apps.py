@@ -148,15 +148,15 @@ class TemplateAppsTestCase(BaseTestCase):
                 id=f"template-child-services/wind-speed-service:{MOCK_SERVICE_REVISION_TAG}",
                 internal_service_name=runner.service_id,
                 messages=[
-                    {"type": "log_record", "log_record": {"msg": "This is an emulated child log message."}},
-                    {"type": "result", "output_values": [10], "output_manifest": None},
+                    {"kind": "log_record", "log_record": {"msg": "This is an emulated child log message."}},
+                    {"kind": "result", "output_values": [10], "output_manifest": None},
                 ],
             ),
             ChildEmulator(
                 id=f"template-child-services/elevation-service:{MOCK_SERVICE_REVISION_TAG}",
                 internal_service_name=runner.service_id,
                 messages=[
-                    {"type": "result", "output_values": [300], "output_manifest": None},
+                    {"kind": "result", "output_values": [300], "output_manifest": None},
                 ],
             ),
         ]

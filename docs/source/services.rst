@@ -88,3 +88,12 @@ They look like ``namespace/name:tag`` where the tag is often a semantic version 
         name. It can be used to ask a question to a service without specifying a specific revision of it. This enables
         asking questions to, for example, the service ``octue/my-service`` and automatically having them routed to its
         default (usually latest) revision. :ref:`See here for more info<using_default_revision_tag>`.
+
+
+Service communication standard
+==============================
+
+Octue services communicate according to the service communication standard. The JSON schema defining this can be found
+`here <https://strands.octue.com/octue/service-communication>`_. Messages received by services are validated against it
+and invalid messages are rejected. The schema is in beta, so (rare) breaking changes are reflected in the minor version
+number.

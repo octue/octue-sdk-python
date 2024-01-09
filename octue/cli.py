@@ -12,7 +12,7 @@ from google import auth
 
 from octue.cloud import storage
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.service import Service
+from octue.cloud.pub_sub.service import PARENT_SENDER_TYPE, Service
 from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_sruid, get_sruid_parts
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.configuration import load_service_and_app_configuration
@@ -22,7 +22,6 @@ from octue.log_handlers import apply_log_handler, get_remote_handler
 from octue.resources import Manifest, service_backends
 from octue.runner import Runner
 from octue.utils.encoders import OctueJSONEncoder
-from twined import Twine
 
 
 logger = logging.getLogger(__name__)
@@ -129,16 +128,7 @@ def run(service_config, input_dir, output_file, output_manifest_file, monitor_me
     if os.path.exists(input_manifest_path):
         input_manifest = input_manifest_path
 
-    runner = Runner(
-        app_src=service_configuration.app_source_path,
-        twine=Twine(source=service_configuration.twine_path),
-        configuration_values=app_configuration.configuration_values,
-        configuration_manifest=app_configuration.configuration_manifest,
-        children=app_configuration.children,
-        output_location=app_configuration.output_location,
-        crash_diagnostics_cloud_path=service_configuration.crash_diagnostics_cloud_path,
-        service_registries=service_configuration.service_registries,
-    )
+    runner = Runner.from_configuration(service_configuration=service_configuration, app_configuration=app_configuration)
 
     if monitor_messages_file:
         if not os.path.exists(os.path.dirname(monitor_messages_file)):
@@ -229,14 +219,9 @@ def start(service_config, revision_tag, timeout, no_rm):
         revision_tag=service_revision_tag_override or service_revision_tag,
     )
 
-    runner = Runner(
-        app_src=service_configuration.app_source_path,
-        twine=Twine(source=service_configuration.twine_path),
-        configuration_values=app_configuration.configuration_values,
-        configuration_manifest=app_configuration.configuration_manifest,
-        children=app_configuration.children,
-        output_location=app_configuration.output_location,
-        crash_diagnostics_cloud_path=service_configuration.crash_diagnostics_cloud_path,
+    runner = Runner.from_configuration(
+        service_configuration=service_configuration,
+        app_configuration=app_configuration,
         service_id=service_sruid,
     )
 
@@ -296,12 +281,12 @@ def start(service_config, revision_tag, timeout, no_rm):
 @click.option(
     "--download-datasets",
     is_flag=True,
-    help="If provided, download any datasets from the crash diagnostics and update their paths in the configuration and "
+    help="If provided, download any datasets from the diagnostics and update their paths in the configuration and "
     "input manifests to the new local paths.",
 )
-def get_crash_diagnostics(cloud_path, local_path, download_datasets):
-    """Download crash diagnostics for an analysis from the given directory in Google Cloud Storage. The cloud path
-    should end in the analysis ID.
+def get_diagnostics(cloud_path, local_path, download_datasets):
+    """Download diagnostics for a question from the given directory in Google Cloud Storage. The cloud path should end
+    in the question ID.
 
     CLOUD_PATH: The path to the directory in Google Cloud Storage containing the diagnostics data.
     """
@@ -344,7 +329,7 @@ def get_crash_diagnostics(cloud_path, local_path, download_datasets):
 
             manifest.to_file(manifest_path)
 
-    logger.info("Downloaded crash diagnostics from %r to %r.", cloud_path, local_path)
+    logger.info("Downloaded diagnostics from %r to %r.", cloud_path, local_path)
 
 
 @octue_cli.group()
@@ -409,6 +394,7 @@ def create_push_subscription(
         name=pub_sub_sruid,
         topic=topic,
         project_name=project_name,
+        filter=f'attributes.sender_type = "{PARENT_SENDER_TYPE}"',
         expiration_time=expiration_time,
         push_endpoint=push_endpoint,
     )

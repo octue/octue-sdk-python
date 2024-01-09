@@ -29,26 +29,28 @@ class TestAnswerPubSubQuestion(TestCase):
                 patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "blah"}),
             ]
         ):
-            with patch("octue.cloud.deployment.google.answer_pub_sub_question.Runner") as mock_runner:
+            with patch(
+                "octue.cloud.deployment.google.answer_pub_sub_question.Runner.from_configuration"
+            ) as mock_constructor:
                 answer_question(
                     question={"data": {}, "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"}},
                     project_name="a-project-name",
                 )
 
-        mock_runner.assert_called_with(
-            **{
-                "app_src": ".",
-                "twine": "twine.json",
-                "configuration_values": None,
-                "configuration_manifest": None,
-                "children": None,
-                "output_location": None,
-                "crash_diagnostics_cloud_path": None,
-                "project_name": "a-project-name",
-                "service_id": "testing/test-service:blah",
-                "service_registries": None,
-            }
+        self.assertTrue(
+            mock_constructor.call_args.kwargs["service_configuration"].app_source_path.endswith("octue-sdk-python")
         )
+        self.assertTrue(mock_constructor.call_args.kwargs["service_configuration"].twine_path.endswith("twine.json"))
+        self.assertIsNone(mock_constructor.call_args.kwargs["service_configuration"].diagnostics_cloud_path)
+        self.assertIsNone(mock_constructor.call_args.kwargs["service_configuration"].service_registries)
+
+        self.assertIsNone(mock_constructor.call_args.kwargs["app_configuration"].configuration_values)
+        self.assertIsNone(mock_constructor.call_args.kwargs["app_configuration"].configuration_manifest)
+        self.assertIsNone(mock_constructor.call_args.kwargs["app_configuration"].children)
+        self.assertIsNone(mock_constructor.call_args.kwargs["app_configuration"].output_location)
+
+        self.assertEqual(mock_constructor.call_args.kwargs["project_name"], "a-project-name")
+        self.assertEqual(mock_constructor.call_args.kwargs["service_id"], "testing/test-service:blah")
 
     def test_with_service_configuration_file_and_app_configuration_file(self):
         """Test that the `answer_question` function uses the values in the service and app configuration files if they
@@ -73,7 +75,9 @@ class TestAnswerPubSubQuestion(TestCase):
                 "app_configuration.json": json.dumps({"configuration_values": {"hello": "configuration"}}),
             }
 
-        with patch("octue.cloud.deployment.google.answer_pub_sub_question.Runner") as mock_runner:
+        with patch(
+            "octue.cloud.deployment.google.answer_pub_sub_question.Runner.from_configuration"
+        ) as mock_constructor:
             with MultiPatcher(
                 patches=[
                     patch("octue.configuration.open", mock.mock_open(mock=MockOpenForConfigurationFiles)),
@@ -90,17 +94,21 @@ class TestAnswerPubSubQuestion(TestCase):
                     project_name="a-project-name",
                 )
 
-        mock_runner.assert_called_with(
-            **{
-                "app_src": "/path/to/app_dir",
-                "twine": "path/to/twine.json",
-                "configuration_values": {"hello": "configuration"},
-                "configuration_manifest": None,
-                "children": None,
-                "output_location": None,
-                "crash_diagnostics_cloud_path": None,
-                "project_name": "a-project-name",
-                "service_id": "testing/test-service:blah",
-                "service_registries": None,
-            }
+        self.assertTrue(
+            mock_constructor.call_args.kwargs["service_configuration"].app_source_path.endswith("path/to/app_dir")
         )
+        self.assertTrue(
+            mock_constructor.call_args.kwargs["service_configuration"].twine_path.endswith("path/to/twine.json")
+        )
+        self.assertIsNone(mock_constructor.call_args.kwargs["service_configuration"].diagnostics_cloud_path)
+        self.assertIsNone(mock_constructor.call_args.kwargs["service_configuration"].service_registries)
+
+        self.assertEqual(
+            mock_constructor.call_args.kwargs["app_configuration"].configuration_values, {"hello": "configuration"}
+        )
+        self.assertIsNone(mock_constructor.call_args.kwargs["app_configuration"].configuration_manifest)
+        self.assertIsNone(mock_constructor.call_args.kwargs["app_configuration"].children)
+        self.assertIsNone(mock_constructor.call_args.kwargs["app_configuration"].output_location)
+
+        self.assertEqual(mock_constructor.call_args.kwargs["project_name"], "a-project-name")
+        self.assertEqual(mock_constructor.call_args.kwargs["service_id"], "testing/test-service:blah")

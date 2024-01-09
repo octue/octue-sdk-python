@@ -1,18 +1,17 @@
 {
-    "messages": [
-        {
-            "type": "log_record",
-            "log_record": {"msg": "Starting analysis."}
-        },
-        {
-            "type": "exception",
-            "exception_type": "FileNotFoundError",
-            "exception_message": "Blah blah blah."
-        },
-        {
-            "type": "result",
-            "output_values": [1, 2, 3, 4, 5],
-            "output_manifest": null
-        }
-    ]
+  "messages": [
+    {
+      "kind": "log_record",
+      "log_record": { "msg": "Starting analysis." }
+    },
+    {
+      "kind": "exception",
+      "exception_type": "FileNotFoundError",
+      "exception_message": "Blah blah blah."
+    },
+    {
+      "kind": "result",
+      "output_values": [1, 2, 3, 4, 5]
+    }
+  ]
 }

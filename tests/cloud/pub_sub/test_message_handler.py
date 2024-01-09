@@ -4,7 +4,7 @@ import math
 from unittest.mock import patch
 
 from octue.cloud.emulators._pub_sub import (
-    MESSAGES,
+    SUBSCRIPTIONS,
     MockMessage,
     MockMessagePuller,
     MockService,
@@ -19,9 +19,11 @@ from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 
 
-mock_topic = MockTopic(name="world", project_name=TEST_PROJECT_NAME)
-receiving_service = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
-mock_subscription = MockSubscription(name="world", topic=mock_topic, project_name=TEST_PROJECT_NAME)
+mock_topic = MockTopic(name="my-org.my-service.1-0-0", project_name=TEST_PROJECT_NAME)
+mock_subscription = MockSubscription(name="my-org.my-service.1-0-0", topic=mock_topic, project_name=TEST_PROJECT_NAME)
+receiving_service = MockService(
+    service_id="my-org/my-service:1.0.0", backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME)
+)
 
 
 class TestOrderedMessageHandler(BaseTestCase):
@@ -32,31 +34,18 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: message},
+                schema={},
             )
 
         with patch(
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
             new=MockMessagePuller(
-                messages=[{"type": "test", "message_number": 0}],
+                messages=[MockMessage(b"")],
                 message_handler=message_handler,
             ).pull,
         ):
             with self.assertRaises(TimeoutError):
                 message_handler.handle_messages(timeout=0)
-
-    def test_unknown_message_type_raises_warning(self):
-        """Test that unknown message types result in a warning being logged."""
-        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(
-                subscription=mock_subscription,
-                receiving_service=receiving_service,
-                message_handlers={"finish-test": lambda message: message},
-            )
-
-        with self.assertLogs() as logging_context:
-            message_handler._handle_message({"type": "blah", "message_number": 0})
-
-        self.assertIn("received a message of unknown type", logging_context.output[1])
 
     def test_in_order_messages_are_handled_in_order(self):
         """Test that messages received in order are handled in order."""
@@ -65,13 +54,14 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                schema={},
             )
 
         messages = [
-            {"type": "test", "message_number": 0},
-            {"type": "test", "message_number": 1},
-            {"type": "test", "message_number": 2},
-            {"type": "finish-test", "message_number": 3},
+            MockMessage.from_primitive({"kind": "test"}, attributes={"message_number": 0}),
+            MockMessage.from_primitive({"kind": "test"}, attributes={"message_number": 1}),
+            MockMessage.from_primitive({"kind": "test"}, attributes={"message_number": 2}),
+            MockMessage.from_primitive({"kind": "finish-test"}, attributes={"message_number": 3}),
         ]
 
         with patch(
@@ -81,7 +71,7 @@ class TestOrderedMessageHandler(BaseTestCase):
             result = message_handler.handle_messages()
 
         self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handler.handled_messages, messages)
+        self.assertEqual(message_handler.handled_messages, [json.loads(message.data.decode()) for message in messages])
 
     def test_out_of_order_messages_are_handled_in_order(self):
         """Test that messages received out of order are handled in order."""
@@ -90,13 +80,14 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                schema={},
             )
 
         messages = [
-            {"type": "test", "message_number": 1},
-            {"type": "test", "message_number": 2},
-            {"type": "test", "message_number": 0},
-            {"type": "finish-test", "message_number": 3},
+            MockMessage.from_primitive({"kind": "test", "order": 1}, attributes={"message_number": 1}),
+            MockMessage.from_primitive({"kind": "test", "order": 2}, attributes={"message_number": 2}),
+            MockMessage.from_primitive({"kind": "test", "order": 0}, attributes={"message_number": 0}),
+            MockMessage.from_primitive({"kind": "finish-test", "order": 3}, attributes={"message_number": 3}),
         ]
 
         with patch(
@@ -109,10 +100,10 @@ class TestOrderedMessageHandler(BaseTestCase):
         self.assertEqual(
             message_handler.handled_messages,
             [
-                {"type": "test", "message_number": 0},
-                {"type": "test", "message_number": 1},
-                {"type": "test", "message_number": 2},
-                {"type": "finish-test", "message_number": 3},
+                {"kind": "test", "order": 0},
+                {"kind": "test", "order": 1},
+                {"kind": "test", "order": 2},
+                {"kind": "finish-test", "order": 3},
             ],
         )
 
@@ -125,16 +116,17 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                schema={},
             )
 
         with patch(
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
             new=MockMessagePuller(
                 messages=[
-                    {"type": "finish-test", "message_number": 3},
-                    {"type": "test", "message_number": 1},
-                    {"type": "test", "message_number": 2},
-                    {"type": "test", "message_number": 0},
+                    MockMessage.from_primitive({"kind": "finish-test", "order": 3}, attributes={"message_number": 3}),
+                    MockMessage.from_primitive({"kind": "test", "order": 1}, attributes={"message_number": 1}),
+                    MockMessage.from_primitive({"kind": "test", "order": 2}, attributes={"message_number": 2}),
+                    MockMessage.from_primitive({"kind": "test", "order": 0}, attributes={"message_number": 0}),
                 ],
                 message_handler=message_handler,
             ).pull,
@@ -146,10 +138,10 @@ class TestOrderedMessageHandler(BaseTestCase):
         self.assertEqual(
             message_handler.handled_messages,
             [
-                {"type": "test", "message_number": 0},
-                {"type": "test", "message_number": 1},
-                {"type": "test", "message_number": 2},
-                {"type": "finish-test", "message_number": 3},
+                {"kind": "test", "order": 0},
+                {"kind": "test", "order": 1},
+                {"kind": "test", "order": 2},
+                {"kind": "finish-test", "order": 3},
             ],
         )
 
@@ -160,12 +152,13 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                schema={},
             )
 
         messages = [
-            {"type": "test", "message_number": 0},
-            {"type": "test", "message_number": 1},
-            {"type": "finish-test", "message_number": 2},
+            MockMessage.from_primitive({"kind": "test", "order": 0}, attributes={"message_number": 0}),
+            MockMessage.from_primitive({"kind": "test", "order": 1}, attributes={"message_number": 1}),
+            MockMessage.from_primitive({"kind": "finish-test", "order": 2}, attributes={"message_number": 2}),
         ]
 
         with patch(
@@ -175,7 +168,10 @@ class TestOrderedMessageHandler(BaseTestCase):
             result = message_handler.handle_messages(timeout=None)
 
         self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handler.handled_messages, messages)
+        self.assertEqual(
+            message_handler.handled_messages,
+            [{"kind": "test", "order": 0}, {"kind": "test", "order": 1}, {"kind": "finish-test", "order": 2}],
+        )
 
     def test_delivery_acknowledgement(self):
         """Test that a delivery acknowledgement message is handled correctly."""
@@ -189,12 +185,17 @@ class TestOrderedMessageHandler(BaseTestCase):
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
             new=MockMessagePuller(
                 [
-                    {
-                        "type": "delivery_acknowledgement",
-                        "delivery_time": "2021-11-17 17:33:59.717428",
-                        "message_number": 0,
-                    },
-                    {"type": "result", "output_values": None, "output_manifest": None, "message_number": 1},
+                    MockMessage.from_primitive(
+                        {
+                            "kind": "delivery_acknowledgement",
+                            "datetime": "2021-11-17 17:33:59.717428",
+                        },
+                        attributes={"message_number": 0},
+                    ),
+                    MockMessage.from_primitive(
+                        {"kind": "result", "output_values": None, "output_manifest": None},
+                        attributes={"message_number": 1},
+                    ),
                 ],
                 message_handler=message_handler,
             ).pull,
@@ -247,12 +248,17 @@ class TestOrderedMessageHandler(BaseTestCase):
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_message",
             new=MockMessagePuller(
                 messages=[
-                    {
-                        "type": "delivery_acknowledgement",
-                        "delivery_time": "2021-11-17 17:33:59.717428",
-                        "message_number": 0,
-                    },
-                    {"type": "result", "output_values": None, "output_manifest": None, "message_number": 1},
+                    MockMessage.from_primitive(
+                        {
+                            "kind": "delivery_acknowledgement",
+                            "datetime": "2021-11-17 17:33:59.717428",
+                        },
+                        attributes={"message_number": 0},
+                    ),
+                    MockMessage.from_primitive(
+                        {"kind": "result", "output_values": None, "output_manifest": None},
+                        attributes={"message_number": 1},
+                    ),
                 ],
                 message_handler=message_handler,
             ).pull,
@@ -293,16 +299,17 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                schema={},
             )
 
         # Simulate the first two messages not being received.
         message_handler._earliest_message_number_received = 2
 
         messages = [
-            {"type": "test", "message_number": 2},
-            {"type": "test", "message_number": 3},
-            {"type": "test", "message_number": 4},
-            {"type": "finish-test", "message_number": 5},
+            MockMessage.from_primitive({"kind": "test", "order": 2}, attributes={"message_number": 2}),
+            MockMessage.from_primitive({"kind": "test", "order": 3}, attributes={"message_number": 3}),
+            MockMessage.from_primitive({"kind": "test", "order": 4}, attributes={"message_number": 4}),
+            MockMessage.from_primitive({"kind": "finish-test", "order": 5}, attributes={"message_number": 5}),
         ]
 
         with patch(
@@ -312,7 +319,15 @@ class TestOrderedMessageHandler(BaseTestCase):
             result = message_handler.handle_messages(skip_first_messages_after=0)
 
         self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handler.handled_messages, messages)
+        self.assertEqual(
+            message_handler.handled_messages,
+            [
+                {"kind": "test", "order": 2},
+                {"kind": "test", "order": 3},
+                {"kind": "test", "order": 4},
+                {"kind": "finish-test", "order": 5},
+            ],
+        )
 
     def test_later_missing_messages_cannot_be_skipped(self):
         """Test that missing messages that aren't in the first n messages cannot be skipped."""
@@ -321,13 +336,14 @@ class TestOrderedMessageHandler(BaseTestCase):
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                schema={},
             )
 
         messages = [
-            {"type": "test", "message_number": 0},
-            {"type": "test", "message_number": 1},
-            {"type": "test", "message_number": 2},
-            {"type": "finish-test", "message_number": 5},
+            MockMessage.from_primitive({"kind": "test", "order": 0}, attributes={"message_number": 0}),
+            MockMessage.from_primitive({"kind": "test", "order": 1}, attributes={"message_number": 1}),
+            MockMessage.from_primitive({"kind": "test", "order": 2}, attributes={"message_number": 2}),
+            MockMessage.from_primitive({"kind": "finish-test", "order": 5}, attributes={"message_number": 5}),
         ]
 
         with patch(
@@ -338,34 +354,68 @@ class TestOrderedMessageHandler(BaseTestCase):
                 message_handler.handle_messages(timeout=0.5, skip_first_messages_after=0)
 
         # Check that only the first three messages were handled.
-        self.assertEqual(message_handler.handled_messages, messages[:3])
+        self.assertEqual(
+            message_handler.handled_messages,
+            [
+                {"kind": "test", "order": 0},
+                {"kind": "test", "order": 1},
+                {"kind": "test", "order": 2},
+            ],
+        )
 
 
 class TestPullAndEnqueueMessage(BaseTestCase):
     def test_pull_and_enqueue_message(self):
         """Test that pulling and enqueuing a message works."""
+        question_uuid = "4d31bb46-66c4-4e68-831f-e51e17e651ef"
+
         with ServicePatcher():
+            mock_subscription = MockSubscription(
+                name=f"my-org.my-service.1-0-0.answers.{question_uuid}",
+                topic=mock_topic,
+                project_name=TEST_PROJECT_NAME,
+            )
+
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                schema={},
             )
 
             message_handler._child_sdk_version = "0.1.3"
-            message_handler._waiting_messages = {}
+            message_handler.waiting_messages = {}
 
-            # Create a mock topic and publish a mock message to it.
-            mock_message = {"type": "test", "message_number": 0}
-            MESSAGES["octue.services.world"] = []
-            MESSAGES["octue.services.world"].append(MockMessage(data=json.dumps(mock_message).encode()))
+            # Enqueue a mock message for a mock subscription to receive.
+            mock_message = {"kind": "test"}
+
+            SUBSCRIPTIONS[mock_subscription.name] = [
+                MockMessage.from_primitive(
+                    mock_message,
+                    attributes={
+                        "sender_type": "CHILD",
+                        "message_number": 0,
+                        "question_uuid": question_uuid,
+                        "version": "0.50.0",
+                    },
+                )
+            ]
 
             message_handler._pull_and_enqueue_message(timeout=10)
-            self.assertEqual(message_handler._waiting_messages, {0: mock_message})
+            self.assertEqual(message_handler.waiting_messages, {0: mock_message})
             self.assertEqual(message_handler._earliest_message_number_received, 0)
 
     def test_timeout_error_raised_if_result_message_not_received_in_time(self):
         """Test that a timeout error is raised if a result message is not received in time."""
+        question_uuid = "4d31bb46-66c4-4e68-831f-e51e17e651ef"
+
         with ServicePatcher():
+            mock_subscription = MockSubscription(
+                name=f"my-org.my-service.1-0-0.answers.{question_uuid}",
+                topic=mock_topic,
+                project_name=TEST_PROJECT_NAME,
+            )
+
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
                 receiving_service=receiving_service,
@@ -373,11 +423,11 @@ class TestPullAndEnqueueMessage(BaseTestCase):
             )
 
             message_handler._child_sdk_version = "0.1.3"
-            message_handler._waiting_messages = {}
+            message_handler.waiting_messages = {}
             message_handler._start_time = 0
 
-            # Create a mock topic and publish a mock non-result message to it.
-            MESSAGES["octue.services.world"] = []
+            # Create a mock subscription.
+            SUBSCRIPTIONS[mock_subscription.name] = []
 
             with self.assertRaises(TimeoutError):
                 message_handler._pull_and_enqueue_message(timeout=1e-6)

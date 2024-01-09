@@ -15,7 +15,7 @@ Services save the following data to the cloud if they crash while processing a q
 
 .. important::
 
-    For this feature to be enabled, the child must have the ``crash_diagnostics_cloud_path`` field in its service
+    For this feature to be enabled, the child must have the ``diagnostics_cloud_path`` field in its service
     configuration (:ref:`octue.yaml <octue_yaml>` file) set to a Google Cloud Storage path.
 
 
@@ -111,7 +111,7 @@ your service to fail.
 Disabling crash diagnostics
 ===========================
 When asking a question to a child, parents can disable crash diagnostics upload in the child on a question-by-question
-basis by setting ``allow_save_diagnostics_data_on_crash`` to ``False`` in :mod:`Child.ask <octue.resources.child.Child.ask>`.
+basis by setting ``save_diagnostics`` to ``"SAVE_DIAGNOSTICS_OFF"`` in :mod:`Child.ask <octue.resources.child.Child.ask>`.
 For example:
 
 .. code-block:: python
@@ -123,5 +123,5 @@ For example:
 
     answer = child.ask(
         input_values={"height": 32, "width": 3},
-        allow_save_diagnostics_data_on_crash=False,
+        save_diagnostics="SAVE_DIAGNOSTICS_OFF",
     )

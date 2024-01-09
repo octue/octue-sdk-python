@@ -3,7 +3,7 @@ import logging
 from logging import makeLogRecord
 from unittest.mock import patch
 
-from octue.cloud.emulators._pub_sub import MESSAGES, MockService, MockTopic
+from octue.cloud.emulators._pub_sub import SUBSCRIPTIONS, MockService, MockSubscription, MockTopic
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.resources.service_backends import GCPPubSubBackend
 from tests.base import BaseTestCase
@@ -20,13 +20,25 @@ class TestGooglePubSubHandler(BaseTestCase):
         topic = MockTopic(name="world", project_name="blah")
         topic.create()
 
+        question_uuid = "96d69278-44ac-4631-aeea-c90fb08a1b2b"
+        subscription = MockSubscription(name=f"world.answers.{question_uuid}", topic=topic, project_name="blah")
+        subscription.create()
+
         log_record = makeLogRecord({"msg": "Starting analysis."})
 
         backend = GCPPubSubBackend(project_name="blah")
         service = MockService(backend=backend)
-        GooglePubSubHandler(service._send_message, topic, "analysis-id").emit(log_record)
 
-        self.assertEqual(json.loads(MESSAGES[topic.name][0].data.decode())["log_record"]["msg"], "Starting analysis.")
+        GooglePubSubHandler(
+            message_sender=service._send_message,
+            topic=topic,
+            question_uuid=question_uuid,
+        ).emit(log_record)
+
+        self.assertEqual(
+            json.loads(SUBSCRIPTIONS[subscription.name][0].data.decode())["log_record"]["msg"],
+            "Starting analysis.",
+        )
 
     def test_emit_with_non_json_serialisable_args(self):
         """Test that non-JSON-serialisable arguments to log messages are converted to their string representation
@@ -49,7 +61,11 @@ class TestGooglePubSubHandler(BaseTestCase):
         service = MockService(backend=backend)
 
         with patch("octue.cloud.emulators._pub_sub.MockPublisher.publish") as mock_publish:
-            GooglePubSubHandler(service._send_message, topic, "analysis-id").emit(record)
+            GooglePubSubHandler(
+                message_sender=service._send_message,
+                topic=topic,
+                question_uuid="question-uuid",
+            ).emit(record)
 
         self.assertEqual(
             json.loads(mock_publish.call_args.kwargs["data"].decode())["log_record"]["msg"],

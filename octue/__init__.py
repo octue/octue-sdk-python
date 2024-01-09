@@ -5,6 +5,7 @@ from .runner import Runner
 
 
 __all__ = ("Runner",)
+
 REPOSITORY_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
 

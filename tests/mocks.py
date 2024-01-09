@@ -1,4 +1,5 @@
 import io
+import os
 
 
 class MockOpen:
@@ -18,7 +19,13 @@ class MockOpen:
         self.path = path
 
     def __enter__(self):
-        return io.StringIO(self.path_to_contents_mapping[self.path])
+        try:
+            return io.StringIO(self.path_to_contents_mapping[self.path])
+
+        # Allow absolute paths that end in the (in this case, relative) paths given in `path_to_contents_mapping`.
+        except KeyError:
+            path = os.path.split(self.path)[-1]
+            return io.StringIO(self.path_to_contents_mapping[path])
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass

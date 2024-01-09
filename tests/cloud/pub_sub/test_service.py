@@ -433,7 +433,7 @@ class TestService(BaseTestCase):
                 service_id=child.id,
                 input_values=input_values,
                 subscribe_to_logs=True,
-                allow_save_diagnostics_data_on_crash=True,
+                save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
             )
 
             answer = parent.wait_for_answer(subscription, service_name="my-super-service")
@@ -715,15 +715,11 @@ class TestService(BaseTestCase):
             parent.wait_for_answer(subscription, service_name="my-super-service")
 
         # Check that the child's messages have been recorded by the parent.
-        self.assertEqual(parent.received_messages[0]["type"], "delivery_acknowledgement")
-        self.assertEqual(parent.received_messages[1]["type"], "log_record")
-        self.assertEqual(parent.received_messages[2]["type"], "log_record")
-        self.assertEqual(parent.received_messages[3]["type"], "log_record")
-
-        self.assertEqual(
-            parent.received_messages[4],
-            {"type": "result", "output_values": "Hello! It worked!", "output_manifest": None, "message_number": 4},
-        )
+        self.assertEqual(parent.received_messages[0]["kind"], "delivery_acknowledgement")
+        self.assertEqual(parent.received_messages[1]["kind"], "log_record")
+        self.assertEqual(parent.received_messages[2]["kind"], "log_record")
+        self.assertEqual(parent.received_messages[3]["kind"], "log_record")
+        self.assertEqual(parent.received_messages[4], {"kind": "result", "output_values": "Hello! It worked!"})
 
     def test_child_exception_message_can_be_recorded_by_parent(self):
         """Test that the parent can record exceptions raised by the child."""
@@ -738,8 +734,8 @@ class TestService(BaseTestCase):
                 parent.wait_for_answer(subscription, service_name="my-super-service")
 
         # Check that the child's messages have been recorded by the parent.
-        self.assertEqual(parent.received_messages[0]["type"], "delivery_acknowledgement")
-        self.assertEqual(parent.received_messages[1]["type"], "exception")
+        self.assertEqual(parent.received_messages[0]["kind"], "delivery_acknowledgement")
+        self.assertEqual(parent.received_messages[1]["kind"], "exception")
         self.assertIn("Oh no.", parent.received_messages[1]["exception_message"])
 
     def test_child_sends_heartbeat_messages_at_expected_regular_intervals(self):
@@ -764,16 +760,16 @@ class TestService(BaseTestCase):
                     service_id=child.id,
                     input_values={},
                     subscribe_to_logs=True,
-                    allow_save_diagnostics_data_on_crash=True,
+                    save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
                 )
 
                 parent.wait_for_answer(subscription, service_name="my-super-service")
 
-        self.assertEqual(parent.received_messages[1]["type"], "heartbeat")
-        self.assertEqual(parent.received_messages[2]["type"], "heartbeat")
+        self.assertEqual(parent.received_messages[1]["kind"], "heartbeat")
+        self.assertEqual(parent.received_messages[2]["kind"], "heartbeat")
 
-        first_heartbeat_time = datetime.datetime.fromisoformat(parent.received_messages[1]["time"])
-        second_heartbeat_time = datetime.datetime.fromisoformat(parent.received_messages[2]["time"])
+        first_heartbeat_time = datetime.datetime.fromisoformat(parent.received_messages[1]["datetime"])
+        second_heartbeat_time = datetime.datetime.fromisoformat(parent.received_messages[2]["datetime"])
 
         self.assertAlmostEqual(
             second_heartbeat_time - first_heartbeat_time,
@@ -807,7 +803,7 @@ class TestService(BaseTestCase):
                 service_id=child.id,
                 input_values={},
                 subscribe_to_logs=True,
-                allow_save_diagnostics_data_on_crash=True,
+                save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
             )
 
             monitor_messages = []

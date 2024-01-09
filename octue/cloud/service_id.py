@@ -251,8 +251,9 @@ def get_default_sruid(namespace, name, service_registries):
         response = requests.get(f"{registry['endpoint']}/{service_id}")
 
         if response.ok:
-            logger.info("Found revision for service %r in %r registry.", service_id, registry["name"])
-            return create_sruid(namespace=namespace, name=name, revision_tag=response.json()["revision_tag"])
+            revision_tag = response.json()["revision_tag"]
+            logger.info("Found service revision '%s:%s' in %r registry.", service_id, revision_tag, registry["name"])
+            return create_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
 
     raise octue.exceptions.ServiceNotFound(
         f"No revisions for the service {service_id!r} were found in any of the specified service registries: "

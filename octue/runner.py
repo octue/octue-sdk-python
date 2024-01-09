@@ -12,13 +12,19 @@ from jsonschema import ValidationError, validate as jsonschema_validate
 import twined.exceptions
 from octue import exceptions
 from octue.app_loading import AppFrom
-from octue.crash_diagnostics import CrashDiagnostics
+from octue.diagnostics import Diagnostics
 from octue.log_handlers import AnalysisLogFormatterSwitcher
 from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.resources.datafile import downloaded_files
 from octue.utils import gen_uuid
 from twined import Twine
+
+
+SAVE_DIAGNOSTICS_OFF = "SAVE_DIAGNOSTICS_OFF"
+SAVE_DIAGNOSTICS_ON_CRASH = "SAVE_DIAGNOSTICS_ON_CRASH"
+SAVE_DIAGNOSTICS_ON = "SAVE_DIAGNOSTICS_ON"
+SAVE_DIAGNOSTICS_MODES = {SAVE_DIAGNOSTICS_OFF, SAVE_DIAGNOSTICS_ON_CRASH, SAVE_DIAGNOSTICS_ON}
 
 
 logger = logging.getLogger(__name__)
@@ -36,7 +42,7 @@ class Runner:
     :param str|dict|None configuration_manifest: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|list(dict)|None children: The children strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|None output_location: the path to a cloud directory to save output datasets at
-    :param str|None crash_diagnostics_cloud_path: the path to a cloud directory to store crash diagnostics in the event that the service fails while processing a question (this includes the configuration, input values and manifest, and logs)
+    :param str|None diagnostics_cloud_path: the path to a cloud directory to store diagnostics in the event that the service fails while processing a question (this includes the configuration, input values and manifest, and logs)
     :param str|None project_name: name of Google Cloud project to get credentials from
     :param str|None service_id: the ID of the service being run
     :param bool delete_local_files: if `True`, delete any files downloaded during the call to `Runner.run` once the analysis has finished
@@ -51,7 +57,7 @@ class Runner:
         configuration_manifest=None,
         children=None,
         output_location=None,
-        crash_diagnostics_cloud_path=None,
+        diagnostics_cloud_path=None,
         project_name=None,
         service_id=None,
         service_registries=None,
@@ -68,9 +74,9 @@ class Runner:
         self.output_location = output_location
 
         # Get configuration before any transformations have been applied.
-        self.crash_diagnostics = CrashDiagnostics(cloud_path=crash_diagnostics_cloud_path)
+        self.diagnostics = Diagnostics(cloud_path=diagnostics_cloud_path)
 
-        self.crash_diagnostics.add_data(
+        self.diagnostics.add_data(
             configuration_values=configuration_values,
             configuration_manifest=configuration_manifest,
         )
@@ -98,6 +104,29 @@ class Runner:
         self.delete_local_files = delete_local_files
         self._project_name = project_name
 
+    @classmethod
+    def from_configuration(cls, service_configuration, app_configuration, project_name=None, service_id=None):
+        """Instantiate a runner from a service and app configuration.
+
+        :param octue.configuration.ServiceConfiguration service_configuration:
+        :param octue.configuration.AppConfiguration app_configuration:
+        :param str|None project_name: name of Google Cloud project to get credentials from
+        :param str|None service_id: the ID of the service being run
+        :return octue.runner.Runner: a runner configured with the given service and app configuration
+        """
+        return cls(
+            app_src=service_configuration.app_source_path,
+            twine=service_configuration.twine_path,
+            configuration_values=app_configuration.configuration_values,
+            configuration_manifest=app_configuration.configuration_manifest,
+            children=app_configuration.children,
+            output_location=app_configuration.output_location,
+            diagnostics_cloud_path=service_configuration.diagnostics_cloud_path,
+            project_name=project_name,
+            service_id=service_id,
+            service_registries=service_configuration.service_registries,
+        )
+
     def __repr__(self):
         """Represent the runner as a string.
 
@@ -114,7 +143,7 @@ class Runner:
         analysis_log_level=logging.INFO,
         analysis_log_handler=None,
         handle_monitor_message=None,
-        allow_save_diagnostics_data_on_crash=True,
+        save_diagnostics=SAVE_DIAGNOSTICS_ON_CRASH,
     ):
         """Run an analysis.
 
@@ -125,11 +154,16 @@ class Runner:
         :param str analysis_log_level: the level below which to ignore log messages
         :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run. Handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but should use the format defined above in LOG_FORMAT.
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
-        :param bool allow_save_diagnostics_data_on_crash: if `True`, allow the input values and manifest (and its datasets) to be saved if the analysis fails
+        :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved either all the time or just if the analysis fails
         :return octue.resources.analysis.Analysis:
         """
+        if save_diagnostics not in SAVE_DIAGNOSTICS_MODES:
+            raise ValueError(
+                f"`save_diagnostics` must be one of {SAVE_DIAGNOSTICS_MODES!r}; received {save_diagnostics!r}."
+            )
+
         # Get inputs before any transformations have been applied.
-        self.crash_diagnostics.add_data(
+        self.diagnostics.add_data(
             analysis_id=analysis_id,
             input_values=input_values,
             input_manifest=input_manifest,
@@ -201,8 +235,8 @@ class Runner:
                 raise ModuleNotFoundError(f"{e.msg} in {os.path.abspath(self.app_source)!r}.")
 
             except Exception as analysis_error:
-                if allow_save_diagnostics_data_on_crash:
-                    self.crash_diagnostics.upload()
+                if save_diagnostics in {SAVE_DIAGNOSTICS_ON_CRASH, SAVE_DIAGNOSTICS_ON}:
+                    self.diagnostics.upload()
 
                 raise analysis_error
 
@@ -213,6 +247,9 @@ class Runner:
 
             if not analysis.finalised:
                 analysis.finalise()
+
+            if save_diagnostics == SAVE_DIAGNOSTICS_ON:
+                self.diagnostics.upload()
 
             if self.delete_local_files and downloaded_files:
                 logger.warning(
@@ -296,7 +333,7 @@ class Runner:
 
     def _instantiate_children(self, serialised_children):
         """Instantiate children from their serialised form (e.g. as given in the app configuration) so they are ready
-        to be asked questions. For crash diagnostics, each child's `ask` method is wrapped so the runner can record the
+        to be asked questions. For diagnostics, each child's `ask` method is wrapped so the runner can record the
         questions asked by the app, the responses received to each question, and the order the questions are asked in.
 
         :param list(dict) serialised_children: serialised children from e.g. the app configuration file
@@ -320,7 +357,7 @@ class Runner:
     def _add_child_question_and_response_recording(self, child, key):
         """Add question and response recording to the `ask` method of the given child. This allows the runner to record
         the questions asked by the app, the responses received to each question, and the order the questions are asked
-        in for crash diagnostics.
+        in for diagnostics.
 
         :param octue.resources.child.Child child: the child to add question and response recording to
         :param str key: the key used to identify the child within the service
@@ -337,7 +374,7 @@ class Runner:
             try:
                 return original_ask_method(**kwargs)
             finally:
-                self.crash_diagnostics.add_question(
+                self.diagnostics.add_question(
                     {"id": child.id, "key": key, **kwargs, "messages": child.received_messages}
                 )
 

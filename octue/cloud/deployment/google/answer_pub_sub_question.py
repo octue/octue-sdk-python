@@ -1,7 +1,8 @@
 import logging
 
+from octue.cloud.pub_sub import Topic
 from octue.cloud.pub_sub.service import Service
-from octue.cloud.service_id import create_sruid, get_sruid_parts
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_sruid, get_sruid_parts
 from octue.configuration import load_service_and_app_configuration
 from octue.resources.service_backends import GCPPubSubBackend
 from octue.runner import Runner
@@ -17,7 +18,7 @@ DEFAULT_SERVICE_CONFIGURATION_PATH = "octue.yaml"
 def answer_question(question, project_name):
     """Answer a question sent to an app deployed in Google Cloud.
 
-    :param dict|tuple|apache_beam.io.gcp.pubsub.PubsubMessage question:
+    :param dict|tuple question:
     :param str project_name:
     :return None:
     """
@@ -31,30 +32,24 @@ def answer_question(question, project_name):
     )
 
     service = Service(service_id=service_sruid, backend=GCPPubSubBackend(project_name=project_name))
-
     question_uuid = get_nested_attribute(question, "attributes.question_uuid")
-    answer_topic = service.instantiate_answer_topic(question_uuid)
 
     try:
-        runner = Runner(
-            app_src=service_configuration.app_source_path,
-            twine=service_configuration.twine_path,
-            configuration_values=app_configuration.configuration_values,
-            configuration_manifest=app_configuration.configuration_manifest,
-            children=app_configuration.children,
-            output_location=app_configuration.output_location,
-            crash_diagnostics_cloud_path=service_configuration.crash_diagnostics_cloud_path,
+        runner = Runner.from_configuration(
+            service_configuration=service_configuration,
+            app_configuration=app_configuration,
             project_name=project_name,
             service_id=service_sruid,
-            service_registries=service_configuration.service_registries,
         )
 
         service.run_function = runner.run
-
-        service.answer(question, answer_topic=answer_topic)
+        service.answer(question)
         logger.info("Analysis successfully run and response sent for question %r.", question_uuid)
 
-    # Forward any errors in the deployment configuration (errors in the analysis are already forwarded by the service).
     except BaseException as error:  # noqa
-        service.send_exception(topic=answer_topic)
+        service.send_exception(
+            topic=Topic(name=convert_service_id_to_pub_sub_form(service_sruid), project_name=project_name),
+            question_uuid=question_uuid,
+        )
+
         logger.exception(error)
