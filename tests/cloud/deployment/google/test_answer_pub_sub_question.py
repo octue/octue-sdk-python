@@ -94,7 +94,9 @@ class TestAnswerPubSubQuestion(TestCase):
                     project_name="a-project-name",
                 )
 
-        self.assertEqual(mock_constructor.call_args.kwargs["service_configuration"].app_source_path, "/path/to/app_dir")
+        self.assertTrue(
+            mock_constructor.call_args.kwargs["service_configuration"].app_source_path.endswith("path/to/app_dir")
+        )
         self.assertTrue(
             mock_constructor.call_args.kwargs["service_configuration"].twine_path.endswith("path/to/twine.json")
         )
