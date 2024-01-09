@@ -39,7 +39,12 @@ class ServiceConfiguration:
 
         if directory:
             directory = os.path.abspath(directory)
-            self.app_source_path = os.path.join(directory, app_source_path)
+
+            if app_source_path == ".":
+                self.app_source_path = directory
+            else:
+                self.app_source_path = os.path.join(directory, app_source_path)
+
             self.twine_path = os.path.join(directory, twine_path)
 
             if app_configuration_path:
