@@ -111,7 +111,7 @@ your service to fail.
 Disabling crash diagnostics
 ===========================
 When asking a question to a child, parents can disable crash diagnostics upload in the child on a question-by-question
-basis by setting ``debug`` to ``"DEBUG_OFF"`` in :mod:`Child.ask <octue.resources.child.Child.ask>`.
+basis by setting ``save_diagnostics`` to ``"SAVE_DIAGNOSTICS_OFF"`` in :mod:`Child.ask <octue.resources.child.Child.ask>`.
 For example:
 
 .. code-block:: python
@@ -123,5 +123,5 @@ For example:
 
     answer = child.ask(
         input_values={"height": 32, "width": 3},
-        debug="DEBUG_OFF",
+        save_diagnostics="SAVE_DIAGNOSTICS_OFF",
     )
