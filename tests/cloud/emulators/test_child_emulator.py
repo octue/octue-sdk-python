@@ -94,7 +94,7 @@ class TestChildEmulatorAsk(BaseTestCase):
 
         messages = [
             {
-                "type": "result",
+                "kind": "result",
                 "output_values": [1, 2, 3, 4],
                 "output_manifest": None,
             },
