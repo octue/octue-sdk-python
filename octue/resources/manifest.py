@@ -70,13 +70,13 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
 
     def use_signed_urls_for_datasets(self):
         """Generate signed URLs for any cloud datasets in the manifest and use these as their paths instead of regular
-        cloud paths. URLs will not be generated for any local datasets in the manifest.
+        cloud paths. URLs will not be generated for any local datasets in the manifest. This method is idempotent.
 
         :return None:
         """
 
         def signed_url_path_generator(dataset):
-            if dataset.exists_in_cloud:
+            if dataset.exists_in_cloud and storage.path.is_cloud_uri(dataset.path):
                 return dataset.generate_signed_url()
             return dataset.path
 

@@ -399,6 +399,9 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
         # Download from a URL.
         if storage.path.is_url(self.cloud_path):
+            local_path_directory = os.path.dirname(self._local_path)
+            os.makedirs(local_path_directory, exist_ok=True)
+
             with open(self._local_path, "wb") as f:
                 f.write(requests.get(self.cloud_path).content)
 
