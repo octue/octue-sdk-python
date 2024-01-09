@@ -286,7 +286,11 @@ class ChildEmulator:
         :raise ValueError: if the result doesn't contain the "output_values" and "output_manifest" keys
         :return octue.resources.analysis.Analysis: an `Analysis` instance containing the emulated outputs
         """
+        input_manifest = kwargs.get("input_manifest")
         output_manifest = message.get("output_manifest")
+
+        if input_manifest and not isinstance(input_manifest, Manifest):
+            input_manifest = Manifest.deserialise(input_manifest)
 
         if output_manifest and not isinstance(output_manifest, Manifest):
             output_manifest = Manifest.deserialise(output_manifest)
@@ -296,7 +300,7 @@ class ChildEmulator:
             twine={},
             handle_monitor_message=kwargs["handle_monitor_message"],
             input_values=kwargs["input_values"],
-            input_manifest=kwargs["input_manifest"],
+            input_manifest=input_manifest,
             output_values=message.get("output_values"),
             output_manifest=output_manifest,
         )
