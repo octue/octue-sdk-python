@@ -27,6 +27,9 @@ else:
 logger = logging.getLogger(__name__)
 
 
+MAX_SIMULTANEOUS_MESSAGES_PULL = 50
+
+
 class OrderedMessageHandler:
     """A handler for Google Pub/Sub messages received via a pull subscription that ensures messages are handled in the
     order they were sent.
@@ -134,7 +137,7 @@ class OrderedMessageHandler:
 
             while self._alive:
                 pull_timeout = self._check_timeout_and_get_pull_timeout(timeout)
-                self._pull_and_enqueue_message(timeout=pull_timeout)
+                self._pull_and_enqueue_messages(timeout=pull_timeout)
                 result = self._attempt_to_handle_queued_messages(skip_first_messages_after)
 
                 if result is not None:
@@ -186,9 +189,9 @@ class OrderedMessageHandler:
 
         return timeout - total_run_time
 
-    def _pull_and_enqueue_message(self, timeout):
-        """Pull a message from the subscription and enqueue it in `self.waiting_messages`, raising a `TimeoutError` if
-        the timeout is exceeded before succeeding.
+    def _pull_and_enqueue_messages(self, timeout):
+        """Pull as many messages as are available from the subscription and enqueue them in `self.waiting_messages`,
+        raising a `TimeoutError` if the timeout is exceeded before succeeding.
 
         :param float|None timeout: how long to wait in seconds for the message before raising a `TimeoutError`
         :raise TimeoutError|concurrent.futures.TimeoutError: if the timeout is exceeded
@@ -201,15 +204,13 @@ class OrderedMessageHandler:
             logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
 
             pull_response = self._subscriber.pull(
-                request={"subscription": self.subscription.path, "max_messages": 1},
+                request={"subscription": self.subscription.path, "max_messages": MAX_SIMULTANEOUS_MESSAGES_PULL},
                 retry=retry.Retry(),
             )
 
-            try:
-                answer = pull_response.received_messages[0]
+            if len(pull_response.received_messages) > 0:
                 break
-
-            except IndexError:
+            else:
                 logger.debug("Google Pub/Sub pull response timed out early.")
                 attempt += 1
 
@@ -220,10 +221,19 @@ class OrderedMessageHandler:
                         f"No message received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
                     )
 
-        self._subscriber.acknowledge(request={"subscription": self.subscription.path, "ack_ids": [answer.ack_id]})
-        logger.debug("%r received a message related to question %r.", self.receiving_service, self.question_uuid)
+        self._subscriber.acknowledge(
+            request={
+                "subscription": self.subscription.path,
+                "ack_ids": [message.ack_id for message in pull_response.received_messages],
+            }
+        )
 
-        event, attributes = extract_event_and_attributes_from_pub_sub(answer.message)
+        for message in pull_response.received_messages:
+            self._extract_and_enqueue_event(message)
+
+    def _extract_and_enqueue_event(self, message):
+        logger.debug("%r received a message related to question %r.", self.receiving_service, self.question_uuid)
+        event, attributes = extract_event_and_attributes_from_pub_sub(message.message)
 
         if not is_event_valid(
             event=event,
