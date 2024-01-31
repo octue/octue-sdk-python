@@ -12,6 +12,12 @@ SERVICE_COMMUNICATION_SCHEMA = "https://jsonschema.registry.octue.com/octue/serv
 SERVICE_COMMUNICATION_SCHEMA_INFO_URL = "https://strands.octue.com/octue/service-communication"
 SERVICE_COMMUNICATION_SCHEMA_VERSION = os.path.splitext(SERVICE_COMMUNICATION_SCHEMA)[0].split("/")[-1]
 
+# Instantiate a JSON schema validator to cache the service communication schema to avoid getting it from the bucket
+# every time a message is validated against it.
+schema = {"$ref": SERVICE_COMMUNICATION_SCHEMA}
+jsonschema_validator = jsonschema.Draft202012Validator(schema)
+jsonschema_validator.check_schema(schema)
+
 
 def is_event_valid(event, attributes, receiving_service, parent_sdk_version, child_sdk_version, schema=None):
     """Check if the event and its attributes are valid according to the Octue services communication schema.
@@ -58,11 +64,13 @@ def raise_if_event_is_invalid(
     :raise jsonschema.ValidationError: if the event or its attributes are invalid
     :return None:
     """
-    if schema is None:
-        schema = {"$ref": SERVICE_COMMUNICATION_SCHEMA}
+    global jsonschema_validator
+
+    if (schema is not None) and (schema != {"$ref": SERVICE_COMMUNICATION_SCHEMA}):
+        jsonschema_validator = jsonschema.Draft202012Validator(schema=schema)
 
     try:
-        jsonschema.validate({"event": event, "attributes": dict(attributes)}, schema)
+        jsonschema_validator.validate({"event": event, "attributes": dict(attributes)})
     except jsonschema.ValidationError as error:
         warn_if_incompatible(parent_sdk_version=parent_sdk_version, child_sdk_version=child_sdk_version)
 
