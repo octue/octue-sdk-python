@@ -35,7 +35,7 @@ def get_sruid_parts(service_configuration):
     service_name = os.environ.get("OCTUE_SERVICE_NAME")
     service_revision_tag = os.environ.get("OCTUE_SERVICE_REVISION_TAG")
 
-    if service_namespace:
+    if service_namespace and service_namespace != service_configuration.namespace:
         logger.warning(
             "The namespace in the service configuration %r has been overridden by the `OCTUE_SERVICE_NAMESPACE` "
             "environment variable %r.",
@@ -45,7 +45,7 @@ def get_sruid_parts(service_configuration):
     else:
         service_namespace = service_configuration.namespace
 
-    if service_name:
+    if service_name and service_name != service_configuration.name:
         logger.warning(
             "The name in the service configuration %r has been overridden by the `OCTUE_SERVICE_NAME` environment "
             "variable %r.",
