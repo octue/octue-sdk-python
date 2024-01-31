@@ -350,6 +350,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         )
 
     def test_missing_messages_in_middle_can_skipped(self):
+        """Test that missing messages in the middle of the event stream can be skipped."""
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
@@ -386,13 +387,13 @@ class TestOrderedMessageHandler(BaseTestCase):
         # Send a final message.
         parent._send_message(
             message={"kind": "finish-test", "order": 5},
-            attributes={"message_number": 5, "question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            attributes={"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
             topic=mock_topic,
         )
 
         message_handler.handle_messages()
 
-        # Check that only all the non-missing messages were handled.
+        # Check that all the non-missing messages were handled.
         self.assertEqual(
             message_handler.handled_messages,
             [
@@ -402,6 +403,119 @@ class TestOrderedMessageHandler(BaseTestCase):
                 {"kind": "finish-test", "order": 5},
             ],
         )
+
+    def test_multiple_blocks_of_missing_messages_in_middle_can_skipped(self):
+        """Test that multiple blocks of missing messages in the middle of the event stream can be skipped."""
+        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
+            message_handler = OrderedMessageHandler(
+                subscription=mock_subscription,
+                receiving_service=receiving_service,
+                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                schema={},
+                skip_missing_messages_after=0,
+            )
+
+        parent = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+
+        # Send three consecutive messages.
+        messages = [
+            {
+                "event": {"kind": "test", "order": 0},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "test", "order": 1},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "test", "order": 2},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+        ]
+
+        for message in messages:
+            parent._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+
+        # Simulate missing messages.
+        mock_topic.messages_published = 5
+
+        # Send another message.
+        parent._send_message(
+            message={"kind": "test", "order": 5},
+            attributes={"message_number": 5, "question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            topic=mock_topic,
+        )
+
+        # Simulate more missing messages.
+        mock_topic.messages_published = 20
+
+        # Send more consecutive messages.
+        messages = [
+            {
+                "event": {"kind": "test", "order": 20},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "test", "order": 21},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "test", "order": 22},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "finish-test", "order": 23},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+        ]
+
+        for message in messages:
+            parent._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+
+        message_handler.handle_messages()
+
+        # Check that all the non-missing messages were handled.
+        self.assertEqual(
+            message_handler.handled_messages,
+            [
+                {"kind": "test", "order": 0},
+                {"kind": "test", "order": 1},
+                {"kind": "test", "order": 2},
+                {"kind": "test", "order": 5},
+                {"kind": "test", "order": 20},
+                {"kind": "test", "order": 21},
+                {"kind": "test", "order": 22},
+                {"kind": "finish-test", "order": 23},
+            ],
+        )
+
+    def test_all_messages_missing_apart_from_result(self):
+        """Test that the result message is still handled if all other messages are missing."""
+        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
+            message_handler = OrderedMessageHandler(
+                subscription=mock_subscription,
+                receiving_service=receiving_service,
+                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                schema={},
+                skip_missing_messages_after=0,
+            )
+
+        parent = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+
+        # Simulate missing messages.
+        mock_topic.messages_published = 1000
+
+        # Send the result message.
+        parent._send_message(
+            message={"kind": "finish-test", "order": 1000},
+            attributes={"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            topic=mock_topic,
+        )
+
+        message_handler.handle_messages()
+
+        # Check that the result message was handled.
+        self.assertEqual(message_handler.handled_messages, [{"kind": "finish-test", "order": 1000}])
 
 
 class TestPullAndEnqueueMessage(BaseTestCase):
