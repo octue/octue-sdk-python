@@ -31,10 +31,7 @@ mock_subscription = MockSubscription(
 )
 mock_subscription.create()
 
-receiving_service = MockService(
-    service_id="my-org/my-service:1.0.0",
-    backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME),
-)
+parent = MockService(service_id="my-org/my-service:1.0.0", backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
 
 class TestOrderedMessageHandler(BaseTestCase):
@@ -43,7 +40,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
-                receiving_service=receiving_service,
+                receiving_service=parent,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: message},
                 schema={},
             )
@@ -63,7 +60,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
-                receiving_service=receiving_service,
+                receiving_service=parent,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
             )
@@ -89,7 +86,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
-                receiving_service=receiving_service,
+                receiving_service=parent,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
             )
@@ -125,7 +122,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
-                receiving_service=receiving_service,
+                receiving_service=parent,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
             )
@@ -161,7 +158,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
-                receiving_service=receiving_service,
+                receiving_service=parent,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
             )
@@ -189,7 +186,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
-                receiving_service=receiving_service,
+                receiving_service=parent,
             )
 
         with patch(
@@ -220,7 +217,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
-                receiving_service=receiving_service,
+                receiving_service=parent,
             )
 
         with patch("octue.cloud.pub_sub.message_handler.OrderedMessageHandler._pull_and_enqueue_available_messages"):
@@ -235,7 +232,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
-                receiving_service=receiving_service,
+                receiving_service=parent,
             )
 
         message_handler._last_heartbeat = datetime.datetime.now() - datetime.timedelta(seconds=30)
@@ -250,7 +247,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
-                receiving_service=receiving_service,
+                receiving_service=parent,
             )
 
         message_handler._last_heartbeat = datetime.datetime.now()
@@ -285,7 +282,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
-                receiving_service=receiving_service,
+                receiving_service=parent,
             )
 
         self.assertIsNone(message_handler._time_since_last_heartbeat)
@@ -296,7 +293,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         """
         message_handler = OrderedMessageHandler(
             subscription=mock_subscription,
-            receiving_service=receiving_service,
+            receiving_service=parent,
         )
 
         self.assertIsNone(message_handler.total_run_time)
@@ -304,7 +301,7 @@ class TestOrderedMessageHandler(BaseTestCase):
     def test_time_since_missing_message_is_none_if_no_missing_messages(self):
         message_handler = OrderedMessageHandler(
             subscription=mock_subscription,
-            receiving_service=receiving_service,
+            receiving_service=parent,
         )
 
         self.assertIsNone(message_handler.time_since_missing_message)
@@ -316,7 +313,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
-                receiving_service=receiving_service,
+                receiving_service=parent,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
                 skip_missing_messages_after=0,
@@ -354,13 +351,13 @@ class TestOrderedMessageHandler(BaseTestCase):
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
-                receiving_service=receiving_service,
+                receiving_service=parent,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
                 skip_missing_messages_after=0,
             )
 
-        parent = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         # Send three consecutive messages.
         messages = [
@@ -379,13 +376,13 @@ class TestOrderedMessageHandler(BaseTestCase):
         ]
 
         for message in messages:
-            parent._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
         # Simulate missing messages.
         mock_topic.messages_published = 5
 
         # Send a final message.
-        parent._send_message(
+        child._send_message(
             message={"kind": "finish-test", "order": 5},
             attributes={"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
             topic=mock_topic,
@@ -409,13 +406,13 @@ class TestOrderedMessageHandler(BaseTestCase):
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
-                receiving_service=receiving_service,
+                receiving_service=parent,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
                 skip_missing_messages_after=0,
             )
 
-        parent = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         # Send three consecutive messages.
         messages = [
@@ -434,13 +431,13 @@ class TestOrderedMessageHandler(BaseTestCase):
         ]
 
         for message in messages:
-            parent._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
         # Simulate missing messages.
         mock_topic.messages_published = 5
 
         # Send another message.
-        parent._send_message(
+        child._send_message(
             message={"kind": "test", "order": 5},
             attributes={"message_number": 5, "question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
             topic=mock_topic,
@@ -470,7 +467,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         ]
 
         for message in messages:
-            parent._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
         message_handler.handle_messages()
 
@@ -494,19 +491,19 @@ class TestOrderedMessageHandler(BaseTestCase):
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
-                receiving_service=receiving_service,
+                receiving_service=parent,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
                 skip_missing_messages_after=0,
             )
 
-        parent = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         # Simulate missing messages.
         mock_topic.messages_published = 1000
 
         # Send the result message.
-        parent._send_message(
+        child._send_message(
             message={"kind": "finish-test", "order": 1000},
             attributes={"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
             topic=mock_topic,
@@ -532,7 +529,7 @@ class TestPullAndEnqueueMessage(BaseTestCase):
 
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
-                receiving_service=receiving_service,
+                receiving_service=parent,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
             )
@@ -572,7 +569,7 @@ class TestPullAndEnqueueMessage(BaseTestCase):
 
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
-                receiving_service=receiving_service,
+                receiving_service=parent,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
             )
 
