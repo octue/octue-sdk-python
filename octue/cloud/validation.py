@@ -8,15 +8,14 @@ from octue.compatibility import warn_if_incompatible
 
 logger = logging.getLogger(__name__)
 
-SERVICE_COMMUNICATION_SCHEMA = "https://jsonschema.registry.octue.com/octue/service-communication/0.8.2.json"
+SERVICE_COMMUNICATION_SCHEMA = {"$ref": "https://jsonschema.registry.octue.com/octue/service-communication/0.8.2.json"}
 SERVICE_COMMUNICATION_SCHEMA_INFO_URL = "https://strands.octue.com/octue/service-communication"
-SERVICE_COMMUNICATION_SCHEMA_VERSION = os.path.splitext(SERVICE_COMMUNICATION_SCHEMA)[0].split("/")[-1]
+SERVICE_COMMUNICATION_SCHEMA_VERSION = os.path.splitext(SERVICE_COMMUNICATION_SCHEMA["$ref"])[0].split("/")[-1]
 
-# Instantiate a JSON schema validator to cache the service communication schema to avoid getting it from the bucket
-# every time a message is validated against it.
-schema = {"$ref": SERVICE_COMMUNICATION_SCHEMA}
-jsonschema_validator = jsonschema.Draft202012Validator(schema)
-jsonschema_validator.check_schema(schema)
+# Instantiate a JSON schema validator to cache the service communication schema. This avoids getting it from the
+# registry every time a message is validated against it.
+jsonschema.Draft202012Validator.check_schema(SERVICE_COMMUNICATION_SCHEMA)
+jsonschema_validator = jsonschema.Draft202012Validator(SERVICE_COMMUNICATION_SCHEMA)
 
 
 def is_event_valid(event, attributes, receiving_service, parent_sdk_version, child_sdk_version, schema=None):
@@ -68,7 +67,7 @@ def raise_if_event_is_invalid(
 
     try:
         # If the schema is the official service communication schema, use the cached validator.
-        if schema is None or schema == {"$ref": SERVICE_COMMUNICATION_SCHEMA}:
+        if schema in (None, SERVICE_COMMUNICATION_SCHEMA):
             jsonschema_validator.validate(data)
 
         # Otherwise, use uncached validation.

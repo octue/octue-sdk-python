@@ -62,13 +62,10 @@ class OrderedMessageHandler:
         self.handle_monitor_message = handle_monitor_message
         self.record_messages = record_messages
         self.service_name = service_name
+        self.schema = schema
+
         self.skip_missing_messages_after = skip_missing_messages_after
         self._missing_message_detection_time = None
-
-        if isinstance(schema, str):
-            self.schema = {"$ref": schema}
-        else:
-            self.schema = schema
 
         self.question_uuid = self.subscription.path.split(".")[-1]
         self.handled_messages = []
