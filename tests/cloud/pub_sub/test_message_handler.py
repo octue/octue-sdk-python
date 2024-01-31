@@ -19,10 +19,21 @@ from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 
 
+QUESTION_UUID = "1c766d5e-4c6c-456a-b1af-17c7f453999d"
+
+
 mock_topic = MockTopic(name="my-org.my-service.1-0-0", project_name=TEST_PROJECT_NAME)
-mock_subscription = MockSubscription(name="my-org.my-service.1-0-0", topic=mock_topic, project_name=TEST_PROJECT_NAME)
+
+mock_subscription = MockSubscription(
+    name=f"my-org.my-service.1-0-0.answers.{QUESTION_UUID}",
+    topic=mock_topic,
+    project_name=TEST_PROJECT_NAME,
+)
+mock_subscription.create()
+
 receiving_service = MockService(
-    service_id="my-org/my-service:1.0.0", backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME)
+    service_id="my-org/my-service:1.0.0",
+    backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME),
 )
 
 
@@ -290,7 +301,15 @@ class TestOrderedMessageHandler(BaseTestCase):
 
         self.assertIsNone(message_handler.total_run_time)
 
-    def test_handler_can_skip_first_n_messages_if_missed(self):
+    def test_time_since_missing_message_is_none_if_no_missing_messages(self):
+        message_handler = OrderedMessageHandler(
+            subscription=mock_subscription,
+            receiving_service=receiving_service,
+        )
+
+        self.assertIsNone(message_handler.time_since_missing_message)
+
+    def test_missing_messages_at_start_can_be_skipped(self):
         """Test that the first n messages can be skipped if they aren't received after a given time period if subsequent
         messages have been received.
         """
@@ -330,8 +349,7 @@ class TestOrderedMessageHandler(BaseTestCase):
             ],
         )
 
-    def test_later_missing_messages_cannot_be_skipped(self):
-        """Test that missing messages that aren't in the first n messages cannot be skipped."""
+    def test_missing_messages_in_middle_can_skipped(self):
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
             message_handler = OrderedMessageHandler(
                 subscription=mock_subscription,
@@ -341,27 +359,47 @@ class TestOrderedMessageHandler(BaseTestCase):
                 skip_missing_messages_after=0,
             )
 
+        parent = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+
+        # Send three consecutive messages.
         messages = [
-            MockMessage.from_primitive({"kind": "test", "order": 0}, attributes={"message_number": 0}),
-            MockMessage.from_primitive({"kind": "test", "order": 1}, attributes={"message_number": 1}),
-            MockMessage.from_primitive({"kind": "test", "order": 2}, attributes={"message_number": 2}),
-            MockMessage.from_primitive({"kind": "finish-test", "order": 5}, attributes={"message_number": 5}),
+            {
+                "event": {"kind": "test", "order": 0},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "test", "order": 1},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "test", "order": 2},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
         ]
 
-        with patch(
-            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_available_messages",
-            new=MockMessagePuller(messages=messages, message_handler=message_handler).pull,
-        ):
-            with self.assertRaises(TimeoutError):
-                message_handler.handle_messages(timeout=0.5)
+        for message in messages:
+            parent._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
-        # Check that only the first three messages were handled.
+        # Simulate missing messages.
+        mock_topic.messages_published = 5
+
+        # Send a final message.
+        parent._send_message(
+            message={"kind": "finish-test", "order": 5},
+            attributes={"message_number": 5, "question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            topic=mock_topic,
+        )
+
+        message_handler.handle_messages()
+
+        # Check that only all the non-missing messages were handled.
         self.assertEqual(
             message_handler.handled_messages,
             [
                 {"kind": "test", "order": 0},
                 {"kind": "test", "order": 1},
                 {"kind": "test", "order": 2},
+                {"kind": "finish-test", "order": 5},
             ],
         )
 
