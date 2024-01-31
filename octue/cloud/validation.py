@@ -64,13 +64,17 @@ def raise_if_event_is_invalid(
     :raise jsonschema.ValidationError: if the event or its attributes are invalid
     :return None:
     """
-    global jsonschema_validator
-
-    if (schema is not None) and (schema != {"$ref": SERVICE_COMMUNICATION_SCHEMA}):
-        jsonschema_validator = jsonschema.Draft202012Validator(schema=schema)
+    data = {"event": event, "attributes": dict(attributes)}
 
     try:
-        jsonschema_validator.validate({"event": event, "attributes": dict(attributes)})
+        # If the schema is the official service communication schema, use the cached validator.
+        if schema is None or schema == {"$ref": SERVICE_COMMUNICATION_SCHEMA}:
+            jsonschema_validator.validate(data)
+
+        # Otherwise, use uncached validation.
+        else:
+            jsonschema.validate(data, schema)
+
     except jsonschema.ValidationError as error:
         warn_if_incompatible(parent_sdk_version=parent_sdk_version, child_sdk_version=child_sdk_version)
 
