@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 MAX_SIMULTANEOUS_MESSAGES_PULL = 50
+PARENT_SDK_VERSION = importlib.metadata.version("octue")
 
 
 class OrderedMessageHandler:
@@ -249,7 +250,7 @@ class OrderedMessageHandler:
             event=event,
             attributes=attributes,
             receiving_service=self.receiving_service,
-            parent_sdk_version=importlib.metadata.version("octue"),
+            parent_sdk_version=PARENT_SDK_VERSION,
             child_sdk_version=attributes.get("version"),
             schema=self.schema,
         ):
