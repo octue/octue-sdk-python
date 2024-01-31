@@ -41,6 +41,7 @@ class OrderedMessageHandler:
     :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
     :param dict|None message_handlers: a mapping of message type names to callables that handle each type of message. The handlers should not mutate the messages.
     :param dict|str schema: the JSON schema (or URI of one) to validate messages against
+    :param int|float skip_missing_messages_after: the number of seconds after which to skip any messages if they haven't arrived but subsequent messages have
     :return None:
     """
 
@@ -53,12 +54,15 @@ class OrderedMessageHandler:
         service_name="REMOTE",
         message_handlers=None,
         schema=SERVICE_COMMUNICATION_SCHEMA,
+        skip_missing_messages_after=60,
     ):
         self.subscription = subscription
         self.receiving_service = receiving_service
         self.handle_monitor_message = handle_monitor_message
         self.record_messages = record_messages
         self.service_name = service_name
+        self.skip_missing_messages_after = skip_missing_messages_after
+        self._missing_message_detection_time = None
 
         if isinstance(schema, str):
             self.schema = {"$ref": schema}
@@ -96,9 +100,16 @@ class OrderedMessageHandler:
         :return float|None: the amount of time since `self.handle_messages` was called (in seconds)
         """
         if self._start_time is None:
-            return
+            return None
 
         return time.perf_counter() - self._start_time
+
+    @property
+    def time_since_missing_message(self):
+        if self._missing_message_detection_time is None:
+            return None
+
+        return time.perf_counter() - self._missing_message_detection_time
 
     @property
     def _time_since_last_heartbeat(self):
@@ -111,13 +122,12 @@ class OrderedMessageHandler:
 
         return datetime.now() - self._last_heartbeat
 
-    def handle_messages(self, timeout=60, maximum_heartbeat_interval=300, skip_first_messages_after=60):
+    def handle_messages(self, timeout=60, maximum_heartbeat_interval=300):
         """Pull messages and handle them in the order they were sent until a result is returned by a message handler,
         then return that result.
 
         :param float|None timeout: how long to wait for an answer before raising a `TimeoutError`
         :param int|float maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
-        :param int|float skip_first_messages_after: the number of seconds after which to skip the first n messages if they haven't arrived but subsequent messages have
         :raise TimeoutError: if the timeout is exceeded before receiving the final message
         :return dict: the first result returned by a message handler
         """
@@ -138,7 +148,7 @@ class OrderedMessageHandler:
             while self._alive:
                 pull_timeout = self._check_timeout_and_get_pull_timeout(timeout)
                 self._pull_and_enqueue_available_messages(timeout=pull_timeout)
-                result = self._attempt_to_handle_waiting_messages(skip_first_messages_after)
+                result = self._attempt_to_handle_waiting_messages()
 
                 if result is not None:
                     return result
@@ -253,23 +263,28 @@ class OrderedMessageHandler:
         self.waiting_messages[message_number] = event
         self._earliest_waiting_message_number = min(self.waiting_messages.keys())
 
-    def _attempt_to_handle_waiting_messages(self, skip_first_messages_after=60):
+    def _attempt_to_handle_waiting_messages(self):
         """Attempt to handle messages waiting in the pulled message queue. If these messages aren't consecutive to the
         last handled message (i.e. if messages have been received out of order and the next in-order message hasn't been
         received yet), just return. After the given amount of time, if the first n messages haven't arrived but
         subsequent ones have, skip to the earliest received message and continue from there.
 
-        :param int|float skip_first_messages_after: the number of seconds after which to skip the first n messages if they haven't arrived but subsequent messages have
         :return any|None: either a non-`None` result from a message handler or `None` if nothing was returned by the message handlers or if the next in-order message hasn't been received yet
         """
         while self.waiting_messages:
             try:
+                # If the next consecutive message has been received:
                 message = self.waiting_messages.pop(self._previous_message_number + 1)
 
+            # If the next consecutive message hasn't been received:
             except KeyError:
+                self._missing_message_detection_time = time.perf_counter()
 
-                if self.total_run_time > skip_first_messages_after:
-                    message = self._get_and_start_from_earliest_waiting_message(skip_first_messages_after)
+                if self.time_since_missing_message > self.skip_missing_messages_after:
+                    message = self._skip_to_earliest_waiting_message()
+
+                    # Declare there are no more missing messages.
+                    self._missing_message_detection_time = None
 
                     if not message:
                         return
@@ -282,10 +297,9 @@ class OrderedMessageHandler:
             if result is not None:
                 return result
 
-    def _get_and_start_from_earliest_waiting_message(self, skip_first_messages_after):
+    def _skip_to_earliest_waiting_message(self):
         """Get the earliest waiting message and set the message handler up to continue from it.
 
-        :param int|float skip_first_messages_after: the number of seconds after which to skip the first n messages if they haven't arrived but subsequent messages have
         :return dict|None:
         """
         try:
@@ -301,7 +315,7 @@ class OrderedMessageHandler:
             "message (message number %d).",
             self.receiving_service,
             self.question_uuid,
-            skip_first_messages_after,
+            self.skip_missing_messages_after,
             self._earliest_waiting_message_number,
         )
 

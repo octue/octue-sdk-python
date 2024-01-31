@@ -300,6 +300,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
+                skip_missing_messages_after=0,
             )
 
         # Simulate the first two messages not being received.
@@ -316,7 +317,7 @@ class TestOrderedMessageHandler(BaseTestCase):
             "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_available_messages",
             new=MockMessagePuller(messages=messages, message_handler=message_handler).pull,
         ):
-            result = message_handler.handle_messages(skip_first_messages_after=0)
+            result = message_handler.handle_messages()
 
         self.assertEqual(result, "This is the result.")
         self.assertEqual(
@@ -337,6 +338,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 receiving_service=receiving_service,
                 message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
+                skip_missing_messages_after=0,
             )
 
         messages = [
@@ -351,7 +353,7 @@ class TestOrderedMessageHandler(BaseTestCase):
             new=MockMessagePuller(messages=messages, message_handler=message_handler).pull,
         ):
             with self.assertRaises(TimeoutError):
-                message_handler.handle_messages(timeout=0.5, skip_first_messages_after=0)
+                message_handler.handle_messages(timeout=0.5)
 
         # Check that only the first three messages were handled.
         self.assertEqual(
