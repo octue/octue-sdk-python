@@ -138,7 +138,7 @@ class OrderedMessageHandler:
             while self._alive:
                 pull_timeout = self._check_timeout_and_get_pull_timeout(timeout)
                 self._pull_and_enqueue_messages(timeout=pull_timeout)
-                result = self._attempt_to_handle_queued_messages(skip_first_messages_after)
+                result = self._attempt_to_handle_waiting_messages(skip_first_messages_after)
 
                 if result is not None:
                     return result
@@ -253,9 +253,9 @@ class OrderedMessageHandler:
         self.waiting_messages[message_number] = event
         self._earliest_message_number_received = min(self._earliest_message_number_received, message_number)
 
-    def _attempt_to_handle_queued_messages(self, skip_first_messages_after=60):
-        """Attempt to handle messages in the pulled message queue. If these messages aren't consecutive with the last
-        handled message (i.e. if messages have been received out of order and the next in-order message hasn't been
+    def _attempt_to_handle_waiting_messages(self, skip_first_messages_after=60):
+        """Attempt to handle messages waiting in the pulled message queue. If these messages aren't consecutive to the
+        last handled message (i.e. if messages have been received out of order and the next in-order message hasn't been
         received yet), just return. After the given amount of time, if the first n messages haven't arrived but
         subsequent ones have, skip to the earliest received message and continue from there.
 
