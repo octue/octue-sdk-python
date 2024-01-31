@@ -211,7 +211,7 @@ class OrderedMessageHandler:
         pull_start_time = time.perf_counter()
         attempt = 1
 
-        while True:
+        while self._alive:
             logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
 
             pull_response = self._subscriber.pull(
