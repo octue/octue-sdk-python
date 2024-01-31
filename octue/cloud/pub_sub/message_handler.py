@@ -75,7 +75,7 @@ class OrderedMessageHandler:
         self._alive = True
         self._start_time = None
         self._previous_message_number = -1
-        self._earliest_message_number_received = math.inf
+        self._earliest_waiting_message_number = math.inf
 
         self._message_handlers = message_handlers or {
             "delivery_acknowledgement": self._handle_delivery_acknowledgement,
@@ -137,7 +137,7 @@ class OrderedMessageHandler:
 
             while self._alive:
                 pull_timeout = self._check_timeout_and_get_pull_timeout(timeout)
-                self._pull_and_enqueue_messages(timeout=pull_timeout)
+                self._pull_and_enqueue_available_messages(timeout=pull_timeout)
                 result = self._attempt_to_handle_waiting_messages(skip_first_messages_after)
 
                 if result is not None:
@@ -189,8 +189,8 @@ class OrderedMessageHandler:
 
         return timeout - total_run_time
 
-    def _pull_and_enqueue_messages(self, timeout):
-        """Pull as many messages as are available from the subscription and enqueue them in `self.waiting_messages`,
+    def _pull_and_enqueue_available_messages(self, timeout):
+        """Pull as many messages from the subscription as are available and enqueue them in `self.waiting_messages`,
         raising a `TimeoutError` if the timeout is exceeded before succeeding.
 
         :param float|None timeout: how long to wait in seconds for the message before raising a `TimeoutError`
@@ -251,7 +251,7 @@ class OrderedMessageHandler:
 
         message_number = attributes["message_number"]
         self.waiting_messages[message_number] = event
-        self._earliest_message_number_received = min(self._earliest_message_number_received, message_number)
+        self._earliest_waiting_message_number = min(self.waiting_messages.keys())
 
     def _attempt_to_handle_waiting_messages(self, skip_first_messages_after=60):
         """Attempt to handle messages waiting in the pulled message queue. If these messages aren't consecutive to the
@@ -268,8 +268,8 @@ class OrderedMessageHandler:
 
             except KeyError:
 
-                if self.total_run_time > skip_first_messages_after and self._previous_message_number == -1:
-                    message = self._get_and_start_from_earliest_received_message(skip_first_messages_after)
+                if self.total_run_time > skip_first_messages_after:
+                    message = self._get_and_start_from_earliest_waiting_message(skip_first_messages_after)
 
                     if not message:
                         return
@@ -282,28 +282,27 @@ class OrderedMessageHandler:
             if result is not None:
                 return result
 
-    def _get_and_start_from_earliest_received_message(self, skip_first_messages_after):
-        """Get the earliest received message from the waiting message queue and set the message handler up to start from
-        it instead of the first message sent by the child.
+    def _get_and_start_from_earliest_waiting_message(self, skip_first_messages_after):
+        """Get the earliest waiting message and set the message handler up to continue from it.
 
         :param int|float skip_first_messages_after: the number of seconds after which to skip the first n messages if they haven't arrived but subsequent messages have
         :return dict|None:
         """
         try:
-            message = self.waiting_messages.pop(self._earliest_message_number_received)
+            message = self.waiting_messages.pop(self._earliest_waiting_message_number)
         except KeyError:
             return
 
-        self._previous_message_number = self._earliest_message_number_received - 1
+        # Let the message handler know it can handle the next earliest message.
+        self._previous_message_number = self._earliest_waiting_message_number - 1
 
         logger.warning(
-            "%r: The first %d messages for question %r weren't received after %ds - skipping to the "
-            "earliest received message (message number %d).",
+            "%r: Some messages for question %r weren't received after %ds - skipping to the next earliest received "
+            "message (message number %d).",
             self.receiving_service,
-            self._earliest_message_number_received,
             self.question_uuid,
             skip_first_messages_after,
-            self._earliest_message_number_received,
+            self._earliest_waiting_message_number,
         )
 
         return message
