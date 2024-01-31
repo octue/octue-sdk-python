@@ -279,7 +279,9 @@ class OrderedMessageHandler:
 
             # If the next consecutive message hasn't been received:
             except KeyError:
-                self._missing_message_detection_time = time.perf_counter()
+                # Start the missing message timer if it isn't already running.
+                if self._missing_message_detection_time is None:
+                    self._missing_message_detection_time = time.perf_counter()
 
                 if self.time_since_missing_message > self.skip_missing_messages_after:
                     message = self._skip_to_earliest_waiting_message()
