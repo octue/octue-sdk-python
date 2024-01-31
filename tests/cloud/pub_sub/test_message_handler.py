@@ -236,10 +236,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(
-                subscription=mock_subscription,
-                receiving_service=parent,
-            )
+            message_handler = OrderedMessageHandler(subscription=mock_subscription, receiving_service=parent)
 
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
@@ -278,10 +275,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         question_uuid, _, mock_subscription = create_mock_topic_and_subscription()
 
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(
-                subscription=mock_subscription,
-                receiving_service=parent,
-            )
+            message_handler = OrderedMessageHandler(subscription=mock_subscription, receiving_service=parent)
 
         message_handler._last_heartbeat = datetime.datetime.now() - datetime.timedelta(seconds=30)
 
@@ -295,10 +289,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(
-                subscription=mock_subscription,
-                receiving_service=parent,
-            )
+            message_handler = OrderedMessageHandler(subscription=mock_subscription, receiving_service=parent)
 
         message_handler._last_heartbeat = datetime.datetime.now()
 
@@ -332,10 +323,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         question_uuid, _, mock_subscription = create_mock_topic_and_subscription()
 
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(
-                subscription=mock_subscription,
-                receiving_service=parent,
-            )
+            message_handler = OrderedMessageHandler(subscription=mock_subscription, receiving_service=parent)
 
         self.assertIsNone(message_handler._time_since_last_heartbeat)
 
