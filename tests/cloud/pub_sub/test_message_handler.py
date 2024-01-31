@@ -1,12 +1,10 @@
 import datetime
-import json
 import math
 from unittest.mock import patch
 
 from octue.cloud.emulators._pub_sub import (
     SUBSCRIPTIONS,
     MockMessage,
-    MockMessagePuller,
     MockService,
     MockSubscriber,
     MockSubscription,
@@ -45,15 +43,8 @@ class TestOrderedMessageHandler(BaseTestCase):
                 schema={},
             )
 
-        with patch(
-            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_available_messages",
-            new=MockMessagePuller(
-                messages=[MockMessage(b"")],
-                message_handler=message_handler,
-            ).pull,
-        ):
-            with self.assertRaises(TimeoutError):
-                message_handler.handle_messages(timeout=0)
+        with self.assertRaises(TimeoutError):
+            message_handler.handle_messages(timeout=0)
 
     def test_in_order_messages_are_handled_in_order(self):
         """Test that messages received in order are handled in order."""
@@ -65,21 +56,25 @@ class TestOrderedMessageHandler(BaseTestCase):
                 schema={},
             )
 
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+
         messages = [
-            MockMessage.from_primitive({"kind": "test"}, attributes={"message_number": 0}),
-            MockMessage.from_primitive({"kind": "test"}, attributes={"message_number": 1}),
-            MockMessage.from_primitive({"kind": "test"}, attributes={"message_number": 2}),
-            MockMessage.from_primitive({"kind": "finish-test"}, attributes={"message_number": 3}),
+            {"event": {"kind": "test"}, "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"}},
+            {"event": {"kind": "test"}, "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"}},
+            {"event": {"kind": "test"}, "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"}},
+            {"event": {"kind": "finish-test"}, "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"}},
         ]
 
-        with patch(
-            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_available_messages",
-            new=MockMessagePuller(messages=messages, message_handler=message_handler).pull,
-        ):
-            result = message_handler.handle_messages()
+        for message in messages:
+            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
+        result = message_handler.handle_messages()
         self.assertEqual(result, "This is the result.")
-        self.assertEqual(message_handler.handled_messages, [json.loads(message.data.decode()) for message in messages])
+
+        self.assertEqual(
+            message_handler.handled_messages,
+            [{"kind": "test"}, {"kind": "test"}, {"kind": "test"}, {"kind": "finish-test"}],
+        )
 
     def test_out_of_order_messages_are_handled_in_order(self):
         """Test that messages received out of order are handled in order."""
@@ -91,20 +86,35 @@ class TestOrderedMessageHandler(BaseTestCase):
                 schema={},
             )
 
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+
         messages = [
-            MockMessage.from_primitive({"kind": "test", "order": 1}, attributes={"message_number": 1}),
-            MockMessage.from_primitive({"kind": "test", "order": 2}, attributes={"message_number": 2}),
-            MockMessage.from_primitive({"kind": "test", "order": 0}, attributes={"message_number": 0}),
-            MockMessage.from_primitive({"kind": "finish-test", "order": 3}, attributes={"message_number": 3}),
+            {
+                "event": {"kind": "test", "order": 1},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "test", "order": 2},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "test", "order": 0},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "finish-test", "order": 3},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
         ]
 
-        with patch(
-            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_available_messages",
-            new=MockMessagePuller(messages=messages, message_handler=message_handler).pull,
-        ):
-            result = message_handler.handle_messages()
+        for message in messages:
+            mock_topic.messages_published = message["event"]["order"]
+            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+
+        result = message_handler.handle_messages()
 
         self.assertEqual(result, "This is the result.")
+
         self.assertEqual(
             message_handler.handled_messages,
             [
@@ -127,19 +137,32 @@ class TestOrderedMessageHandler(BaseTestCase):
                 schema={},
             )
 
-        with patch(
-            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_available_messages",
-            new=MockMessagePuller(
-                messages=[
-                    MockMessage.from_primitive({"kind": "finish-test", "order": 3}, attributes={"message_number": 3}),
-                    MockMessage.from_primitive({"kind": "test", "order": 1}, attributes={"message_number": 1}),
-                    MockMessage.from_primitive({"kind": "test", "order": 2}, attributes={"message_number": 2}),
-                    MockMessage.from_primitive({"kind": "test", "order": 0}, attributes={"message_number": 0}),
-                ],
-                message_handler=message_handler,
-            ).pull,
-        ):
-            result = message_handler.handle_messages()
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+
+        messages = [
+            {
+                "event": {"kind": "finish-test", "order": 3},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "test", "order": 1},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "test", "order": 2},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "test", "order": 0},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+        ]
+
+        for message in messages:
+            mock_topic.messages_published = message["event"]["order"]
+            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+
+        result = message_handler.handle_messages()
 
         self.assertEqual(result, "This is the result.")
 
@@ -163,17 +186,27 @@ class TestOrderedMessageHandler(BaseTestCase):
                 schema={},
             )
 
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+
         messages = [
-            MockMessage.from_primitive({"kind": "test", "order": 0}, attributes={"message_number": 0}),
-            MockMessage.from_primitive({"kind": "test", "order": 1}, attributes={"message_number": 1}),
-            MockMessage.from_primitive({"kind": "finish-test", "order": 2}, attributes={"message_number": 2}),
+            {
+                "event": {"kind": "test", "order": 0},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "test", "order": 1},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "finish-test", "order": 2},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
         ]
 
-        with patch(
-            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_available_messages",
-            new=MockMessagePuller(messages=messages, message_handler=message_handler).pull,
-        ):
-            result = message_handler.handle_messages(timeout=None)
+        for message in messages:
+            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+
+        result = message_handler.handle_messages(timeout=None)
 
         self.assertEqual(result, "This is the result.")
         self.assertEqual(
@@ -189,40 +222,32 @@ class TestOrderedMessageHandler(BaseTestCase):
                 receiving_service=parent,
             )
 
-        with patch(
-            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_available_messages",
-            new=MockMessagePuller(
-                [
-                    MockMessage.from_primitive(
-                        {
-                            "kind": "delivery_acknowledgement",
-                            "datetime": "2021-11-17 17:33:59.717428",
-                        },
-                        attributes={"message_number": 0},
-                    ),
-                    MockMessage.from_primitive(
-                        {"kind": "result", "output_values": None, "output_manifest": None},
-                        attributes={"message_number": 1},
-                    ),
-                ],
-                message_handler=message_handler,
-            ).pull,
-        ):
-            result = message_handler.handle_messages()
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
+        messages = [
+            {
+                "event": {"kind": "delivery_acknowledgement", "datetime": datetime.datetime.utcnow().isoformat()},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "result"},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+        ]
+
+        for message in messages:
+            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+
+        result = message_handler.handle_messages()
         self.assertEqual(result, {"output_values": None, "output_manifest": None})
 
     def test_error_raised_if_heartbeat_not_received_before_checked(self):
         """Test that an error is raised if a heartbeat isn't received before a heartbeat is first checked for."""
         with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(
-                subscription=mock_subscription,
-                receiving_service=parent,
-            )
+            message_handler = OrderedMessageHandler(subscription=mock_subscription, receiving_service=parent)
 
-        with patch("octue.cloud.pub_sub.message_handler.OrderedMessageHandler._pull_and_enqueue_available_messages"):
-            with self.assertRaises(TimeoutError) as error:
-                message_handler.handle_messages(maximum_heartbeat_interval=0)
+        with self.assertRaises(TimeoutError) as error:
+            message_handler.handle_messages(maximum_heartbeat_interval=0)
 
         # Check that the timeout is due to a heartbeat not being received.
         self.assertIn("heartbeat", error.exception.args[0])
@@ -252,30 +277,30 @@ class TestOrderedMessageHandler(BaseTestCase):
 
         message_handler._last_heartbeat = datetime.datetime.now()
 
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+
+        messages = [
+            {
+                "event": {
+                    "kind": "delivery_acknowledgement",
+                    "datetime": datetime.datetime.utcnow().isoformat(),
+                },
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "result"},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+        ]
+
+        for message in messages:
+            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+
         with patch(
-            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_available_messages",
-            new=MockMessagePuller(
-                messages=[
-                    MockMessage.from_primitive(
-                        {
-                            "kind": "delivery_acknowledgement",
-                            "datetime": "2021-11-17 17:33:59.717428",
-                        },
-                        attributes={"message_number": 0},
-                    ),
-                    MockMessage.from_primitive(
-                        {"kind": "result", "output_values": None, "output_manifest": None},
-                        attributes={"message_number": 1},
-                    ),
-                ],
-                message_handler=message_handler,
-            ).pull,
+            "octue.cloud.pub_sub.message_handler.OrderedMessageHandler._time_since_last_heartbeat",
+            datetime.timedelta(seconds=0),
         ):
-            with patch(
-                "octue.cloud.pub_sub.message_handler.OrderedMessageHandler._time_since_last_heartbeat",
-                datetime.timedelta(seconds=0),
-            ):
-                message_handler.handle_messages(maximum_heartbeat_interval=0)
+            message_handler.handle_messages(maximum_heartbeat_interval=0)
 
     def test_time_since_last_heartbeat_is_none_if_no_heartbeat_received_yet(self):
         """Test that the time since the last heartbeat is `None` if no heartbeat has been received yet."""
@@ -291,19 +316,11 @@ class TestOrderedMessageHandler(BaseTestCase):
         """Test that the total run time for the message handler is `None` if the `handle_messages` method has not been
         called.
         """
-        message_handler = OrderedMessageHandler(
-            subscription=mock_subscription,
-            receiving_service=parent,
-        )
-
+        message_handler = OrderedMessageHandler(subscription=mock_subscription, receiving_service=parent)
         self.assertIsNone(message_handler.total_run_time)
 
     def test_time_since_missing_message_is_none_if_no_missing_messages(self):
-        message_handler = OrderedMessageHandler(
-            subscription=mock_subscription,
-            receiving_service=parent,
-        )
-
+        message_handler = OrderedMessageHandler(subscription=mock_subscription, receiving_service=parent)
         self.assertIsNone(message_handler.time_since_missing_message)
 
     def test_missing_messages_at_start_can_be_skipped(self):
@@ -320,20 +337,33 @@ class TestOrderedMessageHandler(BaseTestCase):
             )
 
         # Simulate the first two messages not being received.
-        message_handler._earliest_waiting_message_number = 2
+        mock_topic.messages_published = 2
+
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         messages = [
-            MockMessage.from_primitive({"kind": "test", "order": 2}, attributes={"message_number": 2}),
-            MockMessage.from_primitive({"kind": "test", "order": 3}, attributes={"message_number": 3}),
-            MockMessage.from_primitive({"kind": "test", "order": 4}, attributes={"message_number": 4}),
-            MockMessage.from_primitive({"kind": "finish-test", "order": 5}, attributes={"message_number": 5}),
+            {
+                "event": {"kind": "test", "order": 2},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "test", "order": 3},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "test", "order": 4},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "finish-test", "order": 5},
+                "attributes": {"question_uuid": QUESTION_UUID, "sender_type": "CHILD"},
+            },
         ]
 
-        with patch(
-            "octue.cloud.pub_sub.service.OrderedMessageHandler._pull_and_enqueue_available_messages",
-            new=MockMessagePuller(messages=messages, message_handler=message_handler).pull,
-        ):
-            result = message_handler.handle_messages()
+        for message in messages:
+            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+
+        result = message_handler.handle_messages()
 
         self.assertEqual(result, "This is the result.")
         self.assertEqual(

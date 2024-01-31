@@ -388,37 +388,6 @@ class MockService(Service):
         return response_subscription, question_uuid
 
 
-class MockMessagePuller:
-    """A mock message puller that enqueues messages in the message handler in the order they're provided on
-    initialisation. This is meant for patching
-    `octue.cloud.pub_sub.message_handler.OrderedMessageHandler._pull_and_enqueue_message` in tests.
-
-    :param iter(octue.cloud.pub_sub.emulators._pub_sub.MockMessage) messages:
-    :param octue.cloud.pub_sub.message_handler.OrderedMessageHandler message_handler:
-    :return None:
-    """
-
-    def __init__(self, messages, message_handler):
-        self.messages = messages
-        self.message_handler = message_handler
-        self.current_message = 0
-
-    def pull(self, timeout):
-        """Get the next message from the messages given at instantiation and enqueue it for handling in the message
-        handler.
-
-        :return None:
-        """
-        try:
-            message = self.messages[self.current_message]
-        except IndexError:
-            return
-
-        message_number = int(message.attributes["message_number"])
-        self.message_handler.waiting_messages[message_number] = json.loads(message.data.decode())
-        self.current_message += 1
-
-
 class MockAnalysis:
     """A mock Analysis object with just the output strands.
 
