@@ -236,6 +236,9 @@ class OrderedMessageHandler:
             }
         )
 
+        if not pull_response.received_messages:
+            return
+
         for message in pull_response.received_messages:
             self._extract_and_enqueue_event(message)
 
