@@ -35,6 +35,10 @@ from octue.utils.threads import RepeatingTimer
 
 
 logger = logging.getLogger(__name__)
+
+# A lock to ensure only one message can be sent at a time so that the message number is incremented correctly when
+# messages are being sent on multiple threads (e.g. via the main thread and a periodic monitor message thread). This
+# avoids 1) messages overwriting each other in the parent's message handler and 2) messages losing their order.
 send_message_lock = threading.Lock()
 
 DEFAULT_NAMESPACE = "default"
@@ -436,7 +440,8 @@ class Service:
         )
 
     def _send_message(self, message, topic, attributes=None, timeout=30):
-        """Send a JSON-serialised message to the given topic with optional message attributes.
+        """Send a JSON-serialised message to the given topic with optional message attributes and increment the
+        `messages_published` attribute of the topic by one. This method is thread-safe.
 
         :param dict message: JSON-serialisable data to send as a message
         :param octue.cloud.pub_sub.topic.Topic topic: the Pub/Sub topic to send the message to

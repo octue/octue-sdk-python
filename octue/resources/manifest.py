@@ -2,6 +2,7 @@ import concurrent.futures
 import copy
 import json
 import logging
+import threading
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
@@ -11,6 +12,12 @@ from octue.resources.dataset import Dataset
 
 
 logger = logging.getLogger(__name__)
+
+# A lock to ensure only one thread can use the `Manifest.update_dataset_paths` method at a time. This avoids a race
+# condition where a manifest shared across multiple questions in e.g. `Child.ask_multiple` has its dataset paths
+# updated by more than one thread simultaneously while attempting to convert them to signed URLs. This lock should
+# perhaps be applied to all methods where mutations are made to the manifest instead of just this single method.
+update_dataset_paths_lock = threading.Lock()
 
 
 class Manifest(Serialisable, Identifiable, Hashable, Metadata):
@@ -60,17 +67,19 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
         return all(dataset.all_files_are_in_cloud for dataset in self.datasets.values())
 
     def update_dataset_paths(self, path_generator):
-        """Update the path of each dataset according to the given path generator function.
+        """Update the path of each dataset according to the given path generator function. This method is thread-safe.
 
         :param callable path_generator: a function taking a `Dataset` as its only argument and returning the new path of the dataset
         :return None:
         """
-        for name, dataset in self.datasets.items():
-            self.datasets[name].path = path_generator(dataset)
+        with update_dataset_paths_lock:
+            for name, dataset in self.datasets.items():
+                self.datasets[name].path = path_generator(dataset)
 
     def use_signed_urls_for_datasets(self):
         """Generate signed URLs for any cloud datasets in the manifest and use these as their paths instead of regular
-        cloud paths. URLs will not be generated for any local datasets in the manifest. This method is idempotent.
+        cloud paths. URLs will not be generated for any local datasets or datasets whose paths are already URLs
+        (including those whose paths are already signed), making this method idempotent.
 
         :return None:
         """
