@@ -254,7 +254,7 @@ class TestService(BaseTestCase):
         run function rather than a mock so that the underlying `Runner` instance is used, and check that remote log
         messages aren't forwarded to the local logger.
         """
-        child = MockService(backend=BACKEND, run_function=self.create_run_function())
+        child = MockService(backend=BACKEND, service_id="truly/madly:deeply", run_function=self.create_run_function())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         with self.assertLogs() as logging_context:
@@ -268,7 +268,7 @@ class TestService(BaseTestCase):
             {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
         )
 
-        self.assertTrue(all("[REMOTE]" not in message for message in logging_context.output))
+        self.assertTrue(all("[truly/madly:deeply" not in message for message in logging_context.output))
 
     def test_ask_with_real_run_function_with_log_message_forwarding(self):
         """Test that a service can ask a question to another service that is serving and receive an answer. Use a real
