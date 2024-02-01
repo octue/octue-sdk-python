@@ -239,6 +239,8 @@ class OrderedMessageHandler:
         for message in pull_response.received_messages:
             self._extract_and_enqueue_event(message)
 
+        self._earliest_waiting_message_number = min(self.waiting_messages.keys())
+
     def _extract_and_enqueue_event(self, message):
         logger.debug("%r received a message related to question %r.", self.receiving_service, self.question_uuid)
         event, attributes = extract_event_and_attributes_from_pub_sub(message.message)
@@ -259,7 +261,6 @@ class OrderedMessageHandler:
 
         message_number = attributes["message_number"]
         self.waiting_messages[message_number] = event
-        self._earliest_waiting_message_number = min(self.waiting_messages.keys())
 
     def _attempt_to_handle_waiting_messages(self):
         """Attempt to handle messages waiting in the pulled message queue. If these messages aren't consecutive to the
