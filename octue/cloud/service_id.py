@@ -209,6 +209,11 @@ def convert_service_id_to_pub_sub_form(service_id):
     return service_id
 
 
+def get_sruid_from_pub_sub_resource_name(name):
+    _, _, namespace, name, revision_tag, *_ = name.split(".")
+    return f"{namespace}/{name}:{revision_tag.replace('-', '.')}"
+
+
 def split_service_id(service_id, require_revision_tag=False):
     """Split an SRUID or service ID into its namespace, name, and, if present, its revision tag. The split parts are
     validated before being returned.

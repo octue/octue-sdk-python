@@ -169,8 +169,14 @@ class TestService(BaseTestCase):
 
     def test_timeout_error_raised_if_no_messages_received_when_waiting(self):
         """Test that a TimeoutError is raised if no messages are received while waiting."""
-        mock_topic = MockTopic(name="world", project_name=TEST_PROJECT_NAME)
-        mock_subscription = MockSubscription(name="world", topic=mock_topic, project_name=TEST_PROJECT_NAME)
+        mock_topic = MockTopic(name="amazing.service.9-9-9", project_name=TEST_PROJECT_NAME)
+
+        mock_subscription = MockSubscription(
+            name="amazing.service.9-9-9",
+            topic=mock_topic,
+            project_name=TEST_PROJECT_NAME,
+        )
+
         service = Service(backend=BACKEND)
 
         with patch("octue.cloud.pub_sub.service.pubsub_v1.SubscriberClient.pull", return_value=MockPullResponse()):
@@ -269,14 +275,19 @@ class TestService(BaseTestCase):
         run function rather than a mock so that the underlying `Runner` instance is used, and check that remote log
         messages are forwarded to the local logger.
         """
-        child = MockService(backend=BACKEND, run_function=self.create_run_function())
+        child = MockService(
+            backend=BACKEND,
+            service_id="my-super/service:6.0.1",
+            run_function=self.create_run_function(),
+        )
+
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         with self.assertLogs() as logs_context_manager:
             with self.service_patcher:
                 child.serve()
                 subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
-                answer = parent.wait_for_answer(subscription, service_name="my-super-service")
+                answer = parent.wait_for_answer(subscription)
 
         self.assertEqual(
             answer,
@@ -289,11 +300,11 @@ class TestService(BaseTestCase):
         finish_remote_analysis_message_present = False
 
         for i, log_record in enumerate(logs_context_manager.records):
-            if "[my-super-service" in log_record.msg and "Starting analysis." in log_record.msg:
+            if "[my-super/service:6.0.1" in log_record.msg and "Starting analysis." in log_record.msg:
                 start_remote_analysis_message_present = True
 
                 if (
-                    "[my-super-service" in logs_context_manager.records[i + 1].msg
+                    "[my-super/service:6.0.1" in logs_context_manager.records[i + 1].msg
                     and "Finished analysis." in logs_context_manager.records[i + 1].msg
                 ):
                     finish_remote_analysis_message_present = True
@@ -322,7 +333,7 @@ class TestService(BaseTestCase):
             with self.service_patcher:
                 child.serve()
                 subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
-                parent.wait_for_answer(subscription, service_name="my-super-service")
+                parent.wait_for_answer(subscription)
 
         error_logged = False
 
@@ -436,7 +447,7 @@ class TestService(BaseTestCase):
                 save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
             )
 
-            answer = parent.wait_for_answer(subscription, service_name="my-super-service")
+            answer = parent.wait_for_answer(subscription)
 
         self.assertEqual(answer["output_values"], input_values)
 
@@ -712,7 +723,7 @@ class TestService(BaseTestCase):
         with self.service_patcher:
             child.serve()
             subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
-            parent.wait_for_answer(subscription, service_name="my-super-service")
+            parent.wait_for_answer(subscription)
 
         # Check that the child's messages have been recorded by the parent.
         self.assertEqual(parent.received_messages[0]["kind"], "delivery_acknowledgement")
@@ -731,7 +742,7 @@ class TestService(BaseTestCase):
 
             with self.assertRaises(ValueError):
                 subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
-                parent.wait_for_answer(subscription, service_name="my-super-service")
+                parent.wait_for_answer(subscription)
 
         # Check that the child's messages have been recorded by the parent.
         self.assertEqual(parent.received_messages[0]["kind"], "delivery_acknowledgement")
@@ -763,7 +774,7 @@ class TestService(BaseTestCase):
                     save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
                 )
 
-                parent.wait_for_answer(subscription, service_name="my-super-service")
+                parent.wait_for_answer(subscription)
 
         self.assertEqual(parent.received_messages[1]["kind"], "heartbeat")
         self.assertEqual(parent.received_messages[2]["kind"], "heartbeat")
@@ -807,12 +818,7 @@ class TestService(BaseTestCase):
             )
 
             monitor_messages = []
-
-            result = parent.wait_for_answer(
-                subscription,
-                service_name="my-super-service",
-                handle_monitor_message=monitor_messages.append,
-            )
+            result = parent.wait_for_answer(subscription, handle_monitor_message=monitor_messages.append)
 
         # Check that multiple monitor messages were sent and received.
         self.assertTrue(len(monitor_messages) > 1)

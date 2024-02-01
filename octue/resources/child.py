@@ -100,7 +100,6 @@ class Child:
             subscription=subscription,
             handle_monitor_message=handle_monitor_message,
             record_messages=record_messages,
-            service_name=self.id,
             timeout=timeout,
             maximum_heartbeat_interval=maximum_heartbeat_interval,
         )

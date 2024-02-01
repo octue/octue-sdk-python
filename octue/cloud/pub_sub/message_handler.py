@@ -380,8 +380,7 @@ class OrderedMessageHandler:
             text_colour=self._log_message_colours[0],
         )
 
-        # Colour any analysis sections from children of the immediate child with the rest of the colour palette and
-        # colour the message from the furthest child white.
+        # Colour any analysis sections from children of the immediate child with the rest of the colour palette.
         subchild_analysis_sections = [section.strip("[") for section in re.split("] ", record.msg)]
         final_message = subchild_analysis_sections.pop(-1)
 
