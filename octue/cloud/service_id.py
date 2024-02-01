@@ -210,6 +210,12 @@ def convert_service_id_to_pub_sub_form(service_id):
 
 
 def get_sruid_from_pub_sub_resource_name(name):
+    """Get the SRUID from a Google Pub/Sub topic or subscription name. Note that any hyphens in the revision tag will
+    be replaced with periods.
+
+    :param str name: the name of the topic or subscription
+    :return str: the SRUID of the service revision the topic or subscription is related to
+    """
     _, _, namespace, name, revision_tag, *_ = name.split(".")
     return f"{namespace}/{name}:{revision_tag.replace('-', '.')}"
 
