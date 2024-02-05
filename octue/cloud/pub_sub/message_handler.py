@@ -327,8 +327,8 @@ class OrderedMessageHandler:
         self._previous_message_number = self._earliest_waiting_message_number - 1
 
         logger.warning(
-            "%r: %d consecutive messages missing for question %r after %ds - skipping to next earliest received "
-            "message (message %d).",
+            "%r: %d consecutive messages missing for question %r after %ds - skipping to next earliest waiting message "
+            "(message %d).",
             self.receiving_service,
             number_of_missing_messages,
             self.question_uuid,
