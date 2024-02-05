@@ -311,13 +311,16 @@ class OrderedMessageHandler:
         except KeyError:
             return
 
+        number_of_missing_messages = self._earliest_waiting_message_number - self._previous_message_number + 1
+
         # Let the message handler know it can handle the next earliest message.
         self._previous_message_number = self._earliest_waiting_message_number - 1
 
         logger.warning(
-            "%r: Some messages for question %r weren't received after %ds - skipping to the next earliest received "
+            "%r: %d messages for question %r weren't received after %ds - skipping to the next earliest received "
             "message (message number %d).",
             self.receiving_service,
+            number_of_missing_messages,
             self.question_uuid,
             self.skip_missing_messages_after,
             self._earliest_waiting_message_number,
