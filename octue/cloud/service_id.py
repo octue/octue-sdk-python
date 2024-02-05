@@ -35,7 +35,7 @@ def get_sruid_parts(service_configuration):
     service_name = os.environ.get("OCTUE_SERVICE_NAME")
     service_revision_tag = os.environ.get("OCTUE_SERVICE_REVISION_TAG")
 
-    if service_namespace:
+    if service_namespace and service_namespace != service_configuration.namespace:
         logger.warning(
             "The namespace in the service configuration %r has been overridden by the `OCTUE_SERVICE_NAMESPACE` "
             "environment variable %r.",
@@ -45,7 +45,7 @@ def get_sruid_parts(service_configuration):
     else:
         service_namespace = service_configuration.namespace
 
-    if service_name:
+    if service_name and service_name != service_configuration.name:
         logger.warning(
             "The name in the service configuration %r has been overridden by the `OCTUE_SERVICE_NAME` environment "
             "variable %r.",
@@ -207,6 +207,17 @@ def convert_service_id_to_pub_sub_form(service_id):
         service_id = service_id + "." + service_revision_tag.replace(".", "-")
 
     return service_id
+
+
+def get_sruid_from_pub_sub_resource_name(name):
+    """Get the SRUID from a Google Pub/Sub topic or subscription name. Note that any hyphens in the revision tag will
+    be replaced with periods.
+
+    :param str name: the name of the topic or subscription
+    :return str: the SRUID of the service revision the topic or subscription is related to
+    """
+    _, _, namespace, name, revision_tag, *_ = name.split(".")
+    return f"{namespace}/{name}:{revision_tag.replace('-', '.')}"
 
 
 def split_service_id(service_id, require_revision_tag=False):

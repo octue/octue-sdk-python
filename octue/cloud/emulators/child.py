@@ -126,7 +126,6 @@ class ChildEmulator:
                 subscription,
                 handle_monitor_message=handle_monitor_message,
                 record_messages=record_messages,
-                service_name=self.id,
                 timeout=timeout,
             )
 

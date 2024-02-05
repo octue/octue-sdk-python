@@ -22,6 +22,7 @@ from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     create_sruid,
     get_default_sruid,
+    get_sruid_from_pub_sub_resource_name,
     raise_if_revision_not_registered,
     split_service_id,
     validate_sruid,
@@ -34,6 +35,10 @@ from octue.utils.threads import RepeatingTimer
 
 
 logger = logging.getLogger(__name__)
+
+# A lock to ensure only one message can be sent at a time so that the message number is incremented correctly when
+# messages are being sent on multiple threads (e.g. via the main thread and a periodic monitor message thread). This
+# avoids 1) messages overwriting each other in the parent's message handler and 2) messages losing their order.
 send_message_lock = threading.Lock()
 
 DEFAULT_NAMESPACE = "default"
@@ -371,7 +376,6 @@ class Service:
         subscription,
         handle_monitor_message=None,
         record_messages=True,
-        service_name="REMOTE",
         timeout=60,
         maximum_heartbeat_interval=300,
     ):
@@ -381,7 +385,6 @@ class Service:
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
         :param bool record_messages: if `True`, record messages received from the child in the `received_messages` attribute
-        :param str service_name: a name by which to refer to the child subscribed to (used for labelling its log messages if subscribed to)
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
         :param float|int delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
@@ -393,6 +396,8 @@ class Service:
                 f"{subscription.path!r} is a push subscription so it cannot be waited on for an answer. Please check "
                 f"its push endpoint at {subscription.push_endpoint!r}."
             )
+
+        service_name = get_sruid_from_pub_sub_resource_name(subscription.name)
 
         self._message_handler = OrderedMessageHandler(
             subscription=subscription,
@@ -435,7 +440,8 @@ class Service:
         )
 
     def _send_message(self, message, topic, attributes=None, timeout=30):
-        """Send a JSON-serialised message to the given topic with optional message attributes.
+        """Send a JSON-serialised message to the given topic with optional message attributes and increment the
+        `messages_published` attribute of the topic by one. This method is thread-safe.
 
         :param dict message: JSON-serialisable data to send as a message
         :param octue.cloud.pub_sub.topic.Topic topic: the Pub/Sub topic to send the message to

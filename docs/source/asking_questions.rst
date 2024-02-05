@@ -89,6 +89,8 @@ Options:
   times
 - If ``raise_errors=False`` is provided with ``max_retries > 0`` and ``prevent_retries_when`` is set to a list of
   exception types, failed questions are retried except for those whose exception types are in the list
+- The maximum number of threads that can be used to ask questions in parallel can be set via the ``max_workers``
+  argument. This has no effect on the total number of questions that can be asked via ``Child.ask_multiple``.
 
 
 Asking a question within a service
