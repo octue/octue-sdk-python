@@ -64,7 +64,9 @@ def raise_if_event_is_invalid(
     :return None:
     """
     data = {"event": event, "attributes": dict(attributes)}
-    schema = schema or SERVICE_COMMUNICATION_SCHEMA
+
+    if schema is None:
+        schema = SERVICE_COMMUNICATION_SCHEMA
 
     try:
         # If the schema is the official service communication schema, use the cached validator.
