@@ -250,6 +250,11 @@ class OrderedMessageHandler:
         self._earliest_waiting_message_number = min(self.waiting_messages.keys())
 
     def _extract_and_enqueue_event(self, message):
+        """Extract an event from the Pub/Sub message and add it to `self.waiting_messages`.
+
+        :param dict message:
+        :return None:
+        """
         logger.debug("%r received a message related to question %r.", self.receiving_service, self.question_uuid)
         event, attributes = extract_event_and_attributes_from_pub_sub(message.message)
 
@@ -271,10 +276,10 @@ class OrderedMessageHandler:
         self.waiting_messages[message_number] = event
 
     def _attempt_to_handle_waiting_messages(self):
-        """Attempt to handle messages waiting in the pulled message queue. If these messages aren't consecutive to the
+        """Attempt to handle messages waiting in `self.waiting_messages`. If these messages aren't consecutive to the
         last handled message (i.e. if messages have been received out of order and the next in-order message hasn't been
-        received yet), just return. After the given amount of time, if the first n messages haven't arrived but
-        subsequent ones have, skip to the earliest received message and continue from there.
+        received yet), just return. After the missing message wait time has passed, if this set of missing messages
+        haven't arrived but subsequent ones have, skip to the earliest waiting message and continue from there.
 
         :return any|None: either a non-`None` result from a message handler or `None` if nothing was returned by the message handlers or if the next in-order message hasn't been received yet
         """
