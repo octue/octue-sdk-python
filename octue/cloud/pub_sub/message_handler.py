@@ -55,7 +55,7 @@ class OrderedMessageHandler:
         service_name="REMOTE",
         message_handlers=None,
         schema=SERVICE_COMMUNICATION_SCHEMA,
-        skip_missing_messages_after=60,
+        skip_missing_messages_after=10,
     ):
         self.subscription = subscription
         self.receiving_service = receiving_service
