@@ -335,14 +335,17 @@ class TestOrderedMessageHandler(BaseTestCase):
         message_handler = OrderedMessageHandler(subscription=mock_subscription, receiving_service=parent)
         self.assertIsNone(message_handler.total_run_time)
 
-    def test_time_since_missing_message_is_none_if_no_missing_messages(self):
+    def test_time_since_missing_message_is_none_if_no_unhandled_missing_messages(self):
+        """Test that the `OrderedMessageHandler.time_since_missing_message` property is `None` if there are no unhandled
+        missing messages.
+        """
         question_uuid, _, mock_subscription = create_mock_topic_and_subscription()
         message_handler = OrderedMessageHandler(subscription=mock_subscription, receiving_service=parent)
         self.assertIsNone(message_handler.time_since_missing_message)
 
     def test_missing_messages_at_start_can_be_skipped(self):
-        """Test that the first n messages can be skipped if they aren't received after a given time period if subsequent
-        messages have been received.
+        """Test that missing messages at the start of the event stream can be skipped if they aren't received after a
+        given time period if subsequent messages have been received.
         """
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
@@ -570,7 +573,7 @@ class TestOrderedMessageHandler(BaseTestCase):
         self.assertEqual(message_handler.handled_messages, [{"kind": "finish-test", "order": 1000}])
 
 
-class TestPullAndEnqueueMessage(BaseTestCase):
+class TestPullAndEnqueueAvailableMessages(BaseTestCase):
     def test_pull_and_enqueue_available_messages(self):
         """Test that pulling and enqueuing a message works."""
         question_uuid, mock_topic, _ = create_mock_topic_and_subscription()
