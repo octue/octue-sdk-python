@@ -104,6 +104,11 @@ class OrderedMessageHandler:
 
     @property
     def time_since_missing_message(self):
+        """Get the amount of time elapsed since the last missing message was detected. If no missing messages have been
+        detected or they've already been skipped past, `None` is returned.
+
+        :return float|None:
+        """
         if self._missing_message_detection_time is None:
             return None
 
@@ -229,15 +234,15 @@ class OrderedMessageHandler:
                         f"No message received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
                     )
 
+        if not pull_response.received_messages:
+            return
+
         self._subscriber.acknowledge(
             request={
                 "subscription": self.subscription.path,
                 "ack_ids": [message.ack_id for message in pull_response.received_messages],
             }
         )
-
-        if not pull_response.received_messages:
-            return
 
         for message in pull_response.received_messages:
             self._extract_and_enqueue_event(message)
