@@ -1,6 +1,7 @@
 import concurrent.futures
 import copy
 import logging
+import os
 
 from octue.cloud.pub_sub.service import Service
 from octue.resources import service_backends
@@ -9,7 +10,6 @@ from octue.resources import service_backends
 logger = logging.getLogger(__name__)
 
 BACKEND_TO_SERVICE_MAPPING = {"GCPPubSubBackend": Service}
-MAX_PARALLEL_QUESTIONS = 32
 
 
 class Child:
@@ -104,14 +104,7 @@ class Child:
             maximum_heartbeat_interval=maximum_heartbeat_interval,
         )
 
-    def ask_multiple(
-        self,
-        *questions,
-        raise_errors=True,
-        max_retries=0,
-        prevent_retries_when=None,
-        max_parallel_questions=MAX_PARALLEL_QUESTIONS,
-    ):
+    def ask_multiple(self, *questions, raise_errors=True, max_retries=0, prevent_retries_when=None, max_workers=None):
         """Ask the child multiple questions in parallel and wait for the answers. Each question should be provided as a
         dictionary of `Child.ask` keyword arguments. If `raise_errors` is `True`, an error is raised and no answers are
         returned if any of the individual questions raise an error; if it's `False`, answers are returned for all
@@ -121,21 +114,16 @@ class Child:
         :param bool raise_errors: if `True`, an error is raised and no answers are returned if any of the individual questions raise an error; if `False`, answers are returned for all successful questions while errors are returned unraised for any failed ones
         :param int max_retries: retry any questions that failed up to this number of times (note: this will have no effect unless `raise_errors=False`)
         :param list(type)|None prevent_retries_when: prevent retrying any questions that fail with an exception type in this list (note: this will have no effect unless `raise_errors=False`)
-        :param int max_parallel_questions: the maximum number of questions that can be asked at once
+        :param int|None max_workers: the maximum number of questions that can be asked at once; defaults to `min(32, os.cpu_count() + 4, len(questions))` (see `concurrent.futures.ThreadPoolExecutor`)
         :raise ValueError: if the maximum number of parallel questions is set too high
         :raise Exception: if any question raises an error if `raise_errors` is `True`
         :return list: the answers or caught errors of the questions in the same order as asked
         """
-        if max_parallel_questions > MAX_PARALLEL_QUESTIONS:
-            raise ValueError(
-                f"The maximum number of parallel questions cannot be above {MAX_PARALLEL_QUESTIONS}; received {max_parallel_questions}."
-            )
-
         prevent_retries_when = prevent_retries_when or []
 
         # Answers will come out of order, so use a dictionary to store them against their questions' original index.
         answers = {}
-        max_workers = min(max_parallel_questions, len(questions))
+        max_workers = max_workers or min(32, os.cpu_count() + 4, len(questions))
         logger.info("Asking %d questions.", len(questions))
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
