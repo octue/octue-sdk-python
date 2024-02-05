@@ -355,7 +355,7 @@ class TestOrderedMessageHandler(BaseTestCase):
                 skip_missing_messages_after=0,
             )
 
-        # Simulate the first two messages not being received.
+        # Simulate the first three messages not being received.
         mock_topic.messages_published = 2
 
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
