@@ -273,6 +273,15 @@ class OrderedMessageHandler:
             self._child_sdk_version = attributes["version"]
 
         message_number = attributes["message_number"]
+
+        if message_number in self.waiting_messages:
+            logger.warning(
+                "%r: Message with duplicate message number %d received for question %s - overwriting original message.",
+                self.receiving_service,
+                message_number,
+                self.question_uuid,
+            )
+
         self.waiting_messages[message_number] = event
 
     def _attempt_to_handle_waiting_messages(self):
