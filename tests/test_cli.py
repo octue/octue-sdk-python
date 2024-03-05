@@ -402,8 +402,8 @@ class TestDeployCommand(BaseTestCase):
             (["--expiration-time=100"], 100),
         ):
             with self.subTest(expiration_time_option=expiration_time_option):
-                with patch("octue.cli.Topic", new=MockTopic):
-                    with patch("octue.cli.Subscription") as mock_subscription:
+                with patch("octue.cloud.pub_sub.Topic", new=MockTopic):
+                    with patch("octue.cloud.pub_sub.Subscription") as mock_subscription:
                         result = CliRunner().invoke(
                             octue_cli,
                             [

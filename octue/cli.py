@@ -10,10 +10,9 @@ import sys
 import click
 from google import auth
 
-from octue.cloud import storage
-from octue.cloud.pub_sub import Subscription, Topic
+from octue.cloud import pub_sub, storage
 from octue.cloud.pub_sub.service import PARENT_SENDER_TYPE, Service
-from octue.cloud.service_id import convert_service_id_to_pub_sub_form, create_sruid, get_sruid_parts
+from octue.cloud.service_id import create_sruid, get_sruid_parts
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.configuration import load_service_and_app_configuration
 from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
@@ -366,9 +365,8 @@ def create_push_subscription(
     expiration_time,
     revision_tag,
 ):
-    """Create a Google Pub/Sub push subscription for an Octue service for it to receive questions from (i.e. events with
-    `sender_type=PARENT`). If a corresponding topic doesn't exist, it will be created. The subscription name is printed
-    on completion.
+    """Create a Google Pub/Sub push subscription for an Octue service for it to receive questions from parents. If a
+    corresponding topic doesn't exist, it will be created. The subscription name is printed on completion.
 
     PROJECT_NAME is the name of the Google Cloud project in which the subscription will be created
 
@@ -379,29 +377,17 @@ def create_push_subscription(
     PUSH_ENDPOINT is the HTTP/HTTPS endpoint of the service to push to. It should be fully formed and include the
     'https://' prefix
     """
-    service_sruid = create_sruid(namespace=service_namespace, name=service_name, revision_tag=revision_tag)
-    pub_sub_sruid = convert_service_id_to_pub_sub_form(service_sruid)
+    sruid = create_sruid(namespace=service_namespace, name=service_name, revision_tag=revision_tag)
 
-    topic = Topic(name=pub_sub_sruid, project_name=project_name)
-    topic.create(allow_existing=True)
-
-    if expiration_time:
-        expiration_time = float(expiration_time)
-    else:
-        # Convert empty string to `None`.
-        expiration_time = None
-
-    subscription = Subscription(
-        name=pub_sub_sruid,
-        topic=topic,
-        project_name=project_name,
-        filter=f'attributes.sender_type = "{PARENT_SENDER_TYPE}"',
+    pub_sub.create_push_subscription(
+        project_name,
+        sruid,
+        push_endpoint,
         expiration_time=expiration_time,
-        push_endpoint=push_endpoint,
+        sender_type=PARENT_SENDER_TYPE,
     )
 
-    subscription.create()
-    click.echo(service_sruid)
+    click.echo(sruid)
 
 
 def _add_monitor_message_to_file(path, monitor_message):
