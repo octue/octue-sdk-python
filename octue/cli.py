@@ -366,8 +366,9 @@ def create_push_subscription(
     expiration_time,
     revision_tag,
 ):
-    """Create a push subscription on Google Pub/Sub from the Octue service to the push endpoint. If a corresponding
-    topic doesn't exist, it will be created. The subscription name is printed on completion.
+    """Create a Google Pub/Sub push subscription for an Octue service for it to receive questions from (i.e. events with
+    `sender_type=PARENT`). If a corresponding topic doesn't exist, it will be created. The subscription name is printed
+    on completion.
 
     PROJECT_NAME is the name of the Google Cloud project in which the subscription will be created
 
