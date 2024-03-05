@@ -34,3 +34,12 @@ class TestCloudRunDeployment(TestCase):
         # Check that the output dataset and its files can be accessed.
         with answer["output_manifest"].datasets["example_dataset"].files.one() as (datafile, f):
             self.assertEqual(f.read(), "This is some example service output.")
+
+    def test_cloud_run_deployment_asynchronously(self):
+        """Test asking an asynchronous (BigQuery) question."""
+        answer = self.child.ask(
+            input_values={"n_iterations": 3},
+            bigquery_table_id="octue-sdk-python.octue_sdk_python_test_dataset.question-events",
+        )
+
+        self.assertIsNone(answer)
