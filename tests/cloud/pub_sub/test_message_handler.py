@@ -28,12 +28,7 @@ def create_mock_topic_and_subscription():
     """
     question_uuid = str(uuid.uuid4())
     topic = MockTopic(name="my-org.my-service.1-0-0", project_name=TEST_PROJECT_NAME)
-
-    subscription = MockSubscription(
-        name=f"my-org.my-service.1-0-0.answers.{question_uuid}",
-        topic=topic,
-        project_name=TEST_PROJECT_NAME,
-    )
+    subscription = MockSubscription(name=f"my-org.my-service.1-0-0.answers.{question_uuid}", topic=topic)
 
     subscription.create()
     return question_uuid, topic, subscription
@@ -582,7 +577,6 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
             mock_subscription = MockSubscription(
                 name=f"my-org.my-service.1-0-0.answers.{question_uuid}",
                 topic=mock_topic,
-                project_name=TEST_PROJECT_NAME,
             )
 
             message_handler = OrderedMessageHandler(
@@ -622,7 +616,6 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
             mock_subscription = MockSubscription(
                 name=f"my-org.my-service.1-0-0.answers.{question_uuid}",
                 topic=mock_topic,
-                project_name=TEST_PROJECT_NAME,
             )
 
             message_handler = OrderedMessageHandler(

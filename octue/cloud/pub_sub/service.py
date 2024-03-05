@@ -143,7 +143,6 @@ class Service:
         subscription = Subscription(
             name=self._pub_sub_id,
             topic=topic,
-            project_name=self.backend.project_name,
             filter=f'attributes.sender_type = "{PARENT_SENDER_TYPE}"',
             expiration_time=None,
         )
@@ -297,7 +296,7 @@ class Service:
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will be able to access these local files
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
-        :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here; if they should be pulled, leave this as `None`
+        :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param float|None timeout: time in seconds to keep retrying sending the question
         :return (octue.cloud.pub_sub.subscription.Subscription, str): the answer subscription and question UUID
         """
@@ -337,7 +336,6 @@ class Service:
         answer_subscription = Subscription(
             name=".".join((topic.name, ANSWERS_NAMESPACE, question_uuid)),
             topic=topic,
-            project_name=self.backend.project_name,
             filter=f'attributes.question_uuid = "{question_uuid}" AND attributes.sender_type = "{CHILD_SENDER_TYPE}"',
             push_endpoint=push_endpoint,
         )

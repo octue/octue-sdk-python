@@ -21,7 +21,7 @@ class TestGooglePubSubHandler(BaseTestCase):
         topic.create()
 
         question_uuid = "96d69278-44ac-4631-aeea-c90fb08a1b2b"
-        subscription = MockSubscription(name=f"world.answers.{question_uuid}", topic=topic, project_name="blah")
+        subscription = MockSubscription(name=f"world.answers.{question_uuid}", topic=topic)
         subscription.create()
 
         log_record = makeLogRecord({"msg": "Starting analysis."})

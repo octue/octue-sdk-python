@@ -170,13 +170,7 @@ class TestService(BaseTestCase):
     def test_timeout_error_raised_if_no_messages_received_when_waiting(self):
         """Test that a TimeoutError is raised if no messages are received while waiting."""
         mock_topic = MockTopic(name="amazing.service.9-9-9", project_name=TEST_PROJECT_NAME)
-
-        mock_subscription = MockSubscription(
-            name="amazing.service.9-9-9",
-            topic=mock_topic,
-            project_name=TEST_PROJECT_NAME,
-        )
-
+        mock_subscription = MockSubscription(name="amazing.service.9-9-9", topic=mock_topic)
         service = Service(backend=BACKEND)
 
         with patch("octue.cloud.pub_sub.service.pubsub_v1.SubscriberClient.pull", return_value=MockPullResponse()):
@@ -188,7 +182,6 @@ class TestService(BaseTestCase):
         mock_subscription = MockSubscription(
             name="world",
             topic=MockTopic(name="world", project_name=TEST_PROJECT_NAME),
-            project_name=TEST_PROJECT_NAME,
             push_endpoint="https://example.com/endpoint",
         )
 
