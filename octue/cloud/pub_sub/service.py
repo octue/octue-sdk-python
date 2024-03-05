@@ -382,9 +382,15 @@ class Service:
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
         if subscription.is_push_subscription:
-            raise octue.exceptions.PushSubscriptionCannotBePulled(
+            raise octue.exceptions.NotAPullSubscription(
                 f"{subscription.path!r} is a push subscription so it cannot be waited on for an answer. Please check "
                 f"its push endpoint at {subscription.push_endpoint!r}."
+            )
+
+        if subscription.is_bigquery_subscription:
+            raise octue.exceptions.NotAPullSubscription(
+                f"{subscription.path!r} is a BigQuery subscription so it cannot be waited on for an answer. Please "
+                f"check its BigQuery table {subscription.bigquery_table_id!r}."
             )
 
         service_name = get_sruid_from_pub_sub_resource_name(subscription.name)

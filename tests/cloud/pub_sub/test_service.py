@@ -187,7 +187,7 @@ class TestService(BaseTestCase):
 
         service = Service(backend=BACKEND)
 
-        with self.assertRaises(exceptions.PushSubscriptionCannotBePulled):
+        with self.assertRaises(exceptions.NotAPullSubscription):
             service.wait_for_answer(subscription=mock_subscription)
 
     def test_exceptions_in_responder_are_handled_and_sent_to_asker(self):
