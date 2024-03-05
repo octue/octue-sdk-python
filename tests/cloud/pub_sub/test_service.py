@@ -177,18 +177,25 @@ class TestService(BaseTestCase):
             with self.assertRaises(TimeoutError):
                 service.wait_for_answer(subscription=mock_subscription, timeout=0.01)
 
-    def test_error_raised_if_attempting_to_wait_for_answer_from_push_subscription(self):
+    def test_error_raised_if_attempting_to_wait_for_answer_from_non_pull_subscription(self):
         """Test that an error is raised if attempting to wait for an answer from a push subscription."""
-        mock_subscription = MockSubscription(
-            name="world",
-            topic=MockTopic(name="world", project_name=TEST_PROJECT_NAME),
-            push_endpoint="https://example.com/endpoint",
-        )
-
         service = Service(backend=BACKEND)
 
-        with self.assertRaises(exceptions.NotAPullSubscription):
-            service.wait_for_answer(subscription=mock_subscription)
+        for subscription in [
+            MockSubscription(
+                name="world",
+                topic=MockTopic(name="world", project_name=TEST_PROJECT_NAME),
+                push_endpoint="https://example.com/endpoint",
+            ),
+            MockSubscription(
+                name="world",
+                topic=MockTopic(name="world", project_name=TEST_PROJECT_NAME),
+                bigquery_table_id="some-table",
+            ),
+        ]:
+            with self.subTest(subscription=subscription):
+                with self.assertRaises(exceptions.NotAPullSubscription):
+                    service.wait_for_answer(subscription=subscription)
 
     def test_exceptions_in_responder_are_handled_and_sent_to_asker(self):
         """Test that exceptions raised in the child service are handled and sent back to the asker."""
