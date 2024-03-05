@@ -344,24 +344,17 @@ class Service:
         )
         answer_subscription.create(allow_existing=False)
 
-        question = make_minimal_dictionary(kind="question", input_values=input_values, children=children)
-
-        if input_manifest is not None:
-            input_manifest.use_signed_urls_for_datasets()
-            question["input_manifest"] = input_manifest.to_primitive()
-
-        self._send_message(
-            message=question,
+        self._send_question(
+            input_values=input_values,
+            input_manifest=input_manifest,
+            children=children,
+            service_id=service_id,
+            forward_logs=subscribe_to_logs,
+            save_diagnostics=save_diagnostics,
             topic=topic,
-            attributes={
-                "question_uuid": question_uuid,
-                "sender_type": PARENT_SENDER_TYPE,
-                "forward_logs": subscribe_to_logs,
-                "save_diagnostics": save_diagnostics,
-            },
+            question_uuid=question_uuid,
         )
 
-        logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
         return answer_subscription, question_uuid
 
     def wait_for_answer(
@@ -471,6 +464,51 @@ class Service:
             )
 
             topic.messages_published += 1
+
+    def _send_question(
+        self,
+        input_values,
+        input_manifest,
+        children,
+        service_id,
+        forward_logs,
+        save_diagnostics,
+        topic,
+        question_uuid,
+        timeout=30,
+    ):
+        """Send a question to a child service.
+
+        :param any|None input_values: any input values for the question
+        :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
+        :param list(dict)|None children: a list of children for the child to use instead of its default children (if it uses children). These should be in the same format as in an app's app configuration file and have the same keys.
+        :param str service_id: the ID of the child to send the question to
+        :param bool forward_logs: whether to request the child to forward its logs
+        :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
+        :param octue.cloud.pub_sub.topic.Topic topic: topic to send the acknowledgement to
+        :param str question_uuid:
+        :param float timeout: time in seconds after which to give up sending
+        :return None:
+        """
+        question = make_minimal_dictionary(kind="question", input_values=input_values, children=children)
+
+        if input_manifest is not None:
+            input_manifest.use_signed_urls_for_datasets()
+            question["input_manifest"] = input_manifest.to_primitive()
+
+        self._send_message(
+            message=question,
+            topic=topic,
+            timeout=timeout,
+            attributes={
+                "question_uuid": question_uuid,
+                "sender_type": PARENT_SENDER_TYPE,
+                "forward_logs": forward_logs,
+                "save_diagnostics": save_diagnostics,
+            },
+        )
+
+        logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
 
     def _send_delivery_acknowledgment(self, topic, question_uuid, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
