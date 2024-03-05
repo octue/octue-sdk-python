@@ -118,5 +118,11 @@ class PushSubscriptionCannotBePulled(OctueSDKException):
     """Raise if attempting to pull a push subscription."""
 
 
+class ConflictingSubscriptionType(OctueSDKException):
+    """Raise if attempting to instantiate a subscription that's a push subscription and BigQuery subscription at the
+    same time.
+    """
+
+
 class ReadOnlyResource(OctueSDKException):
     """Raise if attempting to alter a read-only resource."""
