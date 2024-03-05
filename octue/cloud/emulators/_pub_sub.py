@@ -8,6 +8,7 @@ from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import ANSWERS_NAMESPACE, PARENT_SENDER_TYPE, Service
 from octue.cloud.service_id import convert_service_id_to_pub_sub_form
 from octue.resources import Manifest
+from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
 
 
@@ -355,18 +356,12 @@ class MockService(Service):
         subscription_name = ".".join((convert_service_id_to_pub_sub_form(service_id), ANSWERS_NAMESPACE, question_uuid))
         SUBSCRIPTIONS["octue.services." + subscription_name].pop(0)
 
-        question = {"kind": "question"}
-
-        if input_values is not None:
-            question["input_values"] = input_values
+        question = make_minimal_dictionary(kind="question", input_values=input_values, children=children)
 
         # Ignore any errors from the answering service as they will be raised on the remote service in practice, not
         # locally as is done in this mock.
         if input_manifest is not None:
             question["input_manifest"] = input_manifest.to_primitive()
-
-        if children is not None:
-            question["children"] = children
 
         try:
             self.children[service_id].answer(

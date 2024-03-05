@@ -29,6 +29,7 @@ from octue.cloud.service_id import (
 )
 from octue.cloud.validation import raise_if_event_is_invalid
 from octue.compatibility import warn_if_incompatible
+from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
 from octue.utils.threads import RepeatingTimer
@@ -248,10 +249,7 @@ class Service:
                 save_diagnostics=save_diagnostics,
             )
 
-            result = {"kind": "result"}
-
-            if analysis.output_values is not None:
-                result["output_values"] = analysis.output_values
+            result = make_minimal_dictionary(kind="result", output_values=analysis.output_values)
 
             if analysis.output_manifest is not None:
                 result["output_manifest"] = analysis.output_manifest.to_primitive()
@@ -345,17 +343,11 @@ class Service:
         )
         answer_subscription.create(allow_existing=False)
 
-        question = {"kind": "question"}
-
-        if input_values is not None:
-            question["input_values"] = input_values
+        question = make_minimal_dictionary(kind="question", input_values=input_values, children=children)
 
         if input_manifest is not None:
             input_manifest.use_signed_urls_for_datasets()
             question["input_manifest"] = input_manifest.to_primitive()
-
-        if children is not None:
-            question["children"] = children
 
         self._send_message(
             message=question,
