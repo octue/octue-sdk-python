@@ -439,7 +439,7 @@ class Service:
         :param octue.cloud.pub_sub.topic.Topic topic: the Pub/Sub topic to send the message to
         :param dict|None attributes: key-value pairs to attach to the message - the values must be strings or bytes
         :param int|float timeout: the timeout for sending the message in seconds
-        :return None:
+        :return google.cloud.pubsub_v1.publisher.futures.Future:
         """
         attributes = attributes or {}
 
@@ -456,7 +456,7 @@ class Service:
 
                 converted_attributes[key] = value
 
-            self.publisher.publish(
+            future = self.publisher.publish(
                 topic=topic.path,
                 data=json.dumps(message, cls=OctueJSONEncoder).encode(),
                 retry=retry.Retry(deadline=timeout),
@@ -464,6 +464,8 @@ class Service:
             )
 
             topic.messages_published += 1
+
+        return future
 
     def _send_question(
         self,
@@ -496,7 +498,7 @@ class Service:
             input_manifest.use_signed_urls_for_datasets()
             question["input_manifest"] = input_manifest.to_primitive()
 
-        self._send_message(
+        future = self._send_message(
             message=question,
             topic=topic,
             timeout=timeout,
@@ -508,6 +510,8 @@ class Service:
             },
         )
 
+        # Await successful publishing of the question.
+        future.result()
         logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
 
     def _send_delivery_acknowledgment(self, topic, question_uuid, timeout=30):
