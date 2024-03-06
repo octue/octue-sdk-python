@@ -1,3 +1,5 @@
+import ast
+
 from google.cloud.bigquery import Client, QueryJobConfig, ScalarQueryParameter
 
 
@@ -60,4 +62,9 @@ def get_events(
     rows = query_job.result()
     messages = rows.to_dataframe()
 
+    # Order messages by the message number.
+    if isinstance(messages.at[0, "attributes"], str):
+        messages["attributes"] = messages["attributes"].map(ast.literal_eval)
+
+    messages = messages.iloc[messages["attributes"].str.get("message_number").astype(str).argsort()]
     return messages.to_dict(orient="records")
