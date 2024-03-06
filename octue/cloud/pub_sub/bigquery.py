@@ -1,4 +1,4 @@
-from google.cloud import bigquery
+from google.cloud.bigquery import Client, QueryJobConfig, ScalarQueryParameter
 
 
 VALID_EVENT_KINDS = {"delivery_acknowledgement", "heartbeat", "log_record", "monitor_message", "exception", "result"}
@@ -26,11 +26,11 @@ def get_events(
         if kind not in VALID_EVENT_KINDS:
             raise ValueError(f"`kind` must be one of {VALID_EVENT_KINDS!r}; received {kind!r}.")
 
-        kind_condition = f'AND JSON_EXTRACT_SCALAR(data, "$.kind") = "{kind}"'
+        event_kind_condition = [f'AND JSON_EXTRACT_SCALAR(data, "$.kind") = "{kind}"']
     else:
-        kind_condition = ""
+        event_kind_condition = []
 
-    client = bigquery.Client()
+    client = Client()
     fields = ["data"]
 
     if include_attributes:
@@ -39,18 +39,20 @@ def get_events(
     if include_pub_sub_metadata:
         fields.extend(("subscription_name", "message_id", "publish_time"))
 
-    query = f"""
-    SELECT {", ".join(fields)} FROM `{table_id}`
-    WHERE  CONTAINS_SUBSTR(subscription_name, @question_uuid)
-    {kind_condition}
-    ORDER BY `publish_time`
-    LIMIT @limit
-    """
+    query = "\n".join(
+        [
+            f"SELECT {', '.join(fields)} FROM `{table_id}`",
+            "WHERE CONTAINS_SUBSTR(subscription_name, @question_uuid)",
+            *event_kind_condition,
+            "ORDER BY publish_time",
+            "LIMIT @limit",
+        ]
+    )
 
-    job_config = bigquery.QueryJobConfig(
+    job_config = QueryJobConfig(
         query_parameters=[
-            bigquery.ScalarQueryParameter("question_uuid", "STRING", question_uuid),
-            bigquery.ScalarQueryParameter("limit", "INTEGER", limit),
+            ScalarQueryParameter("question_uuid", "STRING", question_uuid),
+            ScalarQueryParameter("limit", "INTEGER", limit),
         ]
     )
 
