@@ -20,17 +20,16 @@ PARENT_SDK_VERSION = importlib.metadata.version("octue")
 
 
 class PubSubEventHandler(AbstractEventHandler):
-    """A handler for Google Pub/Sub messages received via a pull subscription that ensures messages are handled in the
-    order they were sent.
+    """A handler for events received as Google Pub/Sub messages from a pull subscription.
 
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
-    :param octue.cloud.pub_sub.service.Service receiving_service: the service that's receiving the messages
+    :param octue.cloud.pub_sub.service.Service receiving_service: the service that's receiving the events
     :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
-    :param bool record_messages: if `True`, record received messages in the `received_messages` attribute
+    :param bool record_events: if `True`, record received events in the `received_events` attribute
     :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
-    :param dict|None message_handlers: a mapping of message type names to callables that handle each type of message. The handlers should not mutate the messages.
-    :param dict|str schema: the JSON schema (or URI of one) to validate messages against
-    :param int|float skip_missing_messages_after: the number of seconds after which to skip any messages if they haven't arrived but subsequent messages have
+    :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers should not mutate the events.
+    :param dict|str schema: the JSON schema (or URI of one) to validate events against
+    :param int|float skip_missing_events_after: the number of seconds after which to skip any events if they haven't arrived but subsequent events have
     :return None:
     """
 
@@ -39,26 +38,26 @@ class PubSubEventHandler(AbstractEventHandler):
         subscription,
         receiving_service,
         handle_monitor_message=None,
-        record_messages=True,
+        record_events=True,
         service_name="REMOTE",
-        message_handlers=None,
+        event_handlers=None,
         schema=SERVICE_COMMUNICATION_SCHEMA,
-        skip_missing_messages_after=10,
+        skip_missing_events_after=10,
     ):
         self.subscription = subscription
 
         super().__init__(
             receiving_service,
             handle_monitor_message=handle_monitor_message,
-            record_messages=record_messages,
+            record_events=record_events,
             service_name=service_name,
-            message_handlers=message_handlers,
+            event_handlers=event_handlers,
             schema=schema,
-            skip_missing_messages_after=skip_missing_messages_after,
+            skip_missing_events_after=skip_missing_events_after,
         )
 
         self.question_uuid = self.subscription.path.split(".")[-1]
-        self.waiting_messages = None
+        self.waiting_events = None
         self._subscriber = SubscriberClient()
         self._heartbeat_checker = None
         self._last_heartbeat = None
@@ -89,17 +88,17 @@ class PubSubEventHandler(AbstractEventHandler):
         return datetime.now() - self._last_heartbeat
 
     def handle_events(self, timeout=60, maximum_heartbeat_interval=300):
-        """Pull messages and handle them in the order they were sent until a result is returned by a message handler,
+        """Pull events and handle them in the order they were sent until a result is returned by a event handler,
         then return that result.
 
         :param float|None timeout: how long to wait for an answer before raising a `TimeoutError`
         :param int|float maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
-        :raise TimeoutError: if the timeout is exceeded before receiving the final message
-        :return dict: the first result returned by a message handler
+        :raise TimeoutError: if the timeout is exceeded before receiving the final event
+        :return dict: the first result returned by a event handler
         """
         self._start_time = time.perf_counter()
-        self.waiting_messages = {}
-        self._previous_message_number = -1
+        self.waiting_events = {}
+        self._previous_event_number = -1
 
         self._heartbeat_checker = RepeatingTimer(
             interval=maximum_heartbeat_interval,
@@ -113,8 +112,8 @@ class PubSubEventHandler(AbstractEventHandler):
 
             while self._alive:
                 pull_timeout = self._check_timeout_and_get_pull_timeout(timeout)
-                self._pull_and_enqueue_available_messages(timeout=pull_timeout)
-                result = self._attempt_to_handle_waiting_messages()
+                self._pull_and_enqueue_available_events(timeout=pull_timeout)
+                result = self._attempt_to_handle_waiting_events()
 
                 if result is not None:
                     return result
@@ -165,11 +164,11 @@ class PubSubEventHandler(AbstractEventHandler):
 
         return timeout - total_run_time
 
-    def _pull_and_enqueue_available_messages(self, timeout):
-        """Pull as many messages from the subscription as are available and enqueue them in `self.waiting_messages`,
+    def _pull_and_enqueue_available_events(self, timeout):
+        """Pull as many events from the subscription as are available and enqueue them in `self.waiting_events`,
         raising a `TimeoutError` if the timeout is exceeded before succeeding.
 
-        :param float|None timeout: how long to wait in seconds for the message before raising a `TimeoutError`
+        :param float|None timeout: how long to wait in seconds for the event before raising a `TimeoutError`
         :raise TimeoutError|concurrent.futures.TimeoutError: if the timeout is exceeded
         :return None:
         """
@@ -177,7 +176,7 @@ class PubSubEventHandler(AbstractEventHandler):
         attempt = 1
 
         while self._alive:
-            logger.debug("Pulling messages from Google Pub/Sub: attempt %d.", attempt)
+            logger.debug("Pulling events from Google Pub/Sub: attempt %d.", attempt)
 
             pull_response = self._subscriber.pull(
                 request={"subscription": self.subscription.path, "max_messages": MAX_SIMULTANEOUS_MESSAGES_PULL},
@@ -207,10 +206,10 @@ class PubSubEventHandler(AbstractEventHandler):
             }
         )
 
-        for message in pull_response.received_messages:
-            self._extract_and_enqueue_event(message)
+        for event in pull_response.received_messages:
+            self._extract_and_enqueue_event(event)
 
-        self._earliest_waiting_message_number = min(self.waiting_messages.keys())
+        self._earliest_waiting_event_number = min(self.waiting_events.keys())
 
-    def _extract_event_and_attributes(self, message):
-        return extract_event_and_attributes_from_pub_sub(message.message)
+    def _extract_event_and_attributes(self, event):
+        return extract_event_and_attributes_from_pub_sub(event.message)

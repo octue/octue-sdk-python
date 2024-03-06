@@ -124,7 +124,7 @@ class Service:
         :return list(dict)|None:
         """
         if self._event_handler:
-            return self._event_handler.handled_messages
+            return self._event_handler.handled_events
         return None
 
     def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False, allow_existing=False, detach=False):
@@ -396,7 +396,7 @@ class Service:
             receiving_service=self,
             handle_monitor_message=handle_monitor_message,
             service_name=service_name,
-            record_messages=record_messages,
+            record_events=record_messages,
         )
 
         try:

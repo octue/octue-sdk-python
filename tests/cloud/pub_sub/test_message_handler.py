@@ -43,7 +43,7 @@ class TestPubSubEventHandler(BaseTestCase):
             message_handler = PubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: message},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: message},
                 schema={},
             )
 
@@ -58,7 +58,7 @@ class TestPubSubEventHandler(BaseTestCase):
             message_handler = PubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
             )
 
@@ -78,7 +78,7 @@ class TestPubSubEventHandler(BaseTestCase):
         self.assertEqual(result, "This is the result.")
 
         self.assertEqual(
-            message_handler.handled_messages,
+            message_handler.handled_events,
             [{"kind": "test"}, {"kind": "test"}, {"kind": "test"}, {"kind": "finish-test"}],
         )
 
@@ -90,7 +90,7 @@ class TestPubSubEventHandler(BaseTestCase):
             message_handler = PubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
             )
 
@@ -124,7 +124,7 @@ class TestPubSubEventHandler(BaseTestCase):
         self.assertEqual(result, "This is the result.")
 
         self.assertEqual(
-            message_handler.handled_messages,
+            message_handler.handled_events,
             [
                 {"kind": "test", "order": 0},
                 {"kind": "test", "order": 1},
@@ -143,7 +143,7 @@ class TestPubSubEventHandler(BaseTestCase):
             message_handler = PubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
             )
 
@@ -177,7 +177,7 @@ class TestPubSubEventHandler(BaseTestCase):
         self.assertEqual(result, "This is the result.")
 
         self.assertEqual(
-            message_handler.handled_messages,
+            message_handler.handled_events,
             [
                 {"kind": "test", "order": 0},
                 {"kind": "test", "order": 1},
@@ -194,7 +194,7 @@ class TestPubSubEventHandler(BaseTestCase):
             message_handler = PubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
             )
 
@@ -222,7 +222,7 @@ class TestPubSubEventHandler(BaseTestCase):
 
         self.assertEqual(result, "This is the result.")
         self.assertEqual(
-            message_handler.handled_messages,
+            message_handler.handled_events,
             [{"kind": "test", "order": 0}, {"kind": "test", "order": 1}, {"kind": "finish-test", "order": 2}],
         )
 
@@ -336,7 +336,7 @@ class TestPubSubEventHandler(BaseTestCase):
         """
         question_uuid, _, mock_subscription = create_mock_topic_and_subscription()
         message_handler = PubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
-        self.assertIsNone(message_handler.time_since_missing_message)
+        self.assertIsNone(message_handler.time_since_missing_event)
 
     def test_missing_messages_at_start_can_be_skipped(self):
         """Test that missing messages at the start of the event stream can be skipped if they aren't received after a
@@ -348,9 +348,9 @@ class TestPubSubEventHandler(BaseTestCase):
             message_handler = PubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
-                skip_missing_messages_after=0,
+                skip_missing_events_after=0,
             )
 
         # Simulate the first two messages not being received.
@@ -384,7 +384,7 @@ class TestPubSubEventHandler(BaseTestCase):
 
         self.assertEqual(result, "This is the result.")
         self.assertEqual(
-            message_handler.handled_messages,
+            message_handler.handled_events,
             [
                 {"kind": "test", "order": 2},
                 {"kind": "test", "order": 3},
@@ -401,9 +401,9 @@ class TestPubSubEventHandler(BaseTestCase):
             message_handler = PubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
-                skip_missing_messages_after=0,
+                skip_missing_events_after=0,
             )
 
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
@@ -441,7 +441,7 @@ class TestPubSubEventHandler(BaseTestCase):
 
         # Check that all the non-missing messages were handled.
         self.assertEqual(
-            message_handler.handled_messages,
+            message_handler.handled_events,
             [
                 {"kind": "test", "order": 0},
                 {"kind": "test", "order": 1},
@@ -458,9 +458,9 @@ class TestPubSubEventHandler(BaseTestCase):
             message_handler = PubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
-                skip_missing_messages_after=0,
+                skip_missing_events_after=0,
             )
 
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
@@ -524,7 +524,7 @@ class TestPubSubEventHandler(BaseTestCase):
 
         # Check that all the non-missing messages were handled.
         self.assertEqual(
-            message_handler.handled_messages,
+            message_handler.handled_events,
             [
                 {"kind": "test", "order": 0},
                 {"kind": "test", "order": 1},
@@ -545,9 +545,9 @@ class TestPubSubEventHandler(BaseTestCase):
             message_handler = PubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
-                skip_missing_messages_after=0,
+                skip_missing_events_after=0,
             )
 
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
@@ -565,11 +565,11 @@ class TestPubSubEventHandler(BaseTestCase):
         message_handler.handle_events()
 
         # Check that the result message was handled.
-        self.assertEqual(message_handler.handled_messages, [{"kind": "finish-test", "order": 1000}])
+        self.assertEqual(message_handler.handled_events, [{"kind": "finish-test", "order": 1000}])
 
 
 class TestPullAndEnqueueAvailableMessages(BaseTestCase):
-    def test_pull_and_enqueue_available_messages(self):
+    def test_pull_and_enqueue_available_events(self):
         """Test that pulling and enqueuing a message works."""
         question_uuid, mock_topic, _ = create_mock_topic_and_subscription()
 
@@ -582,12 +582,12 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
             message_handler = PubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
             )
 
             message_handler._child_sdk_version = "0.1.3"
-            message_handler.waiting_messages = {}
+            message_handler.waiting_events = {}
 
             # Enqueue a mock message for a mock subscription to receive.
             mock_message = {"kind": "test"}
@@ -604,9 +604,9 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
                 )
             ]
 
-            message_handler._pull_and_enqueue_available_messages(timeout=10)
-            self.assertEqual(message_handler.waiting_messages, {0: mock_message})
-            self.assertEqual(message_handler._earliest_waiting_message_number, 0)
+            message_handler._pull_and_enqueue_available_events(timeout=10)
+            self.assertEqual(message_handler.waiting_events, {0: mock_message})
+            self.assertEqual(message_handler._earliest_waiting_event_number, 0)
 
     def test_timeout_error_raised_if_result_message_not_received_in_time(self):
         """Test that a timeout error is raised if a result message is not received in time."""
@@ -621,17 +621,17 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
             message_handler = PubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
             )
 
             message_handler._child_sdk_version = "0.1.3"
-            message_handler.waiting_messages = {}
+            message_handler.waiting_events = {}
             message_handler._start_time = 0
 
             # Create a mock subscription.
             SUBSCRIPTIONS[mock_subscription.name] = []
 
             with self.assertRaises(TimeoutError):
-                message_handler._pull_and_enqueue_available_messages(timeout=1e-6)
+                message_handler._pull_and_enqueue_available_events(timeout=1e-6)
 
-            self.assertEqual(message_handler._earliest_waiting_message_number, math.inf)
+            self.assertEqual(message_handler._earliest_waiting_event_number, math.inf)
