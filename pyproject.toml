@@ -22,7 +22,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.7.1"
 click = ">=7,<9"
-coolname = "^1.1"
+coolname = "^2"
 Flask = "^2"
 google-auth = ">=1.27.0,<3"
 google-cloud-pubsub = "^2.5"
