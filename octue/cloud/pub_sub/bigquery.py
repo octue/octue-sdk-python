@@ -1,7 +1,13 @@
 from google.cloud import bigquery
 
 
-def get_events(table_id, question_uuid, limit=1000):
+def get_events(
+    table_id,
+    question_uuid,
+    limit=1000,
+    include_attributes=False,
+    include_pub_sub_metadata=False,
+):
     """Get Octue service events for a question from a Google BigQuery table.
 
     :param str table_id: the full ID of the table e.g. "your-project.your-dataset.your-table"
@@ -10,9 +16,16 @@ def get_events(table_id, question_uuid, limit=1000):
     :return list(dict): the events for the question
     """
     client = bigquery.Client()
+    fields = ["data"]
+
+    if include_attributes:
+        fields.append("attributes")
+
+    if include_pub_sub_metadata:
+        fields.extend(("subscription_name", "message_id", "publish_time"))
 
     query = f"""
-    SELECT * FROM `{table_id}`
+    SELECT {", ".join(fields)} FROM `{table_id}`
     WHERE  CONTAINS_SUBSTR(subscription_name, @question_uuid)
     ORDER BY `publish_time`
     LIMIT @limit
