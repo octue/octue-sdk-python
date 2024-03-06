@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
 
-from octue.cloud.events.event_handler import EventHandler
+from octue.cloud.events.handler import EventHandler
 from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
 from octue.cloud.pub_sub.events import extract_event_and_attributes_from_pub_sub
 from octue.utils.threads import RepeatingTimer

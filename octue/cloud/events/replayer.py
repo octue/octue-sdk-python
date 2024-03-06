@@ -1,6 +1,6 @@
 import logging
 
-from octue.cloud.events.event_handler import EventHandler
+from octue.cloud.events.handler import EventHandler
 from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
 from octue.cloud.pub_sub.service import Service
 from octue.resources.service_backends import ServiceBackend
