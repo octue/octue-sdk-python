@@ -36,6 +36,7 @@ h5py = { version = "^3.6", optional = true }
 twined = "^0.5.1"
 packaging = ">=20.4"
 google-cloud-bigquery = "^3.18.0"
+db-dtypes = "^1.2.0"
 
 [tool.poetry.extras]
 hdf5 = ["h5py"]
