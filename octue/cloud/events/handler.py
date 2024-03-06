@@ -79,6 +79,10 @@ class AbstractEventHandler:
         return time.perf_counter() - self._missing_message_detection_time
 
     @abc.abstractmethod
+    def handle_events(self, *args, **kwargs):
+        pass
+
+    @abc.abstractmethod
     def _extract_event_and_attributes(self, event):
         pass
 

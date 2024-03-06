@@ -67,10 +67,10 @@ class PubSubEventHandler(AbstractEventHandler):
 
     @property
     def total_run_time(self):
-        """Get the amount of time elapsed since `self.handle_messages` was called. If it hasn't been called yet, it will
+        """Get the amount of time elapsed since `self.handle_events` was called. If it hasn't been called yet, it will
         be `None`.
 
-        :return float|None: the amount of time since `self.handle_messages` was called (in seconds)
+        :return float|None: the amount of time since `self.handle_events` was called (in seconds)
         """
         if self._start_time is None:
             return None
@@ -88,7 +88,7 @@ class PubSubEventHandler(AbstractEventHandler):
 
         return datetime.now() - self._last_heartbeat
 
-    def handle_messages(self, timeout=60, maximum_heartbeat_interval=300):
+    def handle_events(self, timeout=60, maximum_heartbeat_interval=300):
         """Pull messages and handle them in the order they were sent until a result is returned by a message handler,
         then return that result.
 

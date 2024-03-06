@@ -400,7 +400,7 @@ class Service:
         )
 
         try:
-            return self._event_handler.handle_messages(
+            return self._event_handler.handle_events(
                 timeout=timeout,
                 maximum_heartbeat_interval=maximum_heartbeat_interval,
             )

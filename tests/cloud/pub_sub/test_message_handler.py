@@ -48,7 +48,7 @@ class TestPubSubEventHandler(BaseTestCase):
             )
 
         with self.assertRaises(TimeoutError):
-            message_handler.handle_messages(timeout=0)
+            message_handler.handle_events(timeout=0)
 
     def test_in_order_messages_are_handled_in_order(self):
         """Test that messages received in order are handled in order."""
@@ -74,7 +74,7 @@ class TestPubSubEventHandler(BaseTestCase):
         for message in messages:
             child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
-        result = message_handler.handle_messages()
+        result = message_handler.handle_events()
         self.assertEqual(result, "This is the result.")
 
         self.assertEqual(
@@ -119,7 +119,7 @@ class TestPubSubEventHandler(BaseTestCase):
             mock_topic.messages_published = message["event"]["order"]
             child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
-        result = message_handler.handle_messages()
+        result = message_handler.handle_events()
 
         self.assertEqual(result, "This is the result.")
 
@@ -172,7 +172,7 @@ class TestPubSubEventHandler(BaseTestCase):
             mock_topic.messages_published = message["event"]["order"]
             child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
-        result = message_handler.handle_messages()
+        result = message_handler.handle_events()
 
         self.assertEqual(result, "This is the result.")
 
@@ -218,7 +218,7 @@ class TestPubSubEventHandler(BaseTestCase):
         for message in messages:
             child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
-        result = message_handler.handle_messages(timeout=None)
+        result = message_handler.handle_events(timeout=None)
 
         self.assertEqual(result, "This is the result.")
         self.assertEqual(
@@ -249,7 +249,7 @@ class TestPubSubEventHandler(BaseTestCase):
         for message in messages:
             child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
-        result = message_handler.handle_messages()
+        result = message_handler.handle_events()
         self.assertEqual(result, {"output_values": None, "output_manifest": None})
 
     def test_error_raised_if_heartbeat_not_received_before_checked(self):
@@ -260,7 +260,7 @@ class TestPubSubEventHandler(BaseTestCase):
             message_handler = PubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
 
         with self.assertRaises(TimeoutError) as error:
-            message_handler.handle_messages(maximum_heartbeat_interval=0)
+            message_handler.handle_events(maximum_heartbeat_interval=0)
 
         # Check that the timeout is due to a heartbeat not being received.
         self.assertIn("heartbeat", error.exception.args[0])
@@ -275,7 +275,7 @@ class TestPubSubEventHandler(BaseTestCase):
         message_handler._last_heartbeat = datetime.datetime.now() - datetime.timedelta(seconds=30)
 
         with self.assertRaises(TimeoutError) as error:
-            message_handler.handle_messages(maximum_heartbeat_interval=0)
+            message_handler.handle_events(maximum_heartbeat_interval=0)
 
         self.assertIn("heartbeat", error.exception.args[0])
 
@@ -311,7 +311,7 @@ class TestPubSubEventHandler(BaseTestCase):
             "octue.cloud.pub_sub.event_handler.PubSubEventHandler._time_since_last_heartbeat",
             datetime.timedelta(seconds=0),
         ):
-            message_handler.handle_messages(maximum_heartbeat_interval=0)
+            message_handler.handle_events(maximum_heartbeat_interval=0)
 
     def test_time_since_last_heartbeat_is_none_if_no_heartbeat_received_yet(self):
         """Test that the time since the last heartbeat is `None` if no heartbeat has been received yet."""
@@ -322,8 +322,8 @@ class TestPubSubEventHandler(BaseTestCase):
 
         self.assertIsNone(message_handler._time_since_last_heartbeat)
 
-    def test_total_run_time_is_none_if_handle_messages_has_not_been_called(self):
-        """Test that the total run time for the message handler is `None` if the `handle_messages` method has not been
+    def test_total_run_time_is_none_if_handle_events_has_not_been_called(self):
+        """Test that the total run time for the message handler is `None` if the `handle_events` method has not been
         called.
         """
         question_uuid, _, mock_subscription = create_mock_topic_and_subscription()
@@ -380,7 +380,7 @@ class TestPubSubEventHandler(BaseTestCase):
         for message in messages:
             child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
-        result = message_handler.handle_messages()
+        result = message_handler.handle_events()
 
         self.assertEqual(result, "This is the result.")
         self.assertEqual(
@@ -437,7 +437,7 @@ class TestPubSubEventHandler(BaseTestCase):
             topic=mock_topic,
         )
 
-        message_handler.handle_messages()
+        message_handler.handle_events()
 
         # Check that all the non-missing messages were handled.
         self.assertEqual(
@@ -520,7 +520,7 @@ class TestPubSubEventHandler(BaseTestCase):
         for message in messages:
             child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
-        message_handler.handle_messages()
+        message_handler.handle_events()
 
         # Check that all the non-missing messages were handled.
         self.assertEqual(
@@ -562,7 +562,7 @@ class TestPubSubEventHandler(BaseTestCase):
             topic=mock_topic,
         )
 
-        message_handler.handle_messages()
+        message_handler.handle_events()
 
         # Check that the result message was handled.
         self.assertEqual(message_handler.handled_messages, [{"kind": "finish-test", "order": 1000}])
