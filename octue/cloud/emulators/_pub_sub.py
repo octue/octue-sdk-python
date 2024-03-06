@@ -320,6 +320,7 @@ class MockService(Service):
         save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
         question_uuid=None,
         push_endpoint=None,
+        bigquery_table_id=None,
         timeout=86400,
         parent_sdk_version=importlib.metadata.version("octue"),
     ):
@@ -348,6 +349,7 @@ class MockService(Service):
             save_diagnostics=save_diagnostics,
             question_uuid=question_uuid,
             push_endpoint=push_endpoint,
+            bigquery_table_id=bigquery_table_id,
             timeout=timeout,
         )
 
