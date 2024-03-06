@@ -1,6 +1,6 @@
 import logging
 
-from octue.cloud.events.handler import EventHandler
+from octue.cloud.events.handler import AbstractEventHandler
 from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
 from octue.cloud.pub_sub.service import Service
 from octue.resources.service_backends import ServiceBackend
@@ -9,7 +9,7 @@ from octue.resources.service_backends import ServiceBackend
 logger = logging.getLogger(__name__)
 
 
-class EventReplayer(EventHandler):
+class EventReplayer(AbstractEventHandler):
     def __init__(
         self,
         receiving_service=None,

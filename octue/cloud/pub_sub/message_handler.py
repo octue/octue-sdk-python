@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
 
-from octue.cloud.events.handler import EventHandler
+from octue.cloud.events.handler import AbstractEventHandler
 from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
 from octue.cloud.pub_sub.events import extract_event_and_attributes_from_pub_sub
 from octue.utils.threads import RepeatingTimer
@@ -19,7 +19,7 @@ MAX_SIMULTANEOUS_MESSAGES_PULL = 50
 PARENT_SDK_VERSION = importlib.metadata.version("octue")
 
 
-class OrderedMessageHandler(EventHandler):
+class OrderedMessageHandler(AbstractEventHandler):
     """A handler for Google Pub/Sub messages received via a pull subscription that ensures messages are handled in the
     order they were sent.
 

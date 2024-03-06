@@ -27,7 +27,7 @@ else:
 PARENT_SDK_VERSION = importlib.metadata.version("octue")
 
 
-class EventHandler:
+class AbstractEventHandler:
     question_uuid: str
 
     def __init__(
