@@ -6,21 +6,13 @@ from google.cloud.bigquery import Client, QueryJobConfig, ScalarQueryParameter
 VALID_EVENT_KINDS = {"delivery_acknowledgement", "heartbeat", "log_record", "monitor_message", "exception", "result"}
 
 
-def get_events(
-    table_id,
-    question_uuid,
-    kind=None,
-    limit=1000,
-    include_attributes=False,
-    include_pub_sub_metadata=False,
-):
+def get_events(table_id, question_uuid, kind=None, limit=1000, include_pub_sub_metadata=False):
     """Get Octue service events for a question from a Google BigQuery table.
 
     :param str table_id: the full ID of the table e.g. "your-project.your-dataset.your-table"
     :param str question_uuid: the UUID of the question to get the events for
     :param str|None kind: the kind of event to get; if `None`, all event kinds are returned
     :param int limit: the maximum number of events to return
-    :param bool include_attributes: if `True`, include the event attributes
     :param bool include_pub_sub_metadata: if `True`, include Pub/Sub metadata
     :return list(dict): the events for the question
     """
@@ -33,10 +25,7 @@ def get_events(
         event_kind_condition = []
 
     client = Client()
-    fields = ["data"]
-
-    if include_attributes:
-        fields.append("attributes")
+    fields = ["data", "attributes"]
 
     if include_pub_sub_metadata:
         fields.extend(("subscription_name", "message_id", "publish_time"))

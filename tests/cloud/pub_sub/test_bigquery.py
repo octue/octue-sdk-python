@@ -17,8 +17,8 @@ class TestBigQuery(TestCase):
 
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
-            "SELECT data FROM `blah`\nWHERE CONTAINS_SUBSTR(subscription_name, @question_uuid)\nORDER BY publish_time\n"
-            "LIMIT @limit",
+            "SELECT data, attributes FROM `blah`\nWHERE CONTAINS_SUBSTR(subscription_name, @question_uuid)\n"
+            "ORDER BY publish_time\nLIMIT @limit",
         )
 
     def test_with_kind(self):
@@ -28,19 +28,8 @@ class TestBigQuery(TestCase):
 
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
-            "SELECT data FROM `blah`\nWHERE CONTAINS_SUBSTR(subscription_name, @question_uuid)\n"
-            'AND JSON_EXTRACT_SCALAR(data, "$.kind") = "result"\nORDER BY publish_time\nLIMIT @limit',
-        )
-
-    def test_with_attributes(self):
-        """Test the query used to retrieve attributes in addition to events."""
-        with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
-            get_events(table_id="blah", question_uuid="blah", include_attributes=True)
-
-        self.assertEqual(
-            mock_client.mock_calls[1].args[0],
             "SELECT data, attributes FROM `blah`\nWHERE CONTAINS_SUBSTR(subscription_name, @question_uuid)\n"
-            "ORDER BY publish_time\nLIMIT @limit",
+            'AND JSON_EXTRACT_SCALAR(data, "$.kind") = "result"\nORDER BY publish_time\nLIMIT @limit',
         )
 
     def test_with_pub_sub_metadata(self):
@@ -50,6 +39,6 @@ class TestBigQuery(TestCase):
 
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
-            "SELECT data, subscription_name, message_id, publish_time FROM `blah`\n"
+            "SELECT data, attributes, subscription_name, message_id, publish_time FROM `blah`\n"
             "WHERE CONTAINS_SUBSTR(subscription_name, @question_uuid)\nORDER BY publish_time\nLIMIT @limit",
         )
