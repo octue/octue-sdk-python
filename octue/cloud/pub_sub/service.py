@@ -14,6 +14,7 @@ from google.api_core import retry
 from google.cloud import pubsub_v1
 
 import octue.exceptions
+from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.events import extract_event_and_attributes_from_pub_sub
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
@@ -27,7 +28,6 @@ from octue.cloud.service_id import (
     split_service_id,
     validate_sruid,
 )
-from octue.cloud.validation import raise_if_event_is_invalid
 from octue.compatibility import warn_if_incompatible
 from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder

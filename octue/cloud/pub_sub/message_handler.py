@@ -8,8 +8,8 @@ from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
 
 from octue.cloud.events.event_handler import EventHandler
+from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA, is_event_valid
 from octue.cloud.pub_sub.events import extract_event_and_attributes_from_pub_sub
-from octue.cloud.validation import SERVICE_COMMUNICATION_SCHEMA, is_event_valid
 from octue.utils.threads import RepeatingTimer
 
 

@@ -4,7 +4,7 @@ import re
 from datetime import datetime
 
 from octue.cloud import EXCEPTIONS_MAPPING
-from octue.cloud.validation import SERVICE_COMMUNICATION_SCHEMA
+from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
