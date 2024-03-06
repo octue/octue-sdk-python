@@ -1,6 +1,5 @@
 import importlib.metadata
 import logging
-import math
 import time
 from datetime import datetime, timedelta
 
@@ -8,7 +7,7 @@ from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
 
 from octue.cloud.events.event_handler import EventHandler
-from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA, is_event_valid
+from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
 from octue.cloud.pub_sub.events import extract_event_and_attributes_from_pub_sub
 from octue.utils.threads import RepeatingTimer
 
@@ -55,20 +54,16 @@ class OrderedMessageHandler(EventHandler):
             service_name=service_name,
             message_handlers=message_handlers,
             schema=schema,
+            skip_missing_messages_after=skip_missing_messages_after,
         )
-
-        self.skip_missing_messages_after = skip_missing_messages_after
-        self._missing_message_detection_time = None
 
         self.question_uuid = self.subscription.path.split(".")[-1]
         self.waiting_messages = None
         self._subscriber = SubscriberClient()
-        self._child_sdk_version = None
         self._heartbeat_checker = None
         self._last_heartbeat = None
         self._alive = True
         self._start_time = None
-        self._earliest_waiting_message_number = math.inf
 
     @property
     def total_run_time(self):
@@ -81,18 +76,6 @@ class OrderedMessageHandler(EventHandler):
             return None
 
         return time.perf_counter() - self._start_time
-
-    @property
-    def time_since_missing_message(self):
-        """Get the amount of time elapsed since the last missing message was detected. If no missing messages have been
-        detected or they've already been skipped past, `None` is returned.
-
-        :return float|None:
-        """
-        if self._missing_message_detection_time is None:
-            return None
-
-        return time.perf_counter() - self._missing_message_detection_time
 
     @property
     def _time_since_last_heartbeat(self):
@@ -229,100 +212,5 @@ class OrderedMessageHandler(EventHandler):
 
         self._earliest_waiting_message_number = min(self.waiting_messages.keys())
 
-    def _extract_and_enqueue_event(self, message):
-        """Extract an event from the Pub/Sub message and add it to `self.waiting_messages`.
-
-        :param dict message:
-        :return None:
-        """
-        logger.debug("%r received a message related to question %r.", self.receiving_service, self.question_uuid)
-        event, attributes = extract_event_and_attributes_from_pub_sub(message.message)
-
-        if not is_event_valid(
-            event=event,
-            attributes=attributes,
-            receiving_service=self.receiving_service,
-            parent_sdk_version=PARENT_SDK_VERSION,
-            child_sdk_version=attributes.get("version"),
-            schema=self.schema,
-        ):
-            return
-
-        # Get the child's Octue SDK version from the first message.
-        if not self._child_sdk_version:
-            self._child_sdk_version = attributes["version"]
-
-        message_number = attributes["message_number"]
-
-        if message_number in self.waiting_messages:
-            logger.warning(
-                "%r: Message with duplicate message number %d received for question %s - overwriting original message.",
-                self.receiving_service,
-                message_number,
-                self.question_uuid,
-            )
-
-        self.waiting_messages[message_number] = event
-
-    def _attempt_to_handle_waiting_messages(self):
-        """Attempt to handle messages waiting in `self.waiting_messages`. If these messages aren't consecutive to the
-        last handled message (i.e. if messages have been received out of order and the next in-order message hasn't been
-        received yet), just return. After the missing message wait time has passed, if this set of missing messages
-        haven't arrived but subsequent ones have, skip to the earliest waiting message and continue from there.
-
-        :return any|None: either a non-`None` result from a message handler or `None` if nothing was returned by the message handlers or if the next in-order message hasn't been received yet
-        """
-        while self.waiting_messages:
-            try:
-                # If the next consecutive message has been received:
-                message = self.waiting_messages.pop(self._previous_message_number + 1)
-
-            # If the next consecutive message hasn't been received:
-            except KeyError:
-                # Start the missing message timer if it isn't already running.
-                if self._missing_message_detection_time is None:
-                    self._missing_message_detection_time = time.perf_counter()
-
-                if self.time_since_missing_message > self.skip_missing_messages_after:
-                    message = self._skip_to_earliest_waiting_message()
-
-                    # Declare there are no more missing messages.
-                    self._missing_message_detection_time = None
-
-                    if not message:
-                        return
-
-                else:
-                    return
-
-            result = self._handle_message(message)
-
-            if result is not None:
-                return result
-
-    def _skip_to_earliest_waiting_message(self):
-        """Get the earliest waiting message and set the message handler up to continue from it.
-
-        :return dict|None:
-        """
-        try:
-            message = self.waiting_messages.pop(self._earliest_waiting_message_number)
-        except KeyError:
-            return
-
-        number_of_missing_messages = self._earliest_waiting_message_number - self._previous_message_number - 1
-
-        # Let the message handler know it can handle the next earliest message.
-        self._previous_message_number = self._earliest_waiting_message_number - 1
-
-        logger.warning(
-            "%r: %d consecutive messages missing for question %r after %ds - skipping to next earliest waiting message "
-            "(message %d).",
-            self.receiving_service,
-            number_of_missing_messages,
-            self.question_uuid,
-            self.skip_missing_messages_after,
-            self._earliest_waiting_message_number,
-        )
-
-        return message
+    def _extract_event_and_attributes(self, message):
+        return extract_event_and_attributes_from_pub_sub(message.message)
