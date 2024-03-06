@@ -1,9 +1,13 @@
 from google.cloud import bigquery
 
 
+VALID_EVENT_KINDS = {"delivery_acknowledgement", "heartbeat", "log_record", "monitor_message", "exception", "result"}
+
+
 def get_events(
     table_id,
     question_uuid,
+    kind=None,
     limit=1000,
     include_attributes=False,
     include_pub_sub_metadata=False,
@@ -12,9 +16,20 @@ def get_events(
 
     :param str table_id: the full ID of the table e.g. "your-project.your-dataset.your-table"
     :param str question_uuid: the UUID of the question to get the events for
-    :param int limit: the maximum number of events to return.
+    :param str|None kind: the kind of event to get; if `None`, all event kinds are returned
+    :param int limit: the maximum number of events to return
+    :param bool include_attributes: if `True`, include the event attributes
+    :param bool include_pub_sub_metadata: if `True`, include Pub/Sub metadata
     :return list(dict): the events for the question
     """
+    if kind:
+        if kind not in VALID_EVENT_KINDS:
+            raise ValueError(f"`kind` must be one of {VALID_EVENT_KINDS!r}; received {kind!r}.")
+
+        kind_condition = f'AND JSON_EXTRACT_SCALAR(data, "$.kind") = "{kind}"'
+    else:
+        kind_condition = ""
+
     client = bigquery.Client()
     fields = ["data"]
 
@@ -27,6 +42,7 @@ def get_events(
     query = f"""
     SELECT {", ".join(fields)} FROM `{table_id}`
     WHERE  CONTAINS_SUBSTR(subscription_name, @question_uuid)
+    {kind_condition}
     ORDER BY `publish_time`
     LIMIT @limit
     """
