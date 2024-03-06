@@ -19,7 +19,7 @@ MAX_SIMULTANEOUS_MESSAGES_PULL = 50
 PARENT_SDK_VERSION = importlib.metadata.version("octue")
 
 
-class OrderedMessageHandler(AbstractEventHandler):
+class PubSubEventHandler(AbstractEventHandler):
     """A handler for Google Pub/Sub messages received via a pull subscription that ensures messages are handled in the
     order they were sent.
 

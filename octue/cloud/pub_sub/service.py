@@ -16,9 +16,9 @@ from google.cloud import pubsub_v1
 import octue.exceptions
 from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
+from octue.cloud.pub_sub.event_handler import PubSubEventHandler
 from octue.cloud.pub_sub.events import extract_event_and_attributes_from_pub_sub
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
-from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     create_sruid,
@@ -93,7 +93,7 @@ class Service:
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
         self._local_sdk_version = importlib.metadata.version("octue")
         self._publisher = None
-        self._message_handler = None
+        self._event_handler = None
 
     def __repr__(self):
         """Represent the service as a string.
@@ -123,8 +123,8 @@ class Service:
 
         :return list(dict)|None:
         """
-        if self._message_handler:
-            return self._message_handler.handled_messages
+        if self._event_handler:
+            return self._event_handler.handled_messages
         return None
 
     def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False, allow_existing=False, detach=False):
@@ -391,7 +391,7 @@ class Service:
 
         service_name = get_sruid_from_pub_sub_resource_name(subscription.name)
 
-        self._message_handler = OrderedMessageHandler(
+        self._event_handler = PubSubEventHandler(
             subscription=subscription,
             receiving_service=self,
             handle_monitor_message=handle_monitor_message,
@@ -400,7 +400,7 @@ class Service:
         )
 
         try:
-            return self._message_handler.handle_messages(
+            return self._event_handler.handle_messages(
                 timeout=timeout,
                 maximum_heartbeat_interval=maximum_heartbeat_interval,
             )
