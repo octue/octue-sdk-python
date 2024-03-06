@@ -56,4 +56,6 @@ def get_events(table_id, question_uuid, kind=None, limit=1000, include_pub_sub_m
         messages["attributes"] = messages["attributes"].map(ast.literal_eval)
 
     messages = messages.iloc[messages["attributes"].str.get("message_number").astype(str).argsort()]
+
+    messages.rename(columns={"data": "event"}, inplace=True)
     return messages.to_dict(orient="records")
