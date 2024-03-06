@@ -2,7 +2,6 @@ resource "google_bigquery_dataset" "test_dataset" {
   dataset_id                  = "octue_sdk_python_test_dataset"
   description                 = "A dataset for testing BigQuery subscriptions for the Octue SDK."
   location                    = "EU"
-  default_table_expiration_ms = 3600000
 
   labels = {
     env = "default"
