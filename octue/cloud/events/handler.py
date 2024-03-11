@@ -39,12 +39,14 @@ class AbstractEventHandler:
         event_handlers=None,
         schema=SERVICE_COMMUNICATION_SCHEMA,
         skip_missing_events_after=10,
+        only_handle_result=False,
     ):
         self.receiving_service = receiving_service
         self.handle_monitor_message = handle_monitor_message
         self.record_events = record_events
         self.service_name = service_name
         self.schema = schema
+        self.only_handle_result = only_handle_result
 
         self.waiting_events = None
         self.handled_events = []
@@ -194,6 +196,9 @@ class AbstractEventHandler:
 
         if self.record_events:
             self.handled_events.append(event)
+
+        if self.only_handle_result and event["kind"] != "result":
+            return
 
         handler = self._event_handlers[event["kind"]]
         return handler(event)

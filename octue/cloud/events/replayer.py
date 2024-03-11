@@ -18,6 +18,7 @@ class EventReplayer(AbstractEventHandler):
         service_name="REMOTE",
         event_handlers=None,
         schema=SERVICE_COMMUNICATION_SCHEMA,
+        only_handle_result=False,
     ):
         super().__init__(
             receiving_service or Service(backend=ServiceBackend(), service_id="local/local:local"),
@@ -27,6 +28,7 @@ class EventReplayer(AbstractEventHandler):
             event_handlers=event_handlers,
             schema=schema,
             skip_missing_events_after=0,
+            only_handle_result=only_handle_result,
         )
 
     def handle_events(self, events):
