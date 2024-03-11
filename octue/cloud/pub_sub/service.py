@@ -23,7 +23,6 @@ from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     create_sruid,
     get_default_sruid,
-    get_sruid_from_pub_sub_resource_name,
     raise_if_revision_not_registered,
     split_service_id,
     validate_sruid,
@@ -389,13 +388,10 @@ class Service:
                 f"check its BigQuery table {subscription.bigquery_table_id!r}."
             )
 
-        service_name = get_sruid_from_pub_sub_resource_name(subscription.name)
-
         self._event_handler = GoogleCloudPubSubEventHandler(
             subscription=subscription,
             receiving_service=self,
             handle_monitor_message=handle_monitor_message,
-            service_name=service_name,
             record_events=record_messages,
         )
 
