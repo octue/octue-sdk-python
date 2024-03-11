@@ -16,7 +16,7 @@ from google.cloud import pubsub_v1
 import octue.exceptions
 from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.event_handler import PubSubEventHandler
+from octue.cloud.pub_sub.event_handler import GoogleCloudPubSubEventHandler
 from octue.cloud.pub_sub.events import extract_event_and_attributes_from_pub_sub
 from octue.cloud.pub_sub.logging import GooglePubSubHandler
 from octue.cloud.service_id import (
@@ -391,7 +391,7 @@ class Service:
 
         service_name = get_sruid_from_pub_sub_resource_name(subscription.name)
 
-        self._event_handler = PubSubEventHandler(
+        self._event_handler = GoogleCloudPubSubEventHandler(
             subscription=subscription,
             receiving_service=self,
             handle_monitor_message=handle_monitor_message,

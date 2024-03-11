@@ -19,7 +19,7 @@ MAX_SIMULTANEOUS_MESSAGES_PULL = 50
 PARENT_SDK_VERSION = importlib.metadata.version("octue")
 
 
-class PubSubEventHandler(AbstractEventHandler):
+class GoogleCloudPubSubEventHandler(AbstractEventHandler):
     """A handler for events received as Google Pub/Sub messages from a pull subscription.
 
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from

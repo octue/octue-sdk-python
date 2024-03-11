@@ -12,7 +12,7 @@ from octue.cloud.emulators._pub_sub import (
     MockTopic,
 )
 from octue.cloud.emulators.child import ServicePatcher
-from octue.cloud.pub_sub.event_handler import PubSubEventHandler
+from octue.cloud.pub_sub.event_handler import GoogleCloudPubSubEventHandler
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
@@ -40,7 +40,7 @@ class TestPubSubEventHandler(BaseTestCase):
         question_uuid, _, mock_subscription = create_mock_topic_and_subscription()
 
         with patch("octue.cloud.pub_sub.event_handler.SubscriberClient", MockSubscriber):
-            message_handler = PubSubEventHandler(
+            message_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
                 event_handlers={"test": lambda message: None, "finish-test": lambda message: message},
@@ -55,7 +55,7 @@ class TestPubSubEventHandler(BaseTestCase):
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
         with patch("octue.cloud.pub_sub.event_handler.SubscriberClient", MockSubscriber):
-            message_handler = PubSubEventHandler(
+            message_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
                 event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
@@ -87,7 +87,7 @@ class TestPubSubEventHandler(BaseTestCase):
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
         with patch("octue.cloud.pub_sub.event_handler.SubscriberClient", MockSubscriber):
-            message_handler = PubSubEventHandler(
+            message_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
                 event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
@@ -140,7 +140,7 @@ class TestPubSubEventHandler(BaseTestCase):
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
         with patch("octue.cloud.pub_sub.event_handler.SubscriberClient", MockSubscriber):
-            message_handler = PubSubEventHandler(
+            message_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
                 event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
@@ -191,7 +191,7 @@ class TestPubSubEventHandler(BaseTestCase):
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
         with patch("octue.cloud.pub_sub.event_handler.SubscriberClient", MockSubscriber):
-            message_handler = PubSubEventHandler(
+            message_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
                 event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
@@ -231,7 +231,7 @@ class TestPubSubEventHandler(BaseTestCase):
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
         with patch("octue.cloud.pub_sub.event_handler.SubscriberClient", MockSubscriber):
-            message_handler = PubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
+            message_handler = GoogleCloudPubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
 
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
@@ -257,7 +257,7 @@ class TestPubSubEventHandler(BaseTestCase):
         question_uuid, _, mock_subscription = create_mock_topic_and_subscription()
 
         with patch("octue.cloud.pub_sub.event_handler.SubscriberClient", MockSubscriber):
-            message_handler = PubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
+            message_handler = GoogleCloudPubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
 
         with self.assertRaises(TimeoutError) as error:
             message_handler.handle_events(maximum_heartbeat_interval=0)
@@ -270,7 +270,7 @@ class TestPubSubEventHandler(BaseTestCase):
         question_uuid, _, mock_subscription = create_mock_topic_and_subscription()
 
         with patch("octue.cloud.pub_sub.event_handler.SubscriberClient", MockSubscriber):
-            message_handler = PubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
+            message_handler = GoogleCloudPubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
 
         message_handler._last_heartbeat = datetime.datetime.now() - datetime.timedelta(seconds=30)
 
@@ -284,7 +284,7 @@ class TestPubSubEventHandler(BaseTestCase):
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
         with patch("octue.cloud.pub_sub.event_handler.SubscriberClient", MockSubscriber):
-            message_handler = PubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
+            message_handler = GoogleCloudPubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
 
         message_handler._last_heartbeat = datetime.datetime.now()
 
@@ -318,7 +318,7 @@ class TestPubSubEventHandler(BaseTestCase):
         question_uuid, _, mock_subscription = create_mock_topic_and_subscription()
 
         with patch("octue.cloud.pub_sub.event_handler.SubscriberClient", MockSubscriber):
-            message_handler = PubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
+            message_handler = GoogleCloudPubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
 
         self.assertIsNone(message_handler._time_since_last_heartbeat)
 
@@ -327,7 +327,7 @@ class TestPubSubEventHandler(BaseTestCase):
         called.
         """
         question_uuid, _, mock_subscription = create_mock_topic_and_subscription()
-        message_handler = PubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
+        message_handler = GoogleCloudPubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
         self.assertIsNone(message_handler.total_run_time)
 
     def test_time_since_missing_message_is_none_if_no_unhandled_missing_messages(self):
@@ -335,7 +335,7 @@ class TestPubSubEventHandler(BaseTestCase):
         missing messages.
         """
         question_uuid, _, mock_subscription = create_mock_topic_and_subscription()
-        message_handler = PubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
+        message_handler = GoogleCloudPubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
         self.assertIsNone(message_handler.time_since_missing_event)
 
     def test_missing_messages_at_start_can_be_skipped(self):
@@ -345,7 +345,7 @@ class TestPubSubEventHandler(BaseTestCase):
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
         with patch("octue.cloud.pub_sub.event_handler.SubscriberClient", MockSubscriber):
-            message_handler = PubSubEventHandler(
+            message_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
                 event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
@@ -398,7 +398,7 @@ class TestPubSubEventHandler(BaseTestCase):
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
         with patch("octue.cloud.pub_sub.event_handler.SubscriberClient", MockSubscriber):
-            message_handler = PubSubEventHandler(
+            message_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
                 event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
@@ -455,7 +455,7 @@ class TestPubSubEventHandler(BaseTestCase):
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
         with patch("octue.cloud.pub_sub.event_handler.SubscriberClient", MockSubscriber):
-            message_handler = PubSubEventHandler(
+            message_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
                 event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
@@ -542,7 +542,7 @@ class TestPubSubEventHandler(BaseTestCase):
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
         with patch("octue.cloud.pub_sub.event_handler.SubscriberClient", MockSubscriber):
-            message_handler = PubSubEventHandler(
+            message_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
                 event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
@@ -579,7 +579,7 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
                 topic=mock_topic,
             )
 
-            message_handler = PubSubEventHandler(
+            message_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
                 event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
@@ -618,7 +618,7 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
                 topic=mock_topic,
             )
 
-            message_handler = PubSubEventHandler(
+            message_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
                 event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
