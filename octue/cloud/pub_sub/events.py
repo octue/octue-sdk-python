@@ -20,7 +20,7 @@ def extract_event_and_attributes_from_pub_sub(message):
         "question_uuid": attributes["question_uuid"],
         "message_number": int(attributes["message_number"]),
         "version": attributes["version"],
-        "sender": attributes.get("sender"),  # Backwards-compatible with previous event schema versions.
+        "sender": attributes.get("sender", "REMOTE"),  # Backwards-compatible with previous event schema versions.
     }
 
     if "forward_logs" in attributes:

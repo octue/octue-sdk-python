@@ -108,8 +108,10 @@ class AbstractEventHandler:
         # Get the child's SRUID and Octue SDK version from the first event.
         if not self._child_sdk_version:
             self.question_uuid = attributes.get("question_uuid")
-            self.child_sruid = attributes.get("sender")  # Backwards-compatible with previous event schema versions.
             self._child_sdk_version = attributes["version"]
+
+            # Backwards-compatible with previous event schema versions.
+            self.child_sruid = attributes.get("sender", "REMOTE")
 
         logger.debug("%r received an event related to question %r.", self.receiving_service, self.question_uuid)
         event_number = attributes["message_number"]
