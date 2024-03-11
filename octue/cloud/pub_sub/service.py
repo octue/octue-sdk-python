@@ -529,7 +529,7 @@ class Service:
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
 
-        logger.info("%r acknowledged receipt of question.", self)
+        logger.info("%r acknowledged receipt of question %r.", self, question_uuid)
 
     def _send_heartbeat(self, topic, question_uuid, timeout=30):
         """Send a heartbeat to the parent, indicating that the service is alive.
