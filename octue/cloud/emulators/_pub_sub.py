@@ -376,6 +376,7 @@ class MockService(Service):
                         "version": parent_sdk_version,
                         "save_diagnostics": save_diagnostics,
                         "message_number": 0,
+                        "sender": service_id,
                     },
                 )
             )
