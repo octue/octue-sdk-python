@@ -93,7 +93,6 @@ class AbstractEventHandler:
         :param dict event:
         :return None:
         """
-        logger.debug("%r received an event related to question %r.", self.receiving_service, self.question_uuid)
         event, attributes = self._extract_event_and_attributes(event)
 
         if not is_event_valid(
@@ -108,9 +107,11 @@ class AbstractEventHandler:
 
         # Get the child's SRUID and Octue SDK version from the first event.
         if not self._child_sdk_version:
+            self.question_uuid = attributes.get("question_uuid")
             self.child_sruid = attributes.get("sender")  # Backwards-compatible with previous event schema versions.
             self._child_sdk_version = attributes["version"]
 
+        logger.debug("%r received an event related to question %r.", self.receiving_service, self.question_uuid)
         event_number = attributes["message_number"]
 
         if event_number in self.waiting_events:

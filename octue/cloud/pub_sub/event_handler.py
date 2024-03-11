@@ -26,7 +26,6 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
     :param octue.cloud.pub_sub.service.Service receiving_service: the service that's receiving the events
     :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
     :param bool record_events: if `True`, record received events in the `received_events` attribute
-    :param str service_name: an arbitrary name to refer to the service subscribed to by (used for labelling its remote log messages)
     :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers should not mutate the events.
     :param dict|str schema: the JSON schema (or URI of one) to validate events against
     :param int|float skip_missing_events_after: the number of seconds after which to skip any events if they haven't arrived but subsequent events have
@@ -39,7 +38,6 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         receiving_service,
         handle_monitor_message=None,
         record_events=True,
-        service_name="REMOTE",
         event_handlers=None,
         schema=SERVICE_COMMUNICATION_SCHEMA,
         skip_missing_events_after=10,
@@ -50,13 +48,11 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
             receiving_service,
             handle_monitor_message=handle_monitor_message,
             record_events=record_events,
-            service_name=service_name,
             event_handlers=event_handlers,
             schema=schema,
             skip_missing_events_after=skip_missing_events_after,
         )
 
-        self.question_uuid = self.subscription.path.split(".")[-1]
         self.waiting_events = None
         self._subscriber = SubscriberClient()
         self._heartbeat_checker = None

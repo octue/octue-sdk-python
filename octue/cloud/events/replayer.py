@@ -30,7 +30,6 @@ class EventReplayer(AbstractEventHandler):
         )
 
     def handle_events(self, events):
-        self.question_uuid = events[0]["attributes"]["question_uuid"]
         self.waiting_events = {}
         self._previous_event_number = -1
 

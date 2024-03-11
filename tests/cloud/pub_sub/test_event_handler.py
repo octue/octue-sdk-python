@@ -308,7 +308,7 @@ class TestPubSubEventHandler(BaseTestCase):
             child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
         with patch(
-            "octue.cloud.pub_sub.event_handler.PubSubEventHandler._time_since_last_heartbeat",
+            "octue.cloud.pub_sub.event_handler.GoogleCloudPubSubEventHandler._time_since_last_heartbeat",
             datetime.timedelta(seconds=0),
         ):
             event_handler.handle_events(maximum_heartbeat_interval=0)
@@ -331,9 +331,7 @@ class TestPubSubEventHandler(BaseTestCase):
         self.assertIsNone(event_handler.total_run_time)
 
     def test_time_since_missing_message_is_none_if_no_unhandled_missing_messages(self):
-        """Test that the `PubSubEventHandler.time_since_missing_message` property is `None` if there are no unhandled
-        missing messages.
-        """
+        """Test that the `time_since_missing_message` property is `None` if there are no unhandled missing messages."""
         question_uuid, _, mock_subscription = create_mock_topic_and_subscription()
         event_handler = GoogleCloudPubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
         self.assertIsNone(event_handler.time_since_missing_event)
@@ -586,6 +584,8 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
                 schema={},
             )
 
+            event_handler.question_uuid = question_uuid
+            event_handler.child_sruid = "my-org/my-service:1.0.0"
             event_handler._child_sdk_version = "0.1.3"
             event_handler.waiting_events = {}
 
