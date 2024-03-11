@@ -5,7 +5,7 @@ import re
 ANSI_ESCAPE_SEQUENCES_PATTERN = r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])"
 
 
-class GooglePubSubHandler(logging.Handler):
+class GoogleCloudPubSubHandler(logging.Handler):
     """A log handler that publishes log records to a Google Cloud Pub/Sub topic.
 
     :param callable message_sender: the `_send_message` method of the service that instantiated this instance

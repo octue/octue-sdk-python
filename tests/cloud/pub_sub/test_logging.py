@@ -4,7 +4,7 @@ from logging import makeLogRecord
 from unittest.mock import patch
 
 from octue.cloud.emulators._pub_sub import SUBSCRIPTIONS, MockService, MockSubscription, MockTopic
-from octue.cloud.pub_sub.logging import GooglePubSubHandler
+from octue.cloud.pub_sub.logging import GoogleCloudPubSubHandler
 from octue.resources.service_backends import GCPPubSubBackend
 from tests.base import BaseTestCase
 
@@ -14,9 +14,9 @@ class NonJSONSerialisable:
         return "NonJSONSerialisableInstance"
 
 
-class TestGooglePubSubHandler(BaseTestCase):
+class TestGoogleCloudPubSubHandler(BaseTestCase):
     def test_emit(self):
-        """Test the log message is published when `GooglePubSubHandler.emit` is called."""
+        """Test the log message is published when `GoogleCloudPubSubHandler.emit` is called."""
         topic = MockTopic(name="world", project_name="blah")
         topic.create()
 
@@ -29,7 +29,7 @@ class TestGooglePubSubHandler(BaseTestCase):
         backend = GCPPubSubBackend(project_name="blah")
         service = MockService(backend=backend)
 
-        GooglePubSubHandler(
+        GoogleCloudPubSubHandler(
             message_sender=service._send_message,
             topic=topic,
             question_uuid=question_uuid,
@@ -61,7 +61,7 @@ class TestGooglePubSubHandler(BaseTestCase):
         service = MockService(backend=backend)
 
         with patch("octue.cloud.emulators._pub_sub.MockPublisher.publish") as mock_publish:
-            GooglePubSubHandler(
+            GoogleCloudPubSubHandler(
                 message_sender=service._send_message,
                 topic=topic,
                 question_uuid="question-uuid",
