@@ -8,7 +8,8 @@
       "message_number": "0",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "sender_type": "CHILD",
-      "version": "0.51.0"
+      "version": "0.51.0",
+      "sender": "octue/test-service:1.0.0"
     }
   },
   {
@@ -41,7 +42,8 @@
       "message_number": "1",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "sender_type": "CHILD",
-      "version": "0.51.0"
+      "version": "0.51.0",
+      "sender": "octue/test-service:1.0.0"
     }
   },
   {
@@ -74,7 +76,8 @@
       "message_number": "2",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "sender_type": "CHILD",
-      "version": "0.51.0"
+      "version": "0.51.0",
+      "sender": "octue/test-service:1.0.0"
     }
   },
   {
@@ -107,7 +110,8 @@
       "message_number": "3",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "sender_type": "CHILD",
-      "version": "0.51.0"
+      "version": "0.51.0",
+      "sender": "octue/test-service:1.0.0"
     }
   },
   {
@@ -140,7 +144,8 @@
       "message_number": "4",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "sender_type": "CHILD",
-      "version": "0.51.0"
+      "version": "0.51.0",
+      "sender": "octue/test-service:1.0.0"
     }
   },
   {
@@ -173,7 +178,8 @@
       "message_number": "5",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "sender_type": "CHILD",
-      "version": "0.51.0"
+      "version": "0.51.0",
+      "sender": "octue/test-service:1.0.0"
     }
   },
   {
@@ -201,7 +207,8 @@
       "message_number": "6",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "sender_type": "CHILD",
-      "version": "0.51.0"
+      "version": "0.51.0",
+      "sender": "octue/test-service:1.0.0"
     }
   },
   {
@@ -213,7 +220,8 @@
       "message_number": "7",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "sender_type": "CHILD",
-      "version": "0.51.0"
+      "version": "0.51.0",
+      "sender": "octue/test-service:1.0.0"
     }
   }
 ]

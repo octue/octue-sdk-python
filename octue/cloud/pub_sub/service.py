@@ -446,6 +446,7 @@ class Service:
         with send_message_lock:
             attributes["version"] = self._local_sdk_version
             attributes["message_number"] = topic.messages_published
+            attributes["sender"] = self.id
             converted_attributes = {}
 
             for key, value in attributes.items():

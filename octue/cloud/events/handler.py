@@ -35,7 +35,6 @@ class AbstractEventHandler:
         receiving_service,
         handle_monitor_message=None,
         record_events=True,
-        service_name="REMOTE",
         event_handlers=None,
         schema=SERVICE_COMMUNICATION_SCHEMA,
         skip_missing_events_after=10,
@@ -44,7 +43,7 @@ class AbstractEventHandler:
         self.receiving_service = receiving_service
         self.handle_monitor_message = handle_monitor_message
         self.record_events = record_events
-        self.service_name = service_name
+        self.child_sruid = None
         self.schema = schema
         self.only_handle_result = only_handle_result
 
@@ -107,8 +106,9 @@ class AbstractEventHandler:
         ):
             return
 
-        # Get the child's Octue SDK version from the first event.
+        # Get the child's SRUID and Octue SDK version from the first event.
         if not self._child_sdk_version:
+            self.child_sruid = attributes.get("sender")  # Backwards-compatible with previous event schema versions.
             self._child_sdk_version = attributes["version"]
 
         event_number = attributes["message_number"]
@@ -218,7 +218,7 @@ class AbstractEventHandler:
         :return None:
         """
         self._last_heartbeat = datetime.now()
-        logger.info("Heartbeat received from service %r for question %r.", self.service_name, self.question_uuid)
+        logger.info("Heartbeat received from service %r for question %r.", self.child_sruid, self.question_uuid)
 
     def _handle_monitor_message(self, event):
         """Send a monitor message to the handler if one has been provided.
@@ -243,7 +243,7 @@ class AbstractEventHandler:
         # Add information about the immediate child sending the event and colour it with the first colour in the
         # colour palette.
         immediate_child_analysis_section = colourise(
-            f"[{self.service_name} | analysis-{self.question_uuid}]",
+            f"[{self.child_sruid} | analysis-{self.question_uuid}]",
             text_colour=self._log_message_colours[0],
         )
 
@@ -270,7 +270,7 @@ class AbstractEventHandler:
         exception_message = "\n\n".join(
             (
                 event["exception_message"],
-                f"The following traceback was captured from the remote service {self.service_name!r}:",
+                f"The following traceback was captured from the remote service {self.child_sruid!r}:",
                 "".join(event["exception_traceback"]),
             )
         )
