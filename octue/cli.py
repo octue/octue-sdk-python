@@ -366,6 +366,14 @@ def deploy():
     "https://cloud.google.com/pubsub/docs/subscription-message-filter). If not provided, the default filter is applied."
     " To disable filtering, provide an empty string.",
 )
+@click.option(
+    "--subscription-suffix",
+    is_flag=False,
+    default=None,
+    show_default=True,
+    help="An optional suffix to add to the end of the subscription name. This is useful when needing to create "
+    "multiple subscriptions for the same topic (subscription names are unique).",
+)
 def create_push_subscription(
     project_name,
     service_namespace,
@@ -374,6 +382,7 @@ def create_push_subscription(
     expiration_time,
     revision_tag,
     filter,
+    subscription_suffix,
 ):
     """Create a Google Pub/Sub push subscription for an Octue service for it to receive questions from parents. If a
     corresponding topic doesn't exist, it will be created first. The subscription name is printed on completion.
@@ -395,6 +404,7 @@ def create_push_subscription(
         push_endpoint,
         expiration_time=expiration_time,
         subscription_filter=filter or None,
+        subscription_suffix=subscription_suffix,
     )
 
     click.echo(sruid)

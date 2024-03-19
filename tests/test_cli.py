@@ -453,3 +453,27 @@ class TestDeployCommand(BaseTestCase):
                     self.assertEqual(subscription.call_args.kwargs["name"], "octue.example-service.3-5-0")
                     self.assertEqual(subscription.call_args.kwargs["push_endpoint"], "https://example.com/endpoint")
                     self.assertEqual(subscription.call_args.kwargs["filter"], expected_filter)
+
+    def test_create_push_subscription_with_subscription_suffix(self):
+        """Test that subscription suffixes are added to subscription names correctly when creating a push subscription."""
+        with patch("octue.cloud.pub_sub.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.Subscription") as subscription:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "deploy",
+                        "create-push-subscription",
+                        "my-project",
+                        "octue",
+                        "example-service",
+                        "https://example.com/endpoint",
+                        "--revision-tag=3.5.0",
+                        "--subscription-suffix=-peter-rabbit",
+                    ],
+                )
+
+            self.assertIsNone(result.exception)
+            self.assertEqual(result.exit_code, 0)
+            self.assertEqual(subscription.call_args.kwargs["topic"].name, "octue.services.octue.example-service.3-5-0")
+            self.assertEqual(subscription.call_args.kwargs["name"], "octue.example-service.3-5-0-peter-rabbit")
+            self.assertEqual(subscription.call_args.kwargs["push_endpoint"], "https://example.com/endpoint")
