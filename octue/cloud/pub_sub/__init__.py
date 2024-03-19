@@ -12,13 +12,13 @@ CHILD_SENDER_TYPE = "CHILD"
 VALID_SENDER_TYPES = {PARENT_SENDER_TYPE, CHILD_SENDER_TYPE}
 
 
-def create_push_subscription(project_name, sruid, push_endpoint, sender_type, expiration_time=None):
-    """Create a Google Pub/Sub push subscription. If a corresponding topic doesn't exist, it will be created.
+def create_push_subscription(project_name, sruid, push_endpoint, sender_type=None, expiration_time=None):
+    """Create a Google Pub/Sub push subscription. If a corresponding topic doesn't exist, it will be created first.
 
     :param str project_name: the name of the Google Cloud project in which the subscription will be created
     :param str sruid: the SRUID (service revision unique identifier)
     :param str push_endpoint: the HTTP/HTTPS endpoint of the service to push to. It should be fully formed and include the 'https://' prefix
-    :param str sender_type: the type of event to subscribe to (must be one of "PARENT" or "CHILD")
+    :param str|None sender_type: if specified, the type of event to subscribe to (must be one of "PARENT" or "CHILD"); otherwise, no filter is applied to the subscription
     :param float|None expiration_time: the number of seconds of inactivity after which the subscription should expire. If not provided, no expiration time is applied to the subscription
     """
     if sender_type not in VALID_SENDER_TYPES:
@@ -34,11 +34,16 @@ def create_push_subscription(project_name, sruid, push_endpoint, sender_type, ex
     else:
         expiration_time = None
 
+    if sender_type:
+        subscription_filter = f'attributes.sender_type = "{sender_type}"'
+    else:
+        subscription_filter = None
+
     subscription = Subscription(
         name=pub_sub_sruid,
         topic=topic,
         project_name=project_name,
-        filter=f'attributes.sender_type = "{sender_type}"',
+        filter=subscription_filter,
         expiration_time=expiration_time,
         push_endpoint=push_endpoint,
     )

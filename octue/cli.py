@@ -366,7 +366,7 @@ def create_push_subscription(
     revision_tag,
 ):
     """Create a Google Pub/Sub push subscription for an Octue service for it to receive questions from parents. If a
-    corresponding topic doesn't exist, it will be created. The subscription name is printed on completion.
+    corresponding topic doesn't exist, it will be created first. The subscription name is printed on completion.
 
     PROJECT_NAME is the name of the Google Cloud project in which the subscription will be created
 
