@@ -362,8 +362,9 @@ def deploy():
     is_flag=False,
     default='attributes.sender_type = "PARENT"',
     show_default=True,
-    help="A filter to apply to the subscription (see https://cloud.google.com/pubsub/docs/subscription-message-filter)"
-    ". If not provided, the default filter is applied.",
+    help="An optional filter to apply to the subscription (see "
+    "https://cloud.google.com/pubsub/docs/subscription-message-filter). If not provided, the default filter is applied."
+    " To disable filtering, provide an empty string.",
 )
 def create_push_subscription(
     project_name,
