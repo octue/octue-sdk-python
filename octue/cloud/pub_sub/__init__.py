@@ -7,23 +7,15 @@ from .topic import Topic
 __all__ = ["Subscription", "Topic"]
 
 
-PARENT_SENDER_TYPE = "PARENT"
-CHILD_SENDER_TYPE = "CHILD"
-VALID_SENDER_TYPES = {PARENT_SENDER_TYPE, CHILD_SENDER_TYPE}
-
-
-def create_push_subscription(project_name, sruid, push_endpoint, sender_type=None, expiration_time=None):
+def create_push_subscription(project_name, sruid, push_endpoint, subscription_filter=None, expiration_time=None):
     """Create a Google Pub/Sub push subscription. If a corresponding topic doesn't exist, it will be created first.
 
     :param str project_name: the name of the Google Cloud project in which the subscription will be created
     :param str sruid: the SRUID (service revision unique identifier)
     :param str push_endpoint: the HTTP/HTTPS endpoint of the service to push to. It should be fully formed and include the 'https://' prefix
-    :param str|None sender_type: if specified, the type of event to subscribe to (must be one of "PARENT" or "CHILD"); otherwise, no filter is applied to the subscription
+    :param str|None subscription_filter: if specified, the filter to apply to the subscription; otherwise, no filter is applied
     :param float|None expiration_time: the number of seconds of inactivity after which the subscription should expire. If not provided, no expiration time is applied to the subscription
     """
-    if sender_type not in VALID_SENDER_TYPES:
-        raise ValueError(f"`sender_type` must be one of {VALID_SENDER_TYPES!r}; received {sender_type!r}")
-
     pub_sub_sruid = convert_service_id_to_pub_sub_form(sruid)
 
     topic = Topic(name=pub_sub_sruid, project_name=project_name)
@@ -33,11 +25,6 @@ def create_push_subscription(project_name, sruid, push_endpoint, sender_type=Non
         expiration_time = float(expiration_time)
     else:
         expiration_time = None
-
-    if sender_type:
-        subscription_filter = f'attributes.sender_type = "{sender_type}"'
-    else:
-        subscription_filter = None
 
     subscription = Subscription(
         name=pub_sub_sruid,

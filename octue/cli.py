@@ -11,7 +11,7 @@ import click
 from google import auth
 
 from octue.cloud import pub_sub, storage
-from octue.cloud.pub_sub.service import PARENT_SENDER_TYPE, Service
+from octue.cloud.pub_sub.service import Service
 from octue.cloud.service_id import create_sruid, get_sruid_parts
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.configuration import load_service_and_app_configuration
@@ -357,6 +357,14 @@ def deploy():
     help="The service revision tag (e.g. 1.0.7). If this option isn't given, a random 'cool name' tag is generated e.g"
     ". 'curious-capybara'.",
 )
+@click.option(
+    "--filter",
+    is_flag=False,
+    default='attributes.sender_type = "PARENT"',
+    show_default=True,
+    help="A filter to apply to the subscription (see https://cloud.google.com/pubsub/docs/subscription-message-filter)"
+    ". If not provided, the default filter is applied.",
+)
 def create_push_subscription(
     project_name,
     service_namespace,
@@ -364,6 +372,7 @@ def create_push_subscription(
     push_endpoint,
     expiration_time,
     revision_tag,
+    filter,
 ):
     """Create a Google Pub/Sub push subscription for an Octue service for it to receive questions from parents. If a
     corresponding topic doesn't exist, it will be created first. The subscription name is printed on completion.
@@ -384,7 +393,7 @@ def create_push_subscription(
         sruid,
         push_endpoint,
         expiration_time=expiration_time,
-        sender_type=PARENT_SENDER_TYPE,
+        subscription_filter=filter or None,
     )
 
     click.echo(sruid)

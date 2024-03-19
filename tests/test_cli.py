@@ -403,7 +403,7 @@ class TestDeployCommand(BaseTestCase):
         ):
             with self.subTest(expiration_time_option=expiration_time_option):
                 with patch("octue.cloud.pub_sub.Topic", new=MockTopic):
-                    with patch("octue.cloud.pub_sub.Subscription") as mock_subscription:
+                    with patch("octue.cloud.pub_sub.Subscription") as subscription:
                         result = CliRunner().invoke(
                             octue_cli,
                             [
@@ -420,10 +420,36 @@ class TestDeployCommand(BaseTestCase):
 
                     self.assertIsNone(result.exception)
                     self.assertEqual(result.exit_code, 0)
+                    self.assertEqual(subscription.call_args.kwargs["name"], "octue.example-service.3-5-0")
+                    self.assertEqual(subscription.call_args.kwargs["push_endpoint"], "https://example.com/endpoint")
+                    self.assertEqual(subscription.call_args.kwargs["expiration_time"], expected_expiration_time)
 
-                    self.assertEqual(mock_subscription.call_args.kwargs["name"], "octue.example-service.3-5-0")
-                    self.assertEqual(
-                        mock_subscription.call_args.kwargs["push_endpoint"],
-                        "https://example.com/endpoint",
-                    )
-                    self.assertEqual(mock_subscription.call_args.kwargs["expiration_time"], expected_expiration_time)
+    def test_create_push_subscription_with_filter(self):
+        """Test that filters are added to subscriptions correctly when creating a push subscription."""
+        for filter_option, expected_filter in (
+            ([], 'attributes.sender_type = "PARENT"'),
+            (["--filter="], None),
+            (['--filter=attributes.sender_type = "CHILD"'], 'attributes.sender_type = "CHILD"'),
+        ):
+            with self.subTest(filter_option=filter_option):
+                with patch("octue.cloud.pub_sub.Topic", new=MockTopic):
+                    with patch("octue.cloud.pub_sub.Subscription") as subscription:
+                        result = CliRunner().invoke(
+                            octue_cli,
+                            [
+                                "deploy",
+                                "create-push-subscription",
+                                "my-project",
+                                "octue",
+                                "example-service",
+                                "https://example.com/endpoint",
+                                "--revision-tag=3.5.0",
+                                *filter_option,
+                            ],
+                        )
+
+                    self.assertIsNone(result.exception)
+                    self.assertEqual(result.exit_code, 0)
+                    self.assertEqual(subscription.call_args.kwargs["name"], "octue.example-service.3-5-0")
+                    self.assertEqual(subscription.call_args.kwargs["push_endpoint"], "https://example.com/endpoint")
+                    self.assertEqual(subscription.call_args.kwargs["filter"], expected_filter)
