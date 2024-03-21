@@ -485,7 +485,7 @@ class Service:
         :param bool forward_logs: whether to request the child to forward its logs
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param octue.cloud.pub_sub.topic.Topic topic: topic to send the acknowledgement to
-        :param str question_uuid:
+        :param str question_uuid: the UUID of the question being sent
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
