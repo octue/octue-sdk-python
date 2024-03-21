@@ -10,6 +10,17 @@ logger = logging.getLogger(__name__)
 
 
 class EventReplayer(AbstractEventHandler):
+    """A replayer for events retrieved asynchronously from some kind of storage.
+
+    :param octue.cloud.pub_sub.service.Service receiving_service: the service that's receiving the events
+    :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
+    :param bool record_events: if `True`, record received events in the `received_events` attribute
+    :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers should not mutate the events.
+    :param dict|str schema: the JSON schema (or URI of one) to validate events against
+    :param bool only_handle_result: if `True`, skip non-result events and only handle the result event
+    :return None:
+    """
+
     def __init__(
         self,
         receiving_service=None,
@@ -19,16 +30,6 @@ class EventReplayer(AbstractEventHandler):
         schema=SERVICE_COMMUNICATION_SCHEMA,
         only_handle_result=False,
     ):
-        """A replayer for events retrieved asynchronously from some kind of storage.
-
-        :param octue.cloud.pub_sub.service.Service receiving_service: the service that's receiving the events
-        :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
-        :param bool record_events: if `True`, record received events in the `received_events` attribute
-        :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers should not mutate the events.
-        :param dict|str schema: the JSON schema (or URI of one) to validate events against
-        :param bool only_handle_result: if `True`, skip non-result events and only handle the result event
-        :return None:
-        """
         super().__init__(
             receiving_service or Service(backend=ServiceBackend(), service_id="local/local:local"),
             handle_monitor_message=handle_monitor_message,
