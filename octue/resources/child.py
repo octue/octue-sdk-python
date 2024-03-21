@@ -88,7 +88,7 @@ class Child:
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
-        :return dict|None: for a synchronous question, a dictionary containing the keys "output_values" and "output_manifest"; for an asynchronous question, `None`
+        :return dict|None: for a synchronous question, a dictionary containing the keys "output_values" and "output_manifest" from the result; for an asynchronous question, `None`
         """
         subscription, _ = self._service.ask(
             service_id=self.id,

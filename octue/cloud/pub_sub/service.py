@@ -296,9 +296,9 @@ class Service:
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
-        :param bool asynchronous: if `True`, don't create an answer subscription
+        :param bool asynchronous: if `True` and not using a push endpoint, don't create an answer subscription
         :param float|None timeout: time in seconds to keep retrying sending the question
-        :return (octue.cloud.pub_sub.subscription.Subscription|None, str): the answer subscription (if the question is synchronous) and question UUID
+        :return (octue.cloud.pub_sub.subscription.Subscription|None, str): the answer subscription (if the question is synchronous or a push endpoint was used) and question UUID
         """
         service_namespace, service_name, service_revision_tag = split_service_id(service_id)
 
@@ -332,7 +332,7 @@ class Service:
 
         question_uuid = question_uuid or str(uuid.uuid4())
 
-        if asynchronous:
+        if asynchronous and not push_endpoint:
             answer_subscription = None
         else:
             answer_subscription = Subscription(
