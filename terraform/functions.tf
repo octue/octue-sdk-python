@@ -23,6 +23,13 @@ resource "google_cloudfunctions2_function" "event_handler" {
     }
   }
 
+#  event_trigger {
+#    trigger_region = var.region
+#    event_type = "google.cloud.pubsub.topic.v1.messagePublished"
+#    pubsub_topic = google_pubsub_topic.topic.id
+#    retry_policy = "RETRY_POLICY_RETRY"
+#  }
+
 }
 
 
