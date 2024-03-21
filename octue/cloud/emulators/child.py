@@ -322,7 +322,7 @@ class ServicePatcher(MultiPatcher):
             patches=[
                 patch("octue.cloud.pub_sub.service.Topic", new=MockTopic),
                 patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription),
-                patch("octue.cloud.pub_sub.event_handler.SubscriberClient", new=MockSubscriber),
+                patch("octue.cloud.pub_sub.events.SubscriberClient", new=MockSubscriber),
                 patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber),
             ]
         )
