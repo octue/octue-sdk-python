@@ -8,7 +8,7 @@ from google.cloud.pubsub_v1 import SubscriberClient
 
 from octue.cloud.events.handler import AbstractEventHandler
 from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
-from octue.cloud.pub_sub.events import extract_event_and_attributes_from_pub_sub
+from octue.cloud.pub_sub.events import extract_event_and_attributes_from_pub_sub_message
 from octue.utils.threads import RepeatingTimer
 
 
@@ -20,7 +20,7 @@ PARENT_SDK_VERSION = importlib.metadata.version("octue")
 
 
 class GoogleCloudPubSubEventHandler(AbstractEventHandler):
-    """A handler for events received as Google Pub/Sub messages from a pull subscription.
+    """A synchronous handler for events received as Google Pub/Sub messages from a pull subscription.
 
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
     :param octue.cloud.pub_sub.service.Service receiving_service: the service that's receiving the events
@@ -53,7 +53,6 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
             skip_missing_events_after=skip_missing_events_after,
         )
 
-        self.waiting_events = None
         self._subscriber = SubscriberClient()
         self._heartbeat_checker = None
         self._last_heartbeat = None
@@ -84,8 +83,8 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         return datetime.now() - self._last_heartbeat
 
     def handle_events(self, timeout=60, maximum_heartbeat_interval=300):
-        """Pull events and handle them in the order they were sent until a "result" event is handled then return the
-        handled result.
+        """Pull events fromthe subscription and handle them in the order they were sent until a "result" event is
+        handled, then return the handled result.
 
         :param float|None timeout: how long to wait for an answer before raising a `TimeoutError`
         :param int|float maximum_heartbeat_interval: the maximum amount of time [s] allowed between child heartbeats before an error is raised
@@ -208,4 +207,9 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         self._earliest_waiting_event_number = min(self.waiting_events.keys())
 
     def _extract_event_and_attributes(self, container):
-        return extract_event_and_attributes_from_pub_sub(container.message)
+        """Extract an event and its attributes from the Pub/Sub message.
+
+        :param dict container: the container of the event
+        :return (any, dict): the event and its attributes
+        """
+        return extract_event_and_attributes_from_pub_sub_message(container.message)
