@@ -308,3 +308,51 @@ class TestManifest(BaseTestCase):
 
         self.assertTrue(manifest.datasets["my_dataset"].path.startswith("http"))
         self.assertIn(".signed_metadata_files", manifest.datasets["my_dataset"].path)
+
+    def test_download_without_paths(self):
+        """Test downloading a manifest without specifying the `paths` argument."""
+        manifest = Manifest(datasets={"my_dataset": self.create_nested_cloud_dataset()})
+        paths = manifest.download()
+        self.assertEqual(set(os.listdir(paths["my_dataset"])), {"file_1.txt", "file_0.txt", "sub-directory"})
+
+    def test_download_with_paths(self):
+        """Test downloading a manifest while specifying the `paths` argument."""
+        manifest = Manifest(
+            datasets={
+                "dataset1": self.create_nested_cloud_dataset(),
+                "dataset2": self.create_nested_cloud_dataset(),
+            },
+        )
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            paths = manifest.download(paths={"dataset1": temporary_directory})
+
+            # Check that dataset1 has been downloaded to the given directory.
+            self.assertEqual(paths["dataset1"], temporary_directory)
+            self.assertEqual(set(os.listdir(paths["dataset1"])), {"file_1.txt", "file_0.txt", "sub-directory"})
+
+        # Check that dataset2 has been downloaded to a temporary directory.
+        self.assertNotEqual(paths["dataset2"], temporary_directory)
+        self.assertEqual(set(os.listdir(paths["dataset2"])), {"file_1.txt", "file_0.txt", "sub-directory"})
+
+    def test_download_some_datasets_with_paths(self):
+        """Test downloading a manifest while specifying the `paths` argument and setting `download_all=False`."""
+        manifest = Manifest(
+            datasets={
+                "dataset1": self.create_nested_cloud_dataset(),
+                "dataset2": self.create_nested_cloud_dataset(),
+            },
+        )
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with self.assertLogs() as logging_context:
+                paths = manifest.download(paths={"dataset1": temporary_directory}, download_all=False)
+
+            # Check that dataset1 has been downloaded to the given directory and dataset2 hasn't been downloaded.
+            self.assertEqual(paths, {"dataset1": temporary_directory})
+            self.assertEqual(set(os.listdir(paths["dataset1"])), {"file_1.txt", "file_0.txt", "sub-directory"})
+
+        self.assertEqual(
+            logging_context.records[1].message,
+            "'dataset2' dataset download skipped as its download path wasn't specified.",
+        )

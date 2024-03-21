@@ -170,32 +170,25 @@ class TestService(BaseTestCase):
     def test_timeout_error_raised_if_no_messages_received_when_waiting(self):
         """Test that a TimeoutError is raised if no messages are received while waiting."""
         mock_topic = MockTopic(name="amazing.service.9-9-9", project_name=TEST_PROJECT_NAME)
-
-        mock_subscription = MockSubscription(
-            name="amazing.service.9-9-9",
-            topic=mock_topic,
-            project_name=TEST_PROJECT_NAME,
-        )
-
+        mock_subscription = MockSubscription(name="amazing.service.9-9-9", topic=mock_topic)
         service = Service(backend=BACKEND)
 
         with patch("octue.cloud.pub_sub.service.pubsub_v1.SubscriberClient.pull", return_value=MockPullResponse()):
             with self.assertRaises(TimeoutError):
                 service.wait_for_answer(subscription=mock_subscription, timeout=0.01)
 
-    def test_error_raised_if_attempting_to_wait_for_answer_from_push_subscription(self):
+    def test_error_raised_if_attempting_to_wait_for_answer_from_non_pull_subscription(self):
         """Test that an error is raised if attempting to wait for an answer from a push subscription."""
-        mock_subscription = MockSubscription(
+        service = Service(backend=BACKEND)
+
+        subscription = MockSubscription(
             name="world",
             topic=MockTopic(name="world", project_name=TEST_PROJECT_NAME),
-            project_name=TEST_PROJECT_NAME,
             push_endpoint="https://example.com/endpoint",
         )
 
-        service = Service(backend=BACKEND)
-
-        with self.assertRaises(exceptions.PushSubscriptionCannotBePulled):
-            service.wait_for_answer(subscription=mock_subscription)
+        with self.assertRaises(exceptions.NotAPullSubscription):
+            service.wait_for_answer(subscription=subscription)
 
     def test_exceptions_in_responder_are_handled_and_sent_to_asker(self):
         """Test that exceptions raised in the child service are handled and sent back to the asker."""

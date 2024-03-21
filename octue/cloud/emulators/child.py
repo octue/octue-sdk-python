@@ -93,6 +93,8 @@ class ChildEmulator:
         handle_monitor_message=None,
         record_messages=True,
         question_uuid=None,
+        push_endpoint=None,
+        asynchronous=False,
         timeout=86400,
     ):
         """Ask the child emulator a question and receive its emulated response messages. Unlike a real child, the input
@@ -106,6 +108,8 @@ class ChildEmulator:
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
         :param bool record_messages: if `True`, record messages received from the child in the `received_messages` property
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
+        :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
+        :param bool asynchronous: if `True`, don't create an answer subscription
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
         :return dict: a dictionary containing the keys "output_values" and "output_manifest"
@@ -120,6 +124,8 @@ class ChildEmulator:
                 subscribe_to_logs=subscribe_to_logs,
                 allow_local_files=allow_local_files,
                 question_uuid=question_uuid,
+                push_endpoint=push_endpoint,
+                asynchronous=asynchronous,
             )
 
             return self._parent.wait_for_answer(
@@ -316,7 +322,7 @@ class ServicePatcher(MultiPatcher):
             patches=[
                 patch("octue.cloud.pub_sub.service.Topic", new=MockTopic),
                 patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription),
-                patch("octue.cloud.pub_sub.message_handler.SubscriberClient", new=MockSubscriber),
+                patch("octue.cloud.pub_sub.events.SubscriberClient", new=MockSubscriber),
                 patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber),
             ]
         )

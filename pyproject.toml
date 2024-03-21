@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "octue"
-version = "0.52.1"
+version = "0.53.0"
 description = "A package providing template applications for data services, and a python SDK to the Octue API."
 readme = "README.md"
 authors = ["Marcus Lugg <marcus@octue.com>", "Thomas Clark <support@octue.com>"]
@@ -22,7 +22,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.7.1"
 click = ">=7,<9"
-coolname = "^1.1"
+coolname = "^2"
 Flask = "^2"
 google-auth = ">=1.27.0,<3"
 google-cloud-pubsub = "^2.5"
@@ -35,6 +35,8 @@ pyyaml = "^6"
 h5py = { version = "^3.6", optional = true }
 twined = "^0.5.1"
 packaging = ">=20.4"
+google-cloud-bigquery = "^3.18.0"
+db-dtypes = "^1.2.0"
 
 [tool.poetry.extras]
 hdf5 = ["h5py"]

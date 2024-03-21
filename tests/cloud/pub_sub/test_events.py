@@ -12,7 +12,7 @@ from octue.cloud.emulators._pub_sub import (
     MockTopic,
 )
 from octue.cloud.emulators.child import ServicePatcher
-from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
+from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
@@ -28,42 +28,37 @@ def create_mock_topic_and_subscription():
     """
     question_uuid = str(uuid.uuid4())
     topic = MockTopic(name="my-org.my-service.1-0-0", project_name=TEST_PROJECT_NAME)
-
-    subscription = MockSubscription(
-        name=f"my-org.my-service.1-0-0.answers.{question_uuid}",
-        topic=topic,
-        project_name=TEST_PROJECT_NAME,
-    )
+    subscription = MockSubscription(name=f"my-org.my-service.1-0-0.answers.{question_uuid}", topic=topic)
 
     subscription.create()
     return question_uuid, topic, subscription
 
 
-class TestOrderedMessageHandler(BaseTestCase):
+class TestPubSubEventHandler(BaseTestCase):
     def test_timeout(self):
         """Test that a TimeoutError is raised if message handling takes longer than the given timeout."""
         question_uuid, _, mock_subscription = create_mock_topic_and_subscription()
 
-        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(
+        with patch("octue.cloud.pub_sub.events.SubscriberClient", MockSubscriber):
+            event_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: message},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: message},
                 schema={},
             )
 
         with self.assertRaises(TimeoutError):
-            message_handler.handle_messages(timeout=0)
+            event_handler.handle_events(timeout=0)
 
     def test_in_order_messages_are_handled_in_order(self):
         """Test that messages received in order are handled in order."""
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
-        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(
+        with patch("octue.cloud.pub_sub.events.SubscriberClient", MockSubscriber):
+            event_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
             )
 
@@ -79,11 +74,11 @@ class TestOrderedMessageHandler(BaseTestCase):
         for message in messages:
             child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
-        result = message_handler.handle_messages()
+        result = event_handler.handle_events()
         self.assertEqual(result, "This is the result.")
 
         self.assertEqual(
-            message_handler.handled_messages,
+            event_handler.handled_events,
             [{"kind": "test"}, {"kind": "test"}, {"kind": "test"}, {"kind": "finish-test"}],
         )
 
@@ -91,11 +86,11 @@ class TestOrderedMessageHandler(BaseTestCase):
         """Test that messages received out of order are handled in order."""
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
-        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(
+        with patch("octue.cloud.pub_sub.events.SubscriberClient", MockSubscriber):
+            event_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
             )
 
@@ -124,12 +119,12 @@ class TestOrderedMessageHandler(BaseTestCase):
             mock_topic.messages_published = message["event"]["order"]
             child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
-        result = message_handler.handle_messages()
+        result = event_handler.handle_events()
 
         self.assertEqual(result, "This is the result.")
 
         self.assertEqual(
-            message_handler.handled_messages,
+            event_handler.handled_events,
             [
                 {"kind": "test", "order": 0},
                 {"kind": "test", "order": 1},
@@ -144,11 +139,11 @@ class TestOrderedMessageHandler(BaseTestCase):
         """
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
-        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(
+        with patch("octue.cloud.pub_sub.events.SubscriberClient", MockSubscriber):
+            event_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
             )
 
@@ -177,12 +172,12 @@ class TestOrderedMessageHandler(BaseTestCase):
             mock_topic.messages_published = message["event"]["order"]
             child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
-        result = message_handler.handle_messages()
+        result = event_handler.handle_events()
 
         self.assertEqual(result, "This is the result.")
 
         self.assertEqual(
-            message_handler.handled_messages,
+            event_handler.handled_events,
             [
                 {"kind": "test", "order": 0},
                 {"kind": "test", "order": 1},
@@ -195,11 +190,11 @@ class TestOrderedMessageHandler(BaseTestCase):
         """Test that message handling works with no timeout."""
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
-        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(
+        with patch("octue.cloud.pub_sub.events.SubscriberClient", MockSubscriber):
+            event_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
             )
 
@@ -223,11 +218,11 @@ class TestOrderedMessageHandler(BaseTestCase):
         for message in messages:
             child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
-        result = message_handler.handle_messages(timeout=None)
+        result = event_handler.handle_events(timeout=None)
 
         self.assertEqual(result, "This is the result.")
         self.assertEqual(
-            message_handler.handled_messages,
+            event_handler.handled_events,
             [{"kind": "test", "order": 0}, {"kind": "test", "order": 1}, {"kind": "finish-test", "order": 2}],
         )
 
@@ -235,8 +230,8 @@ class TestOrderedMessageHandler(BaseTestCase):
         """Test that a delivery acknowledgement message is handled correctly."""
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
-        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(subscription=mock_subscription, receiving_service=parent)
+        with patch("octue.cloud.pub_sub.events.SubscriberClient", MockSubscriber):
+            event_handler = GoogleCloudPubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
 
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
@@ -254,18 +249,18 @@ class TestOrderedMessageHandler(BaseTestCase):
         for message in messages:
             child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
-        result = message_handler.handle_messages()
+        result = event_handler.handle_events()
         self.assertEqual(result, {"output_values": None, "output_manifest": None})
 
     def test_error_raised_if_heartbeat_not_received_before_checked(self):
         """Test that an error is raised if a heartbeat isn't received before a heartbeat is first checked for."""
         question_uuid, _, mock_subscription = create_mock_topic_and_subscription()
 
-        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(subscription=mock_subscription, receiving_service=parent)
+        with patch("octue.cloud.pub_sub.events.SubscriberClient", MockSubscriber):
+            event_handler = GoogleCloudPubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
 
         with self.assertRaises(TimeoutError) as error:
-            message_handler.handle_messages(maximum_heartbeat_interval=0)
+            event_handler.handle_events(maximum_heartbeat_interval=0)
 
         # Check that the timeout is due to a heartbeat not being received.
         self.assertIn("heartbeat", error.exception.args[0])
@@ -274,13 +269,13 @@ class TestOrderedMessageHandler(BaseTestCase):
         """Test that an error is raised if heartbeats stop being received within the maximum interval."""
         question_uuid, _, mock_subscription = create_mock_topic_and_subscription()
 
-        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(subscription=mock_subscription, receiving_service=parent)
+        with patch("octue.cloud.pub_sub.events.SubscriberClient", MockSubscriber):
+            event_handler = GoogleCloudPubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
 
-        message_handler._last_heartbeat = datetime.datetime.now() - datetime.timedelta(seconds=30)
+        event_handler._last_heartbeat = datetime.datetime.now() - datetime.timedelta(seconds=30)
 
         with self.assertRaises(TimeoutError) as error:
-            message_handler.handle_messages(maximum_heartbeat_interval=0)
+            event_handler.handle_events(maximum_heartbeat_interval=0)
 
         self.assertIn("heartbeat", error.exception.args[0])
 
@@ -288,10 +283,10 @@ class TestOrderedMessageHandler(BaseTestCase):
         """Test that an error is not raised if a heartbeat has been received in the maximum allowed interval."""
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
-        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(subscription=mock_subscription, receiving_service=parent)
+        with patch("octue.cloud.pub_sub.events.SubscriberClient", MockSubscriber):
+            event_handler = GoogleCloudPubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
 
-        message_handler._last_heartbeat = datetime.datetime.now()
+        event_handler._last_heartbeat = datetime.datetime.now()
 
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
@@ -313,35 +308,33 @@ class TestOrderedMessageHandler(BaseTestCase):
             child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
         with patch(
-            "octue.cloud.pub_sub.message_handler.OrderedMessageHandler._time_since_last_heartbeat",
+            "octue.cloud.pub_sub.events.GoogleCloudPubSubEventHandler._time_since_last_heartbeat",
             datetime.timedelta(seconds=0),
         ):
-            message_handler.handle_messages(maximum_heartbeat_interval=0)
+            event_handler.handle_events(maximum_heartbeat_interval=0)
 
     def test_time_since_last_heartbeat_is_none_if_no_heartbeat_received_yet(self):
         """Test that the time since the last heartbeat is `None` if no heartbeat has been received yet."""
         question_uuid, _, mock_subscription = create_mock_topic_and_subscription()
 
-        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(subscription=mock_subscription, receiving_service=parent)
+        with patch("octue.cloud.pub_sub.events.SubscriberClient", MockSubscriber):
+            event_handler = GoogleCloudPubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
 
-        self.assertIsNone(message_handler._time_since_last_heartbeat)
+        self.assertIsNone(event_handler._time_since_last_heartbeat)
 
-    def test_total_run_time_is_none_if_handle_messages_has_not_been_called(self):
-        """Test that the total run time for the message handler is `None` if the `handle_messages` method has not been
+    def test_total_run_time_is_none_if_handle_events_has_not_been_called(self):
+        """Test that the total run time for the message handler is `None` if the `handle_events` method has not been
         called.
         """
         question_uuid, _, mock_subscription = create_mock_topic_and_subscription()
-        message_handler = OrderedMessageHandler(subscription=mock_subscription, receiving_service=parent)
-        self.assertIsNone(message_handler.total_run_time)
+        event_handler = GoogleCloudPubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
+        self.assertIsNone(event_handler.total_run_time)
 
     def test_time_since_missing_message_is_none_if_no_unhandled_missing_messages(self):
-        """Test that the `OrderedMessageHandler.time_since_missing_message` property is `None` if there are no unhandled
-        missing messages.
-        """
+        """Test that the `time_since_missing_message` property is `None` if there are no unhandled missing messages."""
         question_uuid, _, mock_subscription = create_mock_topic_and_subscription()
-        message_handler = OrderedMessageHandler(subscription=mock_subscription, receiving_service=parent)
-        self.assertIsNone(message_handler.time_since_missing_message)
+        event_handler = GoogleCloudPubSubEventHandler(subscription=mock_subscription, receiving_service=parent)
+        self.assertIsNone(event_handler.time_since_missing_event)
 
     def test_missing_messages_at_start_can_be_skipped(self):
         """Test that missing messages at the start of the event stream can be skipped if they aren't received after a
@@ -349,13 +342,13 @@ class TestOrderedMessageHandler(BaseTestCase):
         """
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
-        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(
+        with patch("octue.cloud.pub_sub.events.SubscriberClient", MockSubscriber):
+            event_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
-                skip_missing_messages_after=0,
+                skip_missing_events_after=0,
             )
 
         # Simulate the first two messages not being received.
@@ -385,11 +378,11 @@ class TestOrderedMessageHandler(BaseTestCase):
         for message in messages:
             child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
-        result = message_handler.handle_messages()
+        result = event_handler.handle_events()
 
         self.assertEqual(result, "This is the result.")
         self.assertEqual(
-            message_handler.handled_messages,
+            event_handler.handled_events,
             [
                 {"kind": "test", "order": 2},
                 {"kind": "test", "order": 3},
@@ -402,13 +395,13 @@ class TestOrderedMessageHandler(BaseTestCase):
         """Test that missing messages in the middle of the event stream can be skipped."""
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
-        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(
+        with patch("octue.cloud.pub_sub.events.SubscriberClient", MockSubscriber):
+            event_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
-                skip_missing_messages_after=0,
+                skip_missing_events_after=0,
             )
 
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
@@ -442,11 +435,11 @@ class TestOrderedMessageHandler(BaseTestCase):
             topic=mock_topic,
         )
 
-        message_handler.handle_messages()
+        event_handler.handle_events()
 
         # Check that all the non-missing messages were handled.
         self.assertEqual(
-            message_handler.handled_messages,
+            event_handler.handled_events,
             [
                 {"kind": "test", "order": 0},
                 {"kind": "test", "order": 1},
@@ -459,13 +452,13 @@ class TestOrderedMessageHandler(BaseTestCase):
         """Test that multiple blocks of missing messages in the middle of the event stream can be skipped."""
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
-        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(
+        with patch("octue.cloud.pub_sub.events.SubscriberClient", MockSubscriber):
+            event_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
-                skip_missing_messages_after=0,
+                skip_missing_events_after=0,
             )
 
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
@@ -525,11 +518,11 @@ class TestOrderedMessageHandler(BaseTestCase):
         for message in messages:
             child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
 
-        message_handler.handle_messages()
+        event_handler.handle_events()
 
         # Check that all the non-missing messages were handled.
         self.assertEqual(
-            message_handler.handled_messages,
+            event_handler.handled_events,
             [
                 {"kind": "test", "order": 0},
                 {"kind": "test", "order": 1},
@@ -546,13 +539,13 @@ class TestOrderedMessageHandler(BaseTestCase):
         """Test that the result message is still handled if all other messages are missing."""
         question_uuid, mock_topic, mock_subscription = create_mock_topic_and_subscription()
 
-        with patch("octue.cloud.pub_sub.message_handler.SubscriberClient", MockSubscriber):
-            message_handler = OrderedMessageHandler(
+        with patch("octue.cloud.pub_sub.events.SubscriberClient", MockSubscriber):
+            event_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
-                skip_missing_messages_after=0,
+                skip_missing_events_after=0,
             )
 
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
@@ -567,14 +560,14 @@ class TestOrderedMessageHandler(BaseTestCase):
             topic=mock_topic,
         )
 
-        message_handler.handle_messages()
+        event_handler.handle_events()
 
         # Check that the result message was handled.
-        self.assertEqual(message_handler.handled_messages, [{"kind": "finish-test", "order": 1000}])
+        self.assertEqual(event_handler.handled_events, [{"kind": "finish-test", "order": 1000}])
 
 
 class TestPullAndEnqueueAvailableMessages(BaseTestCase):
-    def test_pull_and_enqueue_available_messages(self):
+    def test_pull_and_enqueue_available_events(self):
         """Test that pulling and enqueuing a message works."""
         question_uuid, mock_topic, _ = create_mock_topic_and_subscription()
 
@@ -582,18 +575,19 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
             mock_subscription = MockSubscription(
                 name=f"my-org.my-service.1-0-0.answers.{question_uuid}",
                 topic=mock_topic,
-                project_name=TEST_PROJECT_NAME,
             )
 
-            message_handler = OrderedMessageHandler(
+            event_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
                 schema={},
             )
 
-            message_handler._child_sdk_version = "0.1.3"
-            message_handler.waiting_messages = {}
+            event_handler.question_uuid = question_uuid
+            event_handler.child_sruid = "my-org/my-service:1.0.0"
+            event_handler._child_sdk_version = "0.1.3"
+            event_handler.waiting_events = {}
 
             # Enqueue a mock message for a mock subscription to receive.
             mock_message = {"kind": "test"}
@@ -610,9 +604,9 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
                 )
             ]
 
-            message_handler._pull_and_enqueue_available_messages(timeout=10)
-            self.assertEqual(message_handler.waiting_messages, {0: mock_message})
-            self.assertEqual(message_handler._earliest_waiting_message_number, 0)
+            event_handler._pull_and_enqueue_available_events(timeout=10)
+            self.assertEqual(event_handler.waiting_events, {0: mock_message})
+            self.assertEqual(event_handler._earliest_waiting_event_number, 0)
 
     def test_timeout_error_raised_if_result_message_not_received_in_time(self):
         """Test that a timeout error is raised if a result message is not received in time."""
@@ -622,23 +616,22 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
             mock_subscription = MockSubscription(
                 name=f"my-org.my-service.1-0-0.answers.{question_uuid}",
                 topic=mock_topic,
-                project_name=TEST_PROJECT_NAME,
             )
 
-            message_handler = OrderedMessageHandler(
+            event_handler = GoogleCloudPubSubEventHandler(
                 subscription=mock_subscription,
                 receiving_service=parent,
-                message_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
             )
 
-            message_handler._child_sdk_version = "0.1.3"
-            message_handler.waiting_messages = {}
-            message_handler._start_time = 0
+            event_handler._child_sdk_version = "0.1.3"
+            event_handler.waiting_events = {}
+            event_handler._start_time = 0
 
             # Create a mock subscription.
             SUBSCRIPTIONS[mock_subscription.name] = []
 
             with self.assertRaises(TimeoutError):
-                message_handler._pull_and_enqueue_available_messages(timeout=1e-6)
+                event_handler._pull_and_enqueue_available_events(timeout=1e-6)
 
-            self.assertEqual(message_handler._earliest_waiting_message_number, math.inf)
+            self.assertEqual(event_handler._earliest_waiting_event_number, math.inf)

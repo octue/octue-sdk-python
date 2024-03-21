@@ -6,13 +6,14 @@ import google.api_core.exceptions
 from octue.cloud.emulators._pub_sub import MockSubscriber, MockSubscriptionCreationResponse
 from octue.cloud.pub_sub.subscription import THIRTY_ONE_DAYS, Subscription
 from octue.cloud.pub_sub.topic import Topic
+from octue.exceptions import ConflictingSubscriptionType
 from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 
 
 class TestSubscription(BaseTestCase):
-    topic = Topic(name="world", project_name="my-project")
-    subscription = Subscription(name="world", topic=topic, project_name=TEST_PROJECT_NAME)
+    topic = Topic(name="world", project_name=TEST_PROJECT_NAME)
+    subscription = Subscription(name="world", topic=topic)
 
     def test_repr(self):
         """Test that subscriptions are represented correctly."""
@@ -21,13 +22,7 @@ class TestSubscription(BaseTestCase):
     def test_namespace_only_in_name_once(self):
         """Test that the subscription's namespace only appears in its name once, even if it is repeated."""
         self.assertEqual(self.subscription.name, "octue.services.world")
-
-        subscription_with_repeated_namespace = Subscription(
-            name="octue.services.world",
-            topic=self.topic,
-            project_name=TEST_PROJECT_NAME,
-        )
-
+        subscription_with_repeated_namespace = Subscription(name="octue.services.world", topic=self.topic)
         self.assertEqual(subscription_with_repeated_namespace.name, "octue.services.world")
 
     def test_create_without_allow_existing_when_subscription_already_exists(self):
@@ -35,7 +30,7 @@ class TestSubscription(BaseTestCase):
         `False`.
         """
         with patch("octue.cloud.pub_sub.subscription.SubscriberClient", MockSubscriber):
-            subscription = Subscription(name="world", topic=self.topic, project_name=TEST_PROJECT_NAME)
+            subscription = Subscription(name="world", topic=self.topic)
 
         with patch(
             "octue.cloud.emulators._pub_sub.MockSubscriber.create_subscription",
@@ -52,7 +47,7 @@ class TestSubscription(BaseTestCase):
         error.
         """
         with patch("octue.cloud.pub_sub.subscription.SubscriberClient", MockSubscriber):
-            subscription = Subscription(name="world", topic=self.topic, project_name=TEST_PROJECT_NAME)
+            subscription = Subscription(name="world", topic=self.topic)
 
         with patch(
             "octue.cloud.emulators._pub_sub.MockSubscriber.create_subscription",
@@ -69,13 +64,7 @@ class TestSubscription(BaseTestCase):
         """
         project_name = os.environ["TEST_PROJECT_NAME"]
         topic = Topic(name="my-topic", project_name=project_name)
-
-        subscription = Subscription(
-            name="world",
-            topic=topic,
-            project_name=project_name,
-            filter='attributes.question_uuid = "abc"',
-        )
+        subscription = Subscription(name="world", topic=topic, filter='attributes.question_uuid = "abc"')
 
         for allow_existing in (True, False):
             with self.subTest(allow_existing=allow_existing):
@@ -92,17 +81,26 @@ class TestSubscription(BaseTestCase):
                 self.assertEqual(response._pb.retry_policy.minimum_backoff.seconds, 10)
                 self.assertEqual(response._pb.retry_policy.maximum_backoff.seconds, 600)
 
+    def test_error_raised_if_attempting_to_create_push_subscription_at_same_time_as_bigquery_subscription(self):
+        """Test that an error is raised if attempting to create a subscription that's both a push subscription and a
+        BigQuery subscription.
+        """
+        project_name = os.environ["TEST_PROJECT_NAME"]
+        topic = Topic(name="my-topic", project_name=project_name)
+
+        with self.assertRaises(ConflictingSubscriptionType):
+            Subscription(
+                name="world",
+                topic=topic,
+                push_endpoint="https://example.com/endpoint",
+                bigquery_table_id="my-project.my-dataset.my-table",
+            )
+
     def test_create_push_subscription(self):
         """Test that creating a push subscription works properly."""
         project_name = os.environ["TEST_PROJECT_NAME"]
         topic = Topic(name="my-topic", project_name=project_name)
-
-        subscription = Subscription(
-            name="world",
-            topic=topic,
-            project_name=project_name,
-            push_endpoint="https://example.com/endpoint",
-        )
+        subscription = Subscription(name="world", topic=topic, push_endpoint="https://example.com/endpoint")
 
         with patch("google.pubsub_v1.SubscriberClient.create_subscription", new=MockSubscriptionCreationResponse):
             response = subscription.create(allow_existing=True)
@@ -114,19 +112,41 @@ class TestSubscription(BaseTestCase):
         self.assertEqual(response._pb.retry_policy.maximum_backoff.seconds, 600)
         self.assertEqual(response._pb.push_config.push_endpoint, "https://example.com/endpoint")
 
+    def test_create_bigquery_subscription(self):
+        """Test that creating a BigQuery subscription works properly."""
+        project_name = os.environ["TEST_PROJECT_NAME"]
+        topic = Topic(name="my-topic", project_name=project_name)
+        subscription = Subscription(name="world", topic=topic, bigquery_table_id="my-project.my-dataset.my-table")
+
+        with patch("google.pubsub_v1.SubscriberClient.create_subscription", new=MockSubscriptionCreationResponse):
+            response = subscription.create(allow_existing=True)
+
+        self.assertEqual(response._pb.ack_deadline_seconds, 600)
+        self.assertEqual(response._pb.expiration_policy.ttl.seconds, THIRTY_ONE_DAYS)
+        self.assertEqual(response._pb.message_retention_duration.seconds, 600)
+        self.assertEqual(response._pb.retry_policy.minimum_backoff.seconds, 10)
+        self.assertEqual(response._pb.retry_policy.maximum_backoff.seconds, 600)
+        self.assertEqual(response._pb.bigquery_config.table, "my-project.my-dataset.my-table")
+        self.assertTrue(response._pb.bigquery_config.write_metadata)
+        self.assertEqual(response._pb.push_config.push_endpoint, "")
+
     def test_is_pull_subscription(self):
-        """Test that `is_pull_subscription` is `True` and `is_push_subscription` is `False` for a pull subscription."""
+        """Test that `is_pull_subscription` is `True` for a pull subscription."""
         self.assertTrue(self.subscription.is_pull_subscription)
         self.assertFalse(self.subscription.is_push_subscription)
+        self.assertFalse(self.subscription.is_bigquery_subscription)
 
     def test_is_push_subscription(self):
-        """Test that `is_pull_subscription` is `False` and `is_push_subscription` is `True` for a pull subscription."""
-        push_subscription = Subscription(
-            name="world",
-            topic=self.topic,
-            project_name=TEST_PROJECT_NAME,
-            push_endpoint="https://example.com/endpoint",
-        )
-
+        """Test that `is_push_subscription` is `True` for a push subscription."""
+        push_subscription = Subscription(name="world", topic=self.topic, push_endpoint="https://example.com/endpoint")
         self.assertTrue(push_subscription.is_push_subscription)
         self.assertFalse(push_subscription.is_pull_subscription)
+        self.assertFalse(push_subscription.is_bigquery_subscription)
+
+    def test_is_bigquery_subscription(self):
+        """Test that `is_bigquery_subscription` is `True` for a BigQuery subscription."""
+        subscription = Subscription(name="world", topic=self.topic, bigquery_table_id="my-project.my-dataset.my-table")
+
+        self.assertTrue(subscription.is_bigquery_subscription)
+        self.assertFalse(subscription.is_pull_subscription)
+        self.assertFalse(subscription.is_push_subscription)
