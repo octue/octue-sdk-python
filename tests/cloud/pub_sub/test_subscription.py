@@ -137,7 +137,7 @@ class TestSubscription(BaseTestCase):
         self.assertFalse(self.subscription.is_bigquery_subscription)
 
     def test_is_push_subscription(self):
-        """Test that `is_push_subscription` is `True` for a pull subscription."""
+        """Test that `is_push_subscription` is `True` for a push subscription."""
         push_subscription = Subscription(name="world", topic=self.topic, push_endpoint="https://example.com/endpoint")
         self.assertTrue(push_subscription.is_push_subscription)
         self.assertFalse(push_subscription.is_pull_subscription)
