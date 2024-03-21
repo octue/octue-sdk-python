@@ -320,7 +320,7 @@ class MockService(Service):
         save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
         question_uuid=None,
         push_endpoint=None,
-        bigquery_table_id=None,
+        asynchronous=False,
         timeout=86400,
         parent_sdk_version=importlib.metadata.version("octue"),
     ):
@@ -336,6 +336,7 @@ class MockService(Service):
         :param str save_diagnostics:
         :param str|None question_uuid:
         :param str|None push_endpoint:
+        :param bool asynchronous:
         :param float|None timeout:
         :return MockFuture, str:
         """
@@ -349,7 +350,7 @@ class MockService(Service):
             save_diagnostics=save_diagnostics,
             question_uuid=question_uuid,
             push_endpoint=push_endpoint,
-            bigquery_table_id=bigquery_table_id,
+            asynchronous=asynchronous,
             timeout=timeout,
         )
 

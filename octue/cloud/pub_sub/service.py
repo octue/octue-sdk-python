@@ -281,7 +281,7 @@ class Service:
         save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",  # This is repeated as a string here to avoid a circular import.
         question_uuid=None,
         push_endpoint=None,
-        bigquery_table_id=None,
+        asynchronous=False,
         timeout=86400,
     ):
         """Ask a child a question (i.e. send it input values for it to analyse and produce output values for) and return
@@ -297,9 +297,9 @@ class Service:
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
-        :param str|None bigquery_table_id: if answers to the questions should be written to BigQuery, provide the ID of the table here (e.g. "your-project.your-dataset.your-table") (the returned subscription will be a BigQuery subscription); if not, leave this  as `None`
+        :param bool asynchronous: if `True`, don't create an answer subscription
         :param float|None timeout: time in seconds to keep retrying sending the question
-        :return (octue.cloud.pub_sub.subscription.Subscription, str): the answer subscription and question UUID
+        :return (octue.cloud.pub_sub.subscription.Subscription|None, str): the answer subscription (if the question is synchronous) and question UUID
         """
         service_namespace, service_name, service_revision_tag = split_service_id(service_id)
 
@@ -326,22 +326,23 @@ class Service:
                     "the new cloud locations."
                 )
 
-        pub_sub_service_id = convert_service_id_to_pub_sub_form(service_id)
-        topic = Topic(name=pub_sub_service_id, project_name=self.backend.project_name)
+        topic = Topic(name=convert_service_id_to_pub_sub_form(service_id), project_name=self.backend.project_name)
 
         if not topic.exists(timeout=timeout):
             raise octue.exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
 
         question_uuid = question_uuid or str(uuid.uuid4())
 
-        answer_subscription = Subscription(
-            name=".".join((topic.name, ANSWERS_NAMESPACE, question_uuid)),
-            topic=topic,
-            filter=f'attributes.question_uuid = "{question_uuid}" AND attributes.sender_type = "{CHILD_SENDER_TYPE}"',
-            push_endpoint=push_endpoint,
-            bigquery_table_id=bigquery_table_id,
-        )
-        answer_subscription.create(allow_existing=False)
+        if asynchronous:
+            answer_subscription = None
+        else:
+            answer_subscription = Subscription(
+                name=".".join((topic.name, ANSWERS_NAMESPACE, question_uuid)),
+                topic=topic,
+                filter=f'attributes.question_uuid = "{question_uuid}" AND attributes.sender_type = "{CHILD_SENDER_TYPE}"',
+                push_endpoint=push_endpoint,
+            )
+            answer_subscription.create(allow_existing=False)
 
         self._send_question(
             input_values=input_values,
@@ -380,12 +381,6 @@ class Service:
             raise octue.exceptions.NotAPullSubscription(
                 f"{subscription.path!r} is a push subscription so it cannot be waited on for an answer. Please check "
                 f"its push endpoint at {subscription.push_endpoint!r}."
-            )
-
-        if subscription.is_bigquery_subscription:
-            raise octue.exceptions.NotAPullSubscription(
-                f"{subscription.path!r} is a BigQuery subscription so it cannot be waited on for an answer. Please "
-                f"check its BigQuery table {subscription.bigquery_table_id!r}."
             )
 
         self._event_handler = GoogleCloudPubSubEventHandler(

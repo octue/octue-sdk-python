@@ -17,12 +17,12 @@ class TestCloudRunDeployment(TestCase):
         backend={"name": "GCPPubSubBackend", "project_name": os.environ["TEST_PROJECT_NAME"]},
     )
 
-    def test_cloud_run_deployment_forwards_exceptions_to_asking_service(self):
+    def test_forwards_exceptions_to_parent(self):
         """Test that exceptions raised in the (remote) responding service are forwarded to and raised by the asker."""
         with self.assertRaises(twined.exceptions.InvalidValuesContents):
             self.child.ask(input_values={"invalid_input_data": "hello"})
 
-    def test_cloud_run_deployment(self):
+    def test_synchronous_question(self):
         """Test that the Google Cloud Run example deployment works, providing a service that can be asked questions and
         send responses.
         """
@@ -35,11 +35,7 @@ class TestCloudRunDeployment(TestCase):
         with answer["output_manifest"].datasets["example_dataset"].files.one() as (datafile, f):
             self.assertEqual(f.read(), "This is some example service output.")
 
-    def test_cloud_run_deployment_asynchronously(self):
-        """Test asking an asynchronous (BigQuery) question."""
-        answer = self.child.ask(
-            input_values={"n_iterations": 3},
-            bigquery_table_id="octue-sdk-python.octue_sdk_python_test_dataset.question-events",
-        )
-
+    def test_asynchronous_question(self):
+        """Test asking an asynchronous question."""
+        answer = self.child.ask(input_values={"n_iterations": 3}, asynchronous=True)
         self.assertIsNone(answer)

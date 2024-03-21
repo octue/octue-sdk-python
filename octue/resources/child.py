@@ -64,15 +64,15 @@ class Child:
         save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",  # This is repeated as a string here to avoid a circular import.
         question_uuid=None,
         push_endpoint=None,
-        bigquery_table_id=None,
+        asynchronous=False,
         timeout=86400,
         maximum_heartbeat_interval=300,
     ):
         """Ask the child either:
         - A synchronous (ask-and-wait) question and wait for it to return an output. Questions are synchronous if
-          neither the `push_endpoint` or the `bigquery_table_id` argument is provided.
+          the `push_endpoint` isn't provided and `asynchronous=False`.
         - An asynchronous (fire-and-forget) question and return immediately. To make a question asynchronous, provide
-          either the `push_endpoint` or `bigquery_table_id` argument.
+          the `push_endpoint` argument or set `asynchronous=False`.
 
         :param any|None input_values: any input values for the question, conforming with the schema in the child's twine
         :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question, conforming with the schema in the child's twine
@@ -84,7 +84,7 @@ class Child:
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
-        :param str|None bigquery_table_id: if answers to the questions should be written to BigQuery, provide the ID of the table here (e.g. "your-project.your-dataset.your-table") (the returned subscription will be a BigQuery subscription); if not, leave this  as `None`
+        :param bool asynchronous: if `True`, don't create an answer subscription
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
@@ -100,11 +100,11 @@ class Child:
             save_diagnostics=save_diagnostics,
             question_uuid=question_uuid,
             push_endpoint=push_endpoint,
-            bigquery_table_id=bigquery_table_id,
+            asynchronous=asynchronous,
             timeout=timeout,
         )
 
-        if push_endpoint or bigquery_table_id:
+        if push_endpoint or asynchronous:
             return None
 
         return self._service.wait_for_answer(
