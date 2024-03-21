@@ -84,13 +84,13 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         return datetime.now() - self._last_heartbeat
 
     def handle_events(self, timeout=60, maximum_heartbeat_interval=300):
-        """Pull events and handle them in the order they were sent until a result is returned by a event handler,
-        then return that result.
+        """Pull events and handle them in the order they were sent until a "result" event is handled then return the
+        handled result.
 
         :param float|None timeout: how long to wait for an answer before raising a `TimeoutError`
-        :param int|float maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
+        :param int|float maximum_heartbeat_interval: the maximum amount of time [s] allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded before receiving the final event
-        :return dict: the first result returned by a event handler
+        :return dict: the handled final result
         """
         self._start_time = time.perf_counter()
         self.waiting_events = {}
@@ -207,5 +207,5 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
 
         self._earliest_waiting_event_number = min(self.waiting_events.keys())
 
-    def _extract_event_and_attributes(self, event):
-        return extract_event_and_attributes_from_pub_sub(event.message)
+    def _extract_event_and_attributes(self, container):
+        return extract_event_and_attributes_from_pub_sub(container.message)

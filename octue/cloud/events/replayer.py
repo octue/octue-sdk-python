@@ -39,6 +39,6 @@ class EventReplayer(AbstractEventHandler):
         self._earliest_waiting_event_number = min(self.waiting_events.keys())
         return self._attempt_to_handle_waiting_events()
 
-    def _extract_event_and_attributes(self, event):
-        event["attributes"]["message_number"] = int(event["attributes"]["message_number"])
-        return event["event"], event["attributes"]
+    def _extract_event_and_attributes(self, container):
+        container["attributes"]["message_number"] = int(container["attributes"]["message_number"])
+        return container["event"], container["attributes"]

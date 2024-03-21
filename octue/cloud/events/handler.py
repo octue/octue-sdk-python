@@ -28,8 +28,6 @@ PARENT_SDK_VERSION = importlib.metadata.version("octue")
 
 
 class AbstractEventHandler:
-    question_uuid: str
-
     def __init__(
         self,
         receiving_service,
@@ -43,14 +41,17 @@ class AbstractEventHandler:
         self.receiving_service = receiving_service
         self.handle_monitor_message = handle_monitor_message
         self.record_events = record_events
-        self.child_sruid = None
         self.schema = schema
         self.only_handle_result = only_handle_result
+
+        # These are set when the first event is received.
+        self.question_uuid = None
+        self._child_sdk_version = None
+        self.child_sruid = None
 
         self.waiting_events = None
         self.handled_events = []
         self._previous_event_number = -1
-        self._child_sdk_version = None
 
         self.skip_missing_events_after = skip_missing_events_after
         self._missing_event_detection_time = None
@@ -81,19 +82,29 @@ class AbstractEventHandler:
 
     @abc.abstractmethod
     def handle_events(self, *args, **kwargs):
+        """Handle events and return a handled "result" event once one is received. This method must be overridden but
+        can have any arguments.
+
+        :return dict: the handled final result
+        """
         pass
 
     @abc.abstractmethod
-    def _extract_event_and_attributes(self, event):
+    def _extract_event_and_attributes(self, container):
+        """Extract an event and its attributes from the event container. This method must be overridden.
+
+        :param any container: the container of the event (e.g. a Pub/Sub message)
+        :return (any, dict): the event and its attributes (both must conform to the service communications event schema)
+        """
         pass
 
-    def _extract_and_enqueue_event(self, event):
-        """Extract an event from the Pub/Sub message and add it to `self.waiting_events`.
+    def _extract_and_enqueue_event(self, container):
+        """Extract an event from its container and add it to `self.waiting_events`.
 
-        :param dict event:
+        :param any container: the container of the event (e.g. a Pub/Sub message)
         :return None:
         """
-        event, attributes = self._extract_event_and_attributes(event)
+        event, attributes = self._extract_event_and_attributes(container)
 
         if not is_event_valid(
             event=event,
@@ -132,7 +143,7 @@ class AbstractEventHandler:
         received yet), just return. After the missing event wait time has passed, if this set of missing events
         haven't arrived but subsequent ones have, skip to the earliest waiting event and continue from there.
 
-        :return any|None: either a non-`None` result from a event handler or `None` if nothing was returned by the event handlers or if the next in-order event hasn't been received yet
+        :return any|None: either a handled non-`None` result, or `None` if nothing was returned by the event handlers or if the next in-order event hasn't been received yet
         """
         while self.waiting_events:
             try:
@@ -207,7 +218,7 @@ class AbstractEventHandler:
         return handler(event)
 
     def _handle_delivery_acknowledgement(self, event):
-        """Mark the question as delivered to prevent resending it.
+        """Log that the question was delivered.
 
         :param dict event:
         :return None:
@@ -235,7 +246,7 @@ class AbstractEventHandler:
             self.handle_monitor_message(event["data"])
 
     def _handle_log_message(self, event):
-        """Deserialise the event into a log record and pass it to the local log handlers, adding [<service-name>] to
+        """Deserialise the event into a log record and pass it to the local log handlers, adding the child's SRUID to
         the start of the log message.
 
         :param dict event:
