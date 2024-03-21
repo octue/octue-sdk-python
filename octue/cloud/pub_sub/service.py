@@ -17,7 +17,7 @@ import octue.exceptions
 from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.event_handler import GoogleCloudPubSubEventHandler
-from octue.cloud.pub_sub.events import extract_event_and_attributes_from_pub_sub
+from octue.cloud.pub_sub.events import extract_event_and_attributes_from_pub_sub_message
 from octue.cloud.pub_sub.logging import GoogleCloudPubSubHandler
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
@@ -581,7 +581,7 @@ class Service:
         if hasattr(question, "ack"):
             question.ack()
 
-        event, attributes = extract_event_and_attributes_from_pub_sub(question)
+        event, attributes = extract_event_and_attributes_from_pub_sub_message(question)
         event_for_validation = copy.deepcopy(event)
 
         raise_if_event_is_invalid(

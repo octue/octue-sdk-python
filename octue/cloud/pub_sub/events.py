@@ -5,7 +5,7 @@ from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.objects import getattr_or_subscribe
 
 
-def extract_event_and_attributes_from_pub_sub(message):
+def extract_event_and_attributes_from_pub_sub_message(message):
     """Extract an Octue service event and its attributes from a Google Pub/Sub message in either direct Pub/Sub format
     or in the Google Cloud Run format.
 
