@@ -378,6 +378,7 @@ class MockService(Service):
                         "save_diagnostics": save_diagnostics,
                         "message_number": 0,
                         "sender": service_id,
+                        "originator": service_id,
                     },
                 )
             )

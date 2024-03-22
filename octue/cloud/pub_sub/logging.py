@@ -15,10 +15,11 @@ class GoogleCloudPubSubHandler(logging.Handler):
     :return None:
     """
 
-    def __init__(self, message_sender, topic, question_uuid, timeout=60, *args, **kwargs):
+    def __init__(self, message_sender, topic, question_uuid, originator, timeout=60, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.topic = topic
         self.question_uuid = question_uuid
+        self.originator = originator
         self.timeout = timeout
         self._send_message = message_sender
 
@@ -38,6 +39,7 @@ class GoogleCloudPubSubHandler(logging.Handler):
                 attributes={
                     "question_uuid": self.question_uuid,
                     "sender_type": "CHILD",  # The sender type is repeated here as a string to avoid a circular import.
+                    "originator": self.originator,
                 },
             )
 
