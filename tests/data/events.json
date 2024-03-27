@@ -5,7 +5,7 @@
       "kind": "delivery_acknowledgement"
     },
     "attributes": {
-      "message_number": "0",
+      "ordering_key": "0",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "sender_type": "CHILD",
       "version": "0.51.0",
@@ -39,7 +39,7 @@
       }
     },
     "attributes": {
-      "message_number": "1",
+      "ordering_key": "1",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "sender_type": "CHILD",
       "version": "0.51.0",
@@ -73,7 +73,7 @@
       }
     },
     "attributes": {
-      "message_number": "2",
+      "ordering_key": "2",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "sender_type": "CHILD",
       "version": "0.51.0",
@@ -107,7 +107,7 @@
       }
     },
     "attributes": {
-      "message_number": "3",
+      "ordering_key": "3",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "sender_type": "CHILD",
       "version": "0.51.0",
@@ -141,7 +141,7 @@
       }
     },
     "attributes": {
-      "message_number": "4",
+      "ordering_key": "4",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "sender_type": "CHILD",
       "version": "0.51.0",
@@ -175,7 +175,7 @@
       }
     },
     "attributes": {
-      "message_number": "5",
+      "ordering_key": "5",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "sender_type": "CHILD",
       "version": "0.51.0",
@@ -204,7 +204,7 @@
       "output_values": [1, 2, 3, 4, 5]
     },
     "attributes": {
-      "message_number": "6",
+      "ordering_key": "6",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "sender_type": "CHILD",
       "version": "0.51.0",
@@ -217,7 +217,7 @@
       "kind": "heartbeat"
     },
     "attributes": {
-      "message_number": "7",
+      "ordering_key": "7",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "sender_type": "CHILD",
       "version": "0.51.0",

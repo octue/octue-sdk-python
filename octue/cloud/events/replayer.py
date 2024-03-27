@@ -60,5 +60,5 @@ class EventReplayer(AbstractEventHandler):
         :param dict container: the container of the event
         :return (any, dict): the event and its attributes
         """
-        container["attributes"]["message_number"] = int(container["attributes"]["message_number"])
+        container["attributes"]["order"] = int(container["attributes"]["order"])
         return container["event"], container["attributes"]

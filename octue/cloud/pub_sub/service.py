@@ -22,6 +22,7 @@ from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     create_sruid,
     get_default_sruid,
+    get_sruid_from_pub_sub_resource_name,
     raise_if_revision_not_registered,
     split_service_id,
     validate_sruid,
@@ -35,9 +36,9 @@ from octue.utils.threads import RepeatingTimer
 
 logger = logging.getLogger(__name__)
 
-# A lock to ensure only one message can be sent at a time so that the message number is incremented correctly when
-# messages are being sent on multiple threads (e.g. via the main thread and a periodic monitor message thread). This
-# avoids 1) messages overwriting each other in the parent's message handler and 2) messages losing their order.
+# A lock to ensure only one message can be sent at a time so that the order is incremented correctly when messages are
+# being sent on multiple threads (e.g. via the main thread and a periodic monitor message thread). This avoids 1)
+# messages overwriting each other in the parent's message handler and 2) messages losing their order.
 send_message_lock = threading.Lock()
 
 DEFAULT_NAMESPACE = "default"
@@ -204,6 +205,7 @@ class Service:
                 forward_logs,
                 parent_sdk_version,
                 save_diagnostics,
+                originator,
             ) = self._parse_question(question)
         except jsonschema.ValidationError:
             return
@@ -212,12 +214,12 @@ class Service:
         heartbeater = None
 
         try:
-            self._send_delivery_acknowledgment(topic, question_uuid)
+            self._send_delivery_acknowledgment(topic, question_uuid, originator)
 
             heartbeater = RepeatingTimer(
                 interval=heartbeat_interval,
                 function=self._send_heartbeat,
-                kwargs={"topic": topic, "question_uuid": question_uuid},
+                kwargs={"topic": topic, "question_uuid": question_uuid, "originator": originator},
             )
 
             heartbeater.daemon = True
@@ -228,6 +230,7 @@ class Service:
                     message_sender=self._send_message,
                     topic=topic,
                     question_uuid=question_uuid,
+                    originator=originator,
                 )
             else:
                 analysis_log_handler = None
@@ -242,6 +245,7 @@ class Service:
                     self._send_monitor_message,
                     topic=topic,
                     question_uuid=question_uuid,
+                    originator=originator,
                 ),
                 save_diagnostics=save_diagnostics,
             )
@@ -254,6 +258,7 @@ class Service:
             self._send_message(
                 message=result,
                 topic=topic,
+                originator=originator,
                 attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
                 timeout=timeout,
             )
@@ -266,7 +271,7 @@ class Service:
                 heartbeater.cancel()
 
             warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
-            self.send_exception(topic, question_uuid, timeout=timeout)
+            self.send_exception(topic, question_uuid, originator, timeout=timeout)
             raise error
 
     def ask(
@@ -398,11 +403,12 @@ class Service:
         finally:
             subscription.delete()
 
-    def send_exception(self, topic, question_uuid, timeout=30):
+    def send_exception(self, topic, question_uuid, originator, timeout=30):
         """Serialise and send the exception being handled to the parent.
 
         :param octue.cloud.pub_sub.topic.Topic topic:
         :param str question_uuid:
+        :param str originator: the SRUID of the service that asked the question this event is related to
         :param float|None timeout: time in seconds to keep retrying sending of the exception
         :return None:
         """
@@ -417,26 +423,48 @@ class Service:
                 "exception_traceback": exception["traceback"],
             },
             topic=topic,
+            originator=originator,
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
             timeout=timeout,
         )
 
-    def _send_message(self, message, topic, attributes=None, timeout=30):
+    def _send_message(self, message, topic, originator, attributes=None, timeout=30):
         """Send a JSON-serialised message to the given topic with optional message attributes and increment the
         `messages_published` attribute of the topic by one. This method is thread-safe.
 
         :param dict message: JSON-serialisable data to send as a message
         :param octue.cloud.pub_sub.topic.Topic topic: the Pub/Sub topic to send the message to
+        :param str originator: the SRUID of the service that asked the question this event is related to
         :param dict|None attributes: key-value pairs to attach to the message - the values must be strings or bytes
         :param int|float timeout: the timeout for sending the message in seconds
         :return google.cloud.pubsub_v1.publisher.futures.Future:
         """
         attributes = attributes or {}
 
+        originator_namespace, originator_name, originator_revision_tag = split_service_id(originator)
+        sender_namespace, sender_name, sender_revision_tag = split_service_id(self.id)
+
+        recipient_namespace, recipient_name, recipient_revision_tag = split_service_id(
+            get_sruid_from_pub_sub_resource_name(topic.name)
+        )
+
+        attributes["originator_namespace"] = originator_namespace
+        attributes["originator_name"] = originator_name
+        attributes["originator_revision_tag"] = originator_revision_tag
+
+        attributes["sender_namespace"] = sender_namespace
+        attributes["sender_name"] = sender_name
+        attributes["sender_revision_tag"] = sender_revision_tag
+
+        attributes["recipient_namespace"] = recipient_namespace
+        attributes["recipient_name"] = recipient_name
+        attributes["recipient_revision_tag"] = recipient_revision_tag
+
         with send_message_lock:
             attributes["version"] = self._local_sdk_version
-            attributes["message_number"] = topic.messages_published
-            attributes["sender"] = self.id
+            attributes["order"] = topic.messages_published
+            attributes["uuid"] = str(uuid.uuid4())
+
             converted_attributes = {}
 
             for key, value in attributes.items():
@@ -493,11 +521,12 @@ class Service:
             message=question,
             topic=topic,
             timeout=timeout,
+            originator=self.id,
             attributes={
                 "question_uuid": question_uuid,
-                "sender_type": PARENT_SENDER_TYPE,
                 "forward_logs": forward_logs,
                 "save_diagnostics": save_diagnostics,
+                "sender_type": PARENT_SENDER_TYPE,
             },
         )
 
@@ -505,11 +534,12 @@ class Service:
         future.result()
         logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
 
-    def _send_delivery_acknowledgment(self, topic, question_uuid, timeout=30):
+    def _send_delivery_acknowledgment(self, topic, question_uuid, originator, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
 
         :param octue.cloud.pub_sub.topic.Topic topic: topic to send the acknowledgement to
         :param str question_uuid:
+        :param str originator: the SRUID of the service that asked the question this event is related to
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -520,16 +550,18 @@ class Service:
             },
             topic=topic,
             timeout=timeout,
+            originator=originator,
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
 
         logger.info("%r acknowledged receipt of question %r.", self, question_uuid)
 
-    def _send_heartbeat(self, topic, question_uuid, timeout=30):
+    def _send_heartbeat(self, topic, question_uuid, originator, timeout=30):
         """Send a heartbeat to the parent, indicating that the service is alive.
 
         :param octue.cloud.pub_sub.topic.Topic topic: topic to send the heartbeat to
         :param str question_uuid:
+        :param str originator: the SRUID of the service that asked the question this event is related to
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -539,24 +571,27 @@ class Service:
                 "datetime": datetime.datetime.utcnow().isoformat(),
             },
             topic=topic,
+            originator=originator,
             timeout=timeout,
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
 
         logger.debug("Heartbeat sent by %r.", self)
 
-    def _send_monitor_message(self, data, topic, question_uuid, timeout=30):
+    def _send_monitor_message(self, data, topic, question_uuid, originator, timeout=30):
         """Send a monitor message to the parent.
 
         :param any data: the data to send as a monitor message
         :param octue.cloud.pub_sub.topic.Topic topic: the topic to send the message to
         :param str question_uuid:
+        :param str originator: the SRUID of the service that asked the question this event is related to
         :param float timeout: time in seconds to retry sending the message
         :return None:
         """
         self._send_message(
             {"kind": "monitor_message", "data": data},
             topic=topic,
+            originator=originator,
             timeout=timeout,
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
@@ -567,11 +602,11 @@ class Service:
         """Parse a question in the Google Cloud Run or Google Pub/Sub format.
 
         :param dict|google.cloud.pubsub_v1.subscriber.message.Message question: the question to parse in Google Cloud Run or Google Pub/Sub format
-        :return (dict, str, bool, str, str): the question's event and its attributes (question UUID, whether to forward logs, the Octue SDK version of the parent, and whether to save diagnostics)
+        :return (dict, str, bool, str, str, str): the question's event and its attributes (question UUID, whether to forward logs, the Octue SDK version of the parent, whether to save diagnostics, and the SRUID of the service revision that asked the question)
         """
         logger.info("%r received a question.", self)
 
-        # Acknowledge it if it's directly from Pub/Sub
+        # Acknowledge the question if it's directly from Pub/Sub.
         if hasattr(question, "ack"):
             question.ack()
 
@@ -588,10 +623,17 @@ class Service:
 
         logger.info("%r parsed the question successfully.", self)
 
+        originator = create_sruid(
+            namespace=attributes["originator_namespace"],
+            name=attributes["originator_name"],
+            revision_tag=attributes["originator_revision_tag"],
+        )
+
         return (
             event,
             attributes["question_uuid"],
             attributes["forward_logs"],
             attributes["version"],
             attributes["save_diagnostics"],
+            originator,
         )

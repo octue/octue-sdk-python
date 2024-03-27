@@ -31,19 +31,31 @@ def extract_event_and_attributes_from_pub_sub_message(message):
     # Cast attributes to a dictionary to avoid defaultdict-like behaviour from Pub/Sub message attributes container.
     attributes = dict(getattr_or_subscribe(message, "attributes"))
 
+    # Required for all events.
     converted_attributes = {
-        "sender_type": attributes["sender_type"],
         "question_uuid": attributes["question_uuid"],
-        "message_number": int(attributes["message_number"]),
+        "order": int(attributes["order"]),
         "version": attributes["version"],
-        "sender": attributes.get("sender", "REMOTE"),  # Backwards-compatible with previous event schema versions.
+        "originator_namespace": attributes["originator_namespace"],
+        "originator_name": attributes["originator_name"],
+        "originator_revision_tag": attributes["originator_revision_tag"],
+        "sender_namespace": attributes["sender_namespace"],
+        "sender_name": attributes["sender_name"],
+        "sender_revision_tag": attributes["sender_revision_tag"],
+        "sender_type": attributes["sender_type"],
+        "recipient_namespace": attributes["recipient_namespace"],
+        "recipient_name": attributes["recipient_name"],
+        "recipient_revision_tag": attributes["recipient_revision_tag"],
     }
 
-    if "forward_logs" in attributes:
-        converted_attributes["forward_logs"] = bool(int(attributes["forward_logs"]))
-
-    if "save_diagnostics" in attributes:
-        converted_attributes["save_diagnostics"] = attributes["save_diagnostics"]
+    # Required for question events.
+    if attributes["sender_type"] == "PARENT":
+        converted_attributes.update(
+            {
+                "forward_logs": bool(int(attributes["forward_logs"])),
+                "save_diagnostics": attributes["save_diagnostics"],
+            }
+        )
 
     try:
         # Parse event directly from Pub/Sub or Dataflow.
@@ -240,7 +252,8 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         for event in pull_response.received_messages:
             self._extract_and_enqueue_event(event)
 
-        self._earliest_waiting_event_number = min(self.waiting_events.keys())
+        if self.waiting_events:
+            self._earliest_waiting_event_number = min(self.waiting_events.keys())
 
     def _extract_event_and_attributes(self, container):
         """Extract an event and its attributes from the Pub/Sub message.

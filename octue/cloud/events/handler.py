@@ -9,6 +9,7 @@ from datetime import datetime
 
 from octue.cloud import EXCEPTIONS_MAPPING
 from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA, is_event_valid
+from octue.cloud.service_id import create_sruid
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
@@ -131,24 +132,27 @@ class AbstractEventHandler:
 
         # Get the child's SRUID and Octue SDK version from the first event.
         if not self._child_sdk_version:
+            self.child_sruid = create_sruid(
+                namespace=attributes["sender_namespace"],
+                name=attributes["sender_name"],
+                revision_tag=attributes["sender_revision_tag"],
+            )
+
             self.question_uuid = attributes.get("question_uuid")
             self._child_sdk_version = attributes["version"]
 
-            # Backwards-compatible with previous event schema versions.
-            self.child_sruid = attributes.get("sender", "REMOTE")
-
         logger.debug("%r received an event related to question %r.", self.receiving_service, self.question_uuid)
-        event_number = attributes["message_number"]
+        order = attributes["order"]
 
-        if event_number in self.waiting_events:
+        if order in self.waiting_events:
             logger.warning(
-                "%r: Event with duplicate event number %d received for question %s - overwriting original event.",
+                "%r: Event with duplicate order %d received for question %s - overwriting original event.",
                 self.receiving_service,
-                event_number,
+                order,
                 self.question_uuid,
             )
 
-        self.waiting_events[event_number] = event
+        self.waiting_events[order] = event
 
     def _attempt_to_handle_waiting_events(self):
         """Attempt to handle events waiting in `self.waiting_events`. If these events aren't consecutive to the
