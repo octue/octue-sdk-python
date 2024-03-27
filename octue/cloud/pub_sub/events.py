@@ -35,7 +35,7 @@ def extract_event_and_attributes_from_pub_sub_message(message):
     converted_attributes = {
         "sender_type": attributes["sender_type"],
         "question_uuid": attributes["question_uuid"],
-        "message_number": int(attributes["message_number"]),
+        "ordering_key": int(attributes["ordering_key"]),
         "version": attributes["version"],
         "sender": attributes.get("sender", "REMOTE"),  # Backwards-compatible with previous event schema versions.
         "originator": attributes["originator"],

@@ -326,7 +326,7 @@ class TestService(BaseTestCase):
             with self.service_patcher:
                 child.serve()
                 subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
-                parent.wait_for_answer(subscription)
+                parent.wait_for_answer(subscription, timeout=10)
 
         error_logged = False
 

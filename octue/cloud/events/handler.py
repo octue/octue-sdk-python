@@ -138,17 +138,17 @@ class AbstractEventHandler:
             self.child_sruid = attributes.get("sender", "REMOTE")
 
         logger.debug("%r received an event related to question %r.", self.receiving_service, self.question_uuid)
-        event_number = attributes["message_number"]
+        ordering_key = attributes["ordering_key"]
 
-        if event_number in self.waiting_events:
+        if ordering_key in self.waiting_events:
             logger.warning(
-                "%r: Event with duplicate event number %d received for question %s - overwriting original event.",
+                "%r: Event with duplicate ordering key %d received for question %s - overwriting original event.",
                 self.receiving_service,
-                event_number,
+                ordering_key,
                 self.question_uuid,
             )
 
-        self.waiting_events[event_number] = event
+        self.waiting_events[ordering_key] = event
 
     def _attempt_to_handle_waiting_events(self):
         """Attempt to handle events waiting in `self.waiting_events`. If these events aren't consecutive to the
