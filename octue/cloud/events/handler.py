@@ -9,6 +9,7 @@ from datetime import datetime
 
 from octue.cloud import EXCEPTIONS_MAPPING
 from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA, is_event_valid
+from octue.cloud.service_id import create_sruid
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
@@ -131,11 +132,14 @@ class AbstractEventHandler:
 
         # Get the child's SRUID and Octue SDK version from the first event.
         if not self._child_sdk_version:
+            self.child_sruid = create_sruid(
+                namespace=attributes["sender_namespace"],
+                name=attributes["sender_name"],
+                revision_tag=attributes["sender_revision_tag"],
+            )
+
             self.question_uuid = attributes.get("question_uuid")
             self._child_sdk_version = attributes["version"]
-
-            # Backwards-compatible with previous event schema versions.
-            self.child_sruid = attributes.get("sender", "REMOTE")
 
         logger.debug("%r received an event related to question %r.", self.receiving_service, self.question_uuid)
         ordering_key = attributes["ordering_key"]

@@ -13,6 +13,7 @@ from octue.cloud.emulators._pub_sub import (
 )
 from octue.cloud.emulators.child import ServicePatcher
 from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler
+from octue.cloud.service_id import split_service_id
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
@@ -72,7 +73,12 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+            child._send_message(
+                message=message["event"],
+                attributes=message["attributes"],
+                topic=mock_topic,
+                originator=parent.id,
+            )
 
         result = event_handler.handle_events()
         self.assertEqual(result, "This is the result.")
@@ -117,7 +123,12 @@ class TestPubSubEventHandler(BaseTestCase):
 
         for message in messages:
             mock_topic.messages_published = message["event"]["order"]
-            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+            child._send_message(
+                message=message["event"],
+                attributes=message["attributes"],
+                topic=mock_topic,
+                originator=parent.id,
+            )
 
         result = event_handler.handle_events()
 
@@ -170,7 +181,12 @@ class TestPubSubEventHandler(BaseTestCase):
 
         for message in messages:
             mock_topic.messages_published = message["event"]["order"]
-            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+            child._send_message(
+                message=message["event"],
+                attributes=message["attributes"],
+                topic=mock_topic,
+                originator=parent.id,
+            )
 
         result = event_handler.handle_events()
 
@@ -216,7 +232,12 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+            child._send_message(
+                message=message["event"],
+                attributes=message["attributes"],
+                topic=mock_topic,
+                originator=parent.id,
+            )
 
         result = event_handler.handle_events(timeout=None)
 
@@ -247,7 +268,12 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+            child._send_message(
+                message=message["event"],
+                attributes=message["attributes"],
+                topic=mock_topic,
+                originator=parent.id,
+            )
 
         result = event_handler.handle_events()
         self.assertEqual(result, {"output_values": None, "output_manifest": None})
@@ -305,7 +331,12 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+            child._send_message(
+                message=message["event"],
+                attributes=message["attributes"],
+                topic=mock_topic,
+                originator=parent.id,
+            )
 
         with patch(
             "octue.cloud.pub_sub.events.GoogleCloudPubSubEventHandler._time_since_last_heartbeat",
@@ -376,7 +407,12 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+            child._send_message(
+                message=message["event"],
+                attributes=message["attributes"],
+                topic=mock_topic,
+                originator=parent.id,
+            )
 
         result = event_handler.handle_events()
 
@@ -423,7 +459,12 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+            child._send_message(
+                message=message["event"],
+                attributes=message["attributes"],
+                topic=mock_topic,
+                originator=parent.id,
+            )
 
         # Simulate missing messages.
         mock_topic.messages_published = 5
@@ -433,6 +474,7 @@ class TestPubSubEventHandler(BaseTestCase):
             message={"kind": "finish-test", "order": 5},
             attributes={"question_uuid": question_uuid, "sender_type": "CHILD"},
             topic=mock_topic,
+            originator=parent.id,
         )
 
         event_handler.handle_events()
@@ -480,7 +522,9 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+            child._send_message(
+                message=message["event"], attributes=message["attributes"], topic=mock_topic, originator=parent.id
+            )
 
         # Simulate missing messages.
         mock_topic.messages_published = 5
@@ -490,6 +534,7 @@ class TestPubSubEventHandler(BaseTestCase):
             message={"kind": "test", "order": 5},
             attributes={"ordering_key": 5, "question_uuid": question_uuid, "sender_type": "CHILD"},
             topic=mock_topic,
+            originator=parent.id,
         )
 
         # Simulate more missing messages.
@@ -516,7 +561,9 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._send_message(message=message["event"], attributes=message["attributes"], topic=mock_topic)
+            child._send_message(
+                message=message["event"], attributes=message["attributes"], topic=mock_topic, originator=parent.id
+            )
 
         event_handler.handle_events()
 
@@ -558,6 +605,7 @@ class TestPubSubEventHandler(BaseTestCase):
             message={"kind": "finish-test", "order": 1000},
             attributes={"question_uuid": question_uuid, "sender_type": "CHILD"},
             topic=mock_topic,
+            originator=parent.id,
         )
 
         event_handler.handle_events()
@@ -592,6 +640,8 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
             # Enqueue a mock message for a mock subscription to receive.
             mock_message = {"kind": "test"}
 
+            originator_namespace, originator_name, originator_revision_tag = split_service_id(parent.id)
+
             SUBSCRIPTIONS[mock_subscription.name] = [
                 MockMessage.from_primitive(
                     mock_message,
@@ -600,6 +650,15 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
                         "ordering_key": 0,
                         "question_uuid": question_uuid,
                         "version": "0.50.0",
+                        "originator_namespace": originator_namespace,
+                        "originator_name": originator_name,
+                        "originator_revision_tag": originator_revision_tag,
+                        "sender_namespace": originator_namespace,
+                        "sender_name": originator_name,
+                        "sender_revision_tag": originator_revision_tag,
+                        "recipient_namespace": "my-org",
+                        "recipient_name": "my-service",
+                        "recipient_revision_tag": "1.0.0",
                     },
                 )
             ]

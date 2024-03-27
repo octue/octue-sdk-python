@@ -258,7 +258,8 @@ class Service:
             self._send_message(
                 message=result,
                 topic=topic,
-                attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE, "originator": originator},
+                originator=originator,
+                attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
                 timeout=timeout,
             )
 
@@ -407,6 +408,7 @@ class Service:
 
         :param octue.cloud.pub_sub.topic.Topic topic:
         :param str question_uuid:
+        :param str originator: the SRUID of the service that asked the question this event is related to
         :param float|None timeout: time in seconds to keep retrying sending of the exception
         :return None:
         """
@@ -421,28 +423,48 @@ class Service:
                 "exception_traceback": exception["traceback"],
             },
             topic=topic,
-            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE, "originator": originator},
+            originator=originator,
+            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
             timeout=timeout,
         )
 
-    def _send_message(self, message, topic, attributes=None, timeout=30):
+    def _send_message(self, message, topic, originator, attributes=None, timeout=30):
         """Send a JSON-serialised message to the given topic with optional message attributes and increment the
         `messages_published` attribute of the topic by one. This method is thread-safe.
 
         :param dict message: JSON-serialisable data to send as a message
         :param octue.cloud.pub_sub.topic.Topic topic: the Pub/Sub topic to send the message to
+        :param str originator: the SRUID of the service that asked the question this event is related to
         :param dict|None attributes: key-value pairs to attach to the message - the values must be strings or bytes
         :param int|float timeout: the timeout for sending the message in seconds
         :return google.cloud.pubsub_v1.publisher.futures.Future:
         """
         attributes = attributes or {}
 
+        originator_namespace, originator_name, originator_revision_tag = split_service_id(originator)
+        sender_namespace, sender_name, sender_revision_tag = split_service_id(self.id)
+
+        recipient_namespace, recipient_name, recipient_revision_tag = split_service_id(
+            get_sruid_from_pub_sub_resource_name(topic.name)
+        )
+
+        attributes["originator_namespace"] = originator_namespace
+        attributes["originator_name"] = originator_name
+        attributes["originator_revision_tag"] = originator_revision_tag
+
+        attributes["sender_namespace"] = sender_namespace
+        attributes["sender_name"] = sender_name
+        attributes["sender_revision_tag"] = sender_revision_tag
+
+        attributes["recipient_namespace"] = recipient_namespace
+        attributes["recipient_name"] = recipient_name
+        attributes["recipient_revision_tag"] = recipient_revision_tag
+
         with send_message_lock:
             attributes["version"] = self._local_sdk_version
             attributes["ordering_key"] = topic.messages_published
-            attributes["sender"] = self.id
-            attributes["recipient"] = get_sruid_from_pub_sub_resource_name(topic.name)
             attributes["uuid"] = str(uuid.uuid4())
+
             converted_attributes = {}
 
             for key, value in attributes.items():
@@ -499,12 +521,12 @@ class Service:
             message=question,
             topic=topic,
             timeout=timeout,
+            originator=self.id,
             attributes={
                 "question_uuid": question_uuid,
                 "forward_logs": forward_logs,
                 "save_diagnostics": save_diagnostics,
                 "sender_type": PARENT_SENDER_TYPE,
-                "originator": self.id,
             },
         )
 
@@ -517,6 +539,7 @@ class Service:
 
         :param octue.cloud.pub_sub.topic.Topic topic: topic to send the acknowledgement to
         :param str question_uuid:
+        :param str originator: the SRUID of the service that asked the question this event is related to
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -527,7 +550,8 @@ class Service:
             },
             topic=topic,
             timeout=timeout,
-            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE, "originator": originator},
+            originator=originator,
+            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
 
         logger.info("%r acknowledged receipt of question %r.", self, question_uuid)
@@ -537,6 +561,7 @@ class Service:
 
         :param octue.cloud.pub_sub.topic.Topic topic: topic to send the heartbeat to
         :param str question_uuid:
+        :param str originator: the SRUID of the service that asked the question this event is related to
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -546,8 +571,9 @@ class Service:
                 "datetime": datetime.datetime.utcnow().isoformat(),
             },
             topic=topic,
+            originator=originator,
             timeout=timeout,
-            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE, "originator": originator},
+            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
 
         logger.debug("Heartbeat sent by %r.", self)
@@ -558,14 +584,16 @@ class Service:
         :param any data: the data to send as a monitor message
         :param octue.cloud.pub_sub.topic.Topic topic: the topic to send the message to
         :param str question_uuid:
+        :param str originator: the SRUID of the service that asked the question this event is related to
         :param float timeout: time in seconds to retry sending the message
         :return None:
         """
         self._send_message(
             {"kind": "monitor_message", "data": data},
             topic=topic,
+            originator=originator,
             timeout=timeout,
-            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE, "originator": originator},
+            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
 
         logger.debug("Monitor message sent by %r.", self)
@@ -574,11 +602,11 @@ class Service:
         """Parse a question in the Google Cloud Run or Google Pub/Sub format.
 
         :param dict|google.cloud.pubsub_v1.subscriber.message.Message question: the question to parse in Google Cloud Run or Google Pub/Sub format
-        :return (dict, str, bool, str, str): the question's event and its attributes (question UUID, whether to forward logs, the Octue SDK version of the parent, and whether to save diagnostics)
+        :return (dict, str, bool, str, str, str): the question's event and its attributes (question UUID, whether to forward logs, the Octue SDK version of the parent, whether to save diagnostics, and the SRUID of the service revision that asked the question)
         """
         logger.info("%r received a question.", self)
 
-        # Acknowledge it if it's directly from Pub/Sub
+        # Acknowledge the question if it's directly from Pub/Sub.
         if hasattr(question, "ack"):
             question.ack()
 
@@ -595,11 +623,17 @@ class Service:
 
         logger.info("%r parsed the question successfully.", self)
 
+        originator = create_sruid(
+            namespace=attributes["originator_namespace"],
+            name=attributes["originator_name"],
+            revision_tag=attributes["originator_revision_tag"],
+        )
+
         return (
             event,
             attributes["question_uuid"],
             attributes["forward_logs"],
             attributes["version"],
             attributes["save_diagnostics"],
-            attributes["originator"],
+            originator,
         )
