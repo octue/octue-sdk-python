@@ -31,6 +31,7 @@ def extract_event_and_attributes_from_pub_sub_message(message):
     # Cast attributes to a dictionary to avoid defaultdict-like behaviour from Pub/Sub message attributes container.
     attributes = dict(getattr_or_subscribe(message, "attributes"))
 
+    # Required for all events.
     converted_attributes = {
         "sender_type": attributes["sender_type"],
         "question_uuid": attributes["question_uuid"],
@@ -40,11 +41,14 @@ def extract_event_and_attributes_from_pub_sub_message(message):
         "originator": attributes["originator"],
     }
 
-    if "forward_logs" in attributes:
-        converted_attributes["forward_logs"] = bool(int(attributes["forward_logs"]))
-
-    if "save_diagnostics" in attributes:
-        converted_attributes["save_diagnostics"] = attributes["save_diagnostics"]
+    # Required for question events.
+    if attributes["sender_type"] == "PARENT":
+        converted_attributes.update(
+            {
+                "forward_logs": bool(int(attributes["forward_logs"])),
+                "save_diagnostics": attributes["save_diagnostics"],
+            }
+        )
 
     try:
         # Parse event directly from Pub/Sub or Dataflow.
