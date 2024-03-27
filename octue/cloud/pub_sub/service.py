@@ -442,6 +442,7 @@ class Service:
             attributes["message_number"] = topic.messages_published
             attributes["sender"] = self.id
             attributes["recipient"] = get_sruid_from_pub_sub_resource_name(topic.name)
+            attributes["uuid"] = str(uuid.uuid4())
             converted_attributes = {}
 
             for key, value in attributes.items():
