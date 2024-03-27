@@ -17,11 +17,11 @@ class NonJSONSerialisable:
 class TestGoogleCloudPubSubHandler(BaseTestCase):
     def test_emit(self):
         """Test the log message is published when `GoogleCloudPubSubHandler.emit` is called."""
-        topic = MockTopic(name="world", project_name="blah")
+        topic = MockTopic(name="octue.my-service.3-3-3", project_name="blah")
         topic.create()
 
         question_uuid = "96d69278-44ac-4631-aeea-c90fb08a1b2b"
-        subscription = MockSubscription(name=f"world.answers.{question_uuid}", topic=topic)
+        subscription = MockSubscription(name=f"octue.my-service.3-3-3.answers.{question_uuid}", topic=topic)
         subscription.create()
 
         log_record = makeLogRecord({"msg": "Starting analysis."})
@@ -33,6 +33,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
             message_sender=service._send_message,
             topic=topic,
             question_uuid=question_uuid,
+            originator=service.id,
         ).emit(log_record)
 
         self.assertEqual(
@@ -44,7 +45,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
         """Test that non-JSON-serialisable arguments to log messages are converted to their string representation
         before being serialised and published to the Pub/Sub topic.
         """
-        topic = MockTopic(name="world-1", project_name="blah")
+        topic = MockTopic(name="octue.my-service.3-3-4", project_name="blah")
         topic.create()
 
         non_json_serialisable_thing = NonJSONSerialisable()
@@ -65,6 +66,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
                 message_sender=service._send_message,
                 topic=topic,
                 question_uuid="question-uuid",
+                originator=service.id,
             ).emit(record)
 
         self.assertEqual(

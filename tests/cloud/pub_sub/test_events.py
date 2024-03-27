@@ -532,7 +532,7 @@ class TestPubSubEventHandler(BaseTestCase):
         # Send another message.
         child._send_message(
             message={"kind": "test", "order": 5},
-            attributes={"ordering_key": 5, "question_uuid": question_uuid, "sender_type": "CHILD"},
+            attributes={"order": 5, "question_uuid": question_uuid, "sender_type": "CHILD"},
             topic=mock_topic,
             originator=parent.id,
         )
@@ -647,7 +647,7 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
                     mock_message,
                     attributes={
                         "sender_type": "CHILD",
-                        "ordering_key": 0,
+                        "order": 0,
                         "question_uuid": question_uuid,
                         "version": "0.50.0",
                         "originator_namespace": originator_namespace,

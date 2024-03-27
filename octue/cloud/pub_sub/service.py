@@ -36,9 +36,9 @@ from octue.utils.threads import RepeatingTimer
 
 logger = logging.getLogger(__name__)
 
-# A lock to ensure only one message can be sent at a time so that the ordering key is incremented correctly when
-# messages are being sent on multiple threads (e.g. via the main thread and a periodic monitor message thread). This
-# avoids 1) messages overwriting each other in the parent's message handler and 2) messages losing their order.
+# A lock to ensure only one message can be sent at a time so that the order is incremented correctly when messages are
+# being sent on multiple threads (e.g. via the main thread and a periodic monitor message thread). This avoids 1)
+# messages overwriting each other in the parent's message handler and 2) messages losing their order.
 send_message_lock = threading.Lock()
 
 DEFAULT_NAMESPACE = "default"
@@ -462,7 +462,7 @@ class Service:
 
         with send_message_lock:
             attributes["version"] = self._local_sdk_version
-            attributes["ordering_key"] = topic.messages_published
+            attributes["order"] = topic.messages_published
             attributes["uuid"] = str(uuid.uuid4())
 
             converted_attributes = {}

@@ -58,7 +58,7 @@ def get_events(table_id, question_uuid, kind=None, limit=1000, include_pub_sub_m
     if isinstance(messages.at[0, "attributes"], str):
         messages["attributes"] = messages["attributes"].map(json.loads)
 
-    # Order messages by the ordering key.
-    messages = messages.iloc[messages["attributes"].str.get("ordering_key").astype(str).argsort()]
+    # Order messages.
+    messages = messages.iloc[messages["attributes"].str.get("order").astype(str).argsort()]
     messages.rename(columns={"data": "event"}, inplace=True)
     return messages.to_dict(orient="records")

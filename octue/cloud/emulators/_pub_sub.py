@@ -378,7 +378,7 @@ class MockService(Service):
                         "forward_logs": subscribe_to_logs,
                         "version": parent_sdk_version,
                         "save_diagnostics": save_diagnostics,
-                        "ordering_key": 0,
+                        "order": 0,
                         "originator_namespace": originator_namespace,
                         "originator_name": originator_name,
                         "originator_revision_tag": originator_revision_tag,

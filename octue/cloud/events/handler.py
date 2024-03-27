@@ -142,17 +142,17 @@ class AbstractEventHandler:
             self._child_sdk_version = attributes["version"]
 
         logger.debug("%r received an event related to question %r.", self.receiving_service, self.question_uuid)
-        ordering_key = attributes["ordering_key"]
+        order = attributes["order"]
 
-        if ordering_key in self.waiting_events:
+        if order in self.waiting_events:
             logger.warning(
-                "%r: Event with duplicate ordering key %d received for question %s - overwriting original event.",
+                "%r: Event with duplicate order %d received for question %s - overwriting original event.",
                 self.receiving_service,
-                ordering_key,
+                order,
                 self.question_uuid,
             )
 
-        self.waiting_events[ordering_key] = event
+        self.waiting_events[order] = event
 
     def _attempt_to_handle_waiting_events(self):
         """Attempt to handle events waiting in `self.waiting_events`. If these events aren't consecutive to the
