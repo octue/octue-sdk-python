@@ -6,6 +6,8 @@ from .runner import Runner
 
 __all__ = ("Runner",)
 
+
+OCTUE_SERVICES_NAMESPACE = "octue.services"
 REPOSITORY_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
 

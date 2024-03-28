@@ -10,9 +10,6 @@ import octue.exceptions
 
 logger = logging.getLogger(__name__)
 
-
-OCTUE_SERVICES_NAMESPACE = "octue.services"
-
 SERVICE_NAMESPACE_AND_NAME_PATTERN = r"([a-z0-9])+(-([a-z0-9])+)*"
 COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN = re.compile(SERVICE_NAMESPACE_AND_NAME_PATTERN)
 

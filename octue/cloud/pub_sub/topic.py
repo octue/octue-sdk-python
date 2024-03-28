@@ -6,7 +6,7 @@ import google.api_core.exceptions
 from google.cloud.pubsub_v1 import PublisherClient
 from google.pubsub_v1.types.pubsub import Topic as Topic_
 
-from octue.cloud.service_id import OCTUE_SERVICES_NAMESPACE
+from octue import OCTUE_SERVICES_NAMESPACE
 
 
 logger = logging.getLogger(__name__)
