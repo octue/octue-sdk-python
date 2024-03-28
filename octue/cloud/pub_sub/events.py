@@ -252,6 +252,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         for event in pull_response.received_messages:
             self._extract_and_enqueue_event(event)
 
+        # Handle the case where no events (or no valid events) have been received.
         if self.waiting_events:
             self._earliest_waiting_event_number = min(self.waiting_events.keys())
 
