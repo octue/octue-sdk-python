@@ -48,7 +48,8 @@ class GCPPubSubBackend(ServiceBackend):
         "one of these is currently None."
     )
 
-    def __init__(self, project_name, services_namespace):
+    # "octue.services" is repeated here to avoid a circular import.
+    def __init__(self, project_name, services_namespace="octue.services"):
         if project_name is None or services_namespace is None:
             raise exceptions.CloudLocationNotSpecified(self.ERROR_MESSAGE)
 
