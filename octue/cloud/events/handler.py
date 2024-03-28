@@ -125,7 +125,7 @@ class AbstractEventHandler:
             attributes=attributes,
             receiving_service=self.receiving_service,
             parent_sdk_version=PARENT_SDK_VERSION,
-            child_sdk_version=attributes.get("version"),
+            child_sdk_version=attributes["sender_sdk_version"],
             schema=self.schema,
         ):
             return
@@ -139,7 +139,7 @@ class AbstractEventHandler:
             )
 
             self.question_uuid = attributes.get("question_uuid")
-            self._child_sdk_version = attributes["version"]
+            self._child_sdk_version = attributes["sender_sdk_version"]
 
         logger.debug("%r received an event related to question %r.", self.receiving_service, self.question_uuid)
         order = attributes["order"]

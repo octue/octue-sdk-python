@@ -376,7 +376,7 @@ class MockService(Service):
                     attributes={
                         "question_uuid": question_uuid,
                         "forward_logs": subscribe_to_logs,
-                        "version": parent_sdk_version,
+                        "sender_sdk_version": parent_sdk_version,
                         "save_diagnostics": save_diagnostics,
                         "order": 0,
                         "originator_namespace": originator_namespace,

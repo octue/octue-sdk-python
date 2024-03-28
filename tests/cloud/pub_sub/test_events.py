@@ -649,7 +649,7 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
                         "sender_type": "CHILD",
                         "order": 0,
                         "question_uuid": question_uuid,
-                        "version": "0.50.0",
+                        "sender_sdk_version": "0.50.0",
                         "originator_namespace": originator_namespace,
                         "originator_name": originator_name,
                         "originator_revision_tag": originator_revision_tag,

@@ -461,7 +461,7 @@ class Service:
         attributes["recipient_revision_tag"] = recipient_revision_tag
 
         with send_message_lock:
-            attributes["version"] = self._local_sdk_version
+            attributes["sender_sdk_version"] = self._local_sdk_version
             attributes["order"] = topic.messages_published
             attributes["uuid"] = str(uuid.uuid4())
 
@@ -617,7 +617,7 @@ class Service:
             event=event_for_validation,
             attributes=attributes,
             receiving_service=self,
-            parent_sdk_version=attributes.get("version"),
+            parent_sdk_version=attributes["sender_sdk_version"],
             child_sdk_version=importlib.metadata.version("octue"),
         )
 
@@ -633,7 +633,7 @@ class Service:
             event,
             attributes["question_uuid"],
             attributes["forward_logs"],
-            attributes["version"],
+            attributes["sender_sdk_version"],
             attributes["save_diagnostics"],
             originator,
         )

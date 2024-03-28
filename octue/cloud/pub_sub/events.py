@@ -35,7 +35,7 @@ def extract_event_and_attributes_from_pub_sub_message(message):
     converted_attributes = {
         "question_uuid": attributes["question_uuid"],
         "order": int(attributes["order"]),
-        "version": attributes["version"],
+        "sender_sdk_version": attributes["sender_sdk_version"],
         "originator_namespace": attributes["originator_namespace"],
         "originator_name": attributes["originator_name"],
         "originator_revision_tag": attributes["originator_revision_tag"],
