@@ -94,6 +94,11 @@ class Service:
         self._publisher = None
         self._event_handler = None
 
+        self.topic = Topic(name=self.backend.services_namespace, project_name=self.backend.project_name)
+
+        if not self.topic.exists():
+            raise octue.exceptions.ServiceNotFound(f"Topic {self.backend.services_namespace} cannot be found.")
+
     def __repr__(self):
         """Represent the service as a string.
 
@@ -137,17 +142,15 @@ class Service:
         :return (google.cloud.pubsub_v1.subscriber.futures.StreamingPullFuture, google.cloud.pubsub_v1.SubscriberClient):
         """
         logger.info("Starting %r.", self)
-        topic = Topic(name=self._pub_sub_id, project_name=self.backend.project_name)
 
         subscription = Subscription(
-            name=self._pub_sub_id,
-            topic=topic,
-            filter=f'attributes.sender_type = "{PARENT_SENDER_TYPE}"',
+            name=".".join((self.backend.services_namespace, self._pub_sub_id)),
+            topic=self.topic,
+            filter=f'attributes.recipient = "{self.id}" AND attributes.sender_type = "{PARENT_SENDER_TYPE}"',
             expiration_time=None,
         )
 
         try:
-            topic.create(allow_existing=allow_existing)
             subscription.create(allow_existing=allow_existing)
         except google.api_core.exceptions.AlreadyExists:
             raise octue.exceptions.ServiceAlreadyExists(f"A service with the ID {self.id!r} already exists.")
@@ -178,11 +181,8 @@ class Service:
                         if subscription.creation_triggered_locally:
                             subscription.delete()
 
-                        if topic.creation_triggered_locally:
-                            topic.delete()
-
                     except Exception:
-                        logger.error("Deletion of topic and/or subscription %r failed.", topic.name)
+                        logger.error("Deletion of subscription %r failed.", subscription.name)
 
                 subscriber.close()
 
@@ -210,16 +210,15 @@ class Service:
         except jsonschema.ValidationError:
             return
 
-        topic = Topic(name=self._pub_sub_id, project_name=self.backend.project_name)
         heartbeater = None
 
         try:
-            self._send_delivery_acknowledgment(topic, question_uuid, originator)
+            self._send_delivery_acknowledgment(self.topic, question_uuid, originator)
 
             heartbeater = RepeatingTimer(
                 interval=heartbeat_interval,
                 function=self._send_heartbeat,
-                kwargs={"topic": topic, "question_uuid": question_uuid, "originator": originator},
+                kwargs={"topic": self.topic, "question_uuid": question_uuid, "originator": originator},
             )
 
             heartbeater.daemon = True
@@ -228,7 +227,7 @@ class Service:
             if forward_logs:
                 analysis_log_handler = GoogleCloudPubSubHandler(
                     message_sender=self._send_message,
-                    topic=topic,
+                    topic=self.topic,
                     question_uuid=question_uuid,
                     originator=originator,
                 )
@@ -243,7 +242,7 @@ class Service:
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=functools.partial(
                     self._send_monitor_message,
-                    topic=topic,
+                    topic=self.topic,
                     question_uuid=question_uuid,
                     originator=originator,
                 ),
@@ -257,7 +256,7 @@ class Service:
 
             self._send_message(
                 message=result,
-                topic=topic,
+                topic=self.topic,
                 originator=originator,
                 attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
                 timeout=timeout,
@@ -271,7 +270,7 @@ class Service:
                 heartbeater.cancel()
 
             warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
-            self.send_exception(topic, question_uuid, originator, timeout=timeout)
+            self.send_exception(self.topic, question_uuid, originator, timeout=timeout)
             raise error
 
     def ask(
@@ -330,20 +329,22 @@ class Service:
                     "the new cloud locations."
                 )
 
-        topic = Topic(name=convert_service_id_to_pub_sub_form(service_id), project_name=self.backend.project_name)
-
-        if not topic.exists(timeout=timeout):
-            raise octue.exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
-
         question_uuid = question_uuid or str(uuid.uuid4())
 
         if asynchronous and not push_endpoint:
             answer_subscription = None
         else:
+            pub_sub_id = convert_service_id_to_pub_sub_form(service_id)
+
             answer_subscription = Subscription(
-                name=".".join((topic.name, ANSWERS_NAMESPACE, question_uuid)),
-                topic=topic,
-                filter=f'attributes.question_uuid = "{question_uuid}" AND attributes.sender_type = "{CHILD_SENDER_TYPE}"',
+                name=".".join((self.backend.services_namespace, pub_sub_id, ANSWERS_NAMESPACE, question_uuid)),
+                topic=self.topic,
+                filter=(
+                    f'attributes.sender = "{service_id}" '
+                    f'attributes.recipient = "{self.id}" '
+                    f'AND attributes.question_uuid = "{question_uuid}" '
+                    f'AND attributes.sender_type = "{CHILD_SENDER_TYPE}"'
+                ),
                 push_endpoint=push_endpoint,
             )
             answer_subscription.create(allow_existing=False)
@@ -355,7 +356,6 @@ class Service:
             service_id=service_id,
             forward_logs=subscribe_to_logs,
             save_diagnostics=save_diagnostics,
-            topic=topic,
             question_uuid=question_uuid,
         )
 
@@ -494,7 +494,6 @@ class Service:
         service_id,
         forward_logs,
         save_diagnostics,
-        topic,
         question_uuid,
         timeout=30,
     ):
@@ -506,7 +505,6 @@ class Service:
         :param str service_id: the ID of the child to send the question to
         :param bool forward_logs: whether to request the child to forward its logs
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
-        :param octue.cloud.pub_sub.topic.Topic topic: topic to send the acknowledgement to
         :param str question_uuid: the UUID of the question being sent
         :param float timeout: time in seconds after which to give up sending
         :return None:
@@ -519,7 +517,7 @@ class Service:
 
         future = self._send_message(
             message=question,
-            topic=topic,
+            topic=self.topic,
             timeout=timeout,
             originator=self.id,
             attributes={
