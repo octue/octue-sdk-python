@@ -229,6 +229,7 @@ class Service:
                     topic=self.topic,
                     question_uuid=question_uuid,
                     originator=originator,
+                    recipient=originator,
                 )
             else:
                 analysis_log_handler = None
@@ -257,6 +258,7 @@ class Service:
                 message=result,
                 topic=self.topic,
                 originator=originator,
+                recipient=originator,
                 attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
                 timeout=timeout,
             )
@@ -423,17 +425,19 @@ class Service:
             },
             topic=topic,
             originator=originator,
+            recipient=originator,
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
             timeout=timeout,
         )
 
-    def _send_message(self, message, topic, originator, attributes=None, timeout=30):
+    def _send_message(self, message, topic, originator, recipient, attributes=None, timeout=30):
         """Send a JSON-serialised message to the given topic with optional message attributes and increment the
         `messages_published` attribute of the topic by one. This method is thread-safe.
 
         :param dict message: JSON-serialisable data to send as a message
         :param octue.cloud.pub_sub.topic.Topic topic: the Pub/Sub topic to send the message to
         :param str originator: the SRUID of the service that asked the question this event is related to
+        :param str recipient:
         :param dict|None attributes: key-value pairs to attach to the message - the values must be strings or bytes
         :param int|float timeout: the timeout for sending the message in seconds
         :return google.cloud.pubsub_v1.publisher.futures.Future:
@@ -441,7 +445,7 @@ class Service:
         attributes = attributes or {}
         attributes["originator"] = originator
         attributes["sender"] = self.id
-        attributes["recipient"] = originator
+        attributes["recipient"] = recipient
 
         with send_message_lock:
             attributes["sender_sdk_version"] = self._local_sdk_version
@@ -503,6 +507,7 @@ class Service:
             topic=self.topic,
             timeout=timeout,
             originator=self.id,
+            recipient=service_id,
             attributes={
                 "question_uuid": question_uuid,
                 "forward_logs": forward_logs,
@@ -532,6 +537,7 @@ class Service:
             topic=topic,
             timeout=timeout,
             originator=originator,
+            recipient=originator,
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
 
@@ -553,6 +559,7 @@ class Service:
             },
             topic=topic,
             originator=originator,
+            recipient=originator,
             timeout=timeout,
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
@@ -573,6 +580,7 @@ class Service:
             {"kind": "monitor_message", "data": data},
             topic=topic,
             originator=originator,
+            recipient=originator,
             timeout=timeout,
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
