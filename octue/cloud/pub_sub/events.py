@@ -35,17 +35,11 @@ def extract_event_and_attributes_from_pub_sub_message(message):
     converted_attributes = {
         "question_uuid": attributes["question_uuid"],
         "order": int(attributes["order"]),
-        "sender_sdk_version": attributes["sender_sdk_version"],
-        "originator_namespace": attributes["originator_namespace"],
-        "originator_name": attributes["originator_name"],
-        "originator_revision_tag": attributes["originator_revision_tag"],
-        "sender_namespace": attributes["sender_namespace"],
-        "sender_name": attributes["sender_name"],
-        "sender_revision_tag": attributes["sender_revision_tag"],
+        "originator": attributes["originator"],
+        "sender": attributes["sender"],
         "sender_type": attributes["sender_type"],
-        "recipient_namespace": attributes["recipient_namespace"],
-        "recipient_name": attributes["recipient_name"],
-        "recipient_revision_tag": attributes["recipient_revision_tag"],
+        "sender_sdk_version": attributes["sender_sdk_version"],
+        "recipient": attributes["recipient"],
     }
 
     # Required for question events.

@@ -22,7 +22,6 @@ from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     create_sruid,
     get_default_sruid,
-    get_sruid_from_pub_sub_resource_name,
     raise_if_revision_not_registered,
     split_service_id,
     validate_sruid,
@@ -97,7 +96,7 @@ class Service:
         self.topic = Topic(name=self.backend.services_namespace, project_name=self.backend.project_name)
 
         if not self.topic.exists():
-            raise octue.exceptions.ServiceNotFound(f"Topic {self.backend.services_namespace} cannot be found.")
+            raise octue.exceptions.ServiceNotFound(f"Topic {self.backend.services_namespace!r} cannot be found.")
 
     def __repr__(self):
         """Represent the service as a string.
@@ -440,25 +439,9 @@ class Service:
         :return google.cloud.pubsub_v1.publisher.futures.Future:
         """
         attributes = attributes or {}
-
-        originator_namespace, originator_name, originator_revision_tag = split_service_id(originator)
-        sender_namespace, sender_name, sender_revision_tag = split_service_id(self.id)
-
-        recipient_namespace, recipient_name, recipient_revision_tag = split_service_id(
-            get_sruid_from_pub_sub_resource_name(topic.name)
-        )
-
-        attributes["originator_namespace"] = originator_namespace
-        attributes["originator_name"] = originator_name
-        attributes["originator_revision_tag"] = originator_revision_tag
-
-        attributes["sender_namespace"] = sender_namespace
-        attributes["sender_name"] = sender_name
-        attributes["sender_revision_tag"] = sender_revision_tag
-
-        attributes["recipient_namespace"] = recipient_namespace
-        attributes["recipient_name"] = recipient_name
-        attributes["recipient_revision_tag"] = recipient_revision_tag
+        attributes["originator"] = originator
+        attributes["sender"] = self.id
+        attributes["recipient"] = originator
 
         with send_message_lock:
             attributes["sender_sdk_version"] = self._local_sdk_version
@@ -621,17 +604,11 @@ class Service:
 
         logger.info("%r parsed the question successfully.", self)
 
-        originator = create_sruid(
-            namespace=attributes["originator_namespace"],
-            name=attributes["originator_name"],
-            revision_tag=attributes["originator_revision_tag"],
-        )
-
         return (
             event,
             attributes["question_uuid"],
             attributes["forward_logs"],
             attributes["sender_sdk_version"],
             attributes["save_diagnostics"],
-            originator,
+            attributes["originator"],
         )

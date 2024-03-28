@@ -6,7 +6,7 @@ import google.api_core
 
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import ANSWERS_NAMESPACE, PARENT_SENDER_TYPE, Service
-from octue.cloud.service_id import convert_service_id_to_pub_sub_form, split_service_id
+from octue.cloud.service_id import convert_service_id_to_pub_sub_form
 from octue.resources import Manifest
 from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
@@ -366,9 +366,6 @@ class MockService(Service):
         if input_manifest is not None:
             question["input_manifest"] = input_manifest.to_primitive()
 
-        originator_namespace, originator_name, originator_revision_tag = split_service_id(self.id)
-        recipient_namespace, recipient_name, recipient_revision_tag = split_service_id(service_id)
-
         try:
             self.children[service_id].answer(
                 MockMessage.from_primitive(
@@ -376,19 +373,13 @@ class MockService(Service):
                     attributes={
                         "question_uuid": question_uuid,
                         "forward_logs": subscribe_to_logs,
-                        "sender_sdk_version": parent_sdk_version,
                         "save_diagnostics": save_diagnostics,
                         "order": 0,
-                        "originator_namespace": originator_namespace,
-                        "originator_name": originator_name,
-                        "originator_revision_tag": originator_revision_tag,
-                        "sender_namespace": originator_namespace,
-                        "sender_name": originator_name,
-                        "sender_revision_tag": originator_revision_tag,
+                        "originator": self.id,
+                        "sender": self.id,
                         "sender_type": PARENT_SENDER_TYPE,
-                        "recipient_namespace": recipient_namespace,
-                        "recipient_name": recipient_name,
-                        "recipient_revision_tag": recipient_revision_tag,
+                        "sender_sdk_version": parent_sdk_version,
+                        "recipient": service_id,
                     },
                 )
             )
