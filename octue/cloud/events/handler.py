@@ -138,7 +138,7 @@ class AbstractEventHandler:
                 revision_tag=attributes["sender_revision_tag"],
             )
 
-            self.question_uuid = attributes.get("question_uuid")
+            self.question_uuid = attributes["question_uuid"]
             self._child_sdk_version = attributes["sender_sdk_version"]
 
         logger.debug("%r received an event related to question %r.", self.receiving_service, self.question_uuid)
