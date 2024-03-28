@@ -4,7 +4,7 @@ import os
 
 import yaml
 
-from octue import OCTUE_SERVICES_NAMESPACE
+from octue import DEFAULT_OCTUE_SERVICES_NAMESPACE
 
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ class ServiceConfiguration:
         app_configuration_path=None,
         diagnostics_cloud_path=None,
         service_registries=None,
-        services_namespace=OCTUE_SERVICES_NAMESPACE,
+        services_namespace=DEFAULT_OCTUE_SERVICES_NAMESPACE,
         directory=None,
         **kwargs,
     ):
