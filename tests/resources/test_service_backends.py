@@ -16,9 +16,16 @@ class TestServiceBackends(BaseTestCase):
 
     def test_repr(self):
         """Test the representation displays as expected."""
-        self.assertEqual(repr(GCPPubSubBackend(project_name="hello")), "<GCPPubSubBackend(project_name='hello')>")
+        self.assertEqual(
+            repr(GCPPubSubBackend(project_name="hello", services_namespace="world")),
+            "<GCPPubSubBackend(project_name='hello', services_namespace='world')>",
+        )
 
-    def test_error_raised_if_project_name_is_none(self):
-        """Test that an error is raised if the project name is not given during `GCPPubSubBackend` instantiation."""
-        with self.assertRaises(CloudLocationNotSpecified):
-            GCPPubSubBackend(project_name=None)
+    def test_error_raised_if_project_name_or_services_namespace_is_none(self):
+        """Test that an error is raised if the project name or services namespace aren't given during `GCPPubSubBackend`
+        instantiation.
+        """
+        for project_name, services_namespace in (("hello", None), (None, "world")):
+            with self.subTest(project_name=project_name, services_namespace=services_namespace):
+                with self.assertRaises(CloudLocationNotSpecified):
+                    GCPPubSubBackend(project_name=project_name, services_namespace=services_namespace)
