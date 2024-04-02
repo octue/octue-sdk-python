@@ -474,6 +474,6 @@ class TestDeployCommand(BaseTestCase):
 
             self.assertIsNone(result.exception)
             self.assertEqual(result.exit_code, 0)
-            self.assertEqual(subscription.call_args.kwargs["topic"].name, "octue.services.octue.example-service.3-5-0")
+            self.assertEqual(subscription.call_args.kwargs["topic"].name, "octue.example-service.3-5-0")
             self.assertEqual(subscription.call_args.kwargs["name"], "octue.example-service.3-5-0-peter-rabbit")
             self.assertEqual(subscription.call_args.kwargs["push_endpoint"], "https://example.com/endpoint")
