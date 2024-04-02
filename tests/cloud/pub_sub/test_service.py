@@ -565,23 +565,23 @@ class TestService(BaseTestCase):
         self.assertEqual(answer["output_values"], MockAnalysisWithOutputManifest.output_values)
         self.assertEqual(answer["output_manifest"].id, MockAnalysisWithOutputManifest.output_manifest.id)
 
-    # def test_service_can_ask_multiple_questions_to_child(self):
-    #     """Test that a service can ask multiple questions to the same child and expect replies to them all."""
-    #     with self.service_patcher:
-    #         child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
-    #         parent = MockService(backend=BACKEND, children={child.id: child})
-    #         child.serve()
-    #         answers = []
-    #
-    #         for i in range(5):
-    #             subscription, _ = parent.ask(service_id=child.id, input_values={})
-    #             answers.append(parent.wait_for_answer(subscription))
-    #
-    #     for answer in answers:
-    #         self.assertEqual(
-    #             answer,
-    #             {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
-    #         )
+    def test_service_can_ask_multiple_questions_to_child(self):
+        """Test that a service can ask multiple questions to the same child and expect replies to them all."""
+        with self.service_patcher:
+            child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
+            parent = MockService(backend=BACKEND, children={child.id: child})
+            child.serve()
+            answers = []
+
+            for i in range(5):
+                subscription, _ = parent.ask(service_id=child.id, input_values={})
+                answers.append(parent.wait_for_answer(subscription, timeout=3600))
+
+        for answer in answers:
+            self.assertEqual(
+                answer,
+                {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
+            )
 
     def test_service_can_ask_questions_to_multiple_children(self):
         """Test that a service can ask questions to different children and expect replies to them all."""
@@ -612,100 +612,103 @@ class TestService(BaseTestCase):
             },
         )
 
-    # def test_child_can_ask_its_own_child_questions(self):
-    #     """Test that a child can contact its own child while answering a question from a parent."""
-    #     def child_run_function(analysis_id, input_values, *args, **kwargs):
-    #         subscription, _ = child.ask(service_id=child_of_child.id, input_values=input_values)
-    #         return MockAnalysis(output_values={input_values["question"]: child.wait_for_answer(subscription)})
-    #
-    #     with self.service_patcher:
-    #         child_of_child = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis())
-    #
-    #         child = MockService(
-    #             backend=BACKEND,
-    #             run_function=child_run_function,
-    #             children={child_of_child.id: child_of_child},
-    #         )
-    #
-    #         parent = MockService(backend=BACKEND, children={child.id: child})
-    #
-    #         child.serve()
-    #         child_of_child.serve()
-    #
-    #         subscription, _ = parent.ask(
-    #             service_id=child.id,
-    #             input_values={"question": "What does the child of the child say?"},
-    #         )
-    #
-    #         answer = parent.wait_for_answer(subscription)
-    #
-    #     self.assertEqual(
-    #         answer,
-    #         {
-    #             "output_values": {
-    #                 "What does the child of the child say?": {
-    #                     "output_values": DifferentMockAnalysis.output_values,
-    #                     "output_manifest": DifferentMockAnalysis.output_manifest,
-    #                 }
-    #             },
-    #             "output_manifest": None,
-    #         },
-    #     )
+    def test_child_can_ask_its_own_child_questions(self):
+        """Test that a child can contact its own child while answering a question from a parent."""
 
-    # def test_child_can_ask_its_own_children_questions(self):
-    #     """Test that a child can contact more than one of its own children while answering a question from a parent."""
-    #
-    #     def child_run_function(analysis_id, input_values, *args, **kwargs):
-    #         subscription_1, _ = child.ask(service_id=first_child_of_child.id, input_values=input_values)
-    #         subscription_2, _ = child.ask(service_id=second_child_of_child.id, input_values=input_values)
-    #
-    #         return MockAnalysis(
-    #             output_values={
-    #                 "first_child_of_child": child.wait_for_answer(subscription_1),
-    #                 "second_child_of_child": child.wait_for_answer(subscription_2),
-    #             }
-    #         )
-    #
-    #     with self.service_patcher:
-    #         first_child_of_child = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis())
-    #         second_child_of_child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
-    #
-    #         child = MockService(
-    #             backend=BACKEND,
-    #             run_function=child_run_function,
-    #             children={first_child_of_child.id: first_child_of_child,
-    #                       second_child_of_child.id: second_child_of_child},
-    #         )
-    #
-    #         parent = MockService(backend=BACKEND, children={child.id: child})
-    #
-    #         child.serve()
-    #         first_child_of_child.serve()
-    #         second_child_of_child.serve()
-    #
-    #         subscription, _ = parent.ask(
-    #             service_id=child.id,
-    #             input_values={"question": "What does the child of the child say?"},
-    #         )
-    #
-    #         answer = parent.wait_for_answer(subscription)
-    #
-    #     self.assertEqual(
-    #         answer,
-    #         {
-    #             "output_values": {
-    #                 "first_child_of_child": {
-    #                     "output_values": DifferentMockAnalysis.output_values,
-    #                     "output_manifest": DifferentMockAnalysis.output_manifest,
-    #                 },
-    #                 "second_child_of_child": {
-    #                     "output_values": MockAnalysis().output_values,
-    #                     "output_manifest": MockAnalysis().output_manifest,
-    #                 },
-    #             },
-    #             "output_manifest": None,
-    #         },
-    #     )
+        def child_run_function(analysis_id, input_values, *args, **kwargs):
+            subscription, _ = child.ask(service_id=child_of_child.id, input_values=input_values)
+            return MockAnalysis(output_values={input_values["question"]: child.wait_for_answer(subscription)})
+
+        with self.service_patcher:
+            child_of_child = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis())
+
+            child = MockService(
+                backend=BACKEND,
+                run_function=child_run_function,
+                children={child_of_child.id: child_of_child},
+            )
+
+            parent = MockService(backend=BACKEND, children={child.id: child})
+
+            child.serve()
+            child_of_child.serve()
+
+            subscription, _ = parent.ask(
+                service_id=child.id,
+                input_values={"question": "What does the child of the child say?"},
+            )
+
+            answer = parent.wait_for_answer(subscription)
+
+        self.assertEqual(
+            answer,
+            {
+                "output_values": {
+                    "What does the child of the child say?": {
+                        "output_values": DifferentMockAnalysis.output_values,
+                        "output_manifest": DifferentMockAnalysis.output_manifest,
+                    }
+                },
+                "output_manifest": None,
+            },
+        )
+
+    def test_child_can_ask_its_own_children_questions(self):
+        """Test that a child can contact more than one of its own children while answering a question from a parent."""
+
+        def child_run_function(analysis_id, input_values, *args, **kwargs):
+            subscription_1, _ = child.ask(service_id=first_child_of_child.id, input_values=input_values)
+            subscription_2, _ = child.ask(service_id=second_child_of_child.id, input_values=input_values)
+
+            return MockAnalysis(
+                output_values={
+                    "first_child_of_child": child.wait_for_answer(subscription_1),
+                    "second_child_of_child": child.wait_for_answer(subscription_2),
+                }
+            )
+
+        with self.service_patcher:
+            first_child_of_child = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis())
+            second_child_of_child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
+
+            child = MockService(
+                backend=BACKEND,
+                run_function=child_run_function,
+                children={
+                    first_child_of_child.id: first_child_of_child,
+                    second_child_of_child.id: second_child_of_child,
+                },
+            )
+
+            parent = MockService(backend=BACKEND, children={child.id: child})
+
+            child.serve()
+            first_child_of_child.serve()
+            second_child_of_child.serve()
+
+            subscription, _ = parent.ask(
+                service_id=child.id,
+                input_values={"question": "What does the child of the child say?"},
+            )
+
+            answer = parent.wait_for_answer(subscription)
+
+        self.assertEqual(
+            answer,
+            {
+                "output_values": {
+                    "first_child_of_child": {
+                        "output_values": DifferentMockAnalysis.output_values,
+                        "output_manifest": DifferentMockAnalysis.output_manifest,
+                    },
+                    "second_child_of_child": {
+                        "output_values": MockAnalysis().output_values,
+                        "output_manifest": MockAnalysis().output_manifest,
+                    },
+                },
+                "output_manifest": None,
+            },
+        )
 
     def test_child_messages_can_be_recorded_by_parent(self):
         """Test that the parent can record messages it receives from its child to a JSON file."""
@@ -819,79 +822,79 @@ class TestService(BaseTestCase):
         # Check that the result was received correctly.
         self.assertEqual(result["output_values"], {"tada": True})
 
-    # def test_providing_dynamic_children(self):
-    #     """Test that, if children are provided to the `ask` method while asking a question, the child being asked uses
-    #     those children instead of the children it has defined in its app configuration.
-    #     """
-    #
-    #     def mock_child_app(analysis):
-    #         analysis.children["expected_child"]._service = child
-    #         analysis.output_values = analysis.children["expected_child"].ask(input_values=[1, 2, 3, 4])["output_values"]
-    #
-    #     static_children = [
-    #         {
-    #             "key": "expected_child",
-    #             "id": f"octue/static-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
-    #             "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
-    #         },
-    #     ]
-    #
-    #     runner = Runner(
-    #         app_src=mock_child_app,
-    #         twine={
-    #             "children": [{"key": "expected_child"}],
-    #             "input_values_schema": {"type": "object", "required": []},
-    #             "output_values_schema": {},
-    #         },
-    #         children=static_children,
-    #         service_id=f"octue/child:{MOCK_SERVICE_REVISION_TAG}",
-    #     )
-    #
-    #     with self.service_patcher:
-    #         static_child_of_child = self.make_new_child(
-    #             backend=BACKEND,
-    #             service_id=f"octue/static-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
-    #             run_function_returnee=MockAnalysis(output_values="I am the static child."),
-    #         )
-    #
-    #         dynamic_child_of_child = self.make_new_child(
-    #             backend=BACKEND,
-    #             service_id=f"octue/dynamic-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
-    #             run_function_returnee=MockAnalysis(output_values="I am the dynamic child."),
-    #         )
-    #
-    #         child = MockService(
-    #             backend=BACKEND,
-    #             service_id=f"octue/child:{MOCK_SERVICE_REVISION_TAG}",
-    #             run_function=runner.run,
-    #             children={
-    #                 static_child_of_child.id: static_child_of_child,
-    #                 dynamic_child_of_child.id: dynamic_child_of_child,
-    #             },
-    #         )
-    #
-    #         parent = MockService(
-    #             backend=BACKEND,
-    #             service_id=f"octue/parent:{MOCK_SERVICE_REVISION_TAG}",
-    #             children={child.id: child},
-    #         )
-    #
-    #         static_child_of_child.serve()
-    #         dynamic_child_of_child.serve()
-    #         child.serve()
-    #
-    #         dynamic_children = [
-    #             {
-    #                 "key": "expected_child",
-    #                 "id": f"octue/dynamic-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
-    #                 "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
-    #             },
-    #         ]
-    #
-    #         subscription, _ = parent.ask(service_id=child.id, input_values={}, children=dynamic_children)
-    #         answer = parent.wait_for_answer(subscription)
-    #
-    #     self.assertEqual(answer["output_values"], "I am the dynamic child.")
+    def test_providing_dynamic_children(self):
+        """Test that, if children are provided to the `ask` method while asking a question, the child being asked uses
+        those children instead of the children it has defined in its app configuration.
+        """
+
+        def mock_child_app(analysis):
+            analysis.children["expected_child"]._service = child
+            analysis.output_values = analysis.children["expected_child"].ask(input_values=[1, 2, 3, 4])["output_values"]
+
+        static_children = [
+            {
+                "key": "expected_child",
+                "id": f"octue/static-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
+                "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
+            },
+        ]
+
+        runner = Runner(
+            app_src=mock_child_app,
+            twine={
+                "children": [{"key": "expected_child"}],
+                "input_values_schema": {"type": "object", "required": []},
+                "output_values_schema": {},
+            },
+            children=static_children,
+            service_id=f"octue/child:{MOCK_SERVICE_REVISION_TAG}",
+        )
+
+        with self.service_patcher:
+            static_child_of_child = self.make_new_child(
+                backend=BACKEND,
+                service_id=f"octue/static-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
+                run_function_returnee=MockAnalysis(output_values="I am the static child."),
+            )
+
+            dynamic_child_of_child = self.make_new_child(
+                backend=BACKEND,
+                service_id=f"octue/dynamic-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
+                run_function_returnee=MockAnalysis(output_values="I am the dynamic child."),
+            )
+
+            child = MockService(
+                backend=BACKEND,
+                service_id=f"octue/child:{MOCK_SERVICE_REVISION_TAG}",
+                run_function=runner.run,
+                children={
+                    static_child_of_child.id: static_child_of_child,
+                    dynamic_child_of_child.id: dynamic_child_of_child,
+                },
+            )
+
+            parent = MockService(
+                backend=BACKEND,
+                service_id=f"octue/parent:{MOCK_SERVICE_REVISION_TAG}",
+                children={child.id: child},
+            )
+
+            static_child_of_child.serve()
+            dynamic_child_of_child.serve()
+            child.serve()
+
+            dynamic_children = [
+                {
+                    "key": "expected_child",
+                    "id": f"octue/dynamic-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
+                    "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
+                },
+            ]
+
+            subscription, _ = parent.ask(service_id=child.id, input_values={}, children=dynamic_children)
+            answer = parent.wait_for_answer(subscription)
+
+        self.assertEqual(answer["output_values"], "I am the dynamic child.")
 
     @staticmethod
     def make_new_child(backend, run_function_returnee, service_id=None):
