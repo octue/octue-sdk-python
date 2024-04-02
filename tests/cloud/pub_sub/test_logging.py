@@ -3,9 +3,11 @@ import logging
 from logging import makeLogRecord
 from unittest.mock import patch
 
-from octue.cloud.emulators._pub_sub import SUBSCRIPTIONS, MockService, MockSubscription, MockTopic
+from octue.cloud.emulators._pub_sub import MESSAGES, MockService, MockSubscription, MockTopic
+from octue.cloud.emulators.child import ServicePatcher
 from octue.cloud.pub_sub.logging import GoogleCloudPubSubHandler
 from octue.resources.service_backends import GCPPubSubBackend
+from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 
 
@@ -15,6 +17,13 @@ class NonJSONSerialisable:
 
 
 class TestGoogleCloudPubSubHandler(BaseTestCase):
+    @classmethod
+    def setUpClass(cls):
+        topic = MockTopic(name="octue.services", project_name=TEST_PROJECT_NAME)
+
+        with ServicePatcher():
+            topic.create(allow_existing=True)
+
     def test_emit(self):
         """Test the log message is published when `GoogleCloudPubSubHandler.emit` is called."""
         topic = MockTopic(name="octue.my-service.3-3-3", project_name="blah")
@@ -27,17 +36,20 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
         log_record = makeLogRecord({"msg": "Starting analysis."})
 
         backend = GCPPubSubBackend(project_name="blah")
-        service = MockService(backend=backend)
+
+        with ServicePatcher():
+            service = MockService(backend=backend)
 
         GoogleCloudPubSubHandler(
             message_sender=service._send_message,
             topic=topic,
             question_uuid=question_uuid,
             originator=service.id,
+            recipient="another/service:1.0.0",
         ).emit(log_record)
 
         self.assertEqual(
-            json.loads(SUBSCRIPTIONS[subscription.name][0].data.decode())["log_record"]["msg"],
+            json.loads(MESSAGES[question_uuid][0].data.decode())["log_record"]["msg"],
             "Starting analysis.",
         )
 
@@ -59,7 +71,9 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
         )
 
         backend = GCPPubSubBackend(project_name="blah")
-        service = MockService(backend=backend)
+
+        with ServicePatcher():
+            service = MockService(backend=backend)
 
         with patch("octue.cloud.emulators._pub_sub.MockPublisher.publish") as mock_publish:
             GoogleCloudPubSubHandler(
@@ -67,6 +81,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
                 topic=topic,
                 question_uuid="question-uuid",
                 originator=service.id,
+                recipient="another/service:1.0.0",
             ).emit(record)
 
         self.assertEqual(
