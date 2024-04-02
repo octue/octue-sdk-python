@@ -93,11 +93,6 @@ class Service:
         self._publisher = None
         self._event_handler = None
 
-        self.topic = Topic(name=self.backend.services_namespace, project_name=self.backend.project_name)
-
-        if not self.topic.exists():
-            raise octue.exceptions.ServiceNotFound(f"Topic {self.backend.services_namespace!r} cannot be found.")
-
     def __repr__(self):
         """Represent the service as a string.
 
@@ -144,7 +139,7 @@ class Service:
 
         subscription = Subscription(
             name=".".join((self.backend.services_namespace, self._pub_sub_id)),
-            topic=self.topic,
+            topic=self._get_services_topic(),
             filter=f'attributes.recipient = "{self.id}" AND attributes.sender_type = "{PARENT_SENDER_TYPE}"',
             expiration_time=None,
         )
@@ -211,13 +206,15 @@ class Service:
 
         heartbeater = None
 
+        services_topic = self._get_services_topic()
+
         try:
-            self._send_delivery_acknowledgment(self.topic, question_uuid, originator)
+            self._send_delivery_acknowledgment(services_topic, question_uuid, originator)
 
             heartbeater = RepeatingTimer(
                 interval=heartbeat_interval,
                 function=self._send_heartbeat,
-                kwargs={"topic": self.topic, "question_uuid": question_uuid, "originator": originator},
+                kwargs={"topic": services_topic, "question_uuid": question_uuid, "originator": originator},
             )
 
             heartbeater.daemon = True
@@ -226,7 +223,7 @@ class Service:
             if forward_logs:
                 analysis_log_handler = GoogleCloudPubSubHandler(
                     message_sender=self._send_message,
-                    topic=self.topic,
+                    topic=services_topic,
                     question_uuid=question_uuid,
                     originator=originator,
                     recipient=originator,
@@ -242,7 +239,7 @@ class Service:
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=functools.partial(
                     self._send_monitor_message,
-                    topic=self.topic,
+                    topic=services_topic,
                     question_uuid=question_uuid,
                     originator=originator,
                 ),
@@ -256,7 +253,7 @@ class Service:
 
             self._send_message(
                 message=result,
-                topic=self.topic,
+                topic=services_topic,
                 originator=originator,
                 recipient=originator,
                 attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
@@ -271,7 +268,7 @@ class Service:
                 heartbeater.cancel()
 
             warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
-            self.send_exception(self.topic, question_uuid, originator, timeout=timeout)
+            self.send_exception(services_topic, question_uuid, originator, timeout=timeout)
             raise error
 
     def ask(
@@ -331,15 +328,16 @@ class Service:
                 )
 
         question_uuid = question_uuid or str(uuid.uuid4())
+        services_topic = self._get_services_topic()
 
         if asynchronous and not push_endpoint:
             answer_subscription = None
         else:
-            pub_sub_id = convert_service_id_to_pub_sub_form(service_id)
+            pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
 
             answer_subscription = Subscription(
-                name=".".join((self.backend.services_namespace, pub_sub_id, ANSWERS_NAMESPACE, question_uuid)),
-                topic=self.topic,
+                name=".".join((self.backend.services_namespace, ANSWERS_NAMESPACE, pub_sub_id, question_uuid)),
+                topic=services_topic,
                 filter=(
                     f'attributes.sender = "{service_id}" '
                     f'attributes.recipient = "{self.id}" '
@@ -357,6 +355,7 @@ class Service:
             service_id=service_id,
             forward_logs=subscribe_to_logs,
             save_diagnostics=save_diagnostics,
+            topic=services_topic,
             question_uuid=question_uuid,
         )
 
@@ -430,6 +429,14 @@ class Service:
             timeout=timeout,
         )
 
+    def _get_services_topic(self):
+        topic = Topic(name=self.backend.services_namespace, project_name=self.backend.project_name)
+
+        if not topic.exists():
+            raise octue.exceptions.ServiceNotFound(f"Topic {self.backend.services_namespace!r} cannot be found.")
+
+        return topic
+
     def _send_message(self, message, topic, originator, recipient, attributes=None, timeout=30):
         """Send a JSON-serialised message to the given topic with optional message attributes and increment the
         `messages_published` attribute of the topic by one. This method is thread-safe.
@@ -481,6 +488,7 @@ class Service:
         service_id,
         forward_logs,
         save_diagnostics,
+        topic,
         question_uuid,
         timeout=30,
     ):
@@ -492,6 +500,7 @@ class Service:
         :param str service_id: the ID of the child to send the question to
         :param bool forward_logs: whether to request the child to forward its logs
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
+        :param topic:
         :param str question_uuid: the UUID of the question being sent
         :param float timeout: time in seconds after which to give up sending
         :return None:
@@ -504,7 +513,7 @@ class Service:
 
         future = self._send_message(
             message=question,
-            topic=self.topic,
+            topic=topic,
             timeout=timeout,
             originator=self.id,
             recipient=service_id,
