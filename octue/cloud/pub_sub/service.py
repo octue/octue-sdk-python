@@ -339,7 +339,6 @@ class Service:
                 name=".".join((self.backend.services_namespace, ANSWERS_NAMESPACE, pub_sub_id, question_uuid)),
                 topic=services_topic,
                 filter=(
-                    f'attributes.sender = "{service_id}" '
                     f'attributes.recipient = "{self.id}" '
                     f'AND attributes.question_uuid = "{question_uuid}" '
                     f'AND attributes.sender_type = "{CHILD_SENDER_TYPE}"'
