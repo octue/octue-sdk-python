@@ -213,7 +213,7 @@ def get_sruid_from_pub_sub_resource_name(name):
     :param str name: the name of the topic or subscription
     :return str: the SRUID of the service revision the topic or subscription is related to
     """
-    _, _, namespace, name, revision_tag, *_ = name.split(".")
+    namespace, name, revision_tag, *_ = name.split(".")
     return f"{namespace}/{name}:{revision_tag.replace('-', '.')}"
 
 

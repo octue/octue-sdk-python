@@ -84,7 +84,6 @@ class TestConvertServiceIDToPubSubForm(unittest.TestCase):
             ("octue/my-service", "octue.my-service"),
             ("octue/my-service:0.1.7", "octue.my-service.0-1-7"),
             ("my-service:3.1.9", "my-service.3-1-9"),
-            ("octue.services.octue/my-service:0.1.7", "octue.services.octue.my-service.0-1-7"),
         )
 
         for service_id, pub_sub_service_id in service_ids:
@@ -95,7 +94,7 @@ class TestConvertServiceIDToPubSubForm(unittest.TestCase):
 class TestGetSRUIDFromPubSubResourceName(unittest.TestCase):
     def test_get_sruid_from_pub_sub_resource_name(self):
         """Test that an SRUID can be extracted from a Pub/Sub resource name."""
-        sruid = get_sruid_from_pub_sub_resource_name("octue.services.octue.example-service-cloud-run.0-3-2")
+        sruid = get_sruid_from_pub_sub_resource_name("octue.example-service-cloud-run.0-3-2")
         self.assertEqual(sruid, "octue/example-service-cloud-run:0.3.2")
 
 
