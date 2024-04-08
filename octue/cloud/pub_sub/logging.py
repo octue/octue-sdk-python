@@ -9,7 +9,6 @@ class GoogleCloudPubSubHandler(logging.Handler):
     """A log handler that publishes log records to a Google Cloud Pub/Sub topic.
 
     :param callable message_sender: the `_send_message` method of the service that instantiated this instance
-    :param octue.cloud.pub_sub.topic.Topic topic: topic to publish log records to
     :param str question_uuid: the UUID of the question to handle log records for
     :param str originator: the SRUID of the service that asked the question these log records are related to
     :param str recipient: the SRUID of the service to send these log records to
@@ -17,9 +16,8 @@ class GoogleCloudPubSubHandler(logging.Handler):
     :return None:
     """
 
-    def __init__(self, message_sender, topic, question_uuid, originator, recipient, timeout=60, *args, **kwargs):
+    def __init__(self, message_sender, question_uuid, originator, recipient, timeout=60, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.topic = topic
         self.question_uuid = question_uuid
         self.originator = originator
         self.recipient = recipient
@@ -38,7 +36,6 @@ class GoogleCloudPubSubHandler(logging.Handler):
                     "kind": "log_record",
                     "log_record": self._convert_log_record_to_primitives(record),
                 },
-                topic=self.topic,
                 originator=self.originator,
                 recipient=self.recipient,
                 attributes={
