@@ -2,18 +2,25 @@ import logging
 import os
 
 from octue.cloud import storage
-from octue.cloud.emulators._pub_sub import MockService
+from octue.cloud.emulators._pub_sub import MockService, MockTopic
 from octue.cloud.emulators.child import ChildEmulator, ServicePatcher
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Manifest
 from octue.resources.service_backends import GCPPubSubBackend
-from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TESTS_DIR
+from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TEST_PROJECT_NAME, TESTS_DIR
 from tests.base import BaseTestCase
 
 
 class TestChildEmulatorAsk(BaseTestCase):
 
     BACKEND = {"name": "GCPPubSubBackend", "project_name": "blah"}
+
+    @classmethod
+    def setUpClass(cls):
+        topic = MockTopic(name="octue.services", project_name=TEST_PROJECT_NAME)
+
+        with ServicePatcher():
+            topic.create(allow_existing=True)
 
     def test_representation(self):
         """Test that child emulators are represented correctly."""
@@ -296,6 +303,13 @@ class TestChildEmulatorAsk(BaseTestCase):
 class TestChildEmulatorJSONFiles(BaseTestCase):
 
     TEST_FILES_DIRECTORY = os.path.join(TESTS_DIR, "cloud", "emulators", "valid_child_emulator_files")
+
+    @classmethod
+    def setUpClass(cls):
+        topic = MockTopic(name="octue.services", project_name=TEST_PROJECT_NAME)
+
+        with ServicePatcher():
+            topic.create(allow_existing=True)
 
     def test_with_empty_file(self):
         """Test that a child emulator can be instantiated from an empty JSON file (a JSON file with only an empty
