@@ -21,7 +21,7 @@ def create_mock_topic_and_subscription():
     topic = MockTopic(name="octue.services", project_name=TEST_PROJECT_NAME)
     topic.create(allow_existing=True)
 
-    subscription = MockSubscription(name=f"octue.services.my-org.my-service.1-0-0.answers.{question_uuid}", topic=topic)
+    subscription = MockSubscription(name=f"my-org.my-service.1-0-0.answers.{question_uuid}", topic=topic)
     subscription.create()
 
     with ServicePatcher():
