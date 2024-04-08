@@ -14,7 +14,7 @@ from octue.cloud.emulators.child import ServicePatcher
 from octue.configuration import AppConfiguration, ServiceConfiguration
 from octue.resources import Dataset
 from octue.utils.patches import MultiPatcher
-from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TESTS_DIR
+from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TEST_PROJECT_NAME, TESTS_DIR
 from tests.base import BaseTestCase
 
 
@@ -193,6 +193,11 @@ class TestStartCommand(BaseTestCase):
                 },
             },
         )
+
+        topic = MockTopic(name="octue.services", project_name=TEST_PROJECT_NAME)
+
+        with ServicePatcher():
+            topic.create(allow_existing=True)
 
     def test_start_command(self):
         """Test that the start command works without error and uses the revision tag supplied in the
@@ -423,57 +428,3 @@ class TestDeployCommand(BaseTestCase):
                     self.assertEqual(subscription.call_args.kwargs["name"], "octue.example-service.3-5-0")
                     self.assertEqual(subscription.call_args.kwargs["push_endpoint"], "https://example.com/endpoint")
                     self.assertEqual(subscription.call_args.kwargs["expiration_time"], expected_expiration_time)
-
-    def test_create_push_subscription_with_filter(self):
-        """Test that filters are added to subscriptions correctly when creating a push subscription."""
-        for filter_option, expected_filter in (
-            ([], 'attributes.sender_type = "PARENT"'),
-            (["--filter="], None),
-            (['--filter=attributes.sender_type = "CHILD"'], 'attributes.sender_type = "CHILD"'),
-        ):
-            with self.subTest(filter_option=filter_option):
-                with patch("octue.cloud.pub_sub.Topic", new=MockTopic):
-                    with patch("octue.cloud.pub_sub.Subscription") as subscription:
-                        result = CliRunner().invoke(
-                            octue_cli,
-                            [
-                                "deploy",
-                                "create-push-subscription",
-                                "my-project",
-                                "octue",
-                                "example-service",
-                                "https://example.com/endpoint",
-                                "--revision-tag=3.5.0",
-                                *filter_option,
-                            ],
-                        )
-
-                    self.assertIsNone(result.exception)
-                    self.assertEqual(result.exit_code, 0)
-                    self.assertEqual(subscription.call_args.kwargs["name"], "octue.example-service.3-5-0")
-                    self.assertEqual(subscription.call_args.kwargs["push_endpoint"], "https://example.com/endpoint")
-                    self.assertEqual(subscription.call_args.kwargs["filter"], expected_filter)
-
-    def test_create_push_subscription_with_subscription_suffix(self):
-        """Test that subscription suffixes are added to subscription names correctly when creating a push subscription."""
-        with patch("octue.cloud.pub_sub.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.Subscription") as subscription:
-                result = CliRunner().invoke(
-                    octue_cli,
-                    [
-                        "deploy",
-                        "create-push-subscription",
-                        "my-project",
-                        "octue",
-                        "example-service",
-                        "https://example.com/endpoint",
-                        "--revision-tag=3.5.0",
-                        "--subscription-suffix=-peter-rabbit",
-                    ],
-                )
-
-            self.assertIsNone(result.exception)
-            self.assertEqual(result.exit_code, 0)
-            self.assertEqual(subscription.call_args.kwargs["topic"].name, "octue.example-service.3-5-0")
-            self.assertEqual(subscription.call_args.kwargs["name"], "octue.example-service.3-5-0-peter-rabbit")
-            self.assertEqual(subscription.call_args.kwargs["push_endpoint"], "https://example.com/endpoint")

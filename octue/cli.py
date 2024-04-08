@@ -10,6 +10,7 @@ import sys
 import click
 from google import auth
 
+from octue import DEFAULT_OCTUE_SERVICES_NAMESPACE
 from octue.cloud import pub_sub, storage
 from octue.cloud.pub_sub.service import Service
 from octue.cloud.service_id import create_sruid, get_sruid_parts
@@ -358,21 +359,11 @@ def deploy():
     ". 'curious-capybara'.",
 )
 @click.option(
-    "--filter",
+    "--services-namespace",
     is_flag=False,
-    default='attributes.sender_type = "PARENT"',
+    default=DEFAULT_OCTUE_SERVICES_NAMESPACE,
     show_default=True,
-    help="An optional filter to apply to the subscription (see "
-    "https://cloud.google.com/pubsub/docs/subscription-message-filter). If not provided, the default filter is applied."
-    " To disable filtering, provide an empty string.",
-)
-@click.option(
-    "--subscription-suffix",
-    is_flag=False,
-    default=None,
-    show_default=True,
-    help="An optional suffix to add to the end of the subscription name. This is useful when needing to create "
-    "multiple subscriptions for the same topic (subscription names are unique).",
+    help="The services namespace to emit and consume events from.",
 )
 def create_push_subscription(
     project_name,
@@ -381,11 +372,10 @@ def create_push_subscription(
     push_endpoint,
     expiration_time,
     revision_tag,
-    filter,
-    subscription_suffix,
+    services_namespace,
 ):
-    """Create a Google Pub/Sub push subscription for an Octue service for it to receive questions from parents. If a
-    corresponding topic doesn't exist, it will be created first. The subscription name is printed on completion.
+    """Create a Google Pub/Sub push subscription for an Octue service for it to receive questions from parents. The
+    subscription name is printed on completion.
 
     PROJECT_NAME is the name of the Google Cloud project in which the subscription will be created
 
@@ -403,8 +393,8 @@ def create_push_subscription(
         sruid,
         push_endpoint,
         expiration_time=expiration_time,
-        subscription_filter=filter or None,
-        subscription_suffix=subscription_suffix,
+        subscription_filter=f'attributes.recipient = "{sruid}" AND attributes.sender_type = "PARENT"',
+        services_namespace=services_namespace,
     )
 
     click.echo(sruid)
