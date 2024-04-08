@@ -453,15 +453,14 @@ class Service:
         :return google.cloud.pubsub_v1.publisher.futures.Future:
         """
         attributes = attributes or {}
+        attributes["uuid"] = str(uuid.uuid4())
         attributes["originator"] = originator
         attributes["sender"] = self.id
+        attributes["sender_sdk_version"] = self._local_sdk_version
         attributes["recipient"] = recipient
 
         with emit_event_lock:
-            attributes["sender_sdk_version"] = self._local_sdk_version
             attributes["order"] = self._events_emitted
-            attributes["uuid"] = str(uuid.uuid4())
-
             converted_attributes = {}
 
             for key, value in attributes.items():
