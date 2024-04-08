@@ -120,7 +120,7 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            mock_topic.messages_published = message["event"]["order"]
+            child._events_emitted = message["event"]["order"]
             child._send_message(
                 message=message["event"],
                 attributes=message["attributes"],
@@ -179,7 +179,7 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            mock_topic.messages_published = message["event"]["order"]
+            child._events_emitted = message["event"]["order"]
             child._send_message(
                 message=message["event"],
                 attributes=message["attributes"],
@@ -386,7 +386,7 @@ class TestPubSubEventHandler(BaseTestCase):
             child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         # Simulate the first two messages not being received.
-        mock_topic.messages_published = 2
+        child._events_emitted = 2
 
         messages = [
             {
@@ -470,7 +470,7 @@ class TestPubSubEventHandler(BaseTestCase):
             )
 
         # Simulate missing messages.
-        mock_topic.messages_published = 5
+        child._events_emitted = 5
 
         # Send a final message.
         child._send_message(
@@ -535,7 +535,7 @@ class TestPubSubEventHandler(BaseTestCase):
             )
 
         # Simulate missing messages.
-        mock_topic.messages_published = 5
+        child._events_emitted = 5
 
         # Send another message.
         child._send_message(
@@ -547,7 +547,7 @@ class TestPubSubEventHandler(BaseTestCase):
         )
 
         # Simulate more missing messages.
-        mock_topic.messages_published = 20
+        child._events_emitted = 20
 
         # Send more consecutive messages.
         messages = [
@@ -611,7 +611,7 @@ class TestPubSubEventHandler(BaseTestCase):
             child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         # Simulate missing messages.
-        mock_topic.messages_published = 1000
+        child._events_emitted = 1000
 
         # Send the result message.
         child._send_message(

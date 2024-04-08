@@ -35,10 +35,10 @@ from octue.utils.threads import RepeatingTimer
 
 logger = logging.getLogger(__name__)
 
-# A lock to ensure only one message can be sent at a time so that the order is incremented correctly when messages are
-# being sent on multiple threads (e.g. via the main thread and a periodic monitor message thread). This avoids 1)
-# messages overwriting each other in the parent's message handler and 2) messages losing their order.
-send_message_lock = threading.Lock()
+# A lock to ensure only one event can be emitted at a time so that the order is incremented correctly when events are
+# being emitted on multiple threads (e.g. via the main thread and a periodic monitor message thread). This avoids 1)
+# events overwriting each other in the parent's message handler and 2) events losing their order.
+emit_event_lock = threading.Lock()
 
 DEFAULT_NAMESPACE = "default"
 ANSWERS_NAMESPACE = "answers"
@@ -92,6 +92,7 @@ class Service:
         self._local_sdk_version = importlib.metadata.version("octue")
         self._publisher = None
         self._event_handler = None
+        self._events_emitted = 0
 
     def __repr__(self):
         """Represent the service as a string.
@@ -207,6 +208,7 @@ class Service:
         heartbeater = None
 
         services_topic = self._get_services_topic()
+        self._events_emitted = 0
 
         try:
             self._send_delivery_acknowledgment(services_topic, question_uuid, originator)
@@ -347,6 +349,8 @@ class Service:
             )
             answer_subscription.create(allow_existing=False)
 
+        self._events_emitted = 0
+
         self._send_question(
             input_values=input_values,
             input_manifest=input_manifest,
@@ -438,7 +442,7 @@ class Service:
 
     def _send_message(self, message, topic, originator, recipient, attributes=None, timeout=30):
         """Send a JSON-serialised message to the given topic with optional message attributes and increment the
-        `messages_published` attribute of the topic by one. This method is thread-safe.
+        `_events_emitted` attribute by one. This method is thread-safe.
 
         :param dict message: JSON-serialisable data to send as a message
         :param octue.cloud.pub_sub.topic.Topic topic: the Pub/Sub topic to send the message to
@@ -453,9 +457,9 @@ class Service:
         attributes["sender"] = self.id
         attributes["recipient"] = recipient
 
-        with send_message_lock:
+        with emit_event_lock:
             attributes["sender_sdk_version"] = self._local_sdk_version
-            attributes["order"] = topic.messages_published
+            attributes["order"] = self._events_emitted
             attributes["uuid"] = str(uuid.uuid4())
 
             converted_attributes = {}
@@ -475,7 +479,7 @@ class Service:
                 **converted_attributes,
             )
 
-            topic.messages_published += 1
+            self._events_emitted += 1
 
         return future
 
