@@ -23,7 +23,7 @@ def create_push_subscription(
     :param str push_endpoint: the HTTP/HTTPS endpoint of the service to push to. It should be fully formed and include the 'https://' prefix
     :param str|None subscription_filter: if specified, the filter to apply to the subscription; otherwise, no filter is applied
     :param float|None expiration_time: the number of seconds of inactivity after which the subscription should expire. If not provided, no expiration time is applied to the subscription
-    :param str services_namespace: the services namespace to emit and consume events from
+    :param str services_namespace: the services namespace to subscribe to
     :return None:
     """
     if expiration_time:

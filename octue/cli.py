@@ -363,7 +363,7 @@ def deploy():
     is_flag=False,
     default=DEFAULT_OCTUE_SERVICES_NAMESPACE,
     show_default=True,
-    help="The services namespace to emit and consume events from.",
+    help="The services namespace to subscribe to.",
 )
 def create_push_subscription(
     project_name,
