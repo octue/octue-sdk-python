@@ -115,6 +115,14 @@ class TestService(BaseTestCase):
         self.assertFalse(future.returned)
         self.assertFalse(subscriber.closed)
 
+    def test_missing_services_topic_results_in_error(self):
+        """Test that an error is raised if the services topic doesn't exist."""
+        service = MockService(backend=BACKEND)
+
+        with patch("octue.cloud.emulators._pub_sub.TOPICS", set()):
+            with self.assertRaises(exceptions.ServiceNotFound):
+                service.services_topic
+
     def test_ask_unregistered_service_revision_when_service_registries_specified_results_in_error(self):
         """Test that an error is raised if attempting to ask an unregistered service a question when service registries
         are being used.
@@ -549,7 +557,7 @@ class TestService(BaseTestCase):
 
         for i in range(5):
             subscription, _ = parent.ask(service_id=child.id, input_values={})
-            answers.append(parent.wait_for_answer(subscription, timeout=3600))
+            answers.append(parent.wait_for_answer(subscription))
 
         for answer in answers:
             self.assertEqual(
