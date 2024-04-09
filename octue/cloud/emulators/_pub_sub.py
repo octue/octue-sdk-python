@@ -242,6 +242,13 @@ class MockMessageWrapper:
         self.message = message
         self.ack_id = None
 
+    def __repr__(self):
+        """Represent the mock message as a string.
+
+        :return str:
+        """
+        return f"<{type(self).__name__}(message={self.message})>"
+
 
 class MockMessage:
     """A mock Pub/Sub message containing serialised data and any number of attributes.
