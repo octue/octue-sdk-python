@@ -14,6 +14,7 @@ from google.api_core import retry
 from google.cloud import pubsub_v1
 
 import octue.exceptions
+from octue.cloud.events.counter import EventCounter
 from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler, extract_event_and_attributes_from_pub_sub_message
@@ -92,7 +93,6 @@ class Service:
         self._publisher = None
         self._services_topic = None
         self._event_handler = None
-        self._events_emitted = 0
 
     def __repr__(self):
         """Represent the service as a string.
@@ -225,15 +225,15 @@ class Service:
             return
 
         heartbeater = None
-        self._events_emitted = 0
+        order = EventCounter()
 
         try:
-            self._send_delivery_acknowledgment(question_uuid, originator)
+            self._send_delivery_acknowledgment(question_uuid, originator, order)
 
             heartbeater = RepeatingTimer(
                 interval=heartbeat_interval,
                 function=self._send_heartbeat,
-                kwargs={"question_uuid": question_uuid, "originator": originator},
+                kwargs={"question_uuid": question_uuid, "originator": originator, "order": order},
             )
 
             heartbeater.daemon = True
@@ -245,6 +245,7 @@ class Service:
                     question_uuid=question_uuid,
                     originator=originator,
                     recipient=originator,
+                    order=order,
                 )
             else:
                 analysis_log_handler = None
@@ -259,6 +260,7 @@ class Service:
                     self._send_monitor_message,
                     question_uuid=question_uuid,
                     originator=originator,
+                    order=order,
                 ),
                 save_diagnostics=save_diagnostics,
             )
@@ -272,6 +274,7 @@ class Service:
                 message=result,
                 originator=originator,
                 recipient=originator,
+                order=order,
                 attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
                 timeout=timeout,
             )
@@ -284,7 +287,7 @@ class Service:
                 heartbeater.cancel()
 
             warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
-            self.send_exception(question_uuid, originator, timeout=timeout)
+            self.send_exception(question_uuid, originator, order, timeout=timeout)
             raise error
 
     def ask(
@@ -362,8 +365,6 @@ class Service:
             )
             answer_subscription.create(allow_existing=False)
 
-        self._events_emitted = 0
-
         self._send_question(
             input_values=input_values,
             input_manifest=input_manifest,
@@ -418,11 +419,12 @@ class Service:
         finally:
             subscription.delete()
 
-    def send_exception(self, question_uuid, originator, timeout=30):
+    def send_exception(self, question_uuid, originator, order, timeout=30):
         """Serialise and send the exception being handled to the parent.
 
         :param str question_uuid:
         :param str originator: the SRUID of the service that asked the question this event is related to
+        :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float|None timeout: time in seconds to keep retrying sending of the exception
         :return None:
         """
@@ -438,17 +440,19 @@ class Service:
             },
             originator=originator,
             recipient=originator,
+            order=order,
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
             timeout=timeout,
         )
 
-    def _send_message(self, message, originator, recipient, attributes=None, timeout=30):
+    def _send_message(self, message, originator, recipient, order, attributes=None, timeout=30):
         """Send a JSON-serialised event as a Pub/Sub message to the services topic with optional message attributes,
-        incrementing the `_events_emitted` attribute by one. This method is thread-safe.
+        incrementing the `order` argument by one. This method is thread-safe.
 
         :param dict message: JSON-serialisable data to send as a message
         :param str originator: the SRUID of the service that asked the question this event is related to
         :param str recipient: the SRUID of the service the event is intended for
+        :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param dict|None attributes: key-value pairs to attach to the event - the values must be strings or bytes
         :param int|float timeout: the timeout for sending the event in seconds
         :return google.cloud.pubsub_v1.publisher.futures.Future:
@@ -461,7 +465,7 @@ class Service:
         attributes["recipient"] = recipient
 
         with emit_event_lock:
-            attributes["order"] = self._events_emitted
+            attributes["order"] = int(order)
             converted_attributes = {}
 
             for key, value in attributes.items():
@@ -479,7 +483,7 @@ class Service:
                 **converted_attributes,
             )
 
-            self._events_emitted += 1
+            order += 1
 
         return future
 
@@ -517,6 +521,7 @@ class Service:
             timeout=timeout,
             originator=self.id,
             recipient=service_id,
+            order=EventCounter(),
             attributes={
                 "question_uuid": question_uuid,
                 "forward_logs": forward_logs,
@@ -529,11 +534,12 @@ class Service:
         future.result()
         logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
 
-    def _send_delivery_acknowledgment(self, question_uuid, originator, timeout=30):
+    def _send_delivery_acknowledgment(self, question_uuid, originator, order, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
 
         :param str question_uuid:
         :param str originator: the SRUID of the service that asked the question this event is related to
+        :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -545,16 +551,18 @@ class Service:
             timeout=timeout,
             originator=originator,
             recipient=originator,
+            order=order,
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
 
         logger.info("%r acknowledged receipt of question %r.", self, question_uuid)
 
-    def _send_heartbeat(self, question_uuid, originator, timeout=30):
+    def _send_heartbeat(self, question_uuid, originator, order, timeout=30):
         """Send a heartbeat to the parent, indicating that the service is alive.
 
         :param str question_uuid:
         :param str originator: the SRUID of the service that asked the question this event is related to
+        :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -565,18 +573,20 @@ class Service:
             },
             originator=originator,
             recipient=originator,
+            order=order,
             timeout=timeout,
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
 
         logger.debug("Heartbeat sent by %r.", self)
 
-    def _send_monitor_message(self, data, question_uuid, originator, timeout=30):
+    def _send_monitor_message(self, data, question_uuid, originator, order, timeout=30):
         """Send a monitor message to the parent.
 
         :param any data: the data to send as a monitor message
         :param str question_uuid:
         :param str originator: the SRUID of the service that asked the question this event is related to
+        :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float timeout: time in seconds to retry sending the message
         :return None:
         """
@@ -584,6 +594,7 @@ class Service:
             {"kind": "monitor_message", "data": data},
             originator=originator,
             recipient=originator,
+            order=order,
             timeout=timeout,
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
@@ -613,7 +624,7 @@ class Service:
             child_sdk_version=importlib.metadata.version("octue"),
         )
 
-        logger.info("%r parsed the question successfully.", self)
+        logger.info("%r parsed question %r successfully.", self, attributes["question_uuid"])
 
         return (
             event,

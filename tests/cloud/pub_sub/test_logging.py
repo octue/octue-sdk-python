@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from octue.cloud.emulators._pub_sub import MESSAGES, MockService, MockTopic
 from octue.cloud.emulators.child import ServicePatcher
+from octue.cloud.events.counter import EventCounter
 from octue.cloud.pub_sub.logging import GoogleCloudPubSubHandler
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
@@ -17,26 +18,38 @@ class NonJSONSerialisable:
 
 
 class TestGoogleCloudPubSubHandler(BaseTestCase):
+    service_patcher = ServicePatcher()
+
     @classmethod
     def setUpClass(cls):
-        topic = MockTopic(name="octue.services", project_name=TEST_PROJECT_NAME)
+        """Start the service patcher and create a mock services topic.
 
-        with ServicePatcher():
-            topic.create(allow_existing=True)
+        :return None:
+        """
+        cls.service_patcher.start()
+        topic = MockTopic(name="octue.services", project_name=TEST_PROJECT_NAME)
+        topic.create(allow_existing=True)
+
+    @classmethod
+    def tearDownClass(cls):
+        """Stop the services patcher.
+
+        :return None:
+        """
+        cls.service_patcher.stop()
 
     def test_emit(self):
         """Test the log message is published when `GoogleCloudPubSubHandler.emit` is called."""
         question_uuid = "96d69278-44ac-4631-aeea-c90fb08a1b2b"
         log_record = makeLogRecord({"msg": "Starting analysis."})
-
-        with ServicePatcher():
-            service = MockService(backend=GCPPubSubBackend(project_name="blah"))
+        service = MockService(backend=GCPPubSubBackend(project_name="blah"))
 
         GoogleCloudPubSubHandler(
             message_sender=service._send_message,
             question_uuid=question_uuid,
             originator="another/service:1.0.0",
             recipient="another/service:1.0.0",
+            order=EventCounter(),
         ).emit(log_record)
 
         self.assertEqual(
@@ -58,8 +71,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
             {"msg": "%r is not JSON-serialisable but can go into a log message", "args": (non_json_serialisable_thing,)}
         )
 
-        with ServicePatcher():
-            service = MockService(backend=GCPPubSubBackend(project_name="blah"))
+        service = MockService(backend=GCPPubSubBackend(project_name="blah"))
 
         with patch("octue.cloud.emulators._pub_sub.MockPublisher.publish") as mock_publish:
             GoogleCloudPubSubHandler(
@@ -67,6 +79,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
                 question_uuid="question-uuid",
                 originator="another/service:1.0.0",
                 recipient="another/service:1.0.0",
+                order=EventCounter(),
             ).emit(record)
 
         self.assertEqual(

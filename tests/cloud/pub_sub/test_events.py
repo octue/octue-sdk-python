@@ -65,11 +65,20 @@ class TestPubSubEventHandler(BaseTestCase):
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         messages = [
-            {"event": {"kind": "test"}, "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"}},
-            {"event": {"kind": "test"}, "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"}},
-            {"event": {"kind": "test"}, "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"}},
             {
-                "event": {"kind": "finish-test"},
+                "event": {"kind": "test", "order": 0},
+                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "test", "order": 1},
+                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "test", "order": 2},
+                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+            },
+            {
+                "event": {"kind": "finish-test", "order": 3},
                 "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
             },
         ]
@@ -80,6 +89,7 @@ class TestPubSubEventHandler(BaseTestCase):
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
+                order=message["event"]["order"],
             )
 
         result = event_handler.handle_events()
@@ -87,7 +97,12 @@ class TestPubSubEventHandler(BaseTestCase):
 
         self.assertEqual(
             event_handler.handled_events,
-            [{"kind": "test"}, {"kind": "test"}, {"kind": "test"}, {"kind": "finish-test"}],
+            [
+                {"kind": "test", "order": 0},
+                {"kind": "test", "order": 1},
+                {"kind": "test", "order": 2},
+                {"kind": "finish-test", "order": 3},
+            ],
         )
 
     def test_out_of_order_messages_are_handled_in_order(self):
@@ -121,12 +136,12 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._events_emitted = message["event"]["order"]
             child._send_message(
                 message=message["event"],
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
+                order=message["event"]["order"],
             )
 
         result = event_handler.handle_events()
@@ -176,12 +191,12 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._events_emitted = message["event"]["order"]
             child._send_message(
                 message=message["event"],
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
+                order=message["event"]["order"],
             )
 
         result = event_handler.handle_events()
@@ -230,6 +245,7 @@ class TestPubSubEventHandler(BaseTestCase):
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
+                order=message["event"]["order"],
             )
 
         result = event_handler.handle_events(timeout=None)
@@ -247,11 +263,15 @@ class TestPubSubEventHandler(BaseTestCase):
 
         messages = [
             {
-                "event": {"kind": "delivery_acknowledgement", "datetime": datetime.datetime.utcnow().isoformat()},
+                "event": {
+                    "kind": "delivery_acknowledgement",
+                    "datetime": datetime.datetime.utcnow().isoformat(),
+                    "order": 0,
+                },
                 "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
             },
             {
-                "event": {"kind": "result"},
+                "event": {"kind": "result", "order": 1},
                 "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
             },
         ]
@@ -262,6 +282,7 @@ class TestPubSubEventHandler(BaseTestCase):
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
+                order=message["event"]["order"],
             )
 
         result = event_handler.handle_events()
@@ -298,11 +319,12 @@ class TestPubSubEventHandler(BaseTestCase):
                 "event": {
                     "kind": "delivery_acknowledgement",
                     "datetime": datetime.datetime.utcnow().isoformat(),
+                    "order": 0,
                 },
                 "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
             },
             {
-                "event": {"kind": "result"},
+                "event": {"kind": "result", "order": 1},
                 "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
             },
         ]
@@ -313,6 +335,7 @@ class TestPubSubEventHandler(BaseTestCase):
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
+                order=message["event"]["order"],
             )
 
         with patch(
@@ -350,10 +373,9 @@ class TestPubSubEventHandler(BaseTestCase):
             skip_missing_events_after=0,
         )
 
-        # Simulate the first two messages not being received.
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
-        child._events_emitted = 2
 
+        # Simulate the first two messages not being received.
         messages = [
             {
                 "event": {"kind": "test", "order": 2},
@@ -379,6 +401,7 @@ class TestPubSubEventHandler(BaseTestCase):
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
+                order=message["event"]["order"],
             )
 
         result = event_handler.handle_events()
@@ -428,10 +451,8 @@ class TestPubSubEventHandler(BaseTestCase):
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
+                order=message["event"]["order"],
             )
-
-        # Simulate missing messages.
-        child._events_emitted = 5
 
         # Send a final message.
         child._send_message(
@@ -439,6 +460,8 @@ class TestPubSubEventHandler(BaseTestCase):
             attributes={"question_uuid": self.question_uuid, "sender_type": "CHILD"},
             originator=self.parent.id,
             recipient=self.parent.id,
+            # Simulate missing messages.
+            order=5,
         )
 
         event_handler.handle_events()
@@ -488,10 +511,8 @@ class TestPubSubEventHandler(BaseTestCase):
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
+                order=message["event"]["order"],
             )
-
-        # Simulate missing messages.
-        child._events_emitted = 5
 
         # Send another message.
         child._send_message(
@@ -499,10 +520,9 @@ class TestPubSubEventHandler(BaseTestCase):
             attributes={"order": 5, "question_uuid": self.question_uuid, "sender_type": "CHILD"},
             originator=self.parent.id,
             recipient=self.parent.id,
+            # Simulate missing messages.
+            order=5,
         )
-
-        # Simulate more missing messages.
-        child._events_emitted = 20
 
         # Send more consecutive messages.
         messages = [
@@ -530,6 +550,8 @@ class TestPubSubEventHandler(BaseTestCase):
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
+                # Simulate more missing messages.
+                order=message["event"]["order"],
             )
 
         event_handler.handle_events()
@@ -559,9 +581,7 @@ class TestPubSubEventHandler(BaseTestCase):
             skip_missing_events_after=0,
         )
 
-        # Simulate missing messages.
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
-        child._events_emitted = 1000
 
         # Send the result message.
         child._send_message(
@@ -569,6 +589,8 @@ class TestPubSubEventHandler(BaseTestCase):
             attributes={"question_uuid": self.question_uuid, "sender_type": "CHILD"},
             originator=self.parent.id,
             recipient=self.parent.id,
+            # Simulate missing messages.
+            order=1000,
         )
 
         event_handler.handle_events()
