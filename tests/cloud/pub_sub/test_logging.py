@@ -46,7 +46,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
         service = MockService(backend=GCPPubSubBackend(project_name="blah"))
 
         GoogleCloudPubSubHandler(
-            event_emitter=service.emit_event,
+            event_emitter=service._emit_event,
             question_uuid=question_uuid,
             originator="another/service:1.0.0",
             recipient="another/service:1.0.0",
@@ -76,7 +76,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
 
         with patch("octue.cloud.emulators._pub_sub.MockPublisher.publish") as mock_publish:
             GoogleCloudPubSubHandler(
-                event_emitter=service.emit_event,
+                event_emitter=service._emit_event,
                 question_uuid="question-uuid",
                 originator="another/service:1.0.0",
                 recipient="another/service:1.0.0",

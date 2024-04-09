@@ -242,7 +242,7 @@ class Service:
 
             if forward_logs:
                 analysis_log_handler = GoogleCloudPubSubHandler(
-                    event_emitter=self.emit_event,
+                    event_emitter=self._emit_event,
                     question_uuid=question_uuid,
                     originator=originator,
                     recipient=originator,
@@ -271,7 +271,7 @@ class Service:
             if analysis.output_manifest is not None:
                 result["output_manifest"] = analysis.output_manifest.to_primitive()
 
-            self.emit_event(
+            self._emit_event(
                 event=result,
                 originator=originator,
                 recipient=originator,
@@ -432,7 +432,7 @@ class Service:
         exception = convert_exception_to_primitives()
         exception_message = f"Error in {self!r}: {exception['message']}"
 
-        self.emit_event(
+        self._emit_event(
             {
                 "kind": "exception",
                 "exception_type": exception["type"],
@@ -446,7 +446,7 @@ class Service:
             timeout=timeout,
         )
 
-    def emit_event(self, event, originator, recipient, order, attributes=None, timeout=30):
+    def _emit_event(self, event, originator, recipient, order, attributes=None, timeout=30):
         """Emit a JSON-serialised event as a Pub/Sub message to the services topic with optional message attributes,
         incrementing the `order` argument by one. This method is thread-safe.
 
@@ -517,7 +517,7 @@ class Service:
             input_manifest.use_signed_urls_for_datasets()
             question["input_manifest"] = input_manifest.to_primitive()
 
-        future = self.emit_event(
+        future = self._emit_event(
             event=question,
             timeout=timeout,
             originator=self.id,
@@ -544,7 +544,7 @@ class Service:
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
-        self.emit_event(
+        self._emit_event(
             {
                 "kind": "delivery_acknowledgement",
                 "datetime": datetime.datetime.utcnow().isoformat(),
@@ -567,7 +567,7 @@ class Service:
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
-        self.emit_event(
+        self._emit_event(
             {
                 "kind": "heartbeat",
                 "datetime": datetime.datetime.utcnow().isoformat(),
@@ -591,7 +591,7 @@ class Service:
         :param float timeout: time in seconds to retry sending the message
         :return None:
         """
-        self.emit_event(
+        self._emit_event(
             {"kind": "monitor_message", "data": data},
             originator=originator,
             recipient=originator,
