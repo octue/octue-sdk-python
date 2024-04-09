@@ -10,7 +10,6 @@ import sys
 import click
 from google import auth
 
-from octue import DEFAULT_OCTUE_SERVICES_NAMESPACE
 from octue.cloud import pub_sub, storage
 from octue.cloud.pub_sub.service import Service
 from octue.cloud.service_id import create_sruid, get_sruid_parts
@@ -358,13 +357,6 @@ def deploy():
     help="The service revision tag (e.g. 1.0.7). If this option isn't given, a random 'cool name' tag is generated e.g"
     ". 'curious-capybara'.",
 )
-@click.option(
-    "--services-namespace",
-    is_flag=False,
-    default=DEFAULT_OCTUE_SERVICES_NAMESPACE,
-    show_default=True,
-    help="The services namespace to subscribe to.",
-)
 def create_push_subscription(
     project_name,
     service_namespace,
@@ -372,7 +364,6 @@ def create_push_subscription(
     push_endpoint,
     expiration_time,
     revision_tag,
-    services_namespace,
 ):
     """Create a Google Pub/Sub push subscription for an Octue service for it to receive questions from parents. The
     subscription name is printed on completion.
@@ -394,7 +385,6 @@ def create_push_subscription(
         push_endpoint,
         expiration_time=expiration_time,
         subscription_filter=f'attributes.recipient = "{sruid}" AND attributes.sender_type = "PARENT"',
-        services_namespace=services_namespace,
     )
 
     click.echo(sruid)

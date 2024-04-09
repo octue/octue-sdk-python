@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from octue.cloud.emulators._pub_sub import MESSAGES, MockService, MockTopic
 from octue.cloud.emulators.child import ServicePatcher
+from octue.cloud.events import OCTUE_SERVICES_PREFIX
 from octue.cloud.events.counter import EventCounter
 from octue.cloud.pub_sub.logging import GoogleCloudPubSubHandler
 from octue.resources.service_backends import GCPPubSubBackend
@@ -27,7 +28,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
         :return None:
         """
         cls.service_patcher.start()
-        topic = MockTopic(name="octue.services", project_name=TEST_PROJECT_NAME)
+        topic = MockTopic(name=OCTUE_SERVICES_PREFIX, project_name=TEST_PROJECT_NAME)
         topic.create(allow_existing=True)
 
     @classmethod

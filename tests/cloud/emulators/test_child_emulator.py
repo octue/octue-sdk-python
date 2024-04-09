@@ -4,6 +4,7 @@ import os
 from octue.cloud import storage
 from octue.cloud.emulators._pub_sub import MockService, MockTopic
 from octue.cloud.emulators.child import ChildEmulator, ServicePatcher
+from octue.cloud.events import OCTUE_SERVICES_PREFIX
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Manifest
 from octue.resources.service_backends import GCPPubSubBackend
@@ -17,7 +18,7 @@ class TestChildEmulatorAsk(BaseTestCase):
 
     @classmethod
     def setUpClass(cls):
-        topic = MockTopic(name="octue.services", project_name=TEST_PROJECT_NAME)
+        topic = MockTopic(name=OCTUE_SERVICES_PREFIX, project_name=TEST_PROJECT_NAME)
 
         with ServicePatcher():
             topic.create(allow_existing=True)
@@ -306,7 +307,7 @@ class TestChildEmulatorJSONFiles(BaseTestCase):
 
     @classmethod
     def setUpClass(cls):
-        topic = MockTopic(name="octue.services", project_name=TEST_PROJECT_NAME)
+        topic = MockTopic(name=OCTUE_SERVICES_PREFIX, project_name=TEST_PROJECT_NAME)
 
         with ServicePatcher():
             topic.create(allow_existing=True)

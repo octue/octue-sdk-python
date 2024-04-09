@@ -10,6 +10,7 @@ from google.auth.exceptions import DefaultCredentialsError
 
 from octue.cloud.emulators._pub_sub import MockAnalysis, MockService, MockTopic
 from octue.cloud.emulators.child import ServicePatcher
+from octue.cloud.events import OCTUE_SERVICES_PREFIX
 from octue.resources.child import Child
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_PROJECT_NAME
@@ -41,7 +42,7 @@ class TestChild(BaseTestCase):
         :return None:
         """
         cls.service_patcher.start()
-        topic = MockTopic(name="octue.services", project_name=TEST_PROJECT_NAME)
+        topic = MockTopic(name=OCTUE_SERVICES_PREFIX, project_name=TEST_PROJECT_NAME)
         topic.create(allow_existing=True)
 
     @classmethod

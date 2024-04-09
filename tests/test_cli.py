@@ -11,6 +11,7 @@ from octue.cli import octue_cli
 from octue.cloud import storage
 from octue.cloud.emulators._pub_sub import MockService, MockTopic
 from octue.cloud.emulators.child import ServicePatcher
+from octue.cloud.events import OCTUE_SERVICES_PREFIX
 from octue.configuration import AppConfiguration, ServiceConfiguration
 from octue.resources import Dataset
 from octue.utils.patches import MultiPatcher
@@ -194,7 +195,7 @@ class TestStartCommand(BaseTestCase):
             },
         )
 
-        topic = MockTopic(name="octue.services", project_name=TEST_PROJECT_NAME)
+        topic = MockTopic(name=OCTUE_SERVICES_PREFIX, project_name=TEST_PROJECT_NAME)
 
         with ServicePatcher():
             topic.create(allow_existing=True)

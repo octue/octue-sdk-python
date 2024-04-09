@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from octue.cloud.emulators._pub_sub import MESSAGES, MockMessage, MockService, MockSubscription, MockTopic
 from octue.cloud.emulators.child import ServicePatcher
+from octue.cloud.events import OCTUE_SERVICES_PREFIX
 from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
@@ -19,7 +20,7 @@ class TestPubSubEventHandler(BaseTestCase):
         cls.service_patcher.start()
         cls.question_uuid = str(uuid.uuid4())
 
-        cls.topic = MockTopic(name="octue.services", project_name=TEST_PROJECT_NAME)
+        cls.topic = MockTopic(name=OCTUE_SERVICES_PREFIX, project_name=TEST_PROJECT_NAME)
         cls.topic.create(allow_existing=True)
 
         cls.subscription = MockSubscription(
@@ -607,7 +608,7 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
         cls.service_patcher.start()
         cls.question_uuid = str(uuid.uuid4())
 
-        cls.topic = MockTopic(name="octue.services", project_name=TEST_PROJECT_NAME)
+        cls.topic = MockTopic(name=OCTUE_SERVICES_PREFIX, project_name=TEST_PROJECT_NAME)
         cls.topic.create(allow_existing=True)
 
         cls.subscription = MockSubscription(

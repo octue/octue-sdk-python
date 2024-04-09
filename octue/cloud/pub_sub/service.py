@@ -14,6 +14,7 @@ from google.api_core import retry
 from google.cloud import pubsub_v1
 
 import octue.exceptions
+from octue.cloud.events import OCTUE_SERVICES_PREFIX
 from octue.cloud.events.counter import EventCounter
 from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
@@ -124,10 +125,10 @@ class Service:
         :return octue.cloud.pub_sub.topic.Topic: the Octue services topic for the project
         """
         if not self._services_topic:
-            topic = Topic(name=self.backend.services_namespace, project_name=self.backend.project_name)
+            topic = Topic(name=OCTUE_SERVICES_PREFIX, project_name=self.backend.project_name)
 
             if not topic.exists():
-                raise octue.exceptions.ServiceNotFound(f"Topic {self.backend.services_namespace!r} cannot be found.")
+                raise octue.exceptions.ServiceNotFound(f"Topic {topic.name!r} cannot be found.")
 
             self._services_topic = topic
 
@@ -158,7 +159,7 @@ class Service:
         logger.info("Starting %r.", self)
 
         subscription = Subscription(
-            name=".".join((self.backend.services_namespace, self._pub_sub_id)),
+            name=".".join((OCTUE_SERVICES_PREFIX, self._pub_sub_id)),
             topic=self.services_topic,
             filter=f'attributes.recipient = "{self.id}" AND attributes.sender_type = "{PARENT_SENDER_TYPE}"',
             expiration_time=None,
@@ -354,7 +355,7 @@ class Service:
             pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
 
             answer_subscription = Subscription(
-                name=".".join((self.backend.services_namespace, pub_sub_id, ANSWERS_NAMESPACE, question_uuid)),
+                name=".".join((OCTUE_SERVICES_PREFIX, pub_sub_id, ANSWERS_NAMESPACE, question_uuid)),
                 topic=self.services_topic,
                 filter=(
                     f'attributes.recipient = "{self.id}" '

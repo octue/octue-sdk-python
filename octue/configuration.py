@@ -4,8 +4,6 @@ import os
 
 import yaml
 
-from octue import DEFAULT_OCTUE_SERVICES_NAMESPACE
-
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +18,6 @@ class ServiceConfiguration:
     :param str|None app_configuration_path: the path to the app configuration file containing configuration data for the service; if this is `None`, the default application configuration is used
     :param str|None diagnostics_cloud_path: the path to a cloud directory to store diagnostics (this includes the configuration, input values and manifest, and logs)
     :param iter(dict)|None service_registries: the names and endpoints of the registries used to resolve service revisions when asking questions; these should be in priority order (highest priority first)
-    :param str services_namespace: the services namespace to emit and consume events from
     :param str|None directory: if provided, find the app source, twine, and app configuration relative to this directory
     :return None:
     """
@@ -34,7 +31,6 @@ class ServiceConfiguration:
         app_configuration_path=None,
         diagnostics_cloud_path=None,
         service_registries=None,
-        services_namespace=DEFAULT_OCTUE_SERVICES_NAMESPACE,
         directory=None,
         **kwargs,
     ):
@@ -42,7 +38,6 @@ class ServiceConfiguration:
         self.namespace = namespace
         self.diagnostics_cloud_path = diagnostics_cloud_path
         self.service_registries = service_registries
-        self.services_namespace = services_namespace
 
         if directory:
             directory = os.path.abspath(directory)

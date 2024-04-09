@@ -39,25 +39,19 @@ class GCPPubSubBackend(ServiceBackend):
     """A dataclass containing the details needed to use Google Cloud Pub/Sub as a Service backend.
 
     :param str project_name: the name of the project to use for Pub/Sub
-    :param str services_namespace: the name of the topic to publish/subscribe events to/from
     :return None:
     """
 
-    ERROR_MESSAGE = (
-        "`project_name` and `services_namespace` must be specified for a service to connect to the correct service - "
-        "one of these is currently None."
-    )
-
-    # "octue.services" is repeated here to avoid a circular import.
-    def __init__(self, project_name, services_namespace="octue.services"):
-        if project_name is None or services_namespace is None:
-            raise exceptions.CloudLocationNotSpecified(self.ERROR_MESSAGE)
+    def __init__(self, project_name):
+        if project_name is None:
+            raise exceptions.CloudLocationNotSpecified(
+                "`project_name` must be specified for a service to connect to the correct service - received None."
+            )
 
         self.project_name = project_name
-        self.services_namespace = services_namespace
 
     def __repr__(self):
-        return f"<{type(self).__name__}(project_name={self.project_name!r}, services_namespace={self.services_namespace!r})>"
+        return f"<{type(self).__name__}(project_name={self.project_name!r})>"
 
 
 AVAILABLE_BACKENDS = {
