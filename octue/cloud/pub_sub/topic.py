@@ -41,7 +41,7 @@ class Topic:
 
         :return str:
         """
-        return f"<{type(self).__name__}({self.name})>"
+        return f"<{type(self).__name__}(name={self.name!r})>"
 
     def create(self, allow_existing=False):
         """Create a Google Pub/Sub topic that can be published to.
