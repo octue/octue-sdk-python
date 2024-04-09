@@ -241,7 +241,7 @@ class Service:
 
             if forward_logs:
                 analysis_log_handler = GoogleCloudPubSubHandler(
-                    message_sender=self._send_message,
+                    event_emitter=self.emit_event,
                     question_uuid=question_uuid,
                     originator=originator,
                     recipient=originator,
@@ -270,8 +270,8 @@ class Service:
             if analysis.output_manifest is not None:
                 result["output_manifest"] = analysis.output_manifest.to_primitive()
 
-            self._send_message(
-                message=result,
+            self.emit_event(
+                event=result,
                 originator=originator,
                 recipient=originator,
                 order=order,
@@ -431,7 +431,7 @@ class Service:
         exception = convert_exception_to_primitives()
         exception_message = f"Error in {self!r}: {exception['message']}"
 
-        self._send_message(
+        self.emit_event(
             {
                 "kind": "exception",
                 "exception_type": exception["type"],
@@ -445,11 +445,11 @@ class Service:
             timeout=timeout,
         )
 
-    def _send_message(self, message, originator, recipient, order, attributes=None, timeout=30):
-        """Send a JSON-serialised event as a Pub/Sub message to the services topic with optional message attributes,
+    def emit_event(self, event, originator, recipient, order, attributes=None, timeout=30):
+        """Emit a JSON-serialised event as a Pub/Sub message to the services topic with optional message attributes,
         incrementing the `order` argument by one. This method is thread-safe.
 
-        :param dict message: JSON-serialisable data to send as a message
+        :param dict event: JSON-serialisable data to emit as an event
         :param str originator: the SRUID of the service that asked the question this event is related to
         :param str recipient: the SRUID of the service the event is intended for
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
@@ -478,7 +478,7 @@ class Service:
 
             future = self.publisher.publish(
                 topic=self.services_topic.path,
-                data=json.dumps(message, cls=OctueJSONEncoder).encode(),
+                data=json.dumps(event, cls=OctueJSONEncoder).encode(),
                 retry=retry.Retry(deadline=timeout),
                 **converted_attributes,
             )
@@ -516,8 +516,8 @@ class Service:
             input_manifest.use_signed_urls_for_datasets()
             question["input_manifest"] = input_manifest.to_primitive()
 
-        future = self._send_message(
-            message=question,
+        future = self.emit_event(
+            event=question,
             timeout=timeout,
             originator=self.id,
             recipient=service_id,
@@ -543,7 +543,7 @@ class Service:
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
-        self._send_message(
+        self.emit_event(
             {
                 "kind": "delivery_acknowledgement",
                 "datetime": datetime.datetime.utcnow().isoformat(),
@@ -566,7 +566,7 @@ class Service:
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
-        self._send_message(
+        self.emit_event(
             {
                 "kind": "heartbeat",
                 "datetime": datetime.datetime.utcnow().isoformat(),
@@ -590,7 +590,7 @@ class Service:
         :param float timeout: time in seconds to retry sending the message
         :return None:
         """
-        self._send_message(
+        self.emit_event(
             {"kind": "monitor_message", "data": data},
             originator=originator,
             recipient=originator,

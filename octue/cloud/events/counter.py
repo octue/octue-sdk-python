@@ -1,6 +1,6 @@
 class EventCounter:
     """A mutable counter for keeping track of the emission order of events. This is used in the `Service` class instead
-    of an integer because it is mutable and can be passed to the `Service._send_message` method and incremented as
+    of an integer because it is mutable and can be passed to the `Service._emit_event` method and incremented as
     events are emitted.
 
     :return None:

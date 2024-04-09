@@ -8,7 +8,7 @@ ANSI_ESCAPE_SEQUENCES_PATTERN = r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])"
 class GoogleCloudPubSubHandler(logging.Handler):
     """A log handler that publishes log records to a Google Cloud Pub/Sub topic.
 
-    :param callable message_sender: the `_send_message` method of the service that instantiated this instance
+    :param callable event_emitter: the `_emit_event` method of the service that instantiated this instance
     :param str question_uuid: the UUID of the question to handle log records for
     :param str originator: the SRUID of the service that asked the question these log records are related to
     :param str recipient: the SRUID of the service to send these log records to
@@ -17,14 +17,14 @@ class GoogleCloudPubSubHandler(logging.Handler):
     :return None:
     """
 
-    def __init__(self, message_sender, question_uuid, originator, recipient, order, timeout=60, *args, **kwargs):
+    def __init__(self, event_emitter, question_uuid, originator, recipient, order, timeout=60, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.question_uuid = question_uuid
         self.originator = originator
         self.recipient = recipient
         self.order = order
         self.timeout = timeout
-        self._send_message = message_sender
+        self._emit_event = event_emitter
 
     def emit(self, record):
         """Serialise the log record as a dictionary and publish it to the topic.
@@ -33,7 +33,7 @@ class GoogleCloudPubSubHandler(logging.Handler):
         :return None:
         """
         try:
-            self._send_message(
+            self._emit_event(
                 {
                     "kind": "log_record",
                     "log_record": self._convert_log_record_to_primitives(record),

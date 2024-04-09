@@ -84,8 +84,8 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._send_message(
-                message=message["event"],
+            child.emit_event(
+                event=message["event"],
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -136,8 +136,8 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._send_message(
-                message=message["event"],
+            child.emit_event(
+                event=message["event"],
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -191,8 +191,8 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._send_message(
-                message=message["event"],
+            child.emit_event(
+                event=message["event"],
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -240,8 +240,8 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._send_message(
-                message=message["event"],
+            child.emit_event(
+                event=message["event"],
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -277,8 +277,8 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._send_message(
-                message=message["event"],
+            child.emit_event(
+                event=message["event"],
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -330,8 +330,8 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._send_message(
-                message=message["event"],
+            child.emit_event(
+                event=message["event"],
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -396,8 +396,8 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._send_message(
-                message=message["event"],
+            child.emit_event(
+                event=message["event"],
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -446,8 +446,8 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._send_message(
-                message=message["event"],
+            child.emit_event(
+                event=message["event"],
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -455,8 +455,8 @@ class TestPubSubEventHandler(BaseTestCase):
             )
 
         # Send a final message.
-        child._send_message(
-            message={"kind": "finish-test", "order": 5},
+        child.emit_event(
+            event={"kind": "finish-test", "order": 5},
             attributes={"question_uuid": self.question_uuid, "sender_type": "CHILD"},
             originator=self.parent.id,
             recipient=self.parent.id,
@@ -506,8 +506,8 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._send_message(
-                message=message["event"],
+            child.emit_event(
+                event=message["event"],
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -515,8 +515,8 @@ class TestPubSubEventHandler(BaseTestCase):
             )
 
         # Send another message.
-        child._send_message(
-            message={"kind": "test", "order": 5},
+        child.emit_event(
+            event={"kind": "test", "order": 5},
             attributes={"order": 5, "question_uuid": self.question_uuid, "sender_type": "CHILD"},
             originator=self.parent.id,
             recipient=self.parent.id,
@@ -545,8 +545,8 @@ class TestPubSubEventHandler(BaseTestCase):
         ]
 
         for message in messages:
-            child._send_message(
-                message=message["event"],
+            child.emit_event(
+                event=message["event"],
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -584,8 +584,8 @@ class TestPubSubEventHandler(BaseTestCase):
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         # Send the result message.
-        child._send_message(
-            message={"kind": "finish-test", "order": 1000},
+        child.emit_event(
+            event={"kind": "finish-test", "order": 1000},
             attributes={"question_uuid": self.question_uuid, "sender_type": "CHILD"},
             originator=self.parent.id,
             recipient=self.parent.id,
