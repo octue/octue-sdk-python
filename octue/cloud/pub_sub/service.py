@@ -425,6 +425,11 @@ class Service:
         )
 
     def _get_services_topic(self):
+        """Get the Octue services topic that all events in the project are published to.
+
+        :raise octue.exceptions.ServiceNotFound: if the topic doesn't exist in the project
+        :return octue.cloud.pub_sub.topic.Topic: the Octue services topic for the project
+        """
         topic = Topic(name=self.backend.services_namespace, project_name=self.backend.project_name)
 
         if not topic.exists():
@@ -433,14 +438,14 @@ class Service:
         return topic
 
     def _send_message(self, message, originator, recipient, attributes=None, timeout=30):
-        """Send a JSON-serialised message to the given topic with optional message attributes and increment the
-        `_events_emitted` attribute by one. This method is thread-safe.
+        """Send a JSON-serialised event as a Pub/Sub message to the services topic with optional message attributes,
+        incrementing the `_events_emitted` attribute by one. This method is thread-safe.
 
         :param dict message: JSON-serialisable data to send as a message
         :param str originator: the SRUID of the service that asked the question this event is related to
-        :param str recipient:
-        :param dict|None attributes: key-value pairs to attach to the message - the values must be strings or bytes
-        :param int|float timeout: the timeout for sending the message in seconds
+        :param str recipient: the SRUID of the service the event is intended for
+        :param dict|None attributes: key-value pairs to attach to the event - the values must be strings or bytes
+        :param int|float timeout: the timeout for sending the event in seconds
         :return google.cloud.pubsub_v1.publisher.futures.Future:
         """
         attributes = attributes or {}
