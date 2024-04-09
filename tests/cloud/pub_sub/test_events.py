@@ -12,9 +12,9 @@ from tests.base import BaseTestCase
 
 
 def create_mock_topic_and_subscription():
-    """Create a question UUID, mock topic, and mock subscription.
+    """Create a question UUID, mock topic, mock subscription, and parent service.
 
-    :return (str, octue.cloud.emulators._pub_sub.MockTopic, octue.cloud.emulators._pub_sub.MockSubscription): question UUID, topic, and subscription
+    :return (str, octue.cloud.emulators._pub_sub.MockTopic, octue.cloud.emulators._pub_sub.MockSubscription, octue.cloud.emulators._pub_sub.MockService): question UUID, topic, subscription, and parent service
     """
     question_uuid = str(uuid.uuid4())
 
@@ -26,7 +26,8 @@ def create_mock_topic_and_subscription():
 
     with ServicePatcher():
         parent = MockService(
-            service_id="my-org/my-service:1.0.0", backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME)
+            service_id="my-org/my-service:1.0.0",
+            backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME),
         )
 
     return question_uuid, topic, subscription, parent
@@ -73,7 +74,6 @@ class TestPubSubEventHandler(BaseTestCase):
             child._send_message(
                 message=message["event"],
                 attributes=message["attributes"],
-                topic=mock_topic,
                 originator=parent.id,
                 recipient=parent.id,
             )
@@ -124,7 +124,6 @@ class TestPubSubEventHandler(BaseTestCase):
             child._send_message(
                 message=message["event"],
                 attributes=message["attributes"],
-                topic=mock_topic,
                 originator=parent.id,
                 recipient=parent.id,
             )
@@ -183,7 +182,6 @@ class TestPubSubEventHandler(BaseTestCase):
             child._send_message(
                 message=message["event"],
                 attributes=message["attributes"],
-                topic=mock_topic,
                 originator=parent.id,
                 recipient=parent.id,
             )
@@ -235,7 +233,6 @@ class TestPubSubEventHandler(BaseTestCase):
             child._send_message(
                 message=message["event"],
                 attributes=message["attributes"],
-                topic=mock_topic,
                 originator=parent.id,
                 recipient=parent.id,
             )
@@ -271,7 +268,6 @@ class TestPubSubEventHandler(BaseTestCase):
             child._send_message(
                 message=message["event"],
                 attributes=message["attributes"],
-                topic=mock_topic,
                 originator=parent.id,
                 recipient=parent.id,
             )
@@ -334,7 +330,6 @@ class TestPubSubEventHandler(BaseTestCase):
             child._send_message(
                 message=message["event"],
                 attributes=message["attributes"],
-                topic=mock_topic,
                 originator=parent.id,
                 recipient=parent.id,
             )
@@ -411,7 +406,6 @@ class TestPubSubEventHandler(BaseTestCase):
             child._send_message(
                 message=message["event"],
                 attributes=message["attributes"],
-                topic=mock_topic,
                 originator=parent.id,
                 recipient=parent.id,
             )
@@ -464,7 +458,6 @@ class TestPubSubEventHandler(BaseTestCase):
             child._send_message(
                 message=message["event"],
                 attributes=message["attributes"],
-                topic=mock_topic,
                 originator=parent.id,
                 recipient=parent.id,
             )
@@ -476,7 +469,6 @@ class TestPubSubEventHandler(BaseTestCase):
         child._send_message(
             message={"kind": "finish-test", "order": 5},
             attributes={"question_uuid": question_uuid, "sender_type": "CHILD"},
-            topic=mock_topic,
             originator=parent.id,
             recipient=parent.id,
         )
@@ -529,7 +521,6 @@ class TestPubSubEventHandler(BaseTestCase):
             child._send_message(
                 message=message["event"],
                 attributes=message["attributes"],
-                topic=mock_topic,
                 originator=parent.id,
                 recipient=parent.id,
             )
@@ -541,7 +532,6 @@ class TestPubSubEventHandler(BaseTestCase):
         child._send_message(
             message={"kind": "test", "order": 5},
             attributes={"order": 5, "question_uuid": question_uuid, "sender_type": "CHILD"},
-            topic=mock_topic,
             originator=parent.id,
             recipient=parent.id,
         )
@@ -573,7 +563,6 @@ class TestPubSubEventHandler(BaseTestCase):
             child._send_message(
                 message=message["event"],
                 attributes=message["attributes"],
-                topic=mock_topic,
                 originator=parent.id,
                 recipient=parent.id,
             )
@@ -617,7 +606,6 @@ class TestPubSubEventHandler(BaseTestCase):
         child._send_message(
             message={"kind": "finish-test", "order": 1000},
             attributes={"question_uuid": question_uuid, "sender_type": "CHILD"},
-            topic=mock_topic,
             originator=parent.id,
             recipient=parent.id,
         )
