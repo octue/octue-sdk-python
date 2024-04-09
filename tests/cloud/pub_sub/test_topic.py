@@ -10,15 +10,7 @@ class TestTopic(BaseTestCase):
     def test_repr(self):
         """Test that Topics are represented correctly."""
         topic = Topic(name="world", project_name="my-project")
-        self.assertEqual(repr(topic), "<Topic(octue.services.world)>")
-
-    def test_namespace_only_in_name_once(self):
-        """Test that the topic's namespace only appears in its name once, even if it is repeated."""
-        topic = Topic(name="world", project_name="my-project")
-        self.assertEqual(topic.name, "octue.services.world")
-
-        topic_with_repeated_namespace = Topic(name="octue.services.world", project_name="my-project")
-        self.assertEqual(topic_with_repeated_namespace.name, "octue.services.world")
+        self.assertEqual(repr(topic), "<Topic(name='world')>")
 
     def test_create(self):
         """Test that a topic can be created and that it's marked as having its creation triggered locally."""

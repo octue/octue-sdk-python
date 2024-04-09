@@ -6,8 +6,6 @@ import google.api_core.exceptions
 from google.cloud.pubsub_v1 import PublisherClient
 from google.pubsub_v1.types.pubsub import Topic as Topic_
 
-from octue.cloud.service_id import OCTUE_SERVICES_NAMESPACE
-
 
 logger = logging.getLogger(__name__)
 
@@ -23,14 +21,9 @@ class Topic:
     """
 
     def __init__(self, name, project_name):
-        if not name.startswith(OCTUE_SERVICES_NAMESPACE):
-            self.name = f"{OCTUE_SERVICES_NAMESPACE}.{name}"
-        else:
-            self.name = name
-
+        self.name = name
         self.project_name = project_name
         self.path = self.generate_topic_path(self.project_name, self.name)
-        self.messages_published = 0
         self._publisher = PublisherClient()
         self._created = False
 
@@ -48,7 +41,7 @@ class Topic:
 
         :return str:
         """
-        return f"<{type(self).__name__}({self.name})>"
+        return f"<{type(self).__name__}(name={self.name!r})>"
 
     def create(self, allow_existing=False):
         """Create a Google Pub/Sub topic that can be published to.

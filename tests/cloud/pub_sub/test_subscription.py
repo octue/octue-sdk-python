@@ -17,13 +17,7 @@ class TestSubscription(BaseTestCase):
 
     def test_repr(self):
         """Test that subscriptions are represented correctly."""
-        self.assertEqual(repr(self.subscription), "<Subscription(name='octue.services.world', filter=None)>")
-
-    def test_namespace_only_in_name_once(self):
-        """Test that the subscription's namespace only appears in its name once, even if it is repeated."""
-        self.assertEqual(self.subscription.name, "octue.services.world")
-        subscription_with_repeated_namespace = Subscription(name="octue.services.world", topic=self.topic)
-        self.assertEqual(subscription_with_repeated_namespace.name, "octue.services.world")
+        self.assertEqual(repr(self.subscription), "<Subscription(name='world', filter=None)>")
 
     def test_create_without_allow_existing_when_subscription_already_exists(self):
         """Test that an error is raised when trying to create a subscription that already exists and `allow_existing` is

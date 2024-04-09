@@ -36,6 +36,8 @@ class ServiceConfiguration:
     ):
         self.name = name
         self.namespace = namespace
+        self.diagnostics_cloud_path = diagnostics_cloud_path
+        self.service_registries = service_registries
 
         if directory:
             directory = os.path.abspath(directory)
@@ -60,9 +62,6 @@ class ServiceConfiguration:
                 self.app_configuration_path = os.path.abspath(app_configuration_path)
             else:
                 self.app_configuration_path = None
-
-        self.diagnostics_cloud_path = diagnostics_cloud_path
-        self.service_registries = service_registries
 
         if kwargs:
             logger.warning(f"The following keyword arguments were not used by {type(self).__name__}: {kwargs!r}.")

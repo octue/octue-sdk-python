@@ -1,12 +1,12 @@
 import importlib.metadata
 import json
 import logging
+from collections import defaultdict
 
 import google.api_core
 
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.service import ANSWERS_NAMESPACE, PARENT_SENDER_TYPE, Service
-from octue.cloud.service_id import convert_service_id_to_pub_sub_form
+from octue.cloud.pub_sub.service import PARENT_SENDER_TYPE, Service
 from octue.resources import Manifest
 from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
@@ -14,8 +14,9 @@ from octue.utils.encoders import OctueJSONEncoder
 
 logger = logging.getLogger(__name__)
 
-TOPICS = {}
-SUBSCRIPTIONS = {}
+TOPICS = set()
+SUBSCRIPTIONS = set()
+MESSAGES = defaultdict(list)
 
 
 class MockTopic(Topic):
@@ -33,7 +34,7 @@ class MockTopic(Topic):
                 raise google.api_core.exceptions.AlreadyExists(f"Topic {self.path!r} already exists.")
 
         if not self.exists():
-            TOPICS[self.name] = []
+            TOPICS.add(self.name)
             self._created = True
 
     def delete(self):
@@ -42,7 +43,7 @@ class MockTopic(Topic):
         :return None:
         """
         try:
-            del TOPICS[self.name]
+            TOPICS.remove(self.name)
         except KeyError:
             pass
 
@@ -73,7 +74,7 @@ class MockSubscription(Subscription):
                 raise google.api_core.exceptions.AlreadyExists(f"Subscription {self.path!r} already exists.")
 
         if not self.exists():
-            SUBSCRIPTIONS[self.name] = []
+            SUBSCRIPTIONS.add(self.name)
             self._created = True
 
     def delete(self):
@@ -146,8 +147,7 @@ class MockPublisher:
         :param google.api_core.retry.Retry|None retry:
         :return MockFuture:
         """
-        subscription_name = ".".join((get_pub_sub_resource_name(topic), ANSWERS_NAMESPACE, attributes["question_uuid"]))
-        SUBSCRIPTIONS[subscription_name].append(MockMessage(data=data, attributes=attributes))
+        MESSAGES[attributes["question_uuid"]].append(MockMessage(data=data, attributes=attributes))
         return MockFuture()
 
 
@@ -191,12 +191,12 @@ class MockSubscriber:
         if self.closed:
             raise ValueError("ValueError: Cannot invoke RPC: Channel closed!")
 
-        subscription_name = get_pub_sub_resource_name(request["subscription"])
+        question_uuid = request["subscription"].split(".")[-1]
 
         try:
             return MockPullResponse(
                 received_messages=[
-                    MockMessageWrapper(message=SUBSCRIPTIONS[subscription_name].pop(0)),
+                    MockMessageWrapper(message=MESSAGES[question_uuid].pop(0)),
                 ]
             )
 
@@ -241,6 +241,13 @@ class MockMessageWrapper:
     def __init__(self, message):
         self.message = message
         self.ack_id = None
+
+    def __repr__(self):
+        """Represent the mock message as a string.
+
+        :return str:
+        """
+        return f"<{type(self).__name__}(message={self.message})>"
 
 
 class MockMessage:
@@ -356,8 +363,7 @@ class MockService(Service):
 
         # Delete question from messages sent to subscription so the parent doesn't pick it up as a response message. We
         # do this as subscription filtering isn't implemented in this set of mocks.
-        subscription_name = ".".join((convert_service_id_to_pub_sub_form(service_id), ANSWERS_NAMESPACE, question_uuid))
-        SUBSCRIPTIONS["octue.services." + subscription_name].pop(0)
+        MESSAGES[question_uuid].pop(0)
 
         question = make_minimal_dictionary(kind="question", input_values=input_values, children=children)
 
@@ -371,13 +377,15 @@ class MockService(Service):
                 MockMessage.from_primitive(
                     data=question,
                     attributes={
-                        "sender_type": PARENT_SENDER_TYPE,
                         "question_uuid": question_uuid,
                         "forward_logs": subscribe_to_logs,
-                        "version": parent_sdk_version,
                         "save_diagnostics": save_diagnostics,
-                        "message_number": 0,
-                        "sender": service_id,
+                        "order": 0,
+                        "originator": self.id,
+                        "sender": self.id,
+                        "sender_type": PARENT_SENDER_TYPE,
+                        "sender_sdk_version": parent_sdk_version,
+                        "recipient": service_id,
                     },
                 )
             )

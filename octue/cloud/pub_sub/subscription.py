@@ -13,7 +13,6 @@ from google.pubsub_v1.types.pubsub import (
     UpdateSubscriptionRequest,
 )
 
-from octue.cloud.service_id import OCTUE_SERVICES_NAMESPACE
 from octue.exceptions import ConflictingSubscriptionType
 
 
@@ -55,11 +54,7 @@ class Subscription:
         push_endpoint=None,
         bigquery_table_id=None,
     ):
-        if not name.startswith(OCTUE_SERVICES_NAMESPACE):
-            self.name = f"{OCTUE_SERVICES_NAMESPACE}.{name}"
-        else:
-            self.name = name
-
+        self.name = name
         self.topic = topic
         self.filter = filter
         self.path = self.generate_subscription_path(project_name or self.topic.project_name, self.name)

@@ -5,11 +5,13 @@
       "kind": "delivery_acknowledgement"
     },
     "attributes": {
-      "message_number": "0",
+      "order": "0",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+      "originator": "octue/test-service:1.0.0",
+      "sender": "octue/test-service:1.0.0",
       "sender_type": "CHILD",
-      "version": "0.51.0",
-      "sender": "octue/test-service:1.0.0"
+      "sender_sdk_version": "0.51.0",
+      "recipient": "octue/another-service:3.2.1"
     }
   },
   {
@@ -39,11 +41,13 @@
       }
     },
     "attributes": {
-      "message_number": "1",
+      "order": "1",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+      "originator": "octue/test-service:1.0.0",
+      "sender": "octue/test-service:1.0.0",
       "sender_type": "CHILD",
-      "version": "0.51.0",
-      "sender": "octue/test-service:1.0.0"
+      "sender_sdk_version": "0.51.0",
+      "recipient": "octue/another-service:3.2.1"
     }
   },
   {
@@ -73,11 +77,13 @@
       }
     },
     "attributes": {
-      "message_number": "2",
+      "order": "2",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+      "originator": "octue/test-service:1.0.0",
+      "sender": "octue/test-service:1.0.0",
       "sender_type": "CHILD",
-      "version": "0.51.0",
-      "sender": "octue/test-service:1.0.0"
+      "sender_sdk_version": "0.51.0",
+      "recipient": "octue/another-service:3.2.1"
     }
   },
   {
@@ -107,11 +113,13 @@
       }
     },
     "attributes": {
-      "message_number": "3",
+      "order": "3",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+      "originator": "octue/test-service:1.0.0",
+      "sender": "octue/test-service:1.0.0",
       "sender_type": "CHILD",
-      "version": "0.51.0",
-      "sender": "octue/test-service:1.0.0"
+      "sender_sdk_version": "0.51.0",
+      "recipient": "octue/another-service:3.2.1"
     }
   },
   {
@@ -141,11 +149,13 @@
       }
     },
     "attributes": {
-      "message_number": "4",
+      "order": "4",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+      "originator": "octue/test-service:1.0.0",
+      "sender": "octue/test-service:1.0.0",
       "sender_type": "CHILD",
-      "version": "0.51.0",
-      "sender": "octue/test-service:1.0.0"
+      "sender_sdk_version": "0.51.0",
+      "recipient": "octue/another-service:3.2.1"
     }
   },
   {
@@ -175,11 +185,13 @@
       }
     },
     "attributes": {
-      "message_number": "5",
+      "order": "5",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+      "originator": "octue/test-service:1.0.0",
+      "sender": "octue/test-service:1.0.0",
       "sender_type": "CHILD",
-      "version": "0.51.0",
-      "sender": "octue/test-service:1.0.0"
+      "sender_sdk_version": "0.51.0",
+      "recipient": "octue/another-service:3.2.1"
     }
   },
   {
@@ -204,11 +216,13 @@
       "output_values": [1, 2, 3, 4, 5]
     },
     "attributes": {
-      "message_number": "6",
+      "order": "6",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+      "originator": "octue/test-service:1.0.0",
+      "sender": "octue/test-service:1.0.0",
       "sender_type": "CHILD",
-      "version": "0.51.0",
-      "sender": "octue/test-service:1.0.0"
+      "sender_sdk_version": "0.51.0",
+      "recipient": "octue/another-service:3.2.1"
     }
   },
   {
@@ -217,11 +231,13 @@
       "kind": "heartbeat"
     },
     "attributes": {
-      "message_number": "7",
+      "order": "7",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+      "originator": "octue/test-service:1.0.0",
+      "sender": "octue/test-service:1.0.0",
       "sender_type": "CHILD",
-      "version": "0.51.0",
-      "sender": "octue/test-service:1.0.0"
+      "sender_sdk_version": "0.51.0",
+      "recipient": "octue/another-service:3.2.1"
     }
   }
 ]

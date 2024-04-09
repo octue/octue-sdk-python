@@ -29,6 +29,16 @@ resource "google_bigquery_table" "test_table" {
     "mode": "REQUIRED"
   },
   {
+    "name": "uuid",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "originator",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
     "name": "sender",
     "type": "STRING",
     "mode": "REQUIRED"
@@ -39,17 +49,22 @@ resource "google_bigquery_table" "test_table" {
     "mode": "REQUIRED"
   },
   {
+    "name": "sender_sdk_version",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "recipient",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
     "name": "question_uuid",
     "type": "STRING",
     "mode": "REQUIRED"
   },
   {
-    "name": "version",
-    "type": "STRING",
-    "mode": "REQUIRED"
-  },
-  {
-    "name": "ordering_key",
+    "name": "order",
     "type": "STRING",
     "mode": "REQUIRED"
   },

@@ -31,19 +31,25 @@ def extract_event_and_attributes_from_pub_sub_message(message):
     # Cast attributes to a dictionary to avoid defaultdict-like behaviour from Pub/Sub message attributes container.
     attributes = dict(getattr_or_subscribe(message, "attributes"))
 
+    # Required for all events.
     converted_attributes = {
-        "sender_type": attributes["sender_type"],
         "question_uuid": attributes["question_uuid"],
-        "message_number": int(attributes["message_number"]),
-        "version": attributes["version"],
-        "sender": attributes.get("sender", "REMOTE"),  # Backwards-compatible with previous event schema versions.
+        "order": int(attributes["order"]),
+        "originator": attributes["originator"],
+        "sender": attributes["sender"],
+        "sender_type": attributes["sender_type"],
+        "sender_sdk_version": attributes["sender_sdk_version"],
+        "recipient": attributes["recipient"],
     }
 
-    if "forward_logs" in attributes:
-        converted_attributes["forward_logs"] = bool(int(attributes["forward_logs"]))
-
-    if "save_diagnostics" in attributes:
-        converted_attributes["save_diagnostics"] = attributes["save_diagnostics"]
+    # Required for question events.
+    if attributes["sender_type"] == "PARENT":
+        converted_attributes.update(
+            {
+                "forward_logs": bool(int(attributes["forward_logs"])),
+                "save_diagnostics": attributes["save_diagnostics"],
+            }
+        )
 
     try:
         # Parse event directly from Pub/Sub or Dataflow.
@@ -59,7 +65,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
     """A synchronous handler for events received as Google Pub/Sub messages from a pull subscription.
 
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
-    :param octue.cloud.pub_sub.service.Service receiving_service: the service that's receiving the events
+    :param octue.cloud.pub_sub.service.Service recipient: the service that's receiving the events
     :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
     :param bool record_events: if `True`, record received events in the `received_events` attribute
     :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers should not mutate the events.
@@ -71,7 +77,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
     def __init__(
         self,
         subscription,
-        receiving_service,
+        recipient,
         handle_monitor_message=None,
         record_events=True,
         event_handlers=None,
@@ -81,7 +87,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         self.subscription = subscription
 
         super().__init__(
-            receiving_service,
+            recipient,
             handle_monitor_message=handle_monitor_message,
             record_events=record_events,
             event_handlers=event_handlers,
@@ -240,7 +246,9 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         for event in pull_response.received_messages:
             self._extract_and_enqueue_event(event)
 
-        self._earliest_waiting_event_number = min(self.waiting_events.keys())
+        # Handle the case where no events (or no valid events) have been received.
+        if self.waiting_events:
+            self._earliest_waiting_event_number = min(self.waiting_events.keys())
 
     def _extract_event_and_attributes(self, container):
         """Extract an event and its attributes from the Pub/Sub message.

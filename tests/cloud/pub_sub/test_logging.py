@@ -3,9 +3,13 @@ import logging
 from logging import makeLogRecord
 from unittest.mock import patch
 
-from octue.cloud.emulators._pub_sub import SUBSCRIPTIONS, MockService, MockSubscription, MockTopic
+from octue.cloud.emulators._pub_sub import MESSAGES, MockService, MockTopic
+from octue.cloud.emulators.child import ServicePatcher
+from octue.cloud.events import OCTUE_SERVICES_PREFIX
+from octue.cloud.events.counter import EventCounter
 from octue.cloud.pub_sub.logging import GoogleCloudPubSubHandler
 from octue.resources.service_backends import GCPPubSubBackend
+from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 
 
@@ -15,28 +19,42 @@ class NonJSONSerialisable:
 
 
 class TestGoogleCloudPubSubHandler(BaseTestCase):
+    service_patcher = ServicePatcher()
+
+    @classmethod
+    def setUpClass(cls):
+        """Start the service patcher and create a mock services topic.
+
+        :return None:
+        """
+        cls.service_patcher.start()
+        topic = MockTopic(name=OCTUE_SERVICES_PREFIX, project_name=TEST_PROJECT_NAME)
+        topic.create(allow_existing=True)
+
+    @classmethod
+    def tearDownClass(cls):
+        """Stop the services patcher.
+
+        :return None:
+        """
+        cls.service_patcher.stop()
+
     def test_emit(self):
         """Test the log message is published when `GoogleCloudPubSubHandler.emit` is called."""
-        topic = MockTopic(name="world", project_name="blah")
-        topic.create()
-
         question_uuid = "96d69278-44ac-4631-aeea-c90fb08a1b2b"
-        subscription = MockSubscription(name=f"world.answers.{question_uuid}", topic=topic)
-        subscription.create()
-
         log_record = makeLogRecord({"msg": "Starting analysis."})
-
-        backend = GCPPubSubBackend(project_name="blah")
-        service = MockService(backend=backend)
+        service = MockService(backend=GCPPubSubBackend(project_name="blah"))
 
         GoogleCloudPubSubHandler(
-            message_sender=service._send_message,
-            topic=topic,
+            event_emitter=service._emit_event,
             question_uuid=question_uuid,
+            originator="another/service:1.0.0",
+            recipient="another/service:1.0.0",
+            order=EventCounter(),
         ).emit(log_record)
 
         self.assertEqual(
-            json.loads(SUBSCRIPTIONS[subscription.name][0].data.decode())["log_record"]["msg"],
+            json.loads(MESSAGES[question_uuid][0].data.decode())["log_record"]["msg"],
             "Starting analysis.",
         )
 
@@ -44,9 +62,6 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
         """Test that non-JSON-serialisable arguments to log messages are converted to their string representation
         before being serialised and published to the Pub/Sub topic.
         """
-        topic = MockTopic(name="world-1", project_name="blah")
-        topic.create()
-
         non_json_serialisable_thing = NonJSONSerialisable()
 
         # Check that it can't be serialised to JSON.
@@ -57,14 +72,15 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
             {"msg": "%r is not JSON-serialisable but can go into a log message", "args": (non_json_serialisable_thing,)}
         )
 
-        backend = GCPPubSubBackend(project_name="blah")
-        service = MockService(backend=backend)
+        service = MockService(backend=GCPPubSubBackend(project_name="blah"))
 
         with patch("octue.cloud.emulators._pub_sub.MockPublisher.publish") as mock_publish:
             GoogleCloudPubSubHandler(
-                message_sender=service._send_message,
-                topic=topic,
+                event_emitter=service._emit_event,
                 question_uuid="question-uuid",
+                originator="another/service:1.0.0",
+                recipient="another/service:1.0.0",
+                order=EventCounter(),
             ).emit(record)
 
         self.assertEqual(

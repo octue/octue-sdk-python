@@ -9,7 +9,7 @@ resource "google_cloudfunctions2_function" "event_handler" {
     source {
       storage_source {
         bucket = "twined-gcp"
-        object = "event_handler_function_source.zip"
+        object = "event_handler/0.2.0.zip"
       }
     }
   }
@@ -23,12 +23,12 @@ resource "google_cloudfunctions2_function" "event_handler" {
     }
   }
 
-#  event_trigger {
-#    trigger_region = var.region
-#    event_type = "google.cloud.pubsub.topic.v1.messagePublished"
-#    pubsub_topic = google_pubsub_topic.topic.id
-#    retry_policy = "RETRY_POLICY_RETRY"
-#  }
+ event_trigger {
+   trigger_region = var.region
+   event_type = "google.cloud.pubsub.topic.v1.messagePublished"
+   pubsub_topic = google_pubsub_topic.services_topic.id
+   retry_policy = "RETRY_POLICY_RETRY"
+ }
 
 }
 
@@ -38,9 +38,4 @@ resource "google_cloud_run_service_iam_member" "function_invoker" {
   service  = google_cloudfunctions2_function.event_handler.name
   role     = "roles/run.invoker"
   member   = "allUsers"
-}
-
-
-output "function_uri" {
-  value = google_cloudfunctions2_function.event_handler.service_config[0].uri
 }
