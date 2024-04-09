@@ -333,7 +333,7 @@ class Service:
             pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
 
             answer_subscription = Subscription(
-                name=".".join((self.backend.services_namespace, ANSWERS_NAMESPACE, pub_sub_id, question_uuid)),
+                name=".".join((self.backend.services_namespace, pub_sub_id, ANSWERS_NAMESPACE, question_uuid)),
                 topic=self.services_topic,
                 filter=(
                     f'attributes.recipient = "{self.id}" '
