@@ -12,8 +12,11 @@ from tests.base import BaseTestCase
 
 
 class TestPubSubEventHandler(BaseTestCase):
+    service_patcher = ServicePatcher()
+
     @classmethod
     def setUpClass(cls):
+        cls.service_patcher.start()
         cls.question_uuid = str(uuid.uuid4())
 
         cls.topic = MockTopic(name="octue.services", project_name=TEST_PROJECT_NAME)
@@ -25,36 +28,41 @@ class TestPubSubEventHandler(BaseTestCase):
         )
         cls.subscription.create()
 
-        with ServicePatcher():
-            cls.parent = MockService(
-                service_id="my-org/my-service:1.0.0",
-                backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME),
-            )
+        cls.parent = MockService(
+            service_id="my-org/my-service:1.0.0",
+            backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME),
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        """Stop the services patcher.
+
+        :return None:
+        """
+        cls.service_patcher.stop()
 
     def test_timeout(self):
         """Test that a TimeoutError is raised if message handling takes longer than the given timeout."""
-        with ServicePatcher():
-            event_handler = GoogleCloudPubSubEventHandler(
-                subscription=self.subscription,
-                receiving_service=self.parent,
-                event_handlers={"test": lambda message: None, "finish-test": lambda message: message},
-                schema={},
-            )
+        event_handler = GoogleCloudPubSubEventHandler(
+            subscription=self.subscription,
+            receiving_service=self.parent,
+            event_handlers={"test": lambda message: None, "finish-test": lambda message: message},
+            schema={},
+        )
 
         with self.assertRaises(TimeoutError):
             event_handler.handle_events(timeout=0)
 
     def test_in_order_messages_are_handled_in_order(self):
         """Test that messages received in order are handled in order."""
-        with ServicePatcher():
-            event_handler = GoogleCloudPubSubEventHandler(
-                subscription=self.subscription,
-                receiving_service=self.parent,
-                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
-                schema={},
-            )
+        event_handler = GoogleCloudPubSubEventHandler(
+            subscription=self.subscription,
+            receiving_service=self.parent,
+            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            schema={},
+        )
 
-            child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         messages = [
             {"event": {"kind": "test"}, "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"}},
@@ -84,15 +92,14 @@ class TestPubSubEventHandler(BaseTestCase):
 
     def test_out_of_order_messages_are_handled_in_order(self):
         """Test that messages received out of order are handled in order."""
-        with ServicePatcher():
-            event_handler = GoogleCloudPubSubEventHandler(
-                subscription=self.subscription,
-                receiving_service=self.parent,
-                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
-                schema={},
-            )
+        event_handler = GoogleCloudPubSubEventHandler(
+            subscription=self.subscription,
+            receiving_service=self.parent,
+            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            schema={},
+        )
 
-            child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         messages = [
             {
@@ -140,15 +147,14 @@ class TestPubSubEventHandler(BaseTestCase):
         """Test that messages received out of order and with the final message (the message that triggers a value to be
         returned) are handled in order.
         """
-        with ServicePatcher():
-            event_handler = GoogleCloudPubSubEventHandler(
-                subscription=self.subscription,
-                receiving_service=self.parent,
-                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
-                schema={},
-            )
+        event_handler = GoogleCloudPubSubEventHandler(
+            subscription=self.subscription,
+            receiving_service=self.parent,
+            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            schema={},
+        )
 
-            child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         messages = [
             {
@@ -194,15 +200,14 @@ class TestPubSubEventHandler(BaseTestCase):
 
     def test_no_timeout(self):
         """Test that message handling works with no timeout."""
-        with ServicePatcher():
-            event_handler = GoogleCloudPubSubEventHandler(
-                subscription=self.subscription,
-                receiving_service=self.parent,
-                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
-                schema={},
-            )
+        event_handler = GoogleCloudPubSubEventHandler(
+            subscription=self.subscription,
+            receiving_service=self.parent,
+            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            schema={},
+        )
 
-            child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         messages = [
             {
@@ -237,9 +242,8 @@ class TestPubSubEventHandler(BaseTestCase):
 
     def test_delivery_acknowledgement(self):
         """Test that a delivery acknowledgement message is handled correctly."""
-        with ServicePatcher():
-            event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, receiving_service=self.parent)
-            child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, receiving_service=self.parent)
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         messages = [
             {
@@ -265,8 +269,7 @@ class TestPubSubEventHandler(BaseTestCase):
 
     def test_error_raised_if_heartbeat_not_received_before_checked(self):
         """Test that an error is raised if a heartbeat isn't received before a heartbeat is first checked for."""
-        with ServicePatcher():
-            event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, receiving_service=self.parent)
+        event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, receiving_service=self.parent)
 
         with self.assertRaises(TimeoutError) as error:
             event_handler.handle_events(maximum_heartbeat_interval=0)
@@ -276,9 +279,7 @@ class TestPubSubEventHandler(BaseTestCase):
 
     def test_error_raised_if_heartbeats_stop_being_received(self):
         """Test that an error is raised if heartbeats stop being received within the maximum interval."""
-        with ServicePatcher():
-            event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, receiving_service=self.parent)
-
+        event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, receiving_service=self.parent)
         event_handler._last_heartbeat = datetime.datetime.now() - datetime.timedelta(seconds=30)
 
         with self.assertRaises(TimeoutError) as error:
@@ -288,10 +289,8 @@ class TestPubSubEventHandler(BaseTestCase):
 
     def test_error_not_raised_if_heartbeat_has_been_received_in_maximum_allowed_interval(self):
         """Test that an error is not raised if a heartbeat has been received in the maximum allowed interval."""
-        with ServicePatcher():
-            event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, receiving_service=self.parent)
-            child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
-
+        event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, receiving_service=self.parent)
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
         event_handler._last_heartbeat = datetime.datetime.now()
 
         messages = [
@@ -324,9 +323,7 @@ class TestPubSubEventHandler(BaseTestCase):
 
     def test_time_since_last_heartbeat_is_none_if_no_heartbeat_received_yet(self):
         """Test that the time since the last heartbeat is `None` if no heartbeat has been received yet."""
-        with ServicePatcher():
-            event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, receiving_service=self.parent)
-
+        event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, receiving_service=self.parent)
         self.assertIsNone(event_handler._time_since_last_heartbeat)
 
     def test_total_run_time_is_none_if_handle_events_has_not_been_called(self):
@@ -345,18 +342,16 @@ class TestPubSubEventHandler(BaseTestCase):
         """Test that missing messages at the start of the event stream can be skipped if they aren't received after a
         given time period if subsequent messages have been received.
         """
-        with ServicePatcher():
-            event_handler = GoogleCloudPubSubEventHandler(
-                subscription=self.subscription,
-                receiving_service=self.parent,
-                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
-                schema={},
-                skip_missing_events_after=0,
-            )
-
-            child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        event_handler = GoogleCloudPubSubEventHandler(
+            subscription=self.subscription,
+            receiving_service=self.parent,
+            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            schema={},
+            skip_missing_events_after=0,
+        )
 
         # Simulate the first two messages not being received.
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
         child._events_emitted = 2
 
         messages = [
@@ -401,16 +396,15 @@ class TestPubSubEventHandler(BaseTestCase):
 
     def test_missing_messages_in_middle_can_skipped(self):
         """Test that missing messages in the middle of the event stream can be skipped."""
-        with ServicePatcher():
-            event_handler = GoogleCloudPubSubEventHandler(
-                subscription=self.subscription,
-                receiving_service=self.parent,
-                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
-                schema={},
-                skip_missing_events_after=0,
-            )
+        event_handler = GoogleCloudPubSubEventHandler(
+            subscription=self.subscription,
+            receiving_service=self.parent,
+            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            schema={},
+            skip_missing_events_after=0,
+        )
 
-            child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         # Send three consecutive messages.
         messages = [
@@ -462,16 +456,15 @@ class TestPubSubEventHandler(BaseTestCase):
 
     def test_multiple_blocks_of_missing_messages_in_middle_can_skipped(self):
         """Test that multiple blocks of missing messages in the middle of the event stream can be skipped."""
-        with ServicePatcher():
-            event_handler = GoogleCloudPubSubEventHandler(
-                subscription=self.subscription,
-                receiving_service=self.parent,
-                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
-                schema={},
-                skip_missing_events_after=0,
-            )
+        event_handler = GoogleCloudPubSubEventHandler(
+            subscription=self.subscription,
+            receiving_service=self.parent,
+            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            schema={},
+            skip_missing_events_after=0,
+        )
 
-            child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         # Send three consecutive messages.
         messages = [
@@ -558,18 +551,16 @@ class TestPubSubEventHandler(BaseTestCase):
 
     def test_all_messages_missing_apart_from_result(self):
         """Test that the result message is still handled if all other messages are missing."""
-        with ServicePatcher():
-            event_handler = GoogleCloudPubSubEventHandler(
-                subscription=self.subscription,
-                receiving_service=self.parent,
-                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
-                schema={},
-                skip_missing_events_after=0,
-            )
-
-            child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        event_handler = GoogleCloudPubSubEventHandler(
+            subscription=self.subscription,
+            receiving_service=self.parent,
+            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            schema={},
+            skip_missing_events_after=0,
+        )
 
         # Simulate missing messages.
+        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
         child._events_emitted = 1000
 
         # Send the result message.
@@ -587,8 +578,11 @@ class TestPubSubEventHandler(BaseTestCase):
 
 
 class TestPullAndEnqueueAvailableMessages(BaseTestCase):
+    service_patcher = ServicePatcher()
+
     @classmethod
     def setUpClass(cls):
+        cls.service_patcher.start()
         cls.question_uuid = str(uuid.uuid4())
 
         cls.topic = MockTopic(name="octue.services", project_name=TEST_PROJECT_NAME)
@@ -600,73 +594,78 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
         )
         cls.subscription.create()
 
-        with ServicePatcher():
-            cls.parent = MockService(
-                service_id="my-org/my-service:1.0.0",
-                backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME),
-            )
+        cls.parent = MockService(
+            service_id="my-org/my-service:1.0.0",
+            backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME),
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        """Stop the services patcher.
+
+        :return None:
+        """
+        cls.service_patcher.stop()
 
     def test_pull_and_enqueue_available_events(self):
         """Test that pulling and enqueuing a message works."""
-        with ServicePatcher():
-            self.subscription = MockSubscription(
-                name=f"my-org.my-service.1-0-0.answers.{self.question_uuid}",
-                topic=self.topic,
+        self.subscription = MockSubscription(
+            name=f"my-org.my-service.1-0-0.answers.{self.question_uuid}",
+            topic=self.topic,
+        )
+
+        event_handler = GoogleCloudPubSubEventHandler(
+            subscription=self.subscription,
+            receiving_service=self.parent,
+            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            schema={},
+        )
+
+        event_handler.question_uuid = self.question_uuid
+        event_handler.child_sruid = "my-org/my-service:1.0.0"
+        event_handler._child_sdk_version = "0.1.3"
+        event_handler.waiting_events = {}
+
+        # Enqueue a mock message for a mock subscription to receive.
+        mock_message = {"kind": "test"}
+
+        MESSAGES[self.question_uuid] = [
+            MockMessage.from_primitive(
+                mock_message,
+                attributes={
+                    "order": 0,
+                    "question_uuid": self.question_uuid,
+                    "originator": self.parent.id,
+                    "sender": self.parent.id,
+                    "sender_type": "CHILD",
+                    "sender_sdk_version": "0.50.0",
+                    "recipient": "my-org/my-service:1.0.0",
+                },
             )
+        ]
 
-            event_handler = GoogleCloudPubSubEventHandler(
-                subscription=self.subscription,
-                receiving_service=self.parent,
-                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
-                schema={},
-            )
-
-            event_handler.question_uuid = self.question_uuid
-            event_handler.child_sruid = "my-org/my-service:1.0.0"
-            event_handler._child_sdk_version = "0.1.3"
-            event_handler.waiting_events = {}
-
-            # Enqueue a mock message for a mock subscription to receive.
-            mock_message = {"kind": "test"}
-
-            MESSAGES[self.question_uuid] = [
-                MockMessage.from_primitive(
-                    mock_message,
-                    attributes={
-                        "order": 0,
-                        "question_uuid": self.question_uuid,
-                        "originator": self.parent.id,
-                        "sender": self.parent.id,
-                        "sender_type": "CHILD",
-                        "sender_sdk_version": "0.50.0",
-                        "recipient": "my-org/my-service:1.0.0",
-                    },
-                )
-            ]
-
-            event_handler._pull_and_enqueue_available_events(timeout=10)
-            self.assertEqual(event_handler.waiting_events, {0: mock_message})
-            self.assertEqual(event_handler._earliest_waiting_event_number, 0)
+        event_handler._pull_and_enqueue_available_events(timeout=10)
+        self.assertEqual(event_handler.waiting_events, {0: mock_message})
+        self.assertEqual(event_handler._earliest_waiting_event_number, 0)
 
     def test_timeout_error_raised_if_result_message_not_received_in_time(self):
         """Test that a timeout error is raised if a result message is not received in time."""
-        with ServicePatcher():
-            self.subscription = MockSubscription(
-                name=f"my-org.my-service.1-0-0.answers.{self.question_uuid}",
-                topic=self.topic,
-            )
+        self.subscription = MockSubscription(
+            name=f"my-org.my-service.1-0-0.answers.{self.question_uuid}",
+            topic=self.topic,
+        )
 
-            event_handler = GoogleCloudPubSubEventHandler(
-                subscription=self.subscription,
-                receiving_service=self.parent,
-                event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
-            )
+        event_handler = GoogleCloudPubSubEventHandler(
+            subscription=self.subscription,
+            receiving_service=self.parent,
+            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+        )
 
-            event_handler._child_sdk_version = "0.1.3"
-            event_handler.waiting_events = {}
-            event_handler._start_time = 0
+        event_handler._child_sdk_version = "0.1.3"
+        event_handler.waiting_events = {}
+        event_handler._start_time = 0
 
-            with self.assertRaises(TimeoutError):
-                event_handler._pull_and_enqueue_available_events(timeout=1e-6)
+        with self.assertRaises(TimeoutError):
+            event_handler._pull_and_enqueue_available_events(timeout=1e-6)
 
-            self.assertEqual(event_handler._earliest_waiting_event_number, math.inf)
+        self.assertEqual(event_handler._earliest_waiting_event_number, math.inf)
