@@ -118,11 +118,5 @@ class NotAPullSubscription(OctueSDKException):
     """Raise if attempting to pull a subscription that's not a pull subscription."""
 
 
-class ConflictingSubscriptionType(OctueSDKException):
-    """Raise if attempting to instantiate a subscription that's a push subscription and BigQuery subscription at the
-    same time.
-    """
-
-
 class ReadOnlyResource(OctueSDKException):
     """Raise if attempting to alter a read-only resource."""

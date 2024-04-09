@@ -5,15 +5,12 @@ from google.cloud.pubsub_v1 import SubscriberClient
 from google.protobuf.duration_pb2 import Duration  # noqa
 from google.protobuf.field_mask_pb2 import FieldMask  # noqa
 from google.pubsub_v1.types.pubsub import (
-    BigQueryConfig,
     ExpirationPolicy,
     PushConfig,
     RetryPolicy,
     Subscription as _Subscription,
     UpdateSubscriptionRequest,
 )
-
-from octue.exceptions import ConflictingSubscriptionType
 
 
 logger = logging.getLogger(__name__)
@@ -36,7 +33,6 @@ class Subscription:
     :param float minimum_retry_backoff: minimum number of seconds after the acknowledgement deadline has passed to exponentially retry delivering a message to the subscription
     :param float maximum_retry_backoff: maximum number of seconds after the acknowledgement deadline has passed to exponentially retry delivering a message to the subscription
     :param str|None push_endpoint: if this is a push subscription, this is the URL to which messages should be pushed; leave as `None` if it's not a push subscription
-    :param str|None bigquery_table_id: if this is a BigQuery subscription, this is the ID of the table to which messages should be written (e.g. "your-project.your-dataset.your-table"); leave as `None` if it's not a BigQuery subscription
     :return None:
     """
 
@@ -52,7 +48,6 @@ class Subscription:
         minimum_retry_backoff=10,
         maximum_retry_backoff=600,
         push_endpoint=None,
-        bigquery_table_id=None,
     ):
         self.name = name
         self.topic = topic
@@ -73,14 +68,7 @@ class Subscription:
             maximum_backoff=Duration(seconds=maximum_retry_backoff),
         )
 
-        if push_endpoint and bigquery_table_id:
-            raise ConflictingSubscriptionType(
-                f"A subscription can only have one of `push_endpoint` and `bigquery_table_id`; received "
-                f"`push_endpoint={push_endpoint!r}` and `bigquery_table_id={bigquery_table_id!r}`."
-            )
-
         self.push_endpoint = push_endpoint
-        self.bigquery_table_id = bigquery_table_id
         self._subscriber = SubscriberClient()
         self._created = False
 
@@ -99,7 +87,7 @@ class Subscription:
 
         :return bool:
         """
-        return (self.push_endpoint is None) and (self.bigquery_table_id is None)
+        return self.push_endpoint is None
 
     @property
     def is_push_subscription(self):
@@ -108,14 +96,6 @@ class Subscription:
         :return bool:
         """
         return self.push_endpoint is not None
-
-    @property
-    def is_bigquery_subscription(self):
-        """Return `True` if this is a BigQuery subscription.
-
-        :return bool:
-        """
-        return self.bigquery_table_id is not None
 
     def __repr__(self):
         """Represent the subscription as a string.
@@ -199,8 +179,6 @@ class Subscription:
         """
         if self.push_endpoint:
             options = {"push_config": PushConfig(mapping=None, push_endpoint=self.push_endpoint)}  # noqa
-        elif self.bigquery_table_id:
-            options = {"bigquery_config": BigQueryConfig(table=self.bigquery_table_id, write_metadata=True)}  # noqa
         else:
             options = {}
 
