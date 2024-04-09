@@ -85,13 +85,12 @@ class Service:
         self.backend = backend
         self.run_function = run_function
         self.name = name
-
-        self.services_topic = self._get_services_topic()
         self.service_registries = service_registries
 
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
         self._local_sdk_version = importlib.metadata.version("octue")
         self._publisher = None
+        self._services_topic = None
         self._event_handler = None
         self._events_emitted = 0
 
@@ -114,6 +113,25 @@ class Service:
             self._publisher = pubsub_v1.PublisherClient(batch_settings=BATCH_SETTINGS)
 
         return self._publisher
+
+    @property
+    def services_topic(self):
+        """Get the Octue services topic that all events in the project are published to. No topic is instantiated until
+        this property is called for the first time. This allows checking for the `GOOGLE_APPLICATION_CREDENTIALS`
+        environment variable to be put off until it's needed.
+
+        :raise octue.exceptions.ServiceNotFound: if the topic doesn't exist in the project
+        :return octue.cloud.pub_sub.topic.Topic: the Octue services topic for the project
+        """
+        if not self._services_topic:
+            topic = Topic(name=self.backend.services_namespace, project_name=self.backend.project_name)
+
+            if not topic.exists():
+                raise octue.exceptions.ServiceNotFound(f"Topic {self.backend.services_namespace!r} cannot be found.")
+
+            self._services_topic = topic
+
+        return self._services_topic
 
     @property
     def received_messages(self):
@@ -423,19 +441,6 @@ class Service:
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
             timeout=timeout,
         )
-
-    def _get_services_topic(self):
-        """Get the Octue services topic that all events in the project are published to.
-
-        :raise octue.exceptions.ServiceNotFound: if the topic doesn't exist in the project
-        :return octue.cloud.pub_sub.topic.Topic: the Octue services topic for the project
-        """
-        topic = Topic(name=self.backend.services_namespace, project_name=self.backend.project_name)
-
-        if not topic.exists():
-            raise octue.exceptions.ServiceNotFound(f"Topic {self.backend.services_namespace!r} cannot be found.")
-
-        return topic
 
     def _send_message(self, message, originator, recipient, attributes=None, timeout=30):
         """Send a JSON-serialised event as a Pub/Sub message to the services topic with optional message attributes,
