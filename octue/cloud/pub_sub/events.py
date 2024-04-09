@@ -65,7 +65,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
     """A synchronous handler for events received as Google Pub/Sub messages from a pull subscription.
 
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
-    :param octue.cloud.pub_sub.service.Service receiving_service: the service that's receiving the events
+    :param octue.cloud.pub_sub.service.Service recipient: the service that's receiving the events
     :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
     :param bool record_events: if `True`, record received events in the `received_events` attribute
     :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers should not mutate the events.
@@ -77,7 +77,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
     def __init__(
         self,
         subscription,
-        receiving_service,
+        recipient,
         handle_monitor_message=None,
         record_events=True,
         event_handlers=None,
@@ -87,7 +87,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         self.subscription = subscription
 
         super().__init__(
-            receiving_service,
+            recipient,
             handle_monitor_message=handle_monitor_message,
             record_events=record_events,
             event_handlers=event_handlers,

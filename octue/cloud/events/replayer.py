@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class EventReplayer(AbstractEventHandler):
     """A replayer for events retrieved asynchronously from some kind of storage.
 
-    :param octue.cloud.pub_sub.service.Service receiving_service: the service that's receiving the events
+    :param octue.cloud.pub_sub.service.Service recipient: the service that's receiving the events
     :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
     :param bool record_events: if `True`, record received events in the `received_events` attribute
     :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers should not mutate the events.
@@ -23,7 +23,7 @@ class EventReplayer(AbstractEventHandler):
 
     def __init__(
         self,
-        receiving_service=None,
+        recipient=None,
         handle_monitor_message=None,
         record_events=True,
         event_handlers=None,
@@ -31,7 +31,7 @@ class EventReplayer(AbstractEventHandler):
         only_handle_result=False,
     ):
         super().__init__(
-            receiving_service or Service(backend=ServiceBackend(), service_id="local/local:local"),
+            recipient or Service(backend=ServiceBackend(), service_id="local/local:local"),
             handle_monitor_message=handle_monitor_message,
             record_events=record_events,
             event_handlers=event_handlers,

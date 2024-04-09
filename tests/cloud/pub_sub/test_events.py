@@ -45,7 +45,7 @@ class TestPubSubEventHandler(BaseTestCase):
         """Test that a TimeoutError is raised if message handling takes longer than the given timeout."""
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
-            receiving_service=self.parent,
+            recipient=self.parent,
             event_handlers={"test": lambda message: None, "finish-test": lambda message: message},
             schema={},
         )
@@ -57,7 +57,7 @@ class TestPubSubEventHandler(BaseTestCase):
         """Test that messages received in order are handled in order."""
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
-            receiving_service=self.parent,
+            recipient=self.parent,
             event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
             schema={},
         )
@@ -109,7 +109,7 @@ class TestPubSubEventHandler(BaseTestCase):
         """Test that messages received out of order are handled in order."""
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
-            receiving_service=self.parent,
+            recipient=self.parent,
             event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
             schema={},
         )
@@ -164,7 +164,7 @@ class TestPubSubEventHandler(BaseTestCase):
         """
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
-            receiving_service=self.parent,
+            recipient=self.parent,
             event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
             schema={},
         )
@@ -217,7 +217,7 @@ class TestPubSubEventHandler(BaseTestCase):
         """Test that message handling works with no timeout."""
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
-            receiving_service=self.parent,
+            recipient=self.parent,
             event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
             schema={},
         )
@@ -258,7 +258,7 @@ class TestPubSubEventHandler(BaseTestCase):
 
     def test_delivery_acknowledgement(self):
         """Test that a delivery acknowledgement message is handled correctly."""
-        event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, receiving_service=self.parent)
+        event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, recipient=self.parent)
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         messages = [
@@ -290,7 +290,7 @@ class TestPubSubEventHandler(BaseTestCase):
 
     def test_error_raised_if_heartbeat_not_received_before_checked(self):
         """Test that an error is raised if a heartbeat isn't received before a heartbeat is first checked for."""
-        event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, receiving_service=self.parent)
+        event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, recipient=self.parent)
 
         with self.assertRaises(TimeoutError) as error:
             event_handler.handle_events(maximum_heartbeat_interval=0)
@@ -300,7 +300,7 @@ class TestPubSubEventHandler(BaseTestCase):
 
     def test_error_raised_if_heartbeats_stop_being_received(self):
         """Test that an error is raised if heartbeats stop being received within the maximum interval."""
-        event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, receiving_service=self.parent)
+        event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, recipient=self.parent)
         event_handler._last_heartbeat = datetime.datetime.now() - datetime.timedelta(seconds=30)
 
         with self.assertRaises(TimeoutError) as error:
@@ -310,7 +310,7 @@ class TestPubSubEventHandler(BaseTestCase):
 
     def test_error_not_raised_if_heartbeat_has_been_received_in_maximum_allowed_interval(self):
         """Test that an error is not raised if a heartbeat has been received in the maximum allowed interval."""
-        event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, receiving_service=self.parent)
+        event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, recipient=self.parent)
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
         event_handler._last_heartbeat = datetime.datetime.now()
 
@@ -346,19 +346,19 @@ class TestPubSubEventHandler(BaseTestCase):
 
     def test_time_since_last_heartbeat_is_none_if_no_heartbeat_received_yet(self):
         """Test that the time since the last heartbeat is `None` if no heartbeat has been received yet."""
-        event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, receiving_service=self.parent)
+        event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, recipient=self.parent)
         self.assertIsNone(event_handler._time_since_last_heartbeat)
 
     def test_total_run_time_is_none_if_handle_events_has_not_been_called(self):
         """Test that the total run time for the message handler is `None` if the `handle_events` method has not been
         called.
         """
-        event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, receiving_service=self.parent)
+        event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, recipient=self.parent)
         self.assertIsNone(event_handler.total_run_time)
 
     def test_time_since_missing_message_is_none_if_no_unhandled_missing_messages(self):
         """Test that the `time_since_missing_message` property is `None` if there are no unhandled missing messages."""
-        event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, receiving_service=self.parent)
+        event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription, recipient=self.parent)
         self.assertIsNone(event_handler.time_since_missing_event)
 
     def test_missing_messages_at_start_can_be_skipped(self):
@@ -367,7 +367,7 @@ class TestPubSubEventHandler(BaseTestCase):
         """
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
-            receiving_service=self.parent,
+            recipient=self.parent,
             event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
             schema={},
             skip_missing_events_after=0,
@@ -421,7 +421,7 @@ class TestPubSubEventHandler(BaseTestCase):
         """Test that missing messages in the middle of the event stream can be skipped."""
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
-            receiving_service=self.parent,
+            recipient=self.parent,
             event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
             schema={},
             skip_missing_events_after=0,
@@ -481,7 +481,7 @@ class TestPubSubEventHandler(BaseTestCase):
         """Test that multiple blocks of missing messages in the middle of the event stream can be skipped."""
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
-            receiving_service=self.parent,
+            recipient=self.parent,
             event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
             schema={},
             skip_missing_events_after=0,
@@ -575,7 +575,7 @@ class TestPubSubEventHandler(BaseTestCase):
         """Test that the result message is still handled if all other messages are missing."""
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
-            receiving_service=self.parent,
+            recipient=self.parent,
             event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
             schema={},
             skip_missing_events_after=0,
@@ -638,7 +638,7 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
 
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
-            receiving_service=self.parent,
+            recipient=self.parent,
             event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
             schema={},
         )
@@ -679,7 +679,7 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
 
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
-            receiving_service=self.parent,
+            recipient=self.parent,
             event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
         )
 

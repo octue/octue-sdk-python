@@ -18,12 +18,12 @@ jsonschema.Draft202012Validator.check_schema(SERVICE_COMMUNICATION_SCHEMA)
 jsonschema_validator = jsonschema.Draft202012Validator(SERVICE_COMMUNICATION_SCHEMA)
 
 
-def is_event_valid(event, attributes, receiving_service, parent_sdk_version, child_sdk_version, schema=None):
+def is_event_valid(event, attributes, recipient, parent_sdk_version, child_sdk_version, schema=None):
     """Check if the event and its attributes are valid according to the Octue services communication schema.
 
     :param dict event: the event to validate
     :param dict attributes: the attributes of the event to validate
-    :param octue.cloud.pub_sub.service.Service receiving_service: the service receiving and validating the event
+    :param octue.cloud.pub_sub.service.Service recipient: the service receiving and validating the event
     :param str parent_sdk_version: the semantic version of Octue SDK running on the parent
     :param str child_sdk_version: the semantic version of Octue SDK running on the child
     :param dict|None schema: the schema to validate the event and its attributes against; if `None`, this defaults to the service communication schema used in this version of Octue SDK
@@ -33,7 +33,7 @@ def is_event_valid(event, attributes, receiving_service, parent_sdk_version, chi
         raise_if_event_is_invalid(
             event,
             attributes,
-            receiving_service,
+            recipient,
             parent_sdk_version,
             child_sdk_version,
             schema=schema,
@@ -44,19 +44,12 @@ def is_event_valid(event, attributes, receiving_service, parent_sdk_version, chi
     return True
 
 
-def raise_if_event_is_invalid(
-    event,
-    attributes,
-    receiving_service,
-    parent_sdk_version,
-    child_sdk_version,
-    schema=None,
-):
+def raise_if_event_is_invalid(event, attributes, recipient, parent_sdk_version, child_sdk_version, schema=None):
     """Raise an error if the event or its attributes aren't valid according to the Octue services communication schema.
 
     :param dict event: the event to validate
     :param dict attributes: the attributes of the event to validate
-    :param octue.cloud.pub_sub.service.Service receiving_service: the service receiving and validating the event
+    :param octue.cloud.pub_sub.service.Service recipient: the service receiving and validating the event
     :param str parent_sdk_version: the semantic version of Octue SDK running on the parent
     :param str child_sdk_version: the semantic version of Octue SDK running on the child
     :param dict|None schema: the schema to validate the event and its attributes against; if `None`, this defaults to the service communication schema used in this version of Octue SDK
@@ -82,7 +75,7 @@ def raise_if_event_is_invalid(
 
         logger.exception(
             "%r received an event that doesn't conform with version %s of the service communication schema (%s): %r.",
-            receiving_service,
+            recipient,
             SERVICE_COMMUNICATION_SCHEMA_VERSION,
             SERVICE_COMMUNICATION_SCHEMA_INFO_URL,
             event,

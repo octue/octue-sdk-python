@@ -405,7 +405,7 @@ class Service:
 
         self._event_handler = GoogleCloudPubSubEventHandler(
             subscription=subscription,
-            receiving_service=self,
+            recipient=self,
             handle_monitor_message=handle_monitor_message,
             record_events=record_messages,
         )
@@ -619,7 +619,7 @@ class Service:
         raise_if_event_is_invalid(
             event=event_for_validation,
             attributes=attributes,
-            receiving_service=self,
+            recipient=self,
             parent_sdk_version=attributes["sender_sdk_version"],
             child_sdk_version=importlib.metadata.version("octue"),
         )
