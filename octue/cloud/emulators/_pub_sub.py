@@ -243,7 +243,7 @@ class MockMessageWrapper:
         self.ack_id = None
 
     def __repr__(self):
-        """Represent the mock message as a string.
+        """Represent the mock message wrapper as a string.
 
         :return str:
         """
