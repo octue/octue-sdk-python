@@ -646,7 +646,7 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
 
         event_handler.question_uuid = self.question_uuid
         event_handler.child_sruid = "my-org/my-service:1.0.0"
-        event_handler._child_sdk_version = "0.1.3"
+        event_handler.child_sdk_version = "0.1.3"
         event_handler.waiting_events = {}
 
         # Enqueue a mock message for a mock subscription to receive.
@@ -684,7 +684,7 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
             event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
         )
 
-        event_handler._child_sdk_version = "0.1.3"
+        event_handler.child_sdk_version = "0.1.3"
         event_handler.waiting_events = {}
         event_handler._start_time = 0
 

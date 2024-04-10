@@ -28,16 +28,21 @@ PARENT_SDK_VERSION = importlib.metadata.version("octue")
 
 
 class AbstractEventHandler:
-    """An abstract event handler. Inherit from this and add the `handle_events` and `_extract_event_and_attributes`
-    methods to handle events from a specific source synchronously or asynchronously.
+    """An abstract event handler for Octue service events that:
+    - Provide handlers for the Octue service event kinds (see https://strands.octue.com/octue/service-communication)
+    - Handles received events in the order specified by the `order` attribute
+    - Skips missing events after a set time and carries on handling from the next available event
 
-    :param octue.cloud.pub_sub.service.Service recipient: the service that's receiving the events
+    To create a concrete handler for a specific service/communication backend synchronously or asynchronously, inherit
+    from this class and add the `handle_events` and `_extract_event_and_attributes` methods.
+
+    :param octue.cloud.pub_sub.service.Service recipient: the service instances that's receiving the events
     :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
     :param bool record_events: if `True`, record received events in the `received_events` attribute
-    :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers should not mutate the events.
-    :param dict|str schema: the JSON schema (or URI of one) to validate events against
+    :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers must not mutate the events.
+    :param dict schema: the JSON schema to validate events against
     :param int|float skip_missing_events_after: the number of seconds after which to skip any events if they haven't arrived but subsequent events have
-    :param bool only_handle_result: if `True`, skip non-result events and only handle the result event
+    :param bool only_handle_result: if `True`, skip non-result events and only handle the result event when received
     :return None:
     """
 
@@ -59,8 +64,8 @@ class AbstractEventHandler:
 
         # These are set when the first event is received.
         self.question_uuid = None
-        self._child_sdk_version = None
         self.child_sruid = None
+        self.child_sdk_version = None
 
         self.waiting_events = None
         self.handled_events = []
@@ -130,10 +135,10 @@ class AbstractEventHandler:
             return
 
         # Get the child's SRUID and Octue SDK version from the first event.
-        if not self._child_sdk_version:
-            self.child_sruid = attributes["sender"]
+        if not self.child_sdk_version:
             self.question_uuid = attributes["question_uuid"]
-            self._child_sdk_version = attributes["sender_sdk_version"]
+            self.child_sruid = attributes["sender"]
+            self.child_sdk_version = attributes["sender_sdk_version"]
 
         logger.debug("%r received an event related to question %r.", self.recipient, self.question_uuid)
         order = attributes["order"]
