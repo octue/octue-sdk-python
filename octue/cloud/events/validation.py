@@ -6,7 +6,7 @@ import jsonschema
 from octue.compatibility import warn_if_incompatible
 
 
-logger = logging.getLogger(__name__)
+VALID_EVENT_KINDS = {"delivery_acknowledgement", "heartbeat", "log_record", "monitor_message", "exception", "result"}
 
 SERVICE_COMMUNICATION_SCHEMA = {"$ref": "https://jsonschema.registry.octue.com/octue/service-communication/0.9.0.json"}
 SERVICE_COMMUNICATION_SCHEMA_INFO_URL = "https://strands.octue.com/octue/service-communication"
@@ -16,6 +16,8 @@ SERVICE_COMMUNICATION_SCHEMA_VERSION = os.path.splitext(SERVICE_COMMUNICATION_SC
 # registry every time a message is validated against it.
 jsonschema.Draft202012Validator.check_schema(SERVICE_COMMUNICATION_SCHEMA)
 jsonschema_validator = jsonschema.Draft202012Validator(SERVICE_COMMUNICATION_SCHEMA)
+
+logger = logging.getLogger(__name__)
 
 
 def is_event_valid(event, attributes, recipient, parent_sdk_version, child_sdk_version, schema=None):
