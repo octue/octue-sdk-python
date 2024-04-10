@@ -128,7 +128,7 @@ class Service:
             topic = Topic(name=OCTUE_SERVICES_PREFIX, project_name=self.backend.project_name)
 
             if not topic.exists():
-                raise octue.exceptions.ServiceNotFound(f"Topic {topic.name!r} cannot be found.")
+                raise octue.exceptions.ServiceNotFound(f"{topic!r} cannot be found.")
 
             self._services_topic = topic
 
@@ -197,7 +197,7 @@ class Service:
                             subscription.delete()
 
                     except Exception:
-                        logger.error("Deletion of subscription %r failed.", subscription.name)
+                        logger.error("Deletion of %r failed.", subscription)
 
                 subscriber.close()
 
@@ -423,7 +423,7 @@ class Service:
     def send_exception(self, question_uuid, originator, order, timeout=30):
         """Serialise and send the exception being handled to the parent.
 
-        :param str question_uuid:
+        :param str question_uuid: the UUID of the question this event relates to
         :param str originator: the SRUID of the service that asked the question this event is related to
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float|None timeout: time in seconds to keep retrying sending of the exception
@@ -538,7 +538,7 @@ class Service:
     def _send_delivery_acknowledgment(self, question_uuid, originator, order, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
 
-        :param str question_uuid:
+        :param str question_uuid: the UUID of the question this event relates to
         :param str originator: the SRUID of the service that asked the question this event is related to
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float timeout: time in seconds after which to give up sending
@@ -561,7 +561,7 @@ class Service:
     def _send_heartbeat(self, question_uuid, originator, order, timeout=30):
         """Send a heartbeat to the parent, indicating that the service is alive.
 
-        :param str question_uuid:
+        :param str question_uuid: the UUID of the question this event relates to
         :param str originator: the SRUID of the service that asked the question this event is related to
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float timeout: time in seconds after which to give up sending
@@ -585,7 +585,7 @@ class Service:
         """Send a monitor message to the parent.
 
         :param any data: the data to send as a monitor message
-        :param str question_uuid:
+        :param str question_uuid: the UUID of the question this event relates to
         :param str originator: the SRUID of the service that asked the question this event is related to
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float timeout: time in seconds to retry sending the message
