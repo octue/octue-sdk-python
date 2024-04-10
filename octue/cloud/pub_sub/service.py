@@ -370,10 +370,10 @@ class Service:
             input_values=input_values,
             input_manifest=input_manifest,
             children=children,
-            service_id=service_id,
             forward_logs=subscribe_to_logs,
             save_diagnostics=save_diagnostics,
             question_uuid=question_uuid,
+            recipient=service_id,
         )
 
         return answer_subscription, question_uuid
@@ -493,10 +493,10 @@ class Service:
         input_values,
         input_manifest,
         children,
-        service_id,
         forward_logs,
         save_diagnostics,
         question_uuid,
+        recipient,
         timeout=30,
     ):
         """Send a question to a child service.
@@ -504,10 +504,10 @@ class Service:
         :param any|None input_values: any input values for the question
         :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
         :param list(dict)|None children: a list of children for the child to use instead of its default children (if it uses children). These should be in the same format as in an app's app configuration file and have the same keys.
-        :param str service_id: the ID of the child to send the question to
         :param bool forward_logs: whether to request the child to forward its logs
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str question_uuid: the UUID of the question being sent
+        :param str recipient: the SRUID of the child the question is intended for
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -521,7 +521,7 @@ class Service:
             event=question,
             timeout=timeout,
             originator=self.id,
-            recipient=service_id,
+            recipient=recipient,
             order=EventCounter(),
             attributes={
                 "question_uuid": question_uuid,
@@ -533,7 +533,7 @@ class Service:
 
         # Await successful publishing of the question.
         future.result()
-        logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
+        logger.info("%r asked a question %r to service %r.", self, question_uuid, recipient)
 
     def _send_delivery_acknowledgment(self, question_uuid, originator, order, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
