@@ -10,11 +10,8 @@ resource "google_bigquery_dataset" "test_dataset" {
 
 resource "google_bigquery_table" "test_table" {
   dataset_id = google_bigquery_dataset.test_dataset.dataset_id
-  table_id   = "question-events"
-
-  labels = {
-    env = "default"
-  }
+  table_id   = "service-events"
+  clustering = ["sender", "question_uuid"]
 
   schema = <<EOF
 [
@@ -24,13 +21,8 @@ resource "google_bigquery_table" "test_table" {
     "mode": "REQUIRED"
   },
   {
-    "name": "attributes",
+    "name": "other_attributes",
     "type": "JSON",
-    "mode": "REQUIRED"
-  },
-  {
-    "name": "uuid",
-    "type": "STRING",
     "mode": "REQUIRED"
   },
   {
