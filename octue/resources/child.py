@@ -83,7 +83,7 @@ class Child:
         :param bool record_messages: if `True`, record messages received from the child in the `received_messages` property
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
-        :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here; if not, leave this as `None`
+        :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True`, don't create an answer subscription
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
@@ -105,7 +105,7 @@ class Child:
         )
 
         if push_endpoint or asynchronous:
-            return None
+            return subscription
 
         return self._service.wait_for_answer(
             subscription=subscription,
