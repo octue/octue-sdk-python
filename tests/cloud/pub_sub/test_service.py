@@ -181,7 +181,7 @@ class TestService(BaseTestCase):
         with self.assertRaises(TimeoutError):
             service.wait_for_answer(subscription=mock_subscription, timeout=0.01)
 
-    def test_error_raised_if_attempting_to_wait_for_answer_from_non_pull_subscription(self):
+    def test_error_raised_if_attempting_to_wait_for_answer_from_push_subscription(self):
         """Test that an error is raised if attempting to wait for an answer from a push subscription."""
         service = Service(backend=BACKEND)
 
@@ -324,7 +324,7 @@ class TestService(BaseTestCase):
         with self.assertLogs(level=logging.ERROR) as logs_context_manager:
             child.serve()
             subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
-            parent.wait_for_answer(subscription, timeout=100)
+            parent.wait_for_answer(subscription)
 
         error_logged = False
 
