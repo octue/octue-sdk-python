@@ -56,11 +56,11 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
     """A synchronous handler for events received as Google Pub/Sub messages from a pull subscription.
 
     :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
-    :param octue.cloud.pub_sub.service.Service recipient: the service that's receiving the events
+    :param octue.cloud.pub_sub.service.Service recipient: the `Service` instance that's receiving the events
     :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
     :param bool record_events: if `True`, record received events in the `received_events` attribute
-    :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers should not mutate the events.
-    :param dict|str schema: the JSON schema (or URI of one) to validate events against
+    :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers must not mutate the events.
+    :param dict|str schema: the JSON schema to validate events against
     :param int|float skip_missing_events_after: the number of seconds after which to skip any events if they haven't arrived but subsequent events have
     :return None:
     """
@@ -94,10 +94,10 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
 
     @property
     def total_run_time(self):
-        """Get the amount of time elapsed since `self.handle_events` was called. If it hasn't been called yet, it will
-        be `None`.
+        """The amount of time elapsed since `self.handle_events` was called. If it hasn't been called yet, this is
+        `None`.
 
-        :return float|None: the amount of time since `self.handle_events` was called (in seconds)
+        :return float|None: the amount of time [s] since `self.handle_events` was called
         """
         if self._start_time is None:
             return None
@@ -106,7 +106,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
 
     @property
     def _time_since_last_heartbeat(self):
-        """Get the time period since the last heartbeat was received.
+        """The amount of time since the last heartbeat was received. If no heartbeat has been received, this is `None`.
 
         :return datetime.timedelta|None:
         """
@@ -116,13 +116,13 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         return datetime.now() - self._last_heartbeat
 
     def handle_events(self, timeout=60, maximum_heartbeat_interval=300):
-        """Pull events fromthe subscription and handle them in the order they were sent until a "result" event is
+        """Pull events from the subscription and handle them in the order they were sent until a "result" event is
         handled, then return the handled result.
 
         :param float|None timeout: how long to wait for an answer before raising a `TimeoutError`
         :param int|float maximum_heartbeat_interval: the maximum amount of time [s] allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded before receiving the final event
-        :return dict: the handled final result
+        :return dict: the handled "result" event
         """
         self._start_time = time.perf_counter()
         self.waiting_events = {}
@@ -156,9 +156,9 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
 
     def _monitor_heartbeat(self, maximum_heartbeat_interval):
         """Change the alive status to `False` and cancel the heartbeat checker if a heartbeat hasn't been received
-        within the maximum allowed time interval measured from the moment of calling.
+        within the maximum allowed time interval since the last received heartbeat.
 
-        :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats without raising an error
+        :param float|int maximum_heartbeat_interval: the maximum amount of time [s] allowed between child heartbeats without raising an error
         :return None:
         """
         maximum_heartbeat_interval = timedelta(seconds=maximum_heartbeat_interval)
@@ -171,12 +171,12 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         self._heartbeat_checker.cancel()
 
     def _check_timeout_and_get_pull_timeout(self, timeout):
-        """Check if the timeout has been exceeded and, if it hasn't, return the timeout for the next message pull. If
-        the timeout has been exceeded, raise an error.
+        """Check if the message handling timeout has been exceeded and, if it hasn't, calculate and return the timeout
+        for the next message pull. If the timeout has been exceeded, raise an error.
 
-        :param int|float|None timeout: the timeout for handling all messages
+        :param int|float|None timeout: the timeout [s] for handling all messages, or `None` if there's no timeout
         :raise TimeoutError: if the timeout has been exceeded
-        :return int|float: the timeout for the next message pull in seconds
+        :return int|float|None: the timeout for the next message pull [s], or `None` if there's no timeout
         """
         if timeout is None:
             return None
@@ -186,9 +186,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         total_run_time = self.total_run_time
 
         if total_run_time > timeout:
-            raise TimeoutError(
-                f"No final answer received from topic {self.subscription.topic.path!r} after {timeout} seconds."
-            )
+            raise TimeoutError(f"No final result received from {self.subscription.topic!r} after {timeout} seconds.")
 
         return timeout - total_run_time
 
@@ -196,7 +194,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         """Pull as many events from the subscription as are available and enqueue them in `self.waiting_events`,
         raising a `TimeoutError` if the timeout is exceeded before succeeding.
 
-        :param float|None timeout: how long to wait in seconds for the event before raising a `TimeoutError`
+        :param float|None timeout: how long to wait for the event [s] before raising a `TimeoutError`
         :raise TimeoutError|concurrent.futures.TimeoutError: if the timeout is exceeded
         :return None:
         """
@@ -220,9 +218,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
                 pull_run_time = time.perf_counter() - pull_start_time
 
                 if timeout is not None and pull_run_time > timeout:
-                    raise TimeoutError(
-                        f"No message received from topic {self.subscription.topic.path!r} after {timeout} seconds.",
-                    )
+                    raise TimeoutError(f"No message received from {self.subscription.topic!r} after {timeout} seconds.")
 
         if not pull_response.received_messages:
             return
@@ -238,13 +234,15 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
             self._extract_and_enqueue_event(event)
 
         # Handle the case where no events (or no valid events) have been received.
-        if self.waiting_events:
-            self._earliest_waiting_event_number = min(self.waiting_events.keys())
+        if not self.waiting_events:
+            return
+
+        self._earliest_waiting_event_number = min(self.waiting_events.keys())
 
     def _extract_event_and_attributes(self, container):
-        """Extract an event and its attributes from the Pub/Sub message.
+        """Extract an event and its attributes from a Pub/Sub message.
 
-        :param dict container: the container of the event
+        :param dict container: a Pub/Sub message
         :return (any, dict): the event and its attributes
         """
         return extract_event_and_attributes_from_pub_sub_message(container.message)
