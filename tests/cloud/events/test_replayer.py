@@ -7,8 +7,48 @@ from tests import TEST_BUCKET_NAME, TESTS_DIR
 
 
 class TestEventReplayer(unittest.TestCase):
-    def test_replay_events(self):
-        """Test that stored events can be replayed and the result extracted."""
+    def test_with_no_events(self):
+        """Test that `None` is returned if no events are passed in."""
+        with self.assertLogs() as logging_context:
+            result = EventReplayer().handle_events(events=[])
+
+        self.assertIsNone(result)
+        self.assertIn("No events (or no valid events) were received.", logging_context.output[0])
+
+    def test_with_no_valid_events(self):
+        """Test that `None` is returned if no valid events are received."""
+        with self.assertLogs() as logging_context:
+            result = EventReplayer().handle_events(events=[{"invalid": "event"}])
+
+        self.assertIsNone(result)
+        self.assertIn("received an event that doesn't conform", logging_context.output[1])
+
+    def test_no_result_event(self):
+        """Test that `None` is returned if no result event is received."""
+        event = {
+            "event": {
+                "datetime": "2024-03-06T15:44:18.156044",
+                "kind": "delivery_acknowledgement",
+            },
+            "attributes": {
+                "order": "0",
+                "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+                "originator": "octue/test-service:1.0.0",
+                "sender": "octue/test-service:1.0.0",
+                "sender_type": "CHILD",
+                "sender_sdk_version": "0.51.0",
+                "recipient": "octue/another-service:3.2.1",
+            },
+        }
+
+        with self.assertLogs() as logging_context:
+            result = EventReplayer().handle_events(events=[event])
+
+        self.assertIsNone(result)
+        self.assertIn("question was delivered", logging_context.output[0])
+
+    def test_with_events(self):
+        """Test that stored events can be replayed and the outputs extracted from the "result" event."""
         with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
             events = json.load(f)
 
