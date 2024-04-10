@@ -9,7 +9,7 @@ resource "google_cloudfunctions2_function" "event_handler" {
     source {
       storage_source {
         bucket = "twined-gcp"
-        object = "event_handler/0.3.0.zip"
+        object = "event_handler/0.3.1.zip"
       }
     }
   }
