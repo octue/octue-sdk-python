@@ -10,14 +10,14 @@ logger = logging.getLogger(__name__)
 
 
 class EventReplayer(AbstractEventHandler):
-    """A replayer for events retrieved asynchronously from some kind of storage.
+    """A replayer for events retrieved asynchronously from storage. Missing events are immediately skipped.
 
-    :param octue.cloud.pub_sub.service.Service recipient: the service that's receiving the events
+    :param octue.cloud.pub_sub.service.Service recipient: the `Service` instance that's receiving the events
     :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
     :param bool record_events: if `True`, record received events in the `received_events` attribute
     :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers should not mutate the events.
     :param dict|str schema: the JSON schema (or URI of one) to validate events against
-    :param bool only_handle_result: if `True`, skip non-result events and only handle the result event
+    :param bool only_handle_result: if `True`, skip non-result events and only handle the "result" event if present
     :return None:
     """
 
@@ -41,9 +41,10 @@ class EventReplayer(AbstractEventHandler):
         )
 
     def handle_events(self, events):
-        """Handle the given events and return a handled "result" event if one is reached.
+        """Handle the given events and return a handled "result" event if one is present.
 
-        :return dict: the handled final result
+        :param iter(dict) events: the events to handle
+        :return dict|None: the handled "result" event if present
         """
         self.waiting_events = {}
         self._previous_event_number = -1
@@ -52,9 +53,12 @@ class EventReplayer(AbstractEventHandler):
             self._extract_and_enqueue_event(event)
 
         # Handle the case where no events (or no valid events) have been received.
-        if self.waiting_events:
-            self._earliest_waiting_event_number = min(self.waiting_events.keys())
-            return self._attempt_to_handle_waiting_events()
+        if not self.waiting_events:
+            logger.warning("No events (or no valid events) were received.")
+            return
+
+        self._earliest_waiting_event_number = min(self.waiting_events.keys())
+        return self._attempt_to_handle_waiting_events()
 
     def _extract_event_and_attributes(self, container):
         """Extract an event and its attributes from the event container.
