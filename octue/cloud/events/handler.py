@@ -70,6 +70,7 @@ class AbstractEventHandler:
         self.waiting_events = None
         self.handled_events = []
         self._previous_event_number = -1
+        self._start_time = None
 
         self.skip_missing_events_after = skip_missing_events_after
         self._missing_event_detection_time = None
@@ -109,11 +110,20 @@ class AbstractEventHandler:
     @abc.abstractmethod
     def handle_events(self, *args, **kwargs):
         """Handle events and return a handled "result" event once one is received. This method must be overridden but
-        can have any arguments.
+        can have any arguments. The first thing it should do is call `super().handle_events()`.
 
         :return dict: the handled final result
         """
-        pass
+        self.reset()
+
+    def reset(self):
+        """Reset the handler to be ready to handle a new stream of events.
+
+        :return None:
+        """
+        self._start_time = time.perf_counter()
+        self.waiting_events = {}
+        self._previous_event_number = -1
 
     @abc.abstractmethod
     def _extract_event_and_attributes(self, container):

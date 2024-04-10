@@ -46,8 +46,7 @@ class EventReplayer(AbstractEventHandler):
         :param iter(dict) events: the events to handle
         :return dict|None: the handled "result" event if present
         """
-        self.waiting_events = {}
-        self._previous_event_number = -1
+        super().handle_events()
 
         for event in events:
             self._extract_and_enqueue_event(event)

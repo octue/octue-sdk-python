@@ -90,7 +90,6 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         self._heartbeat_checker = None
         self._last_heartbeat = None
         self._alive = True
-        self._start_time = None
 
     @property
     def total_run_time(self):
@@ -124,9 +123,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         :raise TimeoutError: if the timeout is exceeded before receiving the final event
         :return dict: the handled "result" event
         """
-        self._start_time = time.perf_counter()
-        self.waiting_events = {}
-        self._previous_event_number = -1
+        super().handle_events()
 
         self._heartbeat_checker = RepeatingTimer(
             interval=maximum_heartbeat_interval,
