@@ -12,7 +12,7 @@ SERVICE_COMMUNICATION_SCHEMA = {"$ref": "https://jsonschema.registry.octue.com/o
 SERVICE_COMMUNICATION_SCHEMA_INFO_URL = "https://strands.octue.com/octue/service-communication"
 SERVICE_COMMUNICATION_SCHEMA_VERSION = os.path.splitext(SERVICE_COMMUNICATION_SCHEMA["$ref"])[0].split("/")[-1]
 
-# Instantiate a JSON schema validator to cache the service communication schema. This avoids getting it from the
+# Instantiate a JSON schema validator to cache the service communication schema. This avoids downloading it from the
 # registry every time a message is validated against it.
 jsonschema.Draft202012Validator.check_schema(SERVICE_COMMUNICATION_SCHEMA)
 jsonschema_validator = jsonschema.Draft202012Validator(SERVICE_COMMUNICATION_SCHEMA)
@@ -56,6 +56,7 @@ def raise_if_event_is_invalid(event, attributes, recipient, parent_sdk_version, 
     :raise jsonschema.ValidationError: if the event or its attributes are invalid
     :return None:
     """
+    # Transform attributes to a dictionary in the case they're a different kind of mapping.
     data = {"event": event, "attributes": dict(attributes)}
 
     if schema is None:

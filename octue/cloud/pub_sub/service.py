@@ -621,7 +621,8 @@ class Service:
             event=event_for_validation,
             attributes=attributes,
             recipient=self,
-            parent_sdk_version=attributes["sender_sdk_version"],
+            # Don't assume the presence of specific attributes before validation.
+            parent_sdk_version=attributes.get("sender_sdk_version"),
             child_sdk_version=importlib.metadata.version("octue"),
         )
 

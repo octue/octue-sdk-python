@@ -36,7 +36,7 @@ class AbstractEventHandler:
     To create a concrete handler for a specific service/communication backend synchronously or asynchronously, inherit
     from this class and add the `handle_events` and `_extract_event_and_attributes` methods.
 
-    :param octue.cloud.pub_sub.service.Service recipient: the service instances that's receiving the events
+    :param octue.cloud.pub_sub.service.Service recipient: the `Service` instance that's receiving the events
     :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
     :param bool record_events: if `True`, record received events in the `received_events` attribute
     :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers must not mutate the events.
@@ -130,14 +130,21 @@ class AbstractEventHandler:
         :param any container: the container of the event (e.g. a Pub/Sub message)
         :return None:
         """
-        event, attributes = self._extract_event_and_attributes(container)
+        try:
+            event, attributes = self._extract_event_and_attributes(container)
+        except Exception:
+            event = None
+            attributes = {}
+
+        # Don't assume the presence of specific attributes before validation.
+        child_sdk_version = attributes.get("sender_sdk_version")
 
         if not is_event_valid(
             event=event,
             attributes=attributes,
             recipient=self.recipient,
             parent_sdk_version=PARENT_SDK_VERSION,
-            child_sdk_version=attributes["sender_sdk_version"],
+            child_sdk_version=child_sdk_version,
             schema=self.schema,
         ):
             return
