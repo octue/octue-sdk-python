@@ -186,6 +186,13 @@ class AbstractEventHandler:
 
         :return any|None: either a handled non-`None` "result" event, or `None` if nothing was returned by the event handlers or if the next in-order event hasn't been received yet
         """
+        # Handle the case where no events (or no valid events) have been received.
+        if not self.waiting_events:
+            logger.debug("No events (or no valid events) were received.")
+            return
+
+        self._earliest_waiting_event_number = min(self.waiting_events.keys())
+
         while self.waiting_events:
             try:
                 # If the next consecutive event has been received:

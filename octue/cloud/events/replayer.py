@@ -51,12 +51,6 @@ class EventReplayer(AbstractEventHandler):
         for event in events:
             self._extract_and_enqueue_event(event)
 
-        # Handle the case where no events (or no valid events) have been received.
-        if not self.waiting_events:
-            logger.warning("No events (or no valid events) were received.")
-            return
-
-        self._earliest_waiting_event_number = min(self.waiting_events.keys())
         return self._attempt_to_handle_waiting_events()
 
     def _extract_event_and_attributes(self, container):

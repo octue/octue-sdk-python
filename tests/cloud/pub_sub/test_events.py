@@ -697,7 +697,6 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
 
         event_handler._pull_and_enqueue_available_events(timeout=10)
         self.assertEqual(event_handler.waiting_events, {0: mock_message})
-        self.assertEqual(event_handler._earliest_waiting_event_number, 0)
 
     def test_timeout_error_raised_if_result_message_not_received_in_time(self):
         """Test that a timeout error is raised if a result message is not received in time."""
