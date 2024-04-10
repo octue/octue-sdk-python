@@ -135,10 +135,10 @@ class Service:
         return self._services_topic
 
     @property
-    def received_messages(self):
-        """Get the messages received by the service from a child service while running the `wait_for_answer` method. If
-        the `wait_for_answer` method hasn't been run, `None` is returned. If an empty list is returned, no messages have
-        been received.
+    def received_events(self):
+        """Get the events received from a child service while running the `wait_for_answer` method. If the
+        `wait_for_answer` method hasn't been run, `None` is returned. If an empty list is returned, no events have been
+        received.
 
         :return list(dict)|None:
         """
@@ -382,7 +382,7 @@ class Service:
         self,
         subscription,
         handle_monitor_message=None,
-        record_messages=True,
+        record_events=True,
         timeout=60,
         maximum_heartbeat_interval=300,
     ):
@@ -391,7 +391,7 @@ class Service:
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
-        :param bool record_messages: if `True`, record messages received from the child in the `received_messages` attribute
+        :param bool record_events: if `True`, record messages received from the child in the `received_events` attribute
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
         :param float|int delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
@@ -408,7 +408,7 @@ class Service:
             subscription=subscription,
             recipient=self,
             handle_monitor_message=handle_monitor_message,
-            record_events=record_messages,
+            record_events=record_events,
         )
 
         try:

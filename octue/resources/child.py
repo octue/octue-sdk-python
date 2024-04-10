@@ -44,13 +44,13 @@ class Child:
         return f"<{type(self).__name__}({self.id!r})>"
 
     @property
-    def received_messages(self):
-        """Get the messages received from the child if it has been asked a question. If it hasn't, `None` is returned.
+    def received_events(self):
+        """Get the events received from the child if it has been asked a question. If it hasn't, `None` is returned.
         If an empty list is returned, no messages have been received.
 
         :return list(dict)|None:
         """
-        return self._service.received_messages
+        return self._service.received_events
 
     def ask(
         self,
@@ -60,7 +60,7 @@ class Child:
         subscribe_to_logs=True,
         allow_local_files=False,
         handle_monitor_message=None,
-        record_messages=True,
+        record_events=True,
         save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",  # This is repeated as a string here to avoid a circular import.
         question_uuid=None,
         push_endpoint=None,
@@ -80,7 +80,7 @@ class Child:
         :param bool subscribe_to_logs: if `True`, subscribe to logs from the child and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will have access to these local files
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
-        :param bool record_messages: if `True`, record messages received from the child in the `received_messages` property
+        :param bool record_events: if `True`, record messages received from the child in the `received_events` property
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
@@ -110,7 +110,7 @@ class Child:
         return self._service.wait_for_answer(
             subscription=subscription,
             handle_monitor_message=handle_monitor_message,
-            record_messages=record_messages,
+            record_events=record_events,
             timeout=timeout,
             maximum_heartbeat_interval=maximum_heartbeat_interval,
         )

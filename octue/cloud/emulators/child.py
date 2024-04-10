@@ -77,12 +77,12 @@ class ChildEmulator:
         return f"<{type(self).__name__}({self.id!r})>"
 
     @property
-    def received_messages(self):
-        """Get the messages received from the child.
+    def received_events(self):
+        """Get the events received from the child.
 
         :return list(dict):
         """
-        return self._parent.received_messages
+        return self._parent.received_events
 
     def ask(
         self,
@@ -91,7 +91,7 @@ class ChildEmulator:
         subscribe_to_logs=True,
         allow_local_files=False,
         handle_monitor_message=None,
-        record_messages=True,
+        record_events=True,
         question_uuid=None,
         push_endpoint=None,
         asynchronous=False,
@@ -106,7 +106,7 @@ class ChildEmulator:
         :param bool subscribe_to_logs: if `True`, subscribe to logs from the child and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will have access to these local files
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
-        :param bool record_messages: if `True`, record messages received from the child in the `received_messages` property
+        :param bool record_events: if `True`, record events received from the child in the `received_events` property
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True`, don't create an answer subscription
@@ -131,7 +131,7 @@ class ChildEmulator:
             return self._parent.wait_for_answer(
                 subscription,
                 handle_monitor_message=handle_monitor_message,
-                record_messages=record_messages,
+                record_events=record_events,
                 timeout=timeout,
             )
 
