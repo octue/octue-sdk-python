@@ -22,6 +22,7 @@ class TestEventReplayer(unittest.TestCase):
 
         self.assertIsNone(result)
         self.assertIn("received an event that doesn't conform", logging_context.output[1])
+        self.assertIn("No events (or no valid events) were received.", logging_context.output[2])
 
     def test_no_result_event(self):
         """Test that `None` is returned if no result event is received."""
