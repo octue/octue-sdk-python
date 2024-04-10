@@ -1,5 +1,4 @@
 import base64
-import importlib.metadata
 import json
 import logging
 import time
@@ -18,7 +17,6 @@ from octue.utils.threads import RepeatingTimer
 logger = logging.getLogger(__name__)
 
 MAX_SIMULTANEOUS_MESSAGES_PULL = 50
-PARENT_SDK_VERSION = importlib.metadata.version("octue")
 
 
 def extract_event_and_attributes_from_pub_sub_message(message):
@@ -31,25 +29,18 @@ def extract_event_and_attributes_from_pub_sub_message(message):
     # Cast attributes to a dictionary to avoid defaultdict-like behaviour from Pub/Sub message attributes container.
     attributes = dict(getattr_or_subscribe(message, "attributes"))
 
-    # Required for all events.
-    converted_attributes = {
-        "question_uuid": attributes["question_uuid"],
-        "order": int(attributes["order"]),
-        "originator": attributes["originator"],
-        "sender": attributes["sender"],
-        "sender_type": attributes["sender_type"],
-        "sender_sdk_version": attributes["sender_sdk_version"],
-        "recipient": attributes["recipient"],
-    }
+    # Deserialise the `order` and `forward_logs` fields if they're present (don't assume they are before validation).
+    if attributes.get("order"):
+        attributes["order"] = int(attributes["order"])
 
     # Required for question events.
-    if attributes["sender_type"] == "PARENT":
-        converted_attributes.update(
-            {
-                "forward_logs": bool(int(attributes["forward_logs"])),
-                "save_diagnostics": attributes["save_diagnostics"],
-            }
-        )
+    if attributes.get("sender_type") == "PARENT":
+        forward_logs = attributes.get("forward_logs")
+
+        if forward_logs:
+            attributes["forward_logs"] = bool(int(forward_logs))
+        else:
+            attributes["forward_logs"] = None
 
     try:
         # Parse event directly from Pub/Sub or Dataflow.
@@ -58,7 +49,7 @@ def extract_event_and_attributes_from_pub_sub_message(message):
         # Parse event from Google Cloud Run.
         event = json.loads(base64.b64decode(message["data"]).decode("utf-8").strip(), cls=OctueJSONDecoder)
 
-    return event, converted_attributes
+    return event, attributes
 
 
 class GoogleCloudPubSubEventHandler(AbstractEventHandler):
