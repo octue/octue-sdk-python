@@ -12,7 +12,7 @@ from tests import TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 
 
-class TestPubSubEventHandler(BaseTestCase):
+class TestGoogleCloudPubSubEventHandler(BaseTestCase):
     service_patcher = ServicePatcher()
 
     @classmethod
@@ -24,7 +24,7 @@ class TestPubSubEventHandler(BaseTestCase):
         cls.topic.create(allow_existing=True)
 
         cls.subscription = MockSubscription(
-            name=f"my-org.my-service.1-0-0.answers.{cls.question_uuid}",
+            name=f"octue.services.my-org.my-service.1-0-0.answers.{cls.question_uuid}",
             topic=cls.topic,
         )
         cls.subscription.create()
@@ -405,7 +405,14 @@ class TestPubSubEventHandler(BaseTestCase):
                 order=message["event"]["order"],
             )
 
-        result = event_handler.handle_events()
+        with self.assertLogs() as logging_context:
+            result = event_handler.handle_events()
+
+        self.assertIn(
+            f"2 consecutive events missing for question {self.question_uuid!r} after 0s - skipping to next earliest "
+            f"waiting event (event 2).",
+            logging_context.output[0],
+        )
 
         self.assertEqual(result, "This is the result.")
         self.assertEqual(
@@ -465,7 +472,14 @@ class TestPubSubEventHandler(BaseTestCase):
             order=5,
         )
 
-        event_handler.handle_events()
+        with self.assertLogs() as logging_context:
+            event_handler.handle_events()
+
+        self.assertIn(
+            f"2 consecutive events missing for question {self.question_uuid!r} after 0s - skipping to next earliest "
+            f"waiting event (event 5).",
+            logging_context.output[0],
+        )
 
         # Check that all the non-missing messages were handled.
         self.assertEqual(
@@ -555,7 +569,20 @@ class TestPubSubEventHandler(BaseTestCase):
                 order=message["event"]["order"],
             )
 
-        event_handler.handle_events()
+        with self.assertLogs() as logging_context:
+            event_handler.handle_events()
+
+        self.assertIn(
+            f"2 consecutive events missing for question {self.question_uuid!r} after 0s - skipping to next earliest "
+            f"waiting event (event 5).",
+            logging_context.output[0],
+        )
+
+        self.assertIn(
+            f"14 consecutive events missing for question {self.question_uuid!r} after 0s - skipping to next earliest "
+            f"waiting event (event 20).",
+            logging_context.output[1],
+        )
 
         # Check that all the non-missing messages were handled.
         self.assertEqual(
@@ -594,8 +621,14 @@ class TestPubSubEventHandler(BaseTestCase):
             order=1000,
         )
 
-        event_handler.handle_events()
+        with self.assertLogs() as logging_context:
+            event_handler.handle_events()
 
+        self.assertIn(
+            f"1000 consecutive events missing for question {self.question_uuid!r} after 0s - skipping to next earliest "
+            f"waiting event (event 1000).",
+            logging_context.output[0],
+        )
         # Check that the result message was handled.
         self.assertEqual(event_handler.handled_events, [{"kind": "finish-test", "order": 1000}])
 
@@ -632,11 +665,6 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
 
     def test_pull_and_enqueue_available_events(self):
         """Test that pulling and enqueuing a message works."""
-        self.subscription = MockSubscription(
-            name=f"my-org.my-service.1-0-0.answers.{self.question_uuid}",
-            topic=self.topic,
-        )
-
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
             recipient=self.parent,
@@ -673,11 +701,6 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
 
     def test_timeout_error_raised_if_result_message_not_received_in_time(self):
         """Test that a timeout error is raised if a result message is not received in time."""
-        self.subscription = MockSubscription(
-            name=f"my-org.my-service.1-0-0.answers.{self.question_uuid}",
-            topic=self.topic,
-        )
-
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
             recipient=self.parent,
