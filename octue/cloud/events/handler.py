@@ -42,7 +42,7 @@ class AbstractEventHandler:
     :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers must not mutate the events.
     :param dict schema: the JSON schema to validate events against
     :param int|float skip_missing_events_after: the number of seconds after which to skip any events if they haven't arrived but subsequent events have
-    :param bool only_handle_result: if `True`, skip non-result events and only handle the result event when received
+    :param bool only_handle_result: if `True`, skip non-result events and only handle the "result" event when received
     :return None:
     """
 
@@ -87,13 +87,21 @@ class AbstractEventHandler:
         self._log_message_colours = [COLOUR_PALETTE[1], *COLOUR_PALETTE[3:]]
 
     @property
+    def awaiting_missing_event(self):
+        """Check if the event handler is currently waiting for a missing event.
+
+        :return bool: `True` if the event handler is currently waiting for a missing event
+        """
+        return self._missing_event_detection_time is not None
+
+    @property
     def time_since_missing_event(self):
         """Get the amount of time elapsed since the last missing event was detected. If no missing events have been
-        detected or they've already been skipped past, `None` is returned.
+        detected or they've already been skipped, `None` is returned.
 
         :return float|None:
         """
-        if self._missing_event_detection_time is None:
+        if not self.awaiting_missing_event:
             return None
 
         return time.perf_counter() - self._missing_event_detection_time
@@ -117,7 +125,7 @@ class AbstractEventHandler:
         pass
 
     def _extract_and_enqueue_event(self, container):
-        """Extract an event from its container and add it to `self.waiting_events`.
+        """Extract an event from its container, validate it, and add it to `self.waiting_events` if it's valid.
 
         :param any container: the container of the event (e.g. a Pub/Sub message)
         :return None:
@@ -140,12 +148,12 @@ class AbstractEventHandler:
             self.child_sruid = attributes["sender"]
             self.child_sdk_version = attributes["sender_sdk_version"]
 
-        logger.debug("%r received an event related to question %r.", self.recipient, self.question_uuid)
+        logger.debug("%r: Received an event related to question %r.", self.recipient, self.question_uuid)
         order = attributes["order"]
 
         if order in self.waiting_events:
             logger.warning(
-                "%r: Event with duplicate order %d received for question %s - overwriting original event.",
+                "%r: Event with duplicate order %d received for question %r - overwriting original event.",
                 self.recipient,
                 order,
                 self.question_uuid,
@@ -154,12 +162,12 @@ class AbstractEventHandler:
         self.waiting_events[order] = event
 
     def _attempt_to_handle_waiting_events(self):
-        """Attempt to handle events waiting in `self.waiting_events`. If these events aren't consecutive to the
+        """Attempt to handle any events waiting in `self.waiting_events`. If these events aren't consecutive to the
         last handled event (i.e. if events have been received out of order and the next in-order event hasn't been
         received yet), just return. After the missing event wait time has passed, if this set of missing events
         haven't arrived but subsequent ones have, skip to the earliest waiting event and continue from there.
 
-        :return any|None: either a handled non-`None` result, or `None` if nothing was returned by the event handlers or if the next in-order event hasn't been received yet
+        :return any|None: either a handled non-`None` "result" event, or `None` if nothing was returned by the event handlers or if the next in-order event hasn't been received yet
         """
         while self.waiting_events:
             try:
@@ -169,7 +177,7 @@ class AbstractEventHandler:
             # If the next consecutive event hasn't been received:
             except KeyError:
                 # Start the missing event timer if it isn't already running.
-                if self._missing_event_detection_time is None:
+                if not self.awaiting_missing_event:
                     self._missing_event_detection_time = time.perf_counter()
 
                 if self.time_since_missing_event > self.skip_missing_events_after:
@@ -192,7 +200,7 @@ class AbstractEventHandler:
     def _skip_to_earliest_waiting_event(self):
         """Get the earliest waiting event and set the event handler up to continue from it.
 
-        :return dict|None:
+        :return dict|None: the earliest waiting event if there is one
         """
         try:
             event = self.waiting_events.pop(self._earliest_waiting_event_number)
@@ -219,8 +227,8 @@ class AbstractEventHandler:
     def _handle_event(self, event):
         """Pass an event to its handler and update the previous event number.
 
-        :param dict event:
-        :return dict|None:
+        :param dict event: the event to handle
+        :return dict|None: the output of the event (this should be `None` unless the event is a "result" event)
         """
         self._previous_event_number += 1
 
@@ -248,22 +256,33 @@ class AbstractEventHandler:
         :return None:
         """
         self._last_heartbeat = datetime.now()
-        logger.info("Heartbeat received from service %r for question %r.", self.child_sruid, self.question_uuid)
+        logger.info(
+            "%r: Received a heartbeat from service %r for question %r.",
+            self.recipient,
+            self.child_sruid,
+            self.question_uuid,
+        )
 
     def _handle_monitor_message(self, event):
-        """Send a monitor message to the handler if one has been provided.
+        """Send the monitor message to the handler if one has been provided.
 
         :param dict event:
         :return None:
         """
-        logger.debug("%r received a monitor message.", self.recipient)
+        logger.debug(
+            "%r: Received a monitor message from service %r for question %r.",
+            self.recipient,
+            self.child_sruid,
+            self.question_uuid,
+        )
 
         if self.handle_monitor_message is not None:
             self.handle_monitor_message(event["data"])
 
     def _handle_log_message(self, event):
-        """Deserialise the event into a log record and pass it to the local log handlers, adding the child's SRUID to
-        the start of the log message.
+        """Deserialise the event into a log record and pass it to the local log handlers. The child's SRUID and the
+        question UUID are added to the start of the log message, and the SRUIDs of any subchildren called by the child
+        are each coloured differently.
 
         :param dict event:
         :return None:
@@ -291,7 +310,7 @@ class AbstractEventHandler:
         logger.handle(record)
 
     def _handle_exception(self, event):
-        """Raise the exception from the responding service that is serialised in `data`.
+        """Raise the exception from the child.
 
         :param dict event:
         :raise Exception:
@@ -315,12 +334,12 @@ class AbstractEventHandler:
         raise exception_type(exception_message)
 
     def _handle_result(self, event):
-        """Convert the result to the correct form, deserialising the output manifest if it is present in the event.
+        """Extract any output values and output manifest from the result, deserialising the manifest if present.
 
         :param dict event:
         :return dict:
         """
-        logger.info("%r received an answer to question %r.", self.recipient, self.question_uuid)
+        logger.info("%r: Received an answer to question %r.", self.recipient, self.question_uuid)
 
         if event.get("output_manifest"):
             output_manifest = Manifest.deserialise(event["output_manifest"])
