@@ -39,6 +39,8 @@ def get_events(
     if include_attributes:
         fields.extend(
             (
+                "`datetime`",
+                "`uuid`",
                 "`originator`",
                 "`sender`",
                 "`sender_type`",
