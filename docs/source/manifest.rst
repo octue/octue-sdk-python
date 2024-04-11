@@ -56,17 +56,30 @@ See :doc:`here <asking_questions>` for more information.
 
 Receive datasets from a service
 -------------------------------
-Get output datasets from an Octue service from the cloud when you're ready.
+Access output datasets from an Octue service from the cloud when you're ready.
 
 .. code-block:: python
 
-    answer["output_manifest"]["an_output_dataset"].files
+    manifest = answer["output_manifest"]
+    manifest["an_output_dataset"].files
     >>> <FilterSet({<Datafile('my_file.csv')>, <Datafile('another_file.csv')>})>
 
 .. hint::
 
     Datasets in an output manifest are stored in the cloud. You’ll need to keep a reference to where they are to access
     them - the output manifest is this reference. You’ll need to use it straight away or save it to make use of it.
+
+
+Download all datasets from a manifest
+-------------------------------------
+Download all or a subset of datasets from a manifest.
+
+.. code-block:: python
+
+    manifest.download()
+    >>> {
+        "my_dataset": "/path/to/dataset"
+    }
 
 
 Further information
