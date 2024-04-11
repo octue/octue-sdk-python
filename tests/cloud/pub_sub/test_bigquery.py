@@ -4,7 +4,7 @@ from unittest.mock import patch
 from octue.cloud.pub_sub.bigquery import get_events
 
 
-class TestBigQuery(TestCase):
+class TestGetEvents(TestCase):
     def test_error_raised_if_event_kind_invalid(self):
         """Test that an error is raised if the event kind is invalid."""
         with self.assertRaises(ValueError):

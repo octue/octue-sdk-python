@@ -51,7 +51,7 @@ class TestEventReplayer(unittest.TestCase):
         self.assertIsNone(result)
         self.assertIn("question was delivered", logging_context.output[0])
 
-    def test_with_events(self):
+    def test_with_events_including_result_event(self):
         """Test that stored events can be replayed and the outputs extracted from the "result" event."""
         with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
             events = json.load(f)
