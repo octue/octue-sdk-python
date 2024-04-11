@@ -33,6 +33,8 @@ class TestEventReplayer(unittest.TestCase):
                 "kind": "delivery_acknowledgement",
             },
             "attributes": {
+                "datetime": "2024-04-11T10:46:48.236064",
+                "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
                 "order": "0",
                 "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
                 "originator": "octue/test-service:1.0.0",

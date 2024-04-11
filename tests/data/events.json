@@ -5,6 +5,8 @@
       "kind": "delivery_acknowledgement"
     },
     "attributes": {
+      "datetime": "2024-04-11T10:46:48.236064",
+      "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
       "order": "0",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "originator": "octue/test-service:1.0.0",
@@ -41,6 +43,8 @@
       }
     },
     "attributes": {
+      "datetime": "2024-04-11T10:46:48.236064",
+      "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
       "order": "1",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "originator": "octue/test-service:1.0.0",
@@ -77,6 +81,8 @@
       }
     },
     "attributes": {
+      "datetime": "2024-04-11T10:46:48.236064",
+      "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
       "order": "2",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "originator": "octue/test-service:1.0.0",
@@ -113,6 +119,8 @@
       }
     },
     "attributes": {
+      "datetime": "2024-04-11T10:46:48.236064",
+      "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
       "order": "3",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "originator": "octue/test-service:1.0.0",
@@ -149,6 +157,8 @@
       }
     },
     "attributes": {
+      "datetime": "2024-04-11T10:46:48.236064",
+      "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
       "order": "4",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "originator": "octue/test-service:1.0.0",
@@ -185,6 +195,8 @@
       }
     },
     "attributes": {
+      "datetime": "2024-04-11T10:46:48.236064",
+      "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
       "order": "5",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "originator": "octue/test-service:1.0.0",
@@ -216,6 +228,8 @@
       "output_values": [1, 2, 3, 4, 5]
     },
     "attributes": {
+      "datetime": "2024-04-11T10:46:48.236064",
+      "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
       "order": "6",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "originator": "octue/test-service:1.0.0",
@@ -231,6 +245,8 @@
       "kind": "heartbeat"
     },
     "attributes": {
+      "datetime": "2024-04-11T10:46:48.236064",
+      "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
       "order": "7",
       "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
       "originator": "octue/test-service:1.0.0",
