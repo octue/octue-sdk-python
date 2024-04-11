@@ -11,11 +11,10 @@ from octue.cli import octue_cli
 from octue.cloud import storage
 from octue.cloud.emulators._pub_sub import MockService, MockTopic
 from octue.cloud.emulators.child import ServicePatcher
-from octue.cloud.events import OCTUE_SERVICES_PREFIX
 from octue.configuration import AppConfiguration, ServiceConfiguration
 from octue.resources import Dataset
 from octue.utils.patches import MultiPatcher
-from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TEST_PROJECT_NAME, TESTS_DIR
+from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
 
 
@@ -194,11 +193,6 @@ class TestStartCommand(BaseTestCase):
                 },
             },
         )
-
-        topic = MockTopic(name=OCTUE_SERVICES_PREFIX, project_name=TEST_PROJECT_NAME)
-
-        with ServicePatcher():
-            topic.create(allow_existing=True)
 
     def test_start_command(self):
         """Test that the start command works without error and uses the revision tag supplied in the

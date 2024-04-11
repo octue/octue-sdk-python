@@ -15,13 +15,10 @@ import twined
 from octue import Runner, exceptions
 from octue.cloud import storage
 from octue.cloud.emulators import ChildEmulator
-from octue.cloud.emulators._pub_sub import MockTopic
-from octue.cloud.emulators.child import ServicePatcher
-from octue.cloud.events import OCTUE_SERVICES_PREFIX
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Dataset, Manifest
 from octue.resources.datafile import Datafile
-from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TEST_PROJECT_NAME, TESTS_DIR
+from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
 from tests.test_app_modules.app_class.app import App
 from tests.test_app_modules.app_module import app
@@ -304,11 +301,6 @@ class TestRunner(BaseTestCase):
 
     def test_child_messages_saved_even_if_child_ask_method_raises_error(self):
         """Test that messages from the child are still saved even if an error is raised within the `Child.ask` method."""
-        topic = MockTopic(name=OCTUE_SERVICES_PREFIX, project_name=TEST_PROJECT_NAME)
-
-        with ServicePatcher():
-            topic.create(allow_existing=True)
-
         diagnostics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "diagnostics")
 
         def app(analysis):

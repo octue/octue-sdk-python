@@ -8,12 +8,11 @@ from unittest.mock import patch
 
 from google.auth.exceptions import DefaultCredentialsError
 
-from octue.cloud.emulators._pub_sub import MockAnalysis, MockService, MockTopic
+from octue.cloud.emulators._pub_sub import MockAnalysis, MockService
 from octue.cloud.emulators.child import ServicePatcher
-from octue.cloud.events import OCTUE_SERVICES_PREFIX
 from octue.resources.child import Child
 from octue.resources.service_backends import GCPPubSubBackend
-from tests import MOCK_SERVICE_REVISION_TAG, TEST_PROJECT_NAME
+from tests import MOCK_SERVICE_REVISION_TAG
 from tests.base import BaseTestCase
 
 
@@ -37,13 +36,11 @@ class TestChild(BaseTestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Start the service patcher and create a mock services topic.
+        """Start the service patcher..
 
         :return None:
         """
         cls.service_patcher.start()
-        topic = MockTopic(name=OCTUE_SERVICES_PREFIX, project_name=TEST_PROJECT_NAME)
-        topic.create(allow_existing=True)
 
     @classmethod
     def tearDownClass(cls):

@@ -21,7 +21,6 @@ from octue.cloud.emulators._pub_sub import (
 )
 from octue.cloud.emulators.child import ServicePatcher
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
-from octue.cloud.events import OCTUE_SERVICES_PREFIX
 from octue.cloud.pub_sub.service import Service
 from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Analysis, Datafile, Dataset, Manifest
@@ -45,13 +44,11 @@ class TestService(BaseTestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Start the service patcher and create a mock services topic.
+        """Start the service patcher.
 
         :return None:
         """
         cls.service_patcher.start()
-        topic = MockTopic(name=OCTUE_SERVICES_PREFIX, project_name=TEST_PROJECT_NAME)
-        topic.create(allow_existing=True)
 
     @classmethod
     def tearDownClass(cls):

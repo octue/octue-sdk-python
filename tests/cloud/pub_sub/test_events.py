@@ -3,9 +3,8 @@ import math
 import uuid
 from unittest.mock import patch
 
-from octue.cloud.emulators._pub_sub import MESSAGES, MockMessage, MockService, MockSubscription, MockTopic
+from octue.cloud.emulators._pub_sub import MESSAGES, MockMessage, MockService, MockSubscription
 from octue.cloud.emulators.child import ServicePatcher
-from octue.cloud.events import OCTUE_SERVICES_PREFIX
 from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
@@ -20,12 +19,9 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         cls.service_patcher.start()
         cls.question_uuid = str(uuid.uuid4())
 
-        cls.topic = MockTopic(name=OCTUE_SERVICES_PREFIX, project_name=TEST_PROJECT_NAME)
-        cls.topic.create(allow_existing=True)
-
         cls.subscription = MockSubscription(
             name=f"octue.services.my-org.my-service.1-0-0.answers.{cls.question_uuid}",
-            topic=cls.topic,
+            topic=cls.test_result_modifier.services_topic,
         )
         cls.subscription.create()
 
@@ -641,12 +637,9 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
         cls.service_patcher.start()
         cls.question_uuid = str(uuid.uuid4())
 
-        cls.topic = MockTopic(name=OCTUE_SERVICES_PREFIX, project_name=TEST_PROJECT_NAME)
-        cls.topic.create(allow_existing=True)
-
         cls.subscription = MockSubscription(
             name=f"my-org.my-service.1-0-0.answers.{cls.question_uuid}",
-            topic=cls.topic,
+            topic=cls.test_result_modifier.services_topic,
         )
         cls.subscription.create()
 
