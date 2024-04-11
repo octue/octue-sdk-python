@@ -100,7 +100,7 @@ class TestWarnIfIncompatible(BaseTestCase):
 
         try:
             with self.assertLogs(level=logging.WARNING):
-                warn_if_incompatible(parent_sdk_version="0.35.0", child_sdk_version="0.35.0")
+                warn_if_incompatible(parent_sdk_version="0.40.0", child_sdk_version="0.40.0")
         except AssertionError:
             no_warnings = True
 
