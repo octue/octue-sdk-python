@@ -16,6 +16,16 @@ resource "google_bigquery_table" "test_table" {
   schema = <<EOF
 [
   {
+    "name": "datetime",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "uuid",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
     "name": "event",
     "type": "JSON",
     "mode": "REQUIRED"
