@@ -14,9 +14,9 @@ can be:
 - **Asynchronous ("fire-and-forget"):** A question whose answer is not waited for and is instead retrieved later. There
   are two types:
 
-    - Regular: responses to these questions are automatically stored in an event store where they can be :ref:`retrieved using the Octue SDK<retrieving_asynchronous_answers> `
+    - **Regular:** Responses to these questions are automatically stored in an event store where they can be :ref:`retrieved using the Octue SDK <retrieving_asynchronous_answers>`
 
-    - Push endpoint: responses to these questions are pushed to an HTTP endpoint for asynchronous handling using Octue's
+    - **Push endpoint:** Responses to these questions are pushed to an HTTP endpoint for asynchronous handling using Octue's
       `django-twined <https://django-twined.readthedocs.io/en/latest/>`_ or custom logic in your own webserver.
 
 Questions are always asked to a *revision* of a service. You can ask a service a question if you have its
@@ -88,7 +88,7 @@ initially or ask the owner/maintainer of the child for an estimate.
 Retrieving answers to asynchronous questions
 ============================================
 To retrieve results and other events from the processing of a question later, make sure you have the permissions to
-access to event store and run:
+access the event store and run:
 
 .. code-block:: python
 
@@ -101,9 +101,18 @@ access to event store and run:
     )
 
 
-.. collapse:: See some example events here...
+**Options**
+
+- ``kind`` - Only retrieve this kind of event if present (e.g. "result")
+- ``include_attributes`` - If ``True``, retrieve all the events' attributes as well
+- ``include_backend_metadata`` - If ``True``, retrieve information about the service backend that produced the event
+- ``limit`` - If set to a positive integer, limit the number of events returned to this
+
+
+.. collapse:: See an example output here...
 
     .. code-block:: python
+
         >>> events
         [
           {
@@ -180,14 +189,7 @@ access to event store and run:
           },
         ]
 
-
-**Options**
-
-- ``kind`` - Only retrieve this kind of event if present (e.g. "result")
-- ``include_attributes`` - If ``True``, retrieve all the events' attributes as well
-- ``include_backend_metadata`` - If ``True``, retrieve information about the service backend that produced the event
-- ``limit`` - If set to a positive integer, limit the number of events returned to this
-
+----
 
 Asking multiple questions in parallel
 =====================================
