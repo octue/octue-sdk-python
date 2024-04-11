@@ -1,0 +1,259 @@
+[
+  {
+    "event": {
+      "datetime": "2024-03-06T15:44:18.156044",
+      "kind": "delivery_acknowledgement"
+    },
+    "attributes": {
+      "datetime": "2024-04-11T10:46:48.236064",
+      "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
+      "order": "0",
+      "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+      "originator": "octue/test-service:1.0.0",
+      "sender": "octue/test-service:1.0.0",
+      "sender_type": "CHILD",
+      "sender_sdk_version": "0.51.0",
+      "recipient": "octue/another-service:3.2.1"
+    }
+  },
+  {
+    "event": {
+      "kind": "log_record",
+      "log_record": {
+        "args": null,
+        "created": 1709739858.1877987,
+        "exc_info": null,
+        "exc_text": null,
+        "filename": "app.py",
+        "funcName": "run",
+        "levelname": "INFO",
+        "levelno": 20,
+        "lineno": 15,
+        "module": "app",
+        "msecs": 187.79873847961426,
+        "msg": "Started example analysis.",
+        "name": "app",
+        "pathname": "/workspace/example_service_cloud_run/app.py",
+        "process": 2,
+        "processName": "MainProcess",
+        "relativeCreated": 5152.963876724243,
+        "stack_info": null,
+        "thread": 68328473233152,
+        "threadName": "ThreadPoolExecutor-0_2"
+      }
+    },
+    "attributes": {
+      "datetime": "2024-04-11T10:46:48.236064",
+      "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
+      "order": "1",
+      "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+      "originator": "octue/test-service:1.0.0",
+      "sender": "octue/test-service:1.0.0",
+      "sender_type": "CHILD",
+      "sender_sdk_version": "0.51.0",
+      "recipient": "octue/another-service:3.2.1"
+    }
+  },
+  {
+    "event": {
+      "kind": "log_record",
+      "log_record": {
+        "args": null,
+        "created": 1709739858.190219,
+        "exc_info": null,
+        "exc_text": null,
+        "filename": "submodule.py",
+        "funcName": "do_something",
+        "levelname": "INFO",
+        "levelno": 20,
+        "lineno": 8,
+        "module": "submodule",
+        "msecs": 190.21892547607422,
+        "msg": "Submodules are included in logging.",
+        "name": "example_service_cloud_run.submodule",
+        "pathname": "/workspace/example_service_cloud_run/submodule.py",
+        "process": 2,
+        "processName": "MainProcess",
+        "relativeCreated": 5155.384063720703,
+        "stack_info": null,
+        "thread": 68328473233152,
+        "threadName": "ThreadPoolExecutor-0_2"
+      }
+    },
+    "attributes": {
+      "datetime": "2024-04-11T10:46:48.236064",
+      "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
+      "order": "2",
+      "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+      "originator": "octue/test-service:1.0.0",
+      "sender": "octue/test-service:1.0.0",
+      "sender_type": "CHILD",
+      "sender_sdk_version": "0.51.0",
+      "recipient": "octue/another-service:3.2.1"
+    }
+  },
+  {
+    "event": {
+      "kind": "log_record",
+      "log_record": {
+        "args": null,
+        "created": 1709739860.2234063,
+        "exc_info": null,
+        "exc_text": null,
+        "filename": "analysis.py",
+        "funcName": "finalise",
+        "levelname": "INFO",
+        "levelno": 20,
+        "lineno": 158,
+        "module": "analysis",
+        "msecs": 223.40631484985352,
+        "msg": "Validated output values and output manifest against the twine.",
+        "name": "octue.resources.analysis",
+        "pathname": "/usr/local/lib/python3.9/site-packages/octue/resources/analysis.py",
+        "process": 2,
+        "processName": "MainProcess",
+        "relativeCreated": 7188.571453094482,
+        "stack_info": null,
+        "thread": 68328473233152,
+        "threadName": "ThreadPoolExecutor-0_2"
+      }
+    },
+    "attributes": {
+      "datetime": "2024-04-11T10:46:48.236064",
+      "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
+      "order": "3",
+      "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+      "originator": "octue/test-service:1.0.0",
+      "sender": "octue/test-service:1.0.0",
+      "sender_type": "CHILD",
+      "sender_sdk_version": "0.51.0",
+      "recipient": "octue/another-service:3.2.1"
+    }
+  },
+  {
+    "event": {
+      "kind": "log_record",
+      "log_record": {
+        "args": null,
+        "created": 1709739861.5923417,
+        "exc_info": null,
+        "exc_text": null,
+        "filename": "analysis.py",
+        "funcName": "finalise",
+        "levelname": "INFO",
+        "levelno": 20,
+        "lineno": 174,
+        "module": "analysis",
+        "msecs": 592.3416614532471,
+        "msg": "Uploaded output datasets to 'gs://octue-sdk-python-test-bucket/example_output_datasets'.",
+        "name": "octue.resources.analysis",
+        "pathname": "/usr/local/lib/python3.9/site-packages/octue/resources/analysis.py",
+        "process": 2,
+        "processName": "MainProcess",
+        "relativeCreated": 8557.506799697876,
+        "stack_info": null,
+        "thread": 68328473233152,
+        "threadName": "ThreadPoolExecutor-0_2"
+      }
+    },
+    "attributes": {
+      "datetime": "2024-04-11T10:46:48.236064",
+      "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
+      "order": "4",
+      "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+      "originator": "octue/test-service:1.0.0",
+      "sender": "octue/test-service:1.0.0",
+      "sender_type": "CHILD",
+      "sender_sdk_version": "0.51.0",
+      "recipient": "octue/another-service:3.2.1"
+    }
+  },
+  {
+    "event": {
+      "kind": "log_record",
+      "log_record": {
+        "args": null,
+        "created": 1709739861.5949728,
+        "exc_info": null,
+        "exc_text": null,
+        "filename": "app.py",
+        "funcName": "run",
+        "levelname": "INFO",
+        "levelno": 20,
+        "lineno": 28,
+        "module": "app",
+        "msecs": 594.9728488922119,
+        "msg": "Finished example analysis.",
+        "name": "app",
+        "pathname": "/workspace/example_service_cloud_run/app.py",
+        "process": 2,
+        "processName": "MainProcess",
+        "relativeCreated": 8560.13798713684,
+        "stack_info": null,
+        "thread": 68328473233152,
+        "threadName": "ThreadPoolExecutor-0_2"
+      }
+    },
+    "attributes": {
+      "datetime": "2024-04-11T10:46:48.236064",
+      "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
+      "order": "5",
+      "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+      "originator": "octue/test-service:1.0.0",
+      "sender": "octue/test-service:1.0.0",
+      "sender_type": "CHILD",
+      "sender_sdk_version": "0.51.0",
+      "recipient": "octue/another-service:3.2.1"
+    }
+  },
+  {
+    "event": {
+      "kind": "result",
+      "output_manifest": {
+        "datasets": {
+          "example_dataset": {
+            "files": [
+              "gs://octue-sdk-python-test-bucket/example_output_datasets/example_dataset/output.dat"
+            ],
+            "id": "419bff6b-08c3-4c16-9eb1-5d1709168003",
+            "labels": [],
+            "name": "divergent-strange-gharial-of-pizza",
+            "path": "https://storage.googleapis.com/octue-sdk-python-test-bucket/example_output_datasets/example_dataset/.signed_metadata_files/divergent-strange-gharial-of-pizza",
+            "tags": {}
+          }
+        },
+        "id": "a13713ae-f207-41c6-9e29-0a848ced6039",
+        "name": null
+      },
+      "output_values": [1, 2, 3, 4, 5]
+    },
+    "attributes": {
+      "datetime": "2024-04-11T10:46:48.236064",
+      "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
+      "order": "6",
+      "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+      "originator": "octue/test-service:1.0.0",
+      "sender": "octue/test-service:1.0.0",
+      "sender_type": "CHILD",
+      "sender_sdk_version": "0.51.0",
+      "recipient": "octue/another-service:3.2.1"
+    }
+  },
+  {
+    "event": {
+      "datetime": "2024-03-06T15:46:18.167424",
+      "kind": "heartbeat"
+    },
+    "attributes": {
+      "datetime": "2024-04-11T10:46:48.236064",
+      "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
+      "order": "7",
+      "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+      "originator": "octue/test-service:1.0.0",
+      "sender": "octue/test-service:1.0.0",
+      "sender_type": "CHILD",
+      "sender_sdk_version": "0.51.0",
+      "recipient": "octue/another-service:3.2.1"
+    }
+  }
+]

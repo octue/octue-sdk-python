@@ -65,4 +65,4 @@ def _load_child_emulators(path):
     with open(os.path.join(path, "questions.json")) as f:
         questions = json.load(f)
 
-    return tuple(ChildEmulator(id=question["id"], messages=question["messages"]) for question in questions)
+    return tuple(ChildEmulator(id=question["id"], events=question["events"]) for question in questions)

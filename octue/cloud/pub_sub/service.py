@@ -14,21 +14,22 @@ from google.api_core import retry
 from google.cloud import pubsub_v1
 
 import octue.exceptions
+from octue.cloud.events import OCTUE_SERVICES_PREFIX
+from octue.cloud.events.counter import EventCounter
+from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.events import extract_event_and_attributes_from_pub_sub
-from octue.cloud.pub_sub.logging import GooglePubSubHandler
-from octue.cloud.pub_sub.message_handler import OrderedMessageHandler
+from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler, extract_event_and_attributes_from_pub_sub_message
+from octue.cloud.pub_sub.logging import GoogleCloudPubSubHandler
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     create_sruid,
     get_default_sruid,
-    get_sruid_from_pub_sub_resource_name,
     raise_if_revision_not_registered,
     split_service_id,
     validate_sruid,
 )
-from octue.cloud.validation import raise_if_event_is_invalid
 from octue.compatibility import warn_if_incompatible
+from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
 from octue.utils.threads import RepeatingTimer
@@ -36,10 +37,10 @@ from octue.utils.threads import RepeatingTimer
 
 logger = logging.getLogger(__name__)
 
-# A lock to ensure only one message can be sent at a time so that the message number is incremented correctly when
-# messages are being sent on multiple threads (e.g. via the main thread and a periodic monitor message thread). This
-# avoids 1) messages overwriting each other in the parent's message handler and 2) messages losing their order.
-send_message_lock = threading.Lock()
+# A lock to ensure only one event can be emitted at a time so that the order is incremented correctly when events are
+# being emitted on multiple threads (e.g. via the main thread and a periodic monitor message thread). This avoids 1)
+# events overwriting each other in the parent's message handler and 2) events losing their order.
+emit_event_lock = threading.Lock()
 
 DEFAULT_NAMESPACE = "default"
 ANSWERS_NAMESPACE = "answers"
@@ -86,13 +87,13 @@ class Service:
         self.backend = backend
         self.run_function = run_function
         self.name = name
-
         self.service_registries = service_registries
 
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
         self._local_sdk_version = importlib.metadata.version("octue")
         self._publisher = None
-        self._message_handler = None
+        self._services_topic = None
+        self._event_handler = None
 
     def __repr__(self):
         """Represent the service as a string.
@@ -115,15 +116,34 @@ class Service:
         return self._publisher
 
     @property
-    def received_messages(self):
-        """Get the messages received by the service from a child service while running the `wait_for_answer` method. If
-        the `wait_for_answer` method hasn't been run, `None` is returned. If an empty list is returned, no messages have
-        been received.
+    def services_topic(self):
+        """Get the Octue services topic that all events in the project are published to. No topic is instantiated until
+        this property is called for the first time. This allows checking for the `GOOGLE_APPLICATION_CREDENTIALS`
+        environment variable to be put off until it's needed.
+
+        :raise octue.exceptions.ServiceNotFound: if the topic doesn't exist in the project
+        :return octue.cloud.pub_sub.topic.Topic: the Octue services topic for the project
+        """
+        if not self._services_topic:
+            topic = Topic(name=OCTUE_SERVICES_PREFIX, project_name=self.backend.project_name)
+
+            if not topic.exists():
+                raise octue.exceptions.ServiceNotFound(f"{topic!r} cannot be found.")
+
+            self._services_topic = topic
+
+        return self._services_topic
+
+    @property
+    def received_events(self):
+        """Get the events received from a child service while running the `wait_for_answer` method. If the
+        `wait_for_answer` method hasn't been run, `None` is returned. If an empty list is returned, no events have been
+        received.
 
         :return list(dict)|None:
         """
-        if self._message_handler:
-            return self._message_handler.handled_messages
+        if self._event_handler:
+            return self._event_handler.handled_events
         return None
 
     def serve(self, timeout=None, delete_topic_and_subscription_on_exit=False, allow_existing=False, detach=False):
@@ -137,18 +157,15 @@ class Service:
         :return (google.cloud.pubsub_v1.subscriber.futures.StreamingPullFuture, google.cloud.pubsub_v1.SubscriberClient):
         """
         logger.info("Starting %r.", self)
-        topic = Topic(name=self._pub_sub_id, project_name=self.backend.project_name)
 
         subscription = Subscription(
-            name=self._pub_sub_id,
-            topic=topic,
-            project_name=self.backend.project_name,
-            filter=f'attributes.sender_type = "{PARENT_SENDER_TYPE}"',
+            name=".".join((OCTUE_SERVICES_PREFIX, self._pub_sub_id)),
+            topic=self.services_topic,
+            filter=f'attributes.recipient = "{self.id}" AND attributes.sender_type = "{PARENT_SENDER_TYPE}"',
             expiration_time=None,
         )
 
         try:
-            topic.create(allow_existing=allow_existing)
             subscription.create(allow_existing=allow_existing)
         except google.api_core.exceptions.AlreadyExists:
             raise octue.exceptions.ServiceAlreadyExists(f"A service with the ID {self.id!r} already exists.")
@@ -179,11 +196,8 @@ class Service:
                         if subscription.creation_triggered_locally:
                             subscription.delete()
 
-                        if topic.creation_triggered_locally:
-                            topic.delete()
-
                     except Exception:
-                        logger.error("Deletion of topic and/or subscription %r failed.", topic.name)
+                        logger.error("Deletion of %r failed.", subscription)
 
                 subscriber.close()
 
@@ -206,30 +220,33 @@ class Service:
                 forward_logs,
                 parent_sdk_version,
                 save_diagnostics,
+                originator,
             ) = self._parse_question(question)
         except jsonschema.ValidationError:
             return
 
-        topic = Topic(name=self._pub_sub_id, project_name=self.backend.project_name)
         heartbeater = None
+        order = EventCounter()
 
         try:
-            self._send_delivery_acknowledgment(topic, question_uuid)
+            self._send_delivery_acknowledgment(question_uuid, originator, order)
 
             heartbeater = RepeatingTimer(
                 interval=heartbeat_interval,
                 function=self._send_heartbeat,
-                kwargs={"topic": topic, "question_uuid": question_uuid},
+                kwargs={"question_uuid": question_uuid, "originator": originator, "order": order},
             )
 
             heartbeater.daemon = True
             heartbeater.start()
 
             if forward_logs:
-                analysis_log_handler = GooglePubSubHandler(
-                    message_sender=self._send_message,
-                    topic=topic,
+                analysis_log_handler = GoogleCloudPubSubHandler(
+                    event_emitter=self._emit_event,
                     question_uuid=question_uuid,
+                    originator=originator,
+                    recipient=originator,
+                    order=order,
                 )
             else:
                 analysis_log_handler = None
@@ -242,23 +259,23 @@ class Service:
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=functools.partial(
                     self._send_monitor_message,
-                    topic=topic,
                     question_uuid=question_uuid,
+                    originator=originator,
+                    order=order,
                 ),
                 save_diagnostics=save_diagnostics,
             )
 
-            result = {"kind": "result"}
-
-            if analysis.output_values is not None:
-                result["output_values"] = analysis.output_values
+            result = make_minimal_dictionary(kind="result", output_values=analysis.output_values)
 
             if analysis.output_manifest is not None:
                 result["output_manifest"] = analysis.output_manifest.to_primitive()
 
-            self._send_message(
-                message=result,
-                topic=topic,
+            self._emit_event(
+                event=result,
+                originator=originator,
+                recipient=originator,
+                order=order,
                 attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
                 timeout=timeout,
             )
@@ -271,7 +288,7 @@ class Service:
                 heartbeater.cancel()
 
             warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
-            self.send_exception(topic, question_uuid, timeout=timeout)
+            self.send_exception(question_uuid, originator, order, timeout=timeout)
             raise error
 
     def ask(
@@ -285,6 +302,7 @@ class Service:
         save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",  # This is repeated as a string here to avoid a circular import.
         question_uuid=None,
         push_endpoint=None,
+        asynchronous=False,
         timeout=86400,
     ):
         """Ask a child a question (i.e. send it input values for it to analyse and produce output values for) and return
@@ -299,9 +317,10 @@ class Service:
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will be able to access these local files
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
-        :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here; if they should be pulled, leave this as `None`
+        :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
+        :param bool asynchronous: if `True` and not using a push endpoint, don't create an answer subscription
         :param float|None timeout: time in seconds to keep retrying sending the question
-        :return (octue.cloud.pub_sub.subscription.Subscription, str): the answer subscription and question UUID
+        :return (octue.cloud.pub_sub.subscription.Subscription|None, str): the answer subscription (if the question is synchronous or a push endpoint was used) and question UUID
         """
         service_namespace, service_name, service_revision_tag = split_service_id(service_id)
 
@@ -328,54 +347,42 @@ class Service:
                     "the new cloud locations."
                 )
 
-        pub_sub_service_id = convert_service_id_to_pub_sub_form(service_id)
-        topic = Topic(name=pub_sub_service_id, project_name=self.backend.project_name)
-
-        if not topic.exists(timeout=timeout):
-            raise octue.exceptions.ServiceNotFound(f"Service with ID {service_id!r} cannot be found.")
-
         question_uuid = question_uuid or str(uuid.uuid4())
 
-        answer_subscription = Subscription(
-            name=".".join((topic.name, ANSWERS_NAMESPACE, question_uuid)),
-            topic=topic,
-            project_name=self.backend.project_name,
-            filter=f'attributes.question_uuid = "{question_uuid}" AND attributes.sender_type = "{CHILD_SENDER_TYPE}"',
-            push_endpoint=push_endpoint,
-        )
-        answer_subscription.create(allow_existing=False)
+        if asynchronous and not push_endpoint:
+            answer_subscription = None
+        else:
+            pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
 
-        question = {"kind": "question"}
+            answer_subscription = Subscription(
+                name=".".join((OCTUE_SERVICES_PREFIX, pub_sub_id, ANSWERS_NAMESPACE, question_uuid)),
+                topic=self.services_topic,
+                filter=(
+                    f'attributes.recipient = "{self.id}" '
+                    f'AND attributes.question_uuid = "{question_uuid}" '
+                    f'AND attributes.sender_type = "{CHILD_SENDER_TYPE}"'
+                ),
+                push_endpoint=push_endpoint,
+            )
+            answer_subscription.create(allow_existing=False)
 
-        if input_values is not None:
-            question["input_values"] = input_values
-
-        if input_manifest is not None:
-            input_manifest.use_signed_urls_for_datasets()
-            question["input_manifest"] = input_manifest.to_primitive()
-
-        if children is not None:
-            question["children"] = children
-
-        self._send_message(
-            message=question,
-            topic=topic,
-            attributes={
-                "question_uuid": question_uuid,
-                "sender_type": PARENT_SENDER_TYPE,
-                "forward_logs": subscribe_to_logs,
-                "save_diagnostics": save_diagnostics,
-            },
+        self._send_question(
+            input_values=input_values,
+            input_manifest=input_manifest,
+            children=children,
+            forward_logs=subscribe_to_logs,
+            save_diagnostics=save_diagnostics,
+            question_uuid=question_uuid,
+            recipient=service_id,
         )
 
-        logger.info("%r asked a question %r to service %r.", self, question_uuid, service_id)
         return answer_subscription, question_uuid
 
     def wait_for_answer(
         self,
         subscription,
         handle_monitor_message=None,
-        record_messages=True,
+        record_events=True,
         timeout=60,
         maximum_heartbeat_interval=300,
     ):
@@ -384,7 +391,7 @@ class Service:
 
         :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
-        :param bool record_messages: if `True`, record messages received from the child in the `received_messages` attribute
+        :param bool record_events: if `True`, record messages received from the child in the `received_events` attribute
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
         :param float|int delivery_acknowledgement_timeout: how long in seconds to wait for a delivery acknowledgement before aborting
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
@@ -392,23 +399,20 @@ class Service:
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
         if subscription.is_push_subscription:
-            raise octue.exceptions.PushSubscriptionCannotBePulled(
+            raise octue.exceptions.NotAPullSubscription(
                 f"{subscription.path!r} is a push subscription so it cannot be waited on for an answer. Please check "
                 f"its push endpoint at {subscription.push_endpoint!r}."
             )
 
-        service_name = get_sruid_from_pub_sub_resource_name(subscription.name)
-
-        self._message_handler = OrderedMessageHandler(
+        self._event_handler = GoogleCloudPubSubEventHandler(
             subscription=subscription,
-            receiving_service=self,
+            recipient=self,
             handle_monitor_message=handle_monitor_message,
-            service_name=service_name,
-            record_messages=record_messages,
+            record_events=record_events,
         )
 
         try:
-            return self._message_handler.handle_messages(
+            return self._event_handler.handle_events(
                 timeout=timeout,
                 maximum_heartbeat_interval=maximum_heartbeat_interval,
             )
@@ -416,44 +420,54 @@ class Service:
         finally:
             subscription.delete()
 
-    def send_exception(self, topic, question_uuid, timeout=30):
+    def send_exception(self, question_uuid, originator, order, timeout=30):
         """Serialise and send the exception being handled to the parent.
 
-        :param octue.cloud.pub_sub.topic.Topic topic:
-        :param str question_uuid:
+        :param str question_uuid: the UUID of the question this event relates to
+        :param str originator: the SRUID of the service that asked the question this event is related to
+        :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float|None timeout: time in seconds to keep retrying sending of the exception
         :return None:
         """
         exception = convert_exception_to_primitives()
         exception_message = f"Error in {self!r}: {exception['message']}"
 
-        self._send_message(
+        self._emit_event(
             {
                 "kind": "exception",
                 "exception_type": exception["type"],
                 "exception_message": exception_message,
                 "exception_traceback": exception["traceback"],
             },
-            topic=topic,
+            originator=originator,
+            recipient=originator,
+            order=order,
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
             timeout=timeout,
         )
 
-    def _send_message(self, message, topic, attributes=None, timeout=30):
-        """Send a JSON-serialised message to the given topic with optional message attributes and increment the
-        `messages_published` attribute of the topic by one. This method is thread-safe.
+    def _emit_event(self, event, originator, recipient, order, attributes=None, timeout=30):
+        """Emit a JSON-serialised event as a Pub/Sub message to the services topic with optional message attributes,
+        incrementing the `order` argument by one. This method is thread-safe.
 
-        :param dict message: JSON-serialisable data to send as a message
-        :param octue.cloud.pub_sub.topic.Topic topic: the Pub/Sub topic to send the message to
-        :param dict|None attributes: key-value pairs to attach to the message - the values must be strings or bytes
-        :param int|float timeout: the timeout for sending the message in seconds
-        :return None:
+        :param dict event: JSON-serialisable data to emit as an event
+        :param str originator: the SRUID of the service that asked the question this event is related to
+        :param str recipient: the SRUID of the service the event is intended for
+        :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
+        :param dict|None attributes: key-value pairs to attach to the event - the values must be strings or bytes
+        :param int|float timeout: the timeout for sending the event in seconds
+        :return google.cloud.pubsub_v1.publisher.futures.Future:
         """
         attributes = attributes or {}
+        attributes["uuid"] = str(uuid.uuid4())
+        attributes["originator"] = originator
+        attributes["sender"] = self.id
+        attributes["sender_sdk_version"] = self._local_sdk_version
+        attributes["recipient"] = recipient
 
-        with send_message_lock:
-            attributes["version"] = self._local_sdk_version
-            attributes["message_number"] = topic.messages_published
+        with emit_event_lock:
+            attributes["order"] = int(order)
+            attributes["datetime"] = datetime.datetime.utcnow().isoformat()
             converted_attributes = {}
 
             for key, value in attributes.items():
@@ -464,67 +478,125 @@ class Service:
 
                 converted_attributes[key] = value
 
-            self.publisher.publish(
-                topic=topic.path,
-                data=json.dumps(message, cls=OctueJSONEncoder).encode(),
+            future = self.publisher.publish(
+                topic=self.services_topic.path,
+                data=json.dumps(event, cls=OctueJSONEncoder).encode(),
                 retry=retry.Retry(deadline=timeout),
                 **converted_attributes,
             )
 
-            topic.messages_published += 1
+            order += 1
 
-    def _send_delivery_acknowledgment(self, topic, question_uuid, timeout=30):
-        """Send an acknowledgement of question receipt to the parent.
+        return future
 
-        :param octue.cloud.pub_sub.topic.Topic topic: topic to send the acknowledgement to
-        :param str question_uuid:
+    def _send_question(
+        self,
+        input_values,
+        input_manifest,
+        children,
+        forward_logs,
+        save_diagnostics,
+        question_uuid,
+        recipient,
+        timeout=30,
+    ):
+        """Send a question to a child service.
+
+        :param any|None input_values: any input values for the question
+        :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
+        :param list(dict)|None children: a list of children for the child to use instead of its default children (if it uses children). These should be in the same format as in an app's app configuration file and have the same keys.
+        :param bool forward_logs: whether to request the child to forward its logs
+        :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
+        :param str question_uuid: the UUID of the question being sent
+        :param str recipient: the SRUID of the child the question is intended for
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
-        self._send_message(
+        question = make_minimal_dictionary(kind="question", input_values=input_values, children=children)
+
+        if input_manifest is not None:
+            input_manifest.use_signed_urls_for_datasets()
+            question["input_manifest"] = input_manifest.to_primitive()
+
+        future = self._emit_event(
+            event=question,
+            timeout=timeout,
+            originator=self.id,
+            recipient=recipient,
+            order=EventCounter(),
+            attributes={
+                "question_uuid": question_uuid,
+                "forward_logs": forward_logs,
+                "save_diagnostics": save_diagnostics,
+                "sender_type": PARENT_SENDER_TYPE,
+            },
+        )
+
+        # Await successful publishing of the question.
+        future.result()
+        logger.info("%r asked a question %r to service %r.", self, question_uuid, recipient)
+
+    def _send_delivery_acknowledgment(self, question_uuid, originator, order, timeout=30):
+        """Send an acknowledgement of question receipt to the parent.
+
+        :param str question_uuid: the UUID of the question this event relates to
+        :param str originator: the SRUID of the service that asked the question this event is related to
+        :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
+        :param float timeout: time in seconds after which to give up sending
+        :return None:
+        """
+        self._emit_event(
             {
                 "kind": "delivery_acknowledgement",
                 "datetime": datetime.datetime.utcnow().isoformat(),
             },
-            topic=topic,
             timeout=timeout,
+            originator=originator,
+            recipient=originator,
+            order=order,
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
 
-        logger.info("%r acknowledged receipt of question.", self)
+        logger.info("%r acknowledged receipt of question %r.", self, question_uuid)
 
-    def _send_heartbeat(self, topic, question_uuid, timeout=30):
+    def _send_heartbeat(self, question_uuid, originator, order, timeout=30):
         """Send a heartbeat to the parent, indicating that the service is alive.
 
-        :param octue.cloud.pub_sub.topic.Topic topic: topic to send the heartbeat to
-        :param str question_uuid:
+        :param str question_uuid: the UUID of the question this event relates to
+        :param str originator: the SRUID of the service that asked the question this event is related to
+        :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
-        self._send_message(
+        self._emit_event(
             {
                 "kind": "heartbeat",
                 "datetime": datetime.datetime.utcnow().isoformat(),
             },
-            topic=topic,
+            originator=originator,
+            recipient=originator,
+            order=order,
             timeout=timeout,
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
 
         logger.debug("Heartbeat sent by %r.", self)
 
-    def _send_monitor_message(self, data, topic, question_uuid, timeout=30):
+    def _send_monitor_message(self, data, question_uuid, originator, order, timeout=30):
         """Send a monitor message to the parent.
 
         :param any data: the data to send as a monitor message
-        :param octue.cloud.pub_sub.topic.Topic topic: the topic to send the message to
-        :param str question_uuid:
+        :param str question_uuid: the UUID of the question this event relates to
+        :param str originator: the SRUID of the service that asked the question this event is related to
+        :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float timeout: time in seconds to retry sending the message
         :return None:
         """
-        self._send_message(
+        self._emit_event(
             {"kind": "monitor_message", "data": data},
-            topic=topic,
+            originator=originator,
+            recipient=originator,
+            order=order,
             timeout=timeout,
             attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
         )
@@ -535,31 +607,33 @@ class Service:
         """Parse a question in the Google Cloud Run or Google Pub/Sub format.
 
         :param dict|google.cloud.pubsub_v1.subscriber.message.Message question: the question to parse in Google Cloud Run or Google Pub/Sub format
-        :return (dict, str, bool, str, str): the question's event and its attributes (question UUID, whether to forward logs, the Octue SDK version of the parent, and whether to save diagnostics)
+        :return (dict, str, bool, str, str, str): the question's event and its attributes (question UUID, whether to forward logs, the Octue SDK version of the parent, whether to save diagnostics, and the SRUID of the service revision that asked the question)
         """
         logger.info("%r received a question.", self)
 
-        # Acknowledge it if it's directly from Pub/Sub
+        # Acknowledge the question if it's directly from Pub/Sub.
         if hasattr(question, "ack"):
             question.ack()
 
-        event, attributes = extract_event_and_attributes_from_pub_sub(question)
+        event, attributes = extract_event_and_attributes_from_pub_sub_message(question)
         event_for_validation = copy.deepcopy(event)
 
         raise_if_event_is_invalid(
             event=event_for_validation,
             attributes=attributes,
-            receiving_service=self,
-            parent_sdk_version=attributes.get("version"),
+            recipient=self,
+            # Don't assume the presence of specific attributes before validation.
+            parent_sdk_version=attributes.get("sender_sdk_version"),
             child_sdk_version=importlib.metadata.version("octue"),
         )
 
-        logger.info("%r parsed the question successfully.", self)
+        logger.info("%r parsed question %r successfully.", self, attributes["question_uuid"])
 
         return (
             event,
             attributes["question_uuid"],
             attributes["forward_logs"],
-            attributes["version"],
+            attributes["sender_sdk_version"],
             attributes["save_diagnostics"],
+            attributes["originator"],
         )

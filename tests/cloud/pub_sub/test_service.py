@@ -15,7 +15,6 @@ from octue.cloud.emulators._pub_sub import (
     DifferentMockAnalysis,
     MockAnalysis,
     MockAnalysisWithOutputManifest,
-    MockPullResponse,
     MockService,
     MockSubscription,
     MockTopic,
@@ -43,6 +42,22 @@ class TestService(BaseTestCase):
 
     service_patcher = ServicePatcher()
 
+    @classmethod
+    def setUpClass(cls):
+        """Start the service patcher.
+
+        :return None:
+        """
+        cls.service_patcher.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        """Stop the services patcher.
+
+        :return None:
+        """
+        cls.service_patcher.stop()
+
     def test_repr(self):
         """Test that services are represented as a string correctly."""
         service = Service(backend=BACKEND)
@@ -66,26 +81,21 @@ class TestService(BaseTestCase):
 
     def test_serve_fails_if_service_with_same_id_already_exists(self):
         """Test that serving a service fails if a service with the same name already exists."""
-        with self.service_patcher:
-            with patch(
-                "octue.cloud.pub_sub.service.Topic.create",
-                side_effect=google.api_core.exceptions.AlreadyExists(""),
-            ):
-                with self.assertRaises(exceptions.ServiceAlreadyExists):
-                    MockService(
-                        backend=BACKEND,
-                        service_id=f"my-org/existing-service:{MOCK_SERVICE_REVISION_TAG}",
-                    ).serve()
+        with patch(
+            "octue.cloud.pub_sub.service.Subscription.create",
+            side_effect=google.api_core.exceptions.AlreadyExists(""),
+        ):
+            with self.assertRaises(exceptions.ServiceAlreadyExists):
+                MockService(backend=BACKEND, service_id=f"my-org/existing-service:{MOCK_SERVICE_REVISION_TAG}").serve()
 
     def test_serve(self):
         """Test that serving works with a unique service ID. Test that the returned future has itself been returned and
         that the returned subscriber has been closed.
         """
-        with self.service_patcher:
-            future, subscriber = MockService(
-                backend=BACKEND,
-                service_id=f"my-org/existing-service:{MOCK_SERVICE_REVISION_TAG}",
-            ).serve()
+        future, subscriber = MockService(
+            backend=BACKEND,
+            service_id=f"my-org/existing-service:{MOCK_SERVICE_REVISION_TAG}",
+        ).serve()
 
         self.assertFalse(future.cancelled)
         self.assertTrue(future.returned)
@@ -95,107 +105,91 @@ class TestService(BaseTestCase):
         """Test that, when serving a service in detached mode, the returned future is not cancelled or returned and that
         the returned subscriber is not closed.
         """
-        with self.service_patcher:
-            service = MockService(backend=BACKEND, service_id=f"my-org/existing-service-d:{MOCK_SERVICE_REVISION_TAG}")
-            future, subscriber = service.serve(detach=True)
+        service = MockService(backend=BACKEND, service_id=f"my-org/existing-service-d:{MOCK_SERVICE_REVISION_TAG}")
+        future, subscriber = service.serve(detach=True)
 
         self.assertFalse(future.cancelled)
         self.assertFalse(future.returned)
         self.assertFalse(subscriber.closed)
 
-    def test_ask_on_non_existent_service_results_in_error(self):
-        """Test that trying to ask a question to a non-existent service (i.e. one without a topic in Google Pub/Sub)
-        results in an error.
-        """
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            service = MockService(backend=BACKEND)
+    def test_missing_services_topic_results_in_error(self):
+        """Test that an error is raised if the services topic doesn't exist."""
+        service = MockService(backend=BACKEND)
 
+        with patch("octue.cloud.emulators._pub_sub.TOPICS", set()):
             with self.assertRaises(exceptions.ServiceNotFound):
-                service.ask(
-                    service_id=f"my-org/existing-service:{MOCK_SERVICE_REVISION_TAG}",
-                    input_values=[1, 2, 3, 4],
-                )
+                service.services_topic
 
     def test_ask_unregistered_service_revision_when_service_registries_specified_results_in_error(self):
         """Test that an error is raised if attempting to ask an unregistered service a question when service registries
         are being used.
         """
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            service = MockService(
-                backend=BACKEND,
-                service_registries=[{"name": "Octue Registry", "endpoint": "https://blah.com/services"}],
-            )
+        service = MockService(
+            backend=BACKEND,
+            service_registries=[{"name": "Octue Registry", "endpoint": "https://blah.com/services"}],
+        )
 
-            mock_response = requests.Response()
-            mock_response.status_code = 404
+        mock_response = requests.Response()
+        mock_response.status_code = 404
 
-            with patch("requests.get", return_value=mock_response):
-                with self.assertRaises(exceptions.ServiceNotFound):
-                    service.ask(
-                        service_id=f"my-org/unregistered-service:{MOCK_SERVICE_REVISION_TAG}",
-                        input_values=[1, 2, 3, 4],
-                    )
+        with patch("requests.get", return_value=mock_response):
+            with self.assertRaises(exceptions.ServiceNotFound):
+                service.ask(
+                    service_id=f"my-org/unregistered-service:{MOCK_SERVICE_REVISION_TAG}",
+                    input_values=[1, 2, 3, 4],
+                )
 
     def test_ask_unregistered_service_with_no_revision_tag_when_service_registries_specified_results_in_error(self):
         """Test that an error is raised when attempting to ask a question to an unregistered service without including
         revision tag when service registries are being used.
         """
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            service = MockService(
-                backend=BACKEND,
-                service_registries=[{"name": "Octue Registry", "endpoint": "https://blah.com/services"}],
-            )
+        service = MockService(
+            backend=BACKEND,
+            service_registries=[{"name": "Octue Registry", "endpoint": "https://blah.com/services"}],
+        )
 
-            mock_response = requests.Response()
-            mock_response.status_code = 404
+        mock_response = requests.Response()
+        mock_response.status_code = 404
 
-            with patch("requests.get", return_value=mock_response):
-                with self.assertRaises(exceptions.ServiceNotFound):
-                    service.ask(service_id="my-org/unregistered-service", input_values=[1, 2, 3, 4])
+        with patch("requests.get", return_value=mock_response):
+            with self.assertRaises(exceptions.ServiceNotFound):
+                service.ask(service_id="my-org/unregistered-service", input_values=[1, 2, 3, 4])
 
     def test_ask_service_with_no_revision_tag_when_service_registries_not_specified_results_in_error(self):
         """Test that an error is raised when attempting to ask a question to a service without including a revision tag
         when service registries are not being used.
         """
-        with patch("octue.cloud.pub_sub.service.Topic", new=MockTopic):
-            service = MockService(backend=BACKEND)
+        service = MockService(backend=BACKEND)
 
-            mock_response = requests.Response()
-            mock_response.status_code = 404
+        mock_response = requests.Response()
+        mock_response.status_code = 404
 
-            with patch("requests.get", return_value=mock_response):
-                with self.assertRaises(exceptions.InvalidServiceID):
-                    service.ask(service_id="my-org/unregistered-service", input_values=[1, 2, 3, 4])
+        with patch("requests.get", return_value=mock_response):
+            with self.assertRaises(exceptions.InvalidServiceID):
+                service.ask(service_id="my-org/unregistered-service", input_values=[1, 2, 3, 4])
 
     def test_timeout_error_raised_if_no_messages_received_when_waiting(self):
         """Test that a TimeoutError is raised if no messages are received while waiting."""
         mock_topic = MockTopic(name="amazing.service.9-9-9", project_name=TEST_PROJECT_NAME)
-
-        mock_subscription = MockSubscription(
-            name="amazing.service.9-9-9",
-            topic=mock_topic,
-            project_name=TEST_PROJECT_NAME,
-        )
+        mock_subscription = MockSubscription(name="amazing.service.9-9-9", topic=mock_topic)
 
         service = Service(backend=BACKEND)
 
-        with patch("octue.cloud.pub_sub.service.pubsub_v1.SubscriberClient.pull", return_value=MockPullResponse()):
-            with self.assertRaises(TimeoutError):
-                service.wait_for_answer(subscription=mock_subscription, timeout=0.01)
+        with self.assertRaises(TimeoutError):
+            service.wait_for_answer(subscription=mock_subscription, timeout=0.01)
 
     def test_error_raised_if_attempting_to_wait_for_answer_from_push_subscription(self):
         """Test that an error is raised if attempting to wait for an answer from a push subscription."""
-        mock_subscription = MockSubscription(
+        service = Service(backend=BACKEND)
+
+        subscription = MockSubscription(
             name="world",
             topic=MockTopic(name="world", project_name=TEST_PROJECT_NAME),
-            project_name=TEST_PROJECT_NAME,
             push_endpoint="https://example.com/endpoint",
         )
 
-        service = Service(backend=BACKEND)
-
-        with self.assertRaises(exceptions.PushSubscriptionCannotBePulled):
-            service.wait_for_answer(subscription=mock_subscription)
+        with self.assertRaises(exceptions.NotAPullSubscription):
+            service.wait_for_answer(subscription=subscription)
 
     def test_exceptions_in_responder_are_handled_and_sent_to_asker(self):
         """Test that exceptions raised in the child service are handled and sent back to the asker."""
@@ -205,12 +199,11 @@ class TestService(BaseTestCase):
 
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with self.service_patcher:
-            child.serve()
-            subscription, _ = parent.ask(service_id=child.id, input_values={})
+        child.serve()
+        subscription, _ = parent.ask(service_id=child.id, input_values={})
 
-            with self.assertRaises(twined.exceptions.InvalidManifestContents) as context:
-                parent.wait_for_answer(subscription=subscription)
+        with self.assertRaises(twined.exceptions.InvalidManifestContents) as context:
+            parent.wait_for_answer(subscription=subscription)
 
         self.assertIn("'met_mast_id' is a required property", context.exception.args[0])
 
@@ -221,12 +214,11 @@ class TestService(BaseTestCase):
         child = self.make_new_child_with_error(FileNotFoundError(2, "No such file or directory: 'blah'"))
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with self.service_patcher:
-            child.serve()
-            subscription, _ = parent.ask(service_id=child.id, input_values={})
+        child.serve()
+        subscription, _ = parent.ask(service_id=child.id, input_values={})
 
-            with self.assertRaises(FileNotFoundError) as context:
-                parent.wait_for_answer(subscription)
+        with self.assertRaises(FileNotFoundError) as context:
+            parent.wait_for_answer(subscription)
 
         self.assertIn("[Errno 2] No such file or directory: 'blah'", format(context.exception))
 
@@ -239,12 +231,11 @@ class TestService(BaseTestCase):
         child = self.make_new_child_with_error(AnUnknownException("This is an exception unknown to the asker."))
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with self.service_patcher:
-            child.serve()
-            subscription, _ = parent.ask(service_id=child.id, input_values={})
+        child.serve()
+        subscription, _ = parent.ask(service_id=child.id, input_values={})
 
-            with self.assertRaises(Exception) as context:
-                parent.wait_for_answer(subscription)
+        with self.assertRaises(Exception) as context:
+            parent.wait_for_answer(subscription)
 
         self.assertEqual(type(context.exception).__name__, "AnUnknownException")
         self.assertIn("This is an exception unknown to the asker.", context.exception.args[0])
@@ -258,10 +249,9 @@ class TestService(BaseTestCase):
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         with self.assertLogs() as logging_context:
-            with self.service_patcher:
-                child.serve()
-                subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=False)
-                answer = parent.wait_for_answer(subscription)
+            child.serve()
+            subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=False)
+            answer = parent.wait_for_answer(subscription)
 
         self.assertEqual(
             answer,
@@ -284,10 +274,9 @@ class TestService(BaseTestCase):
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         with self.assertLogs() as logs_context_manager:
-            with self.service_patcher:
-                child.serve()
-                subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
-                answer = parent.wait_for_answer(subscription)
+            child.serve()
+            subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
+            answer = parent.wait_for_answer(subscription)
 
         self.assertEqual(
             answer,
@@ -330,10 +319,9 @@ class TestService(BaseTestCase):
         parent = MockService(backend=BACKEND, children={child.id: child})
 
         with self.assertLogs(level=logging.ERROR) as logs_context_manager:
-            with self.service_patcher:
-                child.serve()
-                subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
-                parent.wait_for_answer(subscription)
+            child.serve()
+            subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
+            parent.wait_for_answer(subscription)
 
         error_logged = False
 
@@ -372,12 +360,11 @@ class TestService(BaseTestCase):
         child = MockService(backend=BACKEND, run_function=create_run_function_with_monitoring())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with self.service_patcher:
-            child.serve()
-            subscription, _ = parent.ask(child.id, input_values={})
+        child.serve()
+        subscription, _ = parent.ask(child.id, input_values={})
 
-            monitoring_data = []
-            parent.wait_for_answer(subscription, handle_monitor_message=lambda data: monitoring_data.append(data))
+        monitoring_data = []
+        parent.wait_for_answer(subscription, handle_monitor_message=lambda data: monitoring_data.append(data))
 
         self.assertEqual(
             monitoring_data,
@@ -411,16 +398,12 @@ class TestService(BaseTestCase):
         child = MockService(backend=BACKEND, run_function=create_run_function_with_monitoring())
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with self.service_patcher:
-            child.serve()
-            subscription, _ = parent.ask(child.id, input_values={})
-            monitoring_data = []
+        child.serve()
+        subscription, _ = parent.ask(child.id, input_values={})
+        monitoring_data = []
 
-            with self.assertRaises(InvalidMonitorMessage):
-                parent.wait_for_answer(
-                    subscription,
-                    handle_monitor_message=lambda data: monitoring_data.append(data),
-                )
+        with self.assertRaises(InvalidMonitorMessage):
+            parent.wait_for_answer(subscription, handle_monitor_message=lambda data: monitoring_data.append(data))
 
         self.assertEqual(monitoring_data, [{"status": "my first monitor message"}])
 
@@ -428,36 +411,29 @@ class TestService(BaseTestCase):
         """Test that non-JSON python primitive values (in this case a set and a datetime) can be sent and received by
         services.
         """
+        input_values = {"my_set": {1, 2, 3}, "my_datetime": datetime.datetime.now()}
 
         def run_function(analysis_id, input_values, *args, **kwargs):
             return MockAnalysis(output_values=input_values)
 
         child = MockService(backend=BACKEND, run_function=lambda *args, **kwargs: run_function(*args, **kwargs))
         parent = MockService(backend=BACKEND, children={child.id: child})
+        child.serve()
 
-        input_values = {"my_set": {1, 2, 3}, "my_datetime": datetime.datetime.now()}
+        subscription, _ = parent.ask(
+            service_id=child.id,
+            input_values=input_values,
+            subscribe_to_logs=True,
+            save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
+        )
 
-        with self.service_patcher:
-            child.serve()
-
-            subscription, _ = parent.ask(
-                service_id=child.id,
-                input_values=input_values,
-                subscribe_to_logs=True,
-                save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
-            )
-
-            answer = parent.wait_for_answer(subscription)
-
+        answer = parent.wait_for_answer(subscription)
         self.assertEqual(answer["output_values"], input_values)
 
     def test_ask_with_input_manifest(self):
         """Test that a service can ask a question including an input manifest to another service that is serving and
         receive an answer.
         """
-        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
         dataset_path = f"gs://{TEST_BUCKET_NAME}/my-dataset"
 
         input_manifest = Manifest(
@@ -469,12 +445,13 @@ class TestService(BaseTestCase):
             }
         )
 
-        with self.service_patcher:
-            child.serve()
+        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
+        parent = MockService(backend=BACKEND, children={child.id: child})
+        child.serve()
 
-            with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
-                subscription, _ = parent.ask(service_id=child.id, input_values={}, input_manifest=input_manifest)
-                answer = parent.wait_for_answer(subscription)
+        with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
+            subscription, _ = parent.ask(service_id=child.id, input_values={}, input_manifest=input_manifest)
+            answer = parent.wait_for_answer(subscription)
 
         self.assertEqual(
             answer,
@@ -485,9 +462,6 @@ class TestService(BaseTestCase):
         """Test that a service can ask a question including an input manifest and no input values to another service
         that is serving and receive an answer.
         """
-        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
-        parent = MockService(backend=BACKEND, children={child.id: child})
-
         dataset_path = f"gs://{TEST_BUCKET_NAME}/my-dataset"
 
         input_manifest = Manifest(
@@ -499,12 +473,13 @@ class TestService(BaseTestCase):
             }
         )
 
-        with self.service_patcher:
-            child.serve()
+        child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
+        parent = MockService(backend=BACKEND, children={child.id: child})
+        child.serve()
 
-            with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
-                subscription, _ = parent.ask(service_id=child.id, input_manifest=input_manifest)
-                answer = parent.wait_for_answer(subscription)
+        with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
+            subscription, _ = parent.ask(service_id=child.id, input_manifest=input_manifest)
+            answer = parent.wait_for_answer(subscription)
 
         self.assertEqual(
             answer,
@@ -545,18 +520,16 @@ class TestService(BaseTestCase):
 
         child = MockService(backend=BACKEND, run_function=run_function)
         parent = MockService(backend=BACKEND, children={child.id: child})
+        child.serve()
 
-        with self.service_patcher:
-            child.serve()
+        subscription, _ = parent.ask(
+            service_id=child.id,
+            input_values={},
+            input_manifest=manifest,
+            allow_local_files=True,
+        )
 
-            subscription, _ = parent.ask(
-                service_id=child.id,
-                input_values={},
-                input_manifest=manifest,
-                allow_local_files=True,
-            )
-
-            answer = parent.wait_for_answer(subscription)
+        answer = parent.wait_for_answer(subscription)
 
         self.assertEqual(answer["output_values"], "This is a local file.")
 
@@ -564,11 +537,10 @@ class TestService(BaseTestCase):
         """Test that a service can receive an output manifest as part of the answer to a question."""
         child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysisWithOutputManifest())
         parent = MockService(backend=BACKEND, children={child.id: child})
+        child.serve()
 
-        with self.service_patcher:
-            child.serve()
-            subscription, _ = parent.ask(service_id=child.id, input_values={})
-            answer = parent.wait_for_answer(subscription)
+        subscription, _ = parent.ask(service_id=child.id, input_values={})
+        answer = parent.wait_for_answer(subscription)
 
         self.assertEqual(answer["output_values"], MockAnalysisWithOutputManifest.output_values)
         self.assertEqual(answer["output_manifest"].id, MockAnalysisWithOutputManifest.output_manifest.id)
@@ -577,14 +549,12 @@ class TestService(BaseTestCase):
         """Test that a service can ask multiple questions to the same child and expect replies to them all."""
         child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
         parent = MockService(backend=BACKEND, children={child.id: child})
+        child.serve()
+        answers = []
 
-        with self.service_patcher:
-            child.serve()
-            answers = []
-
-            for i in range(5):
-                subscription, _ = parent.ask(service_id=child.id, input_values={})
-                answers.append(parent.wait_for_answer(subscription))
+        for i in range(5):
+            subscription, _ = parent.ask(service_id=child.id, input_values={})
+            answers.append(parent.wait_for_answer(subscription))
 
         for answer in answers:
             self.assertEqual(
@@ -596,18 +566,16 @@ class TestService(BaseTestCase):
         """Test that a service can ask questions to different children and expect replies to them all."""
         child_1 = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
         child_2 = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis())
-
         parent = MockService(backend=BACKEND, children={child_1.id: child_1, child_2.id: child_2})
 
-        with self.service_patcher:
-            child_1.serve()
-            child_2.serve()
+        child_1.serve()
+        child_2.serve()
 
-            subscription, _ = parent.ask(service_id=child_1.id, input_values={})
-            answer_1 = parent.wait_for_answer(subscription)
+        subscription, _ = parent.ask(service_id=child_1.id, input_values={})
+        answer_1 = parent.wait_for_answer(subscription)
 
-            subscription, _ = parent.ask(service_id=child_2.id, input_values={})
-            answer_2 = parent.wait_for_answer(subscription)
+        subscription, _ = parent.ask(service_id=child_2.id, input_values={})
+        answer_2 = parent.wait_for_answer(subscription)
 
         self.assertEqual(
             answer_1,
@@ -624,11 +592,12 @@ class TestService(BaseTestCase):
 
     def test_child_can_ask_its_own_child_questions(self):
         """Test that a child can contact its own child while answering a question from a parent."""
-        child_of_child = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis())
 
         def child_run_function(analysis_id, input_values, *args, **kwargs):
             subscription, _ = child.ask(service_id=child_of_child.id, input_values=input_values)
             return MockAnalysis(output_values={input_values["question"]: child.wait_for_answer(subscription)})
+
+        child_of_child = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis())
 
         child = MockService(
             backend=BACKEND,
@@ -638,16 +607,15 @@ class TestService(BaseTestCase):
 
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with self.service_patcher:
-            child.serve()
-            child_of_child.serve()
+        child.serve()
+        child_of_child.serve()
 
-            subscription, _ = parent.ask(
-                service_id=child.id,
-                input_values={"question": "What does the child of the child say?"},
-            )
+        subscription, _ = parent.ask(
+            service_id=child.id,
+            input_values={"question": "What does the child of the child say?"},
+        )
 
-            answer = parent.wait_for_answer(subscription)
+        answer = parent.wait_for_answer(subscription)
 
         self.assertEqual(
             answer,
@@ -664,8 +632,6 @@ class TestService(BaseTestCase):
 
     def test_child_can_ask_its_own_children_questions(self):
         """Test that a child can contact more than one of its own children while answering a question from a parent."""
-        first_child_of_child = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis())
-        second_child_of_child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
 
         def child_run_function(analysis_id, input_values, *args, **kwargs):
             subscription_1, _ = child.ask(service_id=first_child_of_child.id, input_values=input_values)
@@ -678,25 +644,30 @@ class TestService(BaseTestCase):
                 }
             )
 
+        first_child_of_child = self.make_new_child(BACKEND, run_function_returnee=DifferentMockAnalysis())
+        second_child_of_child = self.make_new_child(BACKEND, run_function_returnee=MockAnalysis())
+
         child = MockService(
             backend=BACKEND,
             run_function=child_run_function,
-            children={first_child_of_child.id: first_child_of_child, second_child_of_child.id: second_child_of_child},
+            children={
+                first_child_of_child.id: first_child_of_child,
+                second_child_of_child.id: second_child_of_child,
+            },
         )
 
         parent = MockService(backend=BACKEND, children={child.id: child})
 
-        with self.service_patcher:
-            child.serve()
-            first_child_of_child.serve()
-            second_child_of_child.serve()
+        child.serve()
+        first_child_of_child.serve()
+        second_child_of_child.serve()
 
-            subscription, _ = parent.ask(
-                service_id=child.id,
-                input_values={"question": "What does the child of the child say?"},
-            )
+        subscription, _ = parent.ask(
+            service_id=child.id,
+            input_values={"question": "What does the child of the child say?"},
+        )
 
-            answer = parent.wait_for_answer(subscription)
+        answer = parent.wait_for_answer(subscription)
 
         self.assertEqual(
             answer,
@@ -719,35 +690,32 @@ class TestService(BaseTestCase):
         """Test that the parent can record messages it receives from its child to a JSON file."""
         child = MockService(backend=BACKEND, run_function=self.create_run_function())
         parent = MockService(backend=BACKEND, children={child.id: child})
+        child.serve()
 
-        with self.service_patcher:
-            child.serve()
-            subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
-            parent.wait_for_answer(subscription)
+        subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
+        parent.wait_for_answer(subscription)
 
         # Check that the child's messages have been recorded by the parent.
-        self.assertEqual(parent.received_messages[0]["kind"], "delivery_acknowledgement")
-        self.assertEqual(parent.received_messages[1]["kind"], "log_record")
-        self.assertEqual(parent.received_messages[2]["kind"], "log_record")
-        self.assertEqual(parent.received_messages[3]["kind"], "log_record")
-        self.assertEqual(parent.received_messages[4], {"kind": "result", "output_values": "Hello! It worked!"})
+        self.assertEqual(parent.received_events[0]["kind"], "delivery_acknowledgement")
+        self.assertEqual(parent.received_events[1]["kind"], "log_record")
+        self.assertEqual(parent.received_events[2]["kind"], "log_record")
+        self.assertEqual(parent.received_events[3]["kind"], "log_record")
+        self.assertEqual(parent.received_events[4], {"kind": "result", "output_values": "Hello! It worked!"})
 
     def test_child_exception_message_can_be_recorded_by_parent(self):
         """Test that the parent can record exceptions raised by the child."""
         child = self.make_new_child_with_error(ValueError("Oh no."))
         parent = MockService(backend=BACKEND, children={child.id: child})
+        child.serve()
 
-        with self.service_patcher:
-            child.serve()
-
-            with self.assertRaises(ValueError):
-                subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
-                parent.wait_for_answer(subscription)
+        with self.assertRaises(ValueError):
+            subscription, _ = parent.ask(service_id=child.id, input_values={}, subscribe_to_logs=True)
+            parent.wait_for_answer(subscription)
 
         # Check that the child's messages have been recorded by the parent.
-        self.assertEqual(parent.received_messages[0]["kind"], "delivery_acknowledgement")
-        self.assertEqual(parent.received_messages[1]["kind"], "exception")
-        self.assertIn("Oh no.", parent.received_messages[1]["exception_message"])
+        self.assertEqual(parent.received_events[0]["kind"], "delivery_acknowledgement")
+        self.assertEqual(parent.received_events[1]["kind"], "exception")
+        self.assertIn("Oh no.", parent.received_events[1]["exception_message"])
 
     def test_child_sends_heartbeat_messages_at_expected_regular_intervals(self):
         """Test that children send heartbeat messages at the expected regular intervals."""
@@ -759,28 +727,26 @@ class TestService(BaseTestCase):
 
         child = MockService(backend=BACKEND, run_function=lambda *args, **kwargs: run_function())
         parent = MockService(backend=BACKEND, children={child.id: child})
+        child.serve()
 
-        with self.service_patcher:
-            child.serve()
+        with patch(
+            "octue.cloud.emulators._pub_sub.MockService.answer",
+            functools.partial(child.answer, heartbeat_interval=expected_interval),
+        ):
+            subscription, _ = parent.ask(
+                service_id=child.id,
+                input_values={},
+                subscribe_to_logs=True,
+                save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
+            )
 
-            with patch(
-                "octue.cloud.emulators._pub_sub.MockService.answer",
-                functools.partial(child.answer, heartbeat_interval=expected_interval),
-            ):
-                subscription, _ = parent.ask(
-                    service_id=child.id,
-                    input_values={},
-                    subscribe_to_logs=True,
-                    save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
-                )
+            parent.wait_for_answer(subscription)
 
-                parent.wait_for_answer(subscription)
+        self.assertEqual(parent.received_events[1]["kind"], "heartbeat")
+        self.assertEqual(parent.received_events[2]["kind"], "heartbeat")
 
-        self.assertEqual(parent.received_messages[1]["kind"], "heartbeat")
-        self.assertEqual(parent.received_messages[2]["kind"], "heartbeat")
-
-        first_heartbeat_time = datetime.datetime.fromisoformat(parent.received_messages[1]["datetime"])
-        second_heartbeat_time = datetime.datetime.fromisoformat(parent.received_messages[2]["datetime"])
+        first_heartbeat_time = datetime.datetime.fromisoformat(parent.received_events[1]["datetime"])
+        second_heartbeat_time = datetime.datetime.fromisoformat(parent.received_events[2]["datetime"])
 
         self.assertAlmostEqual(
             second_heartbeat_time - first_heartbeat_time,
@@ -806,19 +772,17 @@ class TestService(BaseTestCase):
 
         child = MockService(backend=BACKEND, run_function=run_function)
         parent = MockService(backend=BACKEND, children={child.id: child})
+        child.serve()
 
-        with self.service_patcher:
-            child.serve()
+        subscription, _ = parent.ask(
+            service_id=child.id,
+            input_values={},
+            subscribe_to_logs=True,
+            save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
+        )
 
-            subscription, _ = parent.ask(
-                service_id=child.id,
-                input_values={},
-                subscribe_to_logs=True,
-                save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
-            )
-
-            monitor_messages = []
-            result = parent.wait_for_answer(subscription, handle_monitor_message=monitor_messages.append)
+        monitor_messages = []
+        result = parent.wait_for_answer(subscription, handle_monitor_message=monitor_messages.append)
 
         # Check that multiple monitor messages were sent and received.
         self.assertTrue(len(monitor_messages) > 1)
@@ -886,6 +850,10 @@ class TestService(BaseTestCase):
             children={child.id: child},
         )
 
+        static_child_of_child.serve()
+        dynamic_child_of_child.serve()
+        child.serve()
+
         dynamic_children = [
             {
                 "key": "expected_child",
@@ -894,13 +862,8 @@ class TestService(BaseTestCase):
             },
         ]
 
-        with self.service_patcher:
-            static_child_of_child.serve()
-            dynamic_child_of_child.serve()
-            child.serve()
-
-            subscription, _ = parent.ask(service_id=child.id, input_values={}, children=dynamic_children)
-            answer = parent.wait_for_answer(subscription)
+        subscription, _ = parent.ask(service_id=child.id, input_values={}, children=dynamic_children)
+        answer = parent.wait_for_answer(subscription)
 
         self.assertEqual(answer["output_values"], "I am the dynamic child.")
 

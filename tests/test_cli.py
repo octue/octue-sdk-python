@@ -309,7 +309,7 @@ class TestGetDiagnosticsCommand(BaseTestCase):
             self.assertEqual(questions[0]["id"], f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}")
 
             self.assertEqual(
-                questions[0]["messages"],
+                questions[0]["events"],
                 [
                     {"kind": "log_record", "log_record": {"msg": "Starting analysis."}},
                     {"kind": "log_record", "log_record": {"msg": "Finishing analysis."}},
@@ -376,7 +376,7 @@ class TestGetDiagnosticsCommand(BaseTestCase):
             self.assertEqual(questions[0]["id"], f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}")
 
             self.assertEqual(
-                questions[0]["messages"],
+                questions[0]["events"],
                 [
                     {"kind": "log_record", "log_record": {"msg": "Starting analysis."}},
                     {"kind": "log_record", "log_record": {"msg": "Finishing analysis."}},
@@ -402,8 +402,8 @@ class TestDeployCommand(BaseTestCase):
             (["--expiration-time=100"], 100),
         ):
             with self.subTest(expiration_time_option=expiration_time_option):
-                with patch("octue.cli.Topic", new=MockTopic):
-                    with patch("octue.cli.Subscription") as mock_subscription:
+                with patch("octue.cloud.pub_sub.Topic", new=MockTopic):
+                    with patch("octue.cloud.pub_sub.Subscription") as subscription:
                         result = CliRunner().invoke(
                             octue_cli,
                             [
@@ -420,10 +420,6 @@ class TestDeployCommand(BaseTestCase):
 
                     self.assertIsNone(result.exception)
                     self.assertEqual(result.exit_code, 0)
-
-                    self.assertEqual(mock_subscription.call_args.kwargs["name"], "octue.example-service.3-5-0")
-                    self.assertEqual(
-                        mock_subscription.call_args.kwargs["push_endpoint"],
-                        "https://example.com/endpoint",
-                    )
-                    self.assertEqual(mock_subscription.call_args.kwargs["expiration_time"], expected_expiration_time)
+                    self.assertEqual(subscription.call_args.kwargs["name"], "octue.example-service.3-5-0")
+                    self.assertEqual(subscription.call_args.kwargs["push_endpoint"], "https://example.com/endpoint")
+                    self.assertEqual(subscription.call_args.kwargs["expiration_time"], expected_expiration_time)

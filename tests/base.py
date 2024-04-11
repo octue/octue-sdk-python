@@ -5,10 +5,26 @@ import coolname
 import yaml
 
 from octue.cloud import storage
+from octue.cloud.emulators._pub_sub import MockTopic
+from octue.cloud.emulators.child import ServicePatcher
 from octue.cloud.emulators.cloud_storage import GoogleCloudStorageEmulatorTestResultModifier
+from octue.cloud.events import OCTUE_SERVICES_PREFIX
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset, Manifest
-from tests import TEST_BUCKET_NAME
+from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
+
+
+class TestResultModifier(GoogleCloudStorageEmulatorTestResultModifier):
+    """A test result modifier based on `GoogleCloudStorageEmulatorTestResultModifier` that also creates a mock
+    `octue.services` topic.
+    """
+
+    def startTestRun(self):
+        super().startTestRun()
+
+        with ServicePatcher():
+            self.services_topic = MockTopic(name=OCTUE_SERVICES_PREFIX, project_name=TEST_PROJECT_NAME)
+            self.services_topic.create(allow_existing=True)
 
 
 class BaseTestCase(unittest.TestCase):
@@ -16,7 +32,7 @@ class BaseTestCase(unittest.TestCase):
     - sets a path to the test data directory
     """
 
-    test_result_modifier = GoogleCloudStorageEmulatorTestResultModifier(default_bucket_name=TEST_BUCKET_NAME)
+    test_result_modifier = TestResultModifier(default_bucket_name=TEST_BUCKET_NAME)
     setattr(unittest.TestResult, "startTestRun", test_result_modifier.startTestRun)
     setattr(unittest.TestResult, "stopTestRun", test_result_modifier.stopTestRun)
 

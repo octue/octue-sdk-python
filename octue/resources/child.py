@@ -44,13 +44,13 @@ class Child:
         return f"<{type(self).__name__}({self.id!r})>"
 
     @property
-    def received_messages(self):
-        """Get the messages received from the child if it has been asked a question. If it hasn't, `None` is returned.
+    def received_events(self):
+        """Get the events received from the child if it has been asked a question. If it hasn't, `None` is returned.
         If an empty list is returned, no messages have been received.
 
         :return list(dict)|None:
         """
-        return self._service.received_messages
+        return self._service.received_events
 
     def ask(
         self,
@@ -60,29 +60,35 @@ class Child:
         subscribe_to_logs=True,
         allow_local_files=False,
         handle_monitor_message=None,
-        record_messages=True,
+        record_events=True,
         save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",  # This is repeated as a string here to avoid a circular import.
         question_uuid=None,
+        push_endpoint=None,
+        asynchronous=False,
         timeout=86400,
         maximum_heartbeat_interval=300,
     ):
-        """Ask the child a question and wait for its answer - i.e. send it input values and/or an input manifest and
-        wait for it to analyse them and return output values and/or an output manifest. The input values and manifest
-        must conform to the schema in the child's twine.
+        """Ask the child either:
+        - A synchronous (ask-and-wait) question and wait for it to return an output. Questions are synchronous if
+          the `push_endpoint` isn't provided and `asynchronous=False`.
+        - An asynchronous (fire-and-forget) question and return immediately. To make a question asynchronous, provide
+          the `push_endpoint` argument or set `asynchronous=True`.
 
-        :param any|None input_values: any input values for the question
-        :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
+        :param any|None input_values: any input values for the question, conforming with the schema in the child's twine
+        :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question, conforming with the schema in the child's twine
         :param list(dict)|None children: a list of children for the child to use instead of its default children (if it uses children). These should be in the same format as in an app's app configuration file and have the same keys.
         :param bool subscribe_to_logs: if `True`, subscribe to logs from the child and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will have access to these local files
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
-        :param bool record_messages: if `True`, record messages received from the child in the `received_messages` property
+        :param bool record_events: if `True`, record messages received from the child in the `received_events` property
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
+        :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
+        :param bool asynchronous: if `True`, don't wait for an answer or create an answer subscription (the result and other events can be retrieved from the event store later)
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
-        :return dict: a dictionary containing the keys "output_values" and "output_manifest"
+        :return dict|octue.cloud.pub_sub.subscription.Subscription|None: for a synchronous question, a dictionary containing the keys "output_values" and "output_manifest" from the result; for a question with a push endpoint, the push subscription; for an asynchronous question, `None`
         """
         subscription, _ = self._service.ask(
             service_id=self.id,
@@ -93,13 +99,18 @@ class Child:
             allow_local_files=allow_local_files,
             save_diagnostics=save_diagnostics,
             question_uuid=question_uuid,
+            push_endpoint=push_endpoint,
+            asynchronous=asynchronous,
             timeout=timeout,
         )
+
+        if push_endpoint or asynchronous:
+            return subscription
 
         return self._service.wait_for_answer(
             subscription=subscription,
             handle_monitor_message=handle_monitor_message,
-            record_messages=record_messages,
+            record_events=record_events,
             timeout=timeout,
             maximum_heartbeat_interval=maximum_heartbeat_interval,
         )

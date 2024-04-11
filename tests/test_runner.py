@@ -341,13 +341,13 @@ class TestRunner(BaseTestCase):
         emulated_children = [
             ChildEmulator(
                 id=f"octue/the-child:{MOCK_SERVICE_REVISION_TAG}",
-                messages=[
+                events=[
                     {"kind": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
                 ],
             ),
             ChildEmulator(
                 id=f"octue/yet-another-child:{MOCK_SERVICE_REVISION_TAG}",
-                messages=[
+                events=[
                     {"kind": "log_record", "log_record": {"msg": "Starting analysis."}},
                     {"kind": "log_record", "log_record": {"msg": "Finishing analysis."}},
                     {
@@ -383,17 +383,17 @@ class TestRunner(BaseTestCase):
         self.assertEqual(questions[0]["key"], "my-child")
         self.assertEqual(questions[0]["id"], f"octue/the-child:{MOCK_SERVICE_REVISION_TAG}")
         self.assertEqual(questions[0]["input_values"], [1, 2, 3, 4])
-        self.assertEqual(len(questions[0]["messages"]), 2)
+        self.assertEqual(len(questions[0]["events"]), 2)
 
         # Second question.
         self.assertEqual(questions[1]["key"], "another-child")
         self.assertEqual(questions[1]["id"], f"octue/yet-another-child:{MOCK_SERVICE_REVISION_TAG}")
         self.assertEqual(questions[1]["input_values"], "miaow")
 
-        self.assertEqual(questions[1]["messages"][1]["kind"], "exception")
-        self.assertEqual(questions[1]["messages"][1]["exception_type"], "ValueError")
+        self.assertEqual(questions[1]["events"][1]["kind"], "exception")
+        self.assertEqual(questions[1]["events"][1]["exception_type"], "ValueError")
         self.assertEqual(
-            questions[1]["messages"][1]["exception_message"],
+            questions[1]["events"][1]["exception_message"],
             f"Error in <MockService('octue/yet-another-child:{MOCK_SERVICE_REVISION_TAG}')>: Deliberately raised for "
             f"testing.",
         )
@@ -789,13 +789,13 @@ class TestRunnerDiagnostics(BaseTestCase):
                 emulated_children = [
                     ChildEmulator(
                         id=f"octue/a-child:{MOCK_SERVICE_REVISION_TAG}",
-                        messages=[
+                        events=[
                             {"kind": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
                         ],
                     ),
                     ChildEmulator(
                         id=f"octue/another-child:{MOCK_SERVICE_REVISION_TAG}",
-                        messages=[
+                        events=[
                             {"kind": "log_record", "log_record": {"msg": "Starting analysis."}},
                             {"kind": "log_record", "log_record": {"msg": "Finishing analysis."}},
                             {"kind": "result", "output_values": "woof", "output_manifest": None},
@@ -902,14 +902,14 @@ class TestRunnerDiagnostics(BaseTestCase):
                 self.assertEqual(questions[0]["key"], "my-child")
                 self.assertEqual(questions[0]["id"], f"octue/a-child:{MOCK_SERVICE_REVISION_TAG}")
                 self.assertEqual(questions[0]["input_values"], [1, 2, 3, 4])
-                self.assertEqual(questions[0]["messages"][1]["output_values"], [1, 4, 9, 16])
-                self.assertEqual(len(questions[0]["messages"]), 2)
+                self.assertEqual(questions[0]["events"][1]["output_values"], [1, 4, 9, 16])
+                self.assertEqual(len(questions[0]["events"]), 2)
 
                 # Second question.
                 self.assertEqual(questions[1]["key"], "another-child")
                 self.assertEqual(questions[1]["id"], f"octue/another-child:{MOCK_SERVICE_REVISION_TAG}")
                 self.assertEqual(questions[1]["input_values"], "miaow")
-                self.assertEqual(questions[1]["messages"][1]["output_values"], "woof")
+                self.assertEqual(questions[1]["events"][1]["output_values"], "woof")
 
                 # This should be 4 but log messages aren't currently being handled by the child emulator correctly.
-                self.assertEqual(len(questions[1]["messages"]), 2)
+                self.assertEqual(len(questions[1]["events"]), 2)

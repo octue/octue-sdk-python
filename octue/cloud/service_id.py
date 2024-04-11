@@ -10,9 +10,6 @@ import octue.exceptions
 
 logger = logging.getLogger(__name__)
 
-
-OCTUE_SERVICES_NAMESPACE = "octue.services"
-
 SERVICE_NAMESPACE_AND_NAME_PATTERN = r"([a-z0-9])+(-([a-z0-9])+)*"
 COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN = re.compile(SERVICE_NAMESPACE_AND_NAME_PATTERN)
 
@@ -216,7 +213,7 @@ def get_sruid_from_pub_sub_resource_name(name):
     :param str name: the name of the topic or subscription
     :return str: the SRUID of the service revision the topic or subscription is related to
     """
-    _, _, namespace, name, revision_tag, *_ = name.split(".")
+    namespace, name, revision_tag, *_ = name.split(".")
     return f"{namespace}/{name}:{revision_tag.replace('-', '.')}"
 
 

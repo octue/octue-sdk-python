@@ -12,8 +12,6 @@ from google.pubsub_v1.types.pubsub import (
     UpdateSubscriptionRequest,
 )
 
-from octue.cloud.service_id import OCTUE_SERVICES_NAMESPACE
-
 
 logger = logging.getLogger(__name__)
 
@@ -27,14 +25,14 @@ class Subscription:
 
     :param str name: the name of the subscription excluding "projects/<project_name>/subscriptions/<namespace>"
     :param octue.cloud.pub_sub.topic.Topic topic: the topic the subscription is attached to
-    :param str project_name: the name of the Google Cloud project that the subscription belongs to
+    :param str|None project_name: the name of the Google Cloud project that the subscription belongs to; if `None`, the project name of the topic is used
     :param str|None filter: if provided, only receive messages matching the filter (see here for filter syntax: https://cloud.google.com/pubsub/docs/subscription-message-filter#filtering_syntax)
     :param int ack_deadline: the time in seconds after which, if the subscriber hasn't acknowledged a message, to retry sending it to the subscription
     :param int message_retention_duration: unacknowledged message retention time in seconds
     :param int|float|None expiration_time: number of seconds of inactivity after which the subscription is deleted (infinite time if `None`)
     :param float minimum_retry_backoff: minimum number of seconds after the acknowledgement deadline has passed to exponentially retry delivering a message to the subscription
     :param float maximum_retry_backoff: maximum number of seconds after the acknowledgement deadline has passed to exponentially retry delivering a message to the subscription
-    :param str|None push_endpoint: if this is a push subscription, this is the URL to which messages should be pushed; leave as `None` if this is a pull subscription
+    :param str|None push_endpoint: if this is a push subscription, this is the URL to which messages should be pushed; leave as `None` if it's not a push subscription
     :return None:
     """
 
@@ -42,7 +40,7 @@ class Subscription:
         self,
         name,
         topic,
-        project_name,
+        project_name=None,
         filter=None,
         ack_deadline=600,
         message_retention_duration=600,
@@ -51,14 +49,10 @@ class Subscription:
         maximum_retry_backoff=600,
         push_endpoint=None,
     ):
-        if not name.startswith(OCTUE_SERVICES_NAMESPACE):
-            self.name = f"{OCTUE_SERVICES_NAMESPACE}.{name}"
-        else:
-            self.name = name
-
+        self.name = name
         self.topic = topic
         self.filter = filter
-        self.path = self.generate_subscription_path(project_name, self.name)
+        self.path = self.generate_subscription_path(project_name or self.topic.project_name, self.name)
         self.ack_deadline = ack_deadline
         self.message_retention_duration = Duration(seconds=message_retention_duration)
 
@@ -184,9 +178,9 @@ class Subscription:
         :return google.pubsub_v1.types.pubsub.Subscription:
         """
         if self.push_endpoint:
-            push_config = {"push_config": PushConfig(mapping=None, push_endpoint=self.push_endpoint)}  # noqa
+            options = {"push_config": PushConfig(mapping=None, push_endpoint=self.push_endpoint)}  # noqa
         else:
-            push_config = {}
+            options = {}
 
         return _Subscription(
             mapping=None,
@@ -197,7 +191,7 @@ class Subscription:
             message_retention_duration=self.message_retention_duration,  # noqa
             expiration_policy=self.expiration_policy,  # noqa
             retry_policy=self.retry_policy,  # noqa
-            **push_config,
+            **options,
         )
 
     def _log_creation(self):

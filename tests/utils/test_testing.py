@@ -28,7 +28,7 @@ class TestTesting(TestCase):
         self.assertEqual(len(child_emulators), 1)
         self.assertEqual(child_emulators[0].id, f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}")
         self.assertEqual(
-            child_emulators[0].messages[2:],
+            child_emulators[0].events[2:],
             [
                 {"kind": "monitor_message", "data": {"sample": "data"}},
                 {"kind": "result", "output_values": [1, 2, 3, 4, 5]},

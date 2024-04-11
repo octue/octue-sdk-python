@@ -332,19 +332,17 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         return self.files.one(labels__contains=label)
 
     def download(self, local_directory=None):
-        """Download all files in the dataset into the given local directory. If no path to a local directory is given,
-        the files will be downloaded to temporary locations.
+        """Download all files in the dataset.
 
-        :param str|None local_directory:
-        :return None:
+        :param str|None local_directory: the path to a local directory to download the dataset into; if not provided, the files will be downloaded to a temporary directory
+        :return str: the absolute path to the local directory
         """
         if not self.exists_in_cloud:
             raise CloudLocationNotSpecified(
                 f"You can only download files from a cloud dataset. This dataset's path is {self.path!r}."
             )
 
-        local_directory = local_directory or tempfile.TemporaryDirectory().name
-
+        local_directory = os.path.abspath(local_directory or tempfile.TemporaryDirectory().name)
         datafiles_and_paths = []
 
         for file in self.files:
@@ -354,7 +352,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
             path_relative_to_dataset = self._datafile_path_relative_to_self(file, path_type="cloud_path")
 
-            local_path = os.path.abspath(os.path.join(local_directory, *path_relative_to_dataset.split("/")))
+            local_path = os.path.join(local_directory, *path_relative_to_dataset.split("/"))
             datafiles_and_paths.append({"datafile": file, "local_path": local_path})
 
         def download_datafile(datafile_and_path):
@@ -371,6 +369,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
                 logger.debug("Downloaded datafile to %r.", path)
 
         logger.info("Downloaded %r to %r.", self, local_directory)
+        return local_directory
 
     def to_primitive(self, include_files=True):
         """Convert the dataset to a dictionary of primitives, converting its files into their paths for a lightweight

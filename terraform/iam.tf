@@ -82,6 +82,42 @@ resource "google_project_iam_binding" "errorreporting_writer" {
 }
 
 
+resource "google_project_iam_binding" "bigquery_dataeditor" {
+  project = var.project
+  role = "roles/bigquery.dataEditor"
+  members = [
+    "serviceAccount:service-${var.project_number}@gcp-sa-pubsub.iam.gserviceaccount.com",
+  ]
+}
+
+
+resource "google_project_iam_binding" "bigquery_dataviewer" {
+  project = var.project
+  role = "roles/bigquery.dataViewer"
+  members = [
+    "serviceAccount:${google_service_account.dev_cortadocodes_service_account.email}",
+  ]
+}
+
+
+resource "google_project_iam_binding" "bigquery_jobuser" {
+  project = var.project
+  role = "roles/bigquery.jobUser"
+  members = [
+    "serviceAccount:${google_service_account.dev_cortadocodes_service_account.email}",
+  ]
+}
+
+
+resource "google_project_iam_binding" "bigquery_readsessionuser" {
+  project = var.project
+  role = "roles/bigquery.readSessionUser"
+  members = [
+    "serviceAccount:${google_service_account.dev_cortadocodes_service_account.email}",
+  ]
+}
+
+
 resource "google_iam_workload_identity_pool" "github_actions_pool" {
     display_name              = "github-actions-pool"
     project                   = var.project

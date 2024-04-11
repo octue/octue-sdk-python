@@ -22,18 +22,18 @@ your tests:
 
 The Child Emulator
 ------------------
-We've written a child emulator that takes a list of messages and returns them to the parent for handling in the order
-given - without contacting the real child or using Pub/Sub. Any messages a real child can produce are supported.
+We've written a child emulator that takes a list of events and returns them to the parent for handling in the order
+given - without contacting the real child or using Pub/Sub. Any events a real child can produce are supported.
 :mod:`Child <octue.resources.child.Child>` instances can be mocked like-for-like by
 :mod:`ChildEmulator <octue.cloud.emulators.child.ChildEmulator>` instances without the parent knowing. You can provide
-the emulated messages in python or via a JSON file.
+the emulated events in python or via a JSON file.
 
 Message types
 -------------
 You can emulate any message type that your app (the parent) can handle. The table below shows what these are.
 
 +-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
-| Message type          | Number of messages supported                                                                     | Example                                                                                                                   |
+| Message type          | Number of events supported                                                                     | Example                                                                                                                   |
 +=======================+==================================================================================================+===========================================================================================================================+
 | ``log_record``        | Any number                                                                                       | {"type": "log_record": "log_record": {"msg": "Starting analysis."}}                                                       |
 +-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
@@ -50,7 +50,7 @@ You can emulate any message type that your app (the parent) can handle. The tabl
 - The ``log_record`` key of a ``log_record`` message is any dictionary that the ``logging.makeLogRecord`` function can
   convert into a log record.
 - The ``data`` key of a ``monitor_message`` message must be a JSON-serialised string
-- Any messages after a ``result`` or ``exception`` message won't be passed to the parent because execution of the child
+- Any events after a ``result`` or ``exception`` message won't be passed to the parent because execution of the child
   emulator will have ended.
 
 
@@ -59,7 +59,7 @@ Instantiating a child emulator in python
 
 .. code-block:: python
 
-    messages = [
+    events = [
         {
             "type": "log_record",
             "log_record": {"msg": "Starting analysis."},
@@ -81,7 +81,7 @@ Instantiating a child emulator in python
 
     child_emulator = ChildEmulator(
         backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
-        messages=messages
+        events=events
     )
 
     def handle_monitor_message(message):
@@ -96,14 +96,14 @@ Instantiating a child emulator in python
 
 Instantiating a child emulator from a JSON file
 -----------------------------------------------
-You can provide a JSON file with either just messages in or with messages and some or all of the
+You can provide a JSON file with either just events in or with events and some or all of the
 :mod:`ChildEmulator <octue.cloud.emulators.child.ChildEmulator>` constructor parameters. Here's an example JSON file
-with just the messages:
+with just the events:
 
 .. code-block:: json
 
     {
-        "messages": [
+        "events": [
             {
                 "type": "log_record",
                 "log_record": {"msg": "Starting analysis."}
@@ -179,7 +179,7 @@ To emulate your children in tests, patch the :mod:`Child <octue.resources.child.
         ChildEmulator(
             id="octue/my-child-service:2.1.0",
             internal_service_name="you/your-service:2.1.0",
-            messages=[
+            events=[
                 {
                     "type": "result",
                     "output_values": [300],
@@ -205,14 +205,14 @@ Creating a test fixture
 =======================
 Since the child is *emulated*, it doesn't actually do any calculation - if you change the inputs, the outputs won't
 change correspondingly (or at all). So, it's up to you to define a set of realistic inputs and corresponding outputs
-(the list of emulated messages) to test your service. These are called **test fixtures**.
+(the list of emulated events) to test your service. These are called **test fixtures**.
 
 .. note::
   Unlike a real child, the inputs given to the emulator and the outputs returned aren't validated against the schema in
   the child's twine - this is because the twine is only available to the real child. This is ok - you're testing your
   service, not the child.
 
-You can create test fixtures manually or by using the ``Child.received_messages`` property after questioning a real
+You can create test fixtures manually or by using the ``Child.received_events`` property after questioning a real
 child.
 
 .. code-block:: python
@@ -228,7 +228,7 @@ child.
 
     result = child.ask(input_values=[1, 2, 3, 4])
 
-    child.received_messages
+    child.received_events
     >>> [
             {
                 'type': 'delivery_acknowledgement',
@@ -257,7 +257,7 @@ You can then feed these into a child emulator to emulate one possible response o
     from octue.cloud.emulators import ChildEmulator
 
 
-    child_emulator = ChildEmulator(messages=child.received_messages)
+    child_emulator = ChildEmulator(events=child.received_events)
 
     child_emulator.ask(input_values=[1, 2, 3, 4])
     >>> {"some": "results"}
