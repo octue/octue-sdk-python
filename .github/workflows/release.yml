@@ -59,10 +59,11 @@ jobs:
         run: tox -vv -e py
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           files: coverage.xml
           fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
     outputs:
       package_version: ${{ steps.get-package-version.outputs.PACKAGE_VERSION }}
