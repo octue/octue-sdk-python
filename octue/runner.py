@@ -374,7 +374,7 @@ class Runner:
             try:
                 return original_ask_method(**kwargs)
             finally:
-                self.diagnostics.add_question({"id": child.id, "key": key, **kwargs, "messages": child.received_events})
+                self.diagnostics.add_question({"id": child.id, "key": key, **kwargs, "events": child.received_events})
 
         return wrapper
 

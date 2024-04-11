@@ -30,35 +30,35 @@ class TestChildEmulatorAsk(BaseTestCase):
             f"<ChildEmulator('octue/emulated-child:{MOCK_SERVICE_REVISION_TAG}')>",
         )
 
-    def test_ask_with_non_dictionary_message(self):
-        """Test that messages that aren't dictionaries fail validation."""
-        messages = [
+    def test_ask_with_non_dictionary_event(self):
+        """Test that events that aren't dictionaries fail validation."""
+        events = [
             ["hello"],
         ]
 
-        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
 
         with self.assertRaises(TypeError):
             child_emulator.ask(input_values={"hello": "world"})
 
-    def test_ask_with_invalid_message_structure(self):
-        """Test that messages with an invalid structure fail validation."""
-        messages = [
-            {"message": "hello"},
+    def test_ask_with_invalid_event_structure(self):
+        """Test that events with an invalid structure fail validation."""
+        events = [
+            {"event": "hello"},
         ]
 
-        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
 
         with self.assertRaises(ValueError):
             child_emulator.ask(input_values={"hello": "world"})
 
-    def test_ask_with_invalid_message_type(self):
-        """Test that messages with an invalid type fail validation."""
-        messages = [
+    def test_ask_with_invalid_event_type(self):
+        """Test that events with an invalid type fail validation."""
+        events = [
             {"kind": "hello", "content": [1, 2, 3, 4]},
         ]
 
-        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
 
         with self.assertRaises(ValueError):
             child_emulator.ask(input_values={"hello": "world"})
@@ -66,23 +66,23 @@ class TestChildEmulatorAsk(BaseTestCase):
     # Re-enable this when schema validation has been sorted out in the child emulator.
     # def test_ask_with_invalid_result(self):
     #     """Test that an invalid result fails validation."""
-    #     messages = [
+    #     events = [
     #         {
     #             "kind": "result",
     #             "wrong": "keys",
     #         },
     #     ]
     #
-    #     child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
+    #     child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
     #
     #     with self.assertRaises(ValueError):
     #         child_emulator.ask(input_values={"hello": "world"})
 
-    def test_ask_with_result_message(self):
-        """Test that result messages are returned by the emulator's ask method."""
+    def test_ask_with_result_event(self):
+        """Test that result events are returned by the emulator's ask method."""
         output_manifest = Manifest()
 
-        messages = [
+        events = [
             {
                 "kind": "result",
                 "output_values": [1, 2, 3, 4],
@@ -90,7 +90,7 @@ class TestChildEmulatorAsk(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
 
         result = child_emulator.ask(input_values={"hello": "world"})
         self.assertEqual(result["output_values"], [1, 2, 3, 4])
@@ -100,7 +100,7 @@ class TestChildEmulatorAsk(BaseTestCase):
         """Test that a child emulator can accept an input manifest."""
         input_manifest = Manifest()
 
-        messages = [
+        events = [
             {
                 "kind": "result",
                 "output_values": [1, 2, 3, 4],
@@ -108,47 +108,47 @@ class TestChildEmulatorAsk(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
 
         result = child_emulator.ask(input_values={"hello": "world"}, input_manifest=input_manifest)
         self.assertEqual(result["output_values"], [1, 2, 3, 4])
 
-    def test_empty_output_returned_by_ask_if_no_result_present_in_messages(self):
-        """Test that an empty output is returned if no result message is present in the given messages."""
-        child_emulator = ChildEmulator(backend=self.BACKEND, messages=[])
+    def test_empty_output_returned_by_ask_if_no_result_present_in_events(self):
+        """Test that an empty output is returned if no result event is present in the given events."""
+        child_emulator = ChildEmulator(backend=self.BACKEND, events=[])
         result = child_emulator.ask(input_values={"hello": "world"})
         self.assertEqual(result, {"output_values": None, "output_manifest": None})
 
     def test_ask_with_log_record_with_missing_log_record_key(self):
-        """Test that an error is raised if a log record message missing the "log_record" key is given."""
-        messages = [
+        """Test that an error is raised if a log record event missing the "log_record" key is given."""
+        events = [
             {
                 "kind": "log_record",
             }
         ]
 
-        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
 
         with self.assertRaises(ValueError):
             child_emulator.ask(input_values={"hello": "world"})
 
     def test_ask_with_invalid_log_record(self):
         """Test that an invalid log record representation fails validation."""
-        messages = [
+        events = [
             {
                 "kind": "log_record",
                 "log_record": [1, 2, 3],
             },
         ]
 
-        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
 
         with self.assertRaises(TypeError):
             child_emulator.ask(input_values={"hello": "world"})
 
     def test_ask_with_logs(self):
         """Test that log records can be handled by the emulator."""
-        messages = [
+        events = [
             {
                 "kind": "log_record",
                 "log_record": {"msg": "Starting analysis.", "levelno": 20, "levelname": "INFO"},
@@ -159,7 +159,7 @@ class TestChildEmulatorAsk(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
 
         with self.assertLogs(level=logging.INFO) as logging_context:
             child_emulator.ask(input_values={"hello": "world"})
@@ -169,7 +169,7 @@ class TestChildEmulatorAsk(BaseTestCase):
 
     def test_ask_with_logs_without_level_number_and_name(self):
         """Test that the 'INFO' log level is used if none is provided in the log record dictionaries."""
-        messages = [
+        events = [
             {
                 "kind": "log_record",
                 "log_record": {"msg": "Starting analysis."},
@@ -180,7 +180,7 @@ class TestChildEmulatorAsk(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
 
         with self.assertLogs(level=logging.INFO) as logging_context:
             child_emulator.ask(input_values={"hello": "world"})
@@ -193,21 +193,21 @@ class TestChildEmulatorAsk(BaseTestCase):
 
     def test_ask_with_invalid_exception(self):
         """Test that an invalid exception fails validation."""
-        messages = [
+        events = [
             {
                 "kind": "exception",
                 "not": "an exception",
             },
         ]
 
-        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
 
         with self.assertRaises(ValueError):
             child_emulator.ask(input_values={"hello": "world"})
 
     def test_ask_with_exception(self):
         """Test that exceptions are raised by the emulator."""
-        messages = [
+        events = [
             {
                 "kind": "exception",
                 "exception_type": "TypeError",
@@ -215,7 +215,7 @@ class TestChildEmulatorAsk(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
 
         # Test that the exception was raised.
         with self.assertRaises(TypeError) as context:
@@ -226,14 +226,14 @@ class TestChildEmulatorAsk(BaseTestCase):
 
     def test_ask_with_monitor_message(self):
         """Test that monitor messages are handled by the emulator."""
-        messages = [
+        events = [
             {
                 "kind": "monitor_message",
                 "data": "A sample monitor message.",
             },
         ]
 
-        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
 
         monitor_messages = []
 
@@ -245,25 +245,25 @@ class TestChildEmulatorAsk(BaseTestCase):
         # Check that the monitor message handler has worked.
         self.assertEqual(monitor_messages, ["A sample monitor message."])
 
-    def test_heartbeat_messages_are_ignored(self):
-        """Test that heartbeat messages are ignored by the emulator."""
-        messages = [
+    def test_heartbeat_events_are_ignored(self):
+        """Test that heartbeat events are ignored by the emulator."""
+        events = [
             {
                 "kind": "heartbeat",
                 "datetime": "2023-11-23T14:25:38.142884",
             },
         ]
 
-        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
 
         with self.assertLogs(level=logging.WARNING) as logging_context:
             child_emulator.ask(input_values={"hello": "world"})
 
-        self.assertIn("Heartbeat messages are ignored by the ChildEmulator.", logging_context.output[0])
+        self.assertIn("Heartbeat events are ignored by the ChildEmulator.", logging_context.output[0])
 
-    def test_messages_recorded_from_real_child_can_be_used_in_child_emulator(self):
-        """Test that messages recorded from a real child can be used as emulated messages in a child emulator (i.e. test
-        that the message format is unified between `Service` and `ChildEmulator`).
+    def test_events_recorded_from_real_child_can_be_used_in_child_emulator(self):
+        """Test that events recorded from a real child can be used as emulated events in a child emulator (i.e. test
+        that the event format is unified between `Service` and `ChildEmulator`).
         """
         backend = GCPPubSubBackend(project_name="my-project")
 
@@ -280,14 +280,14 @@ class TestChildEmulatorAsk(BaseTestCase):
                 subscription, _ = parent.ask(service_id=child.id, input_values={})
                 parent.wait_for_answer(subscription=subscription)
 
-        child_emulator = ChildEmulator(messages=parent.received_events)
+        child_emulator = ChildEmulator(events=parent.received_events)
 
         with self.assertRaises(OSError):
             child_emulator.ask(input_values={})
 
     def test_ask_more_than_one_question(self):
         """Test than a child emulator can be asked more than one question without an error occurring."""
-        messages = [
+        events = [
             {
                 "kind": "result",
                 "output_values": [1, 2, 3, 4],
@@ -295,7 +295,7 @@ class TestChildEmulatorAsk(BaseTestCase):
             },
         ]
 
-        child_emulator = ChildEmulator(backend=self.BACKEND, messages=messages)
+        child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
         result_0 = child_emulator.ask(input_values={"hello": "world"})
         result_1 = child_emulator.ask(input_values={"hello": "planet"})
         self.assertEqual(result_0, result_1)
@@ -320,11 +320,11 @@ class TestChildEmulatorJSONFiles(BaseTestCase):
         result = child_emulator.ask(input_values={"hello": "world"})
         self.assertEqual(result, {"output_values": None, "output_manifest": None})
 
-    def test_with_only_messages(self):
-        """Test that a child emulator can be instantiated from a JSON file containing only the messages it should
-        produce, asked a question, and produce the expected log messages, monitor messages, and result.
+    def test_with_only_events(self):
+        """Test that a child emulator can be instantiated from a JSON file containing only the events it should
+        produce, asked a question, and produce the expected log events, monitor messages, and result.
         """
-        emulator_file_path = os.path.join(self.TEST_FILES_DIRECTORY, "file_with_only_messages.json")
+        emulator_file_path = os.path.join(self.TEST_FILES_DIRECTORY, "file_with_only_events.json")
         child_emulator = ChildEmulator.from_file(emulator_file_path)
         self.assertEqual(child_emulator._child.backend.project_name, "emulated-project")
 
@@ -348,7 +348,7 @@ class TestChildEmulatorJSONFiles(BaseTestCase):
 
     def test_with_full_file(self):
         """Test that a child emulator can be instantiated from a JSON file containing all its instantiation arguments,
-        asked a question, and produce the correct messages.
+        asked a question, and produce the correct events.
         """
         child_emulator = ChildEmulator.from_file(os.path.join(self.TEST_FILES_DIRECTORY, "full_file.json"))
         self.assertEqual(child_emulator.id, f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}")
@@ -374,8 +374,8 @@ class TestChildEmulatorJSONFiles(BaseTestCase):
         self.assertEqual(result, {"output_values": [1, 2, 3, 4, 5], "output_manifest": None})
 
     def test_with_exception(self):
-        """Test that a child emulator can be instantiated from a JSON file including an exception in its messages and,
-        when asked a question, produce the messages prior to the exception before raising the exception.
+        """Test that a child emulator can be instantiated from a JSON file including an exception in its events and,
+        when asked a question, produce the events prior to the exception before raising the exception.
         """
         child_emulator = ChildEmulator.from_file(os.path.join(self.TEST_FILES_DIRECTORY, "file_with_exception.json"))
 

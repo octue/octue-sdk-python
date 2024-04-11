@@ -5,7 +5,7 @@
     "project_name": "blah"
   },
   "internal_service_name": "octue/my-service:2.3.0",
-  "messages": [
+  "events": [
     {
       "kind": "log_record",
       "log_record": { "msg": "Starting analysis." }

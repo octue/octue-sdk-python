@@ -315,7 +315,7 @@ class TestGetDiagnosticsCommand(BaseTestCase):
             self.assertEqual(questions[0]["id"], f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}")
 
             self.assertEqual(
-                questions[0]["messages"],
+                questions[0]["events"],
                 [
                     {"kind": "log_record", "log_record": {"msg": "Starting analysis."}},
                     {"kind": "log_record", "log_record": {"msg": "Finishing analysis."}},
@@ -382,7 +382,7 @@ class TestGetDiagnosticsCommand(BaseTestCase):
             self.assertEqual(questions[0]["id"], f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}")
 
             self.assertEqual(
-                questions[0]["messages"],
+                questions[0]["events"],
                 [
                     {"kind": "log_record", "log_record": {"msg": "Starting analysis."}},
                     {"kind": "log_record", "log_record": {"msg": "Finishing analysis."}},
