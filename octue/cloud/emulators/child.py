@@ -1,6 +1,7 @@
 import copy
 import json
 import logging
+import warnings
 from unittest.mock import patch
 
 from octue.cloud import EXCEPTIONS_MAPPING
@@ -62,11 +63,23 @@ class ChildEmulator:
         with open(path) as f:
             serialised_child_emulator = json.load(f)
 
+        if "messages" in serialised_child_emulator:
+            events = serialised_child_emulator["messages"]
+
+            warnings.warn(
+                "Use of 'messages' as a key in an events JSON file for a child emulator is deprecated, and support for "
+                "it will be removed soon. Please use 'events' for the key instead.",
+                category=DeprecationWarning,
+            )
+
+        else:
+            events = serialised_child_emulator.get("events")
+
         return cls(
             id=serialised_child_emulator.get("id"),
             backend=serialised_child_emulator.get("backend"),
             internal_service_name=serialised_child_emulator.get("internal_service_name"),
-            events=serialised_child_emulator.get("events"),
+            events=events,
         )
 
     def __repr__(self):
