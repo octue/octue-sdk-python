@@ -377,6 +377,8 @@ class MockService(Service):
                 MockMessage.from_primitive(
                     data=question,
                     attributes={
+                        "datetime": "2024-04-11T10:46:48.236064",
+                        "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
                         "question_uuid": question_uuid,
                         "forward_logs": subscribe_to_logs,
                         "save_diagnostics": save_diagnostics,
