@@ -467,6 +467,7 @@ class Service:
 
         with emit_event_lock:
             attributes["order"] = int(order)
+            attributes["datetime"] = datetime.datetime.utcnow().isoformat()
             converted_attributes = {}
 
             for key, value in attributes.items():
