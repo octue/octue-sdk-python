@@ -4,11 +4,27 @@
 Asking services questions
 =========================
 
-How to ask a question
-=====================
+What is a question?
+===================
+A question is a set of data (input values and/or an input manifest) sent to a child for processing/analysis. Questions
+can be:
+
+- **Synchronous ("ask-and-wait"):** A question whose answer is waited for in real time
+
+- **Asynchronous ("fire-and-forget"):** A question whose answer is not waited for and is instead retrieved later. There
+  are two types:
+
+    - Regular: responses to these questions are automatically stored in an event store where they can be :ref:`retrieved using the Octue SDK<retrieving_asynchronous_answers> `
+
+    - Push endpoint: responses to these questions are pushed to an HTTP endpoint for asynchronous handling using Octue's
+      `django-twined <https://django-twined.readthedocs.io/en/latest/>`_ or custom logic in your own webserver.
+
 Questions are always asked to a *revision* of a service. You can ask a service a question if you have its
-:ref:`SRUID <sruid_definition>`, project name, and the necessary permissions. The question is formed of input values
-and/or an input manifest.
+:ref:`SRUID <sruid_definition>`, project name, and the necessary permissions.
+
+
+Asking a question
+=================
 
 .. code-block:: python
 
@@ -47,18 +63,130 @@ You can also set the following options when you call :mod:`Child.ask <octue.reso
 - ``subscribe_to_logs`` - if true, the child will forward its logs to you
 - ``allow_local_files`` - if true, local files/datasets are allowed in any input manifest you supply
 - ``handle_monitor_message`` - if provided a function, it will be called on any monitor messages from the child
-- ``record_messages_to`` – if given a path to a JSON file, messages received from the parent while it processes the question are saved to it
+- ``record_events`` – if ``True``, events received from the parent while it processes the question are saved to the ``Child.received_events`` property
 - ``save_diagnostics`` – must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if the analysis fails
 - ``question_uuid`` - if provided, the question will use this UUID instead of a generated one
+- ``push_endpoint`` - if provided, the result and other events produced during the processing of the question will be pushed to this HTTP endpoint (a URL)
+- ``asynchronous`` - if ``True``, don't wait for an answer to the question (the result and other events can be :ref:`retrieved from the event store later <retrieving_asynchronous_answers>`)
 - ``timeout`` - how long in seconds to wait for an answer (``None`` by default - i.e. don't time out)
 
+Exceptions raised by a child
+----------------------------
 If a child raises an exception while processing your question, the exception will always be forwarded and re-raised in
 your local service or python session. You can handle exceptions in whatever way you like.
 
-If setting a timeout, bear in mind that the question has to reach the child, the child has to run its analysis on
-the inputs sent to it (this most likely corresponds to the dominant part of the wait time), and the answer has to be
-sent back to the parent. If you're not sure how long a particular analysis might take, it's best to set the timeout to
-``None`` initially or ask the owner/maintainer of the child for an estimate.
+Timeouts
+--------
+If setting a timeout, bear in mind that the question has to reach the child, the child has to run its analysis on the
+inputs sent to it (this will most likely make up the dominant part of the wait time), and the answer has to be sent back
+to the parent. If you're not sure how long a particular analysis might take, it's best to set the timeout to ``None``
+initially or ask the owner/maintainer of the child for an estimate.
+
+
+.. _retrieving_asynchronous_answers:
+
+Retrieving answers to asynchronous questions
+============================================
+To retrieve results and other events from the processing of a question later, make sure you have the permissions to
+access to event store and run:
+
+.. code-block:: python
+
+    from octue.cloud.pub_sub.bigquery import get_events
+
+    events = get_events(
+        table_id="your-project.your-dataset.your-table",
+        sender="octue/test-service:1.0.0",
+        question_uuid="53353901-0b47-44e7-9da3-a3ed59990a71",
+    )
+
+
+.. collapse:: See some example events here...
+
+    .. code-block:: python
+        >>> events
+        [
+          {
+            "event": {
+              "datetime": "2024-03-06T15:44:18.156044",
+              "kind": "delivery_acknowledgement"
+            },
+          },
+          {
+            "event": {
+              "kind": "log_record",
+              "log_record": {
+                "args": null,
+                "created": 1709739861.5949728,
+                "exc_info": null,
+                "exc_text": null,
+                "filename": "app.py",
+                "funcName": "run",
+                "levelname": "INFO",
+                "levelno": 20,
+                "lineno": 28,
+                "module": "app",
+                "msecs": 594.9728488922119,
+                "msg": "Finished example analysis.",
+                "name": "app",
+                "pathname": "/workspace/example_service_cloud_run/app.py",
+                "process": 2,
+                "processName": "MainProcess",
+                "relativeCreated": 8560.13798713684,
+                "stack_info": null,
+                "thread": 68328473233152,
+                "threadName": "ThreadPoolExecutor-0_2"
+              }
+            },
+          },
+          {
+            "event": {
+              "datetime": "2024-03-06T15:46:18.167424",
+              "kind": "heartbeat"
+            },
+            "attributes": {
+              "datetime": "2024-04-11T10:46:48.236064",
+              "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
+              "order": "7",
+              "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+              "originator": "octue/test-service:1.0.0",
+              "sender": "octue/test-service:1.0.0",
+              "sender_type": "CHILD",
+              "sender_sdk_version": "0.51.0",
+              "recipient": "octue/another-service:3.2.1"
+            }
+          }
+          {
+            "event": {
+              "kind": "result",
+              "output_manifest": {
+                "datasets": {
+                  "example_dataset": {
+                    "files": [
+                      "gs://octue-sdk-python-test-bucket/example_output_datasets/example_dataset/output.dat"
+                    ],
+                    "id": "419bff6b-08c3-4c16-9eb1-5d1709168003",
+                    "labels": [],
+                    "name": "divergent-strange-gharial-of-pizza",
+                    "path": "https://storage.googleapis.com/octue-sdk-python-test-bucket/example_output_datasets/example_dataset/.signed_metadata_files/divergent-strange-gharial-of-pizza",
+                    "tags": {}
+                  }
+                },
+                "id": "a13713ae-f207-41c6-9e29-0a848ced6039",
+                "name": null
+              },
+              "output_values": [1, 2, 3, 4, 5]
+            },
+          },
+        ]
+
+
+**Options**
+
+- ``kind`` - Only retrieve this kind of event if present (e.g. "result")
+- ``include_attributes`` - If ``True``, retrieve all the events' attributes as well
+- ``include_backend_metadata`` - If ``True``, retrieve information about the service backend that produced the event
+- ``limit`` - If set to a positive integer, limit the number of events returned to this
 
 
 Asking multiple questions in parallel
@@ -81,7 +209,7 @@ raised and no answers are returned.
 
 This method uses multithreading, allowing all the questions to be asked at once instead of one after another.
 
-Options:
+**Options**
 
 - If ``raise_errors=False`` is provided, answers are returned for all successful questions while unraised errors are
   returned for unsuccessful ones
