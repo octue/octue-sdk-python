@@ -49,8 +49,9 @@ class TestGetEvents(TestCase):
 
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
-            "SELECT `event`, `datetime`, `uuid`, `originator`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, `other_attributes` FROM `blah`\n"
-            "WHERE sender=@sender\nAND question_uuid=@question_uuid\nORDER BY `order`\nLIMIT @limit",
+            "SELECT `event`, `datetime`, `uuid`, `originator`, `sender`, `sender_type`, `sender_sdk_version`, "
+            "`recipient`, `order`, `other_attributes` FROM `blah`\nWHERE sender=@sender\n"
+            "AND question_uuid=@question_uuid\nORDER BY `order`\nLIMIT @limit",
         )
 
     def test_with_backend_metadata(self):

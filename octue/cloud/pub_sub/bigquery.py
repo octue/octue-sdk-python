@@ -3,6 +3,7 @@ import json
 from google.cloud.bigquery import Client, QueryJobConfig, ScalarQueryParameter
 
 from octue.cloud.events.validation import VALID_EVENT_KINDS
+from octue.resources import Manifest
 
 
 def get_events(
@@ -86,4 +87,20 @@ def get_events(
     if "backend_metadata" in df:
         df["backend_metadata"] = df["backend_metadata"].map(json.loads)
 
+    df["event"].apply(_deserialise_manifest_if_present)
     return df.to_dict(orient="records")
+
+
+def _deserialise_manifest_if_present(event):
+    """If the event is a "question" or "result" event and a manifest is present, deserialise the manifest and replace
+    the serialised manifest with it.
+
+    :param dict event: an Octue service event
+    :return None:
+    """
+    if event["kind"] == "question" and event.get("input_manifest"):
+        event["input_manifest"] = Manifest.deserialise(event["input_manifest"])
+        return
+
+    if event["kind"] == "result" and event.get("output_manifest"):
+        event["output_manifest"] = Manifest.deserialise(event["output_manifest"])
