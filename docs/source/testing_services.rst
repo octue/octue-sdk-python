@@ -87,7 +87,7 @@ Instantiating a child emulator in python
     def handle_monitor_message(message):
         ...
 
-    result = child_emulator.ask(
+    result, question_uuid = child_emulator.ask(
         input_values={"hello": "world"},
         handle_monitor_message=handle_monitor_message,
     )
@@ -133,7 +133,7 @@ You can then instantiate a child emulator from this in python:
     def handle_monitor_message(message):
         ...
 
-    result = child_emulator.ask(
+    result, question_uuid = child_emulator.ask(
         input_values={"hello": "world"},
         handle_monitor_message=handle_monitor_message,
     )
@@ -226,7 +226,7 @@ child.
         backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
     )
 
-    result = child.ask(input_values=[1, 2, 3, 4])
+    result, question_uuid = child.ask(input_values=[1, 2, 3, 4])
 
     child.received_events
     >>> [
@@ -260,6 +260,6 @@ You can then feed these into a child emulator to emulate one possible response o
     child_emulator = ChildEmulator(events=child.received_events)
 
     child_emulator.ask(input_values=[1, 2, 3, 4])
-    >>> {"some": "results"}
+    >>> {"some": "results"}, "9cab579f-c486-4324-ac9b-96491d26266b"
 
 You can also create test fixtures from :ref:`downloaded service crash diagnostics <test_fixtures_from_crash_diagnostics>`.

@@ -801,7 +801,9 @@ class TestService(BaseTestCase):
 
         def mock_child_app(analysis):
             analysis.children["expected_child"]._service = child
-            analysis.output_values = analysis.children["expected_child"].ask(input_values=[1, 2, 3, 4])["output_values"]
+            analysis.output_values = analysis.children["expected_child"].ask(input_values=[1, 2, 3, 4])[0][
+                "output_values"
+            ]
 
         static_children = [
             {

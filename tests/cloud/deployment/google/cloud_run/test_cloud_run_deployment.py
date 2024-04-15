@@ -1,7 +1,6 @@
 import os
 import time
 import unittest
-import uuid
 from unittest import TestCase
 
 import twined.exceptions
@@ -32,7 +31,7 @@ class TestCloudRunDeployment(TestCase):
         """Test that the Google Cloud Run example deployment works, providing a service that can be asked questions and
         send responses.
         """
-        answer = self.child.ask(input_values={"n_iterations": 3})
+        answer, _ = self.child.ask(input_values={"n_iterations": 3})
 
         # Check the output values.
         self.assertEqual(answer["output_values"], [1, 2, 3, 4, 5])
@@ -43,8 +42,7 @@ class TestCloudRunDeployment(TestCase):
 
     def test_asynchronous_question(self):
         """Test asking an asynchronous question and retrieving the resulting events from the event store."""
-        question_uuid = str(uuid.uuid4())
-        answer = self.child.ask(input_values={"n_iterations": 3}, question_uuid=question_uuid, asynchronous=True)
+        answer, question_uuid = self.child.ask(input_values={"n_iterations": 3}, asynchronous=True)
         self.assertIsNone(answer)
 
         # Wait for question to complete.

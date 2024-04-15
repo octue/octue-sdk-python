@@ -35,7 +35,7 @@ Asking a question
         backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
     )
 
-    answer = child.ask(
+    answer, question_uuid = child.ask(
         input_values={"height": 32, "width": 3},
         input_manifest=manifest,
     )
@@ -232,7 +232,7 @@ this:
 
 .. code-block:: python
 
-    answer = analysis.children["elevation"].ask(input_values={"longitude": 0, "latitude": 1})
+    answer, question_uuid = analysis.children["elevation"].ask(input_values={"longitude": 0, "latitude": 1})
 
 if your app configuration file is:
 
@@ -323,7 +323,7 @@ then you can override them like this:
 
 .. code-block:: python
 
-    answer = child.ask(
+    answer, question_uuid = child.ask(
         input_values={"height": 32, "width": 3},
         children=[
             {

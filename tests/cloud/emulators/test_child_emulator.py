@@ -84,7 +84,7 @@ class TestChildEmulatorAsk(BaseTestCase):
 
         child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
 
-        result = child_emulator.ask(input_values={"hello": "world"})
+        result, _ = child_emulator.ask(input_values={"hello": "world"})
         self.assertEqual(result["output_values"], [1, 2, 3, 4])
         self.assertEqual(result["output_manifest"].id, output_manifest.id)
 
@@ -102,13 +102,13 @@ class TestChildEmulatorAsk(BaseTestCase):
 
         child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
 
-        result = child_emulator.ask(input_values={"hello": "world"}, input_manifest=input_manifest)
+        result, _ = child_emulator.ask(input_values={"hello": "world"}, input_manifest=input_manifest)
         self.assertEqual(result["output_values"], [1, 2, 3, 4])
 
     def test_empty_output_returned_by_ask_if_no_result_present_in_events(self):
         """Test that an empty output is returned if no result event is present in the given events."""
         child_emulator = ChildEmulator(backend=self.BACKEND, events=[])
-        result = child_emulator.ask(input_values={"hello": "world"})
+        result, _ = child_emulator.ask(input_values={"hello": "world"})
         self.assertEqual(result, {"output_values": None, "output_manifest": None})
 
     def test_ask_with_log_record_with_missing_log_record_key(self):
@@ -288,8 +288,8 @@ class TestChildEmulatorAsk(BaseTestCase):
         ]
 
         child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
-        result_0 = child_emulator.ask(input_values={"hello": "world"})
-        result_1 = child_emulator.ask(input_values={"hello": "planet"})
+        result_0, _ = child_emulator.ask(input_values={"hello": "world"})
+        result_1, _ = child_emulator.ask(input_values={"hello": "planet"})
         self.assertEqual(result_0, result_1)
 
 
@@ -302,7 +302,7 @@ class TestChildEmulatorJSONFiles(BaseTestCase):
         object in), asked a question, and produce a trivial result.
         """
         child_emulator = ChildEmulator.from_file(os.path.join(self.TEST_FILES_DIRECTORY, "empty_file.json"))
-        result = child_emulator.ask(input_values={"hello": "world"})
+        result, _ = child_emulator.ask(input_values={"hello": "world"})
         self.assertEqual(result, {"output_values": None, "output_manifest": None})
 
     def test_with_only_events(self):
@@ -316,7 +316,7 @@ class TestChildEmulatorJSONFiles(BaseTestCase):
         monitor_messages = []
 
         with self.assertLogs(level=logging.INFO) as logging_context:
-            result = child_emulator.ask(
+            result, _ = child_emulator.ask(
                 input_values={"hello": "world"},
                 handle_monitor_message=lambda value: monitor_messages.append(value),
             )
@@ -343,7 +343,7 @@ class TestChildEmulatorJSONFiles(BaseTestCase):
         monitor_messages = []
 
         with self.assertLogs(level=logging.INFO) as logging_context:
-            result = child_emulator.ask(
+            result, _ = child_emulator.ask(
                 input_values={"hello": "world"},
                 handle_monitor_message=lambda value: monitor_messages.append(value),
             )
@@ -399,7 +399,7 @@ class TestChildEmulatorJSONFiles(BaseTestCase):
             },
         )
 
-        result = child_emulator.ask(input_values={"hello": "world"})
+        result, _ = child_emulator.ask(input_values={"hello": "world"})
 
         # Check that the output manifest has been produced correctly.
         self.assertEqual(result["output_manifest"].id, expected_output_manifest.id)

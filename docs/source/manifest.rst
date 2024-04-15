@@ -49,7 +49,7 @@ Get an Octue service to analyse data for you as part of a larger analysis.
         backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
     )
 
-    answer = child.ask(input_manifest=manifest)
+    answer, question_uuid = child.ask(input_manifest=manifest)
 
 See :doc:`here <asking_questions>` for more information.
 
@@ -108,7 +108,7 @@ the cloud and then download them again for each service (as would happen with cl
               }
           )
 
-          analysis.children["wind_speed"].ask(
+          answer, question_uuid = analysis.children["wind_speed"].ask(
               input_values=analysis.input_values,
               input_manifest=analysis.input_manifest,
               allow_local_files=True,

@@ -96,8 +96,8 @@ class TestChild(BaseTestCase):
 
             # Make sure the child's underlying mock service knows how to access the mock responding service.
             child._service.children[responding_service.id] = responding_service
-            self.assertEqual(child.ask([1, 2, 3, 4])["output_values"], [1, 2, 3, 4])
-            self.assertEqual(child.ask([5, 6, 7, 8])["output_values"], [5, 6, 7, 8])
+            self.assertEqual(child.ask([1, 2, 3, 4])[0]["output_values"], [1, 2, 3, 4])
+            self.assertEqual(child.ask([5, 6, 7, 8])[0]["output_values"], [5, 6, 7, 8])
 
     def test_ask_multiple(self):
         """Test that a child can be asked multiple questions in parallel and return the answers in the correct order."""
@@ -122,7 +122,7 @@ class TestChild(BaseTestCase):
             )
 
             self.assertEqual(
-                answers,
+                [answer[0] for answer in answers],
                 [
                     {"output_values": [1, 2, 3, 4], "output_manifest": None},
                     {"output_values": [5, 6, 7, 8], "output_manifest": None},
@@ -231,7 +231,7 @@ class TestChild(BaseTestCase):
 
         # Check that both questions succeeded.
         self.assertEqual(
-            answers,
+            [answer[0] for answer in answers],
             [
                 {"output_manifest": None, "output_values": [1, 2, 3, 4]},
                 {"output_manifest": None, "output_values": [5, 6, 7, 8]},
@@ -275,7 +275,7 @@ class TestChild(BaseTestCase):
 
         # Check that all four questions succeeded.
         self.assertEqual(
-            answers,
+            [answer[0] for answer in answers],
             [
                 {"output_manifest": None, "output_values": [1, 2, 3, 4]},
                 {"output_manifest": None, "output_values": [5, 6, 7, 8]},

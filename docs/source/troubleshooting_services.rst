@@ -121,7 +121,7 @@ For example:
         backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
     )
 
-    answer = child.ask(
+    answer, question_uuid = child.ask(
         input_values={"height": 32, "width": 3},
         save_diagnostics="SAVE_DIAGNOSTICS_OFF",
     )

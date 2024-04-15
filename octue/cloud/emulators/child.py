@@ -125,12 +125,12 @@ class ChildEmulator:
         :param bool asynchronous: if `True`, don't create an answer subscription
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
-        :return dict: a dictionary containing the keys "output_values" and "output_manifest"
+        :return dict, str: a dictionary containing the keys "output_values" and "output_manifest", and the question UUID
         """
         with ServicePatcher():
             self._child.serve(allow_existing=True)
 
-            subscription, _ = self._parent.ask(
+            subscription, question_uuid = self._parent.ask(
                 service_id=self._child.id,
                 input_values=input_values,
                 input_manifest=input_manifest,
@@ -141,12 +141,14 @@ class ChildEmulator:
                 asynchronous=asynchronous,
             )
 
-            return self._parent.wait_for_answer(
+            answer = self._parent.wait_for_answer(
                 subscription,
                 handle_monitor_message=handle_monitor_message,
                 record_events=record_events,
                 timeout=timeout,
             )
+
+        return answer, question_uuid
 
     def _emulate_analysis(
         self,
