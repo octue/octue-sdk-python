@@ -24,6 +24,7 @@ resource "google_project_service" "pub_sub" {
   }
 }
 
+
 resource "google_project_service" "cloud_resource_manager" {
   project = var.project
   service = "cloudresourcemanager.googleapis.com"
@@ -68,9 +69,32 @@ resource "google_project_service" "cloud_run" {
 }
 
 
+resource "google_project_service" "cloud_functions" {
+  project = var.project
+  service = "cloudfunctions.googleapis.com"
+}
+
+
+resource "google_project_service" "eventarc" {
+  project = var.project
+  service = "eventarc.googleapis.com"
+}
+
+
+resource "google_project_service" "cloud_build" {
+  project = var.project
+  service = "cloudbuild.googleapis.com"
+}
+
+
+resource "google_project_service" "bigquery" {
+  project = var.project
+  service = "bigquery.googleapis.com"
+}
+
+
 provider "google" {
   credentials = file(var.credentials_file)
   project     = var.project
   region      = var.region
-#  zone        = var.zone
 }
