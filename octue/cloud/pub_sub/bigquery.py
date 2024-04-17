@@ -69,15 +69,14 @@ def get_events(table_id, sender, question_uuid, kind=None, include_backend_metad
 
     # Convert JSON strings to python primitives.
     df["event"] = df["event"].map(json.loads)
-
-    if "other_attributes" in df:
-        df["other_attributes"] = df["other_attributes"].map(json.loads)
+    df["event"].apply(_deserialise_manifest_if_present)
+    df["other_attributes"] = df["other_attributes"].map(json.loads)
 
     if "backend_metadata" in df:
         df["backend_metadata"] = df["backend_metadata"].map(json.loads)
 
-    df["event"].apply(_deserialise_manifest_if_present)
-    return df.to_dict(orient="records")
+    events = df.to_dict(orient="records")
+    return _denormalise_events(events)
 
 
 def _deserialise_manifest_if_present(event):
@@ -94,3 +93,28 @@ def _deserialise_manifest_if_present(event):
             event[key] = Manifest.deserialise(event[key])
             # Only one of the manifest types will be in the event, so return if one is found.
             return
+
+
+def _denormalise_events(events):
+    """Convert the events from the flat (denormalised) structure of the BigQuery table into the nested (normalised)
+    structure required by the service communication schema.
+
+    :param list(dict) events: normalised events
+    :return list(dict): denormalised events
+    """
+    for event in events:
+        event["event"]["kind"] = event.pop("kind")
+
+        event["attributes"] = {
+            "datetime": event.pop("datetime").isoformat(),
+            "uuid": event.pop("uuid"),
+            "originator": event.pop("originator"),
+            "sender": event.pop("sender"),
+            "sender_type": event.pop("sender_type"),
+            "sender_sdk_version": event.pop("sender_sdk_version"),
+            "recipient": event.pop("recipient"),
+            "order": event.pop("order"),
+            **event.pop("other_attributes"),
+        }
+
+    return events
