@@ -4,6 +4,7 @@
 [![Documentation Status](https://readthedocs.org/projects/octue-python-sdk/badge/?version=latest)](https://octue-python-sdk.readthedocs.io/en/latest/?badge=latest)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10961975.svg)](https://doi.org/10.5281/zenodo.10961975)
 
 # Octue Python SDK <img src="./docs/source/images/213_purple-fruit-snake-transparent.gif" alt="Purple Fruit Snake" width="100"/></span>
 
@@ -15,7 +16,9 @@ Read the docs [here.](https://octue-python-sdk.readthedocs.io/en/latest/)
 Uses our [twined](https://twined.readthedocs.io/en/latest/) library for data validation.
 
 ## Installation and usage
+
 To install, run one of:
+
 ```shell
 pip install octue
 ```
@@ -25,6 +28,7 @@ poetry add octue
 ```
 
 The command line interface (CLI) can then be accessed via:
+
 ```shell
 octue --help
 ```
@@ -59,6 +63,7 @@ Commands:
 ```
 
 ## Deprecated code
+
 When code is deprecated, it will still work but a deprecation warning will be issued with a suggestion on how to update
 it. After an adjustment period, deprecations will be removed from the codebase according to the [code removal schedule](https://github.com/octue/octue-sdk-python/issues/415).
 This constitutes a breaking change.
@@ -66,6 +71,7 @@ This constitutes a breaking change.
 ## Developer notes
 
 ### Installation
+
 We use [Poetry](https://python-poetry.org/) as our package manager. For development, run the following from the
 repository root, which will editably install the package:
 
@@ -76,18 +82,24 @@ poetry install --all-extras
 Then run the tests to check everything's working.
 
 ### Testing
+
 These environment variables need to be set to run the tests:
-* `GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service/account/file.json`
-* `TEST_PROJECT_NAME=<name-of-google-cloud-project-to-run-pub-sub-tests-on>`
+
+- `GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service/account/file.json`
+- `TEST_PROJECT_NAME=<name-of-google-cloud-project-to-run-pub-sub-tests-on>`
 
 Then, from the repository root, run
+
 ```shell
 python3 -m unittest
 ```
+
 or
+
 ```shell
 tox
 ```
 
 ## Contributing
+
 Take a look at our [contributing](/docs/contributing.md) page.
