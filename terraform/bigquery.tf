@@ -26,6 +26,11 @@ resource "google_bigquery_table" "test_table" {
     "mode": "REQUIRED"
   },
   {
+    "name": "kind",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
     "name": "event",
     "type": "JSON",
     "mode": "REQUIRED"
