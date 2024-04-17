@@ -104,7 +104,6 @@ access the event store and run:
 **Options**
 
 - ``kind`` - Only retrieve this kind of event if present (e.g. "result")
-- ``include_attributes`` - If ``True``, retrieve all the events' attributes as well
 - ``include_backend_metadata`` - If ``True``, retrieve information about the service backend that produced the event
 - ``limit`` - If set to a positive integer, limit the number of events returned to this
 

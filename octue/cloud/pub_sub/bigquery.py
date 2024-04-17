@@ -6,22 +6,13 @@ from octue.cloud.events.validation import VALID_EVENT_KINDS
 from octue.resources import Manifest
 
 
-def get_events(
-    table_id,
-    sender,
-    question_uuid,
-    kind=None,
-    include_attributes=False,
-    include_backend_metadata=False,
-    limit=1000,
-):
+def get_events(table_id, sender, question_uuid, kind=None, include_backend_metadata=False, limit=1000):
     """Get Octue service events for a question from a sender from a Google BigQuery event store.
 
     :param str table_id: the full ID of the table e.g. "your-project.your-dataset.your-table"
     :param str sender: the SRUID of the sender of the events
     :param str question_uuid: the UUID of the question to get the events for
     :param str|None kind: the kind of event to get; if `None`, all event kinds are returned
-    :param bool include_attributes: if `True`, include events' attributes (excluding question UUID)
     :param bool include_backend_metadata: if `True`, include the service backend metadata
     :param int limit: the maximum number of events to return
     :return list(dict): the events for the question
@@ -30,27 +21,25 @@ def get_events(
         if kind not in VALID_EVENT_KINDS:
             raise ValueError(f"`kind` must be one of {VALID_EVENT_KINDS!r}; received {kind!r}.")
 
-        event_kind_condition = [f'AND JSON_EXTRACT_SCALAR(event, "$.kind") = "{kind}"']
+        event_kind_condition = [f"AND kind={kind!r}"]
     else:
         event_kind_condition = []
 
     client = Client()
-    fields = ["`event`"]
 
-    if include_attributes:
-        fields.extend(
-            (
-                "`datetime`",
-                "`uuid`",
-                "`originator`",
-                "`sender`",
-                "`sender_type`",
-                "`sender_sdk_version`",
-                "`recipient`",
-                "`order`",
-                "`other_attributes`",
-            )
-        )
+    fields = [
+        "`event`",
+        "`kind`",
+        "`datetime`",
+        "`uuid`",
+        "`originator`",
+        "`sender`",
+        "`sender_type`",
+        "`sender_sdk_version`",
+        "`recipient`",
+        "`order`",
+        "`other_attributes`",
+    ]
 
     if include_backend_metadata:
         fields.extend(("`backend`", "`backend_metadata`"))
@@ -98,9 +87,10 @@ def _deserialise_manifest_if_present(event):
     :param dict event: an Octue service event
     :return None:
     """
-    if event["kind"] == "question" and event.get("input_manifest"):
-        event["input_manifest"] = Manifest.deserialise(event["input_manifest"])
-        return
+    manifest_keys = {"input_manifest", "output_manifest"}
 
-    if event["kind"] == "result" and event.get("output_manifest"):
-        event["output_manifest"] = Manifest.deserialise(event["output_manifest"])
+    for key in manifest_keys:
+        if key in event:
+            event[key] = Manifest.deserialise(event[key])
+            # Only one of the manifest types will be in the event, so return if one is found.
+            return
