@@ -8,11 +8,8 @@ from octue.exceptions import ServiceNotFound
 class MockEmptyResult:
     """A mock empty query result."""
 
-    def __init__(self, total_rows=0):
-        self.total_rows = total_rows
-
     def result(self):
-        return MagicMock(total_rows=self.total_rows)
+        return MagicMock(total_rows=0)
 
 
 class MockEmptyBigQueryClient:
