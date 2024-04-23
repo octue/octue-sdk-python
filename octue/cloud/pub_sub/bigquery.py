@@ -3,6 +3,7 @@ import json
 from google.cloud.bigquery import Client, QueryJobConfig, ScalarQueryParameter
 
 from octue.cloud.events.validation import VALID_EVENT_KINDS
+from octue.exceptions import ServiceNotFound
 from octue.resources import Manifest
 
 
@@ -15,6 +16,8 @@ def get_events(table_id, sender, question_uuid, kind=None, include_backend_metad
     :param str|None kind: the kind of event to get; if `None`, all event kinds are returned
     :param bool include_backend_metadata: if `True`, include the service backend metadata
     :param int limit: the maximum number of events to return
+    :raise ValueError: if the `kind` parameter is invalid
+    :raise octue.exceptions.ServiceNotFound: if the sender hasn't emitted any events related to the question UUID (or any events at all)
     :return list(dict): the events for the question
     """
     if kind:
@@ -64,8 +67,15 @@ def get_events(table_id, sender, question_uuid, kind=None, include_backend_metad
     )
 
     query_job = client.query(query, job_config=job_config)
-    rows = query_job.result()
-    df = rows.to_dataframe()
+    result = query_job.result()
+
+    if result.total_rows == 0:
+        raise ServiceNotFound(
+            f"No events found. The requested sender {sender!r} may not exist or it hasn't emitted any events for "
+            f"question {question_uuid!r} (or any events at all)."
+        )
+
+    df = result.to_dataframe()
 
     # Convert JSON strings to python primitives.
     df["event"] = df["event"].map(json.loads)

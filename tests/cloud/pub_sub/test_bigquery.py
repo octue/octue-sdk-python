@@ -1,7 +1,25 @@
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from octue.cloud.pub_sub.bigquery import get_events
+from octue.exceptions import ServiceNotFound
+
+
+class MockEmptyResult:
+    """A mock empty query result."""
+
+    def __init__(self, total_rows=0):
+        self.total_rows = total_rows
+
+    def result(self):
+        return MagicMock(total_rows=self.total_rows)
+
+
+class MockEmptyBigQueryClient:
+    """A mock BigQuery client that returns a mock empty query result."""
+
+    def query(self, *args, **kwargs):
+        return MockEmptyResult()
 
 
 class TestGetEvents(TestCase):
@@ -14,6 +32,12 @@ class TestGetEvents(TestCase):
                 question_uuid="blah",
                 kind="frisbee_tournament",
             )
+
+    def test_error_raised_if_no_events_found(self):
+        """Test that an error is raised if no events are found."""
+        with patch("octue.cloud.pub_sub.bigquery.Client", MockEmptyBigQueryClient):
+            with self.assertRaises(ServiceNotFound):
+                get_events(table_id="blah", sender="octue/test-service:1.0.0", question_uuid="blah")
 
     def test_without_kind(self):
         """Test the query used to retrieve events of all kinds."""
