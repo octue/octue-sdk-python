@@ -76,7 +76,7 @@ def get_events(table_id, sender, question_uuid, kind=None, include_backend_metad
         df["backend_metadata"] = df["backend_metadata"].map(json.loads)
 
     events = df.to_dict(orient="records")
-    return _denormalise_events(events)
+    return _unflatten_events(events)
 
 
 def _deserialise_manifest_if_present(event):
@@ -95,12 +95,12 @@ def _deserialise_manifest_if_present(event):
             return
 
 
-def _denormalise_events(events):
-    """Convert the events from the flat (denormalised) structure of the BigQuery table into the nested (normalised)
-    structure required by the service communication schema.
+def _unflatten_events(events):
+    """Convert the events and attributes from the flat structure of the BigQuery table into the nested structure of the
+    service communication schema.
 
-    :param list(dict) events: normalised events
-    :return list(dict): denormalised events
+    :param list(dict) events: flattened events
+    :return list(dict): unflattened events
     """
     for event in events:
         event["event"]["kind"] = event.pop("kind")
