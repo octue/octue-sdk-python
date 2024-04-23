@@ -1,7 +1,22 @@
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from octue.cloud.pub_sub.bigquery import get_events
+from octue.exceptions import ServiceNotFound
+
+
+class MockEmptyResult:
+    """A mock empty query result."""
+
+    def result(self):
+        return MagicMock(total_rows=0)
+
+
+class MockEmptyBigQueryClient:
+    """A mock BigQuery client that returns a mock empty query result."""
+
+    def query(self, *args, **kwargs):
+        return MockEmptyResult()
 
 
 class TestGetEvents(TestCase):
@@ -15,6 +30,12 @@ class TestGetEvents(TestCase):
                 kind="frisbee_tournament",
             )
 
+    def test_error_raised_if_no_events_found(self):
+        """Test that an error is raised if no events are found."""
+        with patch("octue.cloud.pub_sub.bigquery.Client", MockEmptyBigQueryClient):
+            with self.assertRaises(ServiceNotFound):
+                get_events(table_id="blah", sender="octue/test-service:1.0.0", question_uuid="blah")
+
     def test_without_kind(self):
         """Test the query used to retrieve events of all kinds."""
         with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
@@ -22,8 +43,9 @@ class TestGetEvents(TestCase):
 
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
-            "SELECT `event` FROM `blah`\nWHERE sender=@sender\nAND question_uuid=@question_uuid\n"
-            "ORDER BY `order`\nLIMIT @limit",
+            "SELECT `event`, `kind`, `datetime`, `uuid`, `originator`, `sender`, `sender_type`, `sender_sdk_version`, "
+            "`recipient`, `order`, `other_attributes` FROM `blah`\nWHERE sender=@sender\n"
+            "AND question_uuid=@question_uuid\nORDER BY `order`\nLIMIT @limit",
         )
 
     def test_with_kind(self):
@@ -33,24 +55,9 @@ class TestGetEvents(TestCase):
 
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
-            "SELECT `event` FROM `blah`\nWHERE sender=@sender\nAND question_uuid=@question_uuid\n"
-            'AND JSON_EXTRACT_SCALAR(event, "$.kind") = "result"\nORDER BY `order`\nLIMIT @limit',
-        )
-
-    def test_with_attributes(self):
-        """Test the query used to retrieve attributes in addition to events."""
-        with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
-            get_events(
-                table_id="blah",
-                sender="octue/test-service:1.0.0",
-                question_uuid="blah",
-                include_attributes=True,
-            )
-
-        self.assertEqual(
-            mock_client.mock_calls[1].args[0],
-            "SELECT `event`, `datetime`, `uuid`, `originator`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, `other_attributes` FROM `blah`\n"
-            "WHERE sender=@sender\nAND question_uuid=@question_uuid\nORDER BY `order`\nLIMIT @limit",
+            "SELECT `event`, `kind`, `datetime`, `uuid`, `originator`, `sender`, `sender_type`, `sender_sdk_version`, "
+            "`recipient`, `order`, `other_attributes` FROM `blah`\nWHERE sender=@sender\n"
+            "AND question_uuid=@question_uuid\nAND kind='result'\nORDER BY `order`\nLIMIT @limit",
         )
 
     def test_with_backend_metadata(self):
@@ -65,6 +72,7 @@ class TestGetEvents(TestCase):
 
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
-            "SELECT `event`, `backend`, `backend_metadata` FROM `blah`\n"
+            "SELECT `event`, `kind`, `datetime`, `uuid`, `originator`, `sender`, `sender_type`, `sender_sdk_version`, "
+            "`recipient`, `order`, `other_attributes`, `backend`, `backend_metadata` FROM `blah`\n"
             "WHERE sender=@sender\nAND question_uuid=@question_uuid\nORDER BY `order`\nLIMIT @limit",
         )

@@ -35,7 +35,7 @@ Asking a question
         backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
     )
 
-    answer = child.ask(
+    answer, question_uuid = child.ask(
         input_values={"height": 32, "width": 3},
         input_manifest=manifest,
     )
@@ -104,7 +104,6 @@ access the event store and run:
 **Options**
 
 - ``kind`` - Only retrieve this kind of event if present (e.g. "result")
-- ``include_attributes`` - If ``True``, retrieve all the events' attributes as well
 - ``include_backend_metadata`` - If ``True``, retrieve information about the service backend that produced the event
 - ``limit`` - If set to a positive integer, limit the number of events returned to this
 
@@ -232,7 +231,7 @@ this:
 
 .. code-block:: python
 
-    answer = analysis.children["elevation"].ask(input_values={"longitude": 0, "latitude": 1})
+    answer, question_uuid = analysis.children["elevation"].ask(input_values={"longitude": 0, "latitude": 1})
 
 if your app configuration file is:
 
@@ -323,7 +322,7 @@ then you can override them like this:
 
 .. code-block:: python
 
-    answer = child.ask(
+    answer, question_uuid = child.ask(
         input_values={"height": 32, "width": 3},
         children=[
             {

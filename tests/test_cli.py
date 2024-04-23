@@ -231,7 +231,7 @@ class TestStartCommand(BaseTestCase):
             ]
         ):
             with ServicePatcher():
-                with self.assertLogs(level=logging.WARNING) as logging_context:
+                with self.assertLogs() as logging_context:
                     result = CliRunner().invoke(octue_cli, ["start", "--revision-tag=hello", "--timeout=0"])
 
         self.assertEqual(

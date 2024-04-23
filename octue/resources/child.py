@@ -88,9 +88,9 @@ class Child:
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
-        :return dict|octue.cloud.pub_sub.subscription.Subscription|None: for a synchronous question, a dictionary containing the keys "output_values" and "output_manifest" from the result; for a question with a push endpoint, the push subscription; for an asynchronous question, `None`
+        :return dict|octue.cloud.pub_sub.subscription.Subscription|None, str: for a synchronous question, a dictionary containing the keys "output_values" and "output_manifest" from the result, and the question UUID; for a question with a push endpoint, the push subscription and the question UUID; for an asynchronous question, `None` and the question UUID
         """
-        subscription, _ = self._service.ask(
+        subscription, question_uuid = self._service.ask(
             service_id=self.id,
             input_values=input_values,
             input_manifest=input_manifest,
@@ -105,15 +105,17 @@ class Child:
         )
 
         if push_endpoint or asynchronous:
-            return subscription
+            return subscription, question_uuid
 
-        return self._service.wait_for_answer(
+        answer = self._service.wait_for_answer(
             subscription=subscription,
             handle_monitor_message=handle_monitor_message,
             record_events=record_events,
             timeout=timeout,
             maximum_heartbeat_interval=maximum_heartbeat_interval,
         )
+
+        return answer, question_uuid
 
     def ask_multiple(self, *questions, raise_errors=True, max_retries=0, prevent_retries_when=None, max_workers=None):
         """Ask the child multiple questions in parallel and wait for the answers. Each question should be provided as a
@@ -128,7 +130,7 @@ class Child:
         :param int|None max_workers: the maximum number of questions that can be asked at once; defaults to `min(32, os.cpu_count() + 4, len(questions))` (see `concurrent.futures.ThreadPoolExecutor`)
         :raise ValueError: if the maximum number of parallel questions is set too high
         :raise Exception: if any question raises an error if `raise_errors` is `True`
-        :return list: the answers or caught errors of the questions in the same order as asked
+        :return list(dict|Exception, str): the answers or caught errors of the questions, and the question UUIDs (in the same order as asked)
         """
         prevent_retries_when = prevent_retries_when or []
 

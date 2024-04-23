@@ -1,9 +1,14 @@
 import os
+import time
 import unittest
 from unittest import TestCase
 
 import twined.exceptions
+from octue.cloud.pub_sub.bigquery import get_events
 from octue.resources import Child
+
+
+EXAMPLE_SERVICE_SRUID = "octue/example-service-cloud-run:0.4.2"
 
 
 @unittest.skipUnless(
@@ -13,7 +18,7 @@ from octue.resources import Child
 class TestCloudRunDeployment(TestCase):
     # This is the service ID of the example service deployed to Google Cloud Run.
     child = Child(
-        id="octue/example-service-cloud-run:0.4.0",
+        id=EXAMPLE_SERVICE_SRUID,
         backend={"name": "GCPPubSubBackend", "project_name": os.environ["TEST_PROJECT_NAME"]},
     )
 
@@ -26,7 +31,7 @@ class TestCloudRunDeployment(TestCase):
         """Test that the Google Cloud Run example deployment works, providing a service that can be asked questions and
         send responses.
         """
-        answer = self.child.ask(input_values={"n_iterations": 3})
+        answer, _ = self.child.ask(input_values={"n_iterations": 3})
 
         # Check the output values.
         self.assertEqual(answer["output_values"], [1, 2, 3, 4, 5])
@@ -36,6 +41,23 @@ class TestCloudRunDeployment(TestCase):
             self.assertEqual(f.read(), "This is some example service output.")
 
     def test_asynchronous_question(self):
-        """Test asking an asynchronous question."""
-        answer = self.child.ask(input_values={"n_iterations": 3}, asynchronous=True)
+        """Test asking an asynchronous question and retrieving the resulting events from the event store."""
+        answer, question_uuid = self.child.ask(input_values={"n_iterations": 3}, asynchronous=True)
         self.assertIsNone(answer)
+
+        # Wait for question to complete.
+        time.sleep(10)
+
+        events = get_events(
+            table_id="octue_sdk_python_test_dataset.service-events",
+            sender=EXAMPLE_SERVICE_SRUID,
+            question_uuid=question_uuid,
+            kind="result",
+        )
+
+        # Check the output values.
+        self.assertEqual(events[0]["event"]["output_values"], [1, 2, 3, 4, 5])
+
+        # Check that the output dataset and its files can be accessed.
+        with events[0]["event"]["output_manifest"].datasets["example_dataset"].files.one() as (datafile, f):
+            self.assertEqual(f.read(), "This is some example service output.")
