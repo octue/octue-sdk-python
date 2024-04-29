@@ -203,16 +203,19 @@ class Service:
 
         return future, subscriber
 
-    def answer(self, question, heartbeat_interval=120, timeout=30):
+    def answer(self, question, order=None, heartbeat_interval=120, timeout=30):
         """Answer a question from a parent - i.e. run the child's app on the given data and return the output values.
         Answers conform to the output values and output manifest schemas specified in the child's Twine file.
 
         :param dict|google.cloud.pubsub_v1.subscriber.message.Message question:
+        :param octue.cloud.events.counter.EventCounter|None order: an event counter keeping track of the order of emitted events
         :param int|float heartbeat_interval: the time interval, in seconds, at which to send heartbeats
         :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
         """
+        order = order or EventCounter()
+
         try:
             (
                 question,
@@ -226,7 +229,6 @@ class Service:
             return
 
         heartbeater = None
-        order = EventCounter()
 
         try:
             self._send_delivery_acknowledgment(question_uuid, originator, order)

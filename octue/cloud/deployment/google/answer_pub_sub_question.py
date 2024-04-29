@@ -1,5 +1,6 @@
 import logging
 
+from octue.cloud.events.counter import EventCounter
 from octue.cloud.pub_sub.service import Service
 from octue.cloud.service_id import create_sruid, get_sruid_parts
 from octue.configuration import load_service_and_app_configuration
@@ -32,6 +33,7 @@ def answer_question(question, project_name):
 
     service = Service(service_id=service_sruid, backend=GCPPubSubBackend(project_name=project_name))
     question_uuid = get_nested_attribute(question, "attributes.question_uuid")
+    order = EventCounter()
 
     try:
         runner = Runner.from_configuration(
@@ -42,9 +44,9 @@ def answer_question(question, project_name):
         )
 
         service.run_function = runner.run
-        service.answer(question)
+        service.answer(question, order)
         logger.info("Analysis successfully run and response sent for question %r.", question_uuid)
 
     except BaseException as error:  # noqa
-        service.send_exception(question_uuid=question_uuid, originator="UNKNOWN")
+        service.send_exception(question_uuid=question_uuid, originator="UNKNOWN", order=order)
         logger.exception(error)
