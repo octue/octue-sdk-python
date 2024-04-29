@@ -49,7 +49,7 @@ def load_local_metadata_file(path=METADATA_FILENAME):
     :param str path: the path to the local metadata file
     :return dict: the contents of the local metadata file
     """
-    absolute_path = os.path.abspath(path)
+    absolute_path = _get_absolute_path(path)
     cached_metadata = _get_metadata_from_cache(absolute_path)
 
     if cached_metadata:
@@ -82,7 +82,7 @@ def overwrite_local_metadata_file(data, path=METADATA_FILENAME):
     :param str path: the path to the local metadata file
     :return None:
     """
-    absolute_path = os.path.abspath(path)
+    absolute_path = _get_absolute_path(path)
     cached_metadata = _get_metadata_from_cache(absolute_path)
 
     if data == cached_metadata:
@@ -94,6 +94,24 @@ def overwrite_local_metadata_file(data, path=METADATA_FILENAME):
     with open(path, "w") as f:
         json.dump(data, f, cls=OctueJSONEncoder, indent=4)
         f.write("\n")
+
+
+def _get_absolute_path(path):
+    """Get the file's absolute path. If the file doesn't exist, create it initialised with an empty JSON object first.
+    This method overcomes the `FileNotFoundError` sometimes raised for a non-existent path.
+
+    :param str path: a path to a file
+    :return str: the absolute path of the file
+    """
+    try:
+        return os.path.abspath(path)
+    except FileNotFoundError:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+
+        with open(path, "w") as f:
+            json.dump({}, f)
+
+    return os.path.abspath(path)
 
 
 def _get_metadata_from_cache(absolute_path):
