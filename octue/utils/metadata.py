@@ -106,7 +106,9 @@ def _get_absolute_path(path):
     try:
         return os.path.abspath(path)
     except FileNotFoundError:
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+
+        if os.path.dirname(path):
+            os.makedirs(os.path.dirname(path), exist_ok=True)
 
         with open(path, "w") as f:
             json.dump({}, f)
