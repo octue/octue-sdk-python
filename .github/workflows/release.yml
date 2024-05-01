@@ -1,5 +1,4 @@
-# This workflow tests and releases a new version of the package, then publishes it to PyPi and the
-# octue/octue-sdk-python Docker Hub repository.
+# This workflow tests and releases a new version of the package before publishing it to PyPi.
 
 name: Release
 
@@ -10,9 +9,20 @@ on:
     branches:
       - main
 
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch or commit SHA to tag"
+        type: string
+        required: true
+      tag:
+        description: "Tag for release"
+        type: string
+        required: true
+
 jobs:
   run-tests:
-    if: "github.event.pull_request.merged == true"
+    if: "${{ github.event_name == 'workflow_dispatch' || && github.event.pull_request.merged == true }}"
     runs-on: ${{ matrix.os }}
     env:
       USING_COVERAGE: "3.10"
@@ -23,7 +33,9 @@ jobs:
       id-token: write
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -35,10 +47,6 @@ jobs:
 
       - name: Check pyproject.toml file
         run: poetry check
-
-      - name: Get package version
-        id: get-package-version
-        run: echo "PACKAGE_VERSION=$(poetry version -s)" >> $GITHUB_OUTPUT
 
       - name: Install tox
         run: pip install tox
@@ -65,19 +73,36 @@ jobs:
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
-    outputs:
-      package_version: ${{ steps.get-package-version.outputs.PACKAGE_VERSION }}
-
   release:
     runs-on: ubuntu-latest
     needs: run-tests
     steps:
+      - name: Checkout Repository
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Install Poetry
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        uses: snok/install-poetry@v1.3.2
+
+      - name: Check pyproject.toml file
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        run: poetry check
+
+      - name: Get package version
+        id: get-package-version
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        run: echo "package_version=$(poetry version -s)" >> $GITHUB_OUTPUT
+
       - name: Create Release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, no need to create your own.
         with:
-          tag_name: ${{ needs.run-tests.outputs.package_version }}
+          commitish: ${{ inputs.ref }}
+          tag_name: ${{ inputs.tag || steps.get-package-version.outputs.package_version }}
           release_name: ${{ github.event.pull_request.title }}
           body: ${{ github.event.pull_request.body }}
           draft: false
@@ -92,7 +117,9 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Install Poetry
         uses: snok/install-poetry@v1.3.4
