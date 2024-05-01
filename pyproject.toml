@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "octue"
-version = "0.52.0"
+version = "0.52.1"
 description = "A package providing template applications for data services, and a python SDK to the Octue API."
 readme = "README.md"
 authors = ["Marcus Lugg <marcus@octue.com>", "Thomas Clark <support@octue.com>"]
@@ -33,7 +33,7 @@ gunicorn = "^20.1"
 python-dateutil = "^2.8"
 pyyaml = "^6"
 h5py = { version = "^3.6", optional = true }
-twined = "^0.5.1"
+twined = "0.5.5"
 packaging = ">=20.4"
 
 [tool.poetry.extras]
