@@ -5,7 +5,7 @@ import socket
 from contextlib import closing
 
 from gcp_storage_emulator.server import create_server
-from google.cloud.storage.blob import _API_ACCESS_ENDPOINT
+from google.cloud.storage._helpers import _get_default_storage_base_url
 
 
 # Silence the GCP storage emulator logger below `ERROR` level messages.
@@ -100,7 +100,12 @@ class GoogleCloudStorageEmulatorTestResultModifier:
         del os.environ[self.STORAGE_EMULATOR_HOST_ENVIRONMENT_VARIABLE_NAME]
 
 
-def mock_generate_signed_url(blob, expiration=datetime.timedelta(days=7), **kwargs):
+def mock_generate_signed_url(
+    blob,
+    expiration=datetime.timedelta(days=7),
+    api_access_endpoint=_get_default_storage_base_url(),
+    **kwargs,
+):
     """Mock generating a signed URL for a Google Cloud Storage blob. Signed URLs can't currently be generated when using
     workload identity federation, which we use for our CI tests.
 
@@ -113,5 +118,5 @@ def mock_generate_signed_url(blob, expiration=datetime.timedelta(days=7), **kwar
         f"roject.iam.gserviceaccount.com&Signature=mock-signature"
     )
 
-    base_url = "/".join((kwargs.get("api_access_endpoint", _API_ACCESS_ENDPOINT), blob.bucket.name, blob.name))
+    base_url = "/".join((api_access_endpoint, blob.bucket.name, blob.name))
     return base_url + mock_signed_query_parameter
