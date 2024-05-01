@@ -119,7 +119,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ inputs.tag }}
 
       - name: Install Poetry
         uses: snok/install-poetry@v1.3.4
