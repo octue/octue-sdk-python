@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import tempfile
+from collections.abc import Iterable
 
 import coolname
 import requests
@@ -79,7 +80,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         self._instantiated_from_files_argument = False
 
         if files:
-            if not any((isinstance(files, list), isinstance(files, set), isinstance(files, tuple))):
+            if not isinstance(files, Iterable):
                 raise InvalidInputException(
                     "The `files` parameter of a `Dataset` must be an iterable of `Datafile` instances, strings, or "
                     f"dictionaries. Received {files!r} instead."
