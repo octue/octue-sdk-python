@@ -80,7 +80,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         self._instantiated_from_files_argument = False
 
         if files:
-            if not isinstance(files, Iterable):
+            if not isinstance(files, Iterable) or isinstance(files, (dict, str)):
                 raise InvalidInputException(
                     "The `files` parameter of a `Dataset` must be an iterable of `Datafile` instances, strings, or "
                     f"dictionaries. Received {files!r} instead."
