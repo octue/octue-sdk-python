@@ -98,7 +98,8 @@ def overwrite_local_metadata_file(data, path=METADATA_FILENAME):
 
 def _get_absolute_path(path):
     """Get the file's absolute path. If the file doesn't exist, create it initialised with an empty JSON object first.
-    This method overcomes the `FileNotFoundError` sometimes raised for a non-existent path.
+    This method overcomes the `FileNotFoundError` sometimes raised `os.path.abspath` for a non-existent path (this seems
+    like a bug, but it's unclear).
 
     :param str path: a path to a file
     :return str: the absolute path of the file
@@ -107,6 +108,7 @@ def _get_absolute_path(path):
         return os.path.abspath(path)
     except FileNotFoundError:
 
+        # Make the directories above the path if `os.path.dirname` doesn't return an empty string.
         if os.path.dirname(path):
             os.makedirs(os.path.dirname(path), exist_ok=True)
 
