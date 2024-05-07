@@ -1,5 +1,3 @@
-import json
-
 from google.cloud.bigquery import Client, QueryJobConfig, ScalarQueryParameter
 
 from octue.cloud.events.validation import VALID_EVENT_KINDS
@@ -76,14 +74,7 @@ def get_events(table_id, sender, question_uuid, kind=None, include_backend_metad
         )
 
     df = result.to_dataframe()
-
-    # Convert JSON strings to python primitives.
-    df["event"] = df["event"].map(json.loads)
     df["event"].apply(_deserialise_manifest_if_present)
-    df["other_attributes"] = df["other_attributes"].map(json.loads)
-
-    if "backend_metadata" in df:
-        df["backend_metadata"] = df["backend_metadata"].map(json.loads)
 
     events = df.to_dict(orient="records")
     return _unflatten_events(events)

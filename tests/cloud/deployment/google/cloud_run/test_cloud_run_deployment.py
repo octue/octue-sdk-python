@@ -56,7 +56,7 @@ class TestCloudRunDeployment(TestCase):
         )
 
         # Check the output values.
-        self.assertEqual(events[0]["event"]["output_values"], [1, 2, 3, 4, 5])
+        self.assertEqual(list(events[0]["event"]["output_values"]), [1, 2, 3, 4, 5])
 
         # Check that the output dataset and its files can be accessed.
         with events[0]["event"]["output_manifest"].datasets["example_dataset"].files.one() as (datafile, f):

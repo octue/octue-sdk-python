@@ -22,12 +22,12 @@ def index():
         return _log_bad_request_and_return_400_response("No Pub/Sub message received.")
 
     if not isinstance(envelope, dict) or "message" not in envelope:
-        return _log_bad_request_and_return_400_response("Invalid Pub/Sub message format.")
+        return _log_bad_request_and_return_400_response(f"Invalid Pub/Sub message format - received {envelope!r}.")
 
     question = envelope["message"]
 
     if "data" not in question or "attributes" not in question or "question_uuid" not in question["attributes"]:
-        return _log_bad_request_and_return_400_response("Invalid Pub/Sub message format.")
+        return _log_bad_request_and_return_400_response(f"Invalid Pub/Sub message format - received {envelope!r}.")
 
     question_uuid = question["attributes"]["question_uuid"]
 

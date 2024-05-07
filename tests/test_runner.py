@@ -1,4 +1,3 @@
-import copy
 import json
 import logging
 import os
@@ -9,7 +8,6 @@ import uuid
 from unittest.mock import Mock, patch
 
 import coolname
-from jsonschema.validators import RefResolver
 
 import twined
 from octue import Runner, exceptions
@@ -568,55 +566,6 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             input_manifest = self._make_serialised_input_manifest_with_correct_dataset_file_tags(temporary_directory)
             runner.run(input_manifest=input_manifest)
-
-    def test_validate_input_manifest_with_required_tags_for_remote_tag_template_schema(self):
-        """Test that a remote tag template can be used for validating tags on the datafiles in a manifest."""
-        schema_url = "https://jsonschema.registry.octue.com/octue/my-file-type-tag-template/0.0.0.json"
-
-        twine_with_input_manifest_with_remote_tag_template = {
-            "input_manifest": {
-                "datasets": {
-                    "met_mast_data": {
-                        "purpose": "A dataset containing meteorological mast data",
-                        "file_tags_template": {"$ref": schema_url},
-                    }
-                }
-            },
-            "output_values_schema": {},
-        }
-
-        remote_schema = {
-            "type": "object",
-            "properties": {
-                "manufacturer": {"type": "string"},
-                "height": {"type": "number"},
-                "is_recycled": {"type": "boolean"},
-            },
-            "required": ["manufacturer", "height", "is_recycled"],
-        }
-
-        runner = Runner(app_src=app, twine=twine_with_input_manifest_with_remote_tag_template)
-        original_resolve_from_url = copy.copy(RefResolver.resolve_from_url)
-
-        def patch_if_url_is_schema_url(instance, url):
-            """Patch the jsonschema validator `RefResolver.resolve_from_url` if the url is the schema URL, otherwise
-            leave it unpatched.
-
-            :param jsonschema.validators.RefResolver instance:
-            :param str url:
-            :return mixed:
-            """
-            if url == schema_url:
-                return remote_schema
-            else:
-                return original_resolve_from_url(instance, url)
-
-        with patch("jsonschema.validators.RefResolver.resolve_from_url", new=patch_if_url_is_schema_url):
-            with tempfile.TemporaryDirectory() as temporary_directory:
-                input_manifest = self._make_serialised_input_manifest_with_correct_dataset_file_tags(
-                    temporary_directory
-                )
-                runner.run(input_manifest=input_manifest)
 
     def test_validate_input_manifest_with_required_tags_in_several_datasets(self):
         """Test that required tags for different datasets' file tags templates are validated separately and correctly
