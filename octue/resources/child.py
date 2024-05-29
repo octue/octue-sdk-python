@@ -159,11 +159,7 @@ class Child:
                     logger.exception("Question %d failed.", question_index)
 
         for retry in range(max_retries):
-            failed_questions = {}
-
-            for question_index, answer in answers.items():
-                if isinstance(answer, Exception) and type(answer) not in prevent_retries_when:
-                    failed_questions[question_index] = questions[question_index]
+            failed_questions = self._get_failed_questions(questions, answers, prevent_retries_when)
 
             if not failed_questions:
                 break
@@ -174,5 +170,25 @@ class Child:
             for question_index, answer in zip(failed_questions.keys(), retried_answers):
                 answers[question_index] = answer
 
+        # Check for failed questions after retries completed.
+        failed_questions = self._get_failed_questions(questions, answers, prevent_retries_when)
+
+        for question_index, question in failed_questions.items():
+            logger.error(
+                "Question %d failed after %d retries with error %s.",
+                question_index,
+                max_retries,
+                answers[question_index],
+            )
+
         # Convert dictionary to list in asking order.
         return [answer[1] for answer in sorted(answers.items(), key=lambda item: item[0])]
+
+    def _get_failed_questions(self, questions, answers, prevent_retries_when):
+        failed_questions = {}
+
+        for question_index, answer in answers.items():
+            if isinstance(answer, Exception) and type(answer) not in prevent_retries_when:
+                failed_questions[question_index] = questions[question_index]
+
+        return failed_questions
