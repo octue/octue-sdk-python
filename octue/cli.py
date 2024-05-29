@@ -357,6 +357,11 @@ def deploy():
     help="The service revision tag (e.g. 1.0.7). If this option isn't given, a random 'cool name' tag is generated e.g"
     ". 'curious-capybara'.",
 )
+@click.option(
+    "--no-allow-existing",
+    is_flag=True,
+    help="If provided, raise an error if the push subscription already exists.",
+)
 def create_push_subscription(
     project_name,
     service_namespace,
@@ -364,6 +369,7 @@ def create_push_subscription(
     push_endpoint,
     expiration_time,
     revision_tag,
+    no_allow_existing,
 ):
     """Create a Google Pub/Sub push subscription for an Octue service for it to receive questions from parents. The
     subscription name is printed on completion.
@@ -385,6 +391,7 @@ def create_push_subscription(
         push_endpoint,
         expiration_time=expiration_time,
         subscription_filter=f'attributes.recipient = "{sruid}" AND attributes.sender_type = "PARENT"',
+        allow_existing=not no_allow_existing,
     )
 
     click.echo(sruid)
