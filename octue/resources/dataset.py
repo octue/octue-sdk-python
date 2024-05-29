@@ -62,7 +62,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         self,
         path=None,
         files=None,
-        recursive=False,
+        recursive=True,
         ignore_stored_metadata=False,
         include_octue_metadata_files=False,
         id=None,
