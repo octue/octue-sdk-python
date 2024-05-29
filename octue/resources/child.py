@@ -136,8 +136,9 @@ class Child:
 
         # Answers will come out of order, so use a dictionary to store them against their questions' original index.
         answers = {}
-        max_workers = max_workers or min(32, os.cpu_count() + 4, len(questions))
-        logger.info("Asking %d questions.", len(questions))
+        n_questions = len(questions)
+        max_workers = max_workers or min(32, os.cpu_count() + 4, n_questions)
+        logger.info("Asking %d questions.", n_questions)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_question_index_mapping = {
@@ -145,7 +146,7 @@ class Child:
             }
 
             for i, future in enumerate(concurrent.futures.as_completed(future_to_question_index_mapping)):
-                logger.info("%d of %d answers received.", i + 1, len(questions))
+                logger.info("%d of %d answers received.", i + 1, n_questions)
                 question_index = future_to_question_index_mapping[future]
 
                 try:
