@@ -105,27 +105,39 @@ class Runner:
         self._project_name = project_name
 
     @classmethod
-    def from_configuration(cls, service_configuration, app_configuration, project_name=None, service_id=None):
+    def from_configuration(
+        cls,
+        service_configuration,
+        app_configuration,
+        project_name=None,
+        service_id=None,
+        **overrides,
+    ):
         """Instantiate a runner from a service and app configuration.
 
         :param octue.configuration.ServiceConfiguration service_configuration:
         :param octue.configuration.AppConfiguration app_configuration:
         :param str|None project_name: name of Google Cloud project to get credentials from
         :param str|None service_id: the ID of the service being run
+        :param overrides: optional keyword arguments to override the `Runner` instantiation parameters extracted from the service and app configuration
         :return octue.runner.Runner: a runner configured with the given service and app configuration
         """
-        return cls(
-            app_src=service_configuration.app_source_path,
-            twine=service_configuration.twine_path,
-            configuration_values=app_configuration.configuration_values,
-            configuration_manifest=app_configuration.configuration_manifest,
-            children=app_configuration.children,
-            output_location=app_configuration.output_location,
-            diagnostics_cloud_path=service_configuration.diagnostics_cloud_path,
-            project_name=project_name,
-            service_id=service_id,
-            service_registries=service_configuration.service_registries,
-        )
+        inputs = {
+            "app_src": service_configuration.app_source_path,
+            "twine": service_configuration.twine_path,
+            "configuration_values": app_configuration.configuration_values,
+            "configuration_manifest": app_configuration.configuration_manifest,
+            "children": app_configuration.children,
+            "output_location": app_configuration.output_location,
+            "diagnostics_cloud_path": service_configuration.diagnostics_cloud_path,
+            "project_name": project_name,
+            "service_id": service_id,
+            "service_registries": service_configuration.service_registries,
+        }
+
+        inputs |= overrides
+
+        return cls(**inputs)
 
     def __repr__(self):
         """Represent the runner as a string.
