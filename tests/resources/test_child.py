@@ -1,4 +1,5 @@
 import functools
+import logging
 import os
 import random
 import threading
@@ -283,6 +284,37 @@ class TestChild(BaseTestCase):
                 {"output_manifest": None, "output_values": [13, 14, 15, 16]},
             ],
         )
+
+    def test_errors_logged_by_ask_multiple_when_not_raised(self):
+        """Test that errors from any questions still failing after retries are exhausted are logged."""
+        responding_service = MockService(
+            backend=GCPPubSubBackend(project_name="blah"),
+            run_function=functools.partial(mock_run_function_that_fails_every_other_time, runs=Value("d", 0)),
+        )
+
+        with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
+            responding_service.serve()
+
+            child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_name": "blah"})
+
+            # Make sure the child's underlying mock service knows how to access the mock responding service.
+            child._service.children[responding_service.id] = responding_service
+
+            # Only ask two questions so the question success/failure order plays out as desired.
+            with self.assertLogs(level=logging.ERROR) as logging_context:
+                child.ask_multiple(
+                    {"input_values": [1, 2, 3, 4]},
+                    {"input_values": [5, 6, 7, 8]},
+                    raise_errors=False,
+                    max_retries=0,
+                )
+
+            self.assertIn("failed after 0 retries (see below for error).", logging_context.output[2])
+
+            self.assertIn(
+                'raise ValueError("Deliberately raised for `Child.ask_multiple` test.")',
+                logging_context.output[2],
+            )
 
     def test_ask_multiple_with_prevented_retries(self):
         """Test that retries can be prevented for specified exception types."""
