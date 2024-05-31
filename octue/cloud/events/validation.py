@@ -1,9 +1,11 @@
 import logging
-import os
 
 import jsonschema
 
 from octue.compatibility import warn_if_incompatible
+
+
+# import os
 
 
 VALID_EVENT_KINDS = {"delivery_acknowledgement", "heartbeat", "log_record", "monitor_message", "exception", "result"}
@@ -266,7 +268,8 @@ SCHEMA = {
 # SERVICE_COMMUNICATION_SCHEMA = {"$ref": "https://jsonschema.registry.octue.com/octue/service-communication/0.10.0.json"}
 SERVICE_COMMUNICATION_SCHEMA = SCHEMA
 SERVICE_COMMUNICATION_SCHEMA_INFO_URL = "https://strands.octue.com/octue/service-communication"
-SERVICE_COMMUNICATION_SCHEMA_VERSION = os.path.splitext(SERVICE_COMMUNICATION_SCHEMA["$ref"])[0].split("/")[-1]
+# SERVICE_COMMUNICATION_SCHEMA_VERSION = os.path.splitext(SERVICE_COMMUNICATION_SCHEMA["$ref"])[0].split("/")[-1]
+SERVICE_COMMUNICATION_SCHEMA_VERSION = "0.11.0"
 
 # Instantiate a JSON schema validator to cache the service communication schema. This avoids downloading it from the
 # registry every time a message is validated against it.
