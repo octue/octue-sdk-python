@@ -47,6 +47,10 @@ SCHEMA = {
                                 {"type": "null", "description": "If this is the originating question."},
                             ]
                         },
+                        "originator_question_uuid": {
+                            "type": "string",
+                            "description": "The UUID of the ultimate question that triggered this tree of questions.",
+                        },
                         "forward_logs": {"type": "boolean"},
                         "save_diagnostics": {
                             "enum": ["SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"]
@@ -80,6 +84,8 @@ SCHEMA = {
                         "datetime",
                         "uuid",
                         "question_uuid",
+                        "parent_question_uuid",
+                        "originator_question_uuid",
                         "forward_logs",
                         "save_diagnostics",
                         "originator",
@@ -120,6 +126,10 @@ SCHEMA = {
                                 {"type": "null", "description": "If this is the originating question."},
                             ]
                         },
+                        "originator_question_uuid": {
+                            "type": "string",
+                            "description": "The UUID of the ultimate question that triggered this tree of questions.",
+                        },
                         "originator": {
                             "type": "string",
                             "description": "The service revision unique identifier (SRUID) of the service revision that asked the question this event is related to.",
@@ -150,6 +160,8 @@ SCHEMA = {
                         "uuid",
                         "order",
                         "question_uuid",
+                        "parent_question_uuid",
+                        "originator_question_uuid",
                         "originator",
                         "sender",
                         "sender_type",
