@@ -282,11 +282,12 @@ class Service:
 
             self._emit_event(
                 event=result,
+                question_uuid=question_uuid,
+                parent_question_uuid=parent_question_uuid,
                 originator=originator,
                 recipient=originator,
                 order=order,
-                parent_question_uuid=parent_question_uuid,
-                attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
+                attributes={"sender_type": CHILD_SENDER_TYPE},
                 timeout=timeout,
             )
 
@@ -452,34 +453,47 @@ class Service:
                 "exception_message": exception_message,
                 "exception_traceback": exception["traceback"],
             },
+            question_uuid=question_uuid,
+            parent_question_uuid=parent_question_uuid,
             originator=originator,
             recipient=originator,
             order=order,
-            parent_question_uuid=parent_question_uuid,
-            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
+            attributes={"sender_type": CHILD_SENDER_TYPE},
             timeout=timeout,
         )
 
-    def _emit_event(self, event, originator, recipient, order, parent_question_uuid, attributes=None, timeout=30):
+    def _emit_event(
+        self,
+        event,
+        question_uuid,
+        parent_question_uuid,
+        originator,
+        recipient,
+        order,
+        attributes=None,
+        timeout=30,
+    ):
         """Emit a JSON-serialised event as a Pub/Sub message to the services topic with optional message attributes,
         incrementing the `order` argument by one. This method is thread-safe.
 
         :param dict event: JSON-serialisable data to emit as an event
+        :param str question_uuid:
+        :param str|None parent_question_uuid:
         :param str originator: the SRUID of the service that asked the question this event is related to
         :param str recipient: the SRUID of the service the event is intended for
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
-        :param str|None parent_question_uuid:
         :param dict|None attributes: key-value pairs to attach to the event - the values must be strings or bytes
         :param int|float timeout: the timeout for sending the event in seconds
         :return google.cloud.pubsub_v1.publisher.futures.Future:
         """
         attributes = attributes or {}
         attributes["uuid"] = str(uuid.uuid4())
+        attributes["question_uuid"] = question_uuid
+        attributes["parent_question_uuid"] = parent_question_uuid
         attributes["originator"] = originator
         attributes["sender"] = self.id
         attributes["sender_sdk_version"] = self._local_sdk_version
         attributes["recipient"] = recipient
-        attributes["parent_question_uuid"] = parent_question_uuid
 
         with emit_event_lock:
             attributes["order"] = int(order)
@@ -538,12 +552,12 @@ class Service:
 
         future = self._emit_event(
             event=question,
+            question_uuid=question_uuid,
+            parent_question_uuid=parent_question_uuid,
             originator=self.id,
             recipient=recipient,
             order=EventCounter(),
-            parent_question_uuid=parent_question_uuid,
             attributes={
-                "question_uuid": question_uuid,
                 "forward_logs": forward_logs,
                 "save_diagnostics": save_diagnostics,
                 "sender_type": PARENT_SENDER_TYPE,
@@ -570,12 +584,13 @@ class Service:
                 "kind": "delivery_acknowledgement",
                 "datetime": datetime.datetime.utcnow().isoformat(),
             },
+            question_uuid=question_uuid,
+            parent_question_uuid=parent_question_uuid,
             timeout=timeout,
             originator=originator,
             recipient=originator,
             order=order,
-            parent_question_uuid=parent_question_uuid,
-            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
+            attributes={"sender_type": CHILD_SENDER_TYPE},
         )
 
         logger.info("%r acknowledged receipt of question %r.", self, question_uuid)
@@ -595,11 +610,12 @@ class Service:
                 "kind": "heartbeat",
                 "datetime": datetime.datetime.utcnow().isoformat(),
             },
+            question_uuid=question_uuid,
+            parent_question_uuid=parent_question_uuid,
             originator=originator,
             recipient=originator,
             order=order,
-            parent_question_uuid=parent_question_uuid,
-            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
+            attributes={"sender_type": CHILD_SENDER_TYPE},
             timeout=timeout,
         )
 
@@ -618,12 +634,13 @@ class Service:
         """
         self._emit_event(
             {"kind": "monitor_message", "data": data},
+            question_uuid=question_uuid,
+            parent_question_uuid=parent_question_uuid,
             originator=originator,
             recipient=originator,
             order=order,
-            parent_question_uuid=parent_question_uuid,
             timeout=timeout,
-            attributes={"question_uuid": question_uuid, "sender_type": CHILD_SENDER_TYPE},
+            attributes={"sender_type": CHILD_SENDER_TYPE},
         )
 
         logger.debug("Monitor message sent by %r.", self)
