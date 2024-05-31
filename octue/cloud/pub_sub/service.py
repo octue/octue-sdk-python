@@ -234,11 +234,11 @@ class Service:
 
         try:
             self._send_delivery_acknowledgment(
-                question_uuid,
-                parent_question_uuid,
-                originator_question_uuid,
-                originator,
-                order,
+                question_uuid=question_uuid,
+                parent_question_uuid=parent_question_uuid,
+                originator_question_uuid=originator_question_uuid,
+                originator=originator,
+                order=order,
             )
 
             heartbeater = RepeatingTimer(
@@ -312,7 +312,12 @@ class Service:
 
             warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
             self.send_exception(
-                question_uuid, parent_question_uuid, originator_question_uuid, originator, order, timeout=timeout
+                question_uuid=question_uuid,
+                parent_question_uuid=parent_question_uuid,
+                originator_question_uuid=originator_question_uuid,
+                originator=originator,
+                order=order,
+                timeout=timeout,
             )
             raise error
 
@@ -455,7 +460,13 @@ class Service:
             subscription.delete()
 
     def send_exception(
-        self, question_uuid, parent_question_uuid, originator_question_uuid, originator, order, timeout=30
+        self,
+        question_uuid,
+        parent_question_uuid,
+        originator_question_uuid,
+        originator,
+        order,
+        timeout=30,
     ):
         """Serialise and send the exception being handled to the parent.
 
@@ -612,7 +623,13 @@ class Service:
         logger.info("%r asked a question %r to service %r.", self, question_uuid, recipient)
 
     def _send_delivery_acknowledgment(
-        self, question_uuid, parent_question_uuid, originator_question_uuid, originator, order, timeout=30
+        self,
+        question_uuid,
+        parent_question_uuid,
+        originator_question_uuid,
+        originator,
+        order,
+        timeout=30,
     ):
         """Send an acknowledgement of question receipt to the parent.
 
