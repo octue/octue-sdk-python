@@ -54,11 +54,10 @@ class GoogleCloudPubSubHandler(logging.Handler):
                 originator=self.originator,
                 recipient=self.recipient,
                 order=self.order,
+                question_uuid=self.question_uuid,
                 parent_question_uuid=self.parent_question_uuid,
-                attributes={
-                    "question_uuid": self.question_uuid,
-                    "sender_type": "CHILD",  # The sender type is repeated here as a string to avoid a circular import.
-                },
+                # The sender type is repeated here as a string to avoid a circular import.
+                attributes={"sender_type": "CHILD"},
             )
 
         except Exception:  # noqa
