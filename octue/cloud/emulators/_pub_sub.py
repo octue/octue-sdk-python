@@ -327,6 +327,7 @@ class MockService(Service):
         save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
         question_uuid=None,
         parent_question_uuid=None,
+        originator_question_uuid=None,
         push_endpoint=None,
         asynchronous=False,
         timeout=86400,
@@ -344,6 +345,7 @@ class MockService(Service):
         :param str save_diagnostics:
         :param str|None question_uuid:
         :param str|None parent_question_uuid:
+        :param str|None originator_question_uuid:
         :param str|None push_endpoint:
         :param bool asynchronous:
         :param float|None timeout:
@@ -359,6 +361,7 @@ class MockService(Service):
             save_diagnostics=save_diagnostics,
             question_uuid=question_uuid,
             parent_question_uuid=parent_question_uuid,
+            originator_question_uuid=originator_question_uuid,
             push_endpoint=push_endpoint,
             asynchronous=asynchronous,
             timeout=timeout,
@@ -375,6 +378,10 @@ class MockService(Service):
         if input_manifest is not None:
             question["input_manifest"] = input_manifest.to_primitive()
 
+        # If the originator question UUID isn't provided, assume that this question is the originator.
+        if originator_question_uuid is None:
+            originator_question_uuid = question_uuid
+
         try:
             self.children[service_id].answer(
                 MockMessage.from_primitive(
@@ -384,6 +391,7 @@ class MockService(Service):
                         "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
                         "question_uuid": question_uuid,
                         "parent_question_uuid": parent_question_uuid,
+                        "originator_question_uuid": originator_question_uuid,
                         "forward_logs": subscribe_to_logs,
                         "save_diagnostics": save_diagnostics,
                         "order": 0,

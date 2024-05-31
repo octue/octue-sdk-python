@@ -221,6 +221,7 @@ class Service:
                 question,
                 question_uuid,
                 parent_question_uuid,
+                originator_question_uuid,
                 forward_logs,
                 parent_sdk_version,
                 save_diagnostics,
@@ -232,7 +233,13 @@ class Service:
         heartbeater = None
 
         try:
-            self._send_delivery_acknowledgment(question_uuid, parent_question_uuid, originator, order)
+            self._send_delivery_acknowledgment(
+                question_uuid,
+                parent_question_uuid,
+                originator_question_uuid,
+                originator,
+                order,
+            )
 
             heartbeater = RepeatingTimer(
                 interval=heartbeat_interval,
@@ -240,6 +247,7 @@ class Service:
                 kwargs={
                     "question_uuid": question_uuid,
                     "parent_question_uuid": parent_question_uuid,
+                    "originator_question_uuid": originator_question_uuid,
                     "originator": originator,
                     "order": order,
                 },
@@ -253,6 +261,7 @@ class Service:
                     event_emitter=self._emit_event,
                     question_uuid=question_uuid,
                     parent_question_uuid=parent_question_uuid,
+                    originator_question_uuid=originator_question_uuid,
                     originator=originator,
                     recipient=originator,
                     order=order,
@@ -270,6 +279,7 @@ class Service:
                     self._send_monitor_message,
                     question_uuid=question_uuid,
                     parent_question_uuid=parent_question_uuid,
+                    originator_question_uuid=originator_question_uuid,
                     originator=originator,
                     order=order,
                 ),
@@ -285,6 +295,7 @@ class Service:
                 event=result,
                 question_uuid=question_uuid,
                 parent_question_uuid=parent_question_uuid,
+                originator_question_uuid=originator_question_uuid,
                 originator=originator,
                 recipient=originator,
                 order=order,
@@ -300,7 +311,9 @@ class Service:
                 heartbeater.cancel()
 
             warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
-            self.send_exception(question_uuid, parent_question_uuid, originator, order, timeout=timeout)
+            self.send_exception(
+                question_uuid, parent_question_uuid, originator_question_uuid, originator, order, timeout=timeout
+            )
             raise error
 
     def ask(
@@ -314,6 +327,7 @@ class Service:
         save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",  # This is repeated as a string here to avoid a circular import.
         question_uuid=None,
         parent_question_uuid=None,
+        originator_question_uuid=None,
         push_endpoint=None,
         asynchronous=False,
         timeout=86400,
@@ -331,6 +345,7 @@ class Service:
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param str|None parent_question_uuid:
+        :param str|None originator_question_uuid:
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True` and not using a push endpoint, don't create an answer subscription
         :param float|None timeout: time in seconds to keep retrying sending the question
@@ -363,6 +378,10 @@ class Service:
 
         question_uuid = question_uuid or str(uuid.uuid4())
 
+        # If the originator question UUID isn't provided, assume that this question is the originator.
+        if originator_question_uuid is None:
+            originator_question_uuid = question_uuid
+
         if asynchronous and not push_endpoint:
             answer_subscription = None
         else:
@@ -388,6 +407,7 @@ class Service:
             save_diagnostics=save_diagnostics,
             question_uuid=question_uuid,
             parent_question_uuid=parent_question_uuid,
+            originator_question_uuid=originator_question_uuid,
             recipient=service_id,
         )
 
@@ -434,11 +454,14 @@ class Service:
         finally:
             subscription.delete()
 
-    def send_exception(self, question_uuid, parent_question_uuid, originator, order, timeout=30):
+    def send_exception(
+        self, question_uuid, parent_question_uuid, originator_question_uuid, originator, order, timeout=30
+    ):
         """Serialise and send the exception being handled to the parent.
 
         :param str question_uuid: the UUID of the question this event relates to
         :param str|None parent_question_uuid:
+        :param str|None originator_question_uuid:
         :param str originator: the SRUID of the service that asked the question this event is related to
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float|None timeout: time in seconds to keep retrying sending of the exception
@@ -456,6 +479,7 @@ class Service:
             },
             question_uuid=question_uuid,
             parent_question_uuid=parent_question_uuid,
+            originator_question_uuid=originator_question_uuid,
             originator=originator,
             recipient=originator,
             order=order,
@@ -468,6 +492,7 @@ class Service:
         event,
         question_uuid,
         parent_question_uuid,
+        originator_question_uuid,
         originator,
         recipient,
         order,
@@ -480,6 +505,7 @@ class Service:
         - `uuid` (event UUID)
         - `question_uuid`
         - `parent_question_uuid`
+        - `originator_question_uuid`
         - `originator`
         - `sender`
         - `sender_sdk_version`
@@ -490,6 +516,7 @@ class Service:
         :param dict event: JSON-serialisable data to emit as an event
         :param str question_uuid:
         :param str|None parent_question_uuid:
+        :param str|None originator_question_uuid:
         :param str originator: the SRUID of the service that asked the question this event is related to
         :param str recipient: the SRUID of the service the event is intended for
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
@@ -501,6 +528,7 @@ class Service:
         attributes["uuid"] = str(uuid.uuid4())
         attributes["question_uuid"] = question_uuid
         attributes["parent_question_uuid"] = parent_question_uuid
+        attributes["originator_question_uuid"] = originator_question_uuid
         attributes["originator"] = originator
         attributes["sender"] = self.id
         attributes["sender_sdk_version"] = self._local_sdk_version
@@ -539,6 +567,7 @@ class Service:
         save_diagnostics,
         question_uuid,
         parent_question_uuid,
+        originator_question_uuid,
         recipient,
         timeout=30,
     ):
@@ -551,6 +580,7 @@ class Service:
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str question_uuid: the UUID of the question being sent
         :param str|None parent_question_uuid:
+        :param str|None originator_question_uuid:
         :param str recipient: the SRUID of the child the question is intended for
         :param float timeout: time in seconds after which to give up sending
         :return None:
@@ -565,6 +595,7 @@ class Service:
             event=question,
             question_uuid=question_uuid,
             parent_question_uuid=parent_question_uuid,
+            originator_question_uuid=originator_question_uuid,
             originator=self.id,
             recipient=recipient,
             order=EventCounter(),
@@ -580,11 +611,14 @@ class Service:
         future.result()
         logger.info("%r asked a question %r to service %r.", self, question_uuid, recipient)
 
-    def _send_delivery_acknowledgment(self, question_uuid, parent_question_uuid, originator, order, timeout=30):
+    def _send_delivery_acknowledgment(
+        self, question_uuid, parent_question_uuid, originator_question_uuid, originator, order, timeout=30
+    ):
         """Send an acknowledgement of question receipt to the parent.
 
         :param str question_uuid: the UUID of the question this event relates to
         :param str|None parent_question_uuid:
+        :param str|None originator_question_uuid:
         :param str originator: the SRUID of the service that asked the question this event is related to
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float timeout: time in seconds after which to give up sending
@@ -597,6 +631,7 @@ class Service:
             },
             question_uuid=question_uuid,
             parent_question_uuid=parent_question_uuid,
+            originator_question_uuid=originator_question_uuid,
             timeout=timeout,
             originator=originator,
             recipient=originator,
@@ -606,11 +641,14 @@ class Service:
 
         logger.info("%r acknowledged receipt of question %r.", self, question_uuid)
 
-    def _send_heartbeat(self, question_uuid, parent_question_uuid, originator, order, timeout=30):
+    def _send_heartbeat(
+        self, question_uuid, parent_question_uuid, originator_question_uuid, originator, order, timeout=30
+    ):
         """Send a heartbeat to the parent, indicating that the service is alive.
 
         :param str question_uuid: the UUID of the question this event relates to
         :param str|None parent_question_uuid:
+        :param str|None originator_question_uuid:
         :param str originator: the SRUID of the service that asked the question this event is related to
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float timeout: time in seconds after which to give up sending
@@ -623,6 +661,7 @@ class Service:
             },
             question_uuid=question_uuid,
             parent_question_uuid=parent_question_uuid,
+            originator_question_uuid=originator_question_uuid,
             originator=originator,
             recipient=originator,
             order=order,
@@ -632,12 +671,15 @@ class Service:
 
         logger.debug("Heartbeat sent by %r.", self)
 
-    def _send_monitor_message(self, data, question_uuid, parent_question_uuid, originator, order, timeout=30):
+    def _send_monitor_message(
+        self, data, question_uuid, parent_question_uuid, originator_question_uuid, originator, order, timeout=30
+    ):
         """Send a monitor message to the parent.
 
         :param any data: the data to send as a monitor message
         :param str question_uuid: the UUID of the question this event relates to
         :param str|None parent_question_uuid:
+        :param str|None originator_question_uuid:
         :param str originator: the SRUID of the service that asked the question this event is related to
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float timeout: time in seconds to retry sending the message
@@ -647,6 +689,7 @@ class Service:
             {"kind": "monitor_message", "data": data},
             question_uuid=question_uuid,
             parent_question_uuid=parent_question_uuid,
+            originator_question_uuid=originator_question_uuid,
             originator=originator,
             recipient=originator,
             order=order,
@@ -660,7 +703,7 @@ class Service:
         """Parse a question in the Google Cloud Run or Google Pub/Sub format.
 
         :param dict|google.cloud.pubsub_v1.subscriber.message.Message question: the question to parse in Google Cloud Run or Google Pub/Sub format
-        :return (dict, str, bool, str, str, str): the question's event and its attributes (question UUID, whether to forward logs, the Octue SDK version of the parent, whether to save diagnostics, and the SRUID of the service revision that asked the question)
+        :return (dict, str, str, str, bool, str, str, str): the question's event and its attributes (question UUID, parent question UUID, originator question UUID, whether to forward logs, the Octue SDK version of the parent, whether to save diagnostics, and the SRUID of the service revision that asked the question)
         """
         logger.info("%r received a question.", self)
 
@@ -686,6 +729,7 @@ class Service:
             event,
             attributes["question_uuid"],
             attributes["parent_question_uuid"],
+            attributes["originator_question_uuid"],
             attributes["forward_logs"],
             attributes["sender_sdk_version"],
             attributes["save_diagnostics"],

@@ -45,6 +45,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
             event_emitter=service._emit_event,
             question_uuid=question_uuid,
             parent_question_uuid=None,
+            originator_question_uuid=question_uuid,
             originator="another/service:1.0.0",
             recipient="another/service:1.0.0",
             order=EventCounter(),
@@ -59,6 +60,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
         """Test that non-JSON-serialisable arguments to log messages are converted to their string representation
         before being serialised and published to the Pub/Sub topic.
         """
+        question_uuid = "96d69278-44ac-4631-aeea-c90fb08a1b2b"
         non_json_serialisable_thing = NonJSONSerialisable()
 
         # Check that it can't be serialised to JSON.
@@ -74,8 +76,9 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
         with patch("octue.cloud.emulators._pub_sub.MockPublisher.publish") as mock_publish:
             GoogleCloudPubSubHandler(
                 event_emitter=service._emit_event,
-                question_uuid="question-uuid",
+                question_uuid=question_uuid,
                 parent_question_uuid=None,
+                originator_question_uuid=question_uuid,
                 originator="another/service:1.0.0",
                 recipient="another/service:1.0.0",
                 order=EventCounter(),
