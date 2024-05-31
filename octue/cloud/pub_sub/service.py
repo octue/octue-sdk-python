@@ -269,6 +269,7 @@ class Service:
                 handle_monitor_message=functools.partial(
                     self._send_monitor_message,
                     question_uuid=question_uuid,
+                    parent_question_uuid=parent_question_uuid,
                     originator=originator,
                     order=order,
                 ),
@@ -474,7 +475,17 @@ class Service:
         timeout=30,
     ):
         """Emit a JSON-serialised event as a Pub/Sub message to the services topic with optional message attributes,
-        incrementing the `order` argument by one. This method is thread-safe.
+        incrementing the `order` argument by one. This method is thread-safe. Extra attributes can be added to an event
+        via the `attributes` argument but the following attributes are always included:
+        - `uuid` (event UUID)
+        - `question_uuid`
+        - `parent_question_uuid`
+        - `originator`
+        - `sender`
+        - `sender_sdk_version`
+        - `recipient`
+        - `order`
+        - `datetime`
 
         :param dict event: JSON-serialisable data to emit as an event
         :param str question_uuid:

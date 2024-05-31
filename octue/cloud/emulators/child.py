@@ -106,6 +106,7 @@ class ChildEmulator:
         handle_monitor_message=None,
         record_events=True,
         question_uuid=None,
+        parent_question_uuid=None,
         push_endpoint=None,
         asynchronous=False,
         timeout=86400,
@@ -121,6 +122,7 @@ class ChildEmulator:
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
         :param bool record_events: if `True`, record events received from the child in the `received_events` property
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
+        :param str|None parent_question_uuid:
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True`, don't create an answer subscription
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
@@ -137,6 +139,7 @@ class ChildEmulator:
                 subscribe_to_logs=subscribe_to_logs,
                 allow_local_files=allow_local_files,
                 question_uuid=question_uuid,
+                parent_question_uuid=parent_question_uuid,
                 push_endpoint=push_endpoint,
                 asynchronous=asynchronous,
             )

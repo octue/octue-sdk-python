@@ -44,6 +44,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
         GoogleCloudPubSubHandler(
             event_emitter=service._emit_event,
             question_uuid=question_uuid,
+            parent_question_uuid=None,
             originator="another/service:1.0.0",
             recipient="another/service:1.0.0",
             order=EventCounter(),
@@ -74,6 +75,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
             GoogleCloudPubSubHandler(
                 event_emitter=service._emit_event,
                 question_uuid="question-uuid",
+                parent_question_uuid=None,
                 originator="another/service:1.0.0",
                 recipient="another/service:1.0.0",
                 order=EventCounter(),

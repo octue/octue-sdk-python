@@ -64,25 +64,27 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         messages = [
             {
                 "event": {"kind": "test", "order": 0},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "test", "order": 1},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "test", "order": 2},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "finish-test", "order": 3},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
         ]
 
         for message in messages:
             child._emit_event(
                 event=message["event"],
+                question_uuid=self.question_uuid,
+                parent_question_uuid=None,
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -116,25 +118,27 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         messages = [
             {
                 "event": {"kind": "test", "order": 1},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "test", "order": 2},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "test", "order": 0},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "finish-test", "order": 3},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
         ]
 
         for message in messages:
             child._emit_event(
                 event=message["event"],
+                question_uuid=self.question_uuid,
+                parent_question_uuid=None,
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -171,25 +175,27 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         messages = [
             {
                 "event": {"kind": "finish-test", "order": 3},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "test", "order": 1},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "test", "order": 2},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "test", "order": 0},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
         ]
 
         for message in messages:
             child._emit_event(
                 event=message["event"],
+                question_uuid=self.question_uuid,
+                parent_question_uuid=None,
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -224,21 +230,23 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         messages = [
             {
                 "event": {"kind": "test", "order": 0},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "test", "order": 1},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "finish-test", "order": 2},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
         ]
 
         for message in messages:
             child._emit_event(
                 event=message["event"],
+                question_uuid=self.question_uuid,
+                parent_question_uuid=None,
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -265,17 +273,19 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                     "datetime": datetime.datetime.utcnow().isoformat(),
                     "order": 0,
                 },
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "result", "order": 1},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
         ]
 
         for message in messages:
             child._emit_event(
                 event=message["event"],
+                question_uuid=self.question_uuid,
+                parent_question_uuid=None,
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -318,17 +328,19 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                     "datetime": datetime.datetime.utcnow().isoformat(),
                     "order": 0,
                 },
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "result", "order": 1},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
         ]
 
         for message in messages:
             child._emit_event(
                 event=message["event"],
+                question_uuid=self.question_uuid,
+                parent_question_uuid=None,
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -376,25 +388,27 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         messages = [
             {
                 "event": {"kind": "test", "order": 2},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "test", "order": 3},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "test", "order": 4},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "finish-test", "order": 5},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
         ]
 
         for message in messages:
             child._emit_event(
                 event=message["event"],
+                question_uuid=self.question_uuid,
+                parent_question_uuid=None,
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -437,21 +451,23 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         messages = [
             {
                 "event": {"kind": "test", "order": 0},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "test", "order": 1},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "test", "order": 2},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
         ]
 
         for message in messages:
             child._emit_event(
                 event=message["event"],
+                question_uuid=self.question_uuid,
+                parent_question_uuid=None,
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -461,7 +477,9 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         # Send a final message.
         child._emit_event(
             event={"kind": "finish-test", "order": 5},
-            attributes={"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+            question_uuid=self.question_uuid,
+            parent_question_uuid=None,
+            attributes={"sender_type": "CHILD"},
             originator=self.parent.id,
             recipient=self.parent.id,
             # Simulate missing messages.
@@ -504,21 +522,23 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         messages = [
             {
                 "event": {"kind": "test", "order": 0},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "test", "order": 1},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "test", "order": 2},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
         ]
 
         for message in messages:
             child._emit_event(
                 event=message["event"],
+                question_uuid=self.question_uuid,
+                parent_question_uuid=None,
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -528,7 +548,9 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         # Send another message.
         child._emit_event(
             event={"kind": "test", "order": 5},
-            attributes={"order": 5, "question_uuid": self.question_uuid, "sender_type": "CHILD"},
+            question_uuid=self.question_uuid,
+            parent_question_uuid=None,
+            attributes={"order": 5, "sender_type": "CHILD"},
             originator=self.parent.id,
             recipient=self.parent.id,
             # Simulate missing messages.
@@ -539,25 +561,27 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         messages = [
             {
                 "event": {"kind": "test", "order": 20},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "test", "order": 21},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "test", "order": 22},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
             {
                 "event": {"kind": "finish-test", "order": 23},
-                "attributes": {"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+                "attributes": {"sender_type": "CHILD"},
             },
         ]
 
         for message in messages:
             child._emit_event(
                 event=message["event"],
+                question_uuid=self.question_uuid,
+                parent_question_uuid=None,
                 attributes=message["attributes"],
                 originator=self.parent.id,
                 recipient=self.parent.id,
@@ -610,7 +634,9 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         # Send the result message.
         child._emit_event(
             event={"kind": "finish-test", "order": 1000},
-            attributes={"question_uuid": self.question_uuid, "sender_type": "CHILD"},
+            question_uuid=self.question_uuid,
+            parent_question_uuid=None,
+            attributes={"sender_type": "CHILD"},
             originator=self.parent.id,
             recipient=self.parent.id,
             # Simulate missing messages.
