@@ -1,4 +1,5 @@
 import copy
+import functools
 import logging
 import logging.handlers
 import os
@@ -209,8 +210,10 @@ class Runner:
                 manifest=inputs_and_configuration[manifest_strand],
             )
 
+        analysis_id = str(analysis_id) if analysis_id else gen_uuid()
+
         if inputs["children"] is not None:
-            inputs["children"] = self._instantiate_children(inputs["children"])
+            inputs["children"] = self._instantiate_children(inputs["children"], parent_question_uuid=analysis_id)
 
         outputs_and_monitors = self.twine.prepare("monitor_message", "output_values", "output_manifest", cls=CLASS_MAP)
 
@@ -218,8 +221,6 @@ class Runner:
             extra_log_handlers = [analysis_log_handler]
         else:
             extra_log_handlers = []
-
-        analysis_id = str(analysis_id) if analysis_id else gen_uuid()
 
         # Temporarily replace the root logger's handlers with a `StreamHandler` and the analysis log handler that
         # include the analysis ID in the logging metadata.
@@ -343,12 +344,17 @@ class Runner:
 
                     raise twined.exceptions.invalid_contents_map[manifest_kind](message)
 
-    def _instantiate_children(self, serialised_children):
+    def _instantiate_children(self, serialised_children, parent_question_uuid):
         """Instantiate children from their serialised form (e.g. as given in the app configuration) so they are ready
-        to be asked questions. For diagnostics, each child's `ask` method is wrapped so the runner can record the
-        questions asked by the app, the responses received to each question, and the order the questions are asked in.
+        to be asked questions. Two modifications are made to each child's `ask` method:
+
+        1. The parent question UUID is set to the current analysis ID.
+
+        2. For diagnostics, the `ask` method is wrapped so the runner can record the questions asked by the app, the
+        responses received to each question, and the order the questions are asked in.
 
         :param list(dict) serialised_children: serialised children from e.g. the app configuration file
+        :param str parent_question_uuid:
         :return dict: a mapping of child keys to `octue.resources.child.Child` instances
         """
         children = {}
@@ -362,6 +368,7 @@ class Runner:
             )
 
             child.ask = self._add_child_question_and_response_recording(child, uninstantiated_child["key"])
+            child.ask = functools.partial(child.ask, parent_question_uuid=parent_question_uuid)
             children[uninstantiated_child["key"]] = child
 
         return children

@@ -10,6 +10,7 @@ class GoogleCloudPubSubHandler(logging.Handler):
 
     :param callable event_emitter: the `_emit_event` method of the service that instantiated this instance
     :param str question_uuid: the UUID of the question to handle log records for
+    :param str|None parent_question_uuid:
     :param str originator: the SRUID of the service that asked the question these log records are related to
     :param str recipient: the SRUID of the service to send these log records to
     :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
@@ -17,9 +18,21 @@ class GoogleCloudPubSubHandler(logging.Handler):
     :return None:
     """
 
-    def __init__(self, event_emitter, question_uuid, originator, recipient, order, timeout=60, *args, **kwargs):
+    def __init__(
+        self,
+        event_emitter,
+        question_uuid,
+        parent_question_uuid,
+        originator,
+        recipient,
+        order,
+        timeout=60,
+        *args,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.question_uuid = question_uuid
+        self.parent_question_uuid = parent_question_uuid
         self.originator = originator
         self.recipient = recipient
         self.order = order
@@ -41,6 +54,7 @@ class GoogleCloudPubSubHandler(logging.Handler):
                 originator=self.originator,
                 recipient=self.recipient,
                 order=self.order,
+                parent_question_uuid=self.parent_question_uuid,
                 attributes={
                     "question_uuid": self.question_uuid,
                     "sender_type": "CHILD",  # The sender type is repeated here as a string to avoid a circular import.
