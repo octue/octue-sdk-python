@@ -57,7 +57,12 @@ SCHEMA = {
                         },
                         "parent": {
                             "type": "string",
-                            "description": "The service revision unique identifier (SRUID) of the service revision that asked the question this event is related to.",
+                            "description": "The service revision unique identifier (SRUID) of the parent that asked the question this event is related to.",
+                            "examples": ["octue:test-service:1.2.0"],
+                        },
+                        "originator": {
+                            "type": "string",
+                            "description": "The service revision unique identifier (SRUID) of the service revision that triggered the tree of questions this event is related to.",
                             "examples": ["octue:test-service:1.2.0"],
                         },
                         "sender": {
@@ -89,6 +94,7 @@ SCHEMA = {
                         "forward_logs",
                         "save_diagnostics",
                         "parent",
+                        "originator",
                         "sender",
                         "sender_type",
                         "sender_sdk_version",
@@ -132,7 +138,12 @@ SCHEMA = {
                         },
                         "parent": {
                             "type": "string",
-                            "description": "The service revision unique identifier (SRUID) of the service revision that asked the question this event is related to.",
+                            "description": "The service revision unique identifier (SRUID) of the parent that asked the question this event is related to.",
+                            "examples": ["octue:test-service:1.2.0"],
+                        },
+                        "originator": {
+                            "type": "string",
+                            "description": "The service revision unique identifier (SRUID) of the service revision that triggered the tree of questions this event is related to.",
                             "examples": ["octue:test-service:1.2.0"],
                         },
                         "sender": {
@@ -163,6 +174,7 @@ SCHEMA = {
                         "parent_question_uuid",
                         "originator_question_uuid",
                         "parent",
+                        "originator",
                         "sender",
                         "sender_type",
                         "sender_sdk_version",

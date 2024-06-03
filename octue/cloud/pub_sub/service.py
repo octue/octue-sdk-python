@@ -226,6 +226,7 @@ class Service:
                 parent_sdk_version,
                 save_diagnostics,
                 parent,
+                originator,
             ) = self._parse_question(question)
         except jsonschema.ValidationError:
             return
@@ -238,6 +239,7 @@ class Service:
                 parent_question_uuid=parent_question_uuid,
                 originator_question_uuid=originator_question_uuid,
                 parent=parent,
+                originator=originator,
                 order=order,
             )
 
@@ -249,6 +251,7 @@ class Service:
                     "parent_question_uuid": parent_question_uuid,
                     "originator_question_uuid": originator_question_uuid,
                     "parent": parent,
+                    "originator": originator,
                     "order": order,
                 },
             )
@@ -263,6 +266,7 @@ class Service:
                     parent_question_uuid=parent_question_uuid,
                     originator_question_uuid=originator_question_uuid,
                     parent=parent,
+                    originator=originator,
                     recipient=parent,
                     order=order,
                 )
@@ -281,6 +285,7 @@ class Service:
                     parent_question_uuid=parent_question_uuid,
                     originator_question_uuid=originator_question_uuid,
                     parent=parent,
+                    originator=originator,
                     order=order,
                 ),
                 save_diagnostics=save_diagnostics,
@@ -297,6 +302,7 @@ class Service:
                 parent_question_uuid=parent_question_uuid,
                 originator_question_uuid=originator_question_uuid,
                 parent=parent,
+                originator=originator,
                 recipient=parent,
                 order=order,
                 attributes={"sender_type": CHILD_SENDER_TYPE},
@@ -316,6 +322,7 @@ class Service:
                 parent_question_uuid=parent_question_uuid,
                 originator_question_uuid=originator_question_uuid,
                 parent=parent,
+                originator=originator,
                 order=order,
                 timeout=timeout,
             )
@@ -333,6 +340,7 @@ class Service:
         question_uuid=None,
         parent_question_uuid=None,
         originator_question_uuid=None,
+        originator=None,
         push_endpoint=None,
         asynchronous=False,
         timeout=86400,
@@ -351,6 +359,7 @@ class Service:
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param str|None parent_question_uuid:
         :param str|None originator_question_uuid:
+        :param str|None originator:
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True` and not using a push endpoint, don't create an answer subscription
         :param float|None timeout: time in seconds to keep retrying sending the question
@@ -387,6 +396,10 @@ class Service:
         if originator_question_uuid is None:
             originator_question_uuid = question_uuid
 
+        # If the originator isn't provided, assume that this service revision is the originator.
+        if originator is None:
+            originator = self.id
+
         if asynchronous and not push_endpoint:
             answer_subscription = None
         else:
@@ -413,6 +426,7 @@ class Service:
             question_uuid=question_uuid,
             parent_question_uuid=parent_question_uuid,
             originator_question_uuid=originator_question_uuid,
+            originator=originator,
             recipient=service_id,
         )
 
@@ -465,6 +479,7 @@ class Service:
         parent_question_uuid,
         originator_question_uuid,
         parent,
+        originator,
         order,
         timeout=30,
     ):
@@ -473,7 +488,8 @@ class Service:
         :param str question_uuid: the UUID of the question this event relates to
         :param str|None parent_question_uuid:
         :param str|None originator_question_uuid:
-        :param str parent: the SRUID of the service that asked the question this event is related to
+        :param str parent: the SRUID of the parent that asked the question this event is related to
+        :param str originator: the SRUID of the service revision that triggered the tree of questions this event is related to
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float|None timeout: time in seconds to keep retrying sending of the exception
         :return None:
@@ -492,6 +508,7 @@ class Service:
             parent_question_uuid=parent_question_uuid,
             originator_question_uuid=originator_question_uuid,
             parent=parent,
+            originator=originator,
             recipient=parent,
             order=order,
             attributes={"sender_type": CHILD_SENDER_TYPE},
@@ -505,6 +522,7 @@ class Service:
         parent_question_uuid,
         originator_question_uuid,
         parent,
+        originator,
         recipient,
         order,
         attributes=None,
@@ -518,6 +536,7 @@ class Service:
         - `parent_question_uuid`
         - `originator_question_uuid`
         - `parent`
+        - `originator`
         - `sender`
         - `sender_sdk_version`
         - `recipient`
@@ -528,7 +547,8 @@ class Service:
         :param str question_uuid:
         :param str|None parent_question_uuid:
         :param str|None originator_question_uuid:
-        :param str parent: the SRUID of the service that asked the question this event is related to
+        :param str parent: the SRUID of the parent that asked the question this event is related to
+        :param str originator: the SRUID of the service revision that triggered the tree of questions this event is related to
         :param str recipient: the SRUID of the service the event is intended for
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param dict|None attributes: key-value pairs to attach to the event - the values must be strings or bytes
@@ -541,6 +561,7 @@ class Service:
         attributes["parent_question_uuid"] = parent_question_uuid
         attributes["originator_question_uuid"] = originator_question_uuid
         attributes["parent"] = parent
+        attributes["originator"] = originator
         attributes["sender"] = self.id
         attributes["sender_sdk_version"] = self._local_sdk_version
         attributes["recipient"] = recipient
@@ -579,6 +600,7 @@ class Service:
         question_uuid,
         parent_question_uuid,
         originator_question_uuid,
+        originator,
         recipient,
         timeout=30,
     ):
@@ -592,6 +614,7 @@ class Service:
         :param str question_uuid: the UUID of the question being sent
         :param str|None parent_question_uuid:
         :param str|None originator_question_uuid:
+        :param str originator: the SRUID of the service revision that triggered the tree of questions this event is related to
         :param str recipient: the SRUID of the child the question is intended for
         :param float timeout: time in seconds after which to give up sending
         :return None:
@@ -608,6 +631,7 @@ class Service:
             parent_question_uuid=parent_question_uuid,
             originator_question_uuid=originator_question_uuid,
             parent=self.id,
+            originator=originator,
             recipient=recipient,
             order=EventCounter(),
             attributes={
@@ -628,6 +652,7 @@ class Service:
         parent_question_uuid,
         originator_question_uuid,
         parent,
+        originator,
         order,
         timeout=30,
     ):
@@ -637,6 +662,7 @@ class Service:
         :param str|None parent_question_uuid:
         :param str|None originator_question_uuid:
         :param str parent: the SRUID of the service that asked the question this event is related to
+        :param str originator: the SRUID of the service revision that triggered the tree of questions this event is related to
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float timeout: time in seconds after which to give up sending
         :return None:
@@ -651,6 +677,7 @@ class Service:
             originator_question_uuid=originator_question_uuid,
             timeout=timeout,
             parent=parent,
+            originator=originator,
             recipient=parent,
             order=order,
             attributes={"sender_type": CHILD_SENDER_TYPE},
@@ -664,6 +691,7 @@ class Service:
         parent_question_uuid,
         originator_question_uuid,
         parent,
+        originator,
         order,
         timeout=30,
     ):
@@ -672,7 +700,8 @@ class Service:
         :param str question_uuid: the UUID of the question this event relates to
         :param str|None parent_question_uuid:
         :param str|None originator_question_uuid:
-        :param str parent: the SRUID of the service that asked the question this event is related to
+        :param str parent: the SRUID of the parent that asked the question this event is related to
+        :param str originator: the SRUID of the service revision that triggered the tree of questions this event is related to
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float timeout: time in seconds after which to give up sending
         :return None:
@@ -686,6 +715,7 @@ class Service:
             parent_question_uuid=parent_question_uuid,
             originator_question_uuid=originator_question_uuid,
             parent=parent,
+            originator=originator,
             recipient=parent,
             order=order,
             attributes={"sender_type": CHILD_SENDER_TYPE},
@@ -701,6 +731,7 @@ class Service:
         parent_question_uuid,
         originator_question_uuid,
         parent,
+        originator,
         order,
         timeout=30,
     ):
@@ -711,6 +742,7 @@ class Service:
         :param str|None parent_question_uuid:
         :param str|None originator_question_uuid:
         :param str parent: the SRUID of the service that asked the question this event is related to
+        :param str originator: the SRUID of the service revision that triggered the tree of questions this event is related to
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float timeout: time in seconds to retry sending the message
         :return None:
@@ -721,6 +753,7 @@ class Service:
             parent_question_uuid=parent_question_uuid,
             originator_question_uuid=originator_question_uuid,
             parent=parent,
+            originator=originator,
             recipient=parent,
             order=order,
             timeout=timeout,
@@ -733,7 +766,7 @@ class Service:
         """Parse a question in the Google Cloud Run or Google Pub/Sub format.
 
         :param dict|google.cloud.pubsub_v1.subscriber.message.Message question: the question to parse in Google Cloud Run or Google Pub/Sub format
-        :return (dict, str, str, str, bool, str, str, str): the question's event and its attributes (question UUID, parent question UUID, originator question UUID, whether to forward logs, the Octue SDK version of the parent, whether to save diagnostics, and the SRUID of the service revision that asked the question)
+        :return (dict, str, str, str, bool, str, str, str, str): the question's event and its attributes (question UUID, parent question UUID, originator question UUID, whether to forward logs, the Octue SDK version of the parent, whether to save diagnostics, the SRUID of the parent that asked the question, and the SRUID of the service revision that triggered the tree of questions this event is related to)
         """
         logger.info("%r received a question.", self)
 
@@ -764,4 +797,5 @@ class Service:
             attributes["sender_sdk_version"],
             attributes["save_diagnostics"],
             attributes["parent"],
+            attributes["originator"],
         )

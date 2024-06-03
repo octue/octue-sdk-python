@@ -396,6 +396,7 @@ class MockService(Service):
                         "save_diagnostics": save_diagnostics,
                         "order": 0,
                         "parent": self.id,
+                        "originator": self.id,
                         "sender": self.id,
                         "sender_type": PARENT_SENDER_TYPE,
                         "sender_sdk_version": parent_sdk_version,

@@ -40,6 +40,7 @@ class TestEventReplayer(unittest.TestCase):
                 "parent_question_uuid": "5776ad74-52a6-46f7-a526-90421d91b8b2",
                 "originator_question_uuid": "86dc55b2-4282-42bd-92d0-bd4991ae7356",
                 "parent": "octue/test-service:1.0.0",
+                "originator": "octue/test-service:1.0.0",
                 "sender": "octue/test-service:1.0.0",
                 "sender_type": "CHILD",
                 "sender_sdk_version": "0.51.0",

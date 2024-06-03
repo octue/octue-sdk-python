@@ -47,6 +47,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
             parent_question_uuid=None,
             originator_question_uuid=question_uuid,
             parent="another/service:1.0.0",
+            originator="another/service:1.0.0",
             recipient="another/service:1.0.0",
             order=EventCounter(),
         ).emit(log_record)
@@ -80,6 +81,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
                 parent_question_uuid=None,
                 originator_question_uuid=question_uuid,
                 parent="another/service:1.0.0",
+                originator="another/service:1.0.0",
                 recipient="another/service:1.0.0",
                 order=EventCounter(),
             ).emit(record)

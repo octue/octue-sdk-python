@@ -12,7 +12,8 @@ class GoogleCloudPubSubHandler(logging.Handler):
     :param str question_uuid: the UUID of the question to handle log records for
     :param str|None parent_question_uuid:
     :param str|None originator_question_uuid:
-    :param str parent: the SRUID of the service that asked the question these log records are related to
+    :param str parent: the SRUID of the parent that asked the question these log records are related to
+    :param str originator: the SRUID of the service revision that triggered the tree of questions these log records are related to
     :param str recipient: the SRUID of the service to send these log records to
     :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
     :param float timeout: timeout in seconds for attempting to publish each log record
@@ -26,6 +27,7 @@ class GoogleCloudPubSubHandler(logging.Handler):
         parent_question_uuid,
         originator_question_uuid,
         parent,
+        originator,
         recipient,
         order,
         timeout=60,
@@ -37,6 +39,7 @@ class GoogleCloudPubSubHandler(logging.Handler):
         self.parent_question_uuid = parent_question_uuid
         self.originator_question_uuid = originator_question_uuid
         self.parent = parent
+        self.originator = originator
         self.recipient = recipient
         self.order = order
         self.timeout = timeout
@@ -55,6 +58,7 @@ class GoogleCloudPubSubHandler(logging.Handler):
                     "log_record": self._convert_log_record_to_primitives(record),
                 },
                 parent=self.parent,
+                originator=self.originator,
                 recipient=self.recipient,
                 order=self.order,
                 question_uuid=self.question_uuid,
