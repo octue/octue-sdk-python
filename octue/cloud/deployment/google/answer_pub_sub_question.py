@@ -32,7 +32,13 @@ def answer_question(question, project_name):
     )
 
     service = Service(service_id=service_sruid, backend=GCPPubSubBackend(project_name=project_name))
+
     question_uuid = get_nested_attribute(question, "attributes.question_uuid")
+    parent_question_uuid = get_nested_attribute(question, "attributes.parent_question_uuid")
+    originator_question_uuid = get_nested_attribute(question, "attributes.originator_question_uuid")
+    parent = get_nested_attribute(question, "attributes.parent")
+    originator = get_nested_attribute(question, "attributes.originator")
+
     order = EventCounter()
 
     try:
@@ -48,5 +54,13 @@ def answer_question(question, project_name):
         logger.info("Analysis successfully run and response sent for question %r.", question_uuid)
 
     except BaseException as error:  # noqa
-        service.send_exception(question_uuid=question_uuid, parent="UNKNOWN", order=order)
+        service.send_exception(
+            question_uuid=question_uuid,
+            parent_question_uuid=parent_question_uuid,
+            originator_question_uuid=originator_question_uuid,
+            parent=parent,
+            originator=originator,
+            order=order,
+        )
+
         logger.exception(error)
