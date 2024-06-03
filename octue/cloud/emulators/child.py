@@ -108,6 +108,7 @@ class ChildEmulator:
         question_uuid=None,
         parent_question_uuid=None,
         originator_question_uuid=None,
+        originator=None,
         push_endpoint=None,
         asynchronous=False,
         timeout=86400,
@@ -125,6 +126,7 @@ class ChildEmulator:
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param str|None parent_question_uuid:
         :param str|None originator_question_uuid:
+        :param str|None originator:
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True`, don't create an answer subscription
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
@@ -143,6 +145,7 @@ class ChildEmulator:
                 question_uuid=question_uuid,
                 parent_question_uuid=parent_question_uuid,
                 originator_question_uuid=originator_question_uuid,
+                originator=originator,
                 push_endpoint=push_endpoint,
                 asynchronous=asynchronous,
             )
