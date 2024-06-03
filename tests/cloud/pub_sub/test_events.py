@@ -87,7 +87,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 parent_question_uuid=None,
                 originator_question_uuid=self.question_uuid,
                 attributes=message["attributes"],
-                originator=self.parent.id,
+                parent=self.parent.id,
                 recipient=self.parent.id,
                 order=message["event"]["order"],
             )
@@ -142,7 +142,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 parent_question_uuid=None,
                 originator_question_uuid=self.question_uuid,
                 attributes=message["attributes"],
-                originator=self.parent.id,
+                parent=self.parent.id,
                 recipient=self.parent.id,
                 order=message["event"]["order"],
             )
@@ -200,7 +200,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 parent_question_uuid=None,
                 originator_question_uuid=self.question_uuid,
                 attributes=message["attributes"],
-                originator=self.parent.id,
+                parent=self.parent.id,
                 recipient=self.parent.id,
                 order=message["event"]["order"],
             )
@@ -252,7 +252,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 parent_question_uuid=None,
                 originator_question_uuid=self.question_uuid,
                 attributes=message["attributes"],
-                originator=self.parent.id,
+                parent=self.parent.id,
                 recipient=self.parent.id,
                 order=message["event"]["order"],
             )
@@ -292,7 +292,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 parent_question_uuid=None,
                 originator_question_uuid=self.question_uuid,
                 attributes=message["attributes"],
-                originator=self.parent.id,
+                parent=self.parent.id,
                 recipient=self.parent.id,
                 order=message["event"]["order"],
             )
@@ -348,7 +348,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 parent_question_uuid=None,
                 originator_question_uuid=self.question_uuid,
                 attributes=message["attributes"],
-                originator=self.parent.id,
+                parent=self.parent.id,
                 recipient=self.parent.id,
                 order=message["event"]["order"],
             )
@@ -417,7 +417,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 parent_question_uuid=None,
                 originator_question_uuid=self.question_uuid,
                 attributes=message["attributes"],
-                originator=self.parent.id,
+                parent=self.parent.id,
                 recipient=self.parent.id,
                 order=message["event"]["order"],
             )
@@ -477,7 +477,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 parent_question_uuid=None,
                 originator_question_uuid=self.question_uuid,
                 attributes=message["attributes"],
-                originator=self.parent.id,
+                parent=self.parent.id,
                 recipient=self.parent.id,
                 order=message["event"]["order"],
             )
@@ -489,7 +489,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
             parent_question_uuid=None,
             originator_question_uuid=self.question_uuid,
             attributes={"sender_type": "CHILD"},
-            originator=self.parent.id,
+            parent=self.parent.id,
             recipient=self.parent.id,
             # Simulate missing messages.
             order=5,
@@ -550,7 +550,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 parent_question_uuid=None,
                 originator_question_uuid=self.question_uuid,
                 attributes=message["attributes"],
-                originator=self.parent.id,
+                parent=self.parent.id,
                 recipient=self.parent.id,
                 order=message["event"]["order"],
             )
@@ -562,7 +562,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
             parent_question_uuid=None,
             originator_question_uuid=self.question_uuid,
             attributes={"order": 5, "sender_type": "CHILD"},
-            originator=self.parent.id,
+            parent=self.parent.id,
             recipient=self.parent.id,
             # Simulate missing messages.
             order=5,
@@ -595,7 +595,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 parent_question_uuid=None,
                 originator_question_uuid=self.question_uuid,
                 attributes=message["attributes"],
-                originator=self.parent.id,
+                parent=self.parent.id,
                 recipient=self.parent.id,
                 # Simulate more missing messages.
                 order=message["event"]["order"],
@@ -650,7 +650,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
             parent_question_uuid=None,
             originator_question_uuid=self.question_uuid,
             attributes={"sender_type": "CHILD"},
-            originator=self.parent.id,
+            parent=self.parent.id,
             recipient=self.parent.id,
             # Simulate missing messages.
             order=1000,
@@ -718,7 +718,7 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
                 attributes={
                     "order": 0,
                     "question_uuid": self.question_uuid,
-                    "originator": self.parent.id,
+                    "parent": self.parent.id,
                     "sender": self.parent.id,
                     "sender_type": "CHILD",
                     "sender_sdk_version": "0.50.0",

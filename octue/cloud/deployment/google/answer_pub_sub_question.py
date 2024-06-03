@@ -48,5 +48,5 @@ def answer_question(question, project_name):
         logger.info("Analysis successfully run and response sent for question %r.", question_uuid)
 
     except BaseException as error:  # noqa
-        service.send_exception(question_uuid=question_uuid, originator="UNKNOWN", order=order)
+        service.send_exception(question_uuid=question_uuid, parent="UNKNOWN", order=order)
         logger.exception(error)

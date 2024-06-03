@@ -55,7 +55,7 @@ SCHEMA = {
                         "save_diagnostics": {
                             "enum": ["SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"]
                         },
-                        "originator": {
+                        "parent": {
                             "type": "string",
                             "description": "The service revision unique identifier (SRUID) of the service revision that asked the question this event is related to.",
                             "examples": ["octue:test-service:1.2.0"],
@@ -88,7 +88,7 @@ SCHEMA = {
                         "originator_question_uuid",
                         "forward_logs",
                         "save_diagnostics",
-                        "originator",
+                        "parent",
                         "sender",
                         "sender_type",
                         "sender_sdk_version",
@@ -130,7 +130,7 @@ SCHEMA = {
                             "type": "string",
                             "description": "The UUID of the ultimate question that triggered this tree of questions.",
                         },
-                        "originator": {
+                        "parent": {
                             "type": "string",
                             "description": "The service revision unique identifier (SRUID) of the service revision that asked the question this event is related to.",
                             "examples": ["octue:test-service:1.2.0"],
@@ -162,7 +162,7 @@ SCHEMA = {
                         "question_uuid",
                         "parent_question_uuid",
                         "originator_question_uuid",
-                        "originator",
+                        "parent",
                         "sender",
                         "sender_type",
                         "sender_sdk_version",

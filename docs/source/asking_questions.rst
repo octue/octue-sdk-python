@@ -157,7 +157,7 @@ access the event store and run:
               "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
               "order": "7",
               "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
-              "originator": "octue/test-service:1.0.0",
+              "parent": "octue/test-service:1.0.0",
               "sender": "octue/test-service:1.0.0",
               "sender_type": "CHILD",
               "sender_sdk_version": "0.51.0",

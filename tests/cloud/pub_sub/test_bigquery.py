@@ -43,7 +43,7 @@ class TestGetEvents(TestCase):
 
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
-            "SELECT `event`, `kind`, `datetime`, `uuid`, `originator`, `sender`, `sender_type`, `sender_sdk_version`, "
+            "SELECT `event`, `kind`, `datetime`, `uuid`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, "
             "`recipient`, `order`, `other_attributes` FROM `blah`\nWHERE sender=@sender\n"
             "AND question_uuid=@question_uuid\nORDER BY `order`\nLIMIT @limit",
         )
@@ -55,7 +55,7 @@ class TestGetEvents(TestCase):
 
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
-            "SELECT `event`, `kind`, `datetime`, `uuid`, `originator`, `sender`, `sender_type`, `sender_sdk_version`, "
+            "SELECT `event`, `kind`, `datetime`, `uuid`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, "
             "`recipient`, `order`, `other_attributes` FROM `blah`\nWHERE sender=@sender\n"
             "AND question_uuid=@question_uuid\nAND kind='result'\nORDER BY `order`\nLIMIT @limit",
         )
@@ -72,7 +72,7 @@ class TestGetEvents(TestCase):
 
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
-            "SELECT `event`, `kind`, `datetime`, `uuid`, `originator`, `sender`, `sender_type`, `sender_sdk_version`, "
+            "SELECT `event`, `kind`, `datetime`, `uuid`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, "
             "`recipient`, `order`, `other_attributes`, `backend`, `backend_metadata` FROM `blah`\n"
             "WHERE sender=@sender\nAND question_uuid=@question_uuid\nORDER BY `order`\nLIMIT @limit",
         )

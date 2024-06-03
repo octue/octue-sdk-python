@@ -33,7 +33,7 @@ def get_events(table_id, sender, question_uuid, kind=None, include_backend_metad
         "`kind`",
         "`datetime`",
         "`uuid`",
-        "`originator`",
+        "`parent`",
         "`sender`",
         "`sender_type`",
         "`sender_sdk_version`",
@@ -109,7 +109,7 @@ def _unflatten_events(events):
         event["attributes"] = {
             "datetime": event.pop("datetime").isoformat(),
             "uuid": event.pop("uuid"),
-            "originator": event.pop("originator"),
+            "parent": event.pop("parent"),
             "sender": event.pop("sender"),
             "sender_type": event.pop("sender_type"),
             "sender_sdk_version": event.pop("sender_sdk_version"),
