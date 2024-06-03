@@ -580,6 +580,8 @@ class Service:
                     value = str(int(value))
                 elif isinstance(value, (int, float)):
                     value = str(value)
+                elif value is None:
+                    value = json.dumps(value)
 
                 converted_attributes[key] = value
 
