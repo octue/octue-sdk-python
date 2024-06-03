@@ -328,6 +328,7 @@ class MockService(Service):
         question_uuid=None,
         parent_question_uuid=None,
         originator_question_uuid=None,
+        originator=None,
         push_endpoint=None,
         asynchronous=False,
         timeout=86400,
@@ -346,6 +347,7 @@ class MockService(Service):
         :param str|None question_uuid:
         :param str|None parent_question_uuid:
         :param str|None originator_question_uuid:
+        :param str|None originator:
         :param str|None push_endpoint:
         :param bool asynchronous:
         :param float|None timeout:
@@ -362,6 +364,7 @@ class MockService(Service):
             question_uuid=question_uuid,
             parent_question_uuid=parent_question_uuid,
             originator_question_uuid=originator_question_uuid,
+            originator=originator,
             push_endpoint=push_endpoint,
             asynchronous=asynchronous,
             timeout=timeout,

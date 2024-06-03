@@ -168,6 +168,8 @@ class ChildEmulator:
         analysis_log_handler,
         handle_monitor_message,
         save_diagnostics,
+        originator_question_uuid,
+        originator,
     ):
         """Emulate analysis of a question by handling the events given at instantiation in the order given.
 
@@ -178,6 +180,8 @@ class ChildEmulator:
         :param logging.Handler|None analysis_log_handler: the `logging.Handler` instance which will be used to handle logs for this analysis run (this is ignored by the emulator)
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if the analysis fails
+        :param str|None originator_question_uuid:
+        :param str|None originator:
         :return octue.resources.analysis.Analysis:
         """
         for event in self.events:
@@ -193,6 +197,8 @@ class ChildEmulator:
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=handle_monitor_message,
                 save_diagnostics=save_diagnostics,
+                originator_question_uuid=originator_question_uuid,
+                originator=originator,
             )
 
             if result:
