@@ -273,22 +273,26 @@ class Service:
             else:
                 analysis_log_handler = None
 
+            handle_monitor_message = functools.partial(
+                self._send_monitor_message,
+                question_uuid=question_uuid,
+                parent_question_uuid=parent_question_uuid,
+                originator_question_uuid=originator_question_uuid,
+                parent=parent,
+                originator=originator,
+                order=order,
+            )
+
             analysis = self.run_function(
                 analysis_id=question_uuid,
                 input_values=question.get("input_values"),
                 input_manifest=question.get("input_manifest"),
                 children=question.get("children"),
                 analysis_log_handler=analysis_log_handler,
-                handle_monitor_message=functools.partial(
-                    self._send_monitor_message,
-                    question_uuid=question_uuid,
-                    parent_question_uuid=parent_question_uuid,
-                    originator_question_uuid=originator_question_uuid,
-                    parent=parent,
-                    originator=originator,
-                    order=order,
-                ),
+                handle_monitor_message=handle_monitor_message,
                 save_diagnostics=save_diagnostics,
+                originator_question_uuid=originator_question_uuid,
+                originator=originator,
             )
 
             result = make_minimal_dictionary(kind="result", output_values=analysis.output_values)

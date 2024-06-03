@@ -157,6 +157,8 @@ class Runner:
         analysis_log_handler=None,
         handle_monitor_message=None,
         save_diagnostics=SAVE_DIAGNOSTICS_ON_CRASH,
+        originator_question_uuid=None,
+        originator=None,
     ):
         """Run an analysis.
 
@@ -168,6 +170,8 @@ class Runner:
         :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run. Handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but should use the format defined above in LOG_FORMAT.
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved either all the time or just if the analysis fails
+        :param str|None originator_question_uuid:
+        :param str|None originator:
         :return octue.resources.analysis.Analysis:
         """
         if save_diagnostics not in SAVE_DIAGNOSTICS_MODES:
@@ -213,7 +217,12 @@ class Runner:
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
 
         if inputs["children"] is not None:
-            inputs["children"] = self._instantiate_children(inputs["children"], parent_question_uuid=analysis_id)
+            inputs["children"] = self._instantiate_children(
+                serialised_children=inputs["children"],
+                parent_question_uuid=analysis_id,
+                originator_question_uuid=originator_question_uuid,
+                originator=originator,
+            )
 
         outputs_and_monitors = self.twine.prepare("monitor_message", "output_values", "output_manifest", cls=CLASS_MAP)
 
@@ -344,17 +353,20 @@ class Runner:
 
                     raise twined.exceptions.invalid_contents_map[manifest_kind](message)
 
-    def _instantiate_children(self, serialised_children, parent_question_uuid):
+    def _instantiate_children(self, serialised_children, parent_question_uuid, originator_question_uuid, originator):
         """Instantiate children from their serialised form (e.g. as given in the app configuration) so they are ready
-        to be asked questions. Two modifications are made to each child's `ask` method:
+        to be asked questions. Two sets of modifications are made to each child's `ask` method:
 
-        1. The parent question UUID is set to the current analysis ID.
+        1. The parent question UUID is set to the current analysis ID, and the originator question UUID and originator
+           are set.
 
         2. For diagnostics, the `ask` method is wrapped so the runner can record the questions asked by the app, the
-        responses received to each question, and the order the questions are asked in.
+           responses received to each question, and the order the questions are asked in.
 
         :param list(dict) serialised_children: serialised children from e.g. the app configuration file
         :param str parent_question_uuid:
+        :param str originator_question_uuid:
+        :param str originator:
         :return dict: a mapping of child keys to `octue.resources.child.Child` instances
         """
         children = {}
@@ -368,7 +380,14 @@ class Runner:
             )
 
             child.ask = self._add_child_question_and_response_recording(child, uninstantiated_child["key"])
-            child.ask = functools.partial(child.ask, parent_question_uuid=parent_question_uuid)
+
+            child.ask = functools.partial(
+                child.ask,
+                parent_question_uuid=parent_question_uuid,
+                originator_question_uuid=originator_question_uuid,
+                originator=originator,
+            )
+
             children[uninstantiated_child["key"]] = child
 
         return children
