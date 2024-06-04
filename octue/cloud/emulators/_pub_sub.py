@@ -385,6 +385,10 @@ class MockService(Service):
         if originator_question_uuid is None:
             originator_question_uuid = question_uuid
 
+        # If the originator isn't provided, assume that this service revision is the originator.
+        if originator is None:
+            originator = self.id
+
         try:
             self.children[service_id].answer(
                 MockMessage.from_primitive(
@@ -399,7 +403,7 @@ class MockService(Service):
                         "save_diagnostics": save_diagnostics,
                         "order": 0,
                         "parent": self.id,
-                        "originator": self.id,
+                        "originator": originator,
                         "sender": self.id,
                         "sender_type": PARENT_SENDER_TYPE,
                         "sender_sdk_version": parent_sdk_version,
