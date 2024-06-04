@@ -20,6 +20,26 @@ class MockEmptyBigQueryClient:
 
 
 class TestGetEvents(TestCase):
+    def test_error_raised_if_no_question_uuid_type_provided(self):
+        """Test that an error is raised if none of `question_uuid`, `parent_question_uuid`, and
+        `originator_question_uuid` are provided.
+        """
+        with self.assertRaises(ValueError):
+            get_events(table_id="blah")
+
+    def test_error_if_more_than_one_question_uuid_type_provided(self):
+        """Test that an error is raised if more that one of `question_uuid`, `parent_question_uuid`, and
+        `originator_question_uuid` are provided.
+        """
+        for kwargs in (
+            {"question_uuid": "a", "parent_question_uuid": "b"},
+            {"question_uuid": "a", "originator_question_uuid": "b"},
+            {"parent_question_uuid": "a", "originator_question_uuid": "b"},
+        ):
+            with self.subTest(kwargs=kwargs):
+                with self.assertRaises(ValueError):
+                    get_events(table_id="blah", **kwargs)
+
     def test_error_raised_if_event_kind_invalid(self):
         """Test that an error is raised if the event kind is invalid."""
         with self.assertRaises(ValueError):
@@ -38,9 +58,9 @@ class TestGetEvents(TestCase):
 
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
-            "SELECT `event`, `kind`, `datetime`, `uuid`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, "
-            "`recipient`, `order`, `other_attributes` FROM `blah`\n"
-            "AND question_uuid=@question_uuid\nORDER BY `order`\nLIMIT @limit",
+            "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
+            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
+            "`other_attributes` FROM `blah`\nAND question_uuid=@question_uuid\nORDER BY `order`\nLIMIT @limit",
         )
 
     def test_with_kind(self):
@@ -50,9 +70,10 @@ class TestGetEvents(TestCase):
 
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
-            "SELECT `event`, `kind`, `datetime`, `uuid`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, "
-            "`recipient`, `order`, `other_attributes` FROM `blah`\n"
-            "AND question_uuid=@question_uuid\nAND kind='result'\nORDER BY `order`\nLIMIT @limit",
+            "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
+            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
+            "`other_attributes` FROM `blah`\nAND question_uuid=@question_uuid\nAND kind='result'\nORDER BY "
+            "`order`\nLIMIT @limit",
         )
 
     def test_with_backend_metadata(self):
@@ -62,7 +83,31 @@ class TestGetEvents(TestCase):
 
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
-            "SELECT `event`, `kind`, `datetime`, `uuid`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, "
-            "`recipient`, `order`, `other_attributes`, `backend`, `backend_metadata` FROM `blah`\n"
-            "AND question_uuid=@question_uuid\nORDER BY `order`\nLIMIT @limit",
+            "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
+            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
+            "`other_attributes`, `backend`, `backend_metadata` FROM `blah`\nAND question_uuid=@question_uuid\nORDER "
+            "BY `order`\nLIMIT @limit",
+        )
+
+    def test_with_parent_question_uuid(self):
+        with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
+            get_events(table_id="blah", parent_question_uuid="blah")
+
+        self.assertEqual(
+            mock_client.mock_calls[1].args[0],
+            "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
+            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
+            "`other_attributes` FROM `blah`\nAND parent_question_uuid=@question_uuid\nORDER BY `order`\nLIMIT @limit",
+        )
+
+    def test_with_originator_parent_question_uuid(self):
+        with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
+            get_events(table_id="blah", originator_question_uuid="blah")
+
+        self.assertEqual(
+            mock_client.mock_calls[1].args[0],
+            "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
+            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
+            "`other_attributes` FROM `blah`\nAND originator_question_uuid=@question_uuid\nORDER BY `order`\nLIMIT "
+            "@limit",
         )

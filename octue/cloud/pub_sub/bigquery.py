@@ -5,11 +5,23 @@ from octue.exceptions import ServiceNotFound
 from octue.resources import Manifest
 
 
-def get_events(table_id, question_uuid, kind=None, include_backend_metadata=False, limit=1000):
-    """Get Octue service events for a question from a Google BigQuery event store.
+def get_events(
+    table_id,
+    question_uuid=None,
+    parent_question_uuid=None,
+    originator_question_uuid=None,
+    kind=None,
+    include_backend_metadata=False,
+    limit=1000,
+):
+    """Get Octue service events for a question from a Google BigQuery event store. Exactly one of the question UUID,
+    parent question UUID, or originator question UUID must be provided. When a parent or originator question UUID is
+    specified, events from all questions in the tree of questions triggered by that question are returned.
 
     :param str table_id: the full ID of the Google BigQuery table e.g. "your-project.your-dataset.your-table"
-    :param str question_uuid: the UUID of the question to get the events for
+    :param str|None question_uuid: the UUID of the question to get the events for
+    :param str|None parent_question_uuid: the UUID of the parent question tree to get the events for
+    :param str|None originator_question_uuid: the UUID of the originator question tree to get the events for
     :param str|None kind: the kind of event to get; if `None`, all event kinds are returned
     :param bool include_backend_metadata: if `True`, include the service backend metadata
     :param int limit: the maximum number of events to return
@@ -17,6 +29,14 @@ def get_events(table_id, question_uuid, kind=None, include_backend_metadata=Fals
     :raise octue.exceptions.ServiceNotFound: if no events are found for the question UUID (or any events at all)
     :return list(dict): the events for the question
     """
+    question_uuid_inputs = [bool(question_uuid), bool(parent_question_uuid), bool(originator_question_uuid)]
+
+    if sum(question_uuid_inputs) != 1:
+        raise ValueError(
+            "One and only one of `question_uuid`, `parent_question_uuid`, and `originator_question_uuid` must be "
+            "provided."
+        )
+
     if kind:
         if kind not in VALID_EVENT_KINDS:
             raise ValueError(f"`kind` must be one of {VALID_EVENT_KINDS!r}; received {kind!r}.")
@@ -25,13 +45,22 @@ def get_events(table_id, question_uuid, kind=None, include_backend_metadata=Fals
     else:
         event_kind_condition = []
 
-    client = Client()
+    if question_uuid:
+        question_uuid_condition = "AND question_uuid=@question_uuid"
+    elif parent_question_uuid:
+        question_uuid_condition = "AND parent_question_uuid=@question_uuid"
+    elif originator_question_uuid:
+        question_uuid_condition = "AND originator_question_uuid=@question_uuid"
 
     fields = [
-        "`event`",
+        "`originator_question_uuid`",
+        "`parent_question_uuid`",
+        "`question_uuid`",
         "`kind`",
+        "`event`",
         "`datetime`",
         "`uuid`",
+        "`originator`",
         "`parent`",
         "`sender`",
         "`sender_type`",
@@ -47,7 +76,7 @@ def get_events(table_id, question_uuid, kind=None, include_backend_metadata=Fals
     query = "\n".join(
         [
             f"SELECT {', '.join(fields)} FROM `{table_id}`",
-            "AND question_uuid=@question_uuid",
+            question_uuid_condition,
             *event_kind_condition,
             "ORDER BY `order`",
             "LIMIT @limit",
@@ -61,6 +90,7 @@ def get_events(table_id, question_uuid, kind=None, include_backend_metadata=Fals
         ]
     )
 
+    client = Client()
     query_job = client.query(query, job_config=job_config)
     result = query_job.result()
 
