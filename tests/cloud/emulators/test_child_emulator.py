@@ -295,7 +295,7 @@ class TestChildEmulatorAsk(BaseTestCase):
 
 class TestChildEmulatorJSONFiles(BaseTestCase):
 
-    TEST_FILES_DIRECTORY = os.path.join(TESTS_DIR, "cloud", "emulators", "valid_child_emulator_files")
+    TEST_FILES_DIRECTORY = os.path.join(TESTS_DIR, "data", "valid_child_emulator_files")
 
     def test_with_empty_file(self):
         """Test that a child emulator can be instantiated from an empty JSON file (a JSON file with only an empty
