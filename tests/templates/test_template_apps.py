@@ -120,7 +120,7 @@ class TemplateAppsTestCase(BaseTestCase):
                 app_src=parent_service_path,
                 twine=os.path.join(parent_service_path, "twine.json"),
                 children=children,
-                service_id="template-child-services/parent-service",
+                service_id="template-child-services/parent-service:local",
             )
 
             analysis = runner.run(input_values=os.path.join(parent_service_path, "data", "input", "values.json"))
