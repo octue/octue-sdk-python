@@ -78,7 +78,7 @@ def get_events(
             f"SELECT {', '.join(fields)} FROM `{table_id}`",
             question_uuid_condition,
             *event_kind_condition,
-            "ORDER BY `order`",
+            "ORDER BY `datetime`",
             "LIMIT @limit",
         ]
     )
