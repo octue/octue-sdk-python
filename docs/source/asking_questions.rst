@@ -96,16 +96,22 @@ access the event store and run:
 
     events = get_events(
         table_id="your-project.your-dataset.your-table",
-        sender="octue/test-service:1.0.0",
         question_uuid="53353901-0b47-44e7-9da3-a3ed59990a71",
     )
 
 
 **Options**
 
+- ``question_uuid`` - Retrieve events from this specific question
+- ``parent_question_uuid`` - Retrieve events from questions triggered by the same parent question (this doesn't include parent question events)
+- ``originator_question_uuid`` - Retrieve events for the entire tree of questions triggered by an originator question (a question asked manually through ``Child.ask``)
 - ``kind`` - Only retrieve this kind of event if present (e.g. "result")
 - ``include_backend_metadata`` - If ``True``, retrieve information about the service backend that produced the event
 - ``limit`` - If set to a positive integer, limit the number of events returned to this
+
+.. note::
+
+    Only one of ``question_uuid``, ``parent_question_uuid``, and ``originator_question_uuid`` can be provided at one time.
 
 
 .. collapse:: See an example output here...
@@ -116,8 +122,8 @@ access the event store and run:
         [
           {
             "event": {
-              "datetime": "2024-03-06T15:44:18.156044",
-              "kind": "delivery_acknowledgement"
+              "kind": "delivery_acknowledgement",
+              "datetime": "2024-03-06T15:44:18.156044"
             },
           },
           {
@@ -149,21 +155,10 @@ access the event store and run:
           },
           {
             "event": {
-              "datetime": "2024-03-06T15:46:18.167424",
-              "kind": "heartbeat"
+              "kind": "heartbeat",
+              "datetime": "2024-03-06T15:46:18.167424"
             },
-            "attributes": {
-              "datetime": "2024-04-11T10:46:48.236064",
-              "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
-              "order": "7",
-              "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
-              "parent": "octue/test-service:1.0.0",
-              "sender": "octue/test-service:1.0.0",
-              "sender_type": "CHILD",
-              "sender_sdk_version": "0.51.0",
-              "recipient": "octue/another-service:3.2.1"
-            }
-          }
+          },
           {
             "event": {
               "kind": "result",
