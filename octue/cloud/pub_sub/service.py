@@ -232,27 +232,22 @@ class Service:
 
         heartbeater = None
 
+        routing_metadata = {
+            "question_uuid": question_uuid,
+            "parent_question_uuid": parent_question_uuid,
+            "originator_question_uuid": originator_question_uuid,
+            "parent": parent,
+            "originator": originator,
+            "order": order,
+        }
+
         try:
-            self._send_delivery_acknowledgment(
-                question_uuid=question_uuid,
-                parent_question_uuid=parent_question_uuid,
-                originator_question_uuid=originator_question_uuid,
-                parent=parent,
-                originator=originator,
-                order=order,
-            )
+            self._send_delivery_acknowledgment(**routing_metadata)
 
             heartbeater = RepeatingTimer(
                 interval=heartbeat_interval,
                 function=self._send_heartbeat,
-                kwargs={
-                    "question_uuid": question_uuid,
-                    "parent_question_uuid": parent_question_uuid,
-                    "originator_question_uuid": originator_question_uuid,
-                    "parent": parent,
-                    "originator": originator,
-                    "order": order,
-                },
+                kwargs=routing_metadata,
             )
 
             heartbeater.daemon = True
@@ -261,26 +256,13 @@ class Service:
             if forward_logs:
                 analysis_log_handler = GoogleCloudPubSubHandler(
                     event_emitter=self._emit_event,
-                    question_uuid=question_uuid,
-                    parent_question_uuid=parent_question_uuid,
-                    originator_question_uuid=originator_question_uuid,
-                    parent=parent,
-                    originator=originator,
                     recipient=parent,
-                    order=order,
+                    **routing_metadata,
                 )
             else:
                 analysis_log_handler = None
 
-            handle_monitor_message = functools.partial(
-                self._send_monitor_message,
-                question_uuid=question_uuid,
-                parent_question_uuid=parent_question_uuid,
-                originator_question_uuid=originator_question_uuid,
-                parent=parent,
-                originator=originator,
-                order=order,
-            )
+            handle_monitor_message = functools.partial(self._send_monitor_message, **routing_metadata)
 
             analysis = self.run_function(
                 analysis_id=question_uuid,
@@ -301,15 +283,10 @@ class Service:
 
             self._emit_event(
                 event=result,
-                question_uuid=question_uuid,
-                parent_question_uuid=parent_question_uuid,
-                originator_question_uuid=originator_question_uuid,
-                parent=parent,
-                originator=originator,
                 recipient=parent,
-                order=order,
                 attributes={"sender_type": CHILD_SENDER_TYPE},
                 timeout=timeout,
+                **routing_metadata,
             )
 
             heartbeater.cancel()
@@ -320,15 +297,7 @@ class Service:
                 heartbeater.cancel()
 
             warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
-            self.send_exception(
-                question_uuid=question_uuid,
-                parent_question_uuid=parent_question_uuid,
-                originator_question_uuid=originator_question_uuid,
-                parent=parent,
-                originator=originator,
-                order=order,
-                timeout=timeout,
-            )
+            self.send_exception(timeout=timeout, **routing_metadata)
             raise error
 
     def ask(
