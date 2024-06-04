@@ -60,7 +60,7 @@ class TestGetEvents(TestCase):
             mock_client.mock_calls[1].args[0],
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
             "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
-            "`other_attributes` FROM `blah`\nAND question_uuid=@question_uuid\nORDER BY `datetime`\nLIMIT @limit",
+            "`other_attributes` FROM `blah`\nWHERE question_uuid=@question_uuid\nORDER BY `datetime`\nLIMIT @limit",
         )
 
     def test_with_kind(self):
@@ -72,7 +72,7 @@ class TestGetEvents(TestCase):
             mock_client.mock_calls[1].args[0],
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
             "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
-            "`other_attributes` FROM `blah`\nAND question_uuid=@question_uuid\nAND kind='result'\nORDER BY "
+            "`other_attributes` FROM `blah`\nWHERE question_uuid=@question_uuid\nAND kind='result'\nORDER BY "
             "`datetime`\nLIMIT @limit",
         )
 
@@ -85,7 +85,7 @@ class TestGetEvents(TestCase):
             mock_client.mock_calls[1].args[0],
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
             "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
-            "`other_attributes`, `backend`, `backend_metadata` FROM `blah`\nAND question_uuid=@question_uuid\nORDER "
+            "`other_attributes`, `backend`, `backend_metadata` FROM `blah`\nWHERE question_uuid=@question_uuid\nORDER "
             "BY `datetime`\nLIMIT @limit",
         )
 
@@ -97,7 +97,7 @@ class TestGetEvents(TestCase):
             mock_client.mock_calls[1].args[0],
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
             "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
-            "`other_attributes` FROM `blah`\nAND parent_question_uuid=@question_uuid\nORDER BY `datetime`\nLIMIT @limit",
+            "`other_attributes` FROM `blah`\nWHERE parent_question_uuid=@question_uuid\nORDER BY `datetime`\nLIMIT @limit",
         )
 
     def test_with_originator_parent_question_uuid(self):
@@ -108,6 +108,6 @@ class TestGetEvents(TestCase):
             mock_client.mock_calls[1].args[0],
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
             "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
-            "`other_attributes` FROM `blah`\nAND originator_question_uuid=@question_uuid\nORDER BY `datetime`\nLIMIT "
+            "`other_attributes` FROM `blah`\nWHERE originator_question_uuid=@question_uuid\nORDER BY `datetime`\nLIMIT "
             "@limit",
         )

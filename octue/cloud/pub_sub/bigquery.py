@@ -46,11 +46,11 @@ def get_events(
         event_kind_condition = []
 
     if question_uuid:
-        question_uuid_condition = "AND question_uuid=@question_uuid"
+        question_uuid_condition = "WHERE question_uuid=@question_uuid"
     elif parent_question_uuid:
-        question_uuid_condition = "AND parent_question_uuid=@question_uuid"
+        question_uuid_condition = "WHERE parent_question_uuid=@question_uuid"
     elif originator_question_uuid:
-        question_uuid_condition = "AND originator_question_uuid=@question_uuid"
+        question_uuid_condition = "WHERE originator_question_uuid=@question_uuid"
 
     fields = [
         "`originator_question_uuid`",
