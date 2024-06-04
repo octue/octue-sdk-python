@@ -274,26 +274,7 @@ class Runner:
                     thread.cancel()
                     logger.debug("Periodic monitor message thread %d stopped.", i)
 
-            if not analysis.finalised:
-                analysis.finalise()
-
-            if save_diagnostics == SAVE_DIAGNOSTICS_ON:
-                self.diagnostics.upload()
-
-            if self.delete_local_files and downloaded_files:
-                logger.warning(
-                    "Deleting files downloaded during analysis. This is not thread-safe - set "
-                    "`delete_local_files=False` at instantiation of `Runner` to switch this off."
-                )
-
-                for path in downloaded_files:
-                    logger.debug("Deleting downloaded file at %r.", path)
-
-                    try:
-                        os.remove(path)
-                    except FileNotFoundError:
-                        logger.debug("Couldn't delete %r - it was already deleted.", path)
-
+            self._finalise_and_clean_up(analysis, save_diagnostics)
             return analysis
 
     def _populate_environment_with_google_cloud_secrets(self):
@@ -452,3 +433,30 @@ class Runner:
 
         # App as a function that takes "analysis" as an argument.
         self.app_source(analysis)
+
+    def _finalise_and_clean_up(self, analysis, save_diagnostics):
+        """Finalise the analysis and, if appropriate, upload diagnostics and delete local files.
+
+        :param octue.resources.analysis.Analysis analysis: the analysis object containing the configuration and inputs to run the app on
+        :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved either all the time or just if the analysis fails
+        :return None:
+        """
+        if not analysis.finalised:
+            analysis.finalise()
+
+        if save_diagnostics == SAVE_DIAGNOSTICS_ON:
+            self.diagnostics.upload()
+
+        if self.delete_local_files and downloaded_files:
+            logger.warning(
+                "Deleting files downloaded during analysis. This is not thread-safe - set "
+                "`delete_local_files=False` at instantiation of `Runner` to switch this off."
+            )
+
+            for path in downloaded_files:
+                logger.debug("Deleting downloaded file at %r.", path)
+
+                try:
+                    os.remove(path)
+                except FileNotFoundError:
+                    logger.debug("Couldn't delete %r - it was already deleted.", path)
