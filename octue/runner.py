@@ -179,6 +179,10 @@ class Runner:
                 f"`save_diagnostics` must be one of {SAVE_DIAGNOSTICS_MODES!r}; received {save_diagnostics!r}."
             )
 
+        # If the originator question UUID isn't provided, assume that this analysis is the originator.
+        analysis_id = str(analysis_id) if analysis_id else gen_uuid()
+        originator_question_uuid = originator_question_uuid or analysis_id
+
         # Get inputs before any transformations have been applied.
         self.diagnostics.add_data(
             analysis_id=analysis_id,
@@ -213,8 +217,6 @@ class Runner:
                 manifest_kind=manifest_strand,
                 manifest=inputs_and_configuration[manifest_strand],
             )
-
-        analysis_id = str(analysis_id) if analysis_id else gen_uuid()
 
         if inputs["children"] is not None:
             inputs["children"] = self._instantiate_children(
