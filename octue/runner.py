@@ -375,7 +375,7 @@ class Runner:
             child = Child(
                 id=uninstantiated_child["id"],
                 backend=uninstantiated_child["backend"],
-                internal_service_name=self.service_id,
+                internal_sruid=self.service_id,
                 service_registries=self.service_registries,
             )
 
