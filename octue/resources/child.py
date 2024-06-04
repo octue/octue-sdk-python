@@ -87,8 +87,8 @@ class Child:
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param str|None parent_question_uuid: the UUID of the question that triggered this question
-        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
-        :param str|None originator: the SRUID of the service revision that triggered all ancestor questions of this question
+        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question; if `None`, this question is assumed to be the originator question
+        :param str|None originator: the SRUID of the service revision that triggered all ancestor questions of this question;  if `None`, this service revision is assumed to be the originator
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True`, don't wait for an answer or create an answer subscription (the result and other events can be retrieved from the event store later)
         :param float timeout: time in seconds to wait for an answer before raising a timeout error

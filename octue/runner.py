@@ -352,7 +352,7 @@ class Runner:
            responses received to each question, and the order the questions are asked in.
 
         :param list(dict) serialised_children: serialised children from e.g. the app configuration file
-        :param str parent_question_uuid: the UUID of the question that triggered this analysis
+        :param str|None parent_question_uuid: the UUID of the question that triggered this analysis
         :param str originator_question_uuid: the UUID of the question that triggered all ancestor questions of this analysis
         :param str originator: the SRUID of the service revision that triggered the tree of questions this analysis is related to
         :return dict: a mapping of child keys to `octue.resources.child.Child` instances
