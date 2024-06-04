@@ -50,7 +50,6 @@ class TestCloudRunDeployment(TestCase):
 
         events = get_events(
             table_id="octue_sdk_python_test_dataset.service-events",
-            sender=EXAMPLE_SERVICE_SRUID,
             question_uuid=question_uuid,
             kind="result",
         )

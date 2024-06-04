@@ -5,17 +5,16 @@ from octue.exceptions import ServiceNotFound
 from octue.resources import Manifest
 
 
-def get_events(table_id, sender, question_uuid, kind=None, include_backend_metadata=False, limit=1000):
-    """Get Octue service events for a question from a sender from a Google BigQuery event store.
+def get_events(table_id, question_uuid, kind=None, include_backend_metadata=False, limit=1000):
+    """Get Octue service events for a question from a Google BigQuery event store.
 
-    :param str table_id: the full ID of the table e.g. "your-project.your-dataset.your-table"
-    :param str sender: the SRUID of the sender of the events
+    :param str table_id: the full ID of the Google BigQuery table e.g. "your-project.your-dataset.your-table"
     :param str question_uuid: the UUID of the question to get the events for
     :param str|None kind: the kind of event to get; if `None`, all event kinds are returned
     :param bool include_backend_metadata: if `True`, include the service backend metadata
     :param int limit: the maximum number of events to return
     :raise ValueError: if the `kind` parameter is invalid
-    :raise octue.exceptions.ServiceNotFound: if the sender hasn't emitted any events related to the question UUID (or any events at all)
+    :raise octue.exceptions.ServiceNotFound: if no events are found for the question UUID (or any events at all)
     :return list(dict): the events for the question
     """
     if kind:
@@ -48,7 +47,6 @@ def get_events(table_id, sender, question_uuid, kind=None, include_backend_metad
     query = "\n".join(
         [
             f"SELECT {', '.join(fields)} FROM `{table_id}`",
-            "WHERE sender=@sender",
             "AND question_uuid=@question_uuid",
             *event_kind_condition,
             "ORDER BY `order`",
@@ -58,7 +56,6 @@ def get_events(table_id, sender, question_uuid, kind=None, include_backend_metad
 
     job_config = QueryJobConfig(
         query_parameters=[
-            ScalarQueryParameter("sender", "STRING", sender),
             ScalarQueryParameter("question_uuid", "STRING", question_uuid),
             ScalarQueryParameter("limit", "INTEGER", limit),
         ]
@@ -68,10 +65,7 @@ def get_events(table_id, sender, question_uuid, kind=None, include_backend_metad
     result = query_job.result()
 
     if result.total_rows == 0:
-        raise ServiceNotFound(
-            f"No events found. The requested sender {sender!r} may not exist or it hasn't emitted any events for "
-            f"question {question_uuid!r} (or any events at all)."
-        )
+        raise ServiceNotFound(f"No events found for question {question_uuid!r}. Check back later.")
 
     df = result.to_dataframe()
     df["event"].apply(_deserialise_manifest_if_present)
