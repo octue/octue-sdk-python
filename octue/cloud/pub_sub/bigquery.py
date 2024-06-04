@@ -131,8 +131,12 @@ def _unflatten_events(events):
         event["event"]["kind"] = event.pop("kind")
 
         event["attributes"] = {
+            "originator_question_uuid": event.pop("originator_question_uuid"),
+            "parent_question_uuid": event.pop("parent_question_uuid"),
+            "question_uuid": event.pop("question_uuid"),
             "datetime": event.pop("datetime").isoformat(),
             "uuid": event.pop("uuid"),
+            "originator": event.pop("originator"),
             "parent": event.pop("parent"),
             "sender": event.pop("sender"),
             "sender_type": event.pop("sender_type"),
