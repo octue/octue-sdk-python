@@ -72,7 +72,7 @@ class Service:
     :return None:
     """
 
-    def __init__(self, backend, service_id=None, run_function=None, name=None, service_registries=None):
+    def __init__(self, backend, service_id=None, run_function=None, service_registries=None):
         if service_id is None:
             self.id = create_sruid(namespace=DEFAULT_NAMESPACE, name=str(uuid.uuid4()))
 
@@ -86,7 +86,6 @@ class Service:
 
         self.backend = backend
         self.run_function = run_function
-        self.name = name
         self.service_registries = service_registries
 
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
@@ -100,7 +99,7 @@ class Service:
 
         :return str: the service represented as a string
         """
-        return f"<{type(self).__name__}({self.name or self.id!r})>"
+        return f"<{type(self).__name__}({self.id!r})>"
 
     @property
     def publisher(self):
@@ -396,7 +395,7 @@ class Service:
 
         question_uuid = question_uuid or str(uuid.uuid4())
 
-        # If the originator question UUID isn't provided, assume that this question is the originator.
+        # If the originator question UUID isn't provided, assume that this question is the originator question.
         if originator_question_uuid is None:
             originator_question_uuid = question_uuid
 

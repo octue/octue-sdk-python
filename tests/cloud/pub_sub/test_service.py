@@ -63,11 +63,6 @@ class TestService(BaseTestCase):
         service = Service(backend=BACKEND)
         self.assertEqual(repr(service), f"<Service({service.id!r})>")
 
-    def test_repr_with_name(self):
-        """Test that services are represented using their name if they have one."""
-        service = Service(backend=BACKEND, name=f"octue/blah-service:{MOCK_SERVICE_REVISION_TAG}")
-        self.assertEqual(repr(service), f"<Service('octue/blah-service:{MOCK_SERVICE_REVISION_TAG}')>")
-
     def test_service_id_cannot_be_non_none_empty_value(self):
         """Ensure that a ValueError is raised if a non-None empty value is provided as the service_id."""
         with self.assertRaises(ValueError):
