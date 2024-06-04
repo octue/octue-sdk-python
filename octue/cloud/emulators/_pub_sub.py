@@ -382,12 +382,10 @@ class MockService(Service):
             question["input_manifest"] = input_manifest.to_primitive()
 
         # If the originator question UUID isn't provided, assume that this question is the originator.
-        if originator_question_uuid is None:
-            originator_question_uuid = question_uuid
+        originator_question_uuid = originator_question_uuid or question_uuid
 
         # If the originator isn't provided, assume that this service revision is the originator.
-        if originator is None:
-            originator = self.id
+        originator = originator or self.id
 
         try:
             self.children[service_id].answer(

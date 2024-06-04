@@ -365,12 +365,10 @@ class Service:
         question_uuid = question_uuid or str(uuid.uuid4())
 
         # If the originator question UUID isn't provided, assume that this question is the originator question.
-        if originator_question_uuid is None:
-            originator_question_uuid = question_uuid
+        originator_question_uuid = originator_question_uuid or question_uuid
 
         # If the originator isn't provided, assume that this service revision is the originator.
-        if originator is None:
-            originator = self.id
+        originator = originator or self.id
 
         if asynchronous and not push_endpoint:
             answer_subscription = None
