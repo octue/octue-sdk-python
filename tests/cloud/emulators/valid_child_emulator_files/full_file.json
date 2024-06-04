@@ -4,7 +4,7 @@
     "name": "GCPPubSubBackend",
     "project_name": "blah"
   },
-  "internal_service_name": "octue/my-service:2.3.0",
+  "internal_sruid": "octue/my-service:2.3.0",
   "events": [
     {
       "kind": "log_record",

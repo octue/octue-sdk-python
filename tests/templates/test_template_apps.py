@@ -146,7 +146,7 @@ class TemplateAppsTestCase(BaseTestCase):
         emulated_children = [
             ChildEmulator(
                 id=f"template-child-services/wind-speed-service:{MOCK_SERVICE_REVISION_TAG}",
-                internal_service_name=runner.service_id,
+                internal_sruid=runner.service_id,
                 events=[
                     {"kind": "log_record", "log_record": {"msg": "This is an emulated child log message."}},
                     {"kind": "result", "output_values": [10], "output_manifest": None},
@@ -154,7 +154,7 @@ class TemplateAppsTestCase(BaseTestCase):
             ),
             ChildEmulator(
                 id=f"template-child-services/elevation-service:{MOCK_SERVICE_REVISION_TAG}",
-                internal_service_name=runner.service_id,
+                internal_sruid=runner.service_id,
                 events=[
                     {"kind": "result", "output_values": [300], "output_manifest": None},
                 ],
