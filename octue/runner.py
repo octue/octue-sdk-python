@@ -4,6 +4,7 @@ import logging
 import logging.handlers
 import os
 import re
+import uuid
 
 import google.api_core.exceptions
 from google import auth
@@ -18,7 +19,6 @@ from octue.log_handlers import AnalysisLogFormatterSwitcher
 from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.resources.datafile import downloaded_files
-from octue.utils import gen_uuid
 from twined import Twine
 
 
@@ -170,8 +170,8 @@ class Runner:
         :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run. Handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but should use the format defined above in LOG_FORMAT.
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved either all the time or just if the analysis fails
-        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this analysis
-        :param str|None originator: the SRUID of the service revision that triggered all ancestor questions of this question
+        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this analysis; if `None`, this question is assumed to be the originator question
+        :param str|None originator: the SRUID of the service revision that triggered all ancestor questions of this question;  if `None`, this service revision is assumed to be the originator
         :return octue.resources.analysis.Analysis:
         """
         if save_diagnostics not in SAVE_DIAGNOSTICS_MODES:
@@ -180,7 +180,7 @@ class Runner:
             )
 
         # Set the analysis ID if one isn't given.
-        analysis_id = str(analysis_id) if analysis_id else gen_uuid()
+        analysis_id = str(analysis_id) if analysis_id else str(uuid.uuid4())
 
         # This analysis is the parent question.
         parent_question_uuid = analysis_id
