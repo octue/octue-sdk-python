@@ -103,8 +103,8 @@ access the event store and run:
 **Options**
 
 - ``question_uuid`` - Retrieve events from this specific question
-- ``parent_question_uuid`` - Retrieve events from questions triggered by the same parent question (this doesn't include parent question events)
-- ``originator_question_uuid`` - Retrieve events for the entire tree of questions triggered by an originator question (a question asked manually through ``Child.ask``)
+- ``parent_question_uuid`` - Retrieve events from questions triggered by the same parent question (this doesn't include the parent question's events)
+- ``originator_question_uuid`` - Retrieve events for the entire tree of questions triggered by an originator question (a question asked manually through ``Child.ask``; this does include the originator question's events)
 - ``kind`` - Only retrieve this kind of event if present (e.g. "result")
 - ``include_backend_metadata`` - If ``True``, retrieve information about the service backend that produced the event
 - ``limit`` - If set to a positive integer, limit the number of events returned to this
