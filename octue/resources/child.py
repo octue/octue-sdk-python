@@ -88,7 +88,7 @@ class Child:
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
         :param str|None parent_question_uuid: the UUID of the question that triggered this question
         :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
-        :param str|None originator: the SRUID of the service revision that triggered the tree of questions this event is related to
+        :param str|None originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True`, don't wait for an answer or create an answer subscription (the result and other events can be retrieved from the event store later)
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
@@ -197,6 +197,13 @@ class Child:
         return [answer[1] for answer in sorted(answers.items(), key=lambda item: item[0])]
 
     def _get_failed_questions(self, questions, answers, prevent_retries_when):
+        """Get the questions that failed.
+
+        :param list(dict) questions: the list of questions that were asked
+        :param dict answers: a mapping of question index (i.e. position in the original list of questions) to question answer
+        :param list(type)|None prevent_retries_when: prevent retrying any questions that fail with an exception type in this list (note: this will have no effect unless `raise_errors=False`)
+        :return dict: a mapping of failed question index (i.e. position in the original list of questions) to failed question
+        """
         failed_questions = {}
 
         for question_index, answer in answers.items():

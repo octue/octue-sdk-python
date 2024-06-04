@@ -328,10 +328,10 @@ class Service:
         :param bool subscribe_to_logs: if `True`, subscribe to the child's logs and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will be able to access these local files
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
-        :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
-        :param str|None parent_question_uuid: the UUID of the question that triggered this question
-        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
-        :param str|None originator: the SRUID of the service revision that triggered the tree of questions this event is related to
+        :param str|None question_uuid: the UUID to use for the question; if `None`, a UUID is generated
+        :param str|None parent_question_uuid: the UUID of the question that triggered this question; this should be `None` if this is the first question in a question tree
+        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question; if `None`, this question is assumed to be the originator question
+        :param str|None originator: the SRUID of the service revision that triggered all ancestor questions of this question; if `None`, this service revision is assumed to the the originator
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True` and not using a push endpoint, don't create an answer subscription
         :param float|None timeout: time in seconds to keep retrying sending the question
@@ -461,7 +461,7 @@ class Service:
         :param str|None parent_question_uuid: the UUID of the question that triggered this question
         :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
         :param str parent: the SRUID of the parent that asked the question this event is related to
-        :param str originator: the SRUID of the service revision that triggered the tree of questions this event is related to
+        :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float|None timeout: time in seconds to keep retrying sending of the exception
         :return None:
@@ -520,7 +520,7 @@ class Service:
         :param str|None parent_question_uuid: the UUID of the question that triggered this question
         :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
         :param str parent: the SRUID of the parent that asked the question this event is related to
-        :param str originator: the SRUID of the service revision that triggered the tree of questions this event is related to
+        :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param str recipient: the SRUID of the service the event is intended for
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param dict|None attributes: key-value pairs to attach to the event - the values must be strings or bytes
@@ -588,7 +588,7 @@ class Service:
         :param str question_uuid: the UUID of the question being sent
         :param str|None parent_question_uuid: the UUID of the question that triggered this question
         :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
-        :param str originator: the SRUID of the service revision that triggered the tree of questions this event is related to
+        :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param str recipient: the SRUID of the child the question is intended for
         :param float timeout: time in seconds after which to give up sending
         :return None:
@@ -636,7 +636,7 @@ class Service:
         :param str|None parent_question_uuid: the UUID of the question that triggered this question
         :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
         :param str parent: the SRUID of the service that asked the question this event is related to
-        :param str originator: the SRUID of the service revision that triggered the tree of questions this event is related to
+        :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float timeout: time in seconds after which to give up sending
         :return None:
@@ -675,7 +675,7 @@ class Service:
         :param str|None parent_question_uuid: the UUID of the question that triggered this question
         :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
         :param str parent: the SRUID of the parent that asked the question this event is related to
-        :param str originator: the SRUID of the service revision that triggered the tree of questions this event is related to
+        :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float timeout: time in seconds after which to give up sending
         :return None:
@@ -716,7 +716,7 @@ class Service:
         :param str|None parent_question_uuid: the UUID of the question that triggered this question
         :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
         :param str parent: the SRUID of the service that asked the question this event is related to
-        :param str originator: the SRUID of the service revision that triggered the tree of questions this event is related to
+        :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param float timeout: time in seconds to retry sending the message
         :return None:
@@ -740,7 +740,7 @@ class Service:
         """Parse a question in the Google Cloud Run or Google Pub/Sub format.
 
         :param dict|google.cloud.pubsub_v1.subscriber.message.Message question: the question to parse in Google Cloud Run or Google Pub/Sub format
-        :return (dict, str, str, str, bool, str, str, str, str): the question's event and its attributes (question UUID, parent question UUID, originator question UUID, whether to forward logs, the Octue SDK version of the parent, whether to save diagnostics, the SRUID of the parent that asked the question, and the SRUID of the service revision that triggered the tree of questions this event is related to)
+        :return (dict, str, str, str, bool, str, str, str, str): the question's event and its attributes (question UUID, parent question UUID, originator question UUID, whether to forward logs, the Octue SDK version of the parent, whether to save diagnostics, the SRUID of the parent that asked the question, and the SRUID of the service revision that triggered all ancestor questions of this question)
         """
         logger.info("%r received a question.", self)
 

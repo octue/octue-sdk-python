@@ -171,7 +171,7 @@ class Runner:
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved either all the time or just if the analysis fails
         :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this analysis
-        :param str|None originator: the SRUID of the service revision that triggered the tree of questions this event is related to
+        :param str|None originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :return octue.resources.analysis.Analysis:
         """
         if save_diagnostics not in SAVE_DIAGNOSTICS_MODES:
