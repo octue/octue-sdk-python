@@ -208,7 +208,7 @@ This method uses multithreading, allowing all the questions to be asked at once 
 **Options**
 
 - If ``raise_errors=False`` is provided, answers are returned for all successful questions while unraised errors are
-  returned for unsuccessful ones
+  logged and returned for unsuccessful ones
 - If ``raise_errors=False`` is provided with ``max_retries > 0``, failed questions are retried up to this number of
   times
 - If ``raise_errors=False`` is provided with ``max_retries > 0`` and ``prevent_retries_when`` is set to a list of
