@@ -183,15 +183,12 @@ class Child:
         failed_questions = self._get_failed_questions(questions, answers, prevent_retries_when)
 
         for question_index, question in failed_questions.items():
-            # Raise and catch each error so it's added as exception information to the log message.
-            try:
-                raise answers[question_index]
-            except Exception:
-                logger.exception(
-                    "Question %d failed after %d retries (see below for error).",
-                    question_index,
-                    max_retries,
-                )
+            logger.error(
+                "Question %d failed after %d retries (see below for error).",
+                question_index,
+                max_retries,
+                exc_info=answers[question_index],
+            )
 
         # Convert dictionary to list in asking order.
         return [answer[1] for answer in sorted(answers.items(), key=lambda item: item[0])]
