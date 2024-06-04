@@ -170,8 +170,8 @@ class Runner:
         :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run. Handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but should use the format defined above in LOG_FORMAT.
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved either all the time or just if the analysis fails
-        :param str|None originator_question_uuid:
-        :param str|None originator:
+        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this analysis
+        :param str|None originator: the SRUID of the service revision that triggered the tree of questions this event is related to
         :return octue.resources.analysis.Analysis:
         """
         if save_diagnostics not in SAVE_DIAGNOSTICS_MODES:
@@ -352,9 +352,9 @@ class Runner:
            responses received to each question, and the order the questions are asked in.
 
         :param list(dict) serialised_children: serialised children from e.g. the app configuration file
-        :param str parent_question_uuid:
-        :param str originator_question_uuid:
-        :param str originator:
+        :param str parent_question_uuid: the UUID of the question that triggered this analysis
+        :param str originator_question_uuid: the UUID of the question that triggered all ancestor questions of this analysis
+        :param str originator: the SRUID of the service revision that triggered the tree of questions this analysis is related to
         :return dict: a mapping of child keys to `octue.resources.child.Child` instances
         """
         children = {}

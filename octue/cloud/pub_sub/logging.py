@@ -10,8 +10,8 @@ class GoogleCloudPubSubHandler(logging.Handler):
 
     :param callable event_emitter: the `_emit_event` method of the service that instantiated this instance
     :param str question_uuid: the UUID of the question to handle log records for
-    :param str|None parent_question_uuid:
-    :param str|None originator_question_uuid:
+    :param str|None parent_question_uuid: the UUID of the question that triggered this question
+    :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
     :param str parent: the SRUID of the parent that asked the question these log records are related to
     :param str originator: the SRUID of the service revision that triggered the tree of questions these log records are related to
     :param str recipient: the SRUID of the service to send these log records to

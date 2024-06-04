@@ -360,9 +360,9 @@ class Service:
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will be able to access these local files
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
-        :param str|None parent_question_uuid:
-        :param str|None originator_question_uuid:
-        :param str|None originator:
+        :param str|None parent_question_uuid: the UUID of the question that triggered this question
+        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
+        :param str|None originator: the SRUID of the service revision that triggered the tree of questions this event is related to
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True` and not using a push endpoint, don't create an answer subscription
         :param float|None timeout: time in seconds to keep retrying sending the question
@@ -489,8 +489,8 @@ class Service:
         """Serialise and send the exception being handled to the parent.
 
         :param str question_uuid: the UUID of the question this event relates to
-        :param str|None parent_question_uuid:
-        :param str|None originator_question_uuid:
+        :param str|None parent_question_uuid: the UUID of the question that triggered this question
+        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
         :param str parent: the SRUID of the parent that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered the tree of questions this event is related to
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
@@ -548,8 +548,8 @@ class Service:
 
         :param dict event: JSON-serialisable data to emit as an event
         :param str question_uuid:
-        :param str|None parent_question_uuid:
-        :param str|None originator_question_uuid:
+        :param str|None parent_question_uuid: the UUID of the question that triggered this question
+        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
         :param str parent: the SRUID of the parent that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered the tree of questions this event is related to
         :param str recipient: the SRUID of the service the event is intended for
@@ -617,8 +617,8 @@ class Service:
         :param bool forward_logs: whether to request the child to forward its logs
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str question_uuid: the UUID of the question being sent
-        :param str|None parent_question_uuid:
-        :param str|None originator_question_uuid:
+        :param str|None parent_question_uuid: the UUID of the question that triggered this question
+        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
         :param str originator: the SRUID of the service revision that triggered the tree of questions this event is related to
         :param str recipient: the SRUID of the child the question is intended for
         :param float timeout: time in seconds after which to give up sending
@@ -664,8 +664,8 @@ class Service:
         """Send an acknowledgement of question receipt to the parent.
 
         :param str question_uuid: the UUID of the question this event relates to
-        :param str|None parent_question_uuid:
-        :param str|None originator_question_uuid:
+        :param str|None parent_question_uuid: the UUID of the question that triggered this question
+        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
         :param str parent: the SRUID of the service that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered the tree of questions this event is related to
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
@@ -703,8 +703,8 @@ class Service:
         """Send a heartbeat to the parent, indicating that the service is alive.
 
         :param str question_uuid: the UUID of the question this event relates to
-        :param str|None parent_question_uuid:
-        :param str|None originator_question_uuid:
+        :param str|None parent_question_uuid: the UUID of the question that triggered this question
+        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
         :param str parent: the SRUID of the parent that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered the tree of questions this event is related to
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
@@ -744,8 +744,8 @@ class Service:
 
         :param any data: the data to send as a monitor message
         :param str question_uuid: the UUID of the question this event relates to
-        :param str|None parent_question_uuid:
-        :param str|None originator_question_uuid:
+        :param str|None parent_question_uuid: the UUID of the question that triggered this question
+        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
         :param str parent: the SRUID of the service that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered the tree of questions this event is related to
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
