@@ -179,8 +179,13 @@ class Runner:
                 f"`save_diagnostics` must be one of {SAVE_DIAGNOSTICS_MODES!r}; received {save_diagnostics!r}."
             )
 
-        # If the originator question UUID isn't provided, assume that this analysis is the originator.
+        # Set the analysis ID if one isn't given.
         analysis_id = str(analysis_id) if analysis_id else gen_uuid()
+
+        # This analysis is the parent question.
+        parent_question_uuid = analysis_id
+
+        # If the originator question UUID isn't provided, assume that this analysis is the originator question.
         originator_question_uuid = originator_question_uuid or analysis_id
 
         # Get inputs before any transformations have been applied.
@@ -221,7 +226,7 @@ class Runner:
         if inputs["children"] is not None:
             inputs["children"] = self._instantiate_children(
                 serialised_children=inputs["children"],
-                parent_question_uuid=analysis_id,
+                parent_question_uuid=parent_question_uuid,
                 originator_question_uuid=originator_question_uuid,
                 originator=originator,
             )
