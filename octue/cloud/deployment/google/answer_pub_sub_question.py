@@ -38,7 +38,7 @@ def answer_question(question, project_name):
     originator_question_uuid = get_nested_attribute(question, "attributes.originator_question_uuid")
     parent = get_nested_attribute(question, "attributes.parent")
     originator = get_nested_attribute(question, "attributes.originator")
-    retry_count = get_nested_attribute(question, "retry_count")
+    retry_count = get_nested_attribute(question, "attributes.retry_count")
 
     order = EventCounter()
 
