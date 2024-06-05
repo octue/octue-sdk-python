@@ -385,7 +385,7 @@ def create_push_subscription(
     """
     sruid = create_sruid(namespace=service_namespace, name=service_name, revision_tag=revision_tag)
 
-    pub_sub.create_push_subscription(
+    subscription = pub_sub.create_push_subscription(
         project_name,
         sruid,
         push_endpoint,
@@ -394,7 +394,11 @@ def create_push_subscription(
         allow_existing=not no_allow_existing,
     )
 
-    click.echo(sruid)
+    if subscription.creation_triggered_locally:
+        click.echo(f"Subscription for {sruid!r} created.")
+        return
+
+    click.echo(f"Subscription for {sruid!r} already exists.")
 
 
 def _add_monitor_message_to_file(path, monitor_message):

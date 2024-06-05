@@ -25,7 +25,7 @@ def create_push_subscription(
     :param str|None subscription_filter: if specified, the filter to apply to the subscription; otherwise, no filter is applied
     :param float|None expiration_time: the number of seconds of inactivity after which the subscription should expire. If not provided, no expiration time is applied to the subscription
     :param bool allow_existing: if True, don't raise an error if the subscription already exists
-    :return None:
+    :return octue.cloud.pub_sub.subscription.Subscription:
     """
     if expiration_time:
         expiration_time = float(expiration_time)
@@ -41,3 +41,4 @@ def create_push_subscription(
     )
 
     subscription.create(allow_existing=allow_existing)
+    return subscription
