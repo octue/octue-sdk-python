@@ -71,7 +71,7 @@ def _acknowledge_and_drop_redelivered_questions(question_uuid, retry_count):
         # Acknowledge questions that are redelivered to stop further redelivery and redundant processing.
         if question in local_metadata["delivered_questions"]:
             logger.warning(
-                "Question %r (retry count %d) has already been received by the service. It will now be acknowledged to "
+                "Question %r (retry count %s) has already been received by the service. It will now be acknowledged to "
                 "prevent further redundant redelivery and dropped.",
                 question_uuid,
                 retry_count,
@@ -82,7 +82,7 @@ def _acknowledge_and_drop_redelivered_questions(question_uuid, retry_count):
         local_metadata["delivered_questions"].append(question)
 
         logger.info(
-            "Adding question UUID %r (retry count %d) to the set of delivered questions.",
+            "Adding question UUID %r (retry count %s) to the set of delivered questions.",
             question_uuid,
             retry_count,
         )
