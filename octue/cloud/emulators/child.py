@@ -111,6 +111,7 @@ class ChildEmulator:
         originator=None,
         push_endpoint=None,
         asynchronous=False,
+        retry_count=0,
         timeout=86400,
     ):
         """Ask the child emulator a question and receive its emulated response events. Unlike a real child, the input
@@ -129,6 +130,7 @@ class ChildEmulator:
         :param str|None originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True`, don't create an answer subscription
+        :param int retry_count:
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
         :return dict, str: a dictionary containing the keys "output_values" and "output_manifest", and the question UUID
@@ -148,6 +150,7 @@ class ChildEmulator:
                 originator=originator,
                 push_endpoint=push_endpoint,
                 asynchronous=asynchronous,
+                retry_count=retry_count,
             )
 
             answer = self._parent.wait_for_answer(

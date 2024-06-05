@@ -317,6 +317,7 @@ class Service:
         originator=None,
         push_endpoint=None,
         asynchronous=False,
+        retry_count=0,
         timeout=86400,
     ):
         """Ask a child a question (i.e. send it input values for it to analyse and produce output values for) and return
@@ -336,6 +337,7 @@ class Service:
         :param str|None originator: the SRUID of the service revision that triggered all ancestor questions of this question; if `None`, this service revision is assumed to the the originator
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True` and not using a push endpoint, don't create an answer subscription
+        :param int retry_count:
         :param float|None timeout: time in seconds to keep retrying sending the question
         :return (octue.cloud.pub_sub.subscription.Subscription|None, str): the answer subscription (if the question is synchronous or a push endpoint was used) and question UUID
         """
@@ -400,6 +402,7 @@ class Service:
             originator_question_uuid=originator_question_uuid,
             originator=originator,
             recipient=service_id,
+            retry_count=retry_count,
         )
 
         return answer_subscription, question_uuid
@@ -583,6 +586,7 @@ class Service:
         originator_question_uuid,
         originator,
         recipient,
+        retry_count,
         timeout=30,
     ):
         """Send a question to a child service.
@@ -597,6 +601,7 @@ class Service:
         :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param str recipient: the SRUID of the child the question is intended for
+        :param int retry_count:
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -615,7 +620,7 @@ class Service:
             originator=originator,
             recipient=recipient,
             order=EventCounter(),
-            retry_count=0,
+            retry_count=retry_count,
             attributes={
                 "forward_logs": forward_logs,
                 "save_diagnostics": save_diagnostics,

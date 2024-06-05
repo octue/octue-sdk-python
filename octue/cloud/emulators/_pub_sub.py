@@ -331,6 +331,7 @@ class MockService(Service):
         originator=None,
         push_endpoint=None,
         asynchronous=False,
+        retry_count=0,
         timeout=86400,
         parent_sdk_version=importlib.metadata.version("octue"),
     ):
@@ -350,7 +351,9 @@ class MockService(Service):
         :param str|None originator:
         :param str|None push_endpoint:
         :param bool asynchronous:
+        :param int retry_count:
         :param float|None timeout:
+        :param str parent_sdk_version:
         :return MockFuture, str:
         """
         response_subscription, question_uuid = super().ask(
@@ -367,6 +370,7 @@ class MockService(Service):
             originator=originator,
             push_endpoint=push_endpoint,
             asynchronous=asynchronous,
+            retry_count=retry_count,
             timeout=timeout,
         )
 
@@ -406,7 +410,7 @@ class MockService(Service):
                         "sender_type": PARENT_SENDER_TYPE,
                         "sender_sdk_version": parent_sdk_version,
                         "recipient": service_id,
-                        "retry_count": 0,
+                        "retry_count": retry_count,
                     },
                 )
             )
