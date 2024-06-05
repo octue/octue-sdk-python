@@ -53,11 +53,11 @@ def get_events(
     _validate_inputs(question_uuid, parent_question_uuid, originator_question_uuid, kind)
 
     if question_uuid:
-        question_uuid_condition = "WHERE question_uuid=@question_uuid"
+        question_uuid_condition = "WHERE question_uuid=@relevant_question_uuid"
     elif parent_question_uuid:
-        question_uuid_condition = "WHERE parent_question_uuid=@question_uuid"
+        question_uuid_condition = "WHERE parent_question_uuid=@relevant_question_uuid"
     elif originator_question_uuid:
-        question_uuid_condition = "WHERE originator_question_uuid=@question_uuid"
+        question_uuid_condition = "WHERE originator_question_uuid=@relevant_question_uuid"
 
     if kind:
         event_kind_condition = [f"AND kind={kind!r}"]
@@ -80,9 +80,11 @@ def get_events(
         ]
     )
 
+    relevant_question_uuid = question_uuid or parent_question_uuid or originator_question_uuid
+
     job_config = QueryJobConfig(
         query_parameters=[
-            ScalarQueryParameter("question_uuid", "STRING", question_uuid),
+            ScalarQueryParameter("relevant_question_uuid", "STRING", relevant_question_uuid),
             ScalarQueryParameter("limit", "INTEGER", limit),
         ]
     )
@@ -92,7 +94,7 @@ def get_events(
     result = query_job.result()
 
     if result.total_rows == 0:
-        raise ValueError(f"No events found for question {question_uuid!r}. Check back later.")
+        raise ValueError(f"No events found for question {relevant_question_uuid!r}. Check back later.")
 
     df = result.to_dataframe()
     df["event"].apply(_deserialise_manifest_if_present)
