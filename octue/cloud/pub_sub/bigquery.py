@@ -97,7 +97,7 @@ def get_events(
         raise ValueError(f"No events found for question {relevant_question_uuid!r}. Check back later.")
 
     df = result.to_dataframe()
-    df["event"].apply(_deserialise_manifest_if_present)
+    df.apply(_deserialise_row, axis=1)
 
     events = df.to_dict(orient="records")
     return _unflatten_events(events)
@@ -126,18 +126,24 @@ def _validate_inputs(question_uuid, parent_question_uuid, originator_question_uu
         raise ValueError(f"`kind` must be one of {VALID_EVENT_KINDS!r}; received {kind!r}.")
 
 
-def _deserialise_manifest_if_present(event):
-    """If the event is a "question" or "result" event and a manifest is present, deserialise the manifest and replace
-    the serialised manifest with it.
+def _deserialise_row(row):
+    """Deserialise a row from the event store:
 
-    :param dict event: an Octue service event
+    - Convert "null" to `None` in the `parent_question_uuid` field
+    - If the event is a "question" or "result" event and a manifest is present, deserialise the manifest and replace
+      the serialised manifest with it.
+
+    :param dict row: a row from the event store
     :return None:
     """
+    if row["parent_question_uuid"] == "null":
+        row["parent_question_uuid"] = None
+
     manifest_keys = {"input_manifest", "output_manifest"}
 
     for key in manifest_keys:
-        if key in event:
-            event[key] = Manifest.deserialise(event[key])
+        if key in row["event"]:
+            row["event"][key] = Manifest.deserialise(row["event"][key])
             # Only one of the manifest types will be in the event, so return if one is found.
             return
 
