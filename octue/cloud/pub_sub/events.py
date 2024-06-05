@@ -37,6 +37,13 @@ def extract_event_and_attributes_from_pub_sub_message(message):
     if attributes.get("parent_question_uuid") == "null":
         attributes["parent_question_uuid"] = None
 
+    retry_count = attributes.get("retry_count")
+
+    if retry_count:
+        attributes["retry_count"] = int(retry_count)
+    else:
+        attributes["retry_count"] = None
+
     # Required for question events.
     if attributes.get("sender_type") == "PARENT":
         forward_logs = attributes.get("forward_logs")
@@ -45,13 +52,6 @@ def extract_event_and_attributes_from_pub_sub_message(message):
             attributes["forward_logs"] = bool(int(forward_logs))
         else:
             attributes["forward_logs"] = None
-
-        retry_count = attributes.get("retry_count")
-
-        if retry_count:
-            attributes["retry_count"] = int(retry_count)
-        else:
-            attributes["retry_count"] = None
 
     try:
         # Parse event directly from Pub/Sub or Dataflow.
