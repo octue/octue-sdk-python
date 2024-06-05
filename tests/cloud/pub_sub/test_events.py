@@ -91,6 +91,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 originator=self.parent.id,
                 recipient=self.parent.id,
                 order=message["event"]["order"],
+                retry_count=0,
             )
 
         result = event_handler.handle_events()
@@ -147,6 +148,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 originator=self.parent.id,
                 recipient=self.parent.id,
                 order=message["event"]["order"],
+                retry_count=0,
             )
 
         result = event_handler.handle_events()
@@ -206,6 +208,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 originator=self.parent.id,
                 recipient=self.parent.id,
                 order=message["event"]["order"],
+                retry_count=0,
             )
 
         result = event_handler.handle_events()
@@ -259,6 +262,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 originator=self.parent.id,
                 recipient=self.parent.id,
                 order=message["event"]["order"],
+                retry_count=0,
             )
 
         result = event_handler.handle_events(timeout=None)
@@ -300,6 +304,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 originator=self.parent.id,
                 recipient=self.parent.id,
                 order=message["event"]["order"],
+                retry_count=0,
             )
 
         result = event_handler.handle_events()
@@ -357,6 +362,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 originator=self.parent.id,
                 recipient=self.parent.id,
                 order=message["event"]["order"],
+                retry_count=0,
             )
 
         with patch(
@@ -427,6 +433,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 originator=self.parent.id,
                 recipient=self.parent.id,
                 order=message["event"]["order"],
+                retry_count=0,
             )
 
         with self.assertLogs() as logging_context:
@@ -488,6 +495,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 originator=self.parent.id,
                 recipient=self.parent.id,
                 order=message["event"]["order"],
+                retry_count=0,
             )
 
         # Send a final message.
@@ -502,6 +510,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
             recipient=self.parent.id,
             # Simulate missing messages.
             order=5,
+            retry_count=0,
         )
 
         with self.assertLogs() as logging_context:
@@ -563,6 +572,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 originator=self.parent.id,
                 recipient=self.parent.id,
                 order=message["event"]["order"],
+                retry_count=0,
             )
 
         # Send another message.
@@ -577,6 +587,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
             recipient=self.parent.id,
             # Simulate missing messages.
             order=5,
+            retry_count=0,
         )
 
         # Send more consecutive messages.
@@ -611,6 +622,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 recipient=self.parent.id,
                 # Simulate more missing messages.
                 order=message["event"]["order"],
+                retry_count=0,
             )
 
         with self.assertLogs() as logging_context:
@@ -667,6 +679,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
             recipient=self.parent.id,
             # Simulate missing messages.
             order=1000,
+            retry_count=0,
         )
 
         with self.assertLogs() as logging_context:

@@ -36,6 +36,7 @@ class TestEventReplayer(unittest.TestCase):
                 "datetime": "2024-04-11T10:46:48.236064",
                 "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
                 "order": "0",
+                "retry_count": 0,
                 "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
                 "parent_question_uuid": "5776ad74-52a6-46f7-a526-90421d91b8b2",
                 "originator_question_uuid": "86dc55b2-4282-42bd-92d0-bd4991ae7356",

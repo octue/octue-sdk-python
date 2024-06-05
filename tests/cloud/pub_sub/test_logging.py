@@ -50,6 +50,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
             originator="another/service:1.0.0",
             recipient="another/service:1.0.0",
             order=EventCounter(),
+            retry_count=0,
         ).emit(log_record)
 
         self.assertEqual(
@@ -84,6 +85,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
                 originator="another/service:1.0.0",
                 recipient="another/service:1.0.0",
                 order=EventCounter(),
+                retry_count=0,
             ).emit(record)
 
         self.assertEqual(
