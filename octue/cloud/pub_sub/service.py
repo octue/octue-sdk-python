@@ -389,7 +389,13 @@ class Service:
                 ),
                 push_endpoint=push_endpoint,
             )
-            answer_subscription.create(allow_existing=False)
+
+            if retry_count > 0:
+                allow_existing = True
+            else:
+                allow_existing = False
+
+            answer_subscription.create(allow_existing=allow_existing)
 
         self._send_question(
             input_values=input_values,
