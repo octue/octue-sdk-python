@@ -171,7 +171,12 @@ class Child:
                     logger.exception("Question %d failed.", question_index)
 
         for retry in range(max_retries):
-            failed_questions = self._get_failed_questions(questions, answers, prevent_retries_when)
+            failed_questions = self._get_failed_questions(
+                questions,
+                answers,
+                prevent_retries_when,
+                increment_retry_count=True,
+            )
 
             if not failed_questions:
                 break
@@ -196,18 +201,24 @@ class Child:
         # Convert dictionary to list in asking order.
         return [answer[1] for answer in sorted(answers.items(), key=lambda item: item[0])]
 
-    def _get_failed_questions(self, questions, answers, prevent_retries_when):
+    def _get_failed_questions(self, questions, answers, prevent_retries_when, increment_retry_count=False):
         """Get the questions that failed.
 
         :param list(dict) questions: the list of questions that were asked
         :param dict answers: a mapping of question index (i.e. position in the original list of questions) to question answer
         :param list(type)|None prevent_retries_when: prevent retrying any questions that fail with an exception type in this list (note: this will have no effect unless `raise_errors=False`)
+        :param bool increment_retry_count:
         :return dict: a mapping of failed question index (i.e. position in the original list of questions) to failed question
         """
         failed_questions = {}
 
         for question_index, answer in answers.items():
             if isinstance(answer, Exception) and type(answer) not in prevent_retries_when:
-                failed_questions[question_index] = questions[question_index]
+                question = questions[question_index]
+
+                if increment_retry_count:
+                    question["retry_count"] = question.get("retry_count", 0) + 1
+
+                failed_questions[question_index] = question
 
         return failed_questions
