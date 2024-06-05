@@ -30,7 +30,24 @@ def index():
         return _log_bad_request_and_return_400_response(f"Invalid Pub/Sub message format - received {envelope!r}.")
 
     question_uuid = question["attributes"]["question_uuid"]
+    _acknowledge_and_drop_redelivered_questions(question_uuid)
 
+    project_name = envelope["subscription"].split("/")[1]
+    answer_question(question=question, project_name=project_name)
+    return ("", 204)
+
+
+def _log_bad_request_and_return_400_response(message):
+    """Log an error return a bad request (400) response.
+
+    :param str message:
+    :return (str, int):
+    """
+    logger.error(message)
+    return (f"Bad Request: {message}", 400)
+
+
+def _acknowledge_and_drop_redelivered_questions(question_uuid):
     with UpdateLocalMetadata() as local_metadata:
         # Get the set of delivered questions or, in the case where the local metadata file did not already exist, create it.
         local_metadata["delivered_questions"] = local_metadata.get("delivered_questions", set())
@@ -47,17 +64,3 @@ def index():
         # Otherwise add the question UUID to the set.
         local_metadata["delivered_questions"].add(question_uuid)
         logger.info("Adding question UUID %r to the set of delivered questions.", question_uuid)
-
-    project_name = envelope["subscription"].split("/")[1]
-    answer_question(question=question, project_name=project_name)
-    return ("", 204)
-
-
-def _log_bad_request_and_return_400_response(message):
-    """Log an error return a bad request (400) response.
-
-    :param str message:
-    :return (str, int):
-    """
-    logger.error(message)
-    return (f"Bad Request: {message}", 400)
