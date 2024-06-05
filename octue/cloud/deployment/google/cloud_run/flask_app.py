@@ -29,7 +29,10 @@ def index():
     if "data" not in question or "attributes" not in question or "question_uuid" not in question["attributes"]:
         return _log_bad_request_and_return_400_response(f"Invalid Pub/Sub message format - received {envelope!r}.")
 
-    drop_question_response = _acknowledge_and_drop_redelivered_questions(attributes=question["attributes"])
+    drop_question_response = _acknowledge_and_drop_redelivered_questions(
+        question_uuid=question["attributes"].get("question_uuid"),
+        retry_count=question["attributes"].get("retry_count"),
+    )
 
     if drop_question_response:
         return drop_question_response
@@ -49,9 +52,15 @@ def _log_bad_request_and_return_400_response(message):
     return (f"Bad Request: {message}", 400)
 
 
-def _acknowledge_and_drop_redelivered_questions(attributes):
-    question_uuid = attributes.get("question_uuid")
-    retry_count = attributes.get("retry_count")
+def _acknowledge_and_drop_redelivered_questions(question_uuid, retry_count):
+    """Check if the question has been delivered before and, if it has, acknowledge and drop it. If it's a new question
+    or if the question is an explicit retry (i.e. it's been received before but the retry count is unique), don't drop
+    it. Non-dropped questions are added to the list of delivered questions.
+
+    :param str question_uuid: the UUID of the question to check
+    :param int retry_count: the retry count of the question to check
+    :return (str, int): an empty response with a 204 HTTP code
+    """
     question = {"question_uuid": question_uuid, "retry_count": retry_count}
 
     with UpdateLocalMetadata() as local_metadata:
