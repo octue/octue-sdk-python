@@ -129,7 +129,15 @@ class Child:
 
         return answer, question_uuid
 
-    def ask_multiple(self, *questions, raise_errors=True, max_retries=0, prevent_retries_when=None, max_workers=None):
+    def ask_multiple(
+        self,
+        *questions,
+        raise_errors=True,
+        max_retries=0,
+        prevent_retries_when=None,
+        max_workers=None,
+        log_errors=True,
+    ):
         """Ask the child multiple questions in parallel and wait for the answers. Each question should be provided as a
         dictionary of `Child.ask` keyword arguments. If `raise_errors` is `True`, an error is raised and no answers are
         returned if any of the individual questions raise an error; if it's `False`, answers are returned for all
@@ -140,6 +148,7 @@ class Child:
         :param int max_retries: retry any questions that failed up to this number of times (note: this will have no effect unless `raise_errors=False`)
         :param list(type)|None prevent_retries_when: prevent retrying any questions that fail with an exception type in this list (note: this will have no effect unless `raise_errors=False`)
         :param int|None max_workers: the maximum number of questions that can be asked at once; defaults to `min(32, os.cpu_count() + 4, len(questions))` (see `concurrent.futures.ThreadPoolExecutor`)
+        :param bool log_errors: if `True` and `raise_errors=False`, log any errors remaining once retries are exhausted
         :raise ValueError: if the maximum number of parallel questions is set too high
         :raise Exception: if any question raises an error if `raise_errors` is `True`
         :return list(dict|Exception, str): the answers or caught errors of the questions, and the question UUIDs (in the same order as asked)
@@ -182,7 +191,7 @@ class Child:
                 break
 
             logger.info("%d questions failed - retrying.", len(failed_questions))
-            retried_answers = self.ask_multiple(*failed_questions.values(), raise_errors=False)
+            retried_answers = self.ask_multiple(*failed_questions.values(), raise_errors=False, log_errors=False)
 
             for question_index, answer in zip(failed_questions.keys(), retried_answers):
                 answers[question_index] = answer
@@ -190,13 +199,14 @@ class Child:
         # Check for failed questions after retries completed.
         failed_questions = self._get_failed_questions(questions, answers, prevent_retries_when)
 
-        for question_index, question in failed_questions.items():
-            logger.error(
-                "Question %d failed after %d retries (see below for error).",
-                question_index,
-                max_retries,
-                exc_info=answers[question_index],
-            )
+        if log_errors:
+            for question_index, question in failed_questions.items():
+                logger.error(
+                    "Question %d failed after %d retries (see below for error).",
+                    question_index,
+                    max_retries,
+                    exc_info=answers[question_index],
+                )
 
         # Convert dictionary to list in asking order.
         return [answer[1] for answer in sorted(answers.items(), key=lambda item: item[0])]
