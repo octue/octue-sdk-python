@@ -4,6 +4,27 @@ from octue.cloud.events.validation import VALID_EVENT_KINDS
 from octue.resources import Manifest
 
 
+DEFAULT_FIELDS = (
+    "`originator_question_uuid`",
+    "`parent_question_uuid`",
+    "`question_uuid`",
+    "`kind`",
+    "`event`",
+    "`datetime`",
+    "`uuid`",
+    "`originator`",
+    "`parent`",
+    "`sender`",
+    "`sender_type`",
+    "`sender_sdk_version`",
+    "`recipient`",
+    "`order`",
+    "`other_attributes`",
+)
+
+BACKEND_METADATA_FIELDS = ("`backend`", "`backend_metadata`")
+
+
 def get_events(
     table_id,
     question_uuid=None,
@@ -43,26 +64,11 @@ def get_events(
     else:
         event_kind_condition = []
 
-    fields = [
-        "`originator_question_uuid`",
-        "`parent_question_uuid`",
-        "`question_uuid`",
-        "`kind`",
-        "`event`",
-        "`datetime`",
-        "`uuid`",
-        "`originator`",
-        "`parent`",
-        "`sender`",
-        "`sender_type`",
-        "`sender_sdk_version`",
-        "`recipient`",
-        "`order`",
-        "`other_attributes`",
-    ]
+    # Make a shallow copy of the fields to query.
+    fields = list(DEFAULT_FIELDS)
 
     if include_backend_metadata:
-        fields.extend(("`backend`", "`backend_metadata`"))
+        fields.extend(BACKEND_METADATA_FIELDS)
 
     query = "\n".join(
         [
