@@ -226,6 +226,7 @@ class Service:
                 save_diagnostics,
                 parent,
                 originator,
+                retry_count,
             ) = self._parse_question(question)
         except jsonschema.ValidationError:
             return
@@ -239,6 +240,7 @@ class Service:
             "parent": parent,
             "originator": originator,
             "order": order,
+            "retry_count": retry_count,
         }
 
         try:
@@ -451,6 +453,7 @@ class Service:
         parent,
         originator,
         order,
+        retry_count,
         timeout=30,
     ):
         """Serialise and send the exception being handled to the parent.
@@ -461,6 +464,7 @@ class Service:
         :param str parent: the SRUID of the parent that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
+        :param int retry_count:
         :param float|None timeout: time in seconds to keep retrying sending of the exception
         :return None:
         """
@@ -481,6 +485,7 @@ class Service:
             originator=originator,
             recipient=parent,
             order=order,
+            retry_count=retry_count,
             attributes={"sender_type": CHILD_SENDER_TYPE},
             timeout=timeout,
         )
@@ -495,6 +500,7 @@ class Service:
         originator,
         recipient,
         order,
+        retry_count,
         attributes=None,
         timeout=30,
     ):
@@ -512,6 +518,7 @@ class Service:
         - `recipient`
         - `order`
         - `datetime`
+        - `retry_count`
 
         :param dict event: JSON-serialisable data to emit as an event
         :param str question_uuid:
@@ -521,6 +528,7 @@ class Service:
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param str recipient: the SRUID of the service the event is intended for
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
+        :param int retry_count:
         :param dict|None attributes: key-value pairs to attach to the event - the values must be strings or bytes
         :param int|float timeout: the timeout for sending the event in seconds
         :return google.cloud.pubsub_v1.publisher.futures.Future:
@@ -535,6 +543,7 @@ class Service:
         attributes["sender"] = self.id
         attributes["sender_sdk_version"] = self._local_sdk_version
         attributes["recipient"] = recipient
+        attributes["retry_count"] = retry_count
 
         with emit_event_lock:
             attributes["order"] = int(order)
@@ -606,6 +615,7 @@ class Service:
             originator=originator,
             recipient=recipient,
             order=EventCounter(),
+            retry_count=0,
             attributes={
                 "forward_logs": forward_logs,
                 "save_diagnostics": save_diagnostics,
@@ -626,6 +636,7 @@ class Service:
         parent,
         originator,
         order,
+        retry_count,
         timeout=30,
     ):
         """Send an acknowledgement of question receipt to the parent.
@@ -636,6 +647,7 @@ class Service:
         :param str parent: the SRUID of the service that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
+        :param int retry_count:
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -652,6 +664,7 @@ class Service:
             originator=originator,
             recipient=parent,
             order=order,
+            retry_count=retry_count,
             attributes={"sender_type": CHILD_SENDER_TYPE},
         )
 
@@ -665,6 +678,7 @@ class Service:
         parent,
         originator,
         order,
+        retry_count,
         timeout=30,
     ):
         """Send a heartbeat to the parent, indicating that the service is alive.
@@ -675,6 +689,7 @@ class Service:
         :param str parent: the SRUID of the parent that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
+        :param int retry_count:
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -690,6 +705,7 @@ class Service:
             originator=originator,
             recipient=parent,
             order=order,
+            retry_count=retry_count,
             attributes={"sender_type": CHILD_SENDER_TYPE},
             timeout=timeout,
         )
@@ -705,6 +721,7 @@ class Service:
         parent,
         originator,
         order,
+        retry_count,
         timeout=30,
     ):
         """Send a monitor message to the parent.
@@ -716,6 +733,7 @@ class Service:
         :param str parent: the SRUID of the service that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
+        :param int retry_count:
         :param float timeout: time in seconds to retry sending the message
         :return None:
         """
@@ -728,6 +746,7 @@ class Service:
             originator=originator,
             recipient=parent,
             order=order,
+            retry_count=retry_count,
             timeout=timeout,
             attributes={"sender_type": CHILD_SENDER_TYPE},
         )
@@ -738,7 +757,7 @@ class Service:
         """Parse a question in the Google Cloud Run or Google Pub/Sub format.
 
         :param dict|google.cloud.pubsub_v1.subscriber.message.Message question: the question to parse in Google Cloud Run or Google Pub/Sub format
-        :return (dict, str, str, str, bool, str, str, str, str): the question's event and its attributes (question UUID, parent question UUID, originator question UUID, whether to forward logs, the Octue SDK version of the parent, whether to save diagnostics, the SRUID of the parent that asked the question, and the SRUID of the service revision that triggered all ancestor questions of this question)
+        :return (dict, str, str, str, bool, str, str, str, str): the question's event and its attributes (question UUID, parent question UUID, originator question UUID, whether to forward logs, the Octue SDK version of the parent, whether to save diagnostics, the SRUID of the parent that asked the question, the SRUID of the service revision that triggered all ancestor questions of this question, and the retry count)
         """
         logger.info("%r received a question.", self)
 
@@ -770,4 +789,5 @@ class Service:
             attributes["save_diagnostics"],
             attributes["parent"],
             attributes["originator"],
+            attributes["retry_count"],
         )

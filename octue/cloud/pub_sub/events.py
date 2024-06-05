@@ -29,8 +29,8 @@ def extract_event_and_attributes_from_pub_sub_message(message):
     # Cast attributes to a dictionary to avoid defaultdict-like behaviour from Pub/Sub message attributes container.
     attributes = dict(getattr_or_subscribe(message, "attributes"))
 
-    # Deserialise the `order`, `parent_question_uuid`, and `forward_logs` fields if they're present (don't assume they
-    # are before validation).
+    # Deserialise the `order`, `parent_question_uuid`, `forward_logs`, and `retry_count`, fields if they're present
+    # (don't assume they are before validation).
     if attributes.get("order"):
         attributes["order"] = int(attributes["order"])
 
@@ -45,6 +45,13 @@ def extract_event_and_attributes_from_pub_sub_message(message):
             attributes["forward_logs"] = bool(int(forward_logs))
         else:
             attributes["forward_logs"] = None
+
+        retry_count = attributes.get("retry_count")
+
+        if retry_count:
+            attributes["retry_count"] = int(retry_count)
+        else:
+            attributes["retry_count"] = None
 
     try:
         # Parse event directly from Pub/Sub or Dataflow.

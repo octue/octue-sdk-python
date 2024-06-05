@@ -406,6 +406,7 @@ class MockService(Service):
                         "sender_type": PARENT_SENDER_TYPE,
                         "sender_sdk_version": parent_sdk_version,
                         "recipient": service_id,
+                        "retry_count": 0,
                     },
                 )
             )
