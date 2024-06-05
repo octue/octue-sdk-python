@@ -30,6 +30,7 @@ class GoogleCloudPubSubHandler(logging.Handler):
         originator,
         recipient,
         order,
+        retry_count,
         timeout=60,
         *args,
         **kwargs
@@ -42,6 +43,7 @@ class GoogleCloudPubSubHandler(logging.Handler):
         self.originator = originator
         self.recipient = recipient
         self.order = order
+        self.retry_count = retry_count
         self.timeout = timeout
         self._emit_event = event_emitter
 
@@ -61,6 +63,7 @@ class GoogleCloudPubSubHandler(logging.Handler):
                 originator=self.originator,
                 recipient=self.recipient,
                 order=self.order,
+                retry_count=self.retry_count,
                 question_uuid=self.question_uuid,
                 parent_question_uuid=self.parent_question_uuid,
                 originator_question_uuid=self.originator_question_uuid,
