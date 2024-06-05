@@ -1,7 +1,6 @@
 from google.cloud.bigquery import Client, QueryJobConfig, ScalarQueryParameter
 
 from octue.cloud.events.validation import VALID_EVENT_KINDS
-from octue.exceptions import ServiceNotFound
 from octue.resources import Manifest
 
 
@@ -15,25 +14,26 @@ def get_events(
     limit=1000,
 ):
     """Get Octue service events for a question from a Google BigQuery event store. Exactly one of the question UUID,
-    parent question UUID, or originator question UUID must be provided. When a parent or originator question UUID is
-    specified, events from all questions in the tree of questions triggered by that question are returned.
+    parent question UUID, or originator question UUID must be provided:
+    - When a question UUID is specified, only events from that question are retrieved
+    - When a parent question UUID is specified, events from questions triggered by the same parent question are retrieved, not including the parent question's events
+    - When an originator question UUID is specified, events for the entire tree of questions triggered by the originator question are retrieved, including the originator question's events
 
     :param str table_id: the full ID of the Google BigQuery table e.g. "your-project.your-dataset.your-table"
-    :param str|None question_uuid: the UUID of the question to get the events for
-    :param str|None parent_question_uuid: the UUID of the parent question tree to get the events for
-    :param str|None originator_question_uuid: the UUID of the originator question tree to get the events for
+    :param str|None question_uuid: the UUID of a question to get events for
+    :param str|None parent_question_uuid: the UUID of a parent question to get the sub-question events for
+    :param str|None originator_question_uuid: the UUID of an originator question get the full tree of events for
     :param str|None kind: the kind of event to get; if `None`, all event kinds are returned
     :param bool include_backend_metadata: if `True`, include the service backend metadata
     :param int limit: the maximum number of events to return
-    :raise ValueError: if the `kind` parameter is invalid
-    :raise octue.exceptions.ServiceNotFound: if no events are found for the question UUID (or any events at all)
+    :raise ValueError: if the `kind` parameter is invalid or no events are found
     :return list(dict): the events for the question
     """
-    question_uuid_inputs = [bool(question_uuid), bool(parent_question_uuid), bool(originator_question_uuid)]
+    question_uuid_inputs = (bool(question_uuid), bool(parent_question_uuid), bool(originator_question_uuid))
 
     if sum(question_uuid_inputs) != 1:
         raise ValueError(
-            "One and only one of `question_uuid`, `parent_question_uuid`, and `originator_question_uuid` must be "
+            "One and only one of `question_uuid`, `parent_question_uuid`, or `originator_question_uuid` must be "
             "provided."
         )
 
@@ -95,7 +95,7 @@ def get_events(
     result = query_job.result()
 
     if result.total_rows == 0:
-        raise ServiceNotFound(f"No events found for question {question_uuid!r}. Check back later.")
+        raise ValueError(f"No events found for question {question_uuid!r}. Check back later.")
 
     df = result.to_dataframe()
     df["event"].apply(_deserialise_manifest_if_present)

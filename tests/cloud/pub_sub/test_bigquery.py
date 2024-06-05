@@ -2,7 +2,6 @@ from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
 from octue.cloud.pub_sub.bigquery import get_events
-from octue.exceptions import ServiceNotFound
 
 
 class MockEmptyResult:
@@ -48,7 +47,7 @@ class TestGetEvents(TestCase):
     def test_error_raised_if_no_events_found(self):
         """Test that an error is raised if no events are found."""
         with patch("octue.cloud.pub_sub.bigquery.Client", MockEmptyBigQueryClient):
-            with self.assertRaises(ServiceNotFound):
+            with self.assertRaises(ValueError):
                 get_events(table_id="blah", question_uuid="blah")
 
     def test_without_kind(self):
