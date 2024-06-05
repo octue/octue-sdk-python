@@ -790,6 +790,9 @@ class Service:
 
         logger.info("%r parsed question %r successfully.", self, attributes["question_uuid"])
 
+        if attributes["retry_count"] > 0:
+            logger.warning("This is retry %d for question %r.", attributes["retry_count"], attributes["question_uuid"])
+
         return (
             event,
             attributes["question_uuid"],
