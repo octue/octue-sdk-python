@@ -190,7 +190,7 @@ class Child:
             if not failed_questions:
                 break
 
-            logger.info("%d questions failed - retrying.", len(failed_questions))
+            logger.info("%d questions failed - retrying %d of %d times.", len(failed_questions), retry + 1, max_retries)
             retried_answers = self.ask_multiple(*failed_questions.values(), raise_errors=False, log_errors=False)
 
             for question_index, answer in zip(failed_questions.keys(), retried_answers):
