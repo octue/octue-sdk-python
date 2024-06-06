@@ -19,6 +19,7 @@ from octue.log_handlers import AnalysisLogFormatterSwitcher
 from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.resources.datafile import downloaded_files
+from octue.utils.files import temporary_directories
 from twined import Twine
 
 
@@ -435,7 +436,11 @@ class Runner:
         self.app_source(analysis)
 
     def _finalise_and_clean_up(self, analysis, save_diagnostics):
-        """Finalise the analysis and, if appropriate, upload diagnostics and delete local files.
+        """Do the following:
+
+        1. Finalise the analysis
+        2. If diagnostics are switched on, upload the diagnostics
+        3. If `delete_local_files=True`, delete any datafiles downloaded and registered temporary directories created during the analysis
 
         :param octue.resources.analysis.Analysis analysis: the analysis object containing the configuration and inputs to run the app on
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved either all the time or just if the analysis fails
@@ -447,16 +452,27 @@ class Runner:
         if save_diagnostics == SAVE_DIAGNOSTICS_ON:
             self.diagnostics.upload()
 
-        if self.delete_local_files and downloaded_files:
-            logger.warning(
-                "Deleting files downloaded during analysis. This is not thread-safe - set "
-                "`delete_local_files=False` at instantiation of `Runner` to switch this off."
-            )
+        if self.delete_local_files:
+            if downloaded_files:
+                logger.warning(
+                    "Deleting datafiles downloaded during analysis. This is not thread-safe - set "
+                    "`delete_local_files=False` at instantiation of `Runner` to switch this off."
+                )
 
-            for path in downloaded_files:
-                logger.debug("Deleting downloaded file at %r.", path)
+                for path in downloaded_files:
+                    logger.debug("Deleting downloaded file at %r.", path)
 
-                try:
-                    os.remove(path)
-                except FileNotFoundError:
-                    logger.debug("Couldn't delete %r - it was already deleted.", path)
+                    try:
+                        os.remove(path)
+                    except FileNotFoundError:
+                        logger.debug("Couldn't delete %r - it was already deleted.", path)
+
+            if temporary_directories:
+                logger.warning(
+                    "Deleting registered temporary directories created during analysis. This is not thread-safe - set "
+                    "`delete_local_files=False` at instantiation of `Runner` to switch this off."
+                )
+
+                for dir in temporary_directories:
+                    logger.debug("Deleting temporary directory at %r.", dir.name)
+                    dir.cleanup()

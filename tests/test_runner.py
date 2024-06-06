@@ -16,6 +16,7 @@ from octue.cloud.emulators import ChildEmulator
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Dataset, Manifest
 from octue.resources.datafile import Datafile
+from octue.utils.files import RegisteredTemporaryDirectory, temporary_directories
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
 from tests.test_app_modules.app_class.app import App
@@ -440,8 +441,10 @@ class TestRunner(BaseTestCase):
         """Test that a valid cloud path passes output location validation."""
         Runner(".", twine="{}", output_location="gs://my-bucket/blah")
 
-    def test_downloaded_datafiles_are_deleted_when_runner_finishes(self):
-        """Test that datafiles downloaded during an analysis are deleted when the runner finishes."""
+    def test_downloaded_datafiles_and_registered_temporary_directories_are_deleted_when_runner_finishes(self):
+        """Test that datafiles downloaded and registered temporary directories created during an analysis are deleted
+        when the runner finishes.
+        """
         twine = {
             "output_values_schema": {
                 "type": "object",
@@ -455,11 +458,20 @@ class TestRunner(BaseTestCase):
 
         def app_that_downloads_datafile(analysis):
             datafile = Datafile(cloud_path)
+
+            # Download a datafile locally.
             datafile.download()
+
+            # Create a temporary directory.
+            temporary_directory = RegisteredTemporaryDirectory()
+            self.assertTrue(os.path.exists(temporary_directory.name))
+
             analysis.output_values = {"downloaded_file_path": datafile.local_path}
 
         analysis = Runner(app_src=app_that_downloads_datafile, twine=twine).run()
+
         self.assertFalse(os.path.exists(analysis.output_values["downloaded_file_path"]))
+        self.assertFalse(os.path.exists(temporary_directories[0].name))
 
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
