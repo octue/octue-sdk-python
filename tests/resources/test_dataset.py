@@ -1,5 +1,6 @@
 import copy
 import json
+import logging
 import os
 import tempfile
 from unittest.mock import patch
@@ -30,6 +31,14 @@ class TestDataset(BaseTestCase):
         """Test that the length of a Dataset is the number of files it contains."""
         dataset = self.create_valid_dataset()
         self.assertEqual(len(dataset), len(dataset.files))
+
+    def test_empty_dataset_logs_warning(self):
+        """Test that datasets that are empty at instantiation time log a warning."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with self.assertLogs(level=logging.WARNING) as logging_context:
+                Dataset(temporary_directory)
+
+        self.assertIn(f"is empty at instantiation time (path {temporary_directory!r}).", logging_context.output[0])
 
     def test_iter(self):
         """Test that iterating over a Dataset is equivalent to iterating over its files."""

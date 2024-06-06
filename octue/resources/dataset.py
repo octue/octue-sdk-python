@@ -96,6 +96,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         self._instantiate_from_local_directory(path=self.path)
 
+        if len(self.files) == 0:
+            logger.warning("%r is empty at instantiation time (path %r).", self, self.path)
+
     @property
     def name(self):
         """Get the name of the dataset
