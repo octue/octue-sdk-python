@@ -2,6 +2,7 @@ import concurrent.futures
 import copy
 import logging
 import os
+import uuid
 
 from octue.cloud.pub_sub.service import Service
 from octue.resources import service_backends
@@ -162,9 +163,14 @@ class Child:
         logger.info("Asking %d questions.", n_questions)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_question_index_mapping = {
-                executor.submit(self.ask, **question): i for i, question in enumerate(questions)
-            }
+            future_to_question_index_mapping = {}
+
+            for i, question in enumerate(questions):
+                if "question_uuid" not in question:
+                    question["question_uuid"] = str(uuid.uuid4())
+
+                future = executor.submit(self.ask, **question)
+                future_to_question_index_mapping[future] = i
 
             for i, future in enumerate(concurrent.futures.as_completed(future_to_question_index_mapping)):
                 logger.info("%d of %d answers received.", i + 1, n_questions)
@@ -177,7 +183,13 @@ class Child:
                         raise e
 
                     answers[question_index] = e
-                    logger.exception("Question %d failed.", question_index)
+
+                    logger.exception(
+                        "Question %d failed. Run 'octue get-diagnostics gs://<diagnostics-cloud-path>/%s "
+                        "--download-datasets' to get the crash diagnostics.",
+                        question_index,
+                        questions[question_index]["question_uuid"],
+                    )
 
         for retry in range(max_retries):
             failed_questions = self._get_failed_questions(
