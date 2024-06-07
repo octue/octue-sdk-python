@@ -267,11 +267,11 @@ class TestRunner(BaseTestCase):
         with self.assertLogs(level=logging.INFO) as logging_context:
             runner.run(analysis_id=analysis_id)
 
-        self.assertIn(f"[analysis-{analysis_id}]", logging_context.output[0])
+        self.assertIn(analysis_id, logging_context.output[0])
         self.assertEqual(logging_context.records[0].name, "app")
         self.assertEqual(logging_context.records[0].message, "Log message from app.")
 
-        self.assertIn(f"[analysis-{analysis_id}]", logging_context.output[1])
+        self.assertIn(analysis_id, logging_context.output[1])
         self.assertEqual(logging_context.records[1].name, "tests.test_app_modules.app_using_submodule.submodule")
         self.assertEqual(logging_context.records[1].message, "Log message from submodule.")
 

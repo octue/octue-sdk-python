@@ -316,7 +316,7 @@ class AbstractEventHandler:
         # Add information about the immediate child sending the event and colour it with the first colour in the
         # colour palette.
         immediate_child_analysis_section = colourise(
-            f"[{self.child_sruid} | analysis-{self.question_uuid}]",
+            f"[{self.child_sruid} | {self.question_uuid}]",
             text_colour=self._log_message_colours[0],
         )
 
