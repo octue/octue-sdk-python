@@ -688,7 +688,7 @@ class TestDataset(BaseTestCase):
         # Mock the temporary directory created in `Dataset.download_all_files` so we can access it for the test.
         temporary_directory = tempfile.TemporaryDirectory()
 
-        with patch("tempfile.TemporaryDirectory", return_value=temporary_directory):
+        with patch("octue.resources.dataset.RegisteredTemporaryDirectory", return_value=temporary_directory):
             dataset.download()
 
         with open(os.path.join(temporary_directory.name, "file_0.txt")) as f:
