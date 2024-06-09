@@ -94,7 +94,10 @@ def get_events(
     result = query_job.result()
 
     if result.total_rows == 0:
-        raise ValueError(f"No events found for question {relevant_question_uuid!r}. Check back later.")
+        raise ValueError(
+            f"No events found for question {relevant_question_uuid!r}. Try loosening the query parameters and/or check "
+            f"back later."
+        )
 
     df = result.to_dataframe()
     df.apply(_deserialise_row, axis=1)
@@ -142,7 +145,7 @@ def _deserialise_row(row):
     manifest_keys = {"input_manifest", "output_manifest"}
 
     for key in manifest_keys:
-        if key in row["event"]:
+        if row["event"].get("key"):
             row["event"][key] = Manifest.deserialise(row["event"][key])
             # Only one of the manifest types will be in the event, so return if one is found.
             return
