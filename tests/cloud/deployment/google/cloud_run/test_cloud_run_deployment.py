@@ -8,7 +8,7 @@ from octue.cloud.pub_sub.bigquery import get_events
 from octue.resources import Child
 
 
-EXAMPLE_SERVICE_SRUID = "octue/example-service:0.5.0"
+EXAMPLE_SERVICE_SRUID = "octue/example-service:use-octue-with-q"
 
 
 @unittest.skipUnless(
