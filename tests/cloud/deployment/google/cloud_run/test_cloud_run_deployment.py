@@ -4,6 +4,7 @@ import unittest
 from unittest import TestCase
 
 import twined.exceptions
+from octue.cloud.events.validation import is_event_valid
 from octue.cloud.pub_sub.bigquery import get_events
 from octue.resources import Child
 
@@ -52,6 +53,16 @@ class TestCloudRunDeployment(TestCase):
             table_id="octue_sdk_python_test_dataset.service-events",
             question_uuid=question_uuid,
             kind="result",
+        )
+
+        self.assertTrue(
+            is_event_valid(
+                event=events[0]["event"],
+                attributes=events[0]["attributes"],
+                recipient=None,
+                parent_sdk_version=None,
+                child_sdk_version=None,
+            )
         )
 
         # Check the output values.
