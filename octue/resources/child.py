@@ -182,7 +182,7 @@ class Child:
                     if raise_errors:
                         raise e
 
-                    answers[question_index] = e
+                    answers[question_index] = (e, question["question_uuid"])
 
                     logger.exception(
                         "Question %d failed. Run 'octue get-diagnostics gs://<diagnostics-cloud-path>/%s "
@@ -217,7 +217,7 @@ class Child:
                     "Question %d failed after %d retries (see below for error).",
                     question_index,
                     max_retries,
-                    exc_info=answers[question_index],
+                    exc_info=answers[question_index][0],
                 )
 
         # Convert dictionary to list in asking order.
@@ -235,7 +235,7 @@ class Child:
         failed_questions = {}
 
         for question_index, answer in answers.items():
-            if isinstance(answer, Exception) and type(answer) not in prevent_retries_when:
+            if isinstance(answer[0], Exception) and type(answer[0]) not in prevent_retries_when:
                 question = questions[question_index]
 
                 if increment_retry_count:

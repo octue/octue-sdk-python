@@ -212,14 +212,14 @@ class TestAskMultiple(BaseTestCase):
         failed_answers = []
 
         for answer in answers:
-            if isinstance(answer, Exception):
+            if isinstance(answer[0], Exception):
                 failed_answers.append(answer)
             else:
                 successful_answers.append(answer)
 
         self.assertEqual(len(successful_answers), 2)
         self.assertEqual(len(failed_answers), 1)
-        self.assertIn("Deliberately raised for `Child.ask_multiple` test.", failed_answers[0].args[0])
+        self.assertIn("Deliberately raised for `Child.ask_multiple` test.", failed_answers[0][0].args[0])
 
     def test_with_failed_question_retry(self):
         """Test that failed questions can be automatically retried. We use a lock in the run function so that the
@@ -396,11 +396,11 @@ class TestAskMultiple(BaseTestCase):
         failed_answers = []
 
         for answer in answers:
-            if isinstance(answer, Exception):
+            if isinstance(answer[0], Exception):
                 failed_answers.append(answer)
             else:
                 successful_answers.append(answer)
 
         self.assertEqual(len(successful_answers), 1)
         self.assertEqual(len(failed_answers), 1)
-        self.assertIn("Deliberately raised for `Child.ask_multiple` test.", failed_answers[0].args[0])
+        self.assertIn("Deliberately raised for `Child.ask_multiple` test.", failed_answers[0][0].args[0])
