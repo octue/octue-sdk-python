@@ -161,9 +161,22 @@ def _unflatten_events(events):
     for event in events:
         event["event"]["kind"] = event.pop("kind")
 
+        # Deal with null as a string
+        parent_question_uuid = event.pop("parent_question_uuid")
+        parent_question_uuid = None if parent_question_uuid == "null" else parent_question_uuid
+
+        # Deal with converison of string attributes back to bool and int
+        other_attributes = event.pop("other_attributes")
+        if "forward_logs" in other_attributes:
+            other_attributes['forward_logs'] = other_attributes.pop("forward_logs") == "1"
+
+        if "retry_count" in other_attributes:
+            other_attributes['retry_count'] = int(other_attributes.pop("retry_count"))
+
+
         event["attributes"] = {
             "originator_question_uuid": event.pop("originator_question_uuid"),
-            "parent_question_uuid": event.pop("parent_question_uuid"),
+            "parent_question_uuid": parent_question_uuid,
             "question_uuid": event.pop("question_uuid"),
             "datetime": event.pop("datetime").isoformat(),
             "uuid": event.pop("uuid"),
@@ -174,7 +187,8 @@ def _unflatten_events(events):
             "sender_sdk_version": event.pop("sender_sdk_version"),
             "recipient": event.pop("recipient"),
             "order": event.pop("order"),
-            **event.pop("other_attributes"),
+            **other_attributes
         }
+
 
     return events
