@@ -75,7 +75,7 @@ def get_events(
     if tail:
         query = "\n".join(
             [
-                f"SELECT * FROM (",
+                "SELECT * FROM (",
                 f"SELECT {', '.join(fields)} FROM `{table_id}`",
                 question_uuid_condition,
                 *event_kind_condition,
@@ -119,7 +119,7 @@ def get_events(
     df.apply(_deserialise_row, axis=1)
 
     events = df.to_dict(orient="records")
-    return _unflatten_events(events), count
+    return _unflatten_events(events)
 
 
 def _validate_inputs(question_uuid, parent_question_uuid, originator_question_uuid, kind):
