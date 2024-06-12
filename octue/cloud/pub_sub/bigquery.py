@@ -32,6 +32,7 @@ def get_events(
     originator_question_uuid=None,
     kind=None,
     include_backend_metadata=False,
+    tail=True,
     limit=1000,
 ):
     """Get Octue service events for a question from a Google BigQuery event store. Exactly one of the question UUID,
@@ -46,6 +47,7 @@ def get_events(
     :param str|None originator_question_uuid: the UUID of an originator question get the full tree of events for
     :param str|None kind: the kind of event to get; if `None`, all event kinds are returned
     :param bool include_backend_metadata: if `True`, include the service backend metadata
+    :param bool tail: if `True`, return the most recent events (where a limit applies), eg return the most rect 100 log records
     :param int limit: the maximum number of events to return
     :raise ValueError: if no events are found
     :return list(dict): the events for the question
@@ -70,15 +72,29 @@ def get_events(
     if include_backend_metadata:
         fields.extend(BACKEND_METADATA_FIELDS)
 
-    query = "\n".join(
-        [
-            f"SELECT {', '.join(fields)} FROM `{table_id}`",
-            question_uuid_condition,
-            *event_kind_condition,
-            "ORDER BY `datetime`",
-            "LIMIT @limit",
-        ]
-    )
+    if tail:
+        query = "\n".join(
+            [
+                f"SELECT * FROM (",
+                f"SELECT {', '.join(fields)} FROM `{table_id}`",
+                question_uuid_condition,
+                *event_kind_condition,
+                "ORDER BY `datetime` DESC",
+                "LIMIT @limit",
+                ") ORDER BY `datetime` ASC",
+            ]
+        )
+    else:
+        query = "\n".join(
+            [
+                f"SELECT {', '.join(fields)} FROM `{table_id}`",
+                question_uuid_condition,
+                *event_kind_condition,
+                "ORDER BY `datetime`",
+                "LIMIT @limit",
+            ]
+        )
+
 
     relevant_question_uuid = question_uuid or parent_question_uuid or originator_question_uuid
 
@@ -103,7 +119,7 @@ def get_events(
     df.apply(_deserialise_row, axis=1)
 
     events = df.to_dict(orient="records")
-    return _unflatten_events(events)
+    return _unflatten_events(events), count
 
 
 def _validate_inputs(question_uuid, parent_question_uuid, originator_question_uuid, kind):
