@@ -90,6 +90,8 @@ def get_events(
     )
 
     if tail:
+        # Order the inner query to get the most recent events at the top, then reorder the outer query to get the events
+        # in natural order.
         query = "\n".join(
             [
                 "SELECT * FROM (",
