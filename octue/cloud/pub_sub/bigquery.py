@@ -76,28 +76,26 @@ def get_events(
     if include_backend_metadata:
         fields.extend(BACKEND_METADATA_FIELDS)
 
+    base_query = "\n".join(
+        [
+            f"SELECT {', '.join(fields)} FROM `{table_id}`",
+            question_uuid_condition,
+            *event_kind_condition,
+            "LIMIT @limit",
+        ]
+    )
+
     if tail:
         query = "\n".join(
             [
                 "SELECT * FROM (",
-                f"SELECT {', '.join(fields)} FROM `{table_id}`",
-                question_uuid_condition,
-                *event_kind_condition,
+                *base_query,
                 "ORDER BY `datetime` DESC",
-                "LIMIT @limit",
                 ") ORDER BY `datetime` ASC",
             ]
         )
     else:
-        query = "\n".join(
-            [
-                f"SELECT {', '.join(fields)} FROM `{table_id}`",
-                question_uuid_condition,
-                *event_kind_condition,
-                "ORDER BY `datetime` ASC",
-                "LIMIT @limit",
-            ]
-        )
+        query = "\n".join([*base_query, "ORDER BY `datetime` ASC"])
 
     relevant_question_uuid = question_uuid or parent_question_uuid or originator_question_uuid
 
