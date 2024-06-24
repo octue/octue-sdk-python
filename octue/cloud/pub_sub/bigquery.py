@@ -170,7 +170,7 @@ def _deserialise_row(row):
     other_attributes = row["other_attributes"]
     other_attributes["retry_count"] = int(other_attributes.pop("retry_count"))
 
-    if "forward_logs" in other_attributes:
+    if other_attributes.get("forward_logs"):
         other_attributes["forward_logs"] = bool(int(other_attributes.pop("forward_logs")))
 
     # Use JSON serialisation round trip to convert all nested numpy types to python primitives.
