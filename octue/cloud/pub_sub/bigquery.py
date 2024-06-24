@@ -1,6 +1,11 @@
+import json
+
+import pandas as pd
 from google.cloud.bigquery import Client, QueryJobConfig, ScalarQueryParameter
 
 from octue.cloud.events.validation import VALID_EVENT_KINDS
+from octue.utils.decoders import OctueJSONDecoder
+from octue.utils.encoders import OctueJSONEncoder
 
 
 DEFAULT_FIELDS = (
@@ -164,6 +169,8 @@ def _deserialise_row(row):
     if "forward_logs" in other_attributes:
         other_attributes["forward_logs"] = bool(int(other_attributes.pop("forward_logs")))
 
+    # Use JSON serialisation round trip to convert all nested numpy types to python primitives.
+    row = pd.Series(json.loads(json.dumps(row.to_dict(), cls=OctueJSONEncoder), cls=OctueJSONDecoder))
     return row
 
 
