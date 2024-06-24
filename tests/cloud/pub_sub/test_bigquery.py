@@ -60,8 +60,8 @@ class TestGetEvents(TestCase):
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
             "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
             "`other_attributes` FROM `blah`\nWHERE question_uuid=@relevant_question_uuid\n"
-            "LIMIT @limit\n"
-            "ORDER BY `datetime` ASC",
+            "ORDER BY `datetime` ASC\n"
+            "LIMIT @limit",
         )
 
     def test_without_kind(self):
@@ -75,8 +75,8 @@ class TestGetEvents(TestCase):
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
             "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
             "`other_attributes` FROM `blah`\nWHERE question_uuid=@relevant_question_uuid\n"
-            "LIMIT @limit\n"
             "ORDER BY `datetime` DESC\n"
+            "LIMIT @limit\n"
             ") ORDER BY `datetime` ASC",
         )
 
@@ -91,8 +91,8 @@ class TestGetEvents(TestCase):
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
             "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
             "`other_attributes` FROM `blah`\nWHERE question_uuid=@relevant_question_uuid\nAND kind='result'\n"
-            "LIMIT @limit\n"
             "ORDER BY `datetime` DESC\n"
+            "LIMIT @limit\n"
             ") ORDER BY `datetime` ASC",
         )
 
@@ -108,8 +108,8 @@ class TestGetEvents(TestCase):
             "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
             "`other_attributes`, `backend`, `backend_metadata` FROM `blah`\n"
             "WHERE question_uuid=@relevant_question_uuid\n"
-            "LIMIT @limit\n"
             "ORDER BY `datetime` DESC\n"
+            "LIMIT @limit\n"
             ") ORDER BY `datetime` ASC",
         )
 
@@ -123,8 +123,8 @@ class TestGetEvents(TestCase):
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
             "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
             "`other_attributes` FROM `blah`\nWHERE parent_question_uuid=@relevant_question_uuid\n"
-            "LIMIT @limit\n"
             "ORDER BY `datetime` DESC\n"
+            "LIMIT @limit\n"
             ") ORDER BY `datetime` ASC",
         )
 
@@ -138,7 +138,7 @@ class TestGetEvents(TestCase):
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
             "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
             "`other_attributes` FROM `blah`\nWHERE originator_question_uuid=@relevant_question_uuid\n"
-            "LIMIT @limit\n"
             "ORDER BY `datetime` DESC\n"
+            "LIMIT @limit\n"
             ") ORDER BY `datetime` ASC",
         )
