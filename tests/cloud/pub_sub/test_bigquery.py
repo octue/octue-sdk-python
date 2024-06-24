@@ -50,6 +50,20 @@ class TestGetEvents(TestCase):
             with self.assertRaises(ValueError):
                 get_events(table_id="blah", question_uuid="blah")
 
+    def test_without_tail(self):
+        """Test the non-tail query."""
+        with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
+            get_events(table_id="blah", question_uuid="blah", tail=False)
+
+        self.assertEqual(
+            mock_client.mock_calls[1].args[0],
+            "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
+            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
+            "`other_attributes` FROM `blah`\nWHERE question_uuid=@relevant_question_uuid\n"
+            "LIMIT @limit\n"
+            "ORDER BY `datetime` ASC",
+        )
+
     def test_without_kind(self):
         """Test the query used to retrieve events of all kinds."""
         with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
