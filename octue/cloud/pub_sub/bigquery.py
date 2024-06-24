@@ -1,7 +1,6 @@
 from google.cloud.bigquery import Client, QueryJobConfig, ScalarQueryParameter
 
 from octue.cloud.events.validation import VALID_EVENT_KINDS
-from octue.resources import Manifest
 
 
 DEFAULT_FIELDS = (
@@ -149,8 +148,6 @@ def _deserialise_row(row):
 
     - Convert "null" to `None` in the `parent_question_uuid` field
     - Convert string-cast booleans and integers to `bool` and `int` types
-    - If the event is a "question" or "result" event and a manifest is present, deserialise the manifest and replace
-      the serialised manifest with it.
 
     :param dict row: a row from the event store
     :return None:
@@ -166,14 +163,6 @@ def _deserialise_row(row):
 
     if "forward_logs" in other_attributes:
         other_attributes["forward_logs"] = bool(int(other_attributes.pop("forward_logs")))
-
-    manifest_keys = {"input_manifest", "output_manifest"}
-
-    for key in manifest_keys:
-        if row["event"].get("key"):
-            row["event"][key] = Manifest.deserialise(row["event"][key])
-            # Only one of the manifest types will be in the event, so break if one is found.
-            break
 
     return row
 
