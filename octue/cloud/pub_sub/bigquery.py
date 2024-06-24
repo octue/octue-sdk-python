@@ -51,7 +51,7 @@ def get_events(
     :param str|None originator_question_uuid: the UUID of an originator question get the full tree of events for
     :param str|None kind: the kind of event to get; if `None`, all event kinds are returned
     :param bool include_backend_metadata: if `True`, include the service backend metadata
-    :param bool tail: if `True`, return the most recent events (where a limit applies), eg return the most rect 100 log records
+    :param bool tail: if `True`, return the most recent events (where a limit applies); e.g. return the most recent 100 log records
     :param int limit: the maximum number of events to return
     :raise ValueError: if no events are found
     :return list(dict): the events for the question
@@ -94,7 +94,7 @@ def get_events(
                 f"SELECT {', '.join(fields)} FROM `{table_id}`",
                 question_uuid_condition,
                 *event_kind_condition,
-                "ORDER BY `datetime`",
+                "ORDER BY `datetime` ASC",
                 "LIMIT @limit",
             ]
         )
