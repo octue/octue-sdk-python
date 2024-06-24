@@ -95,7 +95,6 @@ def get_events(
             ]
         )
 
-
     relevant_question_uuid = question_uuid or parent_question_uuid or originator_question_uuid
 
     job_config = QueryJobConfig(
@@ -116,7 +115,7 @@ def get_events(
         )
 
     df = result.to_dataframe()
-    df.apply(_deserialise_row, axis=1)
+    df = df.apply(_deserialise_row, axis=1)
 
     events = df.to_dict(orient="records")
     return _unflatten_events(events)
@@ -149,6 +148,7 @@ def _deserialise_row(row):
     """Deserialise a row from the event store:
 
     - Convert "null" to `None` in the `parent_question_uuid` field
+    - Convert string-cast booleans and integers to `bool` and `int` types
     - If the event is a "question" or "result" event and a manifest is present, deserialise the manifest and replace
       the serialised manifest with it.
 
@@ -158,13 +158,24 @@ def _deserialise_row(row):
     if row["parent_question_uuid"] == "null":
         row["parent_question_uuid"] = None
 
+    # Convert string-cast attributes back to `bool` or `int`.
+    row["order"] = int(row["order"])
+
+    other_attributes = row["other_attributes"]
+    other_attributes["retry_count"] = int(other_attributes.pop("retry_count"))
+
+    if "forward_logs" in other_attributes:
+        other_attributes["forward_logs"] = bool(int(other_attributes.pop("forward_logs")))
+
     manifest_keys = {"input_manifest", "output_manifest"}
 
     for key in manifest_keys:
         if row["event"].get("key"):
             row["event"][key] = Manifest.deserialise(row["event"][key])
-            # Only one of the manifest types will be in the event, so return if one is found.
-            return
+            # Only one of the manifest types will be in the event, so break if one is found.
+            break
+
+    return row
 
 
 def _unflatten_events(events):
@@ -177,22 +188,9 @@ def _unflatten_events(events):
     for event in events:
         event["event"]["kind"] = event.pop("kind")
 
-        # Deal with null as a string
-        parent_question_uuid = event.pop("parent_question_uuid")
-        parent_question_uuid = None if parent_question_uuid == "null" else parent_question_uuid
-
-        # Deal with converison of string attributes back to bool and int
-        other_attributes = event.pop("other_attributes")
-        if "forward_logs" in other_attributes:
-            other_attributes['forward_logs'] = other_attributes.pop("forward_logs") == "1"
-
-        if "retry_count" in other_attributes:
-            other_attributes['retry_count'] = int(other_attributes.pop("retry_count"))
-
-
         event["attributes"] = {
             "originator_question_uuid": event.pop("originator_question_uuid"),
-            "parent_question_uuid": parent_question_uuid,
+            "parent_question_uuid": event.pop("parent_question_uuid"),
             "question_uuid": event.pop("question_uuid"),
             "datetime": event.pop("datetime").isoformat(),
             "uuid": event.pop("uuid"),
@@ -203,8 +201,7 @@ def _unflatten_events(events):
             "sender_sdk_version": event.pop("sender_sdk_version"),
             "recipient": event.pop("recipient"),
             "order": event.pop("order"),
-            **other_attributes
+            **event.pop("other_attributes"),
         }
-
 
     return events
