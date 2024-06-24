@@ -41,9 +41,13 @@ def get_events(
 ):
     """Get Octue service events for a question from a Google BigQuery event store. Exactly one of the question UUID,
     parent question UUID, or originator question UUID must be provided:
+
     - When a question UUID is specified, only events from that question are retrieved
     - When a parent question UUID is specified, events from questions triggered by the same parent question are retrieved, not including the parent question's events
     - When an originator question UUID is specified, events for the entire tree of questions triggered by the originator question are retrieved, including the originator question's events
+
+    When the limit is smaller than the total number of events, the default behaviour is to return the "tail" of the
+    event stream for the question (the most recent n events for the question).
 
     :param str table_id: the full ID of the Google BigQuery table e.g. "your-project.your-dataset.your-table"
     :param str|None question_uuid: the UUID of a question to get events for
