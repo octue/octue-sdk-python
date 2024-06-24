@@ -15,7 +15,7 @@ class TestExceptions(unittest.TestCase):
         self.assertEqual(converted_exception["message"], "Deliberately raised for test.")
 
         self.assertIn(
-            'in test_with_raised_exception\n    raise ValueError("Deliberately raised for test.")',
+            'in test_with_caught_exception\n    raise ValueError("Deliberately raised for test.")',
             converted_exception["traceback"][0],
         )
 
