@@ -4,9 +4,10 @@ import unittest
 from unittest import TestCase
 
 import twined.exceptions
+from octue.cloud.events.replayer import EventReplayer
 from octue.cloud.events.validation import is_event_valid
 from octue.cloud.pub_sub.bigquery import get_events
-from octue.resources import Child, Manifest
+from octue.resources import Child
 
 
 EXAMPLE_SERVICE_SRUID = "octue/example-service:use-octue-with-q"
@@ -65,11 +66,11 @@ class TestCloudRunDeployment(TestCase):
             )
         )
 
+        replayer = EventReplayer()
+        result = replayer.handle_events(events)
+
         # Check the output values.
-        self.assertEqual(list(events[0]["event"]["output_values"]), [1, 2, 3, 4, 5])
+        self.assertEqual(list(result["output_values"]), [1, 2, 3, 4, 5])
 
-        # Check that the output dataset and its files can be accessed.
-        output_manifest = Manifest.deserialise(events[0]["event"]["output_manifest"])
-
-        with output_manifest.datasets["example_dataset"].files.one() as (datafile, f):
+        with result["output_manifest"].datasets["example_dataset"].files.one() as (datafile, f):
             self.assertEqual(f.read(), "This is some example service output.")
