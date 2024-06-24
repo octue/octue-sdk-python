@@ -57,9 +57,13 @@ class TestGetEvents(TestCase):
 
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
+            "SELECT * FROM (\n"
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
             "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
-            "`other_attributes` FROM `blah`\nWHERE question_uuid=@relevant_question_uuid\nORDER BY `datetime`\nLIMIT @limit",
+            "`other_attributes` FROM `blah`\nWHERE question_uuid=@relevant_question_uuid\n"
+            "LIMIT @limit\n"
+            "ORDER BY `datetime` DESC\n"
+            ") ORDER BY `datetime` ASC",
         )
 
     def test_with_kind(self):
@@ -69,10 +73,13 @@ class TestGetEvents(TestCase):
 
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
+            "SELECT * FROM (\n"
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
             "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
-            "`other_attributes` FROM `blah`\nWHERE question_uuid=@relevant_question_uuid\nAND kind='result'\nORDER BY "
-            "`datetime`\nLIMIT @limit",
+            "`other_attributes` FROM `blah`\nWHERE question_uuid=@relevant_question_uuid\nAND kind='result'\n"
+            "LIMIT @limit\n"
+            "ORDER BY `datetime` DESC\n"
+            ") ORDER BY `datetime` ASC",
         )
 
     def test_with_backend_metadata(self):
@@ -82,10 +89,14 @@ class TestGetEvents(TestCase):
 
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
+            "SELECT * FROM (\n"
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
             "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
-            "`other_attributes`, `backend`, `backend_metadata` FROM `blah`\nWHERE question_uuid=@relevant_question_uuid\nORDER "
-            "BY `datetime`\nLIMIT @limit",
+            "`other_attributes`, `backend`, `backend_metadata` FROM `blah`\n"
+            "WHERE question_uuid=@relevant_question_uuid\n"
+            "LIMIT @limit\n"
+            "ORDER BY `datetime` DESC\n"
+            ") ORDER BY `datetime` ASC",
         )
 
     def test_with_parent_question_uuid(self):
@@ -94,9 +105,13 @@ class TestGetEvents(TestCase):
 
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
+            "SELECT * FROM (\n"
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
             "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
-            "`other_attributes` FROM `blah`\nWHERE parent_question_uuid=@relevant_question_uuid\nORDER BY `datetime`\nLIMIT @limit",
+            "`other_attributes` FROM `blah`\nWHERE parent_question_uuid=@relevant_question_uuid\n"
+            "LIMIT @limit\n"
+            "ORDER BY `datetime` DESC\n"
+            ") ORDER BY `datetime` ASC",
         )
 
     def test_with_originator_parent_question_uuid(self):
@@ -105,8 +120,11 @@ class TestGetEvents(TestCase):
 
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
+            "SELECT * FROM (\n"
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
             "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
-            "`other_attributes` FROM `blah`\nWHERE originator_question_uuid=@relevant_question_uuid\nORDER BY `datetime`\nLIMIT "
-            "@limit",
+            "`other_attributes` FROM `blah`\nWHERE originator_question_uuid=@relevant_question_uuid\n"
+            "LIMIT @limit\n"
+            "ORDER BY `datetime` DESC\n"
+            ") ORDER BY `datetime` ASC",
         )
