@@ -93,13 +93,13 @@ def get_events(
         query = "\n".join(
             [
                 "SELECT * FROM (",
-                *base_query,
+                base_query,
                 "ORDER BY `datetime` DESC",
                 ") ORDER BY `datetime` ASC",
             ]
         )
     else:
-        query = "\n".join([*base_query, "ORDER BY `datetime` ASC"])
+        query = "\n".join([base_query, "ORDER BY `datetime` ASC"])
 
     relevant_question_uuid = question_uuid or parent_question_uuid or originator_question_uuid
 
