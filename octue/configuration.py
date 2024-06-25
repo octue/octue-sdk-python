@@ -18,6 +18,7 @@ class ServiceConfiguration:
     :param str|None app_configuration_path: the path to the app configuration file containing configuration data for the service; if this is `None`, the default application configuration is used
     :param str|None diagnostics_cloud_path: the path to a cloud directory to store diagnostics (this includes the configuration, input values and manifest, and logs for each question)
     :param iter(dict)|None service_registries: the names and endpoints of the registries used to resolve service revisions when asking questions; these should be in priority order (highest priority first)
+    :param str|None event_store_table_id: the full ID of the Google BigQuery table used as the event store e.g. "your-project.your-dataset.your-table"
     :param str|None directory: if provided, find the app source, twine, and app configuration relative to this directory
     :return None:
     """
@@ -31,6 +32,7 @@ class ServiceConfiguration:
         app_configuration_path=None,
         diagnostics_cloud_path=None,
         service_registries=None,
+        event_store_table_id=None,
         directory=None,
         **kwargs,
     ):
@@ -38,6 +40,7 @@ class ServiceConfiguration:
         self.namespace = namespace
         self.diagnostics_cloud_path = diagnostics_cloud_path
         self.service_registries = service_registries
+        self.event_store_table_id = event_store_table_id
 
         if directory:
             directory = os.path.abspath(directory)
@@ -81,6 +84,13 @@ class ServiceConfiguration:
 
         # Ignore services other than the first for now.
         return cls(**raw_service_configuration["services"][0], directory=os.path.dirname(absolute_path))
+
+    def __repr__(self):
+        """Represent the service configuration as a string.
+
+        :return str: the service configuration as a string
+        """
+        return f"<{type(self).__name__}('{self.namespace}/{self.name}')>"
 
 
 class AppConfiguration:
