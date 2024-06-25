@@ -8,6 +8,9 @@ import yaml
 logger = logging.getLogger(__name__)
 
 
+DEFAULT_SERVICE_CONFIGURATION_PATH = "octue.yaml"
+
+
 class ServiceConfiguration:
     """A class containing the details needed to configure a service.
 
