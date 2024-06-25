@@ -71,18 +71,19 @@ def _acknowledge_and_drop_redelivered_questions(question_uuid, retry_count):
         )
         return
 
-    previous_question_attempts = get_events(
-        table_id=service_configuration.event_store_table_id,
-        question_uuid=question_uuid,
-        kind="question",
-    )
+    try:
+        previous_question_attempts = get_events(
+            table_id=service_configuration.event_store_table_id,
+            question_uuid=question_uuid,
+            kind="question",
+        )
 
-    if not previous_question_attempts:
+    # If there are no events for this question UUID, assume this is the first attempt for the question.
+    except ValueError:
         return
 
+    # Acknowledge redelivered questions to stop further redundant redelivery and processing.
     for question in previous_question_attempts:
-
-        # Acknowledge questions that are redelivered to stop further redelivery and redundant processing.
         if question["attributes"]["retry_count"] == retry_count:
             logger.warning(
                 "Question %r (retry count %s) has already been received by the service. It will now be acknowledged to "
