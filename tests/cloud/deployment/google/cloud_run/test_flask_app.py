@@ -1,5 +1,3 @@
-import base64
-import json
 import os
 import uuid
 from unittest import TestCase
@@ -26,7 +24,7 @@ MOCK_CONFIGURATION = ServiceConfiguration(
 )
 
 
-class TestFlaskApp(TestCase):
+class TestInvalidPayloads(TestCase):
     def test_post_to_index_with_no_payload_results_in_400_error(self):
         """Test that a 400 (bad request) error code is returned if no payload is sent to the Flask endpoint."""
         with flask_app.app.test_client() as client:
@@ -42,34 +40,41 @@ class TestFlaskApp(TestCase):
             response = client.post("/", json={"message": "data", "deliveryAttempt": 1})
             self.assertEqual(response.status_code, 400)
 
-    def test_post_to_index_with_valid_payload(self):
-        """Test that the Flask endpoint returns a 204 (ok, no content) response to a valid payload."""
-        event = base64.b64encode(json.dumps({"input_values": [1, 2, 3], "input_manifest": None}).encode()).decode()
-        attributes = {"question_uuid": str(uuid.uuid4()), "forward_logs": "1", "retry_count": 0}
 
+class TestQuestionRedelivery(TestCase):
+    def test_new_question(self):
+        """Test that a new question is allowed to proceed to analysis."""
         multi_patcher = MultiPatcher(
             patches=[
-                patch("octue.cloud.deployment.google.cloud_run.flask_app.answer_question"),
                 patch("octue.configuration.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION),
                 patch("octue.cloud.deployment.google.cloud_run.flask_app.get_events", return_value=[]),
             ]
         )
 
         with flask_app.app.test_client() as client:
-            with multi_patcher:
-                response = client.post(
-                    "/",
-                    json={
-                        "deliveryAttempt": 1,
-                        "subscription": "projects/my-project/subscriptions/my-subscription",
-                        "message": {"data": event, "attributes": attributes},
-                    },
-                )
+            with patch("octue.cloud.deployment.google.cloud_run.flask_app.answer_question") as mock_answer_question:
+                with multi_patcher:
+                    response = client.post(
+                        "/",
+                        json={
+                            "deliveryAttempt": 1,
+                            "subscription": "projects/my-project/subscriptions/my-subscription",
+                            "message": {
+                                "data": {},
+                                "attributes": {
+                                    "question_uuid": str(uuid.uuid4()),
+                                    "forward_logs": "1",
+                                    "retry_count": 0,
+                                },
+                            },
+                        },
+                    )
 
         self.assertEqual(response.status_code, 204)
+        mock_answer_question.assert_called_once()
 
-    def test_redelivered_questions_are_acknowledged_and_ignored(self):
-        """Test that redelivered questions are acknowledged and then ignored."""
+    def test_redelivered_questions_are_acknowledged_and_dropped(self):
+        """Test that questions undesirably redelivered by Pub/Sub are acknowledged and dropped."""
         question_uuid = "fcd7aad7-dbf0-47d2-8984-220d493df2c1"
 
         multi_patcher = MultiPatcher(
@@ -104,7 +109,7 @@ class TestFlaskApp(TestCase):
         mock_answer_question.assert_not_called()
 
     def test_retried_questions_are_allowed(self):
-        """Test that retried questions with the same question UUID are allowed to proceed to analysis."""
+        """Test that questions explicitly retried by the SDK are allowed to proceed to analysis."""
         question_uuid = "fcd7aad7-dbf0-47d2-8984-220d493df2c1"
 
         multi_patcher = MultiPatcher(
