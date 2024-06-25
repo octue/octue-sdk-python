@@ -109,15 +109,15 @@ def get_events(
 
     client = Client()
     query_job = client.query(query, job_config=job_config)
-    serialised_events = list(query_job.result())
+    result = query_job.result()
 
-    if len(serialised_events) == 0:
+    if result.total_rows == 0:
         raise ValueError(
             f"No events found for question {relevant_question_uuid!r}. Try loosening the query parameters and/or check "
             f"back later."
         )
 
-    events = [_deserialise_event(event) for event in serialised_events]
+    events = [_deserialise_event(event) for event in result]
     return _unflatten_events(events)
 
 
