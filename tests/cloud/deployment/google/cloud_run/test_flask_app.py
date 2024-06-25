@@ -122,7 +122,7 @@ class TestQuestionRedelivery(TestCase):
                 patch("octue.configuration.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION),
                 patch(
                     "octue.cloud.deployment.google.cloud_run.flask_app.get_events",
-                    return_value=[{"attributes": {"other_attributes": {"retry_count": 0}}}],
+                    return_value=[{"attributes": {"retry_count": 0}}],
                 ),
             ]
         )
@@ -157,7 +157,7 @@ class TestQuestionRedelivery(TestCase):
                 patch("octue.configuration.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION),
                 patch(
                     "octue.cloud.deployment.google.cloud_run.flask_app.get_events",
-                    return_value=[{"attributes": {"other_attributes": {"retry_count": 0}}}],
+                    return_value=[{"attributes": {"retry_count": 0}}],
                 ),
             ]
         )
