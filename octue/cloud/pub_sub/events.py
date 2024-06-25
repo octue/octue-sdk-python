@@ -158,9 +158,17 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
             self._heartbeat_checker.cancel()
             self._subscriber.close()
 
+        if self.handled_events:
+            last_event = self.handled_events[-1]
+            sender = last_event["attributes"]["sender"]
+            question_uuid = last_event["attributes"]["question_uuid"]
+        else:
+            sender = "UNKNOWN"
+            question_uuid = "UNKNOWN"
+
         raise TimeoutError(
-            f"No heartbeat has been received from {self.child_sruid!r} for question {self.question_uuid} within the "
-            f"maximum allowed interval of {maximum_heartbeat_interval}s."
+            f"No heartbeat has been received from {sender!r} for question {question_uuid} within the maximum allowed "
+            f"interval of {maximum_heartbeat_interval}s."
         )
 
     def _monitor_heartbeat(self, maximum_heartbeat_interval):

@@ -62,11 +62,6 @@ class AbstractEventHandler:
         self.schema = schema
         self.only_handle_result = only_handle_result
 
-        # These are set when the first event is received.
-        self.question_uuid = None
-        self.child_sruid = None
-        self.child_sdk_version = None
-
         self.waiting_events = None
         self.handled_events = []
         self._previous_event_number = -1
@@ -160,13 +155,7 @@ class AbstractEventHandler:
         ):
             return
 
-        # Get the child's SRUID and Octue SDK version from the first event.
-        if not self.child_sdk_version:
-            self.question_uuid = attributes["question_uuid"]
-            self.child_sruid = attributes["sender"]
-            self.child_sdk_version = attributes["sender_sdk_version"]
-
-        logger.debug("%r: Received an event related to question %r.", self.recipient, self.question_uuid)
+        logger.debug("%r: Received an event related to question %r.", self.recipient, attributes["question_uuid"])
         order = attributes["order"]
 
         if order in self.waiting_events:
@@ -174,7 +163,7 @@ class AbstractEventHandler:
                 "%r: Event with duplicate order %d received for question %r - overwriting original event.",
                 self.recipient,
                 order,
-                self.question_uuid,
+                attributes["question_uuid"],
             )
 
         self.waiting_events[order] = (event, attributes)
@@ -242,7 +231,7 @@ class AbstractEventHandler:
             "(event %d).",
             self.recipient,
             number_of_missing_events,
-            self.question_uuid,
+            attributes["question_uuid"],
             self.skip_missing_events_after,
             self._earliest_waiting_event_number,
         )
@@ -259,7 +248,7 @@ class AbstractEventHandler:
         self._previous_event_number += 1
 
         if self.record_events:
-            self.handled_events.append(event)
+            self.handled_events.append({"event": event, "attributes": attributes})
 
         if self.only_handle_result and event["kind"] != "result":
             return
@@ -288,8 +277,8 @@ class AbstractEventHandler:
         logger.info(
             "%r: Received a heartbeat from service %r for question %r.",
             self.recipient,
-            self.child_sruid,
-            self.question_uuid,
+            attributes["sender"],
+            attributes["question_uuid"],
         )
 
     def _handle_monitor_message(self, event, attributes):
@@ -302,8 +291,8 @@ class AbstractEventHandler:
         logger.debug(
             "%r: Received a monitor message from service %r for question %r.",
             self.recipient,
-            self.child_sruid,
-            self.question_uuid,
+            attributes["sender"],
+            attributes["question_uuid"],
         )
 
         if self.handle_monitor_message is not None:
@@ -323,7 +312,7 @@ class AbstractEventHandler:
         # Add information about the immediate child sending the event and colour it with the first colour in the
         # colour palette.
         immediate_child_analysis_section = colourise(
-            f"[{self.child_sruid} | {self.question_uuid}]",
+            f"[{attributes['sender']} | {attributes['question_uuid']}]",
             text_colour=self._log_message_colours[0],
         )
 
@@ -351,7 +340,7 @@ class AbstractEventHandler:
         exception_message = "\n\n".join(
             (
                 event["exception_message"],
-                f"The following traceback was captured from the remote service {self.child_sruid!r}:",
+                f"The following traceback was captured from the remote service {attributes['sender']!r}:",
                 "".join(event["exception_traceback"]),
             )
         )
@@ -372,7 +361,7 @@ class AbstractEventHandler:
         :param dict attributes: the event's attributes
         :return dict:
         """
-        logger.info("%r: Received an answer to question %r.", self.recipient, self.question_uuid)
+        logger.info("%r: Received an answer to question %r.", self.recipient, attributes["question_uuid"])
 
         if event.get("output_manifest"):
             output_manifest = Manifest.deserialise(event["output_manifest"])
