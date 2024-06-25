@@ -3,11 +3,15 @@ import logging
 from flask import Flask, request
 
 from octue.cloud.deployment.google.answer_pub_sub_question import answer_question
-from octue.utils.metadata import UpdateLocalMetadata
+from octue.cloud.pub_sub.bigquery import get_events
+from octue.configuration import ServiceConfiguration
 
 
 logger = logging.getLogger(__name__)
 app = Flask(__name__)
+
+
+DEFAULT_SERVICE_CONFIGURATION_PATH = "octue.yaml"
 
 
 @app.route("/", methods=["POST"])
@@ -59,17 +63,30 @@ def _acknowledge_and_drop_redelivered_questions(question_uuid, retry_count):
 
     :param str question_uuid: the UUID of the question to check
     :param int retry_count: the retry count of the question to check
-    :return (str, int): an empty response with a 204 HTTP code
+    :return (str, int)|None: an empty response with a 204 HTTP code if the question should be dropped
     """
-    question = {"question_uuid": question_uuid, "retry_count": retry_count}
+    service_configuration = ServiceConfiguration.from_file(DEFAULT_SERVICE_CONFIGURATION_PATH)
 
-    with UpdateLocalMetadata() as local_metadata:
-        # Get the set of delivered questions or, in the case where the local metadata file did not already exist, create
-        # it.
-        local_metadata["delivered_questions"] = local_metadata.get("delivered_questions", [])
+    if not service_configuration.event_store_table_id:
+        logger.warning(
+            "Cannot check if question has been redelivered  as the 'event_store_table_id' key hasn't been set in the "
+            "service configuration (`octue.yaml` file)."
+        )
+        return
+
+    previous_question_attempts = get_events(
+        table_id=service_configuration.event_store_table_id,
+        question_uuid=question_uuid,
+        kind="question",
+    )
+
+    if not previous_question_attempts:
+        return
+
+    for question in previous_question_attempts:
 
         # Acknowledge questions that are redelivered to stop further redelivery and redundant processing.
-        if question in local_metadata["delivered_questions"]:
+        if question["attributes"]["other_attributes"]["retry_count"] == retry_count:
             logger.warning(
                 "Question %r (retry count %s) has already been received by the service. It will now be acknowledged to "
                 "prevent further redundant redelivery and dropped.",
@@ -77,12 +94,3 @@ def _acknowledge_and_drop_redelivered_questions(question_uuid, retry_count):
                 retry_count,
             )
             return ("", 204)
-
-        # Otherwise add the question UUID to the set.
-        local_metadata["delivered_questions"].append(question)
-
-        logger.info(
-            "Adding question UUID %r (retry count %s) to the set of delivered questions.",
-            question_uuid,
-            retry_count,
-        )
