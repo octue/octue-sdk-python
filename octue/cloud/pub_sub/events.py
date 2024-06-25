@@ -159,7 +159,8 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
             self._subscriber.close()
 
         raise TimeoutError(
-            f"No heartbeat has been received within the maximum allowed interval of {maximum_heartbeat_interval}s."
+            f"No heartbeat has been received from {self.child_sruid!r} for question {self.question_uuid} within the "
+            f"maximum allowed interval of {maximum_heartbeat_interval}s."
         )
 
     def _monitor_heartbeat(self, maximum_heartbeat_interval):
