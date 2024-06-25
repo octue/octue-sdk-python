@@ -5,7 +5,15 @@ import jsonschema
 from octue.compatibility import warn_if_incompatible
 
 
-VALID_EVENT_KINDS = {"delivery_acknowledgement", "heartbeat", "log_record", "monitor_message", "exception", "result"}
+VALID_EVENT_KINDS = {
+    "question",
+    "delivery_acknowledgement",
+    "heartbeat",
+    "log_record",
+    "monitor_message",
+    "exception",
+    "result",
+}
 
 SERVICE_COMMUNICATION_SCHEMA_VERSION = "0.13.0"
 SERVICE_COMMUNICATION_SCHEMA_INFO_URL = "https://strands.octue.com/octue/service-communication"
