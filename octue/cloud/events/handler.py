@@ -135,7 +135,8 @@ class AbstractEventHandler:
         pass
 
     def _extract_and_enqueue_event(self, container):
-        """Extract an event from its container, validate it, and add it to `self.waiting_events` if it's valid.
+        """Extract an event from its container, validate it, and add it and its attributes to `self.waiting_events` if
+        it's valid.
 
         :param any container: the container of the event (e.g. a Pub/Sub message)
         :return None:
@@ -176,7 +177,7 @@ class AbstractEventHandler:
                 self.question_uuid,
             )
 
-        self.waiting_events[order] = event
+        self.waiting_events[order] = (event, attributes)
 
     def _attempt_to_handle_waiting_events(self):
         """Attempt to handle any events waiting in `self.waiting_events`. If these events aren't consecutive to the
@@ -196,7 +197,7 @@ class AbstractEventHandler:
         while self.waiting_events:
             try:
                 # If the next consecutive event has been received:
-                event = self.waiting_events.pop(self._previous_event_number + 1)
+                event, attributes = self.waiting_events.pop(self._previous_event_number + 1)
 
             # If the next consecutive event hasn't been received:
             except KeyError:
@@ -205,7 +206,7 @@ class AbstractEventHandler:
                     self._missing_event_detection_time = time.perf_counter()
 
                 if self.time_since_missing_event > self.skip_missing_events_after:
-                    event = self._skip_to_earliest_waiting_event()
+                    event, attributes = self._skip_to_earliest_waiting_event()
 
                     # Declare there are no more missing events.
                     self._missing_event_detection_time = None
@@ -216,7 +217,7 @@ class AbstractEventHandler:
                 else:
                     return
 
-            result = self._handle_event(event)
+            result = self._handle_event(event, attributes)
 
             if result is not None:
                 return result
@@ -227,7 +228,7 @@ class AbstractEventHandler:
         :return dict|None: the earliest waiting event if there is one
         """
         try:
-            event = self.waiting_events.pop(self._earliest_waiting_event_number)
+            event, attributes = self.waiting_events.pop(self._earliest_waiting_event_number)
         except KeyError:
             return
 
@@ -246,12 +247,13 @@ class AbstractEventHandler:
             self._earliest_waiting_event_number,
         )
 
-        return event
+        return event, attributes
 
-    def _handle_event(self, event):
+    def _handle_event(self, event, attributes):
         """Pass an event to its handler and update the previous event number.
 
         :param dict event: the event to handle
+        :param dict attributes: the event's attributes
         :return dict|None: the output of the event (this should be `None` unless the event is a "result" event)
         """
         self._previous_event_number += 1
@@ -263,23 +265,26 @@ class AbstractEventHandler:
             return
 
         handler = self._event_handlers[event["kind"]]
-        return handler(event)
+        return handler(event, attributes)
 
-    def _handle_delivery_acknowledgement(self, event):
+    def _handle_delivery_acknowledgement(self, event, attributes):
         """Log that the question was delivered.
 
         :param dict event:
+        :param dict attributes: the event's attributes
         :return None:
         """
         logger.info("%r's question was delivered at %s.", self.recipient, event["datetime"])
 
-    def _handle_heartbeat(self, event):
+    def _handle_heartbeat(self, event, attributes):
         """Record the time the heartbeat was received.
 
         :param dict event:
+        :param dict attributes: the event's attributes
         :return None:
         """
         self._last_heartbeat = datetime.now()
+
         logger.info(
             "%r: Received a heartbeat from service %r for question %r.",
             self.recipient,
@@ -287,10 +292,11 @@ class AbstractEventHandler:
             self.question_uuid,
         )
 
-    def _handle_monitor_message(self, event):
+    def _handle_monitor_message(self, event, attributes):
         """Send the monitor message to the handler if one has been provided.
 
         :param dict event:
+        :param dict attributes: the event's attributes
         :return None:
         """
         logger.debug(
@@ -303,12 +309,13 @@ class AbstractEventHandler:
         if self.handle_monitor_message is not None:
             self.handle_monitor_message(event["data"])
 
-    def _handle_log_message(self, event):
+    def _handle_log_message(self, event, attributes):
         """Deserialise the event into a log record and pass it to the local log handlers. The child's SRUID and the
         question UUID are added to the start of the log message, and the SRUIDs of any subchildren called by the child
         are each coloured differently.
 
         :param dict event:
+        :param dict attributes: the event's attributes
         :return None:
         """
         record = logging.makeLogRecord(event["log_record"])
@@ -333,10 +340,11 @@ class AbstractEventHandler:
         record.msg = " ".join([immediate_child_analysis_section, *subchild_analysis_sections, final_message])
         logger.handle(record)
 
-    def _handle_exception(self, event):
+    def _handle_exception(self, event, attributes):
         """Raise the exception from the child.
 
         :param dict event:
+        :param dict attributes: the event's attributes
         :raise Exception:
         :return None:
         """
@@ -357,10 +365,11 @@ class AbstractEventHandler:
 
         raise exception_type(exception_message)
 
-    def _handle_result(self, event):
+    def _handle_result(self, event, attributes):
         """Extract any output values and output manifest from the result, deserialising the manifest if present.
 
         :param dict event:
+        :param dict attributes: the event's attributes
         :return dict:
         """
         logger.info("%r: Received an answer to question %r.", self.recipient, self.question_uuid)

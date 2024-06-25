@@ -30,6 +30,16 @@ class EventReplayer(AbstractEventHandler):
         schema=SERVICE_COMMUNICATION_SCHEMA,
         only_handle_result=False,
     ):
+        event_handlers = event_handlers or {
+            "question": self._handle_question,
+            "delivery_acknowledgement": self._handle_delivery_acknowledgement,
+            "heartbeat": self._handle_heartbeat,
+            "monitor_message": self._handle_monitor_message,
+            "log_record": self._handle_log_message,
+            "exception": self._handle_exception,
+            "result": self._handle_result,
+        }
+
         super().__init__(
             recipient or Service(backend=ServiceBackend(), service_id="local/local:local"),
             handle_monitor_message=handle_monitor_message,
@@ -61,3 +71,17 @@ class EventReplayer(AbstractEventHandler):
         """
         container["attributes"]["order"] = int(container["attributes"]["order"])
         return container["event"], container["attributes"]
+
+    def _handle_question(self, event, attributes):
+        """Log that the question was sent.
+
+        :param dict event:
+        :param dict attributes: the event's attributes
+        :return None:
+        """
+        logger.info(
+            "%r asked a question %r to service %r.",
+            attributes["sender"],
+            attributes["question_uuid"],
+            attributes["recipient"],
+        )
