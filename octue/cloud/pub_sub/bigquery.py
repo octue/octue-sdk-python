@@ -1,11 +1,6 @@
-import json
-
-import pandas as pd
 from google.cloud.bigquery import Client, QueryJobConfig, ScalarQueryParameter
 
 from octue.cloud.events.validation import VALID_EVENT_KINDS
-from octue.utils.decoders import OctueJSONDecoder
-from octue.utils.encoders import OctueJSONEncoder
 
 
 DEFAULT_FIELDS = (
@@ -114,18 +109,15 @@ def get_events(
 
     client = Client()
     query_job = client.query(query, job_config=job_config)
-    result = query_job.result()
+    serialised_events = list(query_job.result())
 
-    if result.total_rows == 0:
+    if len(serialised_events) == 0:
         raise ValueError(
             f"No events found for question {relevant_question_uuid!r}. Try loosening the query parameters and/or check "
             f"back later."
         )
 
-    df = result.to_dataframe()
-    df = df.apply(_deserialise_row, axis=1)
-
-    events = df.to_dict(orient="records")
+    events = [_deserialise_event(event) for event in serialised_events]
     return _unflatten_events(events)
 
 
@@ -152,30 +144,30 @@ def _validate_inputs(question_uuid, parent_question_uuid, originator_question_uu
         raise ValueError(f"`kind` must be one of {VALID_EVENT_KINDS!r}; received {kind!r}.")
 
 
-def _deserialise_row(row):
-    """Deserialise a row from the event store:
+def _deserialise_event(event):
+    """Deserialise an event from the event store:
 
     - Convert "null" to `None` in the `parent_question_uuid` field
     - Convert string-cast booleans and integers to `bool` and `int` types
 
-    :param dict row: a row from the event store
-    :return None:
+    :param google.cloud.bigquery.table.Row event: a serialised event from the event store
+    :return dict: the deserialised event
     """
-    if row["parent_question_uuid"] == "null":
-        row["parent_question_uuid"] = None
+    event = dict(event)
+
+    if event["parent_question_uuid"] == "null":
+        event["parent_question_uuid"] = None
 
     # Convert string-cast attributes back to `bool` or `int`.
-    row["order"] = int(row["order"])
+    event["order"] = int(event["order"])
 
-    other_attributes = row["other_attributes"]
+    other_attributes = event["other_attributes"]
     other_attributes["retry_count"] = int(other_attributes.pop("retry_count"))
 
     if other_attributes.get("forward_logs"):
         other_attributes["forward_logs"] = bool(int(other_attributes.pop("forward_logs")))
 
-    # Use JSON serialisation round trip to convert all nested numpy types to python primitives.
-    row = pd.Series(json.loads(json.dumps(row.to_dict(), cls=OctueJSONEncoder), cls=OctueJSONDecoder))
-    return row
+    return event
 
 
 def _unflatten_events(events):
