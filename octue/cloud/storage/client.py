@@ -13,6 +13,7 @@ from google.auth import compute_engine
 from google.auth.transport import requests as google_requests
 from google.cloud.storage import Client
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
+from google.cloud.storage.retry import DEFAULT_RETRY
 from google_crc32c import Checksum
 
 from octue.cloud import storage
@@ -28,7 +29,8 @@ OCTUE_MANAGED_CREDENTIALS = "octue-managed"
 
 
 class GoogleCloudStorageClient:
-    """A client for using Google Cloud Storage.
+    """A client for using Google Cloud Storage. Versioning and metadata versioning (generations and metagenerations)
+    aren't supported, so the default retry strategy is used throughout.
 
     :param str|google.auth.credentials.Credentials|None credentials:
     :return None:
@@ -87,7 +89,7 @@ class GoogleCloudStorageClient:
         if metadata:
             blob.metadata = self._encode_metadata(metadata)
 
-        blob.upload_from_filename(filename=local_path, timeout=timeout)
+        blob.upload_from_filename(filename=local_path, timeout=timeout, retry=DEFAULT_RETRY)
         logger.debug("Uploaded %r to Google Cloud at %r.", local_path, blob.public_url)
 
     def upload_from_string(self, string, cloud_path, metadata=None, timeout=_DEFAULT_TIMEOUT):
@@ -106,7 +108,7 @@ class GoogleCloudStorageClient:
         if metadata:
             blob.metadata = self._encode_metadata(metadata)
 
-        blob.upload_from_string(data=string, timeout=timeout)
+        blob.upload_from_string(data=string, timeout=timeout, retry=DEFAULT_RETRY)
         logger.debug("Uploaded data to Google Cloud at %r.", blob.public_url)
 
     def get_metadata(self, cloud_path, timeout=_DEFAULT_TIMEOUT):
@@ -155,7 +157,7 @@ class GoogleCloudStorageClient:
         """
         blob = self._blob(cloud_path)
         blob.metadata = self._encode_metadata(metadata or {})
-        blob.patch()
+        blob.patch(retry=DEFAULT_RETRY)
 
     def download_to_file(self, local_path, cloud_path, timeout=_DEFAULT_TIMEOUT):
         """Download a file to a file from a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>.
@@ -233,7 +235,15 @@ class GoogleCloudStorageClient:
         blob = self._blob(original_cloud_path)
         original_bucket, _ = self._get_bucket_and_path_in_bucket(original_cloud_path)
         destination_bucket, path_in_destination_bucket = self._get_bucket_and_path_in_bucket(destination_cloud_path)
-        original_bucket.copy_blob(blob, destination_bucket, new_name=path_in_destination_bucket, timeout=timeout)
+
+        original_bucket.copy_blob(
+            blob,
+            destination_bucket,
+            new_name=path_in_destination_bucket,
+            timeout=timeout,
+            retry=DEFAULT_RETRY,
+        )
+
         logger.debug("Copied %r to %r.", original_cloud_path, destination_cloud_path)
 
     def delete(self, cloud_path, timeout=_DEFAULT_TIMEOUT):
@@ -244,7 +254,7 @@ class GoogleCloudStorageClient:
         :return None:
         """
         blob = self._blob(cloud_path)
-        blob.delete(timeout=timeout)
+        blob.delete(timeout=timeout, retry=DEFAULT_RETRY)
         logger.debug("Deleted %r from Google Cloud.", blob.public_url)
 
     def scandir(
