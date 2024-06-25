@@ -691,11 +691,11 @@ class TestService(BaseTestCase):
         parent.wait_for_answer(subscription)
 
         # Check that the child's messages have been recorded by the parent.
-        self.assertEqual(parent.received_events[0]["kind"], "delivery_acknowledgement")
-        self.assertEqual(parent.received_events[1]["kind"], "log_record")
-        self.assertEqual(parent.received_events[2]["kind"], "log_record")
-        self.assertEqual(parent.received_events[3]["kind"], "log_record")
-        self.assertEqual(parent.received_events[4], {"kind": "result", "output_values": "Hello! It worked!"})
+        self.assertEqual(parent.received_events[0]["event"]["kind"], "delivery_acknowledgement")
+        self.assertEqual(parent.received_events[1]["event"]["kind"], "log_record")
+        self.assertEqual(parent.received_events[2]["event"]["kind"], "log_record")
+        self.assertEqual(parent.received_events[3]["event"]["kind"], "log_record")
+        self.assertEqual(parent.received_events[4]["event"], {"kind": "result", "output_values": "Hello! It worked!"})
 
     def test_child_exception_message_can_be_recorded_by_parent(self):
         """Test that the parent can record exceptions raised by the child."""
@@ -708,9 +708,9 @@ class TestService(BaseTestCase):
             parent.wait_for_answer(subscription)
 
         # Check that the child's messages have been recorded by the parent.
-        self.assertEqual(parent.received_events[0]["kind"], "delivery_acknowledgement")
-        self.assertEqual(parent.received_events[1]["kind"], "exception")
-        self.assertIn("Oh no.", parent.received_events[1]["exception_message"])
+        self.assertEqual(parent.received_events[0]["event"]["kind"], "delivery_acknowledgement")
+        self.assertEqual(parent.received_events[1]["event"]["kind"], "exception")
+        self.assertIn("Oh no.", parent.received_events[1]["event"]["exception_message"])
 
     def test_child_sends_heartbeat_messages_at_expected_regular_intervals(self):
         """Test that children send heartbeat messages at the expected regular intervals."""
@@ -737,11 +737,11 @@ class TestService(BaseTestCase):
 
             parent.wait_for_answer(subscription)
 
-        self.assertEqual(parent.received_events[1]["kind"], "heartbeat")
-        self.assertEqual(parent.received_events[2]["kind"], "heartbeat")
+        self.assertEqual(parent.received_events[1]["event"]["kind"], "heartbeat")
+        self.assertEqual(parent.received_events[2]["event"]["kind"], "heartbeat")
 
-        first_heartbeat_time = datetime.datetime.fromisoformat(parent.received_events[1]["datetime"])
-        second_heartbeat_time = datetime.datetime.fromisoformat(parent.received_events[2]["datetime"])
+        first_heartbeat_time = datetime.datetime.fromisoformat(parent.received_events[1]["event"]["datetime"])
+        second_heartbeat_time = datetime.datetime.fromisoformat(parent.received_events[2]["event"]["datetime"])
 
         self.assertAlmostEqual(
             second_heartbeat_time - first_heartbeat_time,

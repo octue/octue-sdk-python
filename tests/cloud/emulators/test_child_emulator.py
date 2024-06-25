@@ -272,7 +272,7 @@ class TestChildEmulatorAsk(BaseTestCase):
                 subscription, _ = parent.ask(service_id=child.id, input_values={})
                 parent.wait_for_answer(subscription=subscription)
 
-        child_emulator = ChildEmulator(events=parent.received_events)
+        child_emulator = ChildEmulator(events=[event["event"] for event in parent.received_events])
 
         with self.assertRaises(OSError):
             child_emulator.ask(input_values={})

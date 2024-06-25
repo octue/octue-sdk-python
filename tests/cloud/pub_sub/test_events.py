@@ -43,7 +43,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
             recipient=self.parent,
-            event_handlers={"test": lambda message: None, "finish-test": lambda message: message},
+            event_handlers={"test": lambda event, attributes: None, "finish-test": lambda event, attributes: event},
             schema={},
         )
 
@@ -55,7 +55,10 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
             recipient=self.parent,
-            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            event_handlers={
+                "test": lambda event, attributes: None,
+                "finish-test": lambda event, attributes: "This is the result.",
+            },
             schema={},
         )
 
@@ -98,7 +101,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         self.assertEqual(result, "This is the result.")
 
         self.assertEqual(
-            event_handler.handled_events,
+            [event["event"] for event in event_handler.handled_events],
             [
                 {"kind": "test", "order": 0},
                 {"kind": "test", "order": 1},
@@ -112,7 +115,10 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
             recipient=self.parent,
-            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            event_handlers={
+                "test": lambda event, attributes: None,
+                "finish-test": lambda event, attributes: "This is the result.",
+            },
             schema={},
         )
 
@@ -156,7 +162,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         self.assertEqual(result, "This is the result.")
 
         self.assertEqual(
-            event_handler.handled_events,
+            [event["event"] for event in event_handler.handled_events],
             [
                 {"kind": "test", "order": 0},
                 {"kind": "test", "order": 1},
@@ -172,7 +178,10 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
             recipient=self.parent,
-            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            event_handlers={
+                "test": lambda event, attributes: None,
+                "finish-test": lambda event, attributes: "This is the result.",
+            },
             schema={},
         )
 
@@ -216,7 +225,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         self.assertEqual(result, "This is the result.")
 
         self.assertEqual(
-            event_handler.handled_events,
+            [event["event"] for event in event_handler.handled_events],
             [
                 {"kind": "test", "order": 0},
                 {"kind": "test", "order": 1},
@@ -230,7 +239,10 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
             recipient=self.parent,
-            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            event_handlers={
+                "test": lambda event, attributes: None,
+                "finish-test": lambda event, attributes: "This is the result.",
+            },
             schema={},
         )
 
@@ -269,7 +281,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
 
         self.assertEqual(result, "This is the result.")
         self.assertEqual(
-            event_handler.handled_events,
+            [event["event"] for event in event_handler.handled_events],
             [{"kind": "test", "order": 0}, {"kind": "test", "order": 1}, {"kind": "finish-test", "order": 2}],
         )
 
@@ -395,7 +407,10 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
             recipient=self.parent,
-            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            event_handlers={
+                "test": lambda event, attributes: None,
+                "finish-test": lambda event, attributes: "This is the result.",
+            },
             schema={},
             skip_missing_events_after=0,
         )
@@ -447,7 +462,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
 
         self.assertEqual(result, "This is the result.")
         self.assertEqual(
-            event_handler.handled_events,
+            [event["event"] for event in event_handler.handled_events],
             [
                 {"kind": "test", "order": 2},
                 {"kind": "test", "order": 3},
@@ -461,7 +476,10 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
             recipient=self.parent,
-            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            event_handlers={
+                "test": lambda event, attributes: None,
+                "finish-test": lambda event, attributes: "This is the result.",
+            },
             schema={},
             skip_missing_events_after=0,
         )
@@ -524,7 +542,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
 
         # Check that all the non-missing messages were handled.
         self.assertEqual(
-            event_handler.handled_events,
+            [event["event"] for event in event_handler.handled_events],
             [
                 {"kind": "test", "order": 0},
                 {"kind": "test", "order": 1},
@@ -538,7 +556,10 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
             recipient=self.parent,
-            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            event_handlers={
+                "test": lambda event, attributes: None,
+                "finish-test": lambda event, attributes: "This is the result.",
+            },
             schema={},
             skip_missing_events_after=0,
         )
@@ -642,7 +663,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
 
         # Check that all the non-missing messages were handled.
         self.assertEqual(
-            event_handler.handled_events,
+            [event["event"] for event in event_handler.handled_events],
             [
                 {"kind": "test", "order": 0},
                 {"kind": "test", "order": 1},
@@ -660,7 +681,10 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
             recipient=self.parent,
-            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            event_handlers={
+                "test": lambda event, attributes: None,
+                "finish-test": lambda event, attributes: "This is the result.",
+            },
             schema={},
             skip_missing_events_after=0,
         )
@@ -691,7 +715,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
             logging_context.output[0],
         )
         # Check that the result message was handled.
-        self.assertEqual(event_handler.handled_events, [{"kind": "finish-test", "order": 1000}])
+        self.assertEqual(event_handler.handled_events[0]["event"], {"kind": "finish-test", "order": 1000})
 
 
 class TestPullAndEnqueueAvailableMessages(BaseTestCase):
@@ -726,7 +750,10 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
             recipient=self.parent,
-            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            event_handlers={
+                "test": lambda event, attributes: None,
+                "finish-test": lambda event, attributes: "This is the result.",
+            },
             schema={},
         )
 
@@ -754,14 +781,17 @@ class TestPullAndEnqueueAvailableMessages(BaseTestCase):
         ]
 
         event_handler._pull_and_enqueue_available_events(timeout=10)
-        self.assertEqual(event_handler.waiting_events, {0: mock_message})
+        self.assertEqual(event_handler.waiting_events[0][0], mock_message)
 
     def test_timeout_error_raised_if_result_message_not_received_in_time(self):
         """Test that a timeout error is raised if a result message is not received in time."""
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
             recipient=self.parent,
-            event_handlers={"test": lambda message: None, "finish-test": lambda message: "This is the result."},
+            event_handlers={
+                "test": lambda event, attributes: None,
+                "finish-test": lambda event, attributes: "This is the result.",
+            },
         )
 
         event_handler.child_sdk_version = "0.1.3"
