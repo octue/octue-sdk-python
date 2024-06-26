@@ -440,7 +440,6 @@ class Service:
 
         self._event_handler = GoogleCloudPubSubEventHandler(
             subscription=subscription,
-            recipient=self,
             handle_monitor_message=handle_monitor_message,
             record_events=record_events,
         )

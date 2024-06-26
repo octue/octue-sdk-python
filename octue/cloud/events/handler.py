@@ -36,7 +36,6 @@ class AbstractEventHandler:
     To create a concrete handler for a specific service/communication backend synchronously or asynchronously, inherit
     from this class and add the `handle_events` and `_extract_event_and_attributes` methods.
 
-    :param octue.cloud.pub_sub.service.Service recipient: the `Service` instance that's receiving the events
     :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
     :param bool record_events: if `True`, record received events in the `received_events` attribute
     :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers must not mutate the events.
@@ -48,7 +47,6 @@ class AbstractEventHandler:
 
     def __init__(
         self,
-        recipient,
         handle_monitor_message=None,
         record_events=True,
         event_handlers=None,
@@ -56,7 +54,6 @@ class AbstractEventHandler:
         skip_missing_events_after=10,
         only_handle_result=False,
     ):
-        self.recipient = recipient
         self.handle_monitor_message = handle_monitor_message
         self.record_events = record_events
         self.schema = schema
@@ -143,25 +140,31 @@ class AbstractEventHandler:
             attributes = {}
 
         # Don't assume the presence of specific attributes before validation.
+        recipient = attributes.get("recipient")
         child_sdk_version = attributes.get("sender_sdk_version")
 
         if not is_event_valid(
             event=event,
             attributes=attributes,
-            recipient=self.recipient,
+            recipient=recipient,
             parent_sdk_version=PARENT_SDK_VERSION,
             child_sdk_version=child_sdk_version,
             schema=self.schema,
         ):
             return
 
-        logger.debug("%r: Received an event related to question %r.", self.recipient, attributes["question_uuid"])
+        logger.debug(
+            "%r: Received an event related to question %r.",
+            attributes["recipient"],
+            attributes["question_uuid"],
+        )
+
         order = attributes["order"]
 
         if order in self.waiting_events:
             logger.warning(
                 "%r: Event with duplicate order %d received for question %r - overwriting original event.",
-                self.recipient,
+                attributes["recipient"],
                 order,
                 attributes["question_uuid"],
             )
@@ -229,7 +232,7 @@ class AbstractEventHandler:
         logger.warning(
             "%r: %d consecutive events missing for question %r after %ds - skipping to next earliest waiting event "
             "(event %d).",
-            self.recipient,
+            attributes["recipient"],
             number_of_missing_events,
             attributes["question_uuid"],
             self.skip_missing_events_after,
@@ -263,7 +266,7 @@ class AbstractEventHandler:
         :param dict attributes: the event's attributes
         :return None:
         """
-        logger.info("%r's question was delivered at %s.", self.recipient, event["datetime"])
+        logger.info("%r's question was delivered at %s.", attributes["recipient"], event["datetime"])
 
     def _handle_heartbeat(self, event, attributes):
         """Record the time the heartbeat was received.
@@ -276,7 +279,7 @@ class AbstractEventHandler:
 
         logger.info(
             "%r: Received a heartbeat from service %r for question %r.",
-            self.recipient,
+            attributes["recipient"],
             attributes["sender"],
             attributes["question_uuid"],
         )
@@ -290,7 +293,7 @@ class AbstractEventHandler:
         """
         logger.debug(
             "%r: Received a monitor message from service %r for question %r.",
-            self.recipient,
+            attributes["recipient"],
             attributes["sender"],
             attributes["question_uuid"],
         )
@@ -361,7 +364,7 @@ class AbstractEventHandler:
         :param dict attributes: the event's attributes
         :return dict:
         """
-        logger.info("%r: Received an answer to question %r.", self.recipient, attributes["question_uuid"])
+        logger.info("%r: Received an answer to question %r.", attributes["recipient"], attributes["question_uuid"])
 
         if event.get("output_manifest"):
             output_manifest = Manifest.deserialise(event["output_manifest"])
