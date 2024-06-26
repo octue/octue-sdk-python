@@ -1,5 +1,6 @@
 import logging
 
+import google.api_core.exceptions
 from flask import Flask, request
 
 from octue.cloud.deployment.google.answer_pub_sub_question import answer_question
@@ -66,7 +67,7 @@ def _acknowledge_and_drop_redelivered_questions(question_uuid, retry_count):
 
     if not service_configuration.event_store_table_id:
         logger.warning(
-            "Cannot check if question has been redelivered  as the 'event_store_table_id' key hasn't been set in the "
+            "Cannot check if question has been redelivered as the 'event_store_table_id' key hasn't been set in the "
             "service configuration (`octue.yaml` file)."
         )
         return
@@ -77,6 +78,14 @@ def _acknowledge_and_drop_redelivered_questions(question_uuid, retry_count):
             question_uuid=question_uuid,
             kind="question",
         )
+
+    except google.api_core.exceptions.NotFound:
+        logger.warning(
+            "Cannot check if question has been redelivered as no event store table was found with the ID %r; check "
+            "that the 'event_store_table_id' key in the service configuration (`octue.yaml` file) is correct.",
+            service_configuration.event_store_table_id,
+        )
+        return
 
     # If there are no events for this question UUID, assume this is the first attempt for the question.
     except ValueError:

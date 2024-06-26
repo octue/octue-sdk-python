@@ -5,6 +5,8 @@ import uuid
 from unittest import TestCase
 from unittest.mock import patch
 
+from google.api_core.exceptions import NotFound
+
 from octue.cloud.deployment.google.cloud_run import flask_app
 from octue.configuration import ServiceConfiguration
 from octue.utils.patches import MultiPatcher
@@ -44,9 +46,9 @@ class TestInvalidPayloads(TestCase):
 
 
 class TestQuestionRedelivery(TestCase):
-    def test_warning_logged_if_event_store_cannot_be_checked(self):
+    def test_warning_logged_if_no_event_store_provided(self):
         """Test that a warning is logged if the event store cannot be checked because one hasn't been specified in the
-        service configuration.
+        service configuration, and that the question is allowed to proceed to analysis.
         """
         mock_configuration = copy.deepcopy(MOCK_CONFIGURATION)
         mock_configuration.event_store_table_id = None
@@ -73,8 +75,53 @@ class TestQuestionRedelivery(TestCase):
 
         self.assertTrue(
             logging_context.output[0].endswith(
-                "Cannot check if question has been redelivered  as the 'event_store_table_id' key hasn't been set in "
+                "Cannot check if question has been redelivered as the 'event_store_table_id' key hasn't been set in "
                 "the service configuration (`octue.yaml` file)."
+            )
+        )
+
+        self.assertEqual(response.status_code, 204)
+        mock_answer_question.assert_called_once()
+
+    def test_warning_logged_if_event_store_not_found(self):
+        """Test that a warning is logged if the event store cannot be found and that the question is allowed to proceed
+        to analysis.
+        """
+        mock_configuration = copy.deepcopy(MOCK_CONFIGURATION)
+        mock_configuration.event_store_table_id = "nonexistent.table"
+
+        multi_patcher = MultiPatcher(
+            patches=[
+                patch("octue.configuration.ServiceConfiguration.from_file", return_value=mock_configuration),
+                patch("octue.cloud.deployment.google.cloud_run.flask_app.get_events", side_effect=NotFound("blah")),
+            ]
+        )
+
+        with flask_app.app.test_client() as client:
+            with patch("octue.cloud.deployment.google.cloud_run.flask_app.answer_question") as mock_answer_question:
+                with multi_patcher:
+                    with self.assertLogs(level=logging.WARNING) as logging_context:
+                        response = client.post(
+                            "/",
+                            json={
+                                "deliveryAttempt": 1,
+                                "subscription": "projects/my-project/subscriptions/my-subscription",
+                                "message": {
+                                    "data": {},
+                                    "attributes": {
+                                        "question_uuid": str(uuid.uuid4()),
+                                        "forward_logs": "1",
+                                        "retry_count": 0,
+                                    },
+                                },
+                            },
+                        )
+
+        self.assertTrue(
+            logging_context.output[0].endswith(
+                "Cannot check if question has been redelivered as no event store table was found with the ID "
+                "'nonexistent.table'; check that the 'event_store_table_id' key in the service configuration "
+                "(`octue.yaml` file) is correct."
             )
         )
 
