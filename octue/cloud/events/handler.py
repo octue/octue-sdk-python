@@ -222,7 +222,7 @@ class AbstractEventHandler:
         try:
             event, attributes = self.waiting_events.pop(self._earliest_waiting_event_number)
         except KeyError:
-            return
+            return None, None
 
         number_of_missing_events = self._earliest_waiting_event_number - self._previous_event_number - 1
 
