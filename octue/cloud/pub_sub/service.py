@@ -781,7 +781,7 @@ class Service:
         raise_if_event_is_invalid(
             event=event_for_validation,
             attributes=attributes,
-            recipient=self,
+            recipient=self.id,
             # Don't assume the presence of specific attributes before validation.
             parent_sdk_version=attributes.get("sender_sdk_version"),
             child_sdk_version=importlib.metadata.version("octue"),
