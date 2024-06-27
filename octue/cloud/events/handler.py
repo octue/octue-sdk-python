@@ -217,7 +217,7 @@ class AbstractEventHandler:
     def _skip_to_earliest_waiting_event(self):
         """Get the earliest waiting event and set the event handler up to continue from it.
 
-        :return dict|None: the earliest waiting event if there is one
+        :return (dict, dict)|(None, None): the earliest waiting event and its attributes if there is one
         """
         try:
             event, attributes = self.waiting_events.pop(self._earliest_waiting_event_number)
