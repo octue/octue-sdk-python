@@ -182,7 +182,7 @@ class Child:
                     if raise_errors:
                         raise e
 
-                    answers[question_index] = (e, question["question_uuid"])
+                    answers[question_index] = (e, questions[question_index]["question_uuid"])
 
                     logger.exception(
                         "Question %d failed. Run 'octue get-diagnostics gs://<diagnostics-cloud-path>/%s "
