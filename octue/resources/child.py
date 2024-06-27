@@ -182,13 +182,14 @@ class Child:
                     if raise_errors:
                         raise e
 
-                    answers[question_index] = (e, questions[question_index]["question_uuid"])
+                    question_uuid = questions[question_index]["question_uuid"]
+                    answers[question_index] = (e, question_uuid)
 
                     logger.exception(
                         "Question %d failed. Run 'octue get-diagnostics gs://<diagnostics-cloud-path>/%s "
                         "--download-datasets' to get the crash diagnostics.",
-                        question_index,
-                        questions[question_index]["question_uuid"],
+                        question_uuid,
+                        question_uuid,
                     )
 
         for retry in range(max_retries):
