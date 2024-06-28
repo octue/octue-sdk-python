@@ -67,10 +67,10 @@ class TestCloudRunDeployment(TestCase):
         )
 
         replayer = EventReplayer()
-        result = replayer.handle_events(events)
+        answer = replayer.handle_events(events)
 
         # Check the output values.
-        self.assertEqual(list(result["output_values"]), [1, 2, 3, 4, 5])
+        self.assertEqual(list(answer["output_values"]), [1, 2, 3, 4, 5])
 
-        with result["output_manifest"].datasets["example_dataset"].files.one() as (datafile, f):
+        with answer["output_manifest"].datasets["example_dataset"].files.one() as (datafile, f):
             self.assertEqual(f.read(), "This is some example service output.")
