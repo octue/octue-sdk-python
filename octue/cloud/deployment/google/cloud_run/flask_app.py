@@ -12,6 +12,9 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 
+QUESTION_ACKNOWLEDGMENT_RESPONSE = ("", 204)
+
+
 @app.route("/", methods=["POST"])
 def index():
     """Receive questions from Google Cloud Run in the form of Google Pub/Sub messages.
@@ -41,7 +44,7 @@ def index():
 
     project_name = envelope["subscription"].split("/")[1]
     answer_question(question=question, project_name=project_name)
-    return ("", 204)
+    return QUESTION_ACKNOWLEDGMENT_RESPONSE
 
 
 def _log_bad_request_and_return_400_response(message):
@@ -101,4 +104,4 @@ def _acknowledge_and_drop_redelivered_questions(question_uuid, retry_count):
                 question_uuid,
                 retry_count,
             )
-            return ("", 204)
+            return QUESTION_ACKNOWLEDGMENT_RESPONSE
