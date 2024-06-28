@@ -89,7 +89,7 @@ def _acknowledge_and_drop_redelivered_questions(question_uuid, retry_count):
 
     # If there are no events for this question UUID, assume this is the first attempt for the question.
     if not previous_question_attempts:
-        logger.info("Question %r (retry count %d) is a new question.", question_uuid, retry_count)
+        logger.info("Question %r (retry count %s) is a new question.", question_uuid, retry_count)
         return
 
     # Acknowledge redelivered questions to stop further redundant redelivery and processing.
