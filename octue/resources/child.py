@@ -215,8 +215,8 @@ class Child:
         if log_errors:
             for question_index, question in failed_questions.items():
                 logger.error(
-                    "Question %d failed after %d retries (see below for error).",
-                    question_index,
+                    "Question %s failed after %d retries (see below for error).",
+                    question["question_uuid"],
                     max_retries,
                     exc_info=answers[question_index][0],
                 )
