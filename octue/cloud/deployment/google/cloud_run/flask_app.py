@@ -76,7 +76,7 @@ def _acknowledge_and_drop_redelivered_questions(question_uuid, retry_count):
         previous_question_attempts = get_events(
             table_id=service_configuration.event_store_table_id,
             question_uuid=question_uuid,
-            kind="question",
+            kind="delivery_acknowledgement",
         )
 
     except google.api_core.exceptions.NotFound:
