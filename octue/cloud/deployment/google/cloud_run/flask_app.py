@@ -93,8 +93,8 @@ def _acknowledge_and_drop_redelivered_questions(question_uuid, retry_count):
         return
 
     # Acknowledge redelivered questions to stop further redundant redelivery and processing.
-    for question in previous_question_attempts:
-        if question["attributes"]["retry_count"] == retry_count:
+    for event in previous_question_attempts:
+        if event["attributes"]["retry_count"] == retry_count:
             logger.warning(
                 "Question %r (retry count %s) has already been received by the service. It will now be acknowledged to "
                 "prevent further redundant redelivery and dropped.",
