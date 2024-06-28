@@ -185,7 +185,7 @@ class Child:
                     question_uuid = questions[question_index]["question_uuid"]
                     answers[question_index] = (e, question_uuid)
 
-                    logger.exception(
+                    logger.error(
                         "Question %s failed. Run 'octue get-diagnostics gs://<diagnostics-cloud-path>/%s "
                         "--download-datasets' to get the crash diagnostics.",
                         question_uuid,
