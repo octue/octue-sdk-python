@@ -44,11 +44,12 @@ class TestGetEvents(TestCase):
         with self.assertRaises(ValueError):
             get_events(table_id="blah", question_uuid="blah", kind="frisbee_tournament")
 
-    def test_error_raised_if_no_events_found(self):
-        """Test that an error is raised if no events are found."""
+    def test_no_events_found(self):
+        """Test that an empty list is returned if no events are found for the question UUID."""
         with patch("octue.cloud.pub_sub.bigquery.Client", MockEmptyBigQueryClient):
-            with self.assertRaises(ValueError):
-                get_events(table_id="blah", question_uuid="blah")
+            events = get_events(table_id="blah", question_uuid="blah")
+
+        self.assertEqual(events, [])
 
     def test_without_tail(self):
         """Test the non-tail query."""

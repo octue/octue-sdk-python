@@ -52,8 +52,7 @@ def get_events(
     :param bool include_backend_metadata: if `True`, include the service backend metadata
     :param bool tail: if `True`, return the most recent events (where a limit applies); e.g. return the most recent 100 log records
     :param int limit: the maximum number of events to return
-    :raise ValueError: if no events are found
-    :return list(dict): the events for the question
+    :return list(dict): the events for the question; this will be empty if there are no events for the question
     """
     _validate_inputs(question_uuid, parent_question_uuid, originator_question_uuid, kind)
 
@@ -112,10 +111,7 @@ def get_events(
     result = query_job.result()
 
     if result.total_rows == 0:
-        raise ValueError(
-            f"No events found for question {relevant_question_uuid!r}. Try loosening the query parameters and/or check "
-            f"back later."
-        )
+        return []
 
     events = [_deserialise_event(event) for event in result]
     return _unflatten_events(events)
