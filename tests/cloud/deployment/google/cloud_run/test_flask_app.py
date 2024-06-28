@@ -140,7 +140,7 @@ class TestQuestionRedelivery(TestCase):
         with flask_app.app.test_client() as client:
             with patch("octue.cloud.deployment.google.cloud_run.flask_app.answer_question") as mock_answer_question:
                 with multi_patcher:
-                    with self.assertNoLogs():
+                    with self.assertLogs() as logging_context:
                         response = client.post(
                             "/",
                             json={
@@ -157,6 +157,7 @@ class TestQuestionRedelivery(TestCase):
                             },
                         )
 
+        self.assertTrue(logging_context.output[0].endswith("is a new question."))
         self.assertEqual(response.status_code, 204)
         mock_answer_question.assert_called_once()
 
