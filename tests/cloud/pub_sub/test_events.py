@@ -38,7 +38,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         cls.service_patcher.stop()
 
     def test_timeout(self):
-        """Test that a TimeoutError is raised if message handling takes longer than the given timeout."""
+        """Test that a TimeoutError is raised if event handling takes longer than the given timeout."""
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
             event_handlers={"test": lambda event, attributes: None, "finish-test": lambda event, attributes: event},
@@ -48,7 +48,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         with self.assertRaises(TimeoutError):
             event_handler.handle_events(timeout=0)
 
-    def test_handle_messages(self):
+    def test_handle_events(self):
         """Test events can be handled."""
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
@@ -61,7 +61,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
 
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
-        messages = [
+        events = [
             {
                 "event": {"kind": "test", "order": 0},
                 "attributes": {"sender_type": "CHILD"},
@@ -80,17 +80,17 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
             },
         ]
 
-        for message in messages:
+        for event in events:
             child._emit_event(
-                event=message["event"],
+                event=event["event"],
                 question_uuid=self.question_uuid,
                 parent_question_uuid=None,
                 originator_question_uuid=self.question_uuid,
-                attributes=message["attributes"],
+                attributes=event["attributes"],
                 parent=self.parent.id,
                 originator=self.parent.id,
                 recipient=self.parent.id,
-                order=message["event"]["order"],
+                order=event["event"]["order"],
                 retry_count=0,
             )
 
@@ -108,7 +108,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         )
 
     def test_no_timeout(self):
-        """Test that message handling works with no timeout."""
+        """Test that event handling works with no timeout."""
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
             event_handlers={
@@ -120,7 +120,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
 
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
-        messages = [
+        events = [
             {
                 "event": {"kind": "test", "order": 0},
                 "attributes": {"sender_type": "CHILD"},
@@ -135,17 +135,17 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
             },
         ]
 
-        for message in messages:
+        for event in events:
             child._emit_event(
-                event=message["event"],
+                event=event["event"],
                 question_uuid=self.question_uuid,
                 parent_question_uuid=None,
                 originator_question_uuid=self.question_uuid,
-                attributes=message["attributes"],
+                attributes=event["attributes"],
                 parent=self.parent.id,
                 originator=self.parent.id,
                 recipient=self.parent.id,
-                order=message["event"]["order"],
+                order=event["event"]["order"],
                 retry_count=0,
             )
 
@@ -158,11 +158,11 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         )
 
     def test_delivery_acknowledgement(self):
-        """Test that a delivery acknowledgement message is handled correctly."""
+        """Test that a delivery acknowledgement event is handled correctly."""
         event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription)
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
-        messages = [
+        events = [
             {
                 "event": {
                     "kind": "delivery_acknowledgement",
@@ -177,17 +177,17 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
             },
         ]
 
-        for message in messages:
+        for event in events:
             child._emit_event(
-                event=message["event"],
+                event=event["event"],
                 question_uuid=self.question_uuid,
                 parent_question_uuid=None,
                 originator_question_uuid=self.question_uuid,
-                attributes=message["attributes"],
+                attributes=event["attributes"],
                 parent=self.parent.id,
                 originator=self.parent.id,
                 recipient=self.parent.id,
-                order=message["event"]["order"],
+                order=event["event"]["order"],
                 retry_count=0,
             )
 
@@ -220,7 +220,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
         event_handler._last_heartbeat = datetime.datetime.now()
 
-        messages = [
+        events = [
             {
                 "event": {
                     "kind": "delivery_acknowledgement",
@@ -235,17 +235,17 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
             },
         ]
 
-        for message in messages:
+        for event in events:
             child._emit_event(
-                event=message["event"],
+                event=event["event"],
                 question_uuid=self.question_uuid,
                 parent_question_uuid=None,
                 originator_question_uuid=self.question_uuid,
-                attributes=message["attributes"],
+                attributes=event["attributes"],
                 parent=self.parent.id,
                 originator=self.parent.id,
                 recipient=self.parent.id,
-                order=message["event"]["order"],
+                order=event["event"]["order"],
                 retry_count=0,
             )
 
@@ -261,7 +261,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         self.assertIsNone(event_handler._time_since_last_heartbeat)
 
     def test_total_run_time_is_none_if_handle_events_has_not_been_called(self):
-        """Test that the total run time for the message handler is `None` if the `handle_events` method has not been
+        """Test that the total run time for the event handler is `None` if the `handle_events` method has not been
         called.
         """
         event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription)
@@ -296,7 +296,7 @@ class TestPullAvailableEvents(BaseTestCase):
         cls.service_patcher.stop()
 
     def test_pull_available_events(self):
-        """Test that pulling and enqueuing a message works."""
+        """Test that pulling and enqueuing a event works."""
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
             event_handlers={
@@ -306,12 +306,12 @@ class TestPullAvailableEvents(BaseTestCase):
             schema={},
         )
 
-        # Enqueue a mock message for a mock subscription to receive.
-        mock_message = {"kind": "test"}
+        # Enqueue a mock event for a mock subscription to receive.
+        mock_event = {"kind": "test"}
 
         MESSAGES[self.question_uuid] = [
             MockMessage.from_primitive(
-                mock_message,
+                mock_event,
                 attributes={
                     "order": 0,
                     "question_uuid": self.question_uuid,
@@ -325,10 +325,10 @@ class TestPullAvailableEvents(BaseTestCase):
         ]
 
         events = event_handler._pull_available_events(timeout=10)
-        self.assertEqual(events[0][0], mock_message)
+        self.assertEqual(events[0][0], mock_event)
 
-    def test_timeout_error_raised_if_result_message_not_received_in_time(self):
-        """Test that a timeout error is raised if a result message is not received in time."""
+    def test_timeout_error_raised_if_result_event_not_received_in_time(self):
+        """Test that a timeout error is raised if a result event is not received in time."""
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
             event_handlers={
