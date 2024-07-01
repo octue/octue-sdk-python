@@ -65,7 +65,7 @@ class EventReplayer(AbstractEventHandler):
             if result:
                 return result
 
-        logger.debug("No events (or no valid events) were received.")
+        logger.warning("No events (or no valid events) were received.")
 
     def _extract_event_and_attributes(self, container):
         """Extract an event and its attributes from the event container.
