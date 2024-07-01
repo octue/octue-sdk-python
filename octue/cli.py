@@ -75,8 +75,10 @@ def octue_cli(id, logger_uri, log_level, force_reset):
     "-c",
     "--service-config",
     type=click.Path(dir_okay=False),
-    default="octue.yaml",
-    help="The path to an `octue.yaml` file defining the service to run.",
+    default=None,
+    help="The path to an `octue.yaml` file defining the service to run. If not provided, the "
+    "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
+    "is used.",
 )
 @click.option(
     "--input-dir",

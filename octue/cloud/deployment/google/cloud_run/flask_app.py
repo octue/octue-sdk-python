@@ -5,7 +5,7 @@ from flask import Flask, request
 
 from octue.cloud.deployment.google.answer_pub_sub_question import answer_question
 from octue.cloud.pub_sub.bigquery import get_events
-from octue.configuration import DEFAULT_SERVICE_CONFIGURATION_PATH, ServiceConfiguration
+from octue.configuration import ServiceConfiguration
 
 
 logger = logging.getLogger(__name__)
@@ -66,7 +66,7 @@ def _acknowledge_and_drop_redelivered_questions(question_uuid, retry_count):
     :param int retry_count: the retry count of the question to check
     :return (str, int)|None: an empty response with a 204 HTTP code if the question should be dropped
     """
-    service_configuration = ServiceConfiguration.from_file(DEFAULT_SERVICE_CONFIGURATION_PATH)
+    service_configuration = ServiceConfiguration.from_file()
 
     if not service_configuration.event_store_table_id:
         logger.warning(

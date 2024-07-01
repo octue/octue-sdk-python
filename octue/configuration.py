@@ -73,12 +73,14 @@ class ServiceConfiguration:
             logger.warning(f"The following keyword arguments were not used by {type(self).__name__}: {kwargs!r}.")
 
     @classmethod
-    def from_file(cls, path):
-        """Load a service configuration from a file.
+    def from_file(cls, path=None):
+        """Load a service configuration from a YAML file.
 
-        :param str path:
-        :return ServiceConfiguration:
+        :param str|None path: the path to the service configuration YAML file; if not provided, the `OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` is used
+        :return ServiceConfiguration: the service configuration loaded from the file
         """
+        path = path or os.environ.get("OCTUE_SERVICE_CONFIGURATION_PATH", DEFAULT_SERVICE_CONFIGURATION_PATH)
+
         with open(path) as f:
             raw_service_configuration = yaml.load(f, Loader=yaml.SafeLoader)
 
@@ -137,12 +139,12 @@ class AppConfiguration:
         return cls(**raw_app_configuration)
 
 
-def load_service_and_app_configuration(service_configuration_path):
+def load_service_and_app_configuration(service_configuration_path=None):
     """Load the service configuration from the given YAML file and the app configuration referenced in it. If no app
     configuration is referenced, an empty one is returned.
 
-    :param str service_configuration_path: path to service configuration file
-    :return (octue.configuration.ServiceConfiguration, octue.configuration.AppConfiguration):
+    :param str|None service_configuration_path: the path to the service configuration YAML file; if not provided, the `OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` is used
+    :return (octue.configuration.ServiceConfiguration, octue.configuration.AppConfiguration): the service configuration loaded from the YAML file and the app configuration specified by the service configuration (or an empty app configuration if none is specified)
     """
     service_configuration = ServiceConfiguration.from_file(service_configuration_path)
     app_configuration = AppConfiguration()
