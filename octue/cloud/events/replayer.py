@@ -45,14 +45,15 @@ class EventReplayer(AbstractEventHandler):
         )
 
     def handle_events(self, events):
-        """Handle the given events and return a handled "result" event if one is present.
+        """Handle the given events in datetime order and return a handled "result" event if one is present.
 
         :param iter(dict) events: the events to handle
         :return dict|None: the handled "result" event if present
         """
         super().handle_events()
 
-        for event in events:
+        # Order by datetime but don't assume the presence of specific attributes before validation.
+        for event in sorted(events, key=lambda event: event.get("attributes", {}).get("datetime")):
             event, attributes = self._extract_and_validate_event(event)
 
             # Skip the event if it fails validation.
