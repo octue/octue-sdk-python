@@ -41,7 +41,6 @@ class EventReplayer(AbstractEventHandler):
             record_events=record_events,
             event_handlers=event_handlers,
             schema=schema,
-            skip_missing_events_after=0,
             only_handle_result=only_handle_result,
         )
 
@@ -54,9 +53,18 @@ class EventReplayer(AbstractEventHandler):
         super().handle_events()
 
         for event in events:
-            self._extract_and_enqueue_event(event)
+            event, attributes = self._extract_and_validate_event(event)
 
-        return self._attempt_to_handle_waiting_events()
+            # Skip the event if it fails validation.
+            if not event:
+                continue
+
+            result = self._handle_event(event, attributes)
+
+            if result:
+                return result
+
+        logger.debug("No events (or no valid events) were received.")
 
     def _extract_event_and_attributes(self, container):
         """Extract an event and its attributes from the event container.

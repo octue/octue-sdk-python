@@ -1,7 +1,6 @@
 import abc
 import importlib.metadata
 import logging
-import math
 import os
 import re
 import time
@@ -30,8 +29,7 @@ PARENT_SDK_VERSION = importlib.metadata.version("octue")
 class AbstractEventHandler:
     """An abstract event handler for Octue service events that:
     - Provide handlers for the Octue service event kinds (see https://strands.octue.com/octue/service-communication)
-    - Handles received events in the order specified by the `order` attribute
-    - Skips missing events after a set time and carries on handling from the next available event
+    - Handles received events in the order received
 
     To create a concrete handler for a specific service/communication backend synchronously or asynchronously, inherit
     from this class and add the `handle_events` and `_extract_event_and_attributes` methods.
@@ -40,8 +38,7 @@ class AbstractEventHandler:
     :param bool record_events: if `True`, record received events in the `received_events` attribute
     :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers must not mutate the events.
     :param dict schema: the JSON schema to validate events against
-    :param int|float skip_missing_events_after: the number of seconds after which to skip any events if they haven't arrived but subsequent events have
-    :param bool only_handle_result: if `True`, skip non-result events and only handle the "result" event when received
+    :param bool only_handle_result: if `True`, skip handling non-result events and only handle the "result" event when received
     :return None:
     """
 
@@ -51,7 +48,6 @@ class AbstractEventHandler:
         record_events=True,
         event_handlers=None,
         schema=SERVICE_COMMUNICATION_SCHEMA,
-        skip_missing_events_after=10,
         only_handle_result=False,
     ):
         self.handle_monitor_message = handle_monitor_message
@@ -59,14 +55,8 @@ class AbstractEventHandler:
         self.schema = schema
         self.only_handle_result = only_handle_result
 
-        self.waiting_events = None
         self.handled_events = []
-        self._previous_event_number = -1
         self._start_time = None
-
-        self.skip_missing_events_after = skip_missing_events_after
-        self._missing_event_detection_time = None
-        self._earliest_waiting_event_number = math.inf
 
         self._event_handlers = event_handlers or {
             "delivery_acknowledgement": self._handle_delivery_acknowledgement,
@@ -78,26 +68,6 @@ class AbstractEventHandler:
         }
 
         self._log_message_colours = [COLOUR_PALETTE[1], *COLOUR_PALETTE[3:]]
-
-    @property
-    def awaiting_missing_event(self):
-        """Check if the event handler is currently waiting for a missing event.
-
-        :return bool: `True` if the event handler is currently waiting for a missing event
-        """
-        return self._missing_event_detection_time is not None
-
-    @property
-    def time_since_missing_event(self):
-        """Get the amount of time elapsed since the last missing event was detected. If no missing events have been
-        detected or they've already been skipped, `None` is returned.
-
-        :return float|None:
-        """
-        if not self.awaiting_missing_event:
-            return None
-
-        return time.perf_counter() - self._missing_event_detection_time
 
     @abc.abstractmethod
     def handle_events(self, *args, **kwargs):
@@ -114,8 +84,6 @@ class AbstractEventHandler:
         :return None:
         """
         self._start_time = time.perf_counter()
-        self.waiting_events = {}
-        self._previous_event_number = -1
 
     @abc.abstractmethod
     def _extract_event_and_attributes(self, container):
@@ -126,12 +94,11 @@ class AbstractEventHandler:
         """
         pass
 
-    def _extract_and_enqueue_event(self, container):
-        """Extract an event from its container, validate it, and add it and its attributes to `self.waiting_events` if
-        it's valid.
+    def _extract_and_validate_event(self, container):
+        """Extract an event from its container, validate it, and return it.
 
         :param any container: the container of the event (e.g. a Pub/Sub message)
-        :return None:
+        :return (dict, dict)|(None, None): the event and its attributes if they're valid, or `(None, None)` if they're invalid
         """
         try:
             event, attributes = self._extract_event_and_attributes(container)
@@ -151,7 +118,7 @@ class AbstractEventHandler:
             child_sdk_version=child_sdk_version,
             schema=self.schema,
         ):
-            return
+            return (None, None)
 
         logger.debug(
             "%r: Received an event related to question %r.",
@@ -159,97 +126,15 @@ class AbstractEventHandler:
             attributes["question_uuid"],
         )
 
-        order = attributes["order"]
-
-        if order in self.waiting_events:
-            logger.warning(
-                "%r: Event with duplicate order %d received for question %r - overwriting original event.",
-                attributes["recipient"],
-                order,
-                attributes["question_uuid"],
-            )
-
-        self.waiting_events[order] = (event, attributes)
-
-    def _attempt_to_handle_waiting_events(self):
-        """Attempt to handle any events waiting in `self.waiting_events`. If these events aren't consecutive to the
-        last handled event (i.e. if events have been received out of order and the next in-order event hasn't been
-        received yet), just return. After the missing event wait time has passed, if this set of missing events
-        haven't arrived but subsequent ones have, skip to the earliest waiting event and continue from there.
-
-        :return any|None: either a handled non-`None` "result" event, or `None` if nothing was returned by the event handlers or if the next in-order event hasn't been received yet
-        """
-        # Handle the case where no events (or no valid events) have been received.
-        if not self.waiting_events:
-            logger.debug("No events (or no valid events) were received.")
-            return
-
-        self._earliest_waiting_event_number = min(self.waiting_events.keys())
-
-        while self.waiting_events:
-            try:
-                # If the next consecutive event has been received:
-                event, attributes = self.waiting_events.pop(self._previous_event_number + 1)
-
-            # If the next consecutive event hasn't been received:
-            except KeyError:
-                # Start the missing event timer if it isn't already running.
-                if not self.awaiting_missing_event:
-                    self._missing_event_detection_time = time.perf_counter()
-
-                if self.time_since_missing_event > self.skip_missing_events_after:
-                    event, attributes = self._skip_to_earliest_waiting_event()
-
-                    # Declare there are no more missing events.
-                    self._missing_event_detection_time = None
-
-                    if not event:
-                        return
-
-                else:
-                    return
-
-            result = self._handle_event(event, attributes)
-
-            if result is not None:
-                return result
-
-    def _skip_to_earliest_waiting_event(self):
-        """Get the earliest waiting event and set the event handler up to continue from it.
-
-        :return (dict, dict)|(None, None): the earliest waiting event and its attributes if there is one
-        """
-        try:
-            event, attributes = self.waiting_events.pop(self._earliest_waiting_event_number)
-        except KeyError:
-            return None, None
-
-        number_of_missing_events = self._earliest_waiting_event_number - self._previous_event_number - 1
-
-        # Let the event handler know it can handle the next earliest event.
-        self._previous_event_number = self._earliest_waiting_event_number - 1
-
-        logger.warning(
-            "%r: %d consecutive events missing for question %r after %ds - skipping to next earliest waiting event "
-            "(event %d).",
-            attributes["recipient"],
-            number_of_missing_events,
-            attributes["question_uuid"],
-            self.skip_missing_events_after,
-            self._earliest_waiting_event_number,
-        )
-
-        return event, attributes
+        return (event, attributes)
 
     def _handle_event(self, event, attributes):
-        """Pass an event to its handler and update the previous event number.
+        """Pass an event to its handler and record it if appropriate.
 
         :param dict event: the event to handle
         :param dict attributes: the event's attributes
         :return dict|None: the output of the event (this should be `None` unless the event is a "result" event)
         """
-        self._previous_event_number += 1
-
         if self.record_events:
             self.handled_events.append({"event": event, "attributes": attributes})
 

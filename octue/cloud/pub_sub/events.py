@@ -82,7 +82,6 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         record_events=True,
         event_handlers=None,
         schema=SERVICE_COMMUNICATION_SCHEMA,
-        skip_missing_events_after=10,
     ):
         self.subscription = subscription
 
@@ -91,7 +90,6 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
             record_events=record_events,
             event_handlers=event_handlers,
             schema=schema,
-            skip_missing_events_after=skip_missing_events_after,
         )
 
         self._subscriber = SubscriberClient()
@@ -145,11 +143,17 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
 
             while self._alive:
                 pull_timeout = self._check_timeout_and_get_pull_timeout(timeout)
-                self._pull_and_enqueue_available_events(timeout=pull_timeout)
-                result = self._attempt_to_handle_waiting_events()
+                events = self._pull_available_events(timeout=pull_timeout)
 
-                if result is not None:
-                    return result
+                for event, attributes in events:
+                    result = self._handle_event(event, attributes)
+
+                    # Skip the event if it fails validation.
+                    if not event:
+                        continue
+
+                    if result:
+                        return result
 
         finally:
             self._heartbeat_checker.cancel()
@@ -204,13 +208,13 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
 
         return timeout - total_run_time
 
-    def _pull_and_enqueue_available_events(self, timeout):
-        """Pull as many events from the subscription as are available and enqueue them in `self.waiting_events`,
-        raising a `TimeoutError` if the timeout is exceeded before succeeding.
+    def _pull_available_events(self, timeout):
+        """Pull as many events from the subscription as are available and return them, raising a `TimeoutError` if the
+        timeout is exceeded before succeeding.
 
         :param float|None timeout: how long to wait for the event [s] before raising a `TimeoutError`
         :raise TimeoutError|concurrent.futures.TimeoutError: if the timeout is exceeded
-        :return None:
+        :return list((dict, dict)|(None, None)): a list of event-attributes pairs if the events are valid or `(None, None)` if they're invalid
         """
         pull_start_time = time.perf_counter()
         attempt = 1
@@ -244,8 +248,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
             }
         )
 
-        for event in pull_response.received_messages:
-            self._extract_and_enqueue_event(event)
+        return [self._extract_and_validate_event(event) for event in pull_response.received_messages]
 
     def _extract_event_and_attributes(self, container):
         """Extract an event and its attributes from a Pub/Sub message.
