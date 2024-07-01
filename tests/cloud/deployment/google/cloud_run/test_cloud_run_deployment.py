@@ -48,7 +48,7 @@ class TestCloudRunDeployment(TestCase):
         self.assertIsNone(answer)
 
         # Wait for question to complete.
-        time.sleep(12)
+        time.sleep(15)
 
         events = get_events(
             table_id="octue_sdk_python_test_dataset.service-events",
