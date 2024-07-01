@@ -146,11 +146,11 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
                 events = self._pull_available_events(timeout=pull_timeout)
 
                 for event, attributes in events:
-                    result = self._handle_event(event, attributes)
-
                     # Skip the event if it fails validation.
                     if not event:
                         continue
+
+                    result = self._handle_event(event, attributes)
 
                     if result:
                         return result
