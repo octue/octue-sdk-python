@@ -110,7 +110,10 @@ class Service:
         :return google.cloud.pubsub_v1.PublisherClient:
         """
         if not self._publisher:
-            self._publisher = pubsub_v1.PublisherClient(batch_settings=BATCH_SETTINGS)
+            self._publisher = pubsub_v1.PublisherClient(
+                batch_settings=BATCH_SETTINGS,
+                publisher_options=pubsub_v1.types.PublisherOptions(enable_message_ordering=True),
+            )
 
         return self._publisher
 
