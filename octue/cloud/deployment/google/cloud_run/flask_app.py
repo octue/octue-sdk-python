@@ -34,13 +34,13 @@ def index():
     if "data" not in question or "attributes" not in question or "question_uuid" not in question["attributes"]:
         return _log_bad_request_and_return_400_response(f"Invalid Pub/Sub message format - received {envelope!r}.")
 
-    drop_question_response = _acknowledge_and_drop_redelivered_questions(
+    should_drop_question = _check_if_should_drop_question(
         question_uuid=question["attributes"].get("question_uuid"),
         retry_count=question["attributes"].get("retry_count"),
     )
 
-    if drop_question_response:
-        return drop_question_response
+    if should_drop_question:
+        return QUESTION_ACKNOWLEDGMENT_RESPONSE
 
     project_name = envelope["subscription"].split("/")[1]
     answer_question(question=question, project_name=project_name)
@@ -57,18 +57,16 @@ def _log_bad_request_and_return_400_response(message):
     return (f"Bad Request: {message}", 400)
 
 
-def _acknowledge_and_drop_redelivered_questions(question_uuid, retry_count):
-    """Check if the question has been delivered before and, if it has, acknowledge and drop it. If it's a new question
-    or if the question is an explicit retry (i.e. it's been received before but the retry count is unique), allow it
-    to continue to analysis by returning `None`.
+def _check_if_should_drop_question(question_uuid, retry_count):
+    """Check if the question has been delivered before and should be dropped. If it's a new question or if the question
+    is an explicit retry (i.e. it's been received before but the retry count is unique), return `False`.
 
     To determine if a question is new, the event store is checked for a delivery acknowledgement for the question UUID.
-    If no event store is specified or the specified event store can't be found, the question is allowed to continue to
-    analysis.
+    If no event store is specified or the specified event store can't be found, return `False`.
 
     :param str question_uuid: the UUID of the question to check
     :param str retry_count: the retry count of the question to check (an integer in string form)
-    :return (str, int)|None: an empty response with a 204 HTTP code if the question should be dropped; `None` if the question should continue
+    :return bool: whether the question should be dropped
     """
     service_configuration = ServiceConfiguration.from_file()
 
@@ -77,7 +75,7 @@ def _acknowledge_and_drop_redelivered_questions(question_uuid, retry_count):
             "Cannot check if question has been redelivered as the 'event_store_table_id' key hasn't been set in the "
             "service configuration (`octue.yaml` file)."
         )
-        return
+        return False
 
     try:
         previous_question_attempts = get_events(
@@ -92,12 +90,12 @@ def _acknowledge_and_drop_redelivered_questions(question_uuid, retry_count):
             "that the 'event_store_table_id' key in the service configuration (`octue.yaml` file) is correct.",
             service_configuration.event_store_table_id,
         )
-        return
+        return False
 
     # If there are no events for this question UUID, assume this is the first attempt for the question.
     if not previous_question_attempts:
         logger.info("Question %r (retry count %s) is a new question.", question_uuid, retry_count)
-        return
+        return False
 
     # Acknowledge redelivered questions to stop further redundant redelivery and processing.
     for event in previous_question_attempts:
@@ -108,4 +106,6 @@ def _acknowledge_and_drop_redelivered_questions(question_uuid, retry_count):
                 question_uuid,
                 retry_count,
             )
-            return QUESTION_ACKNOWLEDGMENT_RESPONSE
+            return True
+
+    return False
