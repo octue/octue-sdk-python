@@ -80,3 +80,16 @@ class TestEventReplayer(unittest.TestCase):
                 },
             },
         )
+
+    def test_without_service_metadata_in_logs(self):
+        """Test that log messages are formatted to not include the service metadata if
+        `include_service_metadata_in_logs=False`.
+        """
+        with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
+            events = json.load(f)
+
+        with self.assertLogs() as logging_context:
+            result = EventReplayer(include_service_metadata_in_logs=False).handle_events(events)
+
+        self.assertEqual(logging_context.output[0], "SOMETHING")
+        self.assertEqual(result["output_values"], [1, 2, 3, 4, 5])

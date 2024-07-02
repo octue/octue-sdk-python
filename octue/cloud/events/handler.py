@@ -38,6 +38,7 @@ class AbstractEventHandler:
     :param bool record_events: if `True`, record received events in the `received_events` attribute
     :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers must not mutate the events.
     :param dict schema: the JSON schema to validate events against
+    :param bool include_service_metadata_in_logs: if `True`, include the SRUIDs and question UUIDs of the service revisions involved in the question to the start of the log message
     :param bool only_handle_result: if `True`, skip handling non-result events and only handle the "result" event when received
     :return None:
     """
@@ -48,11 +49,13 @@ class AbstractEventHandler:
         record_events=True,
         event_handlers=None,
         schema=SERVICE_COMMUNICATION_SCHEMA,
+        include_service_metadata_in_logs=True,
         only_handle_result=False,
     ):
         self.handle_monitor_message = handle_monitor_message
         self.record_events = record_events
         self.schema = schema
+        self.include_service_metadata_in_logs = include_service_metadata_in_logs
         self.only_handle_result = only_handle_result
 
         self.handled_events = []
@@ -197,24 +200,30 @@ class AbstractEventHandler:
         """
         record = logging.makeLogRecord(event["log_record"])
 
-        # Add information about the immediate child sending the event and colour it with the first colour in the
-        # colour palette.
-        immediate_child_analysis_section = colourise(
-            f"[{attributes['sender']} | {attributes['question_uuid']}]",
-            text_colour=self._log_message_colours[0],
-        )
-
-        # Colour any analysis sections from children of the immediate child with the rest of the colour palette.
+        # Split the log message into its parts.
         subchild_analysis_sections = [section.strip("[") for section in re.split("] ", record.msg)]
         final_message = subchild_analysis_sections.pop(-1)
 
-        for i in range(len(subchild_analysis_sections)):
-            subchild_analysis_sections[i] = colourise(
-                "[" + subchild_analysis_sections[i] + "]",
-                text_colour=self._log_message_colours[1:][i % len(self._log_message_colours[1:])],
+        if self.include_service_metadata_in_logs:
+            # Get information about the immediate child sending the event and colour it with the first colour in the
+            # colour palette.
+            immediate_child_analysis_section = colourise(
+                f"[{attributes['sender']} | {attributes['question_uuid']}]",
+                text_colour=self._log_message_colours[0],
             )
 
-        record.msg = " ".join([immediate_child_analysis_section, *subchild_analysis_sections, final_message])
+            # Colour any analysis sections from children of the immediate child with the rest of the colour palette.
+            for i in range(len(subchild_analysis_sections)):
+                subchild_analysis_sections[i] = colourise(
+                    "[" + subchild_analysis_sections[i] + "]",
+                    text_colour=self._log_message_colours[1:][i % len(self._log_message_colours[1:])],
+                )
+
+            record.msg = " ".join([immediate_child_analysis_section, *subchild_analysis_sections, final_message])
+
+        else:
+            record.msg = final_message
+
         logger.handle(record)
 
     def _handle_exception(self, event, attributes):

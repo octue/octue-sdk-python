@@ -71,7 +71,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
     :param bool record_events: if `True`, record received events in the `received_events` attribute
     :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers must not mutate the events.
     :param dict|str schema: the JSON schema to validate events against
-    :param int|float skip_missing_events_after: the number of seconds after which to skip any events if they haven't arrived but subsequent events have
+    :param bool include_service_metadata_in_logs: if `True`, include the SRUIDs and question UUIDs of the service revisions involved in the question to the start of the log message
     :return None:
     """
 
@@ -82,6 +82,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         record_events=True,
         event_handlers=None,
         schema=SERVICE_COMMUNICATION_SCHEMA,
+        include_service_metadata_in_logs=True,
     ):
         self.subscription = subscription
 
@@ -90,6 +91,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
             record_events=record_events,
             event_handlers=event_handlers,
             schema=schema,
+            include_service_metadata_in_logs=include_service_metadata_in_logs,
         )
 
         self._subscriber = SubscriberClient()
