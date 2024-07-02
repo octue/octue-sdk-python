@@ -93,7 +93,7 @@ class Child:
         :param str|None originator: the SRUID of the service revision that triggered all ancestor questions of this question;  if `None`, this service revision is assumed to be the originator
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True`, don't wait for an answer or create an answer subscription (the result and other events can be retrieved from the event store later)
-        :param int retry_count:
+        :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer

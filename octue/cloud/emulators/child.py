@@ -130,7 +130,7 @@ class ChildEmulator:
         :param str|None originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True`, don't create an answer subscription
-        :param int retry_count:
+        :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
         :return dict, str: a dictionary containing the keys "output_values" and "output_manifest", and the question UUID

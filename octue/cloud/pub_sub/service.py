@@ -337,7 +337,7 @@ class Service:
         :param str|None originator: the SRUID of the service revision that triggered all ancestor questions of this question; if `None`, this service revision is assumed to the the originator
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True` and not using a push endpoint, don't create an answer subscription
-        :param int retry_count:
+        :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param float|None timeout: time in seconds to keep retrying sending the question
         :return (octue.cloud.pub_sub.subscription.Subscription|None, str): the answer subscription (if the question is synchronous or a push endpoint was used) and question UUID
         """
@@ -472,7 +472,7 @@ class Service:
         :param str parent: the SRUID of the parent that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
-        :param int retry_count:
+        :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param float|None timeout: time in seconds to keep retrying sending of the exception
         :return None:
         """
@@ -536,7 +536,7 @@ class Service:
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param str recipient: the SRUID of the service the event is intended for
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
-        :param int retry_count:
+        :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param dict|None attributes: key-value pairs to attach to the event - the values must be strings or bytes
         :param int|float timeout: the timeout for sending the event in seconds
         :return google.cloud.pubsub_v1.publisher.futures.Future:
@@ -606,7 +606,7 @@ class Service:
         :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param str recipient: the SRUID of the child the question is intended for
-        :param int retry_count:
+        :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -657,7 +657,7 @@ class Service:
         :param str parent: the SRUID of the service that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
-        :param int retry_count:
+        :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -699,7 +699,7 @@ class Service:
         :param str parent: the SRUID of the parent that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
-        :param int retry_count:
+        :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -743,7 +743,7 @@ class Service:
         :param str parent: the SRUID of the service that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
-        :param int retry_count:
+        :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param float timeout: time in seconds to retry sending the message
         :return None:
         """

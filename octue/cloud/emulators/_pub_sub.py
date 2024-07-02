@@ -351,7 +351,7 @@ class MockService(Service):
         :param str|None originator:
         :param str|None push_endpoint:
         :param bool asynchronous:
-        :param int retry_count:
+        :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param float|None timeout:
         :param str parent_sdk_version:
         :return MockFuture, str:
