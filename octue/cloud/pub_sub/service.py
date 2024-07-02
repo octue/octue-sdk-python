@@ -662,10 +662,7 @@ class Service:
         :return None:
         """
         self._emit_event(
-            {
-                "kind": "delivery_acknowledgement",
-                "datetime": datetime.datetime.utcnow().isoformat(),
-            },
+            {"kind": "delivery_acknowledgement"},
             question_uuid=question_uuid,
             parent_question_uuid=parent_question_uuid,
             originator_question_uuid=originator_question_uuid,
@@ -704,10 +701,7 @@ class Service:
         :return None:
         """
         self._emit_event(
-            {
-                "kind": "heartbeat",
-                "datetime": datetime.datetime.utcnow().isoformat(),
-            },
+            {"kind": "heartbeat"},
             question_uuid=question_uuid,
             parent_question_uuid=parent_question_uuid,
             originator_question_uuid=originator_question_uuid,

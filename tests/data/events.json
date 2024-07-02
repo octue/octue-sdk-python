@@ -1,7 +1,6 @@
 [
   {
     "event": {
-      "datetime": "2024-03-06T15:44:18.156044",
       "kind": "delivery_acknowledgement"
     },
     "attributes": {
@@ -269,7 +268,6 @@
   },
   {
     "event": {
-      "datetime": "2024-03-06T15:46:18.167424",
       "kind": "heartbeat"
     },
     "attributes": {

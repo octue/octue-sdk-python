@@ -164,11 +164,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
 
         events = [
             {
-                "event": {
-                    "kind": "delivery_acknowledgement",
-                    "datetime": datetime.datetime.utcnow().isoformat(),
-                    "order": 0,
-                },
+                "event": {"kind": "delivery_acknowledgement", "order": 0},
                 "attributes": {"sender_type": "CHILD"},
             },
             {
@@ -222,11 +218,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
 
         events = [
             {
-                "event": {
-                    "kind": "delivery_acknowledgement",
-                    "datetime": datetime.datetime.utcnow().isoformat(),
-                    "order": 0,
-                },
+                "event": {"kind": "delivery_acknowledgement", "order": 0},
                 "attributes": {"sender_type": "CHILD"},
             },
             {

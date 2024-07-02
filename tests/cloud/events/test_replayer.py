@@ -28,10 +28,7 @@ class TestEventReplayer(unittest.TestCase):
     def test_no_result_event(self):
         """Test that `None` is returned if no result event is received."""
         event = {
-            "event": {
-                "datetime": "2024-03-06T15:44:18.156044",
-                "kind": "delivery_acknowledgement",
-            },
+            "event": {"kind": "delivery_acknowledgement"},
             "attributes": {
                 "datetime": "2024-04-11T10:46:48.236064",
                 "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",

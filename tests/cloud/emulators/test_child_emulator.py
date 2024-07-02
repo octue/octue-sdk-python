@@ -239,13 +239,7 @@ class TestChildEmulatorAsk(BaseTestCase):
 
     def test_heartbeat_events_are_ignored(self):
         """Test that heartbeat events are ignored by the emulator."""
-        events = [
-            {
-                "kind": "heartbeat",
-                "datetime": "2023-11-23T14:25:38.142884",
-            },
-        ]
-
+        events = [{"kind": "heartbeat"}]
         child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
 
         with self.assertLogs(level=logging.WARNING) as logging_context:
