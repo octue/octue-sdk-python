@@ -59,12 +59,16 @@ def _log_bad_request_and_return_400_response(message):
 
 def _acknowledge_and_drop_redelivered_questions(question_uuid, retry_count):
     """Check if the question has been delivered before and, if it has, acknowledge and drop it. If it's a new question
-    or if the question is an explicit retry (i.e. it's been received before but the retry count is unique), don't drop
-    it. Non-dropped questions are added to the list of delivered questions.
+    or if the question is an explicit retry (i.e. it's been received before but the retry count is unique), allow it
+    to continue to analysis by returning `None`.
+
+    To determine if a question is new, the event store is checked for a delivery acknowledgement for the question UUID.
+    If no event store is specified or the specified event store can't be found, the question is allowed to continue to
+    analysis.
 
     :param str question_uuid: the UUID of the question to check
-    :param int retry_count: the retry count of the question to check
-    :return (str, int)|None: an empty response with a 204 HTTP code if the question should be dropped
+    :param str retry_count: the retry count of the question to check (an integer in string form)
+    :return (str, int)|None: an empty response with a 204 HTTP code if the question should be dropped; `None` if the question should continue
     """
     service_configuration = ServiceConfiguration.from_file()
 
@@ -99,8 +103,8 @@ def _acknowledge_and_drop_redelivered_questions(question_uuid, retry_count):
     for event in previous_question_attempts:
         if event["attributes"]["retry_count"] == retry_count:
             logger.warning(
-                "Question %r (retry count %s) has already been received by the service. It will now be acknowledged to "
-                "prevent further redundant redelivery and dropped.",
+                "Question %r (retry count %s) has already been received by the service. It will now be acknowledged and"
+                "dropped to prevent further redundant redelivery.",
                 question_uuid,
                 retry_count,
             )
