@@ -571,6 +571,7 @@ class Service:
             future = self.publisher.publish(
                 topic=self.services_topic.path,
                 data=json.dumps(event, cls=OctueJSONEncoder).encode(),
+                ordering_key=question_uuid,
                 retry=retry.Retry(deadline=timeout),
                 **converted_attributes,
             )
