@@ -89,7 +89,7 @@ class TestEventReplayer(unittest.TestCase):
             events = json.load(f)
 
         with self.assertLogs() as logging_context:
-            result = EventReplayer(include_service_metadata_in_logs=False).handle_events(events)
+            EventReplayer(include_service_metadata_in_logs=False).handle_events(events)
 
-        self.assertEqual(logging_context.output[0], "SOMETHING")
-        self.assertEqual(result["output_values"], [1, 2, 3, 4, 5])
+        for log_message in logging_context.output:
+            self.assertNotIn("[octue/test-service:1.0.0 | d45c7e99-d610-413b-8130-dd6eef46dda6]", log_message)
