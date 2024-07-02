@@ -178,7 +178,7 @@ To emulate your children in tests, patch the :mod:`Child <octue.resources.child.
     emulated_children = [
         ChildEmulator(
             id="octue/my-child-service:2.1.0",
-            internal_service_name="you/your-service:2.1.0",
+            internal_sruid="you/your-service:2.1.0",
             events=[
                 {
                     "type": "result",

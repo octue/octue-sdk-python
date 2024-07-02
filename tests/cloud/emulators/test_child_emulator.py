@@ -239,13 +239,7 @@ class TestChildEmulatorAsk(BaseTestCase):
 
     def test_heartbeat_events_are_ignored(self):
         """Test that heartbeat events are ignored by the emulator."""
-        events = [
-            {
-                "kind": "heartbeat",
-                "datetime": "2023-11-23T14:25:38.142884",
-            },
-        ]
-
+        events = [{"kind": "heartbeat"}]
         child_emulator = ChildEmulator(backend=self.BACKEND, events=events)
 
         with self.assertLogs(level=logging.WARNING) as logging_context:
@@ -272,7 +266,7 @@ class TestChildEmulatorAsk(BaseTestCase):
                 subscription, _ = parent.ask(service_id=child.id, input_values={})
                 parent.wait_for_answer(subscription=subscription)
 
-        child_emulator = ChildEmulator(events=parent.received_events)
+        child_emulator = ChildEmulator(events=[event["event"] for event in parent.received_events])
 
         with self.assertRaises(OSError):
             child_emulator.ask(input_values={})
@@ -295,7 +289,7 @@ class TestChildEmulatorAsk(BaseTestCase):
 
 class TestChildEmulatorJSONFiles(BaseTestCase):
 
-    TEST_FILES_DIRECTORY = os.path.join(TESTS_DIR, "cloud", "emulators", "valid_child_emulator_files")
+    TEST_FILES_DIRECTORY = os.path.join(TESTS_DIR, "data", "valid_child_emulator_files")
 
     def test_with_empty_file(self):
         """Test that a child emulator can be instantiated from an empty JSON file (a JSON file with only an empty

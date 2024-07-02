@@ -46,6 +46,11 @@ resource "google_bigquery_table" "test_table" {
     "mode": "REQUIRED"
   },
   {
+    "name": "parent",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
     "name": "sender",
     "type": "STRING",
     "mode": "REQUIRED"
@@ -64,6 +69,16 @@ resource "google_bigquery_table" "test_table" {
     "name": "recipient",
     "type": "STRING",
     "mode": "REQUIRED"
+  },
+  {
+    "name": "originator_question_uuid",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "parent_question_uuid",
+    "type": "STRING",
+    "mode": "NULLABLE"
   },
   {
     "name": "question_uuid",

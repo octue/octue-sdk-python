@@ -20,12 +20,12 @@ class ChildEmulator:
 
     :param str|None id: the ID of the child; a UUID is generated if none is provided
     :param dict|None backend: a dictionary including the key "name" with a value of the name of the type of backend (e.g. "GCPPubSubBackend") and key-value pairs for any other parameters the chosen backend expects; a mock backend is used if none is provided
-    :param str internal_service_name: the name to give to the internal service used to ask questions to the child
+    :param str internal_sruid: the SRUID to give to the internal service used to ask questions to the child
     :param list(dict)|None events: the list of events to send to the parent
     :return None:
     """
 
-    def __init__(self, id=None, backend=None, internal_service_name="local/local:local", events=None):
+    def __init__(self, id=None, backend=None, internal_sruid="local/local:local", events=None):
         self.events = events or []
 
         backend = copy.deepcopy(backend or {"name": "GCPPubSubBackend", "project_name": "emulated-project"})
@@ -37,7 +37,7 @@ class ChildEmulator:
 
         self._parent = MockService(
             backend=backend,
-            service_id=internal_service_name,
+            service_id=internal_sruid,
             children={self._child.id: self._child},
         )
 
@@ -78,7 +78,7 @@ class ChildEmulator:
         return cls(
             id=serialised_child_emulator.get("id"),
             backend=serialised_child_emulator.get("backend"),
-            internal_service_name=serialised_child_emulator.get("internal_service_name"),
+            internal_sruid=serialised_child_emulator.get("internal_sruid"),
             events=events,
         )
 
@@ -106,8 +106,12 @@ class ChildEmulator:
         handle_monitor_message=None,
         record_events=True,
         question_uuid=None,
+        parent_question_uuid=None,
+        originator_question_uuid=None,
+        originator=None,
         push_endpoint=None,
         asynchronous=False,
+        retry_count=0,
         timeout=86400,
     ):
         """Ask the child emulator a question and receive its emulated response events. Unlike a real child, the input
@@ -121,8 +125,12 @@ class ChildEmulator:
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
         :param bool record_events: if `True`, record events received from the child in the `received_events` property
         :param str|None question_uuid: the UUID to use for the question if a specific one is needed; a UUID is generated if not
+        :param str|None parent_question_uuid: the UUID of the question that triggered this question
+        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
+        :param str|None originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True`, don't create an answer subscription
+        :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
         :return dict, str: a dictionary containing the keys "output_values" and "output_manifest", and the question UUID
@@ -137,8 +145,12 @@ class ChildEmulator:
                 subscribe_to_logs=subscribe_to_logs,
                 allow_local_files=allow_local_files,
                 question_uuid=question_uuid,
+                parent_question_uuid=parent_question_uuid,
+                originator_question_uuid=originator_question_uuid,
+                originator=originator,
                 push_endpoint=push_endpoint,
                 asynchronous=asynchronous,
+                retry_count=retry_count,
             )
 
             answer = self._parent.wait_for_answer(
@@ -159,6 +171,8 @@ class ChildEmulator:
         analysis_log_handler,
         handle_monitor_message,
         save_diagnostics,
+        originator_question_uuid,
+        originator,
     ):
         """Emulate analysis of a question by handling the events given at instantiation in the order given.
 
@@ -169,6 +183,8 @@ class ChildEmulator:
         :param logging.Handler|None analysis_log_handler: the `logging.Handler` instance which will be used to handle logs for this analysis run (this is ignored by the emulator)
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if the analysis fails
+        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
+        :param str|None originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :return octue.resources.analysis.Analysis:
         """
         for event in self.events:
@@ -184,6 +200,8 @@ class ChildEmulator:
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=handle_monitor_message,
                 save_diagnostics=save_diagnostics,
+                originator_question_uuid=originator_question_uuid,
+                originator=originator,
             )
 
             if result:

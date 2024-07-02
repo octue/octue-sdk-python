@@ -1,5 +1,6 @@
 import copy
 import json
+import logging
 import os
 import tempfile
 from unittest.mock import patch
@@ -30,6 +31,14 @@ class TestDataset(BaseTestCase):
         """Test that the length of a Dataset is the number of files it contains."""
         dataset = self.create_valid_dataset()
         self.assertEqual(len(dataset), len(dataset.files))
+
+    def test_empty_dataset_logs_warning(self):
+        """Test that datasets that are empty at instantiation time log a warning."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with self.assertLogs(level=logging.WARNING) as logging_context:
+                Dataset(temporary_directory)
+
+        self.assertIn(f"is empty at instantiation time (path {temporary_directory!r}).", logging_context.output[0])
 
     def test_iter(self):
         """Test that iterating over a Dataset is equivalent to iterating over its files."""
@@ -494,7 +503,7 @@ class TestDataset(BaseTestCase):
         """Test that a nested dataset is loaded from the cloud correctly if it has no `.octue` metadata file in it."""
         dataset_path = self.create_nested_cloud_dataset(dataset_name="nested_dataset_with_no_metadata")
 
-        cloud_dataset = Dataset(path=dataset_path, recursive=True)
+        cloud_dataset = Dataset(path=dataset_path)
 
         self.assertEqual(cloud_dataset.path, dataset_path)
         self.assertEqual(cloud_dataset.name, "nested_dataset_with_no_metadata")
@@ -513,7 +522,6 @@ class TestDataset(BaseTestCase):
 
             dataset = Dataset(
                 path=temporary_directory,
-                recursive=True,
                 id="69253db4-7972-42de-8ccc-61336a28cd50",
                 tags={"cat": "dog"},
                 labels=["animals"],
@@ -521,7 +529,7 @@ class TestDataset(BaseTestCase):
 
             dataset.update_local_metadata()
 
-            dataset_reloaded = Dataset(path=temporary_directory, recursive=True)
+            dataset_reloaded = Dataset(path=temporary_directory)
             self.assertEqual(dataset.id, dataset_reloaded.id)
             self.assertEqual(dataset.tags, dataset_reloaded.tags)
             self.assertEqual(dataset.labels, dataset_reloaded.labels)
@@ -573,7 +581,7 @@ class TestDataset(BaseTestCase):
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
             local_paths = self._create_files_and_nested_subdirectories(temporary_directory)
-            dataset = Dataset(path=temporary_directory, recursive=True)
+            dataset = Dataset(path=temporary_directory)
 
             upload_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "my-dataset")
             dataset.upload(cloud_path=upload_path)
@@ -598,13 +606,13 @@ class TestDataset(BaseTestCase):
         provided.
         """
         dataset_path = self.create_nested_cloud_dataset()
-        dataset = Dataset(path=dataset_path, recursive=True)
+        dataset = Dataset(path=dataset_path)
         dataset.upload()
 
     def test_upload_to_new_location(self):
         """Test that a dataset can be uploaded to a new cloud location."""
         dataset_path = self.create_nested_cloud_dataset()
-        dataset = Dataset(dataset_path)
+        dataset = Dataset(dataset_path, recursive=False)
 
         new_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "new", "dataset", "location")
         dataset.upload(new_cloud_path)
@@ -652,7 +660,7 @@ class TestDataset(BaseTestCase):
         """Test that all files in a nested dataset can be downloaded with one command."""
         dataset_path = self.create_nested_cloud_dataset()
 
-        dataset = Dataset(path=dataset_path, recursive=True)
+        dataset = Dataset(path=dataset_path)
 
         with tempfile.TemporaryDirectory() as temporary_directory:
             dataset.download(local_directory=temporary_directory)
@@ -675,12 +683,12 @@ class TestDataset(BaseTestCase):
         """
         dataset_path = self.create_nested_cloud_dataset()
 
-        dataset = Dataset(path=dataset_path, recursive=True)
+        dataset = Dataset(path=dataset_path)
 
         # Mock the temporary directory created in `Dataset.download_all_files` so we can access it for the test.
         temporary_directory = tempfile.TemporaryDirectory()
 
-        with patch("tempfile.TemporaryDirectory", return_value=temporary_directory):
+        with patch("octue.resources.dataset.RegisteredTemporaryDirectory", return_value=temporary_directory):
             dataset.download()
 
         with open(os.path.join(temporary_directory.name, "file_0.txt")) as f:
@@ -714,7 +722,7 @@ class TestDataset(BaseTestCase):
         """Test that a dataset can be instantiated from a local nested directory including its subdirectories."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             paths = self._create_files_and_nested_subdirectories(temporary_directory)
-            dataset = Dataset(path=temporary_directory, recursive=True)
+            dataset = Dataset(path=temporary_directory)
 
             # Check that all the files from the directory are present in the dataset.
             datafile_paths = {datafile.local_path for datafile in dataset.files}
@@ -765,13 +773,13 @@ class TestDataset(BaseTestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             self._create_files_and_nested_subdirectories(temporary_directory)
 
-            dataset = Dataset(path=temporary_directory, recursive=True)
+            dataset = Dataset(path=temporary_directory)
 
             with dataset:
                 dataset.tags = {"cat": "dog"}
                 dataset.labels = {"animals"}
 
-            reloaded_dataset = Dataset(path=temporary_directory, recursive=True)
+            reloaded_dataset = Dataset(path=temporary_directory)
             self.assertEqual(reloaded_dataset.id, dataset.id)
             self.assertEqual(reloaded_dataset.tags, {"cat": "dog"})
             self.assertEqual(reloaded_dataset.labels, {"animals"})
@@ -779,7 +787,7 @@ class TestDataset(BaseTestCase):
     def test_exiting_context_manager_of_cloud_dataset_updates_cloud_metadata(self):
         """Test that cloud metadata for a cloud dataset is updated on exit of the dataset context manager."""
         dataset_path = self.create_nested_cloud_dataset()
-        dataset = Dataset(path=dataset_path, recursive=True)
+        dataset = Dataset(path=dataset_path)
 
         with dataset:
             dataset.tags = {"cat": "dog"}

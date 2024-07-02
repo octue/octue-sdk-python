@@ -9,8 +9,10 @@ from click.testing import CliRunner
 
 from octue.cli import octue_cli
 from octue.cloud import storage
-from octue.cloud.emulators._pub_sub import MockService, MockTopic
+from octue.cloud.emulators._pub_sub import MockService, MockSubscription, MockTopic
 from octue.cloud.emulators.child import ServicePatcher
+from octue.cloud.events import OCTUE_SERVICES_PREFIX
+from octue.cloud.pub_sub import Topic
 from octue.configuration import AppConfiguration, ServiceConfiguration
 from octue.resources import Dataset
 from octue.utils.patches import MultiPatcher
@@ -423,3 +425,36 @@ class TestDeployCommand(BaseTestCase):
                     self.assertEqual(subscription.call_args.kwargs["name"], "octue.example-service.3-5-0")
                     self.assertEqual(subscription.call_args.kwargs["push_endpoint"], "https://example.com/endpoint")
                     self.assertEqual(subscription.call_args.kwargs["expiration_time"], expected_expiration_time)
+                    self.assertEqual(result.output, "Subscription for 'octue/example-service:3.5.0' created.\n")
+
+    def test_create_push_subscription_when_already_exists(self):
+        """Test attempting to create a push subscription for a service revision when one already exists for it."""
+        sruid = "octue.example-service.3-5-0"
+        push_endpoint = "https://example.com/endpoint"
+
+        with patch("octue.cloud.pub_sub.Topic", new=MockTopic):
+            with patch("octue.cloud.pub_sub.Subscription", new=MockSubscription):
+                subscription = MockSubscription(
+                    name=sruid,
+                    topic=Topic(name=OCTUE_SERVICES_PREFIX, project_name="my-project"),
+                    push_endpoint=push_endpoint,
+                )
+
+                subscription.create()
+
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "deploy",
+                        "create-push-subscription",
+                        "my-project",
+                        "octue",
+                        "example-service",
+                        push_endpoint,
+                        "--revision-tag=3.5.0",
+                    ],
+                )
+
+            self.assertIsNone(result.exception)
+            self.assertEqual(result.exit_code, 0)
+            self.assertEqual(result.output, "Subscription for 'octue/example-service:3.5.0' already exists.\n")

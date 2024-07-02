@@ -33,7 +33,17 @@ class TestAnswerPubSubQuestion(TestCase):
                 "octue.cloud.deployment.google.answer_pub_sub_question.Runner.from_configuration"
             ) as mock_constructor:
                 answer_question(
-                    question={"data": {}, "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"}},
+                    question={
+                        "data": {},
+                        "attributes": {
+                            "question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29",
+                            "parent_question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29",
+                            "originator_question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29",
+                            "parent": "some/originator:service",
+                            "originator": "some/originator:service",
+                            "retry_count": 0,
+                        },
+                    },
                     project_name="a-project-name",
                 )
 
@@ -89,7 +99,14 @@ class TestAnswerPubSubQuestion(TestCase):
                 answer_question(
                     question={
                         "data": {},
-                        "attributes": {"question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29"},
+                        "attributes": {
+                            "question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29",
+                            "parent_question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29",
+                            "originator_question_uuid": "8c859f87-b594-4297-883f-cd1c7718ef29",
+                            "parent": "some/originator:service",
+                            "originator": "some/originator:service",
+                            "retry_count": 0,
+                        },
                     },
                     project_name="a-project-name",
                 )

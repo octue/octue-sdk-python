@@ -4,7 +4,6 @@ import datetime
 import json
 import logging
 import os
-import tempfile
 from collections.abc import Iterable
 
 import coolname
@@ -17,6 +16,7 @@ from octue.mixins import CloudPathable, Hashable, Identifiable, Labelable, Metad
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.utils.encoders import OctueJSONEncoder
+from octue.utils.files import RegisteredTemporaryDirectory
 from octue.utils.metadata import METADATA_FILENAME, UpdateLocalMetadata, load_local_metadata_file
 
 
@@ -62,7 +62,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         self,
         path=None,
         files=None,
-        recursive=False,
+        recursive=True,
         ignore_stored_metadata=False,
         include_octue_metadata_files=False,
         id=None,
@@ -95,6 +95,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             return
 
         self._instantiate_from_local_directory(path=self.path)
+
+        if len(self.files) == 0:
+            logger.warning("%r is empty at instantiation time (path %r).", self, self.path)
 
     @property
     def name(self):
@@ -343,7 +346,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
                 f"You can only download files from a cloud dataset. This dataset's path is {self.path!r}."
             )
 
-        local_directory = os.path.abspath(local_directory or tempfile.TemporaryDirectory().name)
+        local_directory = os.path.abspath(local_directory or RegisteredTemporaryDirectory().name)
         datafiles_and_paths = []
 
         for file in self.files:
