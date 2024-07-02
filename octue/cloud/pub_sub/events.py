@@ -239,7 +239,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
                     raise TimeoutError(f"No message received from {self.subscription.topic!r} after {timeout} seconds.")
 
         if not pull_response.received_messages:
-            return
+            return []
 
         self._subscriber.acknowledge(
             request={
