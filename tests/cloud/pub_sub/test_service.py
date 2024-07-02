@@ -740,8 +740,8 @@ class TestService(BaseTestCase):
         self.assertEqual(parent.received_events[1]["event"]["kind"], "heartbeat")
         self.assertEqual(parent.received_events[2]["event"]["kind"], "heartbeat")
 
-        first_heartbeat_time = datetime.datetime.fromisoformat(parent.received_events[1]["event"]["datetime"])
-        second_heartbeat_time = datetime.datetime.fromisoformat(parent.received_events[2]["event"]["datetime"])
+        first_heartbeat_time = datetime.datetime.fromisoformat(parent.received_events[1]["attributes"]["datetime"])
+        second_heartbeat_time = datetime.datetime.fromisoformat(parent.received_events[2]["attributes"]["datetime"])
 
         self.assertAlmostEqual(
             second_heartbeat_time - first_heartbeat_time,
