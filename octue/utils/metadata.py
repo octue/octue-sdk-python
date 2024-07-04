@@ -108,9 +108,19 @@ def _get_absolute_path(path):
         return os.path.abspath(path)
     except FileNotFoundError:
 
+        logger.warning(
+            f"Attempt to get current working directory to test if this works on non-POSIX filesystem: {os.getcwd()}"
+        )
+
         # Make the directories above the path if `os.path.dirname` doesn't return an empty string.
         if os.path.dirname(path):
-            os.makedirs(os.path.dirname(path), exist_ok=True)
+            # Get around limitations of non-POSIX-compliant filesystems used in Cloud Run to do with directories
+            # (see https://cloud.google.com/storage/docs/gcs-fuse#limitations-and-differences-from-posix-file-systems).
+            try:
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+            except FileNotFoundError:
+                logger.warning("os.makedirs failed on non-POSIX filesystem.")
+                pass
 
         with open(path, "w") as f:
             json.dump({}, f)
