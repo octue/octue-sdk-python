@@ -107,10 +107,7 @@ def _get_absolute_path(path):
     try:
         return os.path.abspath(path)
     except FileNotFoundError:
-
-        logger.warning(
-            f"Attempt to get current working directory to test if this works on non-POSIX filesystem: {os.getcwd()}"
-        )
+        logger.warning("os.path.abspath failed on non-POSIX filesystem.")
 
         # Make the directories above the path if `os.path.dirname` doesn't return an empty string.
         if os.path.dirname(path):
