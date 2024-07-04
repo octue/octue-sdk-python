@@ -180,37 +180,41 @@ class GoogleCloudStorageClient:
         :param str cloud_path: the path to a cloud storage directory to download
         :param callable|None filter: an optional callable to filter which files are downloaded from the cloud path; the callable should take a blob as its only positional argument
         :param bool recursive: if `True`, also download all files in all subdirectories of the cloud directory recursively
-        :return None:
+        :return list(str): the list of paths the files were downloaded to
         """
         bucket, _ = self._get_bucket_and_path_in_bucket(cloud_path)
 
-        cloud_and_local_paths = [
-            {
-                "cloud_path": storage.path.generate_gs_path(bucket.name, blob.name),
-                "local_path": os.path.join(
+        cloud_paths = []
+        local_paths = []
+
+        for blob in self.scandir(cloud_path, filter=filter, recursive=recursive):
+            cloud_paths.append(storage.path.generate_gs_path(bucket.name, blob.name))
+
+            local_paths.append(
+                os.path.join(
                     local_path,
                     storage.path.relpath(
                         storage.path.generate_gs_path(bucket.name, blob.name),
                         cloud_path,
                     ),
-                ),
-            }
-            for blob in self.scandir(cloud_path, filter=filter, recursive=recursive)
-        ]
+                )
+            )
 
-        if not cloud_and_local_paths:
+        if not cloud_paths:
             logger.warning(
                 "Attempted to download files from %r but it appears empty. Please check this is the correct path.",
                 cloud_path,
             )
-            return
+            return []
 
         def download_file(cloud_and_local_path):
-            self.download_to_file(cloud_and_local_path["local_path"], cloud_and_local_path["cloud_path"])
+            self.download_to_file(cloud_and_local_path[0], cloud_and_local_path[1])
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            for path in executor.map(download_file, cloud_and_local_paths):
+            for path in executor.map(download_file, zip(local_paths, cloud_paths)):
                 logger.debug("Downloaded file to %r.", path)
+
+        return local_paths
 
     def download_as_string(self, cloud_path, timeout=_DEFAULT_TIMEOUT):
         """Download a file to a string from a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>.

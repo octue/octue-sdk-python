@@ -307,12 +307,16 @@ def get_diagnostics(cloud_path, local_path, download_datasets):
             )
         )
 
-    GoogleCloudStorageClient().download_all_files(
+    local_paths = GoogleCloudStorageClient().download_all_files(
         local_path=local_path,
         cloud_path=cloud_path,
         filter=filter,
         recursive=True,
     )
+
+    if not local_paths:
+        logger.warning("No diagnostics found at %r.", cloud_path)
+        return
 
     # Update the manifests with the local paths of the datasets.
     if download_datasets:

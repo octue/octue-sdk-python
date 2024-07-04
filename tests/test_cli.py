@@ -268,6 +268,33 @@ class TestGetDiagnosticsCommand(BaseTestCase):
 
         diagnostics.upload(storage.path.join(cls.DIAGNOSTICS_CLOUD_PATH, cls.ANALYSIS_ID))
 
+    def test_warning_logged_if_no_diagnostics_found(self):
+        """Test that a warning about there being no diagnostics is logged if the diagnostics cloud path is empty."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            result = CliRunner().invoke(
+                octue_cli,
+                [
+                    "get-diagnostics",
+                    storage.path.join(self.DIAGNOSTICS_CLOUD_PATH, "9f4ccee3-15b0-4a03-b5ac-c19e1d66a709"),
+                    "--local-path",
+                    temporary_directory,
+                ],
+            )
+
+        self.assertIn(
+            "Attempted to download files from 'gs://octue-sdk-python-test-bucket/diagnostics/9f4ccee3-15b0-4a03-b5ac-"
+            "c19e1d66a709' but it appears empty. Please check this is the correct path.",
+            result.output,
+        )
+
+        self.assertIn(
+            "No diagnostics found at 'gs://octue-sdk-python-test-bucket/diagnostics/9f4ccee3-15b0-4a03-b5ac-"
+            "c19e1d66a709'",
+            result.output,
+        )
+
+        self.assertNotIn("Downloaded diagnostics from", result.output)
+
     def test_get_diagnostics(self):
         """Test that only the values files, manifests, and questions file are downloaded when using the
         `get-diagnostics` CLI command.
