@@ -266,6 +266,7 @@ class Runner:
 
             except Exception as analysis_error:
                 if save_diagnostics in {SAVE_DIAGNOSTICS_ON_CRASH, SAVE_DIAGNOSTICS_ON}:
+                    logger.warning("App failed.")
                     self.diagnostics.upload()
 
                 raise analysis_error
