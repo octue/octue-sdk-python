@@ -49,7 +49,7 @@ def load_local_metadata_file(path=METADATA_FILENAME):
     :param str path: the path to the local metadata file
     :return dict: the contents of the local metadata file
     """
-    absolute_path = _get_absolute_path(path)
+    absolute_path = os.path.abspath(path)
     cached_metadata = _get_metadata_from_cache(absolute_path)
 
     if cached_metadata:
@@ -82,7 +82,7 @@ def overwrite_local_metadata_file(data, path=METADATA_FILENAME):
     :param str path: the path to the local metadata file
     :return None:
     """
-    absolute_path = _get_absolute_path(path)
+    absolute_path = os.path.abspath(path)
     cached_metadata = _get_metadata_from_cache(absolute_path)
 
     if data == cached_metadata:
@@ -94,35 +94,6 @@ def overwrite_local_metadata_file(data, path=METADATA_FILENAME):
     with open(path, "w") as f:
         json.dump(data, f, cls=OctueJSONEncoder, indent=4)
         f.write("\n")
-
-
-def _get_absolute_path(path):
-    """Get the file's absolute path. If the file doesn't exist, create it initialised with an empty JSON object first.
-    This method overcomes the `FileNotFoundError` sometimes raised `os.path.abspath` for a non-existent path (this seems
-    like a bug, but it's unclear).
-
-    :param str path: a path to a file
-    :return str: the absolute path of the file
-    """
-    try:
-        return os.path.abspath(path)
-    except FileNotFoundError:
-        logger.warning("os.path.abspath failed on non-POSIX filesystem.")
-
-        # Make the directories above the path if `os.path.dirname` doesn't return an empty string.
-        if os.path.dirname(path):
-            # Get around limitations of non-POSIX-compliant filesystems used in Cloud Run to do with directories
-            # (see https://cloud.google.com/storage/docs/gcs-fuse#limitations-and-differences-from-posix-file-systems).
-            try:
-                os.makedirs(os.path.dirname(path), exist_ok=True)
-            except FileNotFoundError:
-                logger.warning("os.makedirs failed on non-POSIX filesystem.")
-                pass
-
-        with open(path, "w") as f:
-            json.dump({}, f)
-
-    return os.path.abspath(path)
 
 
 def _get_metadata_from_cache(absolute_path):
