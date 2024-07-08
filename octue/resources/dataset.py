@@ -4,6 +4,7 @@ import datetime
 import json
 import logging
 import os
+import tempfile
 from collections.abc import Iterable
 
 import coolname
@@ -71,7 +72,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         labels=None,
     ):
         super().__init__(name=name, id=id, tags=tags, labels=labels)
-        self.path = path or os.getcwd()
+        self.path = path or tempfile.TemporaryDirectory().name
         self.files = FilterSet()
         self._recursive = recursive
         self._ignore_stored_metadata = ignore_stored_metadata
