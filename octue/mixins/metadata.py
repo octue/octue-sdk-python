@@ -8,6 +8,11 @@ class Metadata:
     _METADATA_ATTRIBUTES = tuple()
 
     @property
+    @abstractmethod
+    def metadata_path(self):
+        pass
+
+    @property
     def metadata_hash_value(self):
         """Get the hash of the instance's metadata, not including its ID.
 

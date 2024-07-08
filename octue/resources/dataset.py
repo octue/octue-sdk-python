@@ -139,7 +139,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         return all(file.exists_in_cloud for file in self.files)
 
     @property
-    def _metadata_path(self):
+    def metadata_path(self):
         """Get the path to the dataset's metadata file.
 
         :return str:
@@ -245,7 +245,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         """
         GoogleCloudStorageClient().upload_from_string(
             string=json.dumps({"dataset": self.to_primitive(include_files=False)}, cls=OctueJSONEncoder),
-            cloud_path=self._metadata_path,
+            cloud_path=self.metadata_path,
         )
 
     def update_local_metadata(self):
@@ -253,7 +253,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         :return None:
         """
-        with UpdateLocalMetadata(self._metadata_path) as existing_metadata_records:
+        with UpdateLocalMetadata(self) as existing_metadata_records:
             existing_metadata_records["dataset"] = self.to_primitive(include_files=False)
             os.makedirs(self.path, exist_ok=True)
 
@@ -493,10 +493,10 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         storage_client = GoogleCloudStorageClient()
 
-        if not storage_client.exists(cloud_path=self._metadata_path):
+        if not storage_client.exists(cloud_path=self.metadata_path):
             return
 
-        self._cloud_metadata = json.loads(storage_client.download_as_string(cloud_path=self._metadata_path)).get(
+        self._cloud_metadata = json.loads(storage_client.download_as_string(cloud_path=self.metadata_path)).get(
             "dataset", {}
         )
 
@@ -519,7 +519,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         :return None:
         """
-        local_metadata = load_local_metadata_file(self._metadata_path)
+        local_metadata = load_local_metadata_file(self)
         dataset_metadata = local_metadata.get("dataset", {})
 
         if not dataset_metadata:
