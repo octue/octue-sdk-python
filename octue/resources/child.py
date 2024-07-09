@@ -159,7 +159,7 @@ class Child:
         # Answers will come out of order, so use a dictionary to store them against their questions' original index.
         answers = {}
         n_questions = len(questions)
-        max_workers = max_workers or min(32, os.cpu_count() + 4, n_questions)
+        max_workers = max_workers or min(32, (os.cpu_count() or 1) + 4, n_questions)
         logger.info("Asking %d questions.", n_questions)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
