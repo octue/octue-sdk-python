@@ -22,6 +22,7 @@ class ServiceConfiguration:
     :param str|None diagnostics_cloud_path: the path to a cloud directory to store diagnostics (this includes the configuration, input values and manifest, and logs for each question)
     :param iter(dict)|None service_registries: the names and endpoints of the registries used to resolve service revisions when asking questions; these should be in priority order (highest priority first)
     :param str|None event_store_table_id: the full ID of the Google BigQuery table used as the event store e.g. "your-project.your-dataset.your-table"
+    :param bool delete_local_files: if `True`, delete any files downloaded and temporary directories created during an analysis once it's finished
     :param str|None directory: if provided, find the app source, twine, and app configuration relative to this directory
     :return None:
     """
@@ -36,6 +37,7 @@ class ServiceConfiguration:
         diagnostics_cloud_path=None,
         service_registries=None,
         event_store_table_id=None,
+        delete_local_files=False,
         directory=None,
         **kwargs,
     ):
@@ -44,6 +46,7 @@ class ServiceConfiguration:
         self.diagnostics_cloud_path = diagnostics_cloud_path
         self.service_registries = service_registries
         self.event_store_table_id = event_store_table_id
+        self.delete_local_files = delete_local_files
 
         if directory:
             directory = os.path.abspath(directory)

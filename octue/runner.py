@@ -47,7 +47,7 @@ class Runner:
     :param str|None diagnostics_cloud_path: the path to a cloud directory to store diagnostics (this includes the configuration, input values and manifest, and logs for each question)
     :param str|None project_name: name of Google Cloud project to get credentials from
     :param str|None service_id: the ID of the service being run
-    :param bool delete_local_files: if `True`, delete any files downloaded during the call to `Runner.run` once the analysis has finished
+    :param bool delete_local_files: if `True`, delete any files downloaded and temporary directories created during an analysis once it's finished
     :return None:
     """
 
@@ -63,7 +63,7 @@ class Runner:
         project_name=None,
         service_id=None,
         service_registries=None,
-        delete_local_files=True,
+        delete_local_files=False,
     ):
         self.app_source = app_src
         self.children = children
@@ -135,6 +135,7 @@ class Runner:
             "project_name": project_name,
             "service_id": service_id,
             "service_registries": service_configuration.service_registries,
+            "delete_local_files": service_configuration.delete_local_files,
         }
 
         inputs |= overrides
