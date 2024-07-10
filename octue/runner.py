@@ -453,32 +453,32 @@ class Runner:
         if save_diagnostics == SAVE_DIAGNOSTICS_ON:
             self.diagnostics.upload()
 
-        # if self.delete_local_files:
-        #     # Delete temporary directories first as this will delete entire downloaded datasets.
-        #     if temporary_directories:
-        #         logger.warning(
-        #             "Deleting registered temporary directories created during analysis. This is not thread-safe - set "
-        #             "`delete_local_files=False` at instantiation of `Runner` to switch this off."
-        #         )
-        #
-        #         for dir in temporary_directories:
-        #             logger.debug("Deleting temporary directory at %r.", dir.name)
-        #             dir.cleanup()
-        #
-        #     # Then delete any datafiles were downloaded separately from a dataset.
-        #     if downloaded_files:
-        #         logger.warning(
-        #             "Deleting datafiles downloaded during analysis. This is not thread-safe - set "
-        #             "`delete_local_files=False` at instantiation of `Runner` to switch this off."
-        #         )
-        #
-        #         for path in downloaded_files:
-        #             if not os.path.exists(path):
-        #                 continue
-        #
-        #             logger.debug("Deleting downloaded file at %r.", path)
-        #
-        #             try:
-        #                 os.remove(path)
-        #             except FileNotFoundError:
-        #                 logger.debug("Couldn't delete %r - it was already deleted.", path)
+        if self.delete_local_files:
+            # Delete temporary directories first as this will delete entire downloaded datasets.
+            if temporary_directories:
+                logger.warning(
+                    "Deleting registered temporary directories created during analysis. This is not thread-safe - set "
+                    "`delete_local_files=False` at instantiation of `Runner` to switch this off."
+                )
+
+                for dir in temporary_directories:
+                    logger.debug("Deleting temporary directory at %r.", dir.name)
+                    dir.cleanup()
+
+            # Then delete any datafiles were downloaded separately from a dataset.
+            if downloaded_files:
+                logger.warning(
+                    "Deleting datafiles downloaded during analysis. This is not thread-safe - set "
+                    "`delete_local_files=False` at instantiation of `Runner` to switch this off."
+                )
+
+                for path in downloaded_files:
+                    if not os.path.exists(path):
+                        continue
+
+                    logger.debug("Deleting downloaded file at %r.", path)
+
+                    try:
+                        os.remove(path)
+                    except FileNotFoundError:
+                        logger.debug("Couldn't delete %r - it was already deleted.", path)
