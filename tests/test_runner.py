@@ -468,7 +468,7 @@ class TestRunner(BaseTestCase):
 
             analysis.output_values = {"downloaded_file_path": datafile.local_path}
 
-        analysis = Runner(app_src=app_that_downloads_datafile, twine=twine).run()
+        analysis = Runner(app_src=app_that_downloads_datafile, twine=twine, delete_local_files=True).run()
 
         self.assertFalse(os.path.exists(analysis.output_values["downloaded_file_path"]))
         self.assertFalse(os.path.exists(temporary_directories[0].name))
