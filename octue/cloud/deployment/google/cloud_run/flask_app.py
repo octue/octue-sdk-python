@@ -101,8 +101,8 @@ def _check_if_should_drop_question(question_uuid, retry_count):
     for event in previous_question_attempts:
         if event["attributes"]["retry_count"] == retry_count:
             logger.warning(
-                "Question %r (retry count %s) has already been received by the service. It will now be acknowledged and"
-                "dropped to prevent further redundant redelivery.",
+                "Question %r (retry count %s) has already been received by the service. It will now be acknowledged "
+                "and dropped to prevent further redundant redelivery.",
                 question_uuid,
                 retry_count,
             )
