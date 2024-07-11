@@ -154,13 +154,11 @@ def _deserialise_event(event):
         event["parent_question_uuid"] = None
 
     # Convert string-cast attributes back to `bool` or `int`.
-    event["order"] = int(event["order"])
-
     other_attributes = event["other_attributes"]
-    other_attributes["retry_count"] = int(other_attributes.pop("retry_count"))
+    other_attributes["retry_count"] = int(other_attributes.get("retry_count"))
 
     if other_attributes.get("forward_logs"):
-        other_attributes["forward_logs"] = bool(int(other_attributes.pop("forward_logs")))
+        other_attributes["forward_logs"] = bool(int(other_attributes.get("forward_logs")))
 
     return event
 
