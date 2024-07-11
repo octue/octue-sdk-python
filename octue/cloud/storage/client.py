@@ -207,8 +207,8 @@ class GoogleCloudStorageClient:
             )
             return []
 
-        def download_file(cloud_and_local_path):
-            self.download_to_file(cloud_and_local_path[0], cloud_and_local_path[1])
+        def download_file(local_and_cloud_path):
+            self.download_to_file(local_and_cloud_path[0], local_and_cloud_path[1])
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             for path in executor.map(download_file, zip(local_paths, cloud_paths)):
