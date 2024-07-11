@@ -47,8 +47,8 @@ class TestInvalidPayloads(TestCase):
 
 class TestQuestionRedelivery(TestCase):
     def test_warning_logged_if_no_event_store_provided(self):
-        """Test that a warning is logged if the event store cannot be checked because one hasn't been specified in the
-        service configuration, and that the question is allowed to proceed to analysis.
+        """Test that the question is allowed to proceed to analysis and a warning is logged if the event store cannot be
+        checked because one hasn't been specified in the service configuration.
         """
         mock_configuration = copy.deepcopy(MOCK_CONFIGURATION)
         mock_configuration.event_store_table_id = None
@@ -84,8 +84,8 @@ class TestQuestionRedelivery(TestCase):
         mock_answer_question.assert_called_once()
 
     def test_warning_logged_if_event_store_not_found(self):
-        """Test that a warning is logged if the event store cannot be found and that the question is allowed to proceed
-        to analysis.
+        """Test that the question is allowed to proceed to analysis and a warning is logged if the event store cannot be
+        found.
         """
         mock_configuration = copy.deepcopy(MOCK_CONFIGURATION)
         mock_configuration.event_store_table_id = "nonexistent.table"
@@ -177,21 +177,28 @@ class TestQuestionRedelivery(TestCase):
 
         with flask_app.app.test_client() as client:
             with patch("octue.cloud.deployment.google.cloud_run.flask_app.answer_question") as mock_answer_question:
-                with multi_patcher:
-                    response = client.post(
-                        "/",
-                        json={
-                            "subscription": "projects/my-project/subscriptions/my-subscription",
-                            "message": {
-                                "data": {},
-                                "attributes": {
-                                    "question_uuid": question_uuid,
-                                    "forward_logs": "1",
-                                    "retry_count": "0",
+                with self.assertLogs(level=logging.WARNING) as logging_context:
+                    with multi_patcher:
+                        response = client.post(
+                            "/",
+                            json={
+                                "subscription": "projects/my-project/subscriptions/my-subscription",
+                                "message": {
+                                    "data": {},
+                                    "attributes": {
+                                        "question_uuid": question_uuid,
+                                        "forward_logs": "1",
+                                        "retry_count": "0",
+                                    },
                                 },
                             },
-                        },
-                    )
+                        )
+
+        self.assertIn(
+            "has already been received by the service. It will now be acknowledged and dropped to prevent further "
+            "redundant redelivery.",
+            logging_context.output[0],
+        )
 
         self.assertEqual(response.status_code, 204)
         mock_answer_question.assert_not_called()
