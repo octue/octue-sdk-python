@@ -740,7 +740,7 @@ class Service:
         """Parse a question in the Google Cloud Run or Google Pub/Sub format.
 
         :param dict|google.cloud.pubsub_v1.subscriber.message.Message question: the question to parse in Google Cloud Run or Google Pub/Sub format
-        :return (dict, str, str, str, bool, str, str, str, str): the question's event and its attributes (question UUID, parent question UUID, originator question UUID, whether to forward logs, the Octue SDK version of the parent, whether to save diagnostics, the SRUID of the parent that asked the question, the SRUID of the service revision that triggered all ancestor questions of this question, and the retry count)
+        :return (dict, str, str, str, bool, str, str, str, str, int): the question's event and its attributes (question UUID, parent question UUID, originator question UUID, whether to forward logs, the Octue SDK version of the parent, whether to save diagnostics, the SRUID of the parent that asked the question, the SRUID of the service revision that triggered all ancestor questions of this question, and the retry count)
         """
         logger.info("%r received a question.", self)
 
