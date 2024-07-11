@@ -28,13 +28,7 @@ def answer_question(question, project_name):
     )
 
     service = Service(service_id=service_sruid, backend=GCPPubSubBackend(project_name=project_name))
-
     question_uuid = get_nested_attribute(question, "attributes.question_uuid")
-    parent_question_uuid = get_nested_attribute(question, "attributes.parent_question_uuid")
-    originator_question_uuid = get_nested_attribute(question, "attributes.originator_question_uuid")
-    parent = get_nested_attribute(question, "attributes.parent")
-    originator = get_nested_attribute(question, "attributes.originator")
-    retry_count = get_nested_attribute(question, "attributes.retry_count")
 
     try:
         runner = Runner.from_configuration(
@@ -51,11 +45,11 @@ def answer_question(question, project_name):
     except BaseException as error:  # noqa
         service.send_exception(
             question_uuid=question_uuid,
-            parent_question_uuid=parent_question_uuid,
-            originator_question_uuid=originator_question_uuid,
-            parent=parent,
-            originator=originator,
-            retry_count=retry_count,
+            parent_question_uuid=get_nested_attribute(question, "attributes.parent_question_uuid"),
+            originator_question_uuid=get_nested_attribute(question, "attributes.originator_question_uuid"),
+            parent=get_nested_attribute(question, "attributes.parent"),
+            originator=get_nested_attribute(question, "attributes.originator"),
+            retry_count=get_nested_attribute(question, "attributes.retry_count"),
         )
 
         logger.exception(error)
