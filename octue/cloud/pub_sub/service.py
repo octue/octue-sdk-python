@@ -513,8 +513,8 @@ class Service:
         - `sender`
         - `sender_sdk_version`
         - `recipient`
-        - `datetime`
         - `retry_count`
+        - `datetime`
 
         :param dict event: JSON-serialisable data to emit as an event
         :param str question_uuid:
@@ -529,17 +529,22 @@ class Service:
         :return google.cloud.pubsub_v1.publisher.futures.Future:
         """
         attributes = attributes or {}
-        attributes["uuid"] = str(uuid.uuid4())
-        attributes["question_uuid"] = question_uuid
-        attributes["parent_question_uuid"] = parent_question_uuid
-        attributes["originator_question_uuid"] = originator_question_uuid
-        attributes["parent"] = parent
-        attributes["originator"] = originator
-        attributes["sender"] = self.id
-        attributes["sender_sdk_version"] = self._local_sdk_version
-        attributes["recipient"] = recipient
-        attributes["retry_count"] = retry_count
-        attributes["datetime"] = datetime.datetime.utcnow().isoformat()
+
+        attributes.update(
+            {
+                "uuid": str(uuid.uuid4()),
+                "datetime": datetime.datetime.utcnow().isoformat(),
+                "question_uuid": question_uuid,
+                "parent_question_uuid": parent_question_uuid,
+                "originator_question_uuid": originator_question_uuid,
+                "parent": parent,
+                "originator": originator,
+                "sender": self.id,
+                "sender_sdk_version": self._local_sdk_version,
+                "recipient": recipient,
+                "retry_count": retry_count,
+            }
+        )
 
         converted_attributes = {}
 
