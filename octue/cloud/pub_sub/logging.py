@@ -16,6 +16,7 @@ class GoogleCloudPubSubHandler(logging.Handler):
     :param str originator: the SRUID of the service revision that triggered the tree of questions these log records are related to
     :param str recipient: the SRUID of the service to send these log records to
     :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
+    :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
     :param float timeout: timeout in seconds for attempting to publish each log record
     :return None:
     """
