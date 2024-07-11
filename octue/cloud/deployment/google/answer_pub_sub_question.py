@@ -1,6 +1,5 @@
 import logging
 
-from octue.cloud.events.counter import EventCounter
 from octue.cloud.pub_sub.service import Service
 from octue.cloud.service_id import create_sruid, get_sruid_parts
 from octue.configuration import load_service_and_app_configuration
@@ -37,8 +36,6 @@ def answer_question(question, project_name):
     originator = get_nested_attribute(question, "attributes.originator")
     retry_count = get_nested_attribute(question, "attributes.retry_count")
 
-    order = EventCounter()
-
     try:
         runner = Runner.from_configuration(
             service_configuration=service_configuration,
@@ -48,7 +45,7 @@ def answer_question(question, project_name):
         )
 
         service.run_function = runner.run
-        service.answer(question, order)
+        service.answer(question)
         logger.info("Analysis successfully run and response sent for question %r.", question_uuid)
 
     except BaseException as error:  # noqa
@@ -58,7 +55,6 @@ def answer_question(question, project_name):
             originator_question_uuid=originator_question_uuid,
             parent=parent,
             originator=originator,
-            order=order,
             retry_count=retry_count,
         )
 

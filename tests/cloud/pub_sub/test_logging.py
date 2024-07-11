@@ -5,7 +5,6 @@ from unittest.mock import patch
 
 from octue.cloud.emulators._pub_sub import MESSAGES, MockService
 from octue.cloud.emulators.child import ServicePatcher
-from octue.cloud.events.counter import EventCounter
 from octue.cloud.pub_sub.logging import GoogleCloudPubSubHandler
 from octue.resources.service_backends import GCPPubSubBackend
 from tests.base import BaseTestCase
@@ -49,7 +48,6 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
             parent="another/service:1.0.0",
             originator="another/service:1.0.0",
             recipient="another/service:1.0.0",
-            order=EventCounter(),
             retry_count=0,
         ).emit(log_record)
 
@@ -84,7 +82,6 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
                 parent="another/service:1.0.0",
                 originator="another/service:1.0.0",
                 recipient="another/service:1.0.0",
-                order=EventCounter(),
                 retry_count=0,
             ).emit(record)
 

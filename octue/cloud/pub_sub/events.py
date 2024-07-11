@@ -29,11 +29,8 @@ def extract_event_and_attributes_from_pub_sub_message(message):
     # Cast attributes to a dictionary to avoid defaultdict-like behaviour from Pub/Sub message attributes container.
     attributes = dict(getattr_or_subscribe(message, "attributes"))
 
-    # Deserialise the `order`, `parent_question_uuid`, `forward_logs`, and `retry_count`, fields if they're present
+    # Deserialise the `parent_question_uuid`, `forward_logs`, and `retry_count`, fields if they're present
     # (don't assume they are before validation).
-    if attributes.get("order"):
-        attributes["order"] = int(attributes["order"])
-
     if attributes.get("parent_question_uuid") == "null":
         attributes["parent_question_uuid"] = None
 

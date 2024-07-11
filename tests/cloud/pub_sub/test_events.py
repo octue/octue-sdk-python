@@ -90,7 +90,6 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 parent=self.parent.id,
                 originator=self.parent.id,
                 recipient=self.parent.id,
-                order=event["event"]["order"],
                 retry_count=0,
             )
 
@@ -145,7 +144,6 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 parent=self.parent.id,
                 originator=self.parent.id,
                 recipient=self.parent.id,
-                order=event["event"]["order"],
                 retry_count=0,
             )
 
@@ -183,7 +181,6 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 parent=self.parent.id,
                 originator=self.parent.id,
                 recipient=self.parent.id,
-                order=event["event"]["order"],
                 retry_count=0,
             )
 
@@ -237,7 +234,6 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
                 parent=self.parent.id,
                 originator=self.parent.id,
                 recipient=self.parent.id,
-                order=event["event"]["order"],
                 retry_count=0,
             )
 
@@ -305,7 +301,6 @@ class TestPullAvailableEvents(BaseTestCase):
             MockMessage.from_primitive(
                 mock_event,
                 attributes={
-                    "order": 0,
                     "question_uuid": self.question_uuid,
                     "parent": self.parent.id,
                     "sender": self.parent.id,

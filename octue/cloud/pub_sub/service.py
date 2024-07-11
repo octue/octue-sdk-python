@@ -5,7 +5,6 @@ import functools
 import importlib.metadata
 import json
 import logging
-import threading
 import uuid
 
 import google.api_core.exceptions
@@ -15,7 +14,6 @@ from google.cloud import pubsub_v1
 
 import octue.exceptions
 from octue.cloud.events import OCTUE_SERVICES_PREFIX
-from octue.cloud.events.counter import EventCounter
 from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler, extract_event_and_attributes_from_pub_sub_message
@@ -37,10 +35,6 @@ from octue.utils.threads import RepeatingTimer
 
 logger = logging.getLogger(__name__)
 
-# A lock to ensure only one event can be emitted at a time so that the order is incremented correctly when events are
-# being emitted on multiple threads (e.g. via the main thread and a periodic monitor message thread). This avoids 1)
-# events overwriting each other in the parent's message handler and 2) events losing their order.
-emit_event_lock = threading.Lock()
 
 DEFAULT_NAMESPACE = "default"
 ANSWERS_NAMESPACE = "answers"
@@ -205,19 +199,16 @@ class Service:
 
         return future, subscriber
 
-    def answer(self, question, order=None, heartbeat_interval=120, timeout=30):
+    def answer(self, question, heartbeat_interval=120, timeout=30):
         """Answer a question from a parent - i.e. run the child's app on the given data and return the output values.
         Answers conform to the output values and output manifest schemas specified in the child's Twine file.
 
         :param dict|google.cloud.pubsub_v1.subscriber.message.Message question:
-        :param octue.cloud.events.counter.EventCounter|None order: an event counter keeping track of the order of emitted events
         :param int|float heartbeat_interval: the time interval, in seconds, at which to send heartbeats
         :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
         :return None:
         """
-        order = order or EventCounter()
-
         try:
             (
                 question,
@@ -242,7 +233,6 @@ class Service:
             "originator_question_uuid": originator_question_uuid,
             "parent": parent,
             "originator": originator,
-            "order": order,
             "retry_count": retry_count,
         }
 
@@ -463,7 +453,6 @@ class Service:
         originator_question_uuid,
         parent,
         originator,
-        order,
         retry_count,
         timeout=30,
     ):
@@ -474,7 +463,6 @@ class Service:
         :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
         :param str parent: the SRUID of the parent that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
-        :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param float|None timeout: time in seconds to keep retrying sending of the exception
         :return None:
@@ -495,7 +483,6 @@ class Service:
             parent=parent,
             originator=originator,
             recipient=parent,
-            order=order,
             retry_count=retry_count,
             attributes={"sender_type": CHILD_SENDER_TYPE},
             timeout=timeout,
@@ -510,14 +497,13 @@ class Service:
         parent,
         originator,
         recipient,
-        order,
         retry_count,
         attributes=None,
         timeout=30,
     ):
-        """Emit a JSON-serialised event as a Pub/Sub message to the services topic with optional message attributes,
-        incrementing the `order` argument by one. This method is thread-safe. Extra attributes can be added to an event
-        via the `attributes` argument but the following attributes are always included:
+        """Emit a JSON-serialised event as a Pub/Sub message to the services topic with optional message attributes.
+        Extra attributes can be added to an event via the `attributes` argument but the following attributes are always
+        included:
         - `uuid` (event UUID)
         - `question_uuid`
         - `parent_question_uuid`
@@ -527,7 +513,6 @@ class Service:
         - `sender`
         - `sender_sdk_version`
         - `recipient`
-        - `order`
         - `datetime`
         - `retry_count`
 
@@ -538,7 +523,6 @@ class Service:
         :param str parent: the SRUID of the parent that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param str recipient: the SRUID of the service the event is intended for
-        :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param dict|None attributes: key-value pairs to attach to the event - the values must be strings or bytes
         :param int|float timeout: the timeout for sending the event in seconds
@@ -555,31 +539,27 @@ class Service:
         attributes["sender_sdk_version"] = self._local_sdk_version
         attributes["recipient"] = recipient
         attributes["retry_count"] = retry_count
+        attributes["datetime"] = datetime.datetime.utcnow().isoformat()
 
-        with emit_event_lock:
-            attributes["order"] = int(order)
-            attributes["datetime"] = datetime.datetime.utcnow().isoformat()
-            converted_attributes = {}
+        converted_attributes = {}
 
-            for key, value in attributes.items():
-                if isinstance(value, bool):
-                    value = str(int(value))
-                elif isinstance(value, (int, float)):
-                    value = str(value)
-                elif value is None:
-                    value = json.dumps(value)
+        for key, value in attributes.items():
+            if isinstance(value, bool):
+                value = str(int(value))
+            elif isinstance(value, (int, float)):
+                value = str(value)
+            elif value is None:
+                value = json.dumps(value)
 
-                converted_attributes[key] = value
+            converted_attributes[key] = value
 
-            future = self.publisher.publish(
-                topic=self.services_topic.path,
-                data=json.dumps(event, cls=OctueJSONEncoder).encode(),
-                ordering_key=question_uuid,
-                retry=retry.Retry(deadline=timeout),
-                **converted_attributes,
-            )
-
-            order += 1
+        future = self.publisher.publish(
+            topic=self.services_topic.path,
+            data=json.dumps(event, cls=OctueJSONEncoder).encode(),
+            ordering_key=question_uuid,
+            retry=retry.Retry(deadline=timeout),
+            **converted_attributes,
+        )
 
         return future
 
@@ -628,7 +608,6 @@ class Service:
             parent=self.id,
             originator=originator,
             recipient=recipient,
-            order=EventCounter(),
             retry_count=retry_count,
             attributes={
                 "forward_logs": forward_logs,
@@ -649,7 +628,6 @@ class Service:
         originator_question_uuid,
         parent,
         originator,
-        order,
         retry_count,
         timeout=30,
     ):
@@ -660,7 +638,6 @@ class Service:
         :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
         :param str parent: the SRUID of the service that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
-        :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param float timeout: time in seconds after which to give up sending
         :return None:
@@ -674,7 +651,6 @@ class Service:
             parent=parent,
             originator=originator,
             recipient=parent,
-            order=order,
             retry_count=retry_count,
             attributes={"sender_type": CHILD_SENDER_TYPE},
         )
@@ -688,7 +664,6 @@ class Service:
         originator_question_uuid,
         parent,
         originator,
-        order,
         retry_count,
         timeout=30,
     ):
@@ -699,7 +674,6 @@ class Service:
         :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
         :param str parent: the SRUID of the parent that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
-        :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param float timeout: time in seconds after which to give up sending
         :return None:
@@ -712,7 +686,6 @@ class Service:
             parent=parent,
             originator=originator,
             recipient=parent,
-            order=order,
             retry_count=retry_count,
             attributes={"sender_type": CHILD_SENDER_TYPE},
             timeout=timeout,
@@ -728,7 +701,6 @@ class Service:
         originator_question_uuid,
         parent,
         originator,
-        order,
         retry_count,
         timeout=30,
     ):
@@ -740,7 +712,6 @@ class Service:
         :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
         :param str parent: the SRUID of the service that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
-        :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
         :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param float timeout: time in seconds to retry sending the message
         :return None:
@@ -753,7 +724,6 @@ class Service:
             parent=parent,
             originator=originator,
             recipient=parent,
-            order=order,
             retry_count=retry_count,
             timeout=timeout,
             attributes={"sender_type": CHILD_SENDER_TYPE},

@@ -403,7 +403,6 @@ class MockService(Service):
                         "originator_question_uuid": originator_question_uuid,
                         "forward_logs": subscribe_to_logs,
                         "save_diagnostics": save_diagnostics,
-                        "order": 0,
                         "parent": self.id,
                         "originator": originator,
                         "sender": self.id,

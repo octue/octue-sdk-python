@@ -59,7 +59,7 @@ class TestGetEvents(TestCase):
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
-            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
+            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, "
             "`other_attributes` FROM `blah`\nWHERE question_uuid=@relevant_question_uuid\n"
             "ORDER BY `datetime` ASC\n"
             "LIMIT @limit",
@@ -74,7 +74,7 @@ class TestGetEvents(TestCase):
             mock_client.mock_calls[1].args[0],
             "SELECT * FROM (\n"
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
-            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
+            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, "
             "`other_attributes` FROM `blah`\nWHERE question_uuid=@relevant_question_uuid\n"
             "ORDER BY `datetime` DESC\n"
             "LIMIT @limit\n"
@@ -90,7 +90,7 @@ class TestGetEvents(TestCase):
             mock_client.mock_calls[1].args[0],
             "SELECT * FROM (\n"
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
-            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
+            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, "
             "`other_attributes` FROM `blah`\nWHERE question_uuid=@relevant_question_uuid\nAND kind='result'\n"
             "ORDER BY `datetime` DESC\n"
             "LIMIT @limit\n"
@@ -106,7 +106,7 @@ class TestGetEvents(TestCase):
             mock_client.mock_calls[1].args[0],
             "SELECT * FROM (\n"
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
-            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
+            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, "
             "`other_attributes`, `backend`, `backend_metadata` FROM `blah`\n"
             "WHERE question_uuid=@relevant_question_uuid\n"
             "ORDER BY `datetime` DESC\n"
@@ -122,7 +122,7 @@ class TestGetEvents(TestCase):
             mock_client.mock_calls[1].args[0],
             "SELECT * FROM (\n"
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
-            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
+            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, "
             "`other_attributes` FROM `blah`\nWHERE parent_question_uuid=@relevant_question_uuid\n"
             "ORDER BY `datetime` DESC\n"
             "LIMIT @limit\n"
@@ -137,7 +137,7 @@ class TestGetEvents(TestCase):
             mock_client.mock_calls[1].args[0],
             "SELECT * FROM (\n"
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
-            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, `order`, "
+            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, "
             "`other_attributes` FROM `blah`\nWHERE originator_question_uuid=@relevant_question_uuid\n"
             "ORDER BY `datetime` DESC\n"
             "LIMIT @limit\n"

@@ -73,7 +73,6 @@ class EventReplayer(AbstractEventHandler):
         :param dict container: the container of the event
         :return (any, dict): the event and its attributes
         """
-        container["attributes"]["order"] = int(container["attributes"]["order"])
         return container["event"], container["attributes"]
 
     def _handle_question(self, event, attributes):

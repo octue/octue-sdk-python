@@ -17,7 +17,6 @@ DEFAULT_FIELDS = (
     "`sender_type`",
     "`sender_sdk_version`",
     "`recipient`",
-    "`order`",
     "`other_attributes`",
 )
 
