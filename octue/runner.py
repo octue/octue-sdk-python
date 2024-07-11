@@ -47,7 +47,7 @@ class Runner:
     :param str|None diagnostics_cloud_path: the path to a cloud directory to store diagnostics (this includes the configuration, input values and manifest, and logs for each question)
     :param str|None project_name: name of Google Cloud project to get credentials from
     :param str|None service_id: the ID of the service being run
-    :param bool delete_local_files: if `True`, delete any files downloaded and temporary directories created during an analysis once it's finished
+    :param bool delete_local_files: if `True`, delete any files downloaded and registered temporary directories created during an analysis once it's finished
     :return None:
     """
 
@@ -266,8 +266,9 @@ class Runner:
                 raise ModuleNotFoundError(f"{e.msg} in {os.path.abspath(self.app_source)!r}.")
 
             except Exception as analysis_error:
+                logger.warning("App failed.")
+
                 if save_diagnostics in {SAVE_DIAGNOSTICS_ON_CRASH, SAVE_DIAGNOSTICS_ON}:
-                    logger.warning("App failed.")
                     self.diagnostics.upload()
 
                 raise analysis_error
