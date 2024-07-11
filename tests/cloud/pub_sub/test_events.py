@@ -284,7 +284,7 @@ class TestPullAvailableEvents(BaseTestCase):
         cls.service_patcher.stop()
 
     def test_pull_available_events(self):
-        """Test that pulling and enqueuing a event works."""
+        """Test that pulling and enqueuing an event works."""
         event_handler = GoogleCloudPubSubEventHandler(
             subscription=self.subscription,
             event_handlers={
