@@ -166,6 +166,7 @@ class Child:
             future_to_question_index_mapping = {}
 
             for i, question in enumerate(questions):
+                # Add a question UUID if not set so retries have the same one.
                 if "question_uuid" not in question:
                     question["question_uuid"] = str(uuid.uuid4())
 
@@ -209,10 +210,10 @@ class Child:
             for question_index, answer in zip(failed_questions.keys(), retried_answers):
                 answers[question_index] = answer
 
-        # Check for failed questions after retries completed.
-        failed_questions = self._get_failed_questions(questions, answers, prevent_retries_when)
-
         if log_errors:
+            # Check for failed questions after retries completed.
+            failed_questions = self._get_failed_questions(questions, answers, prevent_retries_when)
+
             for question_index, question in failed_questions.items():
                 logger.error(
                     "Question %s failed after %d retries (see below for error).",
@@ -230,7 +231,7 @@ class Child:
         :param list(dict) questions: the list of questions that were asked
         :param dict answers: a mapping of question index (i.e. position in the original list of questions) to question answer
         :param list(type)|None prevent_retries_when: prevent retrying any questions that fail with an exception type in this list (note: this will have no effect unless `raise_errors=False`)
-        :param bool increment_retry_count:
+        :param bool increment_retry_count: if `True`, increment the question retry count by 1
         :return dict: a mapping of failed question index (i.e. position in the original list of questions) to failed question
         """
         failed_questions = {}
