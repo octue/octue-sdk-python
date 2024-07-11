@@ -16,7 +16,7 @@ from octue.cloud.emulators import ChildEmulator
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Dataset, Manifest
 from octue.resources.datafile import Datafile
-from octue.utils.files import RegisteredTemporaryDirectory, temporary_directories
+from octue.utils.files import RegisteredTemporaryDirectory, registered_temporary_directories
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
 from tests.test_app_modules.app_class.app import App
@@ -471,7 +471,7 @@ class TestRunner(BaseTestCase):
         analysis = Runner(app_src=app_that_downloads_datafile, twine=twine, delete_local_files=True).run()
 
         self.assertFalse(os.path.exists(analysis.output_values["downloaded_file_path"]))
-        self.assertFalse(os.path.exists(temporary_directories[0].name))
+        self.assertFalse(os.path.exists(registered_temporary_directories[0].name))
 
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):

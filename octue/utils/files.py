@@ -1,7 +1,7 @@
 import tempfile
 
 
-temporary_directories = []
+registered_temporary_directories = []
 
 
 class RegisteredTemporaryDirectory(tempfile.TemporaryDirectory):
@@ -9,4 +9,4 @@ class RegisteredTemporaryDirectory(tempfile.TemporaryDirectory):
 
     def __init__(self, suffix=None, prefix=None, dir=None, ignore_cleanup_errors=False):
         super().__init__(suffix=suffix, prefix=prefix, dir=dir, ignore_cleanup_errors=ignore_cleanup_errors)
-        temporary_directories.append(self)
+        registered_temporary_directories.append(self)

@@ -19,7 +19,7 @@ from octue.log_handlers import AnalysisLogFormatterSwitcher
 from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.resources.datafile import downloaded_files
-from octue.utils.files import temporary_directories
+from octue.utils.files import registered_temporary_directories
 from twined import Twine
 
 
@@ -456,13 +456,13 @@ class Runner:
 
         if self.delete_local_files:
             # Delete temporary directories first as this will delete entire downloaded datasets.
-            if temporary_directories:
+            if registered_temporary_directories:
                 logger.warning(
                     "Deleting registered temporary directories created during analysis. This is not thread-safe - set "
                     "`delete_local_files=False` at instantiation of `Runner` to switch this off."
                 )
 
-                for dir in temporary_directories:
+                for dir in registered_temporary_directories:
                     logger.debug("Deleting temporary directory at %r.", dir.name)
                     dir.cleanup()
 
