@@ -10,6 +10,10 @@ class Metadata:
     @property
     @abstractmethod
     def metadata_path(self):
+        """Get the path to the instance's local metadata file if it has one.
+
+        :return str|None:
+        """
         pass
 
     @property
