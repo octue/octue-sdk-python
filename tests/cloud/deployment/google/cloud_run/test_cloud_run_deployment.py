@@ -10,7 +10,7 @@ from octue.cloud.pub_sub.bigquery import get_events
 from octue.resources import Child
 
 
-EXAMPLE_SERVICE_SRUID = "octue/example-service:use-octue-with-q"
+EXAMPLE_SERVICE_SRUID = "octue/example-service:0.5.0"
 
 
 @unittest.skipUnless(
@@ -50,11 +50,7 @@ class TestCloudRunDeployment(TestCase):
         # Wait for question to complete.
         time.sleep(15)
 
-        events = get_events(
-            table_id="octue_sdk_python_test_dataset.service-events",
-            question_uuid=question_uuid,
-            kind="result",
-        )
+        events = get_events(table_id="octue_sdk_python_test_dataset.service-events", question_uuid=question_uuid)
 
         self.assertTrue(
             is_event_valid(
