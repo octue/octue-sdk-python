@@ -148,7 +148,7 @@ class Child:
         :param bool raise_errors: if `True`, an error is raised and no answers are returned if any of the individual questions raise an error; if `False`, answers are returned for all successful questions while errors are returned unraised for any failed ones
         :param int max_retries: retry any questions that failed up to this number of times (note: this will have no effect unless `raise_errors=False`)
         :param list(type)|None prevent_retries_when: prevent retrying any questions that fail with an exception type in this list (note: this will have no effect unless `raise_errors=False`)
-        :param int|None max_workers: the maximum number of questions that can be asked at once; defaults to `min(32, os.cpu_count() + 4, len(questions))` (see `concurrent.futures.ThreadPoolExecutor`)
+        :param int|None max_workers: the maximum number of questions that can be asked at once; defaults to the lowest of {32, no. of CPUs + 4, and no. of questions} (see `concurrent.futures.ThreadPoolExecutor`)
         :param bool log_errors: if `True` and `raise_errors=False`, log any errors remaining once retries are exhausted
         :raise ValueError: if the maximum number of parallel questions is set too high
         :raise Exception: if any question raises an error if `raise_errors` is `True`
