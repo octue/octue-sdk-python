@@ -228,12 +228,12 @@ class AnalysisLogFormatterSwitcher:
             # Create formatters that include the analysis ID in the logging metadata.
             self.coloured_analysis_formatter = create_octue_formatter(
                 get_log_record_attributes_for_environment(),
-                [f"analysis-{self.analysis_id}"],
+                [self.analysis_id],
             )
 
             self.uncoloured_analysis_formatter = create_octue_formatter(
                 get_log_record_attributes_for_environment(),
-                [f"analysis-{self.analysis_id}"],
+                [self.analysis_id],
                 use_colour=False,
             )
 

@@ -14,6 +14,7 @@ def create_push_subscription(
     push_endpoint,
     subscription_filter=None,
     expiration_time=None,
+    allow_existing=True,
 ):
     """Create a Google Pub/Sub push subscription for an Octue service for it to receive questions from parents. If a
     corresponding topic doesn't exist, it will be created first.
@@ -23,7 +24,8 @@ def create_push_subscription(
     :param str push_endpoint: the HTTP/HTTPS endpoint of the service to push to. It should be fully formed and include the 'https://' prefix
     :param str|None subscription_filter: if specified, the filter to apply to the subscription; otherwise, no filter is applied
     :param float|None expiration_time: the number of seconds of inactivity after which the subscription should expire. If not provided, no expiration time is applied to the subscription
-    :return None:
+    :param bool allow_existing: if True, don't raise an error if the subscription already exists
+    :return octue.cloud.pub_sub.subscription.Subscription:
     """
     if expiration_time:
         expiration_time = float(expiration_time)
@@ -38,4 +40,5 @@ def create_push_subscription(
         push_endpoint=push_endpoint,
     )
 
-    subscription.create()
+    subscription.create(allow_existing=allow_existing)
+    return subscription

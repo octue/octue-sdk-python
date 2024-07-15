@@ -1,16 +1,27 @@
 import logging
-import os
 
 import jsonschema
 
 from octue.compatibility import warn_if_incompatible
 
 
-VALID_EVENT_KINDS = {"delivery_acknowledgement", "heartbeat", "log_record", "monitor_message", "exception", "result"}
+VALID_EVENT_KINDS = {
+    "question",
+    "delivery_acknowledgement",
+    "heartbeat",
+    "log_record",
+    "monitor_message",
+    "exception",
+    "result",
+}
 
-SERVICE_COMMUNICATION_SCHEMA = {"$ref": "https://jsonschema.registry.octue.com/octue/service-communication/0.10.0.json"}
+SERVICE_COMMUNICATION_SCHEMA_VERSION = "0.14.1"
 SERVICE_COMMUNICATION_SCHEMA_INFO_URL = "https://strands.octue.com/octue/service-communication"
-SERVICE_COMMUNICATION_SCHEMA_VERSION = os.path.splitext(SERVICE_COMMUNICATION_SCHEMA["$ref"])[0].split("/")[-1]
+
+SERVICE_COMMUNICATION_SCHEMA = {
+    "$ref": f"https://jsonschema.registry.octue.com/octue/service-communication/{SERVICE_COMMUNICATION_SCHEMA_VERSION}.json"
+}
+
 
 # Instantiate a JSON schema validator to cache the service communication schema. This avoids downloading it from the
 # registry every time a message is validated against it.
@@ -25,7 +36,7 @@ def is_event_valid(event, attributes, recipient, parent_sdk_version, child_sdk_v
 
     :param dict event: the event to validate
     :param dict attributes: the attributes of the event to validate
-    :param octue.cloud.pub_sub.service.Service recipient: the service receiving and validating the event
+    :param str recipient: the SRUID of the service revision receiving and validating the event
     :param str parent_sdk_version: the semantic version of Octue SDK running on the parent
     :param str child_sdk_version: the semantic version of Octue SDK running on the child
     :param dict|None schema: the schema to validate the event and its attributes against; if `None`, this defaults to the service communication schema used in this version of Octue SDK
@@ -51,7 +62,7 @@ def raise_if_event_is_invalid(event, attributes, recipient, parent_sdk_version, 
 
     :param dict event: the event to validate
     :param dict attributes: the attributes of the event to validate
-    :param octue.cloud.pub_sub.service.Service recipient: the service receiving and validating the event
+    :param str recipient: the SRUID of the service revision receiving and validating the event
     :param str parent_sdk_version: the semantic version of Octue SDK running on the parent
     :param str child_sdk_version: the semantic version of Octue SDK running on the child
     :param dict|None schema: the schema to validate the event and its attributes against; if `None`, this defaults to the service communication schema used in this version of Octue SDK

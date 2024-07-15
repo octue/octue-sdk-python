@@ -10,19 +10,38 @@ class GoogleCloudPubSubHandler(logging.Handler):
 
     :param callable event_emitter: the `_emit_event` method of the service that instantiated this instance
     :param str question_uuid: the UUID of the question to handle log records for
-    :param str originator: the SRUID of the service that asked the question these log records are related to
+    :param str|None parent_question_uuid: the UUID of the question these log records are related to
+    :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
+    :param str parent: the SRUID of the parent that asked the question these log records are related to
+    :param str originator: the SRUID of the service revision that triggered the tree of questions these log records are related to
     :param str recipient: the SRUID of the service to send these log records to
-    :param octue.cloud.events.counter.EventCounter order: an event counter keeping track of the order of emitted events
+    :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
     :param float timeout: timeout in seconds for attempting to publish each log record
     :return None:
     """
 
-    def __init__(self, event_emitter, question_uuid, originator, recipient, order, timeout=60, *args, **kwargs):
+    def __init__(
+        self,
+        event_emitter,
+        question_uuid,
+        parent_question_uuid,
+        originator_question_uuid,
+        parent,
+        originator,
+        recipient,
+        retry_count,
+        timeout=60,
+        *args,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.question_uuid = question_uuid
+        self.parent_question_uuid = parent_question_uuid
+        self.originator_question_uuid = originator_question_uuid
+        self.parent = parent
         self.originator = originator
         self.recipient = recipient
-        self.order = order
+        self.retry_count = retry_count
         self.timeout = timeout
         self._emit_event = event_emitter
 
@@ -38,13 +57,15 @@ class GoogleCloudPubSubHandler(logging.Handler):
                     "kind": "log_record",
                     "log_record": self._convert_log_record_to_primitives(record),
                 },
+                parent=self.parent,
                 originator=self.originator,
                 recipient=self.recipient,
-                order=self.order,
-                attributes={
-                    "question_uuid": self.question_uuid,
-                    "sender_type": "CHILD",  # The sender type is repeated here as a string to avoid a circular import.
-                },
+                retry_count=self.retry_count,
+                question_uuid=self.question_uuid,
+                parent_question_uuid=self.parent_question_uuid,
+                originator_question_uuid=self.originator_question_uuid,
+                # The sender type is repeated here as a string to avoid a circular import.
+                attributes={"sender_type": "CHILD"},
             )
 
         except Exception:  # noqa

@@ -136,7 +136,7 @@ class TestAnalysisLogFormatterSwitcher(BaseTestCase):
             with analysis_log_handler_switcher:
                 analysis_formatter = root_logger.handlers[0].formatter
                 self.assertIs(analysis_formatter, initial_formatter)
-                self.assertNotIn("[analysis-hello-moto]", analysis_formatter._fmt)
+                self.assertNotIn("[hello-moto]", analysis_formatter._fmt)
 
             self.assertIs(root_logger.handlers[0].formatter, initial_formatter)
 
@@ -146,7 +146,7 @@ class TestAnalysisLogFormatterSwitcher(BaseTestCase):
         """
         root_logger = logging.getLogger()
         initial_handler = root_logger.handlers[0]
-        self.assertNotIn("[analysis-hello-moto]", initial_handler.formatter._fmt)
+        self.assertNotIn("[hello-moto]", initial_handler.formatter._fmt)
 
         analysis_log_handler_switcher = AnalysisLogFormatterSwitcher(
             analysis_id="hello-moto",
@@ -155,7 +155,7 @@ class TestAnalysisLogFormatterSwitcher(BaseTestCase):
         )
 
         with analysis_log_handler_switcher:
-            self.assertIn("[analysis-hello-moto]", initial_handler.formatter._fmt)
+            self.assertIn("[hello-moto]", initial_handler.formatter._fmt)
 
         self.assertIs(root_logger.handlers[0], initial_handler)
 
@@ -219,7 +219,7 @@ class TestAnalysisLogFormatterSwitcher(BaseTestCase):
             with analysis_log_handler_switcher:
                 root_logger.info("Log message to be captured.")
 
-        self.assertIn("[analysis-hello-moto]", logging_context.output[0])
+        self.assertIn("[hello-moto]", logging_context.output[0])
         self.assertEqual(logging_context.records[0].message, "Log message to be captured.")
 
     def test_submodule_logs_are_handled_and_capturable(self):
@@ -239,10 +239,10 @@ class TestAnalysisLogFormatterSwitcher(BaseTestCase):
             with analysis_log_handler_switcher:
                 app_using_submodule(None)
 
-        self.assertIn("[analysis-hello-moto]", logging_context.output[0])
+        self.assertIn("[hello-moto]", logging_context.output[0])
         self.assertEqual(logging_context.records[0].name, "tests.test_app_modules.app_using_submodule.app")
         self.assertEqual(logging_context.records[0].message, "Log message from app.")
 
-        self.assertIn("[analysis-hello-moto]", logging_context.output[1])
+        self.assertIn("[hello-moto]", logging_context.output[1])
         self.assertEqual(logging_context.records[1].name, "tests.test_app_modules.app_using_submodule.submodule")
         self.assertEqual(logging_context.records[1].message, "Log message from submodule.")

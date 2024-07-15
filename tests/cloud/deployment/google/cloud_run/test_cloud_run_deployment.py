@@ -4,11 +4,13 @@ import unittest
 from unittest import TestCase
 
 import twined.exceptions
+from octue.cloud.events.replayer import EventReplayer
+from octue.cloud.events.validation import is_event_valid
 from octue.cloud.pub_sub.bigquery import get_events
 from octue.resources import Child
 
 
-EXAMPLE_SERVICE_SRUID = "octue/example-service-cloud-run:0.4.2"
+EXAMPLE_SERVICE_SRUID = "octue/example-service:0.5.0"
 
 
 @unittest.skipUnless(
@@ -46,18 +48,25 @@ class TestCloudRunDeployment(TestCase):
         self.assertIsNone(answer)
 
         # Wait for question to complete.
-        time.sleep(10)
+        time.sleep(15)
 
-        events = get_events(
-            table_id="octue_sdk_python_test_dataset.service-events",
-            sender=EXAMPLE_SERVICE_SRUID,
-            question_uuid=question_uuid,
-            kind="result",
+        events = get_events(table_id="octue_sdk_python_test_dataset.service-events", question_uuid=question_uuid)
+
+        self.assertTrue(
+            is_event_valid(
+                event=events[0]["event"],
+                attributes=events[0]["attributes"],
+                recipient=None,
+                parent_sdk_version=None,
+                child_sdk_version=None,
+            )
         )
 
-        # Check the output values.
-        self.assertEqual(list(events[0]["event"]["output_values"]), [1, 2, 3, 4, 5])
+        replayer = EventReplayer()
+        answer = replayer.handle_events(events)
 
-        # Check that the output dataset and its files can be accessed.
-        with events[0]["event"]["output_manifest"].datasets["example_dataset"].files.one() as (datafile, f):
+        # Check the output values.
+        self.assertEqual(list(answer["output_values"]), [1, 2, 3, 4, 5])
+
+        with answer["output_manifest"].datasets["example_dataset"].files.one() as (datafile, f):
             self.assertEqual(f.read(), "This is some example service output.")

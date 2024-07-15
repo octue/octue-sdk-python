@@ -71,6 +71,7 @@ class TestSubscription(BaseTestCase):
                 self.assertEqual(response._pb.ack_deadline_seconds, 600)
                 self.assertEqual(response._pb.expiration_policy.ttl.seconds, THIRTY_ONE_DAYS)
                 self.assertEqual(response._pb.message_retention_duration.seconds, 600)
+                self.assertTrue(response._pb.enable_message_ordering)
                 self.assertEqual(response._pb.retry_policy.minimum_backoff.seconds, 10)
                 self.assertEqual(response._pb.retry_policy.maximum_backoff.seconds, 600)
 
@@ -86,6 +87,7 @@ class TestSubscription(BaseTestCase):
         self.assertEqual(response._pb.ack_deadline_seconds, 600)
         self.assertEqual(response._pb.expiration_policy.ttl.seconds, THIRTY_ONE_DAYS)
         self.assertEqual(response._pb.message_retention_duration.seconds, 600)
+        self.assertTrue(response._pb.enable_message_ordering)
         self.assertEqual(response._pb.retry_policy.minimum_backoff.seconds, 10)
         self.assertEqual(response._pb.retry_policy.maximum_backoff.seconds, 600)
         self.assertEqual(response._pb.push_config.push_endpoint, "https://example.com/endpoint")

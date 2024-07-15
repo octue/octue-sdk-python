@@ -174,6 +174,17 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         return self._cloud_metadata.get("crc32c")
 
     @property
+    def metadata_path(self):
+        """Get the path to the datafile's local metadata file (if the datafile exists locally).
+
+        :return str|None:
+        """
+        if not self.exists_locally:
+            return None
+
+        return os.path.join(os.path.dirname(self._local_path), METADATA_FILENAME)
+
+    @property
     def timestamp(self):
         """Get the timestamp of the datafile.
 
@@ -306,17 +317,6 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
                 f.write("some data")
         """
         return functools.partial(_DatafileContextManager, self)
-
-    @property
-    def _local_metadata_path(self):
-        """Get the path to the datafile's local metadata file (if the datafile exists locally).
-
-        :return str|None:
-        """
-        if not self.exists_locally:
-            return None
-
-        return os.path.join(os.path.dirname(self._local_path), METADATA_FILENAME)
 
     def __enter__(self):
         self._open_context_manager = self.open(**self._open_attributes)
@@ -462,7 +462,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
         :return None:
         """
-        with UpdateLocalMetadata(self._local_metadata_path) as existing_metadata_records:
+        with UpdateLocalMetadata(self) as existing_metadata_records:
             if not existing_metadata_records.get("datafiles"):
                 existing_metadata_records["datafiles"] = {}
 
@@ -596,7 +596,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
         :return None:
         """
-        existing_metadata_records = load_local_metadata_file(self._local_metadata_path)
+        existing_metadata_records = load_local_metadata_file(self)
         datafile_metadata = existing_metadata_records.get("datafiles", {}).get(self.name, {})
 
         if not datafile_metadata:

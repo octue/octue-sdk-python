@@ -33,6 +33,7 @@ class Subscription:
     :param float minimum_retry_backoff: minimum number of seconds after the acknowledgement deadline has passed to exponentially retry delivering a message to the subscription
     :param float maximum_retry_backoff: maximum number of seconds after the acknowledgement deadline has passed to exponentially retry delivering a message to the subscription
     :param str|None push_endpoint: if this is a push subscription, this is the URL to which messages should be pushed; leave as `None` if it's not a push subscription
+    :param bool enable_message_ordering: if `True`, receive messages with the same ordering key in the order they were published
     :return None:
     """
 
@@ -48,6 +49,7 @@ class Subscription:
         minimum_retry_backoff=10,
         maximum_retry_backoff=600,
         push_endpoint=None,
+        enable_message_ordering=True,
     ):
         self.name = name
         self.topic = topic
@@ -69,6 +71,7 @@ class Subscription:
         )
 
         self.push_endpoint = push_endpoint
+        self.enable_message_ordering = enable_message_ordering
         self._subscriber = SubscriberClient()
         self._created = False
 
@@ -137,7 +140,13 @@ class Subscription:
                 mapping=None,
                 subscription=self._create_proto_message_subscription(),  # noqa
                 update_mask=FieldMask(
-                    paths=["ack_deadline_seconds", "message_retention_duration", "expiration_policy", "retry_policy"]
+                    paths=[
+                        "ack_deadline_seconds",
+                        "message_retention_duration",
+                        "enable_message_ordering",
+                        "expiration_policy",
+                        "retry_policy",
+                    ]
                 ),
             )
         )
@@ -189,6 +198,7 @@ class Subscription:
             filter=self.filter,  # noqa
             ack_deadline_seconds=self.ack_deadline,  # noqa
             message_retention_duration=self.message_retention_duration,  # noqa
+            enable_message_ordering=self.enable_message_ordering,  # noqa
             expiration_policy=self.expiration_policy,  # noqa
             retry_policy=self.retry_policy,  # noqa
             **options,

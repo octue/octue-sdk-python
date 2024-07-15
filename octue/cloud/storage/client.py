@@ -13,6 +13,7 @@ from google.auth import compute_engine
 from google.auth.transport import requests as google_requests
 from google.cloud.storage import Client
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
+from google.cloud.storage.retry import DEFAULT_RETRY
 from google_crc32c import Checksum
 
 from octue.cloud import storage
@@ -28,7 +29,8 @@ OCTUE_MANAGED_CREDENTIALS = "octue-managed"
 
 
 class GoogleCloudStorageClient:
-    """A client for using Google Cloud Storage.
+    """A client for using Google Cloud Storage. Versioning and metadata versioning (generations and metagenerations)
+    aren't supported, so the default retry strategy is used throughout.
 
     :param str|google.auth.credentials.Credentials|None credentials:
     :return None:
@@ -87,7 +89,7 @@ class GoogleCloudStorageClient:
         if metadata:
             blob.metadata = self._encode_metadata(metadata)
 
-        blob.upload_from_filename(filename=local_path, timeout=timeout)
+        blob.upload_from_filename(filename=local_path, timeout=timeout, retry=DEFAULT_RETRY)
         logger.debug("Uploaded %r to Google Cloud at %r.", local_path, blob.public_url)
 
     def upload_from_string(self, string, cloud_path, metadata=None, timeout=_DEFAULT_TIMEOUT):
@@ -106,7 +108,7 @@ class GoogleCloudStorageClient:
         if metadata:
             blob.metadata = self._encode_metadata(metadata)
 
-        blob.upload_from_string(data=string, timeout=timeout)
+        blob.upload_from_string(data=string, timeout=timeout, retry=DEFAULT_RETRY)
         logger.debug("Uploaded data to Google Cloud at %r.", blob.public_url)
 
     def get_metadata(self, cloud_path, timeout=_DEFAULT_TIMEOUT):
@@ -155,7 +157,7 @@ class GoogleCloudStorageClient:
         """
         blob = self._blob(cloud_path)
         blob.metadata = self._encode_metadata(metadata or {})
-        blob.patch()
+        blob.patch(retry=DEFAULT_RETRY)
 
     def download_to_file(self, local_path, cloud_path, timeout=_DEFAULT_TIMEOUT):
         """Download a file to a file from a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>.
@@ -178,37 +180,41 @@ class GoogleCloudStorageClient:
         :param str cloud_path: the path to a cloud storage directory to download
         :param callable|None filter: an optional callable to filter which files are downloaded from the cloud path; the callable should take a blob as its only positional argument
         :param bool recursive: if `True`, also download all files in all subdirectories of the cloud directory recursively
-        :return None:
+        :return list(str): the list of paths the files were downloaded to
         """
         bucket, _ = self._get_bucket_and_path_in_bucket(cloud_path)
 
-        cloud_and_local_paths = [
-            {
-                "cloud_path": storage.path.generate_gs_path(bucket.name, blob.name),
-                "local_path": os.path.join(
+        cloud_paths = []
+        local_paths = []
+
+        for blob in self.scandir(cloud_path, filter=filter, recursive=recursive):
+            cloud_paths.append(storage.path.generate_gs_path(bucket.name, blob.name))
+
+            local_paths.append(
+                os.path.join(
                     local_path,
                     storage.path.relpath(
                         storage.path.generate_gs_path(bucket.name, blob.name),
                         cloud_path,
                     ),
-                ),
-            }
-            for blob in self.scandir(cloud_path, filter=filter, recursive=recursive)
-        ]
+                )
+            )
 
-        if not cloud_and_local_paths:
+        if not cloud_paths:
             logger.warning(
                 "Attempted to download files from %r but it appears empty. Please check this is the correct path.",
                 cloud_path,
             )
-            return
+            return []
 
-        def download_file(cloud_and_local_path):
-            self.download_to_file(cloud_and_local_path["local_path"], cloud_and_local_path["cloud_path"])
+        def download_file(local_and_cloud_path):
+            self.download_to_file(local_and_cloud_path[0], local_and_cloud_path[1])
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            for path in executor.map(download_file, cloud_and_local_paths):
+            for path in executor.map(download_file, zip(local_paths, cloud_paths)):
                 logger.debug("Downloaded file to %r.", path)
+
+        return local_paths
 
     def download_as_string(self, cloud_path, timeout=_DEFAULT_TIMEOUT):
         """Download a file to a string from a Google Cloud bucket at gs://<bucket_name>/<path_in_bucket>.
@@ -233,7 +239,15 @@ class GoogleCloudStorageClient:
         blob = self._blob(original_cloud_path)
         original_bucket, _ = self._get_bucket_and_path_in_bucket(original_cloud_path)
         destination_bucket, path_in_destination_bucket = self._get_bucket_and_path_in_bucket(destination_cloud_path)
-        original_bucket.copy_blob(blob, destination_bucket, new_name=path_in_destination_bucket, timeout=timeout)
+
+        original_bucket.copy_blob(
+            blob,
+            destination_bucket,
+            new_name=path_in_destination_bucket,
+            timeout=timeout,
+            retry=DEFAULT_RETRY,
+        )
+
         logger.debug("Copied %r to %r.", original_cloud_path, destination_cloud_path)
 
     def delete(self, cloud_path, timeout=_DEFAULT_TIMEOUT):
@@ -244,7 +258,7 @@ class GoogleCloudStorageClient:
         :return None:
         """
         blob = self._blob(cloud_path)
-        blob.delete(timeout=timeout)
+        blob.delete(timeout=timeout, retry=DEFAULT_RETRY)
         logger.debug("Deleted %r from Google Cloud.", blob.public_url)
 
     def scandir(

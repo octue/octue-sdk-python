@@ -81,6 +81,10 @@ Download all or a subset of datasets from a manifest.
         "my_dataset": "/path/to/dataset"
     }
 
+.. note::
+
+    Datasets are downloaded to temporary directories if no paths are given.
+
 
 Further information
 ===================

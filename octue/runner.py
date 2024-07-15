@@ -1,8 +1,10 @@
 import copy
+import functools
 import logging
 import logging.handlers
 import os
 import re
+import uuid
 
 import google.api_core.exceptions
 from google import auth
@@ -17,7 +19,7 @@ from octue.log_handlers import AnalysisLogFormatterSwitcher
 from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.resources.datafile import downloaded_files
-from octue.utils import gen_uuid
+from octue.utils.files import registered_temporary_directories
 from twined import Twine
 
 
@@ -42,10 +44,10 @@ class Runner:
     :param str|dict|None configuration_manifest: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|list(dict)|None children: The children strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|None output_location: the path to a cloud directory to save output datasets at
-    :param str|None diagnostics_cloud_path: the path to a cloud directory to store diagnostics in the event that the service fails while processing a question (this includes the configuration, input values and manifest, and logs)
+    :param str|None diagnostics_cloud_path: the path to a cloud directory to store diagnostics (this includes the configuration, input values and manifest, and logs for each question)
     :param str|None project_name: name of Google Cloud project to get credentials from
     :param str|None service_id: the ID of the service being run
-    :param bool delete_local_files: if `True`, delete any files downloaded during the call to `Runner.run` once the analysis has finished
+    :param bool delete_local_files: if `True`, delete any files downloaded and registered temporary directories created during an analysis once it's finished
     :return None:
     """
 
@@ -61,7 +63,7 @@ class Runner:
         project_name=None,
         service_id=None,
         service_registries=None,
-        delete_local_files=True,
+        delete_local_files=False,
     ):
         self.app_source = app_src
         self.children = children
@@ -105,27 +107,40 @@ class Runner:
         self._project_name = project_name
 
     @classmethod
-    def from_configuration(cls, service_configuration, app_configuration, project_name=None, service_id=None):
+    def from_configuration(
+        cls,
+        service_configuration,
+        app_configuration,
+        project_name=None,
+        service_id=None,
+        **overrides,
+    ):
         """Instantiate a runner from a service and app configuration.
 
         :param octue.configuration.ServiceConfiguration service_configuration:
         :param octue.configuration.AppConfiguration app_configuration:
         :param str|None project_name: name of Google Cloud project to get credentials from
         :param str|None service_id: the ID of the service being run
+        :param overrides: optional keyword arguments to override the `Runner` instantiation parameters extracted from the service and app configuration
         :return octue.runner.Runner: a runner configured with the given service and app configuration
         """
-        return cls(
-            app_src=service_configuration.app_source_path,
-            twine=service_configuration.twine_path,
-            configuration_values=app_configuration.configuration_values,
-            configuration_manifest=app_configuration.configuration_manifest,
-            children=app_configuration.children,
-            output_location=app_configuration.output_location,
-            diagnostics_cloud_path=service_configuration.diagnostics_cloud_path,
-            project_name=project_name,
-            service_id=service_id,
-            service_registries=service_configuration.service_registries,
-        )
+        inputs = {
+            "app_src": service_configuration.app_source_path,
+            "twine": service_configuration.twine_path,
+            "configuration_values": app_configuration.configuration_values,
+            "configuration_manifest": app_configuration.configuration_manifest,
+            "children": app_configuration.children,
+            "output_location": app_configuration.output_location,
+            "diagnostics_cloud_path": service_configuration.diagnostics_cloud_path,
+            "project_name": project_name,
+            "service_id": service_id,
+            "service_registries": service_configuration.service_registries,
+            "delete_local_files": service_configuration.delete_local_files,
+        }
+
+        inputs |= overrides
+
+        return cls(**inputs)
 
     def __repr__(self):
         """Represent the runner as a string.
@@ -144,6 +159,8 @@ class Runner:
         analysis_log_handler=None,
         handle_monitor_message=None,
         save_diagnostics=SAVE_DIAGNOSTICS_ON_CRASH,
+        originator_question_uuid=None,
+        originator=None,
     ):
         """Run an analysis.
 
@@ -155,12 +172,23 @@ class Runner:
         :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run. Handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but should use the format defined above in LOG_FORMAT.
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved either all the time or just if the analysis fails
+        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this analysis; if `None`, this question is assumed to be the originator question
+        :param str|None originator: the SRUID of the service revision that triggered all ancestor questions of this question;  if `None`, this service revision is assumed to be the originator
         :return octue.resources.analysis.Analysis:
         """
         if save_diagnostics not in SAVE_DIAGNOSTICS_MODES:
             raise ValueError(
                 f"`save_diagnostics` must be one of {SAVE_DIAGNOSTICS_MODES!r}; received {save_diagnostics!r}."
             )
+
+        # Set the analysis ID if one isn't given.
+        analysis_id = str(analysis_id) if analysis_id else str(uuid.uuid4())
+
+        # This analysis is the parent question.
+        parent_question_uuid = analysis_id
+
+        # If the originator question UUID isn't provided, assume that this analysis is the originator question.
+        originator_question_uuid = originator_question_uuid or analysis_id
 
         # Get inputs before any transformations have been applied.
         self.diagnostics.add_data(
@@ -198,7 +226,12 @@ class Runner:
             )
 
         if inputs["children"] is not None:
-            inputs["children"] = self._instantiate_children(inputs["children"])
+            inputs["children"] = self._instantiate_children(
+                serialised_children=inputs["children"],
+                parent_question_uuid=parent_question_uuid,
+                originator_question_uuid=originator_question_uuid,
+                originator=originator,
+            )
 
         outputs_and_monitors = self.twine.prepare("monitor_message", "output_values", "output_manifest", cls=CLASS_MAP)
 
@@ -206,8 +239,6 @@ class Runner:
             extra_log_handlers = [analysis_log_handler]
         else:
             extra_log_handlers = []
-
-        analysis_id = str(analysis_id) if analysis_id else gen_uuid()
 
         # Temporarily replace the root logger's handlers with a `StreamHandler` and the analysis log handler that
         # include the analysis ID in the logging metadata.
@@ -235,6 +266,8 @@ class Runner:
                 raise ModuleNotFoundError(f"{e.msg} in {os.path.abspath(self.app_source)!r}.")
 
             except Exception as analysis_error:
+                logger.warning("App failed.")
+
                 if save_diagnostics in {SAVE_DIAGNOSTICS_ON_CRASH, SAVE_DIAGNOSTICS_ON}:
                     self.diagnostics.upload()
 
@@ -245,26 +278,7 @@ class Runner:
                     thread.cancel()
                     logger.debug("Periodic monitor message thread %d stopped.", i)
 
-            if not analysis.finalised:
-                analysis.finalise()
-
-            if save_diagnostics == SAVE_DIAGNOSTICS_ON:
-                self.diagnostics.upload()
-
-            if self.delete_local_files and downloaded_files:
-                logger.warning(
-                    "Deleting files downloaded during analysis. This is not thread-safe - set "
-                    "`delete_local_files=False` at instantiation of `Runner` to switch this off."
-                )
-
-                for path in downloaded_files:
-                    logger.debug("Deleting downloaded file at %r.", path)
-
-                    try:
-                        os.remove(path)
-                    except FileNotFoundError:
-                        logger.debug("Couldn't delete %r - it was already deleted.", path)
-
+            self._finalise_and_clean_up(analysis, save_diagnostics)
             return analysis
 
     def _populate_environment_with_google_cloud_secrets(self):
@@ -331,12 +345,20 @@ class Runner:
 
                     raise twined.exceptions.invalid_contents_map[manifest_kind](message)
 
-    def _instantiate_children(self, serialised_children):
+    def _instantiate_children(self, serialised_children, parent_question_uuid, originator_question_uuid, originator):
         """Instantiate children from their serialised form (e.g. as given in the app configuration) so they are ready
-        to be asked questions. For diagnostics, each child's `ask` method is wrapped so the runner can record the
-        questions asked by the app, the responses received to each question, and the order the questions are asked in.
+        to be asked questions. Two sets of modifications are made to each child's `ask` method:
+
+        1. The parent question UUID is set to the current analysis ID, and the originator question UUID and originator
+           are set.
+
+        2. For diagnostics, the `ask` method is wrapped so the runner can record the questions asked by the app, the
+           responses received to each question, and the order the questions are asked in.
 
         :param list(dict) serialised_children: serialised children from e.g. the app configuration file
+        :param str|None parent_question_uuid: the UUID of the question that triggered this analysis
+        :param str originator_question_uuid: the UUID of the question that triggered all ancestor questions of this analysis
+        :param str originator: the SRUID of the service revision that triggered the tree of questions this analysis is related to
         :return dict: a mapping of child keys to `octue.resources.child.Child` instances
         """
         children = {}
@@ -345,11 +367,19 @@ class Runner:
             child = Child(
                 id=uninstantiated_child["id"],
                 backend=uninstantiated_child["backend"],
-                internal_service_name=self.service_id,
+                internal_sruid=self.service_id,
                 service_registries=self.service_registries,
             )
 
             child.ask = self._add_child_question_and_response_recording(child, uninstantiated_child["key"])
+
+            child.ask = functools.partial(
+                child.ask,
+                parent_question_uuid=parent_question_uuid,
+                originator_question_uuid=originator_question_uuid,
+                originator=originator,
+            )
+
             children[uninstantiated_child["key"]] = child
 
         return children
@@ -407,3 +437,50 @@ class Runner:
 
         # App as a function that takes "analysis" as an argument.
         self.app_source(analysis)
+
+    def _finalise_and_clean_up(self, analysis, save_diagnostics):
+        """Do the following:
+
+        1. Finalise the analysis
+        2. If diagnostics are switched on, upload the diagnostics
+        3. If `delete_local_files=True`, delete any datafiles downloaded and registered temporary directories created during the analysis
+
+        :param octue.resources.analysis.Analysis analysis: the analysis object containing the configuration and inputs to run the app on
+        :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved either all the time or just if the analysis fails
+        :return None:
+        """
+        if not analysis.finalised:
+            analysis.finalise()
+
+        if save_diagnostics == SAVE_DIAGNOSTICS_ON:
+            self.diagnostics.upload()
+
+        if self.delete_local_files:
+            # Delete temporary directories first as this will delete entire downloaded datasets.
+            if registered_temporary_directories:
+                logger.warning(
+                    "Deleting registered temporary directories created during analysis. This is not thread-safe - set "
+                    "`delete_local_files=False` at instantiation of `Runner` to switch this off."
+                )
+
+                for dir in registered_temporary_directories:
+                    logger.debug("Deleting temporary directory at %r.", dir.name)
+                    dir.cleanup()
+
+            # Then delete any datafiles were downloaded separately from a dataset.
+            if downloaded_files:
+                logger.warning(
+                    "Deleting datafiles downloaded during analysis. This is not thread-safe - set "
+                    "`delete_local_files=False` at instantiation of `Runner` to switch this off."
+                )
+
+                for path in downloaded_files:
+                    if not os.path.exists(path):
+                        continue
+
+                    logger.debug("Deleting downloaded file at %r.", path)
+
+                    try:
+                        os.remove(path)
+                    except FileNotFoundError:
+                        logger.debug("Couldn't delete %r - it was already deleted.", path)

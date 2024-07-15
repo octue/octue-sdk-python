@@ -8,6 +8,15 @@ class Metadata:
     _METADATA_ATTRIBUTES = tuple()
 
     @property
+    @abstractmethod
+    def metadata_path(self):
+        """Get the path to the instance's local metadata file if it has one.
+
+        :return str|None:
+        """
+        pass
+
+    @property
     def metadata_hash_value(self):
         """Get the hash of the instance's metadata, not including its ID.
 

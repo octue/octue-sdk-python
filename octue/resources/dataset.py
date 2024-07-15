@@ -4,7 +4,6 @@ import datetime
 import json
 import logging
 import os
-import tempfile
 from collections.abc import Iterable
 
 import coolname
@@ -17,6 +16,7 @@ from octue.mixins import CloudPathable, Hashable, Identifiable, Labelable, Metad
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.utils.encoders import OctueJSONEncoder
+from octue.utils.files import RegisteredTemporaryDirectory
 from octue.utils.metadata import METADATA_FILENAME, UpdateLocalMetadata, load_local_metadata_file
 
 
@@ -62,7 +62,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         self,
         path=None,
         files=None,
-        recursive=False,
+        recursive=True,
         ignore_stored_metadata=False,
         include_octue_metadata_files=False,
         id=None,
@@ -95,6 +95,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
             return
 
         self._instantiate_from_local_directory(path=self.path)
+
+        if len(self.files) == 0:
+            logger.warning("%r is empty at instantiation time (path %r).", self, self.path)
 
     @property
     def name(self):
@@ -136,7 +139,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         return all(file.exists_in_cloud for file in self.files)
 
     @property
-    def _metadata_path(self):
+    def metadata_path(self):
         """Get the path to the dataset's metadata file.
 
         :return str:
@@ -242,7 +245,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         """
         GoogleCloudStorageClient().upload_from_string(
             string=json.dumps({"dataset": self.to_primitive(include_files=False)}, cls=OctueJSONEncoder),
-            cloud_path=self._metadata_path,
+            cloud_path=self.metadata_path,
         )
 
     def update_local_metadata(self):
@@ -250,7 +253,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         :return None:
         """
-        with UpdateLocalMetadata(self._metadata_path) as existing_metadata_records:
+        with UpdateLocalMetadata(self) as existing_metadata_records:
             existing_metadata_records["dataset"] = self.to_primitive(include_files=False)
             os.makedirs(self.path, exist_ok=True)
 
@@ -343,7 +346,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
                 f"You can only download files from a cloud dataset. This dataset's path is {self.path!r}."
             )
 
-        local_directory = os.path.abspath(local_directory or tempfile.TemporaryDirectory().name)
+        local_directory = os.path.abspath(local_directory or RegisteredTemporaryDirectory().name)
         datafiles_and_paths = []
 
         for file in self.files:
@@ -490,10 +493,10 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         storage_client = GoogleCloudStorageClient()
 
-        if not storage_client.exists(cloud_path=self._metadata_path):
+        if not storage_client.exists(cloud_path=self.metadata_path):
             return
 
-        self._cloud_metadata = json.loads(storage_client.download_as_string(cloud_path=self._metadata_path)).get(
+        self._cloud_metadata = json.loads(storage_client.download_as_string(cloud_path=self.metadata_path)).get(
             "dataset", {}
         )
 
@@ -516,7 +519,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
         :return None:
         """
-        local_metadata = load_local_metadata_file(self._metadata_path)
+        local_metadata = load_local_metadata_file(self)
         dataset_metadata = local_metadata.get("dataset", {})
 
         if not dataset_metadata:

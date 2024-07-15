@@ -25,12 +25,20 @@ def create_exceptions_mapping(*sources):
     return exceptions_mapping
 
 
-def convert_exception_to_primitives():
-    """Convert an exception into a dictionary of its type, message, and traceback as JSON-serialisable primitives.
+def convert_exception_to_primitives(exception=None):
+    """Convert an exception into a dictionary of its type, message, and traceback as JSON-serialisable primitives. The
+    exception is acquired using `sys.exc_info` if one is not supplied.
 
+    :param Exception|None exception: the exception to convert; if `None`, the exception is acquired using `sys.exc_info`
     :return dict: a dictionary with "type", "message" and "traceback" keys and JSON-serialisable values
     """
-    exception_info = sys.exc_info()
+    if exception:
+        try:
+            raise exception
+        except Exception:
+            exception_info = sys.exc_info()
+    else:
+        exception_info = sys.exc_info()
 
     return {
         "type": exception_info[0].__name__,

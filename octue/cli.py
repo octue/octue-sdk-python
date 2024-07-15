@@ -75,8 +75,10 @@ def octue_cli(id, logger_uri, log_level, force_reset):
     "-c",
     "--service-config",
     type=click.Path(dir_okay=False),
-    default="octue.yaml",
-    help="The path to an `octue.yaml` file defining the service to run.",
+    default=None,
+    help="The path to an `octue.yaml` file defining the service to run. If not provided, the "
+    "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
+    "is used.",
 )
 @click.option(
     "--input-dir",
@@ -305,12 +307,16 @@ def get_diagnostics(cloud_path, local_path, download_datasets):
             )
         )
 
-    GoogleCloudStorageClient().download_all_files(
+    local_paths = GoogleCloudStorageClient().download_all_files(
         local_path=local_path,
         cloud_path=cloud_path,
         filter=filter,
         recursive=True,
     )
+
+    if not local_paths:
+        logger.warning("No diagnostics found at %r.", cloud_path)
+        return
 
     # Update the manifests with the local paths of the datasets.
     if download_datasets:
@@ -357,6 +363,11 @@ def deploy():
     help="The service revision tag (e.g. 1.0.7). If this option isn't given, a random 'cool name' tag is generated e.g"
     ". 'curious-capybara'.",
 )
+@click.option(
+    "--no-allow-existing",
+    is_flag=True,
+    help="If provided, raise an error if the push subscription already exists.",
+)
 def create_push_subscription(
     project_name,
     service_namespace,
@@ -364,6 +375,7 @@ def create_push_subscription(
     push_endpoint,
     expiration_time,
     revision_tag,
+    no_allow_existing,
 ):
     """Create a Google Pub/Sub push subscription for an Octue service for it to receive questions from parents. The
     subscription name is printed on completion.
@@ -379,15 +391,20 @@ def create_push_subscription(
     """
     sruid = create_sruid(namespace=service_namespace, name=service_name, revision_tag=revision_tag)
 
-    pub_sub.create_push_subscription(
+    subscription = pub_sub.create_push_subscription(
         project_name,
         sruid,
         push_endpoint,
         expiration_time=expiration_time,
         subscription_filter=f'attributes.recipient = "{sruid}" AND attributes.sender_type = "PARENT"',
+        allow_existing=not no_allow_existing,
     )
 
-    click.echo(sruid)
+    if subscription.creation_triggered_locally:
+        click.echo(f"Subscription for {sruid!r} created.")
+        return
+
+    click.echo(f"Subscription for {sruid!r} already exists.")
 
 
 def _add_monitor_message_to_file(path, monitor_message):

@@ -37,9 +37,14 @@ Working with a dataset is the same whether it's local or cloud-based.
 
     from octue.resources import Dataset
 
-    dataset = Dataset(path="path/to/dataset", recursive=True)
+    dataset = Dataset(path="path/to/dataset")
 
-    dataset = Dataset(path="gs://my-bucket/path/to/dataset", recursive=True)
+    dataset = Dataset(path="gs://my-bucket/path/to/dataset")
+
+
+.. warning::
+
+    Datasets recurse all subdirectories by default unless ``recursive=False`` is set.
 
 
 Upload a dataset

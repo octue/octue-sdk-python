@@ -16,6 +16,7 @@ from octue.cloud.emulators import ChildEmulator
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Dataset, Manifest
 from octue.resources.datafile import Datafile
+from octue.utils.files import RegisteredTemporaryDirectory, registered_temporary_directories
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
 from tests.test_app_modules.app_class.app import App
@@ -266,11 +267,11 @@ class TestRunner(BaseTestCase):
         with self.assertLogs(level=logging.INFO) as logging_context:
             runner.run(analysis_id=analysis_id)
 
-        self.assertIn(f"[analysis-{analysis_id}]", logging_context.output[0])
+        self.assertIn(analysis_id, logging_context.output[0])
         self.assertEqual(logging_context.records[0].name, "app")
         self.assertEqual(logging_context.records[0].message, "Log message from app.")
 
-        self.assertIn(f"[analysis-{analysis_id}]", logging_context.output[1])
+        self.assertIn(analysis_id, logging_context.output[1])
         self.assertEqual(logging_context.records[1].name, "tests.test_app_modules.app_using_submodule.submodule")
         self.assertEqual(logging_context.records[1].message, "Log message from submodule.")
 
@@ -388,10 +389,10 @@ class TestRunner(BaseTestCase):
         self.assertEqual(questions[1]["id"], f"octue/yet-another-child:{MOCK_SERVICE_REVISION_TAG}")
         self.assertEqual(questions[1]["input_values"], "miaow")
 
-        self.assertEqual(questions[1]["events"][1]["kind"], "exception")
-        self.assertEqual(questions[1]["events"][1]["exception_type"], "ValueError")
+        self.assertEqual(questions[1]["events"][1]["event"]["kind"], "exception")
+        self.assertEqual(questions[1]["events"][1]["event"]["exception_type"], "ValueError")
         self.assertEqual(
-            questions[1]["events"][1]["exception_message"],
+            questions[1]["events"][1]["event"]["exception_message"],
             f"Error in <MockService('octue/yet-another-child:{MOCK_SERVICE_REVISION_TAG}')>: Deliberately raised for "
             f"testing.",
         )
@@ -440,8 +441,10 @@ class TestRunner(BaseTestCase):
         """Test that a valid cloud path passes output location validation."""
         Runner(".", twine="{}", output_location="gs://my-bucket/blah")
 
-    def test_downloaded_datafiles_are_deleted_when_runner_finishes(self):
-        """Test that datafiles downloaded during an analysis are deleted when the runner finishes."""
+    def test_downloaded_datafiles_and_registered_temporary_directories_are_deleted_when_runner_finishes(self):
+        """Test that datafiles downloaded and registered temporary directories created during an analysis are deleted
+        when the runner finishes.
+        """
         twine = {
             "output_values_schema": {
                 "type": "object",
@@ -455,11 +458,20 @@ class TestRunner(BaseTestCase):
 
         def app_that_downloads_datafile(analysis):
             datafile = Datafile(cloud_path)
+
+            # Download a datafile locally.
             datafile.download()
+
+            # Create a temporary directory.
+            temporary_directory = RegisteredTemporaryDirectory()
+            self.assertTrue(os.path.exists(temporary_directory.name))
+
             analysis.output_values = {"downloaded_file_path": datafile.local_path}
 
-        analysis = Runner(app_src=app_that_downloads_datafile, twine=twine).run()
+        analysis = Runner(app_src=app_that_downloads_datafile, twine=twine, delete_local_files=True).run()
+
         self.assertFalse(os.path.exists(analysis.output_values["downloaded_file_path"]))
+        self.assertFalse(os.path.exists(registered_temporary_directories[0].name))
 
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
@@ -851,14 +863,14 @@ class TestRunnerDiagnostics(BaseTestCase):
                 self.assertEqual(questions[0]["key"], "my-child")
                 self.assertEqual(questions[0]["id"], f"octue/a-child:{MOCK_SERVICE_REVISION_TAG}")
                 self.assertEqual(questions[0]["input_values"], [1, 2, 3, 4])
-                self.assertEqual(questions[0]["events"][1]["output_values"], [1, 4, 9, 16])
+                self.assertEqual(questions[0]["events"][1]["event"]["output_values"], [1, 4, 9, 16])
                 self.assertEqual(len(questions[0]["events"]), 2)
 
                 # Second question.
                 self.assertEqual(questions[1]["key"], "another-child")
                 self.assertEqual(questions[1]["id"], f"octue/another-child:{MOCK_SERVICE_REVISION_TAG}")
                 self.assertEqual(questions[1]["input_values"], "miaow")
-                self.assertEqual(questions[1]["events"][1]["output_values"], "woof")
+                self.assertEqual(questions[1]["events"][1]["event"]["output_values"], "woof")
 
                 # This should be 4 but log messages aren't currently being handled by the child emulator correctly.
                 self.assertEqual(len(questions[1]["events"]), 2)

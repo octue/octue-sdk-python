@@ -20,10 +20,10 @@ MESSAGES = defaultdict(list)
 
 
 class MockTopic(Topic):
-    """A mock topic that registers in a global messages dictionary rather than Google Pub/Sub."""
+    """A mock topic that registers in a global topics dictionary rather than Google Pub/Sub."""
 
     def create(self, allow_existing=False):
-        """Register the topic in the global messages dictionary.
+        """Register the topic in the global topics dictionary.
 
         :param bool allow_existing: if True, don't raise an error if the topic already exists
         :raise google.api_core.exceptions.AlreadyExists: if the topic already exists
@@ -38,7 +38,7 @@ class MockTopic(Topic):
             self._created = True
 
     def delete(self):
-        """Delete the topic from the global messages dictionary.
+        """Delete the topic from the global topics dictionary.
 
         :return None:
         """
@@ -48,7 +48,7 @@ class MockTopic(Topic):
             pass
 
     def exists(self, timeout=10):
-        """Check if the topic exists in the global messages dictionary.
+        """Check if the topic exists in the global topics dictionary.
 
         :param float timeout:
         :return bool:
@@ -326,8 +326,12 @@ class MockService(Service):
         allow_local_files=False,
         save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
         question_uuid=None,
+        parent_question_uuid=None,
+        originator_question_uuid=None,
+        originator=None,
         push_endpoint=None,
         asynchronous=False,
+        retry_count=0,
         timeout=86400,
         parent_sdk_version=importlib.metadata.version("octue"),
     ):
@@ -342,9 +346,14 @@ class MockService(Service):
         :param bool allow_local_files:
         :param str save_diagnostics:
         :param str|None question_uuid:
+        :param str|None parent_question_uuid:
+        :param str|None originator_question_uuid:
+        :param str|None originator:
         :param str|None push_endpoint:
         :param bool asynchronous:
+        :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param float|None timeout:
+        :param str parent_sdk_version:
         :return MockFuture, str:
         """
         response_subscription, question_uuid = super().ask(
@@ -356,8 +365,12 @@ class MockService(Service):
             allow_local_files=allow_local_files,
             save_diagnostics=save_diagnostics,
             question_uuid=question_uuid,
+            parent_question_uuid=parent_question_uuid,
+            originator_question_uuid=originator_question_uuid,
+            originator=originator,
             push_endpoint=push_endpoint,
             asynchronous=asynchronous,
+            retry_count=retry_count,
             timeout=timeout,
         )
 
@@ -372,6 +385,12 @@ class MockService(Service):
         if input_manifest is not None:
             question["input_manifest"] = input_manifest.to_primitive()
 
+        # If the originator question UUID isn't provided, assume that this question is the originator.
+        originator_question_uuid = originator_question_uuid or question_uuid
+
+        # If the originator isn't provided, assume that this service revision is the originator.
+        originator = originator or self.id
+
         try:
             self.children[service_id].answer(
                 MockMessage.from_primitive(
@@ -380,14 +399,17 @@ class MockService(Service):
                         "datetime": "2024-04-11T10:46:48.236064",
                         "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
                         "question_uuid": question_uuid,
+                        "parent_question_uuid": parent_question_uuid,
+                        "originator_question_uuid": originator_question_uuid,
                         "forward_logs": subscribe_to_logs,
                         "save_diagnostics": save_diagnostics,
-                        "order": 0,
-                        "originator": self.id,
+                        "parent": self.id,
+                        "originator": originator,
                         "sender": self.id,
                         "sender_type": PARENT_SENDER_TYPE,
                         "sender_sdk_version": parent_sdk_version,
                         "recipient": service_id,
+                        "retry_count": retry_count,
                     },
                 )
             )

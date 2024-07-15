@@ -96,16 +96,22 @@ access the event store and run:
 
     events = get_events(
         table_id="your-project.your-dataset.your-table",
-        sender="octue/test-service:1.0.0",
         question_uuid="53353901-0b47-44e7-9da3-a3ed59990a71",
     )
 
 
 **Options**
 
+- ``question_uuid`` - Retrieve events from this specific question
+- ``parent_question_uuid`` - Retrieve events from questions triggered by the same parent question (this doesn't include the parent question's events)
+- ``originator_question_uuid`` - Retrieve events for the entire tree of questions triggered by an originator question (a question asked manually through ``Child.ask``; this does include the originator question's events)
 - ``kind`` - Only retrieve this kind of event if present (e.g. "result")
 - ``include_backend_metadata`` - If ``True``, retrieve information about the service backend that produced the event
 - ``limit`` - If set to a positive integer, limit the number of events returned to this
+
+.. note::
+
+    Only one of ``question_uuid``, ``parent_question_uuid``, and ``originator_question_uuid`` can be provided at one time.
 
 
 .. collapse:: See an example output here...
@@ -116,8 +122,8 @@ access the event store and run:
         [
           {
             "event": {
-              "datetime": "2024-03-06T15:44:18.156044",
-              "kind": "delivery_acknowledgement"
+              "kind": "delivery_acknowledgement",
+              "datetime": "2024-03-06T15:44:18.156044"
             },
           },
           {
@@ -149,21 +155,10 @@ access the event store and run:
           },
           {
             "event": {
-              "datetime": "2024-03-06T15:46:18.167424",
-              "kind": "heartbeat"
+              "kind": "heartbeat",
+              "datetime": "2024-03-06T15:46:18.167424"
             },
-            "attributes": {
-              "datetime": "2024-04-11T10:46:48.236064",
-              "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
-              "order": "7",
-              "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
-              "originator": "octue/test-service:1.0.0",
-              "sender": "octue/test-service:1.0.0",
-              "sender_type": "CHILD",
-              "sender_sdk_version": "0.51.0",
-              "recipient": "octue/another-service:3.2.1"
-            }
-          }
+          },
           {
             "event": {
               "kind": "result",
@@ -203,9 +198,9 @@ raised and no answers are returned.
         {"input_values": {"height": 7, "width": 32}},
     )
     >>> [
-            {"output_values": {"some": "output"}, "output_manifest": None},
-            {"output_values": {"another": "result"}, "output_manifest": None},
-            {"output_values": {"different": "result"}, "output_manifest": None},
+            ({"output_values": {"some": "output"}, "output_manifest": None}, '2681ef4e-4ab7-4cf9-8783-aad982d5e324'),
+            ({"output_values": {"another": "result"}, "output_manifest": None}, '474923bd-14b6-4f4c-9bfe-8148358f35cd'),
+            ({"output_values": {"different": "result"}, "output_manifest": None}, '9a50daae-2328-4728-9ddd-b2252474f118'),
         ]
 
 This method uses multithreading, allowing all the questions to be asked at once instead of one after another.
@@ -213,13 +208,15 @@ This method uses multithreading, allowing all the questions to be asked at once 
 **Options**
 
 - If ``raise_errors=False`` is provided, answers are returned for all successful questions while unraised errors are
-  returned for unsuccessful ones
+  logged and returned for unsuccessful ones
 - If ``raise_errors=False`` is provided with ``max_retries > 0``, failed questions are retried up to this number of
   times
 - If ``raise_errors=False`` is provided with ``max_retries > 0`` and ``prevent_retries_when`` is set to a list of
   exception types, failed questions are retried except for those whose exception types are in the list
-- The maximum number of threads that can be used to ask questions in parallel can be set via the ``max_workers``
-  argument. This has no effect on the total number of questions that can be asked via ``Child.ask_multiple``.
+- ``max_workers``: The maximum number of threads that can be used to ask questions in parallel can be set via this
+  argument. It has no effect on the total number of questions that can be asked via ``Child.ask_multiple``.
+- ``log_errors``: If `True` and ``raise_errors=False``, any errors remaining once retries are exhausted are logged in
+  addition to being returned
 
 
 Asking a question within a service
