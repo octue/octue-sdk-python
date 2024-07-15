@@ -2,6 +2,7 @@ import concurrent.futures
 import copy
 import json
 import logging
+import os
 import threading
 
 from octue.cloud import storage
@@ -9,6 +10,7 @@ from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException
 from octue.mixins import Hashable, Identifiable, Metadata, Serialisable
 from octue.resources.dataset import Dataset
+from octue.utils.files import RegisteredTemporaryDirectory
 
 
 logger = logging.getLogger(__name__)
@@ -67,7 +69,8 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
         return all(dataset.all_files_are_in_cloud for dataset in self.datasets.values())
 
     def download(self, paths=None, download_all=True):
-        """Download all datasets in the manifest.
+        """Download all datasets in the manifest. If no paths are provided, all datasets are downloaded to a temporary
+        directory.
 
         :param dict|None paths: a mapping of dataset name to download directory path; if not provided, datasets are downloaded to temporary directories
         :param bool download_all: if `False` and `paths` is provided, only download the datasets specified in `paths`
@@ -77,8 +80,10 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
             download_all = True
             paths = {}
 
+        datasets_directory = RegisteredTemporaryDirectory().name
+
         for name, dataset in self.datasets.items():
-            download_path = paths.get(name)
+            download_path = paths.get(name, os.path.join(datasets_directory, name))
 
             if not download_path and not download_all:
                 logger.info("%r dataset download skipped as its download path wasn't specified.", name)

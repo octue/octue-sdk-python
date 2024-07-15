@@ -8,6 +8,7 @@ from octue.cloud import storage
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset, Manifest
+from octue.utils.files import RegisteredTemporaryDirectory
 from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
 from tests.resources import create_dataset_with_two_files
@@ -309,11 +310,31 @@ class TestManifest(BaseTestCase):
         self.assertTrue(manifest.datasets["my_dataset"].path.startswith("http"))
         self.assertIn(".signed_metadata_files", manifest.datasets["my_dataset"].path)
 
+
+class TestManifestDownload(BaseTestCase):
     def test_download_without_paths(self):
-        """Test downloading a manifest without specifying the `paths` argument."""
-        manifest = Manifest(datasets={"my_dataset": self.create_nested_cloud_dataset()})
-        paths = manifest.download()
+        """Test using `Manifest.download` without specifying the `paths` argument downloads the datasets to the same
+        temporary directory.
+        """
+        manifest = Manifest(
+            datasets={
+                "my_dataset": self.create_nested_cloud_dataset(),
+                "another_dataset": self.create_nested_cloud_dataset(),
+            },
+        )
+
+        temporary_directory = RegisteredTemporaryDirectory()
+
+        with patch("octue.resources.manifest.RegisteredTemporaryDirectory", return_value=temporary_directory):
+            paths = manifest.download()
+
+        # Check that the datasets are downloaded to the same temporary directory.
+        self.assertEqual(paths["my_dataset"], os.path.join(temporary_directory.name, "my_dataset"))
+        self.assertEqual(paths["another_dataset"], os.path.join(temporary_directory.name, "another_dataset"))
+
+        # Check the datasets' files have been downloaded.
         self.assertEqual(set(os.listdir(paths["my_dataset"])), {"file_1.txt", "file_0.txt", "sub-directory"})
+        self.assertEqual(set(os.listdir(paths["another_dataset"])), {"file_1.txt", "file_0.txt", "sub-directory"})
 
     def test_download_with_paths(self):
         """Test downloading a manifest while specifying the `paths` argument."""
