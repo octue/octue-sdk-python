@@ -185,7 +185,6 @@ def _unflatten_events(events):
             "sender_type": event.pop("sender_type"),
             "sender_sdk_version": event.pop("sender_sdk_version"),
             "recipient": event.pop("recipient"),
-            "order": event.pop("order"),
             **event.pop("other_attributes"),
         }
 
