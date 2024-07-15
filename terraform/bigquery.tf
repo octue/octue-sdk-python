@@ -86,11 +86,6 @@ resource "google_bigquery_table" "test_table" {
     "mode": "REQUIRED"
   },
   {
-    "name": "order",
-    "type": "STRING",
-    "mode": "REQUIRED"
-  },
-  {
     "name": "backend",
     "type": "STRING",
     "mode": "REQUIRED"
