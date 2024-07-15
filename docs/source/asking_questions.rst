@@ -198,9 +198,9 @@ raised and no answers are returned.
         {"input_values": {"height": 7, "width": 32}},
     )
     >>> [
-            {"output_values": {"some": "output"}, "output_manifest": None},
-            {"output_values": {"another": "result"}, "output_manifest": None},
-            {"output_values": {"different": "result"}, "output_manifest": None},
+            ({"output_values": {"some": "output"}, "output_manifest": None}, '2681ef4e-4ab7-4cf9-8783-aad982d5e324'),
+            ({"output_values": {"another": "result"}, "output_manifest": None}, '474923bd-14b6-4f4c-9bfe-8148358f35cd'),
+            ({"output_values": {"different": "result"}, "output_manifest": None}, '9a50daae-2328-4728-9ddd-b2252474f118'),
         ]
 
 This method uses multithreading, allowing all the questions to be asked at once instead of one after another.
@@ -213,8 +213,10 @@ This method uses multithreading, allowing all the questions to be asked at once 
   times
 - If ``raise_errors=False`` is provided with ``max_retries > 0`` and ``prevent_retries_when`` is set to a list of
   exception types, failed questions are retried except for those whose exception types are in the list
-- The maximum number of threads that can be used to ask questions in parallel can be set via the ``max_workers``
-  argument. This has no effect on the total number of questions that can be asked via ``Child.ask_multiple``.
+- ``max_workers``: The maximum number of threads that can be used to ask questions in parallel can be set via this
+  argument. It has no effect on the total number of questions that can be asked via ``Child.ask_multiple``.
+- ``log_errors``: If `True` and ``raise_errors=False``, any errors remaining once retries are exhausted are logged in
+  addition to being returned
 
 
 Asking a question within a service
