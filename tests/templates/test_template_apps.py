@@ -143,20 +143,36 @@ class TemplateAppsTestCase(BaseTestCase):
             service_id=f"template-child-services/parent-service:{MOCK_SERVICE_REVISION_TAG}",
         )
 
+        attributes = {
+            "datetime": "2024-04-11T10:46:48.236064",
+            "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
+            "retry_count": 0,
+            "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+            "parent_question_uuid": "5776ad74-52a6-46f7-a526-90421d91b8b2",
+            "originator_question_uuid": "86dc55b2-4282-42bd-92d0-bd4991ae7356",
+            "parent": "octue/test-service:1.0.0",
+            "originator": "octue/test-service:1.0.0",
+            "sender": "octue/test-service:1.0.0",
+            "sender_type": "CHILD",
+            "sender_sdk_version": "0.51.0",
+            "recipient": "octue/another-service:3.2.1",
+        }
+
         emulated_children = [
             ChildEmulator(
-                id=f"template-child-services/wind-speed-service:{MOCK_SERVICE_REVISION_TAG}",
-                internal_sruid=runner.service_id,
                 events=[
-                    {"kind": "log_record", "log_record": {"msg": "This is an emulated child log message."}},
-                    {"kind": "result", "output_values": [10], "output_manifest": None},
+                    {
+                        "event": {"kind": "result", "output_values": [10]},
+                        "attributes": attributes,
+                    }
                 ],
             ),
             ChildEmulator(
-                id=f"template-child-services/elevation-service:{MOCK_SERVICE_REVISION_TAG}",
-                internal_sruid=runner.service_id,
                 events=[
-                    {"kind": "result", "output_values": [300], "output_manifest": None},
+                    {
+                        "event": {"kind": "result", "output_values": [300]},
+                        "attributes": attributes,
+                    },
                 ],
             ),
         ]
