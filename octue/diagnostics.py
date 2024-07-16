@@ -102,7 +102,7 @@ class Diagnostics:
         :return None:
         """
         question_diagnostics_path = storage.path.join(self.cloud_path, self.analysis_id)
-        logger.info("Saving diagnostics to %r.", question_diagnostics_path)
+        logger.info("Uploading diagnostics to %r.", question_diagnostics_path)
 
         for data_type in ("configuration", "input"):
             values_type = f"{data_type}_values"
