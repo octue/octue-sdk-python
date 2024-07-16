@@ -41,16 +41,22 @@ class ChildEmulator:
         """
         return self.events
 
-    def ask(self, handle_monitor_message=None, record_events=True, **kwargs):
+    def ask(self, handle_monitor_message=None, record_events=True, asynchronous=False, **kwargs):
         """Ask the child emulator a question and receive its emulated response events. Unlike a real child, the input
          values and manifest are not validated against the schema in the child's twine as it is only available to the
          real child. Hence, the input values and manifest do not affect the events returned by the emulator.
 
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
         :param bool record_events: if `True`, record events received from the child in the `received_events` property
+        :param bool asynchronous: if `True`, don't wait for an answer or create an answer subscription (the result and other events can be retrieved from the event store later)
         :param kwargs: any number of keyword arguments that would normally be passed to `Child.ask`
-        :return dict, str: a dictionary containing the keys "output_values" and "output_manifest", and the question UUID
+        :return (dict, str)|(None, str): a dictionary containing the keys "output_values" and "output_manifest" (or `None` if the question is asynchronous), and the question UUID
         """
+        question_uuid = self.events[0].get("attributes", {}).get("question_uuid")
+
+        if asynchronous:
+            return (None, question_uuid)
+
         event_replayer = EventReplayer(handle_monitor_message=handle_monitor_message, record_events=record_events)
         result = event_replayer.handle_events(self.events)
-        return (result, self.events[0].get("attributes", {}).get("question_uuid"))
+        return (result, question_uuid)
