@@ -23,6 +23,26 @@ from tests.test_app_modules.app_class.app import App
 from tests.test_app_modules.app_module import app
 
 
+with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
+    EVENTS = json.load(f)
+
+
+ATTRIBUTES = {
+    "datetime": "2024-04-11T10:46:48.236064",
+    "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
+    "retry_count": 0,
+    "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+    "parent_question_uuid": "5776ad74-52a6-46f7-a526-90421d91b8b2",
+    "originator_question_uuid": "86dc55b2-4282-42bd-92d0-bd4991ae7356",
+    "parent": "octue/test-service:1.0.0",
+    "originator": "octue/test-service:1.0.0",
+    "sender": "octue/test-service:1.0.0",
+    "sender_type": "CHILD",
+    "sender_sdk_version": "0.51.0",
+    "recipient": "octue/another-service:3.2.1",
+}
+
+
 def mock_app(analysis):
     """Run a mock analysis that does nothing.
 
@@ -298,8 +318,8 @@ class TestRunner(BaseTestCase):
         self.assertEqual(mock_finalise.call_count, 0)
         self.assertTrue(analysis.finalised)
 
-    def test_child_messages_saved_even_if_child_ask_method_raises_error(self):
-        """Test that messages from the child are still saved even if an error is raised within the `Child.ask` method."""
+    def test_child_events_saved_even_if_child_ask_method_raises_error(self):
+        """Test that events from the child are still saved even if an error is raised within the `Child.ask` method."""
         diagnostics_cloud_path = storage.path.generate_gs_path(TEST_BUCKET_NAME, "diagnostics")
 
         def app(analysis):
@@ -338,21 +358,18 @@ class TestRunner(BaseTestCase):
         )
 
         emulated_children = [
+            ChildEmulator(events=EVENTS),
             ChildEmulator(
-                id=f"octue/the-child:{MOCK_SERVICE_REVISION_TAG}",
                 events=[
-                    {"kind": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
-                ],
-            ),
-            ChildEmulator(
-                id=f"octue/yet-another-child:{MOCK_SERVICE_REVISION_TAG}",
-                events=[
-                    {"kind": "log_record", "log_record": {"msg": "Starting analysis."}},
-                    {"kind": "log_record", "log_record": {"msg": "Finishing analysis."}},
+                    *EVENTS[:-2],
                     {
-                        "kind": "exception",
-                        "exception_type": "ValueError",
-                        "exception_message": "Deliberately raised for testing.",
+                        "event": {
+                            "kind": "exception",
+                            "exception_type": "TypeError",
+                            "exception_message": "This simulates an error in the child.",
+                            "exception_traceback": [""],
+                        },
+                        "attributes": ATTRIBUTES,
                     },
                 ],
             ),
@@ -362,7 +379,7 @@ class TestRunner(BaseTestCase):
 
         # Run the app.
         with patch("octue.runner.Child", side_effect=emulated_children):
-            with self.assertRaises(ValueError):
+            with self.assertRaises(TypeError):
                 runner.run(analysis_id=analysis_id, input_values={"hello": "world"})
 
         storage_client = GoogleCloudStorageClient()
@@ -374,28 +391,23 @@ class TestRunner(BaseTestCase):
             json.dumps({"hello": "world"}),
         )
 
-        # Check that messages from the children have been recorded.
+        # Check that events from the children have been recorded.
         with Datafile(storage.path.join(question_diagnostics_path, "questions.json")) as (_, f):
             questions = json.load(f)
 
         # First question.
         self.assertEqual(questions[0]["key"], "my-child")
-        self.assertEqual(questions[0]["id"], f"octue/the-child:{MOCK_SERVICE_REVISION_TAG}")
         self.assertEqual(questions[0]["input_values"], [1, 2, 3, 4])
-        self.assertEqual(len(questions[0]["events"]), 2)
+        self.assertEqual(len(questions[0]["events"]), 8)
 
         # Second question.
         self.assertEqual(questions[1]["key"], "another-child")
-        self.assertEqual(questions[1]["id"], f"octue/yet-another-child:{MOCK_SERVICE_REVISION_TAG}")
         self.assertEqual(questions[1]["input_values"], "miaow")
 
-        self.assertEqual(questions[1]["events"][1]["event"]["kind"], "exception")
-        self.assertEqual(questions[1]["events"][1]["event"]["exception_type"], "ValueError")
-        self.assertEqual(
-            questions[1]["events"][1]["event"]["exception_message"],
-            f"Error in <MockService('octue/yet-another-child:{MOCK_SERVICE_REVISION_TAG}')>: Deliberately raised for "
-            f"testing.",
-        )
+        exception = questions[1]["events"][-1]["event"]
+        self.assertEqual(exception["kind"], "exception")
+        self.assertEqual(exception["exception_type"], "TypeError")
+        self.assertEqual(exception["exception_message"], "This simulates an error in the child.")
 
     def test_set_up_periodic_monitor_messages(self):
         """Test that multilple periodic monitor messages can be set up from an analysis."""
@@ -749,13 +761,11 @@ class TestRunnerDiagnostics(BaseTestCase):
 
                 emulated_children = [
                     ChildEmulator(
-                        id=f"octue/a-child:{MOCK_SERVICE_REVISION_TAG}",
                         events=[
                             {"kind": "result", "output_values": [1, 4, 9, 16], "output_manifest": None},
                         ],
                     ),
                     ChildEmulator(
-                        id=f"octue/another-child:{MOCK_SERVICE_REVISION_TAG}",
                         events=[
                             {"kind": "log_record", "log_record": {"msg": "Starting analysis."}},
                             {"kind": "log_record", "log_record": {"msg": "Finishing analysis."}},
@@ -855,7 +865,7 @@ class TestRunnerDiagnostics(BaseTestCase):
                     ),
                 )
 
-                # Check that messages from the children have been recorded.
+                # Check that events from the children have been recorded.
                 with Datafile(storage.path.join(question_diagnostics_path, "questions.json")) as (_, f):
                     questions = json.load(f)
 
