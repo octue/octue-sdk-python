@@ -1,11 +1,8 @@
 import json
 import logging
 import warnings
-from unittest.mock import patch
 
-from octue.cloud.emulators._pub_sub import MockSubscriber, MockSubscription, MockTopic
 from octue.cloud.events.replayer import EventReplayer
-from octue.utils.patches import MultiPatcher
 
 
 logger = logging.getLogger(__name__)
@@ -109,20 +106,3 @@ class ChildEmulator:
         event_replayer = EventReplayer(handle_monitor_message=handle_monitor_message, record_events=record_events)
         result = event_replayer.handle_events(self.events)
         return (result, self.events[0].get("attributes", {}).get("question_uuid"))
-
-
-class ServicePatcher(MultiPatcher):
-    """A multi-patcher that provides the patches needed to run mock services.
-
-    :return None:
-    """
-
-    def __init__(self):
-        super().__init__(
-            patches=[
-                patch("octue.cloud.pub_sub.service.Topic", new=MockTopic),
-                patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription),
-                patch("octue.cloud.pub_sub.events.SubscriberClient", new=MockSubscriber),
-                patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber),
-            ]
-        )

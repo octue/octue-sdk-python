@@ -19,8 +19,8 @@ from octue.cloud.emulators._pub_sub import (
     MockSubscription,
     MockTopic,
 )
-from octue.cloud.emulators.child import ServicePatcher
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
+from octue.cloud.emulators.service import ServicePatcher
 from octue.cloud.pub_sub.service import Service
 from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Analysis, Datafile, Dataset, Manifest

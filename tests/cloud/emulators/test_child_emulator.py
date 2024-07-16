@@ -2,7 +2,8 @@ import json
 import os
 
 from octue.cloud.emulators._pub_sub import MockService
-from octue.cloud.emulators.child import ChildEmulator, ServicePatcher
+from octue.cloud.emulators.child import ChildEmulator
+from octue.cloud.emulators.service import ServicePatcher
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TESTS_DIR
 from tests.base import BaseTestCase
