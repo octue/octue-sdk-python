@@ -25,110 +25,99 @@ The Child Emulator
 We've written a child emulator that takes a list of events and returns them to the parent for handling in the order
 given - without contacting the real child or using Pub/Sub. Any events a real child can produce are supported.
 :mod:`Child <octue.resources.child.Child>` instances can be mocked like-for-like by
-:mod:`ChildEmulator <octue.cloud.emulators.child.ChildEmulator>` instances without the parent knowing. You can provide
-the emulated events in python or via a JSON file.
+:mod:`ChildEmulator <octue.cloud.emulators.child.ChildEmulator>` instances without the parent knowing.
 
-Message types
+Event kinds
 -------------
-You can emulate any message type that your app (the parent) can handle. The table below shows what these are.
+You can emulate any event that your app (the parent) can handle. The table below shows what these are.
 
-+-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
-| Message type          | Number of events supported                                                                     | Example                                                                                                                   |
-+=======================+==================================================================================================+===========================================================================================================================+
-| ``log_record``        | Any number                                                                                       | {"type": "log_record": "log_record": {"msg": "Starting analysis."}}                                                       |
-+-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
-| ``monitor_message``   | Any number                                                                                       | {"type": "monitor_message": "data": '{"progress": "35%"}'}                                                                |
-+-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
-| ``exception``         | One                                                                                              | {"type": "exception", "exception_type": "ValueError", "exception_message": "x cannot be less than 10."}                   |
-+-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
-| ``result``            | One                                                                                              | {"type": "result", "output_values": {"my": "results"}, "output_manifest": None}                                           |
-+-----------------------+--------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+
++------------------------------+----------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Event kind                   | Number of events supported | Example                                                                                                                                                                                         |
++==============================+============================+=================================================================================================================================================================================================+
+| ``delivery_acknowledgement`` | One                        | {"event": {"kind": "delivery_acknowledgement"}, "attributes": {"question_uuid": 79192e90-9022-4797-b6c7-82dc097dacdb, ...}}                                                                     |
++------------------------------+----------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``heartbeat``                | Any number                 | {"event": {"kind": "heartbeat"}, "attributes": {"question_uuid": 79192e90-9022-4797-b6c7-82dc097dacdb, ...}                                                                                     |
++------------------------------+----------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``log_record``               | Any number                 | {"event": {"kind": "log_record": "log_record": {"msg": "Starting analysis."}}, "attributes": {"question_uuid": 79192e90-9022-4797-b6c7-82dc097dacdb, ...}                                       |
++------------------------------+----------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``monitor_message``          | Any number                 | {"event": {"kind": "monitor_message": "data": '{"progress": "35%"}'}, "attributes": {"question_uuid": 79192e90-9022-4797-b6c7-82dc097dacdb, ...}                                                |
++------------------------------+----------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``exception``                | One                        | {"event": {"kind": "exception", "exception_type": "ValueError", "exception_message": "x cannot be less than 10."}, "attributes": {"question_uuid": 79192e90-9022-4797-b6c7-82dc097dacdb, ...}   |
++------------------------------+----------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``result``                   | One                        | {"event": {"kind": "result", "output_values": {"my": "results"}, "output_manifest": None}, "attributes": {"question_uuid": 79192e90-9022-4797-b6c7-82dc097dacdb, ...}                           |
++------------------------------+----------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 **Notes**
 
-- Message formats and contents are validated by :mod:`ChildEmulator <octue.cloud.emulators.child.ChildEmulator>`
-- The ``log_record`` key of a ``log_record`` message is any dictionary that the ``logging.makeLogRecord`` function can
+- Event formats and contents must conform with the `service communication schema <https://strands.octue.com/octue/service-communication>`_.
+- Every event must be accompanied with the required event attributes
+- The ``log_record`` key of a ``log_record`` event is any dictionary that the ``logging.makeLogRecord`` function can
   convert into a log record.
-- The ``data`` key of a ``monitor_message`` message must be a JSON-serialised string
-- Any events after a ``result`` or ``exception`` message won't be passed to the parent because execution of the child
+- The ``data`` key of a ``monitor_message`` event must be a JSON-serialised string
+- Any events after a ``result`` or ``exception`` event won't be passed to the parent because execution of the child
   emulator will have ended.
 
 
-Instantiating a child emulator in python
-----------------------------------------
+Instantiating a child emulator
+------------------------------
 
 .. code-block:: python
 
     events = [
         {
-            "type": "log_record",
-            "log_record": {"msg": "Starting analysis."},
+            {
+                "event": {
+                    "kind": "log_record",
+                    "log_record": {"msg": "Starting analysis."},
+                    ... # Left out for brevity.
+                },
+                "attributes": {
+                    "datetime": "2024-04-11T10:46:48.236064",
+                    "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
+                    "retry_count": 0,
+                    "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+                    "parent_question_uuid": "5776ad74-52a6-46f7-a526-90421d91b8b2",
+                    "originator_question_uuid": "86dc55b2-4282-42bd-92d0-bd4991ae7356",
+                    "parent": "octue/test-service:1.0.0",
+                    "originator": "octue/test-service:1.0.0",
+                    "sender": "octue/test-service:1.0.0",
+                    "sender_type": "CHILD",
+                    "sender_sdk_version": "0.51.0",
+                    "recipient": "octue/another-service:3.2.1"
+                },
+            },
         },
         {
-            "type": "monitor_message",
-            "data": '{"progress": "35%"}',
+             "event": {
+                 "kind": "monitor_message",
+                 "data": '{"progress": "35%"}',
+             },
+             "attributes": {
+                 ...  # Left out for brevity.
+             },
         },
         {
-            "type": "log_record",
-            "log_record": {"msg": "Finished analysis."},
+            "event": {
+                "kind": "log_record",
+                "log_record": {"msg": "Finished analysis."},
+                ... # Left out for brevity.
+            },
+            "attributes": {
+                ...  # Left out for brevity.
+            },
         },
     	{
-            "type": "result",
-            "output_values": [1, 2, 3, 4, 5],
-            "output_manifest": None,
+            "event": {
+                "kind": "result",
+                "output_values": [1, 2, 3, 4, 5],
+            },
+            "attributes": {
+                ...  # Left out for brevity.
+            },
         },
     ]
 
-    child_emulator = ChildEmulator(
-        backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
-        events=events
-    )
-
-    def handle_monitor_message(message):
-        ...
-
-    result, question_uuid = child_emulator.ask(
-        input_values={"hello": "world"},
-        handle_monitor_message=handle_monitor_message,
-    )
-    >>> {"output_values": [1, 2, 3, 4, 5], "output_manifest": None}
-
-
-Instantiating a child emulator from a JSON file
------------------------------------------------
-You can provide a JSON file with either just events in or with events and some or all of the
-:mod:`ChildEmulator <octue.cloud.emulators.child.ChildEmulator>` constructor parameters. Here's an example JSON file
-with just the events:
-
-.. code-block:: json
-
-    {
-        "events": [
-            {
-                "type": "log_record",
-                "log_record": {"msg": "Starting analysis."}
-            },
-            {
-                "type": "log_record",
-                "log_record": {"msg": "Finished analysis."}
-            },
-            {
-                "type": "monitor_message",
-                "data": "{\"progress\": \"35%\"}"
-            },
-            {
-                "type": "result",
-                "output_values": [1, 2, 3, 4, 5],
-                "output_manifest": null
-            }
-        ]
-    }
-
-You can then instantiate a child emulator from this in python:
-
-.. code-block:: python
-
-    child_emulator = ChildEmulator.from_file("path/to/emulated_child.json")
+    child_emulator = ChildEmulator(events)
 
     def handle_monitor_message(message):
         ...
@@ -177,20 +166,39 @@ To emulate your children in tests, patch the :mod:`Child <octue.resources.child.
 
     emulated_children = [
         ChildEmulator(
-            id="octue/my-child-service:2.1.0",
-            internal_sruid="you/your-service:2.1.0",
             events=[
                 {
-                    "type": "result",
-                    "output_values": [300],
-                    "output_manifest": None,
+                    "event": {
+                        "kind": "result",
+                        "output_values": [300],
+                    },
+                    "attributes": {
+                        "datetime": "2024-04-11T10:46:48.236064",
+                        "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
+                        "retry_count": 0,
+                        "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+                        "parent_question_uuid": "5776ad74-52a6-46f7-a526-90421d91b8b2",
+                        "originator_question_uuid": "86dc55b2-4282-42bd-92d0-bd4991ae7356",
+                        "parent": "you/your-service:2.1.0",
+                        "originator": "you/your-service:2.1.0",
+                        "sender": "octue/my-child-service:2.1.0",
+                        "sender_type": "CHILD",
+                        "sender_sdk_version": "0.56.0",
+                        "recipient": "you/your-service:2.1.0"
+                    },
                 },
-            ]
+            ],
         )
     ]
 
     with patch("octue.runner.Child", side_effect=emulated_children):
         analysis = runner.run(input_values={"some": "input"})
+
+    analysis.output_values
+    >>> [300]
+
+    analysis.output_manifest
+    >>> None
 
 
 **Notes**
@@ -208,9 +216,10 @@ change correspondingly (or at all). So, it's up to you to define a set of realis
 (the list of emulated events) to test your service. These are called **test fixtures**.
 
 .. note::
-  Unlike a real child, the inputs given to the emulator and the outputs returned aren't validated against the schema in
-  the child's twine - this is because the twine is only available to the real child. This is ok - you're testing your
-  service, not the child.
+  Unlike a real child, the **inputs** given to the emulator aren't validated against the schema in the child's twine -
+  this is because the twine is only available to the real child. This is ok - you're testing your service, not the
+  child your service contacts. The events given to the emulator are still validated against the service communication
+  schema, though.
 
 You can create test fixtures manually or by using the ``Child.received_events`` property after questioning a real
 child.
@@ -231,23 +240,36 @@ child.
     child.received_events
     >>> [
             {
-                'type': 'delivery_acknowledgement',
-                'delivery_time': '2022-08-16 11:49:57.244263',
-            },
-            {
-                'type': 'log_record',
-                'log_record': {
-                    'msg': 'Finished analysis.',
-                    'args': None,
-                    'levelname': 'INFO',
-                    ...
+                "event": {
+                    'kind': 'delivery_acknowledgement',
+                },
+                "attributes": {
+                    ... # Left out for brevity.
                 },
             },
             {
-                'type': 'result',
-                'output_values': {"some": "results"},
-                'output_manifest': None,
-            }
+                "event": {
+                    'kind': 'log_record',
+                    'log_record': {
+                        'msg': 'Finished analysis.',
+                        'args': None,
+                        'levelname': 'INFO',
+                        ... # Left out for brevity.
+                    },
+                },
+                "attributes": {
+                    ... # Left out for brevity.
+                },
+            },
+            {
+                "event": {
+                    'kind': 'result',
+                    'output_values': {"some": "results"},
+                },
+                "attributes": {
+                    ... # Left out for brevity.
+                },
+            },
         ]
 
 You can then feed these into a child emulator to emulate one possible response of the child:
@@ -258,8 +280,9 @@ You can then feed these into a child emulator to emulate one possible response o
 
 
     child_emulator = ChildEmulator(events=child.received_events)
+    result, question_uuid = child_emulator.ask(input_values=[1, 2, 3, 4])
 
-    child_emulator.ask(input_values=[1, 2, 3, 4])
-    >>> {"some": "results"}, "9cab579f-c486-4324-ac9b-96491d26266b"
+    result
+    >>> {"some": "results"}
 
-You can also create test fixtures from :ref:`downloaded service crash diagnostics <test_fixtures_from_crash_diagnostics>`.
+You can also create test fixtures from :ref:`downloaded service crash diagnostics <test_fixtures_from_diagnostics>`.

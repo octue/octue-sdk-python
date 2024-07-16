@@ -83,7 +83,7 @@ Download all or a subset of datasets from a manifest.
 
 .. note::
 
-    Datasets are downloaded to temporary directories if no paths are given.
+    Datasets are downloaded to a temporary directory if no paths are given.
 
 
 Further information

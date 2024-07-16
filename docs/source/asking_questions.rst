@@ -123,7 +123,6 @@ access the event store and run:
           {
             "event": {
               "kind": "delivery_acknowledgement",
-              "datetime": "2024-03-06T15:44:18.156044"
             },
           },
           {
@@ -156,7 +155,6 @@ access the event store and run:
           {
             "event": {
               "kind": "heartbeat",
-              "datetime": "2024-03-06T15:46:18.167424"
             },
           },
           {
