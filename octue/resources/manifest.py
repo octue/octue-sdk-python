@@ -83,13 +83,13 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
         datasets_directory = RegisteredTemporaryDirectory().name
 
         for name, dataset in self.datasets.items():
-            download_path = paths.get(name, os.path.join(datasets_directory, name))
+            download_path = paths.get(name)
 
-            if not download_path and not download_all:
+            if not download_all and not download_path:
                 logger.info("%r dataset download skipped as its download path wasn't specified.", name)
                 continue
 
-            paths[name] = dataset.download(local_directory=download_path)
+            paths[name] = dataset.download(local_directory=download_path or os.path.join(datasets_directory, name))
 
         return paths
 
