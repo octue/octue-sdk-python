@@ -9,11 +9,12 @@ logger = logging.getLogger(__name__)
 
 
 class ChildEmulator:
-    """An emulator for the `octue.resources.child.Child` class that sends the given events to the parent for handling
-    without contacting the real child or using Pub/Sub. Any events a real child could produce are supported. `Child`
-    instances can be replaced/mocked like-for-like by `ChildEmulator` without the parent knowing.
+    """An emulator for the `octue.resources.child.Child` class that handles the given events without contacting the real
+    child or using Pub/Sub. Any events a real child could produce are supported. `Child` instances can be
+    replaced/mocked like-for-like by `ChildEmulator` without the parent knowing.
 
-    :param list(dict)|None events: the list of events to send to the parent
+    :param list(dict(dict))|None events: the list of events to send to the parent; each event must have an "event" key and an "attributes" key, and all events must conform to the service communication schema
+    :param kwargs: any number of keyword arguments that would normally be passed to `Child.__init__`
     :return None:
     """
 
@@ -21,7 +22,9 @@ class ChildEmulator:
         self.events = events or []
 
         if len(self.events) == 0:
-            raise ValueError(f"Events must be provided to the child emulator - received {self.events!r}.")
+            raise ValueError(
+                f"A non-zero number of events must be provided to the child emulator - received {self.events!r}."
+            )
 
         self.id = self.events[0].get("attributes", {}).get("sender")
 
@@ -33,6 +36,12 @@ class ChildEmulator:
         :param str path: the path to a JSON file representing a child emulator
         :return ChildEmulator:
         """
+        warnings.warn(
+            "Use of `ChildEmulator.from_file` is deprecated, and support for it will be removed soon. Please load the "
+            "JSON file separately and pass the events into the `ChildEmulator` constructor.",
+            category=DeprecationWarning,
+        )
+
         with open(path) as f:
             serialised_child_emulator = json.load(f)
 
@@ -48,7 +57,7 @@ class ChildEmulator:
         else:
             events = serialised_child_emulator.get("events")
 
-        return cls(id=serialised_child_emulator.get("id"), events=events)
+        return cls(events=events)
 
     def __repr__(self):
         """Represent a child emulator as a string.
