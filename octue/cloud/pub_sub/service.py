@@ -533,7 +533,7 @@ class Service:
         attributes.update(
             {
                 "uuid": str(uuid.uuid4()),
-                "datetime": datetime.datetime.utcnow().isoformat(),
+                "datetime": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
                 "question_uuid": question_uuid,
                 "parent_question_uuid": parent_question_uuid,
                 "originator_question_uuid": originator_question_uuid,
