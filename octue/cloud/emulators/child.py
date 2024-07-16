@@ -1,6 +1,4 @@
-import json
 import logging
-import warnings
 
 from octue.cloud.events.replayer import EventReplayer
 
@@ -27,37 +25,6 @@ class ChildEmulator:
             )
 
         self.id = self.events[0].get("attributes", {}).get("sender")
-
-    @classmethod
-    def from_file(cls, path):
-        """Instantiate a child emulator from a JSON file at the given path. All/any/none of the instantiation arguments
-        can be given in the file.
-
-        :param str path: the path to a JSON file representing a child emulator
-        :return ChildEmulator:
-        """
-        warnings.warn(
-            "Use of `ChildEmulator.from_file` is deprecated, and support for it will be removed soon. Please load the "
-            "JSON file separately and pass the events into the `ChildEmulator` constructor.",
-            category=DeprecationWarning,
-        )
-
-        with open(path) as f:
-            serialised_child_emulator = json.load(f)
-
-        if "messages" in serialised_child_emulator:
-            events = serialised_child_emulator["messages"]
-
-            warnings.warn(
-                "Use of 'messages' as a key in an events JSON file for a child emulator is deprecated, and support for "
-                "it will be removed soon. Please use 'events' for the key instead.",
-                category=DeprecationWarning,
-            )
-
-        else:
-            events = serialised_child_emulator.get("events")
-
-        return cls(events=events)
 
     def __repr__(self):
         """Represent a child emulator as a string.
