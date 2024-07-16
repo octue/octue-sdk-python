@@ -3,7 +3,7 @@ import uuid
 from unittest.mock import patch
 
 from octue.cloud.emulators._pub_sub import MESSAGES, MockMessage, MockService, MockSubscription
-from octue.cloud.emulators.child import ServicePatcher
+from octue.cloud.emulators.service import ServicePatcher
 from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME

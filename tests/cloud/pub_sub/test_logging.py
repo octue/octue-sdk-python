@@ -4,7 +4,7 @@ from logging import makeLogRecord
 from unittest.mock import patch
 
 from octue.cloud.emulators._pub_sub import MESSAGES, MockService
-from octue.cloud.emulators.child import ServicePatcher
+from octue.cloud.emulators.service import ServicePatcher
 from octue.cloud.pub_sub.logging import GoogleCloudPubSubHandler
 from octue.resources.service_backends import GCPPubSubBackend
 from tests.base import BaseTestCase

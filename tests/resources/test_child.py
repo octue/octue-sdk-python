@@ -10,7 +10,7 @@ from unittest.mock import patch
 from google.auth.exceptions import DefaultCredentialsError
 
 from octue.cloud.emulators._pub_sub import MockAnalysis, MockService
-from octue.cloud.emulators.child import ServicePatcher
+from octue.cloud.emulators.service import ServicePatcher
 from octue.resources.child import Child
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import MOCK_SERVICE_REVISION_TAG

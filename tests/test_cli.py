@@ -10,7 +10,7 @@ from click.testing import CliRunner
 from octue.cli import octue_cli
 from octue.cloud import storage
 from octue.cloud.emulators._pub_sub import MockService, MockSubscription, MockTopic
-from octue.cloud.emulators.child import ServicePatcher
+from octue.cloud.emulators.service import ServicePatcher
 from octue.cloud.events import OCTUE_SERVICES_PREFIX
 from octue.cloud.pub_sub import Topic
 from octue.configuration import AppConfiguration, ServiceConfiguration
