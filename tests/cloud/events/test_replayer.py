@@ -7,6 +7,10 @@ from octue.cloud.events.replayer import EventReplayer
 from tests import TEST_BUCKET_NAME, TESTS_DIR
 
 
+with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
+    EVENTS = json.load(f)
+
+
 class TestEventReplayer(unittest.TestCase):
     def test_with_no_events(self):
         """Test that `None` is returned if no events are passed in."""
@@ -49,10 +53,41 @@ class TestEventReplayer(unittest.TestCase):
 
     def test_with_events_including_result_event(self):
         """Test that stored events can be replayed and the outputs extracted from the "result" event."""
-        with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
-            events = json.load(f)
+        with self.assertLogs() as logging_context:
+            result = EventReplayer().handle_events(EVENTS)
 
-        result = EventReplayer().handle_events(events)
+        # Check that all events have been handled (they produce log messages).
+        self.assertEqual(len(logging_context.output), 7)
+        self.assertEqual(result["output_values"], [1, 2, 3, 4, 5])
+
+        output_manifest = result["output_manifest"].to_primitive()
+        del output_manifest["datasets"]["example_dataset"]["id"]
+
+        self.assertEqual(
+            output_manifest,
+            {
+                "id": "a13713ae-f207-41c6-9e29-0a848ced6039",
+                "name": None,
+                "datasets": {
+                    "example_dataset": {
+                        "name": "divergent-strange-gharial-of-pizza",
+                        "tags": {},
+                        "labels": [],
+                        "path": "https://storage.googleapis.com/octue-sdk-python-test-bucket/example_output_datasets"
+                        "/example_dataset/.signed_metadata_files/divergent-strange-gharial-of-pizza",
+                        "files": [f"gs://{TEST_BUCKET_NAME}/example_output_datasets/example_dataset/output.dat"],
+                    }
+                },
+            },
+        )
+
+    def test_with_only_handle_result(self):
+        """Test that non-result events are skipped if `only_handle_result=True`."""
+        with self.assertLogs() as logging_context:
+            result = EventReplayer(only_handle_result=True).handle_events(EVENTS)
+
+        # Check that only the result event haas been handled.
+        self.assertEqual(len(logging_context.output), 1)
         self.assertEqual(result["output_values"], [1, 2, 3, 4, 5])
 
         output_manifest = result["output_manifest"].to_primitive()
@@ -80,11 +115,8 @@ class TestEventReplayer(unittest.TestCase):
         """Test that log messages are formatted to not include the service metadata if
         `include_service_metadata_in_logs=False`.
         """
-        with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
-            events = json.load(f)
-
         with self.assertLogs() as logging_context:
-            EventReplayer(include_service_metadata_in_logs=False).handle_events(events)
+            EventReplayer(include_service_metadata_in_logs=False).handle_events(EVENTS)
 
         for log_message in logging_context.output:
             self.assertNotIn("[octue/test-service:1.0.0 | d45c7e99-d610-413b-8130-dd6eef46dda6]", log_message)

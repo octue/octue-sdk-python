@@ -56,6 +56,10 @@ class EventReplayer(AbstractEventHandler):
         super().handle_events()
 
         for event in events:
+            # Skip validation and handling of other event kinds if only the result event is wanted.
+            if self.only_handle_result and event.get("event", {}).get("kind") != "result":
+                continue
+
             event, attributes = self._extract_and_validate_event(event)
 
             # Skip the event if it fails validation.
