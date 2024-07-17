@@ -82,11 +82,14 @@ class MockSubscription(Subscription):
             self._created = True
 
     def delete(self):
-        """Do nothing.
+        """Delete the subscription from the global subscriptions dictionary.
 
         :return None:
         """
-        pass
+        try:
+            SUBSCRIPTIONS.remove(self.name)
+        except KeyError:
+            pass
 
     def exists(self, timeout=5):
         """Check if the subscription exists in the global subscriptions dictionary.
