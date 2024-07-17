@@ -1,6 +1,7 @@
 import copy
 import json
 import logging
+from functools import cached_property
 
 import coolname
 
@@ -29,7 +30,16 @@ class Diagnostics:
         self.input_values = None
         self.input_manifest = None
         self.questions = []
-        self._storage_client = GoogleCloudStorageClient()
+
+    @cached_property
+    def storage_client(self):
+        """Get or instantiate the cloud storage client. No storage client is instantiated until this property is called
+        for the first time. This allows checking for the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to be put
+        off until it's needed.
+
+        :return octue.cloud.storage.client.GoogleCloudStorageClient:
+        """
+        return GoogleCloudStorageClient()
 
     def add_data(
         self,
@@ -124,7 +134,7 @@ class Diagnostics:
                 self._upload_manifest(manifest_type, question_diagnostics_path)
 
         # Upload the messages received from any children.
-        self._storage_client.upload_from_string(
+        self.storage_client.upload_from_string(
             string=json.dumps(self.questions, cls=OctueJSONEncoder),
             cloud_path=storage.path.join(question_diagnostics_path, "questions.json"),
         )
@@ -150,7 +160,7 @@ class Diagnostics:
         """
         values = getattr(self, values_type)
 
-        self._storage_client.upload_from_string(
+        self.storage_client.upload_from_string(
             json.dumps(values, cls=OctueJSONEncoder),
             cloud_path=storage.path.join(question_diagnostics_path, f"{values_type}.json"),
         )
@@ -182,7 +192,7 @@ class Diagnostics:
             manifest["datasets"][dataset_name] = new_dataset_path
 
         # Upload the serialised manifest.
-        self._storage_client.upload_from_string(
+        self.storage_client.upload_from_string(
             json.dumps(manifest, cls=OctueJSONEncoder),
             cloud_path=storage.path.join(question_diagnostics_path, f"{manifest_type}.json"),
         )
