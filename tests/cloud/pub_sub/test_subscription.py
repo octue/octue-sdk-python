@@ -18,6 +18,11 @@ class TestSubscription(BaseTestCase):
         """Test that subscriptions are represented correctly."""
         self.assertEqual(repr(self.subscription), "<Subscription(name='world', filter=None)>")
 
+    def test_instantiating_without_credentials(self):
+        """Test that a subscription can be instantiated without Google Cloud credentials."""
+        with patch.dict(os.environ, clear=True):
+            Subscription(name="world", topic=self.topic)
+
     def test_create_without_allow_existing_when_subscription_already_exists(self):
         """Test that an error is raised when trying to create a subscription that already exists and `allow_existing` is
         `False`.
