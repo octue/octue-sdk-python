@@ -83,8 +83,6 @@ class Runner:
             configuration_manifest=configuration_manifest,
         )
 
-        self._storage_client = None
-
         # Ensure the twine is present and instantiate it.
         if isinstance(twine, Twine):
             self.twine = twine
