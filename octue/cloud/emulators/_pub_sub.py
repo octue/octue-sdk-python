@@ -63,6 +63,10 @@ class MockSubscription(Subscription):
         super().__init__(*args, **kwargs)
         self._subscriber = MockSubscriber()
 
+    @property
+    def subscriber(self):
+        return self._subscriber
+
     def create(self, allow_existing=False):
         """Register the subscription in the global subscriptions dictionary.
 
