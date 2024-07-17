@@ -27,15 +27,15 @@ class TestSubscription(BaseTestCase):
         """Test that an error is raised when trying to create a subscription that already exists and `allow_existing` is
         `False`.
         """
-        with patch("octue.cloud.pub_sub.subscription.SubscriberClient", MockSubscriber):
-            subscription = Subscription(name="world", topic=self.topic)
+        subscription = Subscription(name="world", topic=self.topic)
 
-        with patch(
-            "octue.cloud.emulators._pub_sub.MockSubscriber.create_subscription",
-            side_effect=google.api_core.exceptions.AlreadyExists(""),
-        ):
-            with self.assertRaises(google.api_core.exceptions.AlreadyExists):
-                subscription.create(allow_existing=False)
+        with patch("octue.cloud.pub_sub.subscription.SubscriberClient", MockSubscriber):
+            with patch(
+                "octue.cloud.emulators._pub_sub.MockSubscriber.create_subscription",
+                side_effect=google.api_core.exceptions.AlreadyExists(""),
+            ):
+                with self.assertRaises(google.api_core.exceptions.AlreadyExists):
+                    subscription.create(allow_existing=False)
 
         # Check that the subscription creation isn't indicated as being triggered locally.
         self.assertFalse(subscription.creation_triggered_locally)
@@ -44,14 +44,14 @@ class TestSubscription(BaseTestCase):
         """Test that trying to create a subscription that already exists when `allow_existing` is `True` results in no
         error.
         """
-        with patch("octue.cloud.pub_sub.subscription.SubscriberClient", MockSubscriber):
-            subscription = Subscription(name="world", topic=self.topic)
+        subscription = Subscription(name="world", topic=self.topic)
 
-        with patch(
-            "octue.cloud.emulators._pub_sub.MockSubscriber.create_subscription",
-            side_effect=google.api_core.exceptions.AlreadyExists(""),
-        ):
-            subscription.create(allow_existing=True)
+        with patch("octue.cloud.pub_sub.subscription.SubscriberClient", MockSubscriber):
+            with patch(
+                "octue.cloud.emulators._pub_sub.MockSubscriber.create_subscription",
+                side_effect=google.api_core.exceptions.AlreadyExists(""),
+            ):
+                subscription.create(allow_existing=True)
 
         # Check that the subscription creation isn't indicated as being triggered locally.
         self.assertFalse(subscription.creation_triggered_locally)
