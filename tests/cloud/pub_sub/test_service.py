@@ -1,6 +1,7 @@
 import datetime
 import functools
 import logging
+import os
 import random
 import tempfile
 import time
@@ -73,6 +74,11 @@ class TestService(BaseTestCase):
 
         with self.assertRaises(ValueError):
             Service(backend=BACKEND, service_id={})
+
+    def test_instantiating_without_credentials(self):
+        """Test that a service can be instantiated without Google Cloud credentials."""
+        with patch.dict(os.environ, clear=True):
+            Service(backend=BACKEND)
 
     def test_serve_fails_if_service_with_same_id_already_exists(self):
         """Test that serving a service fails if a service with the same name already exists."""
