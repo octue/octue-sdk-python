@@ -3,6 +3,7 @@ import json
 import logging
 import time
 from datetime import datetime, timedelta
+from functools import cached_property
 
 from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
@@ -91,10 +92,19 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
             include_service_metadata_in_logs=include_service_metadata_in_logs,
         )
 
-        self._subscriber = SubscriberClient()
         self._heartbeat_checker = None
         self._last_heartbeat = None
         self._alive = True
+
+    @cached_property
+    def subscriber(self):
+        """Get or instantiate the subscriber client. The client isn't instantiated until this property is called for the
+        first time. This allows checking for the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to be put off
+        until it's needed.
+
+        :return google.cloud.pubsub_v1.SubscriberClient:
+        """
+        return SubscriberClient()
 
     @property
     def total_run_time(self):
@@ -156,7 +166,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
 
         finally:
             self._heartbeat_checker.cancel()
-            self._subscriber.close()
+            self.subscriber.close()
 
         if self.handled_events:
             last_event = self.handled_events[-1]
@@ -221,7 +231,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         while self._alive:
             logger.debug("Pulling events from Google Pub/Sub: attempt %d.", attempt)
 
-            pull_response = self._subscriber.pull(
+            pull_response = self.subscriber.pull(
                 request={"subscription": self.subscription.path, "max_messages": MAX_SIMULTANEOUS_MESSAGES_PULL},
                 retry=retry.Retry(),
             )
@@ -240,7 +250,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         if not pull_response.received_messages:
             return []
 
-        self._subscriber.acknowledge(
+        self.subscriber.acknowledge(
             request={
                 "subscription": self.subscription.path,
                 "ack_ids": [message.ack_id for message in pull_response.received_messages],
