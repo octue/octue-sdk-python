@@ -83,8 +83,14 @@ class TestEventReplayer(unittest.TestCase):
 
     def test_with_only_handle_result(self):
         """Test that non-result events are skipped if `only_handle_result=True`."""
-        with self.assertLogs() as logging_context:
-            result = EventReplayer(only_handle_result=True).handle_events(EVENTS)
+        with patch(
+            "octue.cloud.events.handler.AbstractEventHandler._handle_delivery_acknowledgement"
+        ) as mock_handle_delivery_acknowledgement:
+            with self.assertLogs() as logging_context:
+                result = EventReplayer(only_handle_result=True).handle_events(EVENTS)
+
+        # If `only_handle_result` is respected, the delivery acknowledgement handler won't have been called.
+        mock_handle_delivery_acknowledgement.assert_not_called()
 
         # Check that only the result event haas been handled.
         self.assertEqual(len(logging_context.output), 1)
