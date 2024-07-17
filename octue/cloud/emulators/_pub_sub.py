@@ -314,7 +314,6 @@ class MockService(Service):
         super().__init__(backend, service_id, run_function, *args, **kwargs)
         self.children = children or {}
         self._publisher = MockPublisher()
-        self.subscriber = MockSubscriber()
 
     @property
     def publisher(self):
