@@ -63,6 +63,10 @@ class MockSubscription(Subscription):
         super().__init__(*args, **kwargs)
         self._subscriber = MockSubscriber()
 
+    @property
+    def subscriber(self):
+        return self._subscriber
+
     def create(self, allow_existing=False):
         """Register the subscription in the global subscriptions dictionary.
 
@@ -78,11 +82,14 @@ class MockSubscription(Subscription):
             self._created = True
 
     def delete(self):
-        """Do nothing.
+        """Delete the subscription from the global subscriptions dictionary.
 
         :return None:
         """
-        pass
+        try:
+            SUBSCRIPTIONS.remove(self.name)
+        except KeyError:
+            pass
 
     def exists(self, timeout=5):
         """Check if the subscription exists in the global subscriptions dictionary.
@@ -310,7 +317,6 @@ class MockService(Service):
         super().__init__(backend, service_id, run_function, *args, **kwargs)
         self.children = children or {}
         self._publisher = MockPublisher()
-        self.subscriber = MockSubscriber()
 
     @property
     def publisher(self):

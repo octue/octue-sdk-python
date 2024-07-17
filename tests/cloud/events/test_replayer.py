@@ -2,9 +2,30 @@ import json
 import logging
 import os
 import unittest
+from unittest.mock import patch
 
 from octue.cloud.events.replayer import EventReplayer
 from tests import TEST_BUCKET_NAME, TESTS_DIR
+
+
+with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
+    EVENTS = json.load(f)
+
+
+EXPECTED_OUTPUT_MANIFEST = {
+    "id": "a13713ae-f207-41c6-9e29-0a848ced6039",
+    "name": None,
+    "datasets": {
+        "example_dataset": {
+            "name": "divergent-strange-gharial-of-pizza",
+            "tags": {},
+            "labels": [],
+            "path": "https://storage.googleapis.com/octue-sdk-python-test-bucket/example_output_datasets"
+            "/example_dataset/.signed_metadata_files/divergent-strange-gharial-of-pizza",
+            "files": [f"gs://{TEST_BUCKET_NAME}/example_output_datasets/example_dataset/output.dat"],
+        }
+    },
+}
 
 
 class TestEventReplayer(unittest.TestCase):
@@ -49,42 +70,54 @@ class TestEventReplayer(unittest.TestCase):
 
     def test_with_events_including_result_event(self):
         """Test that stored events can be replayed and the outputs extracted from the "result" event."""
-        with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
-            events = json.load(f)
+        with self.assertLogs() as logging_context:
+            result = EventReplayer().handle_events(EVENTS)
 
-        result = EventReplayer().handle_events(events)
+        # Check that all events have been handled (they produce log messages).
+        self.assertEqual(len(logging_context.output), 7)
         self.assertEqual(result["output_values"], [1, 2, 3, 4, 5])
 
         output_manifest = result["output_manifest"].to_primitive()
         del output_manifest["datasets"]["example_dataset"]["id"]
+        self.assertEqual(output_manifest, EXPECTED_OUTPUT_MANIFEST)
 
-        self.assertEqual(
-            output_manifest,
-            {
-                "id": "a13713ae-f207-41c6-9e29-0a848ced6039",
-                "name": None,
-                "datasets": {
-                    "example_dataset": {
-                        "name": "divergent-strange-gharial-of-pizza",
-                        "tags": {},
-                        "labels": [],
-                        "path": "https://storage.googleapis.com/octue-sdk-python-test-bucket/example_output_datasets"
-                        "/example_dataset/.signed_metadata_files/divergent-strange-gharial-of-pizza",
-                        "files": [f"gs://{TEST_BUCKET_NAME}/example_output_datasets/example_dataset/output.dat"],
-                    }
-                },
-            },
-        )
+    def test_with_only_handle_result(self):
+        """Test that non-result events are skipped if `only_handle_result=True`."""
+        with patch(
+            "octue.cloud.events.handler.AbstractEventHandler._handle_delivery_acknowledgement"
+        ) as mock_handle_delivery_acknowledgement:
+            with self.assertLogs() as logging_context:
+                result = EventReplayer(only_handle_result=True).handle_events(EVENTS)
+
+        # If `only_handle_result` is respected, the delivery acknowledgement handler won't have been called.
+        mock_handle_delivery_acknowledgement.assert_not_called()
+
+        # Check that only the result event haas been handled.
+        self.assertEqual(len(logging_context.output), 1)
+        self.assertEqual(result["output_values"], [1, 2, 3, 4, 5])
+
+        output_manifest = result["output_manifest"].to_primitive()
+        del output_manifest["datasets"]["example_dataset"]["id"]
+        self.assertEqual(output_manifest, EXPECTED_OUTPUT_MANIFEST)
 
     def test_without_service_metadata_in_logs(self):
         """Test that log messages are formatted to not include the service metadata if
         `include_service_metadata_in_logs=False`.
         """
-        with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
-            events = json.load(f)
-
         with self.assertLogs() as logging_context:
-            EventReplayer(include_service_metadata_in_logs=False).handle_events(events)
+            EventReplayer(include_service_metadata_in_logs=False).handle_events(EVENTS)
 
         for log_message in logging_context.output:
             self.assertNotIn("[octue/test-service:1.0.0 | d45c7e99-d610-413b-8130-dd6eef46dda6]", log_message)
+
+    def test_without_validating_events(self):
+        """Test that event validation is skipped when `validate_events=False`."""
+        with patch("octue.cloud.events.handler.is_event_valid") as mock_is_event_valid:
+            result = EventReplayer(validate_events=False).handle_events(EVENTS)
+
+        mock_is_event_valid.assert_not_called()
+        self.assertEqual(result["output_values"], [1, 2, 3, 4, 5])
+
+        output_manifest = result["output_manifest"].to_primitive()
+        del output_manifest["datasets"]["example_dataset"]["id"]
+        self.assertEqual(output_manifest, EXPECTED_OUTPUT_MANIFEST)

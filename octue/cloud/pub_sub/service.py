@@ -84,8 +84,6 @@ class Service:
 
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
         self._local_sdk_version = importlib.metadata.version("octue")
-        self._publisher = None
-        self._services_topic = None
         self._event_handler = None
 
     def __repr__(self):
@@ -95,7 +93,7 @@ class Service:
         """
         return f"<{type(self).__name__}({self.id!r})>"
 
-    @property
+    @functools.cached_property
     def publisher(self):
         """Get or instantiate the publisher client for the service. No publisher is instantiated until this property is
         called for the first time. This allows checking for the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to
@@ -103,15 +101,12 @@ class Service:
 
         :return google.cloud.pubsub_v1.PublisherClient:
         """
-        if not self._publisher:
-            self._publisher = pubsub_v1.PublisherClient(
-                batch_settings=BATCH_SETTINGS,
-                publisher_options=pubsub_v1.types.PublisherOptions(enable_message_ordering=True),
-            )
+        return pubsub_v1.PublisherClient(
+            batch_settings=BATCH_SETTINGS,
+            publisher_options=pubsub_v1.types.PublisherOptions(enable_message_ordering=True),
+        )
 
-        return self._publisher
-
-    @property
+    @functools.cached_property
     def services_topic(self):
         """Get the Octue services topic that all events in the project are published to. No topic is instantiated until
         this property is called for the first time. This allows checking for the `GOOGLE_APPLICATION_CREDENTIALS`
@@ -120,15 +115,12 @@ class Service:
         :raise octue.exceptions.ServiceNotFound: if the topic doesn't exist in the project
         :return octue.cloud.pub_sub.topic.Topic: the Octue services topic for the project
         """
-        if not self._services_topic:
-            topic = Topic(name=OCTUE_SERVICES_PREFIX, project_name=self.backend.project_name)
+        topic = Topic(name=OCTUE_SERVICES_PREFIX, project_name=self.backend.project_name)
 
-            if not topic.exists():
-                raise octue.exceptions.ServiceNotFound(f"{topic!r} cannot be found.")
+        if not topic.exists():
+            raise octue.exceptions.ServiceNotFound(f"{topic!r} cannot be found.")
 
-            self._services_topic = topic
-
-        return self._services_topic
+        return topic
 
     @property
     def received_events(self):
@@ -533,7 +525,7 @@ class Service:
         attributes.update(
             {
                 "uuid": str(uuid.uuid4()),
-                "datetime": datetime.datetime.utcnow().isoformat(),
+                "datetime": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
                 "question_uuid": question_uuid,
                 "parent_question_uuid": parent_question_uuid,
                 "originator_question_uuid": originator_question_uuid,

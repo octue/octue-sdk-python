@@ -1,3 +1,4 @@
+import os
 from unittest.mock import patch
 
 import google.api_core.exceptions
@@ -11,6 +12,11 @@ class TestTopic(BaseTestCase):
         """Test that Topics are represented correctly."""
         topic = Topic(name="world", project_name="my-project")
         self.assertEqual(repr(topic), "<Topic(name='world')>")
+
+    def test_instantiating_without_credentials(self):
+        """Test that a topic can be instantiated without Google Cloud credentials."""
+        with patch.dict(os.environ, clear=True):
+            Topic(name="world", project_name="my-project")
 
     def test_create(self):
         """Test that a topic can be created and that it's marked as having its creation triggered locally."""

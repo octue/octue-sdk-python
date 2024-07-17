@@ -1,4 +1,5 @@
 import datetime
+import os
 import uuid
 from unittest.mock import patch
 
@@ -36,6 +37,11 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         :return None:
         """
         cls.service_patcher.stop()
+
+    def test_instantiating_without_credentials(self):
+        """Test that the event handler can be instantiated without Google Cloud credentials."""
+        with patch.dict(os.environ, clear=True):
+            GoogleCloudPubSubEventHandler(subscription=self.subscription)
 
     def test_timeout(self):
         """Test that a TimeoutError is raised if event handling takes longer than the given timeout."""

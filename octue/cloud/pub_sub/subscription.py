@@ -1,4 +1,5 @@
 import logging
+from functools import cached_property
 
 import google.api_core.exceptions
 from google.cloud.pubsub_v1 import SubscriberClient
@@ -72,8 +73,17 @@ class Subscription:
 
         self.push_endpoint = push_endpoint
         self.enable_message_ordering = enable_message_ordering
-        self._subscriber = SubscriberClient()
         self._created = False
+
+    @cached_property
+    def subscriber(self):
+        """Get or instantiate the subscriber client. The client isn't instantiated until this property is called for the
+        first time. This allows checking for the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to be put off
+        until it's needed.
+
+        :return google.cloud.pubsub_v1.SubscriberClient:
+        """
+        return SubscriberClient()
 
     @property
     def creation_triggered_locally(self):
@@ -116,13 +126,13 @@ class Subscription:
         subscription = self._create_proto_message_subscription()
 
         if not allow_existing:
-            subscription = self._subscriber.create_subscription(request=subscription)
+            subscription = self.subscriber.create_subscription(request=subscription)
             self._created = True
             self._log_creation()
             return subscription
 
         try:
-            subscription = self._subscriber.create_subscription(request=subscription)
+            subscription = self.subscriber.create_subscription(request=subscription)
             self._created = True
         except google.api_core.exceptions.AlreadyExists:
             pass
@@ -135,7 +145,7 @@ class Subscription:
 
         :return None:
         """
-        self._subscriber.update_subscription(
+        self.subscriber.update_subscription(
             request=UpdateSubscriptionRequest(
                 mapping=None,
                 subscription=self._create_proto_message_subscription(),  # noqa
@@ -156,7 +166,7 @@ class Subscription:
 
         :return None:
         """
-        self._subscriber.delete_subscription(subscription=self.path)
+        self.subscriber.delete_subscription(subscription=self.path)
         logger.info("Subscription %r deleted.", self.path)
 
     def exists(self, timeout=5):
@@ -166,7 +176,7 @@ class Subscription:
         :return bool:
         """
         try:
-            self._subscriber.get_subscription(subscription=self.path, timeout=timeout)
+            self.subscriber.get_subscription(subscription=self.path, timeout=timeout)
             return True
         except google.api_core.exceptions.NotFound:
             return False

@@ -74,14 +74,13 @@ class TestChild(BaseTestCase):
     def test_child_cannot_be_asked_question_without_credentials(self):
         """Test that a child cannot be asked a question without Google Cloud credentials being available."""
         with patch.dict(os.environ, clear=True):
-            with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
-                child = Child(
-                    id=f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}",
-                    backend={"name": "GCPPubSubBackend", "project_name": "blah"},
-                )
+            child = Child(
+                id=f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}",
+                backend={"name": "GCPPubSubBackend", "project_name": "blah"},
+            )
 
-                with self.assertRaises(DefaultCredentialsError):
-                    child.ask({"some": "input"})
+            with self.assertRaises(DefaultCredentialsError):
+                child.ask({"some": "input"})
 
     def test_child_can_be_asked_multiple_questions(self):
         """Test that a child can be asked multiple questions."""
