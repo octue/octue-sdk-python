@@ -177,14 +177,26 @@ class Child:
 
             return e, question_uuid
 
-    def ask_multiple(self, *questions, max_workers=None):
+    def ask_multiple(
+        self,
+        *questions,
+        raise_errors=True,
+        max_retries=0,
+        prevent_retries_when=None,
+        max_workers=None,
+        log_errors=True,
+    ):
         """Ask the child multiple questions in parallel and wait for the answers. Each question should be provided as a
-        dictionary of `Child.ask` keyword arguments. If `raise_errors` is `True`, an error is raised and no answers are
-        returned if any of the individual questions raise an error; if it's `False`, answers are returned for all
-        successful questions while errors are returned unraised for any failed ones.
+        dictionary of `Child.ask` keyword arguments. The `raise_errors`, `max_retries`, `prevent_retries_when`, and
+        `log_errors` arguments have the same effect as in `Child.ask`, applied to all questions. However, if a question
+        specifies these arguments, the values provided by the question take precedence for that question.
 
         :param questions: any number of questions provided as dictionaries of arguments to the `Child.ask` method
+        :param bool raise_errors: if `True`, an error is raised and no answers are returned if any of the individual questions raise an error; if `False`, answers are returned for all successful questions while errors are returned unraised for any failed ones
+        :param int max_retries: retry any questions that failed up to this number of times (note: this will have no effect unless `raise_errors=False`)
+        :param list(type)|None prevent_retries_when: prevent retrying any questions that fail with an exception type in this list (note: this will have no effect unless `raise_errors=False`)
         :param int|None max_workers: the maximum number of questions that can be asked at once; defaults to the lowest of {32, no. of CPUs + 4, and no. of questions} (see `concurrent.futures.ThreadPoolExecutor`)
+        :param bool log_errors: if `True` and `raise_errors=False`, log any errors remaining once retries are exhausted
         :return list(dict|Exception, str): the answers or caught errors of the questions, and the question UUIDs (in the same order as asked)
         """
         # Answers will come out of order, so use a dictionary to store them against their questions' original index.
@@ -197,6 +209,12 @@ class Child:
             future_to_question_index_mapping = {}
 
             for i, question in enumerate(questions):
+                # Set retry/error parameters if they're not given in the individual questions.
+                question["raise_errors"] = question.get("raise_errors", raise_errors)
+                question["max_retries"] = question.get("max_retries", max_retries)
+                question["prevent_retries_when"] = question.get("prevent_retries_when", prevent_retries_when)
+                question["log_errors"] = question.get("log_errors", log_errors)
+
                 future = executor.submit(self.ask, **question)
                 future_to_question_index_mapping[future] = i
 
