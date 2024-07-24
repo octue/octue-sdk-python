@@ -72,7 +72,7 @@ class Child:
         raise_errors=True,
         max_retries=0,
         prevent_retries_when=None,
-        log_final_retry_error=True,
+        log_errors=True,
         timeout=86400,
         maximum_heartbeat_interval=300,
     ):
@@ -100,7 +100,7 @@ class Child:
         :param bool raise_errors: if `True` and the question fails, raise the error; if False, return the error
         :param int max_retries: if `raise_errors=False` and the question fails, retry the question up to this number of times
         :param list(type)|None prevent_retries_when: if `raise_errors=False` and the question fails, prevent retrying the question if it fails with an exception type in this list
-        :param bool log_final_retry_error: if `True`, `raise_errors=False`, and the question fails after its final retry, log the error
+        :param bool log_errors: if `True`, `raise_errors=False`, and the question fails after its final retry, log the error
         :param float timeout: time in seconds to wait for an answer before raising a timeout error
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
@@ -160,14 +160,14 @@ class Child:
                 logger.info("Retrying question %r %d of %d times.", question_uuid, retry + 1, max_retries)
 
                 inputs["retry_count"] += 1
-                answer, question_uuid = self.ask(**inputs, raise_errors=False, log_final_retry_error=False)
+                answer, question_uuid = self.ask(**inputs, raise_errors=False, log_errors=False)
 
                 if not isinstance(answer, Exception) or type(answer) in prevent_retries_when:
                     return answer, question_uuid
 
                 e = answer
 
-            if log_final_retry_error:
+            if log_errors:
                 logger.error(
                     "Question %r failed after %d retries (see below for error).",
                     question_uuid,
