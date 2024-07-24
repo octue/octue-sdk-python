@@ -97,7 +97,7 @@ class Child:
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True`, don't wait for an answer or create an answer subscription (the result and other events can be retrieved from the event store later)
         :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
-        :param bool raise_errors: if `True` and the question fails, raise the error; if False, return the error
+        :param bool raise_errors: if `True` and the question fails, raise the error; if False, return the error in place of the answer
         :param int max_retries: if `raise_errors=False` and the question fails, retry the question up to this number of times
         :param list(type)|None prevent_retries_when: if `raise_errors=False` and the question fails, prevent retrying the question if it fails with an exception type in this list
         :param bool log_errors: if `True`, `raise_errors=False`, and the question fails after its final retry, log the error
@@ -197,7 +197,7 @@ class Child:
         :param list(type)|None prevent_retries_when: prevent retrying any questions that fail with an exception type in this list (note: this will have no effect unless `raise_errors=False`)
         :param int|None max_workers: the maximum number of questions that can be asked at once; defaults to the lowest of {32, no. of CPUs + 4, and no. of questions} (see `concurrent.futures.ThreadPoolExecutor`)
         :param bool log_errors: if `True` and `raise_errors=False`, log any errors remaining once retries are exhausted
-        :return list(dict|Exception, str): the answers or caught errors of the questions, and the question UUIDs (in the same order as asked)
+        :return list((dict|octue.cloud.pub_sub.subscription.Subscription|Exception|None, str)): the answers to the questions and the question UUIDs (in the same order as asked)
         """
         # Answers will come out of order, so use a dictionary to store them against their questions' original index.
         answers = {}
