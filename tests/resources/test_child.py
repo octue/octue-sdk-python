@@ -122,7 +122,7 @@ class TestChild(BaseTestCase):
             with self.assertRaises(ValueError):
                 child.ask(input_values=[1, 2, 3, 4])
 
-    def test_error_not_raised_by_if_question_fails_when_raise_errors_is_false(self):
+    def test_error_not_raised_if_question_fails_when_raise_errors_is_false(self):
         """Test that an error is not raised if the question fails when `raise_errors` is `False`."""
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
@@ -138,6 +138,7 @@ class TestChild(BaseTestCase):
             child._service.children[responding_service.id] = responding_service
             answer, _ = child.ask(input_values=[1, 2, 3, 4], raise_errors=False)
 
+        self.assertTrue(isinstance(answer, ValueError))
         self.assertIn("Deliberately raised for `Child.ask` test.", answer.args[0])
 
     def test_with_failed_question_retry(self):
@@ -149,19 +150,17 @@ class TestChild(BaseTestCase):
 
         with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
             responding_service.serve()
-
             child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_name": "blah"})
 
             # Make sure the child's underlying mock service knows how to access the mock responding service.
             child._service.children[responding_service.id] = responding_service
-
             answer, _ = child.ask(input_values=[1, 2, 3, 4], raise_errors=False, max_retries=1)
 
         # Check that the question succeeds.
         self.assertEqual(answer, {"output_manifest": None, "output_values": [1, 2, 3, 4]})
 
     def test_errors_logged_when_not_raised(self):
-        """Test that errors from a question still failing after retries are exhausted are logged."""
+        """Test that errors from a question still failing after retries are exhausted are logged by default."""
         responding_service = MockService(
             backend=GCPPubSubBackend(project_name="blah"),
             run_function=functools.partial(mock_run_function_that_fails_every_other_time, runs=Value("d", 0)),
@@ -169,7 +168,6 @@ class TestChild(BaseTestCase):
 
         with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
             responding_service.serve()
-
             child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_name": "blah"})
 
             # Make sure the child's underlying mock service knows how to access the mock responding service.
@@ -196,15 +194,17 @@ class TestChild(BaseTestCase):
             # Make sure the child's underlying mock service knows how to access the mock responding service.
             child._service.children[responding_service.id] = responding_service
 
-            # Only ask two questions so the question success/failure order plays out as desired.
-            answer, _ = child.ask(
-                input_values=[1, 2, 3, 4],
-                raise_errors=False,
-                max_retries=0,
-                prevent_retries_when=[ValueError],
-            )
+            with self.assertLogs() as logging_context:
+                answer, _ = child.ask(
+                    input_values=[1, 2, 3, 4],
+                    raise_errors=False,
+                    max_retries=1,
+                    prevent_retries_when=[ValueError],
+                )
 
+        self.assertTrue(isinstance(answer, ValueError))
         self.assertIn("Deliberately raised for `Child.ask` test.", answer.args[0])
+        self.assertIn("Skipping retries for exceptions of type <class 'ValueError'>.", logging_context.output[-1])
 
 
 class TestAskMultiple(BaseTestCase):
