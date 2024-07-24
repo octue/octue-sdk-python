@@ -68,6 +68,10 @@ You can also set the following options when you call :mod:`Child.ask <octue.reso
 - ``question_uuid`` - if provided, the question will use this UUID instead of a generated one
 - ``push_endpoint`` - if provided, the result and other events produced during the processing of the question will be pushed to this HTTP endpoint (a URL)
 - ``asynchronous`` - if ``True``, don't wait for an answer to the question (the result and other events can be :ref:`retrieved from the event store later <retrieving_asynchronous_answers>`)
+- If ``raise_errors=False`` is provided, answers are returned for all successful questions while unraised errors are logged and returned for unsuccessful ones
+- If ``raise_errors=False`` is provided with ``max_retries > 0``, failed questions are retried up to this number of times
+- If ``raise_errors=False`` is provided with ``max_retries > 0`` and ``prevent_retries_when`` is set to a list of exception types, failed questions are retried except for those whose exception types are in the list
+- ``log_errors``: If `True` and ``raise_errors=False``, any errors remaining once retries are exhausted are logged in addition to being returned
 - ``timeout`` - how long in seconds to wait for an answer (``None`` by default - i.e. don't time out)
 
 Exceptions raised by a child
@@ -185,8 +189,8 @@ access the event store and run:
 
 Asking multiple questions in parallel
 =====================================
-You can also ask multiple questions to a service in parallel. By default, if any of the questions fail, an error is
-raised and no answers are returned.
+You can also ask multiple questions to a service in parallel - just provide any number of questions as dictionaries of
+`Child.ask` arguments:
 
 .. code-block:: python
 
@@ -203,18 +207,11 @@ raised and no answers are returned.
 
 This method uses multithreading, allowing all the questions to be asked at once instead of one after another.
 
-**Options**
+.. hint::
 
-- If ``raise_errors=False`` is provided, answers are returned for all successful questions while unraised errors are
-  logged and returned for unsuccessful ones
-- If ``raise_errors=False`` is provided with ``max_retries > 0``, failed questions are retried up to this number of
-  times
-- If ``raise_errors=False`` is provided with ``max_retries > 0`` and ``prevent_retries_when`` is set to a list of
-  exception types, failed questions are retried except for those whose exception types are in the list
-- ``max_workers``: The maximum number of threads that can be used to ask questions in parallel can be set via this
-  argument. It has no effect on the total number of questions that can be asked via ``Child.ask_multiple``.
-- ``log_errors``: If `True` and ``raise_errors=False``, any errors remaining once retries are exhausted are logged in
-  addition to being returned
+    The maximum number of threads that can be used to ask questions in parallel can be set via the ``max_workers``
+    argument. It has no effect on the total number of questions that can be asked, just how many can be in progress at
+    once.
 
 
 Asking a question within a service
