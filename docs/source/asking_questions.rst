@@ -68,11 +68,14 @@ You can also set the following options when you call :mod:`Child.ask <octue.reso
 - ``question_uuid`` - if provided, the question will use this UUID instead of a generated one
 - ``push_endpoint`` - if provided, the result and other events produced during the processing of the question will be pushed to this HTTP endpoint (a URL)
 - ``asynchronous`` - if ``True``, don't wait for an answer to the question (the result and other events can be :ref:`retrieved from the event store later <retrieving_asynchronous_answers>`)
-- If ``raise_errors=False`` is provided, answers are returned for all successful questions while unraised errors are logged and returned for unsuccessful ones
-- If ``raise_errors=False`` is provided with ``max_retries > 0``, failed questions are retried up to this number of times
-- If ``raise_errors=False`` is provided with ``max_retries > 0`` and ``prevent_retries_when`` is set to a list of exception types, failed questions are retried except for those whose exception types are in the list
-- ``log_errors``: If `True` and ``raise_errors=False``, any errors remaining once retries are exhausted are logged in addition to being returned
 - ``timeout`` - how long in seconds to wait for an answer (``None`` by default - i.e. don't time out)
+
+If the question fails:
+- If ``raise_errors=False``, the unraised error is returned
+- If ``raise_errors=False`` and ``max_retries > 0``, the question is retried up to this number of times
+- If ``raise_errors=False``, ``max_retries > 0``, and ``prevent_retries_when`` is a list of exception types, the question is retried unless the error type is in the list
+- If ``raise_errors=False``, ``log_errors=True``, and the question fails after its final retry, the error is logged
+
 
 Exceptions raised by a child
 ----------------------------
@@ -189,8 +192,8 @@ access the event store and run:
 
 Asking multiple questions in parallel
 =====================================
-You can also ask multiple questions to a service in parallel - just provide any number of questions as dictionaries of
-`Child.ask` arguments:
+You can also ask multiple questions to a service in parallel - just provide questions as dictionaries of `Child.ask`
+arguments:
 
 .. code-block:: python
 
