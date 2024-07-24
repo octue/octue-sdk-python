@@ -154,6 +154,7 @@ class Child:
                 raise e
 
             if type(e) in prevent_retries_when:
+                logger.info("Skipping retries for exceptions of type %r.", type(e))
                 return e, question_uuid
 
             for retry in range(max_retries):
