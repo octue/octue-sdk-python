@@ -189,8 +189,8 @@ class Child:
     ):
         """Ask the child multiple questions in parallel and wait for the answers. Each question should be provided as a
         dictionary of `Child.ask` keyword arguments. The `raise_errors`, `max_retries`, `prevent_retries_when`, and
-        `log_errors` arguments have the same effect as in `Child.ask`, applied to all questions. However, if a question
-        specifies these arguments, the values provided by the question take precedence for that question.
+        `log_errors` arguments have the same effect as in `Child.ask`, applied to all questions. These values may be
+        overridden on a per-question basis by specifying them in the question dictionary.
 
         :param questions: any number of questions provided as dictionaries of arguments to the `Child.ask` method
         :param bool raise_errors: if `True`, an error is raised and no answers are returned if any of the individual questions raise an error; if `False`, answers are returned for all successful questions while errors are returned unraised for any failed ones
