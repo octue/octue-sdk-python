@@ -42,7 +42,7 @@ class TestGetEvents(TestCase):
     def test_error_raised_if_event_kind_invalid(self):
         """Test that an error is raised if the event kind is invalid."""
         with self.assertRaises(ValueError):
-            get_events(table_id="blah", question_uuid="blah", kind="frisbee_tournament")
+            get_events(table_id="blah", question_uuid="blah", kinds="frisbee_tournament")
 
     def test_no_events_found(self):
         """Test that an empty list is returned if no events are found for the question UUID."""
@@ -65,7 +65,7 @@ class TestGetEvents(TestCase):
             "LIMIT @limit",
         )
 
-    def test_without_kind(self):
+    def test_without_kinds(self):
         """Test the query used to retrieve events of all kinds."""
         with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
             get_events(table_id="blah", question_uuid="blah")
@@ -84,17 +84,61 @@ class TestGetEvents(TestCase):
     def test_with_kind(self):
         """Test the query used to retrieve events of a specific kind."""
         with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
-            get_events(table_id="blah", question_uuid="blah", kind="result")
+            get_events(table_id="blah", question_uuid="blah", kinds=["result"])
 
         self.assertEqual(
             mock_client.mock_calls[1].args[0],
             "SELECT * FROM (\n"
             "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
             "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, "
-            "`other_attributes` FROM `blah`\nWHERE question_uuid=@relevant_question_uuid\nAND kind='result'\n"
+            "`other_attributes` FROM `blah`\nWHERE question_uuid=@relevant_question_uuid\nAND kind IN ('result')\n"
             "ORDER BY `datetime` DESC\n"
             "LIMIT @limit\n"
             ") ORDER BY `datetime` ASC",
+        )
+
+    def test_with_kinds(self):
+        """Test the query used to retrieve events of pecific kinds."""
+        with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
+            get_events(table_id="blah", question_uuid="blah", kinds=["result", "question"])
+
+        self.assertEqual(
+            mock_client.mock_calls[1].args[0],
+            "SELECT * FROM (\n"
+            "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
+            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, "
+            "`other_attributes` FROM `blah`\nWHERE question_uuid=@relevant_question_uuid\nAND kind IN "
+            "('result', 'question')\nORDER BY `datetime` DESC\nLIMIT @limit\n) ORDER BY `datetime` ASC",
+        )
+
+    def test_with_exclude_kind(self):
+        """Test the query used to retrieve events of all kinds except a specific kind."""
+        with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
+            get_events(table_id="blah", question_uuid="blah", exclude_kinds=["result"])
+
+        self.assertEqual(
+            mock_client.mock_calls[1].args[0],
+            "SELECT * FROM (\n"
+            "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
+            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, "
+            "`other_attributes` FROM `blah`\nWHERE question_uuid=@relevant_question_uuid\nAND kind NOT IN ('result')\n"
+            "ORDER BY `datetime` DESC\n"
+            "LIMIT @limit\n"
+            ") ORDER BY `datetime` ASC",
+        )
+
+    def test_with_exclude_kinds(self):
+        """Test the query used to retrieve events of all kinds except specific kinds."""
+        with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
+            get_events(table_id="blah", question_uuid="blah", exclude_kinds=["result", "question"])
+
+        self.assertEqual(
+            mock_client.mock_calls[1].args[0],
+            "SELECT * FROM (\n"
+            "SELECT `originator_question_uuid`, `parent_question_uuid`, `question_uuid`, `kind`, `event`, `datetime`, "
+            "`uuid`, `originator`, `parent`, `sender`, `sender_type`, `sender_sdk_version`, `recipient`, "
+            "`other_attributes` FROM `blah`\nWHERE question_uuid=@relevant_question_uuid\nAND kind "
+            "NOT IN ('result', 'question')\nORDER BY `datetime` DESC\nLIMIT @limit\n) ORDER BY `datetime` ASC",
         )
 
     def test_with_backend_metadata(self):
