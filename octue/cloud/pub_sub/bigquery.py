@@ -29,6 +29,7 @@ def get_events(
     parent_question_uuid=None,
     originator_question_uuid=None,
     kind=None,
+    exclude_kind=None,
     include_backend_metadata=False,
     tail=True,
     limit=1000,
@@ -63,9 +64,14 @@ def get_events(
         question_uuid_condition = "WHERE originator_question_uuid=@relevant_question_uuid"
 
     if kind:
-        event_kind_condition = [f"AND kind={kind!r}"]
+        event_kind_condition = [f"AND kind = {kind!r}"]
     else:
         event_kind_condition = []
+
+    if exclude_kind:
+        exclude_kind_condition = [f"AND kind != {exclude_kind!r}"]
+    else:
+        exclude_kind_condition = []
 
     # Make a shallow copy of the fields to query.
     fields = list(DEFAULT_FIELDS)
@@ -78,6 +84,7 @@ def get_events(
             f"SELECT {', '.join(fields)} FROM `{table_id}`",
             question_uuid_condition,
             *event_kind_condition,
+            *exclude_kind_condition,
         ]
     )
 
