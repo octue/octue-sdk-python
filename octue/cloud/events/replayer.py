@@ -15,6 +15,7 @@ class EventReplayer(AbstractEventHandler):
     :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers must not mutate the events.
     :param dict|str schema: the JSON schema to validate events against
     :param bool include_service_metadata_in_logs: if `True`, include the SRUIDs and question UUIDs of the service revisions involved in the question to the start of the log message
+    :param str|None exclude_logs_containing: if provided, skip handling log messages containing this string
     :param bool only_handle_result: if `True`, skip non-result events and only handle the "result" event if present (turning this on speeds up event handling)
     :param bool validate_events: if `True`, validate events before attempting to handle them (this is off by default to speed up event handling)
     :return None:
@@ -27,6 +28,7 @@ class EventReplayer(AbstractEventHandler):
         event_handlers=None,
         schema=SERVICE_COMMUNICATION_SCHEMA,
         include_service_metadata_in_logs=True,
+        exclude_logs_containing=None,
         only_handle_result=False,
         validate_events=False,
     ):
@@ -46,6 +48,7 @@ class EventReplayer(AbstractEventHandler):
             event_handlers=event_handlers,
             schema=schema,
             include_service_metadata_in_logs=include_service_metadata_in_logs,
+            exclude_logs_containing=exclude_logs_containing,
             only_handle_result=only_handle_result,
             validate_events=validate_events,
         )
