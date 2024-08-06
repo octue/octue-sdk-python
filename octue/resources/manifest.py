@@ -192,7 +192,9 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
         :return dict:
         """
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            return dict(executor.map(self._instantiate_dataset, copy.deepcopy(datasets).items()))
+            datasets = dict(executor.map(self._instantiate_dataset, copy.deepcopy(datasets).items()))
+
+        return datasets
 
     def _instantiate_dataset(self, key_and_dataset):
         """Instantiate a dataset from multiple input formats.
