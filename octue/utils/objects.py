@@ -1,4 +1,5 @@
 import functools
+import itertools
 
 
 def get_nested_attribute(instance, nested_attribute_name):
@@ -42,3 +43,33 @@ def getattr_or_subscribe(instance, name):
             return instance[name]
         except (TypeError, KeyError):
             raise AttributeError(f"{instance!r} does not have an attribute or key named {name!r}.")
+
+
+def dictionary_product(keep_none_values=False, **kwargs):
+    """Yield from the Cartesian product of the kwargs' iterables, optionally including `None`-valued kwargs. This
+    function acts like `itertools.product` but yields each combination as a dictionary instead of a tuple. The
+    dictionaries have the kwargs' keys as their keys.
+
+    :param bool keep_none_values: if `True`, include `None`-valued kwargs in the yielded combinations
+    :param kwargs: any number of iterables
+    :yield dict: one of the combinations of the kwargs' iterables as a dictionary
+    """
+    iterables = {}
+    nones = {}
+
+    # Put kwargs with `None` values in a separate dictionary to kwargs with non-`None` values.
+    for key, value in kwargs.items():
+        if value is None:
+            nones[key] = value
+        else:
+            iterables[key] = value
+
+    # Yield each possible combination from the Cartesian product of the kwargs' iterables.
+    for combination in itertools.product(*iterables.values()):
+        combination_dict = dict(zip(iterables.keys(), combination))
+
+        # Optionally add the `None`-valued kwargs to what's yielded.
+        if keep_none_values:
+            combination_dict = {**combination_dict, **nones}
+
+        yield combination_dict

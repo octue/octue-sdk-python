@@ -81,7 +81,7 @@ def _check_if_should_drop_question(question_uuid, retry_count):
         previous_question_attempts = get_events(
             table_id=service_configuration.event_store_table_id,
             question_uuid=question_uuid,
-            kind="delivery_acknowledgement",
+            exclude_kinds=["question"],
         )
 
     except google.api_core.exceptions.NotFound:

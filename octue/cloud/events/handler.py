@@ -39,6 +39,7 @@ class AbstractEventHandler:
     :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers must not mutate the events.
     :param dict schema: the JSON schema to validate events against
     :param bool include_service_metadata_in_logs: if `True`, include the SRUIDs and question UUIDs of the service revisions involved in the question to the start of the log message
+    :param str|None exclude_logs_containing: if provided, skip handling log messages containing this string
     :param bool only_handle_result: if `True`, skip handling non-result events and only handle the "result" event when received (turning this on speeds up event handling)
     :param bool validate_events: if `True`, validate events before attempting to handle them (turning this off speeds up event handling)
     :return None:
@@ -51,6 +52,7 @@ class AbstractEventHandler:
         event_handlers=None,
         schema=SERVICE_COMMUNICATION_SCHEMA,
         include_service_metadata_in_logs=True,
+        exclude_logs_containing=None,
         only_handle_result=False,
         validate_events=True,
     ):
@@ -58,6 +60,7 @@ class AbstractEventHandler:
         self.record_events = record_events
         self.schema = schema
         self.include_service_metadata_in_logs = include_service_metadata_in_logs
+        self.exclude_logs_containing = exclude_logs_containing
         self.only_handle_result = only_handle_result
         self.validate_events = validate_events
 
@@ -201,6 +204,9 @@ class AbstractEventHandler:
         :param dict attributes: the event's attributes
         :return None:
         """
+        if self.exclude_logs_containing and self.exclude_logs_containing in event["log_record"]["msg"]:
+            return
+
         record = logging.makeLogRecord(event["log_record"])
 
         # Split the log message into its parts.

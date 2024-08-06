@@ -463,7 +463,9 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         :return octue.resources.filter_containers.FilterSet:
         """
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            return FilterSet(executor.map(self._instantiate_datafile, copy.deepcopy(files)))
+            datafiles = FilterSet(executor.map(self._instantiate_datafile, copy.deepcopy(files)))
+
+        return datafiles
 
     def _instantiate_datafile(self, file):
         """Instantiate a datafile from multiple input formats.
