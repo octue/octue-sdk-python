@@ -37,7 +37,10 @@ class TestDictionaryProduct(TestCase):
 
     def test_with_one_iterable(self):
         """Test providing one iterable gives an output of each of the iterable's values individually."""
-        self.assertEqual(list(dictionary_product(one=["a", "b"])), [{"one": "a"}, {"one": "b"}])
+        self.assertEqual(
+            list(dictionary_product(one=["a", "b"])),
+            [{"one": "a"}, {"one": "b"}],
+        )
 
     def test_with_two_iterables(self):
         """Test providing two iterables gives the combinations of the iterables' values."""
@@ -65,7 +68,7 @@ class TestDictionaryProduct(TestCase):
 
     def test_none_iterable_not_ignored_if_keep_none_values(self):
         """Test that a `None` iterable isn't ignored and is included in the outputs without increasing the number of
-        outputs.
+        outputs if `keep_none_values=True`.
         """
         self.assertEqual(
             list(dictionary_product(one=["a", "b"], two=["c", "d"], three=None, keep_none_values=True)),
