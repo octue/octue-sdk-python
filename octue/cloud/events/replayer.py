@@ -8,7 +8,8 @@ logger = logging.getLogger(__name__)
 
 
 class EventReplayer(AbstractEventHandler):
-    """A replayer for events retrieved asynchronously from storage.
+    """A replayer for events retrieved asynchronously from storage. Note that events aren't validated by default as the
+    main use case for this class is to replay already-validated events from the event store.
 
     :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
     :param bool record_events: if `True`, record received events in the `received_events` attribute
