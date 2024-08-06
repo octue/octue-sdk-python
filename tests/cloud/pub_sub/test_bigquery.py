@@ -39,10 +39,12 @@ class TestGetEvents(TestCase):
                 with self.assertRaises(ValueError):
                     get_events(table_id="blah", **kwargs)
 
-    def test_error_raised_if_event_kind_invalid(self):
-        """Test that an error is raised if the event kind is invalid."""
-        with self.assertRaises(ValueError):
-            get_events(table_id="blah", question_uuid="blah", kinds="frisbee_tournament")
+    def test_error_raised_if_kinds_invalid(self):
+        """Test that an error is raised if the event kinds are invalid."""
+        for invalid_kinds in ["frisbee_tournament", ["frisbee_tournament"]]:
+            with self.subTest(invalid_kinds=invalid_kinds):
+                with self.assertRaises(ValueError):
+                    get_events(table_id="blah", question_uuid="blah", kinds=invalid_kinds)
 
     def test_no_events_found(self):
         """Test that an empty list is returned if no events are found for the question UUID."""
