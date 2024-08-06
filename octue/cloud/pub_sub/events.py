@@ -70,6 +70,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
     :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers must not mutate the events.
     :param dict|str schema: the JSON schema to validate events against
     :param bool include_service_metadata_in_logs: if `True`, include the SRUIDs and question UUIDs of the service revisions involved in the question to the start of the log message
+    :param bool validate_events: if `True`, validate events before attempting to handle them (turn this is off to speed up event handling at risk of failure if an invalid event is received)
     :return None:
     """
 
@@ -81,6 +82,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         event_handlers=None,
         schema=SERVICE_COMMUNICATION_SCHEMA,
         include_service_metadata_in_logs=True,
+        validate_events=True,
     ):
         self.subscription = subscription
 
@@ -90,6 +92,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
             event_handlers=event_handlers,
             schema=schema,
             include_service_metadata_in_logs=include_service_metadata_in_logs,
+            validate_events=validate_events,
         )
 
         self._heartbeat_checker = None
