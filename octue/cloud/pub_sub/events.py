@@ -72,7 +72,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
     :param bool include_service_metadata_in_logs: if `True`, include the SRUIDs and question UUIDs of the service revisions involved in the question to the start of the log message
     :param str|None exclude_logs_containing: if provided, skip handling log messages containing this string
     :param bool only_handle_result: if `True`, skip non-result events and only handle the "result" event if present (turning this on speeds up event handling)
-    :param bool validate_events: if `True`, validate events before attempting to handle them (turn this is off to speed up event handling at risk of failure if an invalid event is received)
+    :param bool validate_events: if `True`, validate events before attempting to handle them (turn this off to speed up event handling at risk of failure if an invalid event is received)
     :return None:
     """
 
