@@ -146,6 +146,14 @@ def _validate_inputs(question_uuid, parent_question_uuid, originator_question_uu
             "provided."
         )
 
+    kinds_inputs = (bool(kinds), bool(exclude_kinds))
+
+    if sum(kinds_inputs) > 1:
+        raise ValueError(
+            f"Only one of `kinds` and `exclude_kinds` can be provided at once; received kinds={kinds!r} and "
+            f"exclude_kinds={exclude_kinds!r}."
+        )
+
     if kinds:
         for kind in kinds:
             if kind not in VALID_EVENT_KINDS:

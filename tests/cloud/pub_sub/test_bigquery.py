@@ -39,6 +39,11 @@ class TestGetEvents(TestCase):
                 with self.assertRaises(ValueError):
                     get_events(table_id="blah", **kwargs)
 
+    def test_error_raised_if_kinds_and_exclude_kinds_provided_together(self):
+        """Test that an error is raised if both `kinds` and `exclude_kinds` are provided at once."""
+        with self.assertRaises(ValueError):
+            get_events(table_id="blah", question_uuid="blah", kinds=["result"], exclude_kinds=["question"])
+
     def test_error_raised_if_kinds_invalid(self):
         """Test that an error is raised if the event kinds are invalid."""
         for invalid_kinds in ["frisbee_tournament", ["frisbee_tournament"]]:
@@ -100,7 +105,7 @@ class TestGetEvents(TestCase):
         )
 
     def test_with_kinds(self):
-        """Test the query used to retrieve events of pecific kinds."""
+        """Test the query used to retrieve events of specific kinds."""
         with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
             get_events(table_id="blah", question_uuid="blah", kinds=["result", "question"])
 
