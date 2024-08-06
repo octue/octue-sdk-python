@@ -65,11 +65,11 @@ def dictionary_product(keep_none_values=False, **kwargs):
             iterables[key] = value
 
     # Yield each possible combination from the Cartesian product of the kwargs' iterables.
-    for instance in itertools.product(*iterables.values()):
-        instance_dict = dict(zip(iterables.keys(), instance))
+    for combination in itertools.product(*iterables.values()):
+        combination_dict = dict(zip(iterables.keys(), combination))
 
         # Optionally add the `None`-valued kwargs to what's yielded.
         if keep_none_values:
-            instance_dict = {**instance_dict, **nones}
+            combination_dict = {**combination_dict, **nones}
 
-        yield instance_dict
+        yield combination_dict
