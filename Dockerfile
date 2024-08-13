@@ -4,7 +4,7 @@ RUN apt-get update && apt-get install -y git curl
 
 ENV POETRY_HOME=/etc/poetry
 RUN curl -sSL https://install.python-poetry.org | python3 -
-ENV PATH "$POETRY_HOME/bin:$PATH"
+ENV PATH="$POETRY_HOME/bin:$PATH"
 RUN poetry config virtualenvs.create false
 
 # Install python dependencies. Note that poetry installs any root packages by default, but this is not available at this

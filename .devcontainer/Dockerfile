@@ -16,5 +16,5 @@ ENV HISTFILE="/workspaces/octue-sdk-python/.devcontainer/.zsh_history"
 USER vscode
 ENV POETRY_HOME=/home/vscode/.poetry
 RUN curl -sSL https://install.python-poetry.org | python3 -
-ENV PATH "$POETRY_HOME/bin:$PATH"
+ENV PATH="$POETRY_HOME/bin:$PATH"
 RUN poetry config virtualenvs.create false

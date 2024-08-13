@@ -1,7 +1,7 @@
 FROM windpioneers/gdal-python:little-gecko-gdal-2.4.1-python-3.10-slim
 
 # Ensure print statements and log messages appear promptly in Cloud Logging.
-ENV PYTHONUNBUFFERED True
+ENV PYTHONUNBUFFERED=True
 
 ENV PROJECT_ROOT=/workspace
 WORKDIR $PROJECT_ROOT
@@ -10,7 +10,7 @@ RUN apt-get update -y && apt-get install -y --fix-missing build-essential && rm 
 
 # Install poetry.
 ENV POETRY_HOME=/root/.poetry
-ENV PATH "$POETRY_HOME/bin:$PATH"
+ENV PATH="$POETRY_HOME/bin:$PATH"
 RUN curl -sSL https://install.python-poetry.org | python3 - && poetry config virtualenvs.create false;
 
 # Copy in the dependencies file(s) for caching. One or more of `requirements.txt`, `setup.py`, and `pyproject.toml and
