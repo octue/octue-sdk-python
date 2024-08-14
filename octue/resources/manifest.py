@@ -117,7 +117,7 @@ class Manifest(Serialisable, Identifiable, Hashable, Metadata):
             return dataset.path
 
         self.update_dataset_paths(signed_url_path_generator)
-        logger.debug("Cloud paths (cloud URIs) for datasets replaced with signed URLs in %r.", self)
+        logger.info("Cloud paths (cloud URIs) for datasets replaced with signed URLs in %r.", self)
 
     def to_cloud(self, cloud_path):
         """Upload a manifest to a cloud location, optionally uploading its datasets into the same directory.
