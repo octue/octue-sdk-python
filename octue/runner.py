@@ -257,7 +257,6 @@ class Runner:
                 id=analysis_id,
                 twine=self.twine,
                 handle_monitor_message=handle_monitor_message,
-                output_location=self.output_location,
                 **self.configuration,
                 **inputs,
                 **outputs_and_monitors,
@@ -454,8 +453,13 @@ class Runner:
         :return None:
         """
         if not analysis.finalised:
+            if self.output_location:
+                output_location = storage.path.join(self.output_location, coolname.generate_slug())
+            else:
+                output_location = None
+
             analysis.finalise(
-                upload_output_datasets_to=storage.path.join(self.output_location, coolname.generate_slug()),
+                upload_output_datasets_to=output_location,
                 use_signed_urls=self.use_signed_urls_for_output_datasets,
             )
 
