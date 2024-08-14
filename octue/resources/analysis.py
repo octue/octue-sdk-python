@@ -1,8 +1,6 @@
 import json
 import logging
 
-import coolname
-
 import twined.exceptions
 from octue.cloud import storage
 from octue.exceptions import InvalidMonitorMessage
@@ -84,9 +82,6 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         # Other strands.
         self.children = strand_kwargs.get("children", None)
 
-        # Non-strands.
-        self.output_location = kwargs.pop("output_location", None)
-
         self._calculate_strand_hashes(strands=strand_kwargs)
         self._periodic_monitor_message_sender_threads = []
         self._finalised = False
@@ -157,11 +152,6 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         self.twine.validate(**serialised_strands)
         self._finalised = True
         logger.info("Validated output values and output manifest against the twine.")
-
-        # Use a unique subdirectory in the output location given at instantiation (if given) if no
-        # `upload_output_datasets_to` is provided.
-        if self.output_location and not upload_output_datasets_to:
-            upload_output_datasets_to = storage.path.join(self.output_location, coolname.generate_slug())
 
         # If there isn't both an output manifest and upload location, nothing is uploaded.
         if not (upload_output_datasets_to and hasattr(self, "output_manifest")):
