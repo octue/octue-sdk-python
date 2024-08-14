@@ -109,6 +109,7 @@ class AppConfiguration:
     :param str|dict|octue.resources.Manifest|None configuration_manifest: a manifest of datasets to configure the app
     :param str|list(dict)|None children: details of the children the app requires
     :param str|None output_location: the path to a cloud directory to save output datasets at
+    :param bool use_signed_urls_for_output_datasets:
     :return None:
     """
 
@@ -118,12 +119,14 @@ class AppConfiguration:
         configuration_manifest=None,
         children=None,
         output_location=None,
+        use_signed_urls_for_output_datasets=True,
         **kwargs,
     ):
         self.configuration_values = configuration_values
         self.configuration_manifest = configuration_manifest
         self.children = children
         self.output_location = output_location
+        self.use_signed_urls_for_output_datasets = use_signed_urls_for_output_datasets
 
         if kwargs:
             logger.warning(f"The following keyword arguments were not used by {type(self).__name__}: {kwargs!r}.")

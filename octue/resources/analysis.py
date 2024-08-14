@@ -136,13 +136,14 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         self._periodic_monitor_message_sender_threads.append(thread)
         logger.info("Periodic monitor message set up to send every %ss.", period)
 
-    def finalise(self, upload_output_datasets_to=None):
+    def finalise(self, upload_output_datasets_to=None, use_signed_urls=True):
         """Validate the output values and output manifest and, if the analysis produced an output manifest, upload its
         output datasets to a unique subdirectory within the analysis's output location. This output location can be
         overridden by providing a different cloud path via the `upload_output_datasets_to` parameter. Either way, the
         dataset paths in the output manifest are replaced with signed URLs for easier, expiring access.
 
         :param str|None upload_output_datasets_to: If not provided but an output location was provided at instantiation, upload any output datasets into a unique subdirectory within this output location; if provided, upload into this location instead. The output manifest is updated with the upload locations.
+        :param bool use_signed_urls:
         :return None:
         """
         serialised_strands = {"output_values": None, "output_manifest": None}
@@ -169,7 +170,8 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         for name, dataset in self.output_manifest.datasets.items():
             dataset.upload(cloud_path=storage.path.join(upload_output_datasets_to, name))
 
-        self.output_manifest.use_signed_urls_for_datasets()
+        if use_signed_urls:
+            self.output_manifest.use_signed_urls_for_datasets()
 
         logger.info("Uploaded output datasets to %r.", upload_output_datasets_to)
 

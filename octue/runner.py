@@ -44,6 +44,7 @@ class Runner:
     :param str|dict|None configuration_manifest: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|list(dict)|None children: The children strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|None output_location: the path to a cloud directory to save output datasets at
+    :param bool use_signed_urls_for_output_datasets:
     :param str|None diagnostics_cloud_path: the path to a cloud directory to store diagnostics (this includes the configuration, input values and manifest, and logs for each question)
     :param str|None project_name: name of Google Cloud project to get credentials from
     :param str|None service_id: the ID of the service being run
@@ -59,6 +60,7 @@ class Runner:
         configuration_manifest=None,
         children=None,
         output_location=None,
+        use_signed_urls_for_output_datasets=True,
         diagnostics_cloud_path=None,
         project_name=None,
         service_id=None,
@@ -74,6 +76,7 @@ class Runner:
             )
 
         self.output_location = output_location
+        self.use_signed_urls_for_output_datasets = use_signed_urls_for_output_datasets
 
         # Get configuration before any transformations have been applied.
         self.diagnostics = Diagnostics(cloud_path=diagnostics_cloud_path)
@@ -129,6 +132,7 @@ class Runner:
             "configuration_manifest": app_configuration.configuration_manifest,
             "children": app_configuration.children,
             "output_location": app_configuration.output_location,
+            "use_signed_urls_for_output_datasets": app_configuration.use_signed_urls_for_output_datasets,
             "diagnostics_cloud_path": service_configuration.diagnostics_cloud_path,
             "project_name": project_name,
             "service_id": service_id,
@@ -448,7 +452,7 @@ class Runner:
         :return None:
         """
         if not analysis.finalised:
-            analysis.finalise()
+            analysis.finalise(use_signed_urls=self.use_signed_urls_for_output_datasets)
 
         if save_diagnostics == SAVE_DIAGNOSTICS_ON:
             self.diagnostics.upload()
