@@ -553,7 +553,7 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             try:
                 headers = requests.head(self.cloud_path).headers
             except requests.exceptions.RequestException:
-                logger.warning(
+                logger.exception(
                     "Couldn't access cloud datafile metadata at %r; proceeding without cloud metadata.",
                     self.cloud_path,
                 )
