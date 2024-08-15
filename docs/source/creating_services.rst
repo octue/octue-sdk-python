@@ -79,6 +79,7 @@ App configuration file (optional)
         - ``configuration_manifest``
         - ``children``
         - ``output_location``
+        - ``use_signed_urls_for_output_datasets``
 
         If an app configuration file is provided, its path must be specified in ``octue.yaml`` under the
         "app_configuration_path" key.
