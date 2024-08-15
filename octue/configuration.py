@@ -109,7 +109,7 @@ class AppConfiguration:
     :param str|dict|octue.resources.Manifest|None configuration_manifest: a manifest of datasets to configure the app
     :param str|list(dict)|None children: details of the children the app requires
     :param str|None output_location: the path to a cloud directory to save output datasets at
-    :param bool use_signed_urls_for_output_datasets:
+    :param bool use_signed_urls_for_output_datasets: if `True`, use signed URLs instead of cloud URIs for dataset paths in the output manifest
     :return None:
     """
 

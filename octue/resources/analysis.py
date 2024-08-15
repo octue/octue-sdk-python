@@ -138,7 +138,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         dataset paths in the output manifest are replaced with signed URLs for easier, expiring access.
 
         :param str|None upload_output_datasets_to: If not provided but an output location was provided at instantiation, upload any output datasets into a unique subdirectory within this output location; if provided, upload into this location instead. The output manifest is updated with the upload locations.
-        :param bool use_signed_urls:
+        :param bool use_signed_urls: if `True`, use signed URLs instead of cloud URIs for dataset paths in the output manifest
         :return None:
         """
         serialised_strands = {"output_values": None, "output_manifest": None}
