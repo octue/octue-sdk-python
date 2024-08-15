@@ -184,8 +184,7 @@ class AnalysisTestCase(BaseTestCase):
                 output_manifest=output_manifest,
             )
 
-            with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
-                analysis.finalise(upload_output_datasets_to=f"gs://{TEST_BUCKET_NAME}/datasets", use_signed_urls=False)
+            analysis.finalise(upload_output_datasets_to=f"gs://{TEST_BUCKET_NAME}/datasets", use_signed_urls=False)
 
             dataset_path = analysis.output_manifest.datasets["the_dataset"].path
             self.assertFalse(storage.path.is_url(dataset_path))
