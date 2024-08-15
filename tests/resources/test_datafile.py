@@ -1,6 +1,7 @@
 import copy
 import importlib.metadata
 import json
+import logging
 import os
 import pickle
 import tempfile
@@ -9,11 +10,13 @@ from datetime import datetime, timezone
 from unittest.mock import patch
 
 import h5py
+import requests
 
 from octue import exceptions
 from octue.cloud import storage
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.cloud.storage import GoogleCloudStorageClient
+from octue.exceptions import FileNotFoundException
 from octue.resources.datafile import Datafile
 from octue.resources.label import LabelSet
 from octue.resources.tag import TagDict
@@ -962,6 +965,32 @@ class TestDatafile(BaseTestCase):
             with self.assertRaises(exceptions.ReadOnlyResource):
                 with Datafile(path=signed_url, mode="w") as (_, f):
                     f.write("Text I'm not allowed to write.")
+
+    def test_error_logged_when_instantiating_datafile_from_inaccessible_url(self):
+        """Test that an error is logged but not raised when attempting to instantiate a datafile from an inaccessible
+        URL.
+        """
+        with self.assertLogs(level=logging.ERROR) as logging_context:
+            datafile = Datafile("https://non.existent/file.json")
+
+        self.assertIn(
+            "Couldn't access cloud datafile metadata at 'https://non.existent/file.json'; proceeding without cloud "
+            "metadata.",
+            logging_context.output[0],
+        )
+
+        self.assertEqual(datafile.cloud_path, "https://non.existent/file.json")
+
+    def test_error_raised_when_downloading_inaccessible_url_datafile(self):
+        """Test that an error is raised when attempting to download a datafile from an inaccessible URL."""
+        datafile = Datafile("https://non.existent/file.json")
+
+        mock_response = requests.Response()
+        mock_response.status_code = 400
+
+        with patch("requests.get", return_value=mock_response):
+            with self.assertRaises(FileNotFoundException):
+                datafile.download()
 
     def test_update_metadata_with_local_datafile(self):
         """Test the `update_metadata` method with a local datafile."""
