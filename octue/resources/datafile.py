@@ -402,8 +402,14 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             local_path_directory = os.path.dirname(self._local_path)
             os.makedirs(local_path_directory, exist_ok=True)
 
+            try:
+                response = requests.get(self.cloud_path)
+                response.raise_for_status()
+            except requests.exceptions.RequestException as e:
+                raise FileNotFoundException(f"Datafile at {self.cloud_path!r} couldn't be accessed.") from e
+
             with open(self._local_path, "wb") as f:
-                f.write(requests.get(self.cloud_path).content)
+                f.write(response.content)
 
         # Download from a cloud URI.
         else:
@@ -544,7 +550,15 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
 
         if storage.path.is_url(self.cloud_path):
             cloud_metadata = {"custom_metadata": {}}
-            headers = requests.head(self.cloud_path).headers
+
+            try:
+                headers = requests.head(self.cloud_path).headers
+            except requests.exceptions.RequestException:
+                logger.exception(
+                    "Couldn't access cloud datafile metadata at %r; proceeding without cloud metadata.",
+                    self.cloud_path,
+                )
+                return
 
             # Get any Octue custom metadata from the datafile.
             for key, value in headers.items():

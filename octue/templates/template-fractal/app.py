@@ -55,8 +55,3 @@ def run(analysis):
 
     # Add the app's output values to the analysis.
     analysis.output_values = {"data": data, "layout": layout}
-
-    # Finalise the analysis. This validates the output data and output manifest against the twine and optionally
-    # uploads any datasets in the output manifest to the service's cloud bucket. Signed URLs are provided so that the
-    # parent that asked the service for the analysis can access the data (until the signed URLs expire).
-    analysis.finalise()

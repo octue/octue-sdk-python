@@ -36,11 +36,13 @@ class TemplateAppsTestCase(BaseTestCase):
     def test_using_manifests_template(self):
         """Ensure the `using-manifests` template app works correctly."""
         self.set_template("template-using-manifests")
+        output_location = f"gs://{TEST_BUCKET_NAME}"
 
         runner = Runner(
             app_src=self.template_path,
             twine=self.template_twine,
             configuration_values=os.path.join("data", "configuration", "values.json"),
+            output_location=output_location,
         )
 
         with patch("google.cloud.storage.blob.Blob.generate_signed_url", new=mock_generate_signed_url):
@@ -56,8 +58,7 @@ class TemplateAppsTestCase(BaseTestCase):
         )
 
         output_url = urlparse(downloaded_output_manifest.datasets["cleaned_met_mast_data"].files.one().cloud_path).path
-
-        self.assertTrue(output_url.startswith(f"/{TEST_BUCKET_NAME}/output/test_using_manifests_analysis"))
+        self.assertTrue(output_url.startswith(f"/{TEST_BUCKET_NAME}"))
         self.assertTrue(output_url.endswith("/cleaned_met_mast_data/cleaned.csv"))
 
     @unittest.skipIf(condition=os.name == "nt", reason="See issue https://github.com/octue/octue-sdk-python/issues/229")

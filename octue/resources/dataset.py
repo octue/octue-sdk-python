@@ -408,8 +408,8 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         if not self._ignore_stored_metadata:
             self._use_cloud_metadata()
 
-        # If files have been specified in the cloud metadata:
-        if self.files:
+        # If files have been specified in the cloud metadata, or the dataset is a URL dataset.
+        if self.files or storage.path.is_url(path):
             return
 
         # If no files have been specified in the cloud metadata:
@@ -489,8 +489,12 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         if storage.path.is_url(self.path):
             try:
                 self._cloud_metadata = requests.get(self.path).json()
-            except requests.exceptions.ConnectionError:
-                pass
+            except requests.exceptions.RequestException:
+                logger.exception(
+                    "Couldn't access cloud dataset metadata for %r; proceeding without cloud metadata.",
+                    self.path,
+                )
+
             return
 
         storage_client = GoogleCloudStorageClient()

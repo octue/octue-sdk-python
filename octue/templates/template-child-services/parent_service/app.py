@@ -32,4 +32,3 @@ def run(analysis):
     # Do anything you like with the data you get from the children before setting the output values for your app's
     # analysis.
     analysis.output_values = {"wind_speeds": wind_speeds, "elevations": elevations}
-    analysis.finalise()

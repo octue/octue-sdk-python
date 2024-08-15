@@ -5,7 +5,6 @@ from cleaner import clean, read_csv_files, read_dat_file
 
 from octue.resources import Datafile, Dataset
 from octue.utils.files import RegisteredTemporaryDirectory
-from tests import TEST_BUCKET_NAME
 
 
 logger = logging.getLogger(__name__)
@@ -99,11 +98,6 @@ def run(analysis):
     # Labels are case insensitive, and accept a-z, 0-9, and hyphens which can be used literally in search and are
     # also used to separate words in natural language search.
     analysis.output_manifest.get_dataset("cleaned_met_mast_data").labels = ["met", "mast", "cleaned"]
-
-    # Finalise the analysis. This validates the output data and output manifest against the twine and optionally
-    # uploads any datasets in the output manifest to the service's cloud bucket. Signed URLs are provided so that
-    # the parent that asked the service for the analysis can access the data (until the signed URLs expire).
-    analysis.finalise(upload_output_datasets_to=f"gs://{TEST_BUCKET_NAME}/output/test_using_manifests_analysis")
 
     # We're done! There's only one datafile in the output dataset, but you could create thousands more and add them
     # all :)

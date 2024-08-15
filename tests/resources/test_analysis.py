@@ -156,3 +156,47 @@ class AnalysisTestCase(BaseTestCase):
 
         with downloaded_dataset.files.one() as (downloaded_datafile, f):
             self.assertEqual(f.read(), "hello")
+
+    def test_finalise_with_upload_without_signed_urls(self):
+        """Test that the `finalise` method can be used to upload the output manifest's datasets to a cloud location
+        without using signed URLs.
+        """
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            dataset_path = os.path.join(temporary_directory, "the_dataset")
+
+            with Datafile(path=os.path.join(dataset_path, "my_file.dat"), mode="w") as (datafile, f):
+                f.write("hello")
+
+            output_manifest = Manifest(
+                datasets={
+                    "the_dataset": Dataset(
+                        path=dataset_path, files={datafile.local_path}, labels={"one", "two", "three"}
+                    )
+                }
+            )
+
+            analysis = Analysis(
+                twine={
+                    "output_values_schema": {"type": "object", "properties": {"blah": {"type": "integer"}}},
+                    "output_manifest": {"datasets": {"the_dataset": {"purpose": "testing"}}},
+                },
+                output_values={"blah": 3},
+                output_manifest=output_manifest,
+            )
+
+            analysis.finalise(upload_output_datasets_to=f"gs://{TEST_BUCKET_NAME}/datasets", use_signed_urls=False)
+
+            dataset_path = analysis.output_manifest.datasets["the_dataset"].path
+            self.assertFalse(storage.path.is_url(dataset_path))
+            self.assertTrue(storage.path.is_cloud_uri(dataset_path))
+
+            self.assertTrue(dataset_path.startswith(f"gs://{TEST_BUCKET_NAME}/datasets"))
+            self.assertIn("/the_dataset", dataset_path)
+
+            downloaded_dataset = Dataset(path=dataset_path)
+            self.assertEqual(downloaded_dataset.name, "the_dataset")
+            self.assertEqual(len(downloaded_dataset.files), 1)
+            self.assertEqual(downloaded_dataset.labels, {"one", "two", "three"})
+
+            with downloaded_dataset.files.one() as (downloaded_datafile, f):
+                self.assertEqual(f.read(), "hello")
