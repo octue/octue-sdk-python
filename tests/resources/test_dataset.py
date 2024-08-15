@@ -768,6 +768,21 @@ class TestDataset(BaseTestCase):
 
         # self.assertEqual(downloaded_datafile.tags, {"my": "metadata"})
 
+    def test_error_logged_when_instantiating_dataset_from_inaccessible_url(self):
+        """Test that an error is logged but not raised when attempting to instantiate a dataset from an inaccessible
+        URL.
+        """
+        with self.assertLogs(level=logging.ERROR) as logging_context:
+            dataset = Dataset("https://non.existent/dataset")
+
+        self.assertIn(
+            "Couldn't access cloud dataset metadata for 'https://non.existent/dataset'; proceeding without cloud "
+            "metadata.",
+            logging_context.output[0],
+        )
+
+        self.assertEqual(dataset.path, "https://non.existent/dataset")
+
     def test_exiting_context_manager_of_local_dataset_updates_local_metadata(self):
         """Test that local metadata for a local dataset is updated on exit of the dataset context manager."""
         with tempfile.TemporaryDirectory() as temporary_directory:
