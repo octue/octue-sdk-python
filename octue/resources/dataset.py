@@ -491,7 +491,7 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
                 self._cloud_metadata = requests.get(self.path).json()
             except requests.exceptions.RequestException:
                 logger.exception(
-                    "Couldn't access cloud dataset metadata file at %r; proceeding without cloud metadata.",
+                    "Couldn't access cloud dataset metadata for %r; proceeding without cloud metadata.",
                     self.path,
                 )
 
