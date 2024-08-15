@@ -403,12 +403,13 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
             os.makedirs(local_path_directory, exist_ok=True)
 
             try:
-                content = requests.get(self.cloud_path).content
+                response = requests.get(self.cloud_path)
+                response.raise_for_status()
             except requests.exceptions.RequestException as e:
                 raise FileNotFoundException(f"Datafile at {self.cloud_path!r} couldn't be accessed.") from e
 
             with open(self._local_path, "wb") as f:
-                f.write(content)
+                f.write(response.content)
 
         # Download from a cloud URI.
         else:
