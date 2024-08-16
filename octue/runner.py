@@ -255,6 +255,8 @@ class Runner:
                 id=analysis_id,
                 twine=self.twine,
                 handle_monitor_message=handle_monitor_message,
+                output_location=self.output_location,
+                use_signed_urls_for_output_datasets=self.use_signed_urls_for_output_datasets,
                 **self.configuration,
                 **inputs,
                 **outputs_and_monitors,
