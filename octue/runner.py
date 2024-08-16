@@ -6,7 +6,6 @@ import os
 import re
 import uuid
 
-import coolname
 import google.api_core.exceptions
 from google import auth
 from google.cloud import secretmanager
@@ -15,7 +14,6 @@ from jsonschema import ValidationError, validate as jsonschema_validate
 import twined.exceptions
 from octue import exceptions
 from octue.app_loading import AppFrom
-from octue.cloud import storage
 from octue.diagnostics import Diagnostics
 from octue.log_handlers import AnalysisLogFormatterSwitcher
 from octue.resources import Child
@@ -257,6 +255,8 @@ class Runner:
                 id=analysis_id,
                 twine=self.twine,
                 handle_monitor_message=handle_monitor_message,
+                output_location=self.output_location,
+                use_signed_urls_for_output_datasets=self.use_signed_urls_for_output_datasets,
                 **self.configuration,
                 **inputs,
                 **outputs_and_monitors,
@@ -453,15 +453,7 @@ class Runner:
         :return None:
         """
         if not analysis.finalised:
-            if self.output_location:
-                output_location = storage.path.join(self.output_location, coolname.generate_slug())
-            else:
-                output_location = None
-
-            analysis.finalise(
-                upload_output_datasets_to=output_location,
-                use_signed_urls=self.use_signed_urls_for_output_datasets,
-            )
+            analysis.finalise()
 
         if save_diagnostics == SAVE_DIAGNOSTICS_ON:
             self.diagnostics.upload()
