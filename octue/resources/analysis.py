@@ -164,7 +164,8 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         if self.output_location and not upload_output_datasets_to:
             upload_output_datasets_to = storage.path.join(self.output_location, coolname.generate_slug())
 
-        use_signed_urls = use_signed_urls or self.use_signed_urls_for_output_datasets
+        if use_signed_urls is None:
+            use_signed_urls = self.use_signed_urls_for_output_datasets
 
         # If there isn't both an output manifest and upload location, nothing is uploaded.
         if not (upload_output_datasets_to and hasattr(self, "output_manifest")):
