@@ -376,10 +376,8 @@ class Service:
         if asynchronous and not push_endpoint:
             answer_subscription = None
         else:
-            pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
-
             answer_subscription = Subscription(
-                name=".".join((OCTUE_SERVICES_PREFIX, pub_sub_id, ANSWERS_NAMESPACE, question_uuid)),
+                name=".".join((OCTUE_SERVICES_PREFIX, self._pub_sub_id, ANSWERS_NAMESPACE, question_uuid)),
                 topic=self.services_topic,
                 filter=(
                     f'attributes.recipient = "{self.id}" '
