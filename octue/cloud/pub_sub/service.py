@@ -338,7 +338,18 @@ class Service:
                     service_registries=self.service_registries,
                 )
 
-        elif not service_revision_tag:
+        elif service_revision_tag:
+            pub_sub_id = convert_service_id_to_pub_sub_form(service_id)
+
+            service_revision_subscription = Subscription(
+                name=".".join((OCTUE_SERVICES_PREFIX, pub_sub_id)),
+                topic=self.services_topic,
+            )
+
+            if not service_revision_subscription.exists():
+                raise octue.exceptions.ServiceNotFound(f"Service revision {service_id!r} not found.")
+
+        else:
             raise octue.exceptions.InvalidServiceID(
                 f"A service revision tag for {service_id!r} must be provided if service registries aren't being used."
             )
