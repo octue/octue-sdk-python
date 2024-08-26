@@ -499,10 +499,12 @@ class TestService(BaseTestCase):
         is used in a question.
         """
         service = MockService(backend=BACKEND)
+        child = MockService(backend=BACKEND, service_id=f"octue/test-service:{MOCK_SERVICE_REVISION_TAG}")
+        child.serve()
 
         with self.assertRaises(exceptions.FileLocationError):
             service.ask(
-                service_id=f"octue/test-service:{MOCK_SERVICE_REVISION_TAG}",
+                service_id=child.id,
                 input_values={},
                 input_manifest=self.create_valid_manifest(),
             )
