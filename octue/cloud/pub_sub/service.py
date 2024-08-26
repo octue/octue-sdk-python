@@ -342,7 +342,7 @@ class Service:
                     service_registries=self.service_registries,
                 )
 
-        # If not using a service registry, check for that the service revision exists by checking for its subscription.
+        # If not using a service registry, check that the service revision exists by checking for its subscription.
         elif service_revision_tag:
             service_revision_subscription = Subscription(
                 name=convert_service_id_to_pub_sub_form(service_id),
