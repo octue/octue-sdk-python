@@ -149,7 +149,7 @@ class Service:
         logger.info("Starting %r.", self)
 
         subscription = Subscription(
-            name=".".join((OCTUE_SERVICES_PREFIX, self._pub_sub_id)),
+            name=self._pub_sub_id,
             topic=self.services_topic,
             filter=f'attributes.recipient = "{self.id}" AND attributes.sender_type = "{PARENT_SENDER_TYPE}"',
             expiration_time=None,
@@ -344,10 +344,8 @@ class Service:
 
         # If not using a service registry, check for that the service revision exists by checking for its subscription.
         elif service_revision_tag:
-            pub_sub_id = convert_service_id_to_pub_sub_form(service_id)
-
             service_revision_subscription = Subscription(
-                name=".".join((OCTUE_SERVICES_PREFIX, pub_sub_id)),
+                name=convert_service_id_to_pub_sub_form(service_id),
                 topic=self.services_topic,
             )
 
@@ -379,7 +377,7 @@ class Service:
             answer_subscription = None
         else:
             answer_subscription = Subscription(
-                name=".".join((OCTUE_SERVICES_PREFIX, self._pub_sub_id, ANSWERS_NAMESPACE, question_uuid)),
+                name=".".join((self._pub_sub_id, ANSWERS_NAMESPACE, question_uuid)),
                 topic=self.services_topic,
                 filter=(
                     f'attributes.recipient = "{self.id}" '
