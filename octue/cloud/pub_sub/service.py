@@ -328,6 +328,8 @@ class Service:
         """
         service_namespace, service_name, service_revision_tag = split_service_id(service_id)
 
+        # If using a service registry, check that the service revision is registered, or get the default service
+        # revision if no revision tag is provided.
         if self.service_registries:
             if service_revision_tag:
                 raise_if_revision_not_registered(sruid=service_id, service_registries=self.service_registries)
@@ -338,6 +340,7 @@ class Service:
                     service_registries=self.service_registries,
                 )
 
+        # If not using a service registry, check for that the service revision exists by checking for its subscription.
         elif service_revision_tag:
             pub_sub_id = convert_service_id_to_pub_sub_form(service_id)
 
