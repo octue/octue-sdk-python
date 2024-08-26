@@ -118,7 +118,9 @@ class Service:
         topic = Topic(name=OCTUE_SERVICES_PREFIX, project_name=self.backend.project_name)
 
         if not topic.exists():
-            raise octue.exceptions.ServiceNotFound(f"{topic!r} cannot be found.")
+            raise octue.exceptions.ServiceNotFound(
+                f"The {topic!r} topic cannot be found. Check that it's been created for this service network."
+            )
 
         return topic
 
