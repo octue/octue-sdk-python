@@ -86,7 +86,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
 
         # Non-strands.
         self.output_location = kwargs.pop("output_location", None)
-        self.use_signed_urls_for_output_datasets = kwargs.pop("use_signed_urls_for_output_datasets", True)
+        self.use_signed_urls_for_output_datasets = kwargs.pop("use_signed_urls_for_output_datasets", False)
 
         self._calculate_strand_hashes(strands=strand_kwargs)
         self._periodic_monitor_message_sender_threads = []

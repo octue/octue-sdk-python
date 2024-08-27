@@ -119,7 +119,7 @@ class AppConfiguration:
         configuration_manifest=None,
         children=None,
         output_location=None,
-        use_signed_urls_for_output_datasets=True,
+        use_signed_urls_for_output_datasets=False,
         **kwargs,
     ):
         self.configuration_values = configuration_values

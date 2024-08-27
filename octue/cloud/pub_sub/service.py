@@ -118,7 +118,9 @@ class Service:
         topic = Topic(name=OCTUE_SERVICES_PREFIX, project_name=self.backend.project_name)
 
         if not topic.exists():
-            raise octue.exceptions.ServiceNotFound(f"{topic!r} cannot be found.")
+            raise octue.exceptions.ServiceNotFound(
+                f"The {topic!r} topic cannot be found. Check that it's been created for this service network."
+            )
 
         return topic
 
@@ -147,7 +149,7 @@ class Service:
         logger.info("Starting %r.", self)
 
         subscription = Subscription(
-            name=".".join((OCTUE_SERVICES_PREFIX, self._pub_sub_id)),
+            name=self._pub_sub_id,
             topic=self.services_topic,
             filter=f'attributes.recipient = "{self.id}" AND attributes.sender_type = "{PARENT_SENDER_TYPE}"',
             expiration_time=None,
@@ -328,6 +330,8 @@ class Service:
         """
         service_namespace, service_name, service_revision_tag = split_service_id(service_id)
 
+        # If using a service registry, check that the service revision is registered, or get the default service
+        # revision if no revision tag is provided.
         if self.service_registries:
             if service_revision_tag:
                 raise_if_revision_not_registered(sruid=service_id, service_registries=self.service_registries)
@@ -338,7 +342,17 @@ class Service:
                     service_registries=self.service_registries,
                 )
 
-        elif not service_revision_tag:
+        # If not using a service registry, check that the service revision exists by checking for its subscription.
+        elif service_revision_tag:
+            service_revision_subscription = Subscription(
+                name=convert_service_id_to_pub_sub_form(service_id),
+                topic=self.services_topic,
+            )
+
+            if not service_revision_subscription.exists():
+                raise octue.exceptions.ServiceNotFound(f"Service revision {service_id!r} not found.")
+
+        else:
             raise octue.exceptions.InvalidServiceID(
                 f"A service revision tag for {service_id!r} must be provided if service registries aren't being used."
             )
@@ -362,10 +376,8 @@ class Service:
         if asynchronous and not push_endpoint:
             answer_subscription = None
         else:
-            pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
-
             answer_subscription = Subscription(
-                name=".".join((OCTUE_SERVICES_PREFIX, pub_sub_id, ANSWERS_NAMESPACE, question_uuid)),
+                name=".".join((self._pub_sub_id, ANSWERS_NAMESPACE, question_uuid)),
                 topic=self.services_topic,
                 filter=(
                     f'attributes.recipient = "{self.id}" '

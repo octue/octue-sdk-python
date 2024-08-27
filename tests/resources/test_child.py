@@ -11,10 +11,12 @@ from google.auth.exceptions import DefaultCredentialsError
 
 from octue.cloud.emulators._pub_sub import MockAnalysis, MockService
 from octue.cloud.emulators.service import ServicePatcher
+from octue.cloud.pub_sub.service import Service
 from octue.resources.child import Child
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import MOCK_SERVICE_REVISION_TAG
 from tests.base import BaseTestCase
+from tests.cloud.pub_sub.test_service import BACKEND
 
 
 lock = threading.Lock()
@@ -83,6 +85,8 @@ class TestChild(BaseTestCase):
                 id=f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}",
                 backend={"name": "GCPPubSubBackend", "project_name": "blah"},
             )
+
+            Service(backend=BACKEND, service_id=child.id).serve()
 
             with self.assertRaises(DefaultCredentialsError):
                 child.ask({"some": "input"})

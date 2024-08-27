@@ -121,6 +121,13 @@ class TestService(BaseTestCase):
             with self.assertRaises(exceptions.ServiceNotFound):
                 service.services_topic
 
+    def test_error_raised_if_service_revision_not_found_when_not_using_service_registry(self):
+        """Test that an error is raised if a service revision isn't found when not using a service registry."""
+        service = MockService(backend=BACKEND)
+
+        with self.assertRaises(exceptions.ServiceNotFound):
+            service.ask("non/existent:service")
+
     def test_ask_unregistered_service_revision_when_service_registries_specified_results_in_error(self):
         """Test that an error is raised if attempting to ask an unregistered service a question when service registries
         are being used.
@@ -492,10 +499,12 @@ class TestService(BaseTestCase):
         is used in a question.
         """
         service = MockService(backend=BACKEND)
+        child = MockService(backend=BACKEND, service_id=f"octue/test-service:{MOCK_SERVICE_REVISION_TAG}")
+        child.serve()
 
         with self.assertRaises(exceptions.FileLocationError):
             service.ask(
-                service_id=f"octue/test-service:{MOCK_SERVICE_REVISION_TAG}",
+                service_id=child.id,
                 input_values={},
                 input_manifest=self.create_valid_manifest(),
             )

@@ -60,7 +60,7 @@ class Runner:
         configuration_manifest=None,
         children=None,
         output_location=None,
-        use_signed_urls_for_output_datasets=True,
+        use_signed_urls_for_output_datasets=False,
         diagnostics_cloud_path=None,
         project_name=None,
         service_id=None,

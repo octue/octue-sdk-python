@@ -3,10 +3,10 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 import unittest
 import uuid
 from unittest.mock import patch
-from urllib.parse import urlparse
 
 from octue import REPOSITORY_ROOT, Runner
 from octue.cloud.emulators import ChildEmulator
@@ -57,9 +57,9 @@ class TemplateAppsTestCase(BaseTestCase):
             {"mast", "cleaned", "met"},
         )
 
-        output_url = urlparse(downloaded_output_manifest.datasets["cleaned_met_mast_data"].files.one().cloud_path).path
-        self.assertTrue(output_url.startswith(f"/{TEST_BUCKET_NAME}"))
-        self.assertTrue(output_url.endswith("/cleaned_met_mast_data/cleaned.csv"))
+        output_path = downloaded_output_manifest.datasets["cleaned_met_mast_data"].files.one().cloud_path
+        self.assertTrue(output_path.startswith(f"gs://{TEST_BUCKET_NAME}"))
+        self.assertTrue(output_path.endswith("/cleaned_met_mast_data/cleaned.csv"))
 
     @unittest.skipIf(condition=os.name == "nt", reason="See issue https://github.com/octue/octue-sdk-python/issues/229")
     def test_child_services_template(self):
@@ -123,6 +123,9 @@ class TemplateAppsTestCase(BaseTestCase):
                 children=children,
                 service_id="template-child-services/parent-service:local",
             )
+
+            # Wait for the child service subscriptions to show up as created in Pub/Sub.
+            time.sleep(5)
 
             analysis = runner.run(input_values=os.path.join(parent_service_path, "data", "input", "values.json"))
 
