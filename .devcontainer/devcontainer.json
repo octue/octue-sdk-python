@@ -9,32 +9,19 @@
   // Set *default* container specific settings.json values on container create.
   "settings": {
     "austin.mode": "Wall time",
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true,
     "jupyter.widgetScriptSources": ["jsdelivr.com", "unpkg.com"],
+    "python.locator": "native",
     "prettier.prettierPath": "/usr/local/prettier",
     "python.formatting.autopep8Path": "/usr/local/py-utils/bin/autopep8",
-    "python.formatting.blackPath": "/usr/local/py-utils/bin/black",
-    "python.formatting.provider": "black",
     "python.formatting.yapfPath": "/usr/local/py-utils/bin/yapf",
     "python.languageServer": "Pylance",
     "python.linting.banditPath": "/usr/local/py-utils/bin/bandit",
     "python.linting.enabled": true,
-    "python.linting.flake8Path": "/usr/local/py-utils/bin/flake8",
     "python.linting.mypyPath": "/usr/local/py-utils/bin/mypy",
     "python.linting.pycodestylePath": "/usr/local/py-utils/bin/pycodestyle",
     "python.linting.pydocstylePath": "/usr/local/py-utils/bin/pydocstyle",
-    // Line length to match black settings
-    // Disabling specific messages:
-    //  - To find the details do: /usr/local/py-utils/bin/pylint --list-msgs
-    //  - Disable missing-module-docstring (C0114) because we don't document modules routinely, just their members
-    //  - Disable invalid-name (C0103) because pylint thinks that eg 'x', 'df', 'np' are invalid due to their lengths
-    "python.linting.pylintArgs": [
-      "--max-line-length=120",
-      "--disable=missing-module-docstring,invalid-name"
-    ],
-    "python.linting.pylintEnabled": true,
-    "python.linting.pylintPath": "/usr/local/py-utils/bin/pylint",
     "python.pythonPath": "/usr/local/bin/python",
     "terminal.integrated.defaultProfile.linux": "zsh"
   },
@@ -51,7 +38,8 @@
     "ms-toolsai.jupyter-keymap",
     "ms-vsliveshare.vsliveshare",
     "p403n1x87.austin-vscode",
-    "ritwickdey.liveserver"
+    "ritwickdey.liveserver",
+    "charliermarsh.ruff"
   ],
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.

@@ -103,3 +103,6 @@ terraform/gcp-credentials.json
 .terraform
 
 *.jsonl
+
+# Avoid committing ruff cache files
+.ruff_cache
