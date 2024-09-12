@@ -66,18 +66,13 @@ sphinx-toolbox = "^3"
 [tool.ruff]
 line-length = 120
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes.
-select = ["E", "F"]
+lint.select = ["E", "F"]
 # Ignore E501 line-too-long - see https://docs.astral.sh/ruff/faq/#is-the-ruff-linter-compatible-with-black for why
-ignore = ["F405", "E501", "W503", "E203", "E731", "N818"]
+lint.ignore = ["F405", "E501", "E203", "E731", "N818"]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["octue", "app", "fractal", "test", "tests", "twined"]
-lines_after_imports = 2
 section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-combine_as_imports = true
 force-sort-within-sections = true
 
 [build-system]
