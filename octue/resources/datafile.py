@@ -154,7 +154,6 @@ class Datafile(Labelable, Taggable, Serialisable, Identifiable, Hashable, Filter
         :return None:
         """
         if path is None:
-
             if not self.exists_locally:
                 raise CloudLocationNotSpecified(
                     "The cloud path cannot be reset because this datafile only exists in the cloud."
@@ -732,7 +731,6 @@ class _DatafileContextManager:
             self._fp.close()
 
         if any(character in self.mode for character in self.MODIFICATION_MODES):
-
             if self.datafile.exists_in_cloud:
                 self.datafile.upload(update_cloud_metadata=self._update_metadata)
 

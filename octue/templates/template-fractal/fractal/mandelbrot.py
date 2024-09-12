@@ -26,7 +26,6 @@ def mandelbrot(width, height, x_range, y_range, n_iterations, c=None):
     # Simple loop to render the fractal set. This is not efficient python and would be vectorised in production, but the
     # purpose here is just to provide a simple demo.
     for idx, a in numpy.ndenumerate(x):
-
         # Get default constant c (Mandelbrot sets use spatial coordinates as constants)
         if c is None:
             b = y[idx]

@@ -213,7 +213,6 @@ class TestRunner(BaseTestCase):
         Manager.
         """
         with patch.dict(os.environ, {"LOCAL_CREDENTIAL": "my-secret"}):
-
             runner = Runner(
                 app_src=mock_app,
                 twine="""
@@ -487,7 +486,6 @@ class TestRunner(BaseTestCase):
 
 
 class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
-
     TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE = json.dumps(
         {
             "input_manifest": {
@@ -569,7 +567,6 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
                 {"manufacturer": False, "height": 350, "is_recycled": "false", "number_of_blades": 3},
             ):
                 with self.subTest(tags=tags):
-
                     # Make a datafile with the given tags.
                     with Datafile(
                         path=os.path.join(dataset_path, "my_file_0.txt"),
@@ -617,7 +614,6 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
         }
 
         with tempfile.TemporaryDirectory() as temporary_directory:
-
             dataset_paths = (
                 os.path.join(temporary_directory, "first_dataset"),
                 os.path.join(temporary_directory, "second_dataset"),

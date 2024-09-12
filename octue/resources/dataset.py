@@ -300,7 +300,6 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
 
             # Add a cloud datafile to a cloud dataset.
             if datafile.exists_in_cloud:
-
                 if datafile.cloud_path != new_cloud_path and not datafile.cloud_path.startswith(self.path):
                     datafile.upload(new_cloud_path)
 
@@ -350,7 +349,6 @@ class Dataset(Labelable, Taggable, Serialisable, Identifiable, Hashable, Metadat
         datafiles_and_paths = []
 
         for file in self.files:
-
             if not file.exists_in_cloud:
                 continue
 

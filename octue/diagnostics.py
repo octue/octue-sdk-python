@@ -176,7 +176,6 @@ class Diagnostics:
 
         # Upload each dataset and update its path in the manifest.
         for dataset_name, dataset_path in manifest["datasets"].items():
-
             # Handle manifests containing serialised datasets instead of just the datasets' paths. Datasets can be in
             # this state when serialised if they were instantiated using the `files` argument.
             if isinstance(dataset_path, dict):

@@ -677,7 +677,6 @@ class TestDatafile(BaseTestCase):
         GoogleCloudStorageClient().upload_from_string("yum", cloud_path=cloud_path)
 
         with tempfile.TemporaryDirectory() as temporary_directory:
-
             datafile = Datafile(path=cloud_path, local_path=os.path.join(temporary_directory, "my-file.txt"))
 
             self.assertTrue(datafile.exists_locally)
@@ -898,7 +897,6 @@ class TestDatafile(BaseTestCase):
         permissions.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
-
             with Datafile(path=os.path.join(temporary_directory, "my-file.dat"), mode="w") as (datafile, f):
                 f.write("I will be signed")
                 datafile.tags = {"some": "metadata"}
@@ -952,7 +950,6 @@ class TestDatafile(BaseTestCase):
     def test_error_raised_if_trying_to_modify_signed_url_datafile(self):
         """Test that an error is raised if trying to modify a datafile instantiated from a signed URL."""
         with tempfile.TemporaryDirectory() as temporary_directory:
-
             with Datafile(path=os.path.join(temporary_directory, "my-file.dat"), mode="w") as (datafile, f):
                 f.write("I will be signed")
 

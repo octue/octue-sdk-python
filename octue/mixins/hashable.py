@@ -17,7 +17,6 @@ _HASH_PREPARATION_FUNCTIONS = {
 
 
 class Hashable:
-
     _ATTRIBUTES_TO_HASH = None
     _HASH_TYPE = "CRC32C"
 

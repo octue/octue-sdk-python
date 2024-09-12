@@ -32,7 +32,7 @@ class GoogleCloudPubSubHandler(logging.Handler):
         retry_count,
         timeout=60,
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.question_uuid = question_uuid

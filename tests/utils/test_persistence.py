@@ -52,7 +52,6 @@ class TestCalculateDiskUsage(unittest.TestCase):
     def test_calculate_disk_usage_with_shallow_directory(self):
         """Test that the disk usage of a directory with only files in is calculated correctly."""
         with tempfile.TemporaryDirectory() as temporary_directory:
-
             for i in range(5):
                 path = os.path.join(temporary_directory, f"dummy_file_{i}")
                 _create_file_of_size(path, 1)
@@ -62,7 +61,6 @@ class TestCalculateDiskUsage(unittest.TestCase):
     def test_calculate_disk_usage_with_directory_of_directories(self):
         """Test that the disk usage of a directory of directories with files in is calculated correctly."""
         with tempfile.TemporaryDirectory() as temporary_directory:
-
             for i in range(5):
                 directory_path = os.path.join(temporary_directory, f"directory_{i}")
                 os.mkdir(directory_path)
@@ -78,7 +76,6 @@ class TestCalculateDiskUsage(unittest.TestCase):
         calculated correctly.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
-
             for i in range(5):
                 directory_path = os.path.join(temporary_directory, f"directory_{i}")
                 os.mkdir(directory_path)
@@ -97,7 +94,6 @@ class TestGetOldestFileInDirectory(unittest.TestCase):
     def test_oldest_file_is_retrieved(self):
         """Test that the path of the oldest file in a directory is retrieved."""
         with tempfile.TemporaryDirectory() as temporary_directory:
-
             for i in range(5):
                 _create_file_of_size(path=os.path.join(temporary_directory, f"file_{i}"), size=1)
                 time.sleep(1)
@@ -114,7 +110,6 @@ class TestGetOldestFileInDirectory(unittest.TestCase):
     def test_directories_ignored(self):
         """Test that directories are ignored."""
         with tempfile.TemporaryDirectory() as temporary_directory:
-
             for i in range(5):
                 os.mkdir(os.path.join(temporary_directory, f"directory_{i}"))
 
@@ -123,7 +118,6 @@ class TestGetOldestFileInDirectory(unittest.TestCase):
     def test_only_files_satisfying_filter_are_considered(self):
         """Test that only files satisfying the filter are considered when getting the oldest file."""
         with tempfile.TemporaryDirectory() as temporary_directory:
-
             _create_file_of_size(os.path.join(temporary_directory, "file_not_to_consider"), 1)
             _create_file_of_size(os.path.join(temporary_directory, "dummy_file"), 1)
 
