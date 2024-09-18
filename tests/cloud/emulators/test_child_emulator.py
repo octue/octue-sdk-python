@@ -30,7 +30,6 @@ ATTRIBUTES = {
 
 
 class TestChildEmulatorAsk(BaseTestCase):
-
     def test_representation(self):
         """Test that child emulators are represented correctly."""
         self.assertEqual(repr(ChildEmulator(events=EVENTS)), "<ChildEmulator('octue/test-service:1.0.0')>")

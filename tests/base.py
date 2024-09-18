@@ -60,7 +60,7 @@ class BaseTestCase(unittest.TestCase):
                 Datafile(path=os.path.join(path, "path-within-dataset", "a_test_file.csv")),
                 Datafile(path=os.path.join(path, "path-within-dataset", "another_test_file.csv")),
             ],
-            **kwargs
+            **kwargs,
         )
 
     def create_valid_manifest(self):

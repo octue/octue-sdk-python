@@ -250,7 +250,6 @@ class Runner:
             analysis_log_level=analysis_log_level,
             extra_log_handlers=extra_log_handlers,
         ):
-
             analysis = Analysis(
                 id=analysis_id,
                 twine=self.twine,

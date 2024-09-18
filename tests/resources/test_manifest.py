@@ -40,7 +40,6 @@ class TestManifest(BaseTestCase):
     def test_serialisation_and_deserialisation(self):
         """Test that manifests can be serialised and deserialised."""
         with tempfile.TemporaryDirectory() as temporary_directory:
-
             dataset_0_path = os.path.join(temporary_directory, "my_dataset_0")
             os.mkdir(dataset_0_path)
 

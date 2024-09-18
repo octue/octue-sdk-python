@@ -95,7 +95,6 @@ class TestGoogleCloudStorageClient(BaseTestCase):
             "octue.cloud.storage.client.GoogleCloudStorageClient._compute_crc32c_checksum",
             return_value="L3eGig==",
         ):
-
             with self.assertRaises(google.api_core.exceptions.BadRequest) as e:
                 self.storage_client.upload_file(
                     local_path=temporary_file.name,
@@ -391,7 +390,6 @@ class TestGoogleCloudStorageClient(BaseTestCase):
 
         # Ensure the GOOGLE_APPLICATION_CREDENTIALS environment variable isn't available.
         with patch.dict(os.environ, clear=True):
-
             # Test that the signed URL works.
             response = requests.get(url)
             self.assertEqual(response.status_code, 200)

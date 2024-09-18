@@ -12,26 +12,12 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
 
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.10.1
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.2
     hooks:
-      - id: isort
-
-  - repo: https://github.com/psf/black
-    rev: 24.4.2
-    hooks:
-      - id: black
-        args: ["--line-length", "120"]
-
-  - repo: https://github.com/pycqa/flake8
-    rev: 6.0.0
-    hooks:
-      - id: flake8
-        language_version: python3
-        additional_dependencies:
-          - "pep8-naming"
-        args:
-          - --ignore-names=setUp,tearDown,setUpClass,tearDownClass,asyncSetUp,asyncTearDown,setUpTestData,failureException,longMessage,maxDiff,startTestRun,stopTestRun
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
 
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v2.7.1
@@ -50,10 +36,10 @@ repos:
         language_version: python3
         additional_dependencies:
           - "poetry==1.2.0b2"
-          - "Sphinx>=4,<5"
+          - "Sphinx>=5,<8"
           - "sphinx-rtd-theme>=1,<2"
           - "sphinx-tabs>=3,<4"
-          - "sphinx-toolbox==3.0.0"
+          - "sphinx-toolbox>=3"
           - "git+https://github.com/octue/octue-sdk-python.git@main"
 
   - repo: https://github.com/windpioneers/pre-commit-hooks
