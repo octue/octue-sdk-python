@@ -14,10 +14,15 @@ on:
 jobs:
   check-semantic-version:
     if: "!contains(github.event.head_commit.message, 'skipci')"
-    uses: octue/workflows/.github/workflows/check-semantic-version.yml@main
-    with:
-      path: pyproject.toml
-      breaking_change_indicated_by: minor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: octue/check-semantic-version@1.0.4
+        with:
+          path: pyproject.toml
+          breaking_change_indicated_by: minor
 
   run-tests:
     if: "!contains(github.event.head_commit.message, 'skipci')"
