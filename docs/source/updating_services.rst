@@ -15,6 +15,7 @@ Instructions
 1. Check out and pull the ``main`` branch
 
    .. code-block:: shell
+
        git checkout main
        git pull
 
@@ -23,33 +24,39 @@ Instructions
    If using ``poetry``:
 
    .. code-block:: shell
+
        poetry install
 
    If using ``pip``:
 
    .. code-block:: shell
+
        pip install -e .
 
 3. If using ``pre-commit``, make sure it's set up properly (you only need to do this once per repository, not on every update)
 
    .. code-block:: shell
+
        pre-commit install && pre-commit install -t commit-msg
 
 4. Check out a new branch
 
    .. code-block:: shell
+
        git checkout -b my-new-feature
 
 5. Add and make changes to your app's code as needed, committing each self-contained change to git
 
    .. code-block:: shell
+
        git add changed-file.py another-changed-file.py
        git commit
-       ... repeat ...
+       ...repeat...
 
-   Push your commits frequently so your work is backed up on your git provider (e.g. GitHub)
+   Push your commits frequently so your work is backed up on GitHub
 
    .. code-block:: shell
+
        git push
 
 6. Write any new tests you need to verify your code works and update any old tests as needed
