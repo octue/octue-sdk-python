@@ -62,6 +62,7 @@ Sphinx = ">=5,<8"
 sphinx-rtd-theme = ">=1,<2"
 sphinx-tabs = ">=3.4.0,<4"
 sphinx-toolbox = "^3"
+ruff = "^0.6.9"
 
 [tool.ruff]
 line-length = 120
