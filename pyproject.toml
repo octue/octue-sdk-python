@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "octue"
-version = "0.60.1"
+version = "0.60.2"
 description = "A package providing template applications for data services, and a python SDK to the Octue API."
 readme = "README.md"
 authors = ["Marcus Lugg <marcus@octue.com>", "Thomas Clark <support@octue.com>"]
@@ -62,6 +62,7 @@ Sphinx = ">=5,<8"
 sphinx-rtd-theme = ">=1,<2"
 sphinx-tabs = ">=3.4.0,<4"
 sphinx-toolbox = "^3"
+ruff = "^0.6.9"
 
 [tool.ruff]
 line-length = 120
