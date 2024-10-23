@@ -14,43 +14,43 @@ Instructions
 
 1. Check out and pull the ``main`` branch
 
-    .. code-block:: shell
-        git checkout main
-        git pull
+   .. code-block:: shell
+       git checkout main
+       git pull
 
 2. If not already installed, install your service locally.
 
-    If using ``poetry``:
+   If using ``poetry``:
 
-    .. code-block:: shell
-        poetry install
+   .. code-block:: shell
+       poetry install
 
-    If using ``pip``:
+   If using ``pip``:
 
-    .. code-block:: shell
-        pip install -e .
+   .. code-block:: shell
+       pip install -e .
 
 3. If using ``pre-commit``, make sure it's set up properly (you only need to do this once per repository, not on every update)
 
-    .. code-block:: shell
-        pre-commit install && pre-commit install -t commit-msg
+   .. code-block:: shell
+       pre-commit install && pre-commit install -t commit-msg
 
 4. Check out a new branch
 
-    .. code-block:: shell
-        git checkout -b my-new-feature
+   .. code-block:: shell
+       git checkout -b my-new-feature
 
 5. Add and make changes to your app's code as needed, committing each self-contained change to git
 
-    .. code-block:: shell
-        git add changed-file.py another-changed-file.py
-        git commit
-        ... repeat ...
+   .. code-block:: shell
+       git add changed-file.py another-changed-file.py
+       git commit
+       ... repeat ...
 
-    Push your commits frequently so your work is backed up on your git provider (e.g. GitHub)
+   Push your commits frequently so your work is backed up on your git provider (e.g. GitHub)
 
-    .. code-block:: shell
-        git push
+   .. code-block:: shell
+       git push
 
 6. Write any new tests you need to verify your code works and update any old tests as needed
 
@@ -58,13 +58,11 @@ Instructions
 
 8. Update the semantic version of your app. If you're using ``poetry``, run:
 
-    - ``poetry version patch`` for a bug fix or small non-code change
-    - ``poetry version minor`` for a new feature
-    - ``poetry version major`` for a breaking change
+   - ``poetry version patch`` for a bug fix or small non-code change
+   - ``poetry version minor`` for a new feature
+   - ``poetry version major`` for a breaking change
 
-If you're using ``pip`` , manually update the version in ``setup.py`` or ``pyproject.toml``
-
-Don't forget to commit this change, too.
+   If you're using ``pip``, manually update the version in ``setup.py`` or ``pyproject.toml``. Don't forget to commit this change, too.
 
 9. When you're ready to review the changes, head to GitHub and open a pull request of your branch into ``main``. Check the diff to make sure everything's there and consistent (it's easy to forget to push everything). Ask your colleagues to review the code if required.
 
