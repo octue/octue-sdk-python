@@ -59,7 +59,9 @@ Instructions
 
 6. Write any new tests you need to verify your code works and update any old tests as needed
 
-7. Run the tests locally using e.g. ``pytest`` or ``python -m unittest`` and fix anything that makes them fail
+7. Run the tests locally using ``pytest`` and fix anything that makes them fail
+
+   .. image:: images/updating_services/pytest.png
 
 8. Update the semantic version of your app:
 
@@ -77,7 +79,7 @@ Instructions
     commit. The checks ensure code quality, the tests pass, and that the new version of the code is correct.
 
 11. Merge the pull request into ``main``. This will run the deployment workflow (usually called ``cd`` - continuous
-   deployment), making the new version of the service available to everyone.
+    deployment), making the new version of the service available to everyone.
 
 12. Check that the deployment workflow has run successfully (this can take a few minutes). You can check the progress in
     the "Actions" tab of the GitHub repository
