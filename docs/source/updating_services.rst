@@ -41,7 +41,9 @@ Instructions
 
        git checkout -b my-new-feature
 
-5. Add and make changes to your app's code as needed, committing each self-contained change
+5. Add and make changes to your app's code as needed, committing each self-contained change. Use the `Conventional
+   Commits <https://www.conventionalcommits.org/en/v1.0.0/>`_ commit message format so the new version for your service
+   can be automatically calculated.
 
    .. code-block:: shell
 
@@ -61,7 +63,9 @@ Instructions
 
    .. image:: images/updating_services/pytest.png
 
-8. Update the semantic version of your app:
+8. Update the `semantic version <https://semver.org/>`_ of your app. This communicates to anyone updating from a
+   previous version of the service whether they can use it as before or if there might be changes they need to make to
+   their own code or data first.
 
    - ``poetry version patch`` for a bug fix or small non-code change
    - ``poetry version minor`` for a new feature
