@@ -19,19 +19,11 @@ Instructions
        git checkout main
        git pull
 
-2. If not already installed, install your service locally.
-
-   If using ``poetry``:
+2. If not already installed, install your service locally:
 
    .. code-block:: shell
 
        poetry install
-
-   If using ``pip``:
-
-   .. code-block:: shell
-
-       pip install -e .
 
 3. If using ``pre-commit``, make sure it's set up properly (you only need to do this once per repository, not on every update)
 
@@ -69,7 +61,7 @@ Instructions
    - ``poetry version minor`` for a new feature
    - ``poetry version major`` for a breaking change
 
-   If you're using ``pip``, manually update the version in ``setup.py`` or ``pyproject.toml``. Don't forget to commit this change, too.
+   Don't forget to commit this change, too.
 
 9. When you're ready to review the changes, head to GitHub and open a pull request of your branch into ``main``. Check the diff to make sure everything's there and consistent (it's easy to forget to push everything). Ask your colleagues to review the code if required.
 
