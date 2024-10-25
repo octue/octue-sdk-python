@@ -23,15 +23,13 @@ Instructions
        git checkout main
        git pull
 
-2. If not already installed, install your service locally so you can run the tests and your development environment can
-   lint the code etc:
+2. Install your service locally so you can run the tests and your development environment can lint the code etc.:
 
    .. code-block:: shell
 
        poetry install
 
-3. If using ``pre-commit`` to enforce code quality, make sure it's set up properly (you only need to do this once per
-   repository, not on every update)
+3. Set up `pre-commit <https://pre-commit.com/>`_ to enforce code quality:
 
    .. code-block:: shell
 
