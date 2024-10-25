@@ -1,3 +1,5 @@
+.. _updating_services:
+
 Updating an Octue service
 =========================
 
