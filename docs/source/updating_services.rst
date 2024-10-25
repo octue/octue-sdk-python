@@ -81,5 +81,3 @@ Instructions
 
 12. Check that the deployment workflow has run successfully (this can take a few minutes). You can check the progress in
     the "Actions" tab of the GitHub repository
-
-13. Run a deployment test for the new service revision if you have one
