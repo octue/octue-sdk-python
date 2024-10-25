@@ -47,8 +47,8 @@ Instructions
 
    .. code-block:: shell
 
-       git add changed-file.py another-changed-file.py
-       git commit
+       git add a-new-file another-new-file
+       git commit -m "Your commit message"
        ...repeat...
 
    Push your commits frequently so your work is backed up on GitHub
