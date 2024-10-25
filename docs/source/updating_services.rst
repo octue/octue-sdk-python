@@ -75,11 +75,15 @@ Instructions
 
    .. image:: images/updating_services/diff.png
 
-10. When you're ready to release the new version of your service, check that the GitHub checks have passed on the latest
-    commit. The checks ensure code quality, the tests pass, and that the new version of the code is correct.
+10. When you're ready to release the new version of your service, check that the GitHub checks have passed. These ensure
+    code quality, that the tests pass, and that the new version number is correct.
+
+   .. image:: images/updating_services/checks.png
 
 11. Merge the pull request into ``main``. This will run the deployment workflow (usually called ``cd`` - continuous
     deployment), making the new version of the service available to everyone.
 
 12. Check that the deployment workflow has run successfully (this can take a few minutes). You can check the progress in
     the "Actions" tab of the GitHub repository
+
+   .. image:: images/updating_services/deployment.png
