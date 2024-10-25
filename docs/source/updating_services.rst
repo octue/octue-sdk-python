@@ -70,8 +70,10 @@ Instructions
    Don't forget to commit this change, too.
 
 9. When you're ready to review the changes, head to GitHub and open a pull request of your branch into ``main``. This
-   makes it easy for you and anyone else to see what's changed. Check the diff to make sure everything's there and
-   consistent (it's easy to forget to push a commit). Ask your colleagues to review the code if required.
+   makes it easy for you and anyone else to see what's changed. Check the "Files Changed" tab to make sure everything's
+   there and consistent (it's easy to forget to push a commit). Ask your colleagues to review the code if required.
+
+   .. image:: images/updating_services/diff.png
 
 10. When you're ready to release the new version of your service, check that the GitHub checks have passed on the latest
     commit. The checks ensure code quality, the tests pass, and that the new version of the code is correct.
