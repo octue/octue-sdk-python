@@ -26,7 +26,7 @@ SERVICE_COMMUNICATION_SCHEMA = {
 # Instantiate a JSON schema validator to cache the service communication schema. This avoids downloading it from the
 # registry every time a message is validated against it.
 jsonschema.Draft202012Validator.check_schema(SERVICE_COMMUNICATION_SCHEMA)
-jsonschema_validator = jsonschema.Draft202012Validator(SERVICE_COMMUNICATION_SCHEMA)
+cached_validator = jsonschema.Draft202012Validator(SERVICE_COMMUNICATION_SCHEMA)
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ def raise_if_event_is_invalid(event, attributes, recipient, parent_sdk_version, 
     try:
         # If the schema is the official service communication schema, use the cached validator.
         if schema == SERVICE_COMMUNICATION_SCHEMA:
-            jsonschema_validator.validate(data)
+            cached_validator.validate(data)
 
         # Otherwise, use uncached validation.
         else:
