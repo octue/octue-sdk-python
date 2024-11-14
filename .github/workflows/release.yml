@@ -1,4 +1,4 @@
-# This workflow tests and releases a new version of the package before publishing it to PyPi.
+# This workflow tests and releases a new version of the package before publishing it to PyPI.
 
 name: Release
 

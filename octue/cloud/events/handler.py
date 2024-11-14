@@ -6,6 +6,8 @@ import re
 import time
 from datetime import datetime
 
+import referencing.exceptions
+
 from octue.cloud import EXCEPTIONS_MAPPING
 from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA, is_event_valid
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
@@ -119,15 +121,23 @@ class AbstractEventHandler:
         recipient = attributes.get("recipient")
         child_sdk_version = attributes.get("sender_sdk_version")
 
-        if self.validate_events and not is_event_valid(
-            event=event,
-            attributes=attributes,
-            recipient=recipient,
-            parent_sdk_version=PARENT_SDK_VERSION,
-            child_sdk_version=child_sdk_version,
-            schema=self.schema,
-        ):
-            return (None, None)
+        try:
+            if self.validate_events and not is_event_valid(
+                event=event,
+                attributes=attributes,
+                recipient=recipient,
+                parent_sdk_version=PARENT_SDK_VERSION,
+                child_sdk_version=child_sdk_version,
+                schema=self.schema,
+            ):
+                return (None, None)
+        except referencing.exceptions.Unretrievable:
+            logger.warning(
+                "Retrieving the event validation schema failed. Disabling event validation for the rest of this event "
+                "stream.",
+                exc_info=True,
+            )
+            self.validate_events = False
 
         logger.debug(
             "%r: Received an event related to question %r.",
