@@ -1,3 +1,4 @@
+import functools
 import logging
 
 import jsonschema
@@ -69,27 +70,21 @@ def raise_if_event_is_invalid(event, attributes, recipient, parent_sdk_version, 
     :raise jsonschema.ValidationError: if the event or its attributes are invalid
     :return None:
     """
-    # Transform attributes to a dictionary in the case they're a different kind of mapping.
-    data = {"event": event, "attributes": dict(attributes)}
-
     if schema is None:
         schema = SERVICE_COMMUNICATION_SCHEMA
 
-    schema_is_official = schema == SERVICE_COMMUNICATION_SCHEMA
+    validator = _get_validator(schema)
+
+    # Transform attributes to a dictionary in the case they're a different kind of mapping.
+    data = {"event": event, "attributes": dict(attributes)}
 
     try:
-        # If the schema is the official service communication schema, use the cached validator.
-        if schema_is_official:
-            cached_validator.validate(data)
-
-        # Otherwise, use uncached validation.
-        else:
-            jsonschema.validate(data, schema)
+        validator(data)
 
     except jsonschema.ValidationError as error:
         warn_if_incompatible(parent_sdk_version=parent_sdk_version, child_sdk_version=child_sdk_version)
 
-        if schema_is_official:
+        if schema == SERVICE_COMMUNICATION_SCHEMA:
             logger.exception(
                 "%r received an event that doesn't conform with version %s of the service communication schema (%s): "
                 "%r.",
@@ -106,3 +101,18 @@ def raise_if_event_is_invalid(event, attributes, recipient, parent_sdk_version, 
             )
 
         raise error
+
+
+def _get_validator(schema):
+    """If the schema is the official service communication schema, get the cached schema validator; otherwise, get the
+    uncached validator.
+
+    :param dict schema: the schema to validate events and their attributes against
+    :return callable: the `validate` function of the schema validator or `jsonschema` module
+    """
+    # If the schema is the official service communication schema, use the cached validator.
+    if schema == SERVICE_COMMUNICATION_SCHEMA:
+        return cached_validator.validate
+
+    # Otherwise, use uncached validation.
+    return functools.partial(jsonschema.validate, schema=schema)
