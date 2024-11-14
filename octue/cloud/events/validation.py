@@ -75,9 +75,11 @@ def raise_if_event_is_invalid(event, attributes, recipient, parent_sdk_version, 
     if schema is None:
         schema = SERVICE_COMMUNICATION_SCHEMA
 
+    schema_is_official = schema == SERVICE_COMMUNICATION_SCHEMA
+
     try:
         # If the schema is the official service communication schema, use the cached validator.
-        if schema == SERVICE_COMMUNICATION_SCHEMA:
+        if schema_is_official:
             cached_validator.validate(data)
 
         # Otherwise, use uncached validation.
@@ -87,12 +89,20 @@ def raise_if_event_is_invalid(event, attributes, recipient, parent_sdk_version, 
     except jsonschema.ValidationError as error:
         warn_if_incompatible(parent_sdk_version=parent_sdk_version, child_sdk_version=child_sdk_version)
 
-        logger.exception(
-            "%r received an event that doesn't conform with version %s of the service communication schema (%s): %r.",
-            recipient,
-            SERVICE_COMMUNICATION_SCHEMA_VERSION,
-            SERVICE_COMMUNICATION_SCHEMA_INFO_URL,
-            event,
-        )
+        if schema_is_official:
+            logger.exception(
+                "%r received an event that doesn't conform with version %s of the service communication schema (%s): "
+                "%r.",
+                recipient,
+                SERVICE_COMMUNICATION_SCHEMA_VERSION,
+                SERVICE_COMMUNICATION_SCHEMA_INFO_URL,
+                event,
+            )
+        else:
+            logger.exception(
+                "%r received an event that doesn't conform with the provided event schema: %r",
+                recipient,
+                event,
+            )
 
         raise error
