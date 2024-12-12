@@ -1,8 +1,16 @@
+import json
+import os
 import unittest
+from unittest.mock import patch
 
 import jsonschema
 
 from octue.cloud.events.validation import _get_validator, cached_validator, SERVICE_COMMUNICATION_SCHEMA
+from tests import TESTS_DIR
+
+
+with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
+    EVENTS = json.load(f)
 
 
 class TestGetValidator(unittest.TestCase):
@@ -15,3 +23,15 @@ class TestGetValidator(unittest.TestCase):
         validator = _get_validator(schema={})
         self.assertIs(validator.func, jsonschema.validate)
         self.assertEqual(validator.keywords, {"schema": {}})
+
+
+class TestCachedValidator(unittest.TestCase):
+    def test_cached_validator_only_requests_schema_once(self):
+        # cached_validator = jsonschema.Draft202012Validator({"$ref": "https://not-resolvable-at-all.com/schema.json"})
+
+        cached_validator.validate(EVENTS[0])
+
+        with patch("jsonschema.validators._warn_for_remote_retrieve") as mock_warn_for_remote_retrieve:
+            cached_validator.validate(EVENTS[0])
+
+        pass
