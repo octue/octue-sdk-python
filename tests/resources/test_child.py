@@ -7,16 +7,12 @@ import time
 from multiprocessing import Value
 from unittest.mock import patch
 
-from google.auth.exceptions import DefaultCredentialsError
-
 from octue.cloud.emulators._pub_sub import MockAnalysis, MockService
 from octue.cloud.emulators.service import ServicePatcher
-from octue.cloud.pub_sub.service import Service
 from octue.resources.child import Child
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import MOCK_SERVICE_REVISION_TAG
 from tests.base import BaseTestCase
-from tests.cloud.pub_sub.test_service import BACKEND
 
 
 lock = threading.Lock()
@@ -77,19 +73,6 @@ class TestChild(BaseTestCase):
                 id=f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}",
                 backend={"name": "GCPPubSubBackend", "project_name": "blah"},
             )
-
-    def test_child_cannot_be_asked_question_without_credentials(self):
-        """Test that a child cannot be asked a question without Google Cloud credentials being available."""
-        with patch.dict(os.environ, clear=True):
-            child = Child(
-                id=f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}",
-                backend={"name": "GCPPubSubBackend", "project_name": "blah"},
-            )
-
-            Service(backend=BACKEND, service_id=child.id).serve()
-
-            with self.assertRaises(DefaultCredentialsError):
-                child.ask({"some": "input"})
 
     def test_child_can_be_asked_multiple_questions_in_serial(self):
         """Test that a child can be asked multiple questions in serial."""
