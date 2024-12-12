@@ -211,7 +211,6 @@ class Runner:
             credentials=credentials,
             children=children or self.children,
             cls=CLASS_MAP,
-            allow_missing=False,
             allow_extra=False,
         )
         logger.debug("Inputs validated.")
