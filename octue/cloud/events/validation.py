@@ -1,3 +1,4 @@
+import functools
 import logging
 
 import jsonschema
@@ -26,7 +27,7 @@ SERVICE_COMMUNICATION_SCHEMA = {
 # Instantiate a JSON schema validator to cache the service communication schema. This avoids downloading it from the
 # registry every time a message is validated against it.
 jsonschema.Draft202012Validator.check_schema(SERVICE_COMMUNICATION_SCHEMA)
-jsonschema_validator = jsonschema.Draft202012Validator(SERVICE_COMMUNICATION_SCHEMA)
+cached_validator = jsonschema.Draft202012Validator(SERVICE_COMMUNICATION_SCHEMA)
 
 logger = logging.getLogger(__name__)
 
@@ -69,30 +70,49 @@ def raise_if_event_is_invalid(event, attributes, recipient, parent_sdk_version, 
     :raise jsonschema.ValidationError: if the event or its attributes are invalid
     :return None:
     """
-    # Transform attributes to a dictionary in the case they're a different kind of mapping.
-    data = {"event": event, "attributes": dict(attributes)}
-
     if schema is None:
         schema = SERVICE_COMMUNICATION_SCHEMA
 
-    try:
-        # If the schema is the official service communication schema, use the cached validator.
-        if schema == SERVICE_COMMUNICATION_SCHEMA:
-            jsonschema_validator.validate(data)
+    validator = _get_validator(schema)
 
-        # Otherwise, use uncached validation.
-        else:
-            jsonschema.validate(data, schema)
+    # Transform attributes to a dictionary in the case they're a different kind of mapping.
+    data = {"event": event, "attributes": dict(attributes)}
+
+    try:
+        validator(data)
 
     except jsonschema.ValidationError as error:
         warn_if_incompatible(parent_sdk_version=parent_sdk_version, child_sdk_version=child_sdk_version)
 
-        logger.exception(
-            "%r received an event that doesn't conform with version %s of the service communication schema (%s): %r.",
-            recipient,
-            SERVICE_COMMUNICATION_SCHEMA_VERSION,
-            SERVICE_COMMUNICATION_SCHEMA_INFO_URL,
-            event,
-        )
+        if schema == SERVICE_COMMUNICATION_SCHEMA:
+            logger.exception(
+                "%r received an event that doesn't conform with version %s of the service communication schema (%s): "
+                "%r.",
+                recipient,
+                SERVICE_COMMUNICATION_SCHEMA_VERSION,
+                SERVICE_COMMUNICATION_SCHEMA_INFO_URL,
+                event,
+            )
+        else:
+            logger.exception(
+                "%r received an event that doesn't conform with the provided event schema: %r",
+                recipient,
+                event,
+            )
 
         raise error
+
+
+def _get_validator(schema):
+    """If the schema is the official service communication schema, get the cached schema validator; otherwise, get the
+    uncached validator.
+
+    :param dict schema: the schema to validate events and their attributes against
+    :return callable: the `validate` function of the schema validator or `jsonschema` module
+    """
+    # If the schema is the official service communication schema, use the cached validator.
+    if schema == SERVICE_COMMUNICATION_SCHEMA:
+        return cached_validator.validate
+
+    # Otherwise, use uncached validation.
+    return functools.partial(jsonschema.validate, schema=schema)
