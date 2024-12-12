@@ -328,10 +328,14 @@ class Runner:
         manifest_schema = getattr(self.twine, manifest_kind)
 
         for dataset_name, dataset_schema in manifest_schema["datasets"].items():
+            # Allow optional manifests.
+            if not manifest:
+                continue
+
             dataset = manifest.datasets.get(dataset_name)
             file_tags_template = dataset_schema.get("file_tags_template")
 
-            # Allow optional datasets in future (not currently allowed by `twined`).
+            # Allow optional datasets.
             if not (dataset and file_tags_template):
                 continue
 
