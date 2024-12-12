@@ -7,14 +7,14 @@ import time
 from multiprocessing import Value
 from unittest.mock import patch
 
-from google.auth.exceptions import DefaultCredentialsError
+from google.api_core.exceptions import NotFound
 
 from octue.cloud.emulators._pub_sub import MockAnalysis, MockService
 from octue.cloud.emulators.service import ServicePatcher
 from octue.cloud.pub_sub.service import Service
 from octue.resources.child import Child
 from octue.resources.service_backends import GCPPubSubBackend
-from tests import MOCK_SERVICE_REVISION_TAG
+from tests import MOCK_SERVICE_REVISION_TAG, TEST_PROJECT_NAME
 from tests.base import BaseTestCase
 from tests.cloud.pub_sub.test_service import BACKEND
 
@@ -83,12 +83,12 @@ class TestChild(BaseTestCase):
         with patch.dict(os.environ, clear=True):
             child = Child(
                 id=f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}",
-                backend={"name": "GCPPubSubBackend", "project_name": "blah"},
+                backend={"name": "GCPPubSubBackend", "project_name": TEST_PROJECT_NAME},
             )
 
             Service(backend=BACKEND, service_id=child.id).serve()
 
-            with self.assertRaises(DefaultCredentialsError):
+            with self.assertRaises(NotFound):
                 child.ask({"some": "input"})
 
     def test_child_can_be_asked_multiple_questions_in_serial(self):
