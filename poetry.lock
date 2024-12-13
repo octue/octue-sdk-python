@@ -777,13 +777,13 @@ libcst = ["libcst (>=0.3.10)"]
 
 [[package]]
 name = "google-cloud-secret-manager"
-version = "2.21.1"
+version = "2.22.0"
 description = "Google Cloud Secret Manager API client library"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "google_cloud_secret_manager-2.21.1-py2.py3-none-any.whl", hash = "sha256:a259932a3c0951f061b60cacfbc20831af92a67fd8cd7396a9f59504bc5cc251"},
-    {file = "google_cloud_secret_manager-2.21.1.tar.gz", hash = "sha256:f104f002751345cba39152cef3aed3f4375edf0b2542c8bd1b7712d44fe975b6"},
+    {file = "google_cloud_secret_manager-2.22.0-py2.py3-none-any.whl", hash = "sha256:9e23a8165ed718de56543723b1e21c394f2cee9ababddcac8ceecc9f427d2696"},
+    {file = "google_cloud_secret_manager-2.22.0.tar.gz", hash = "sha256:5dd95ac6243687f86fd803316c0768f507028958b8a2e69b3aa0ace7ac654bf4"},
 ]
 
 [package.dependencies]
@@ -2604,19 +2604,15 @@ name = "twined"
 version = "0.6.0"
 description = "A library to help digital twins and data services talk to one another."
 optional = false
-python-versions = "^3.8"
-files = []
-develop = false
+python-versions = "<4.0,>=3.8"
+files = [
+    {file = "twined-0.6.0-py3-none-any.whl", hash = "sha256:5f9d29c02bdeae7bb7ead80aafc1c650eb642fc864375fab529045ed53067aa1"},
+    {file = "twined-0.6.0.tar.gz", hash = "sha256:d7709a760f14f29946651a3a69abc28ae312f865cbe7d937d0afc427de34664a"},
+]
 
 [package.dependencies]
-jsonschema = "^4"
+jsonschema = ">=4,<5"
 python-dotenv = ">=0,<=2"
-
-[package.source]
-type = "git"
-url = "https://github.com/octue/twined"
-reference = "allow-optional-strands"
-resolved_reference = "eb3c74f5a5219345dd126ecb74153075d5e5b318"
 
 [[package]]
 name = "typing-extensions"
@@ -2822,4 +2818,4 @@ hdf5 = ["h5py"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "4bda794eb076589cdbd4e133c7287ba214a701d188ee1a268fdd125ee21dd361"
+content-hash = "fdaa867afc9e4a584d6a5853905e58c8693069bf1cf055ce741c0a2bb996e0f9"

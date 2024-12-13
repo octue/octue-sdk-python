@@ -34,7 +34,7 @@ gunicorn = "^22"
 python-dateutil = "^2.8"
 pyyaml = "^6"
 h5py = { version = "^3.6", optional = true }
-twined = { git = "https://github.com/octue/twined", branch = "allow-optional-strands"}
+twined = "0.6.0"
 packaging = ">=20.4"
 google-cloud-bigquery = "^3.18.0"
 
