@@ -778,6 +778,7 @@ class TestService(BaseTestCase):
         parent = MockService(backend=BACKEND, children={child.id: child})
         child.serve()
 
+        # Trigger the heartbeat check straight away.
         with patch(
             "octue.cloud.emulators._pub_sub.MockService.answer",
             functools.partial(child.answer, heartbeat_interval=0.1),

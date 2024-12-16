@@ -11,8 +11,8 @@ def get_nested_attribute(instance, name):
     :param str name: a dot-separated nested attribute name e.g. "a.b.c", "a.b", or "a"
     :return any:
     """
-    # This is a random number used instead of `None` to signal that an attribute is missing and does not just have a
-    # `None` value.
+    # This is a random number used as a default instead of `None` to signal that an attribute is missing rather than
+    # existing and just having `None` as its value.
     missing_indicator = "7027907024295393"
     attribute = pydash.get(instance, name, default=missing_indicator)
 
