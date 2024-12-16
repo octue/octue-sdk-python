@@ -1,8 +1,10 @@
 import collections.abc
 import numbers
 
+import pydash
+
 from octue import exceptions
-from octue.utils.objects import get_nested_attribute, has_nested_attribute
+from octue.utils.objects import get_nested_attribute
 
 
 def generate_complementary_filters(name, func):
@@ -208,7 +210,7 @@ class Filterable:
         """
         possible_attribute_name = ".".join(filter_name.split("__"))
 
-        if has_nested_attribute(self, possible_attribute_name):
+        if pydash.has(self, possible_attribute_name):
             attribute = get_nested_attribute(self, possible_attribute_name)
             filter_ = self._get_filter(attribute, "equals")
             return filter_(attribute, filter_value)
