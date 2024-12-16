@@ -5,6 +5,7 @@ import functools
 import importlib.metadata
 import json
 import logging
+import os
 import time
 import uuid
 
@@ -680,9 +681,8 @@ class Service:
         runtime_timeout_warning_time=3480,  # This is 58 minutes in seconds.
         timeout=30,
     ):
-        """Send a heartbeat to the parent, indicating that the service is alive. If it's been running for longer than
-        the runtime warning time, log a warning that it will be stopped soon. This is primarily to warn the user of
-        the Cloud Run one hour timeout.
+        """Send a heartbeat to the parent, indicating that the service is alive. If it's running on Cloud Run and it's
+        been running for longer than the runtime timeout warning time, log a warning that it will be stopped soon.
 
         :param str question_uuid: the UUID of the question this event relates to
         :param str|None parent_question_uuid: the UUID of the question that triggered this question
@@ -708,7 +708,10 @@ class Service:
             timeout=timeout,
         )
 
-        if time.perf_counter() - start_time > runtime_timeout_warning_time:
+        if (
+            os.environ.get("COMPUTE_PROVIDER") == "GOOGLE_CLOUD_RUN"
+            and time.perf_counter() - start_time > runtime_timeout_warning_time
+        ):
             logger.warning("This analysis will reach the maximum runtime and be stopped soon.")
 
         logger.debug("Heartbeat sent by %r.", self)

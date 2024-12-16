@@ -5,6 +5,7 @@ import os
 import random
 import tempfile
 import time
+from unittest import mock
 from unittest.mock import patch
 
 import google.api_core.exceptions
@@ -764,8 +765,10 @@ class TestService(BaseTestCase):
             delta=datetime.timedelta(0.05),
         )
 
-    def test_runtime_timeout_warning_logged(self):
-        """Test that a warning is logged when the runtime timeout warning time is reached."""
+    def test_runtime_timeout_warning_logged_if_running_on_cloud_run(self):
+        """Test that a warning is logged when the runtime timeout warning time is reached if the service is running on
+        Cloud Run.
+        """
 
         def run_function(*args, **kwargs):
             time.sleep(0.3)
@@ -783,9 +786,10 @@ class TestService(BaseTestCase):
                 "octue.cloud.pub_sub.service.Service._send_heartbeat_and_check_runtime",
                 functools.partial(child._send_heartbeat_and_check_runtime, runtime_timeout_warning_time=0),
             ):
-                with self.assertLogs(level=logging.WARNING) as logging_context:
-                    subscription, _ = parent.ask(service_id=child.id, input_values={})
-                    parent.wait_for_answer(subscription)
+                with mock.patch.dict(os.environ, COMPUTE_PROVIDER="GOOGLE_CLOUD_RUN"):
+                    with self.assertLogs(level=logging.WARNING) as logging_context:
+                        subscription, _ = parent.ask(service_id=child.id, input_values={})
+                        parent.wait_for_answer(subscription)
 
             self.assertIn(
                 "This analysis will reach the maximum runtime and be stopped soon.",
