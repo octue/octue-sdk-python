@@ -11,7 +11,7 @@ from google.cloud.pubsub_v1 import SubscriberClient
 from octue.cloud.events.handler import AbstractEventHandler
 from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
 from octue.utils.decoders import OctueJSONDecoder
-from octue.utils.objects import getattr_or_subscribe
+from octue.utils.objects import get_nested_attribute
 from octue.utils.threads import RepeatingTimer
 
 
@@ -28,7 +28,7 @@ def extract_event_and_attributes_from_pub_sub_message(message):
     :return (any, dict): the extracted event and its attributes
     """
     # Cast attributes to a dictionary to avoid defaultdict-like behaviour from Pub/Sub message attributes container.
-    attributes = dict(getattr_or_subscribe(message, "attributes"))
+    attributes = dict(get_nested_attribute(message, "attributes"))
 
     # Deserialise the `parent_question_uuid`, `forward_logs`, and `retry_count`, fields if they're present
     # (don't assume they are before validation).
