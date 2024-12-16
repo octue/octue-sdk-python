@@ -764,6 +764,34 @@ class TestService(BaseTestCase):
             delta=datetime.timedelta(0.05),
         )
 
+    def test_runtime_timeout_warning_logged(self):
+        """Test that a warning is logged when the runtime timeout warning time is reached."""
+
+        def run_function(*args, **kwargs):
+            time.sleep(0.3)
+            return MockAnalysis()
+
+        child = MockService(backend=BACKEND, run_function=lambda *args, **kwargs: run_function())
+        parent = MockService(backend=BACKEND, children={child.id: child})
+        child.serve()
+
+        with patch(
+            "octue.cloud.emulators._pub_sub.MockService.answer",
+            functools.partial(child.answer, heartbeat_interval=0.1),
+        ):
+            with patch(
+                "octue.cloud.pub_sub.service.Service._send_heartbeat_and_check_runtime",
+                functools.partial(child._send_heartbeat_and_check_runtime, runtime_timeout_warning_time=0),
+            ):
+                with self.assertLogs(level=logging.WARNING) as logging_context:
+                    subscription, _ = parent.ask(service_id=child.id, input_values={})
+                    parent.wait_for_answer(subscription)
+
+            self.assertIn(
+                "This analysis will reach the maximum runtime and be stopped soon.",
+                logging_context.output[0],
+            )
+
     def test_send_monitor_messages_periodically(self):
         """Test that monitor messages are sent periodically if set up in the run function and that the periodic monitor
         message thread doesn't stop the result from being received (i.e. message sending is thread-safe).
