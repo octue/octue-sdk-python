@@ -167,8 +167,8 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         if use_signed_urls is None:
             use_signed_urls = self.use_signed_urls_for_output_datasets
 
-        # If there isn't both an output manifest and upload location, nothing is uploaded.
-        if not (upload_output_datasets_to and hasattr(self, "output_manifest")):
+        # If there isn't both a non-None output manifest and upload location, nothing is uploaded.
+        if not (upload_output_datasets_to and getattr(self, "output_manifest")):
             return
 
         for name, dataset in self.output_manifest.datasets.items():
