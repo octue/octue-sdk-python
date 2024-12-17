@@ -708,10 +708,11 @@ class TestService(BaseTestCase):
 
         # Check that the child's messages have been recorded by the parent.
         self.assertEqual(parent.received_events[0]["event"]["kind"], "delivery_acknowledgement")
-        self.assertEqual(parent.received_events[1]["event"]["kind"], "log_record")
-        self.assertEqual(parent.received_events[2]["event"]["kind"], "log_record")
-        self.assertEqual(parent.received_events[3]["event"]["kind"], "log_record")
-        self.assertEqual(parent.received_events[4]["event"], {"kind": "result", "output_values": "Hello! It worked!"})
+
+        for i in range(1, 6):
+            self.assertEqual(parent.received_events[i]["event"]["kind"], "log_record")
+
+        self.assertEqual(parent.received_events[6]["event"], {"kind": "result", "output_values": "Hello! It worked!"})
 
     def test_child_exception_message_can_be_recorded_by_parent(self):
         """Test that the parent can record exceptions raised by the child."""
