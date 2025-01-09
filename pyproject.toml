@@ -54,6 +54,8 @@ tox = "^3.23"
 pre-commit = "^2.17"
 coverage = "^5"
 # Template app dependencies
+numpy = "^2.2.1"
+pandas = "^2.2.3"
 dateparser = "1.1.1"
 stringcase = "1.2.0"
 # Documentation
