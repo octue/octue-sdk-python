@@ -14,7 +14,10 @@ from google.auth.transport import requests as google_requests
 from google.cloud.storage import Client
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
-from google_crc32c import Checksum
+
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    from google_crc32c import Checksum
 
 from octue.cloud import storage
 from octue.exceptions import CloudStorageBucketNotFound

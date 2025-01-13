@@ -7,9 +7,13 @@ import logging
 import os
 import shutil
 import tempfile
+import warnings
 
 import requests
-from google_crc32c import Checksum
+
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    from google_crc32c import Checksum
 
 
 # The `h5py` package is only needed if dealing with HDF5 files. It's only available if the `hdf5` extra is provided
