@@ -113,7 +113,6 @@ def ask():
 @click.option(
     "--asynchronous",
     is_flag=True,
-    default=True,
     help="If provided, ask the question and detach (the result and other events can be retrieved from the event store "
     "later).",
 )
