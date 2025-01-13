@@ -102,7 +102,14 @@ def question():
     help="If asking a remote question, the name of the Google Cloud project the service is deployed in. If not "
     "provided, the project name is detected from the local Google application credentials if present.",
 )
-def ask(sruid, input_values, input_manifest, project_name):
+@click.option(
+    "--async",
+    is_flag=True,
+    default=True,
+    help="If provided, ask the question and detach (the result and other events can be retrieved from the event store "
+    "later).",
+)
+def ask(sruid, input_values, input_manifest, project_name, asynchronous):
     """Ask a question to a remote Octue Twined service.
 
     SRUID should be a valid service revision unique identifier for an existing Octue Twined service
@@ -119,7 +126,7 @@ def ask(sruid, input_values, input_manifest, project_name):
         _, project_name = auth.default()
 
     child = Child(id=sruid, backend=service_backends.get_backend()(project_name=project_name))
-    answer, _ = child.ask(input_values=input_values, input_manifest=input_manifest)
+    answer, _ = child.ask(input_values=input_values, input_manifest=input_manifest, asynchronous=asynchronous)
     return json.dumps(answer, cls=OctueJSONEncoder)
 
 
