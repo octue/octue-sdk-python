@@ -276,7 +276,7 @@ def raw(
     limit,
     service_config,
 ):
-    """Get the raw events emitted during a question. One of the following must be set:
+    """Get the raw events emitted during a question as JSON. One of the following must be set:
 
     --question-uuid
 
@@ -394,7 +394,7 @@ def replay(
     only_handle_result,
     validate_events,
 ):
-    """Replay a question's events, returning the result if there is one. One of the following must be set:
+    """Replay a question's events, returning the result as JSON if there is one. One of the following must be set:
 
     --question-uuid
 
