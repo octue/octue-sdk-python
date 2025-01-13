@@ -13,10 +13,12 @@ from google import auth
 from octue.cloud import pub_sub, storage
 from octue.cloud.deployment.google.answer_pub_sub_question import answer_pub_sub_question
 from octue.cloud.events.utils import make_originator_question_event
+from octue.cloud.events.validation import VALID_EVENT_KINDS
+from octue.cloud.pub_sub.bigquery import get_events
 from octue.cloud.pub_sub.service import Service
 from octue.cloud.service_id import create_sruid, get_sruid_parts
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.configuration import load_service_and_app_configuration
+from octue.configuration import load_service_and_app_configuration, ServiceConfiguration
 from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
 from octue.exceptions import ServiceAlreadyExists
 from octue.log_handlers import apply_log_handler, get_remote_handler
@@ -195,6 +197,108 @@ def ask_local(input_values, input_manifest, service_config):
         backend = service_backends.get_backend()(project_name=project_name)
 
     answer_pub_sub_question(question=question, project_name=backend.project_name, service_configuration=service_config)
+
+
+@question.group()
+def events():
+    """Get and replay events from questions to Octue Twined services."""
+
+
+@events.command()
+@click.option(
+    "--question-uuid",
+    type=str,
+    default=None,
+    help="The UUID of the question to get events for.",
+)
+@click.option(
+    "--parent-question-uuid",
+    type=str,
+    help="The UUID of a parent question to get the sub-question events for",
+)
+@click.option(
+    "--originator-question-uuid",
+    type=str,
+    help="The UUID of an originator question get the full tree of events for",
+)
+@click.option(
+    "-k",
+    "--kinds",
+    type=str,
+    default=None,
+    help="The kinds of event to get as a comma-separated list e.g. 'question,result'. If not provided, all event kinds "
+    "are returned. The valid kinds are "
+    f"{VALID_EVENT_KINDS!r}.",
+)
+@click.option(
+    "-e",
+    "--exclude-kinds",
+    type=str,
+    default=None,
+    help="The kinds of event to exclude as a comma-separated list e.g. 'question,result'. If not provided, all event "
+    "kinds are returned. The valid kinds are "
+    f"{VALID_EVENT_KINDS!r}.",
+)
+@click.option(
+    "--include-backend-metadata",
+    is_flag=True,
+    help="Include the service backend metadata.",
+)
+@click.option(
+    "-l",
+    "--limit",
+    type=int,
+    default=1000,
+    show_default=True,
+    help="Limit the number of events returned.",
+)
+@click.option(
+    "-c",
+    "--service-config",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="The path to an `octue.yaml` file defining the service to run. If not provided, the "
+    "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
+    "is used.",
+)
+def raw(
+    question_uuid,
+    parent_question_uuid,
+    originator_question_uuid,
+    kinds,
+    exclude_kinds,
+    include_backend_metadata,
+    limit,
+    service_config,
+):
+    """Get the raw events emitted during a question. One of the following must be set:
+
+    --question-uuid
+
+    --parent-question-uuid
+
+    --originator-question-uuid
+    """
+    if kinds:
+        kinds = kinds.split(",")
+
+    if exclude_kinds:
+        exclude_kinds = exclude_kinds.split(",")
+
+    service_configuration = ServiceConfiguration.from_file(path=service_config)
+
+    events = get_events(
+        table_id=service_configuration.event_store_table_id,
+        question_uuid=question_uuid,
+        parent_question_uuid=parent_question_uuid,
+        originator_question_uuid=originator_question_uuid,
+        kinds=kinds,
+        exclude_kinds=exclude_kinds,
+        include_backend_metadata=include_backend_metadata,
+        limit=limit,
+    )
+
+    click.echo(events)
 
 
 @octue_cli.command(deprecated=True)
