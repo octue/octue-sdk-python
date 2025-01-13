@@ -266,7 +266,7 @@ def events():
     "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
     "is used.",
 )
-def raw(
+def get(
     question_uuid,
     parent_question_uuid,
     originator_question_uuid,
