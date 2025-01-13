@@ -141,9 +141,9 @@ def remote(sruid, input_values, input_manifest, project_name, asynchronous):
     )
 
     if asynchronous:
-        return question_uuid
+        click.echo(question_uuid)
 
-    return json.dumps(answer, cls=OctueJSONEncoder)
+    click.echo(answer)
 
 
 @ask.command()
