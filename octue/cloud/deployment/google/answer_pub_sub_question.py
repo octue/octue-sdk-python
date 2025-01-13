@@ -44,7 +44,6 @@ def answer_pub_sub_question(question, project_name, service_configuration=None, 
 
         service.run_function = runner.run
         service.answer(question)
-        logger.info("Analysis successfully run and response sent for question %r.", question_uuid)
 
     except BaseException as error:  # noqa
         service.send_exception(
