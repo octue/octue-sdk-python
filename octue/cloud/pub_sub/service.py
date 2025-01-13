@@ -545,6 +545,7 @@ class Service:
                 parent=parent,
                 originator=originator,
                 sender=self.id,
+                sender_type=attributes["sender_type"],
                 recipient=recipient,
                 retry_count=retry_count,
             )
