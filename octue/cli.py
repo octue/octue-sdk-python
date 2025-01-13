@@ -78,10 +78,15 @@ def octue_cli(id, logger_uri, log_level, force_reset):
 
 @octue_cli.group()
 def question():
-    """Ask and interact with questions to an Octue Twined data service."""
+    """Ask a new question to an Octue Twined data service or interact with a previous question."""
 
 
-@question.command()
+@question.group()
+def ask():
+    """Ask a new question to an Octue Twined data service."""
+
+
+@ask.command()
 @click.argument("sruid", type=str)
 @click.option(
     "-i",
@@ -112,7 +117,7 @@ def question():
     help="If provided, ask the question and detach (the result and other events can be retrieved from the event store "
     "later).",
 )
-def ask(sruid, input_values, input_manifest, project_name, asynchronous):
+def remote(sruid, input_values, input_manifest, project_name, asynchronous):
     """Ask a question to a remote Octue Twined service.
 
     SRUID should be a valid service revision unique identifier for an existing Octue Twined service
@@ -142,7 +147,7 @@ def ask(sruid, input_values, input_manifest, project_name, asynchronous):
     return json.dumps(answer, cls=OctueJSONEncoder)
 
 
-@question.command()
+@ask.command()
 @click.option(
     "-i",
     "--input-values",
@@ -166,7 +171,7 @@ def ask(sruid, input_values, input_manifest, project_name, asynchronous):
     "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
     "is used.",
 )
-def ask_local(input_values, input_manifest, service_config):
+def local(input_values, input_manifest, service_config):
     """Ask a question to a local Octue Twined service."""
     if input_values:
         input_values = json.loads(input_values, cls=OctueJSONDecoder)
