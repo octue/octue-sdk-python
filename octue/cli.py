@@ -97,7 +97,7 @@ def question():
 @click.option(
     "-p",
     "--project-name",
-    type="str",
+    type=str,
     default=None,
     help="If asking a remote question, the name of the Google Cloud project the service is deployed in. If not "
     "provided, the project name is detected from the local Google application credentials if present.",
