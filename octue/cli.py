@@ -20,8 +20,9 @@ from octue.configuration import load_service_and_app_configuration
 from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
 from octue.exceptions import ServiceAlreadyExists
 from octue.log_handlers import apply_log_handler, get_remote_handler
-from octue.resources import Manifest, service_backends
+from octue.resources import Manifest, service_backends, Child
 from octue.runner import Runner
+from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 
 
@@ -94,15 +95,23 @@ def question():
     help="An optional input manifest for the question serialised as a JSON-encoded string.",
 )
 @click.option(
+    "-p",
+    "--project-name",
+    type="str",
+    default=None,
+    help="If asking a remote question, the name of the Google Cloud project the service is deployed in. If not "
+    "provided, the project name is detected from the local Google application credentials if present.",
+)
+@click.option(
     "-c",
     "--service-config",
     type=click.Path(dir_okay=False),
     default=None,
-    help="The path to an `octue.yaml` file defining the service to run. If not provided, the "
-    "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
-    "is used.",
+    help="If asking a local question, the path to an `octue.yaml` file defining the service to run. If not provided, "
+    "the `OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path "
+    "`octue.yaml` is used. This argument is ignored if a remote question is being asked.",
 )
-def ask(sruid, input_values, input_manifest, service_config):
+def ask(sruid, input_values, input_manifest, project_name, service_config):
     """Ask a question to a local or remote Octue Twined service.
 
     SRUID should be:
@@ -115,17 +124,21 @@ def ask(sruid, input_values, input_manifest, service_config):
 
       e.g. octue question ask local
     """
-    if sruid != "local":
-        pass
-
-    service_configuration, app_configuration = load_service_and_app_configuration(service_config)
-
     if input_values:
-        input_values = json.loads(input_values)
+        input_values = json.loads(input_values, cls=OctueJSONDecoder)
 
     if input_manifest:
         input_manifest = Manifest.deserialise(input_manifest, from_string=True)
 
+    if sruid != "local":
+        if not project_name:
+            _, project_name = auth.default()
+
+        child = Child(id=sruid, backend=service_backends.get_backend()(project_name=project_name))
+        answer, _ = child.ask(input_values=input_values, input_manifest=input_manifest)
+        return json.dumps(answer, cls=OctueJSONEncoder)
+
+    service_configuration, app_configuration = load_service_and_app_configuration(service_config)
     service_namespace, service_name, service_revision_tag = get_sruid_parts(service_configuration)
     child_sruid = create_sruid(namespace=service_namespace, name=service_name, revision_tag=service_revision_tag)
     parent_sruid = "local/local:local"
