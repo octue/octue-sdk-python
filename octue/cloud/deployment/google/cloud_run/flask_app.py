@@ -3,7 +3,7 @@ import logging
 import google.api_core.exceptions
 from flask import Flask, request
 
-from octue.cloud.deployment.google.answer_pub_sub_question import answer_question
+from octue.cloud.deployment.google.answer_pub_sub_question import answer_pub_sub_question
 from octue.cloud.pub_sub.bigquery import get_events
 from octue.configuration import ServiceConfiguration
 
@@ -43,7 +43,7 @@ def index():
         return QUESTION_ACKNOWLEDGMENT_RESPONSE
 
     project_name = envelope["subscription"].split("/")[1]
-    answer_question(question=question, project_name=project_name)
+    answer_pub_sub_question(question=question, project_name=project_name)
     return QUESTION_ACKNOWLEDGMENT_RESPONSE
 
 

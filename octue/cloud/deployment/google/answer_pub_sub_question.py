@@ -11,7 +11,7 @@ from octue.utils.objects import get_nested_attribute
 logger = logging.getLogger(__name__)
 
 
-def answer_question(question, project_name, service_configuration=None, app_configuration=None):
+def answer_pub_sub_question(question, project_name, service_configuration=None, app_configuration=None):
     """Answer a question sent to an app deployed in Google Cloud.
 
     :param dict question:

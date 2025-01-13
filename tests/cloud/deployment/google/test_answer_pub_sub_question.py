@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import yaml
 
-from octue.cloud.deployment.google.answer_pub_sub_question import answer_question
+from octue.cloud.deployment.google.answer_pub_sub_question import answer_pub_sub_question
 from octue.cloud.emulators._pub_sub import MockTopic
 from octue.utils.patches import MultiPatcher
 from tests.mocks import MockOpen
@@ -32,7 +32,7 @@ class TestAnswerPubSubQuestion(TestCase):
             with patch(
                 "octue.cloud.deployment.google.answer_pub_sub_question.Runner.from_configuration"
             ) as mock_constructor:
-                answer_question(
+                answer_pub_sub_question(
                     question={
                         "data": {},
                         "attributes": {
@@ -96,7 +96,7 @@ class TestAnswerPubSubQuestion(TestCase):
                     patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "blah"}),
                 ]
             ):
-                answer_question(
+                answer_pub_sub_question(
                     question={
                         "data": {},
                         "attributes": {
