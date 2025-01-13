@@ -537,18 +537,16 @@ class Service:
         """
         attributes = attributes or {}
 
-        attributes.update(
-            make_attributes(
-                question_uuid=question_uuid,
-                parent_question_uuid=parent_question_uuid,
-                originator_question_uuid=originator_question_uuid,
-                parent=parent,
-                originator=originator,
-                sender=self.id,
-                sender_type=attributes["sender_type"],
-                recipient=recipient,
-                retry_count=retry_count,
-            )
+        attributes = make_attributes(
+            question_uuid=question_uuid,
+            parent_question_uuid=parent_question_uuid,
+            originator_question_uuid=originator_question_uuid,
+            parent=parent,
+            originator=originator,
+            sender=self.id,
+            recipient=recipient,
+            retry_count=retry_count,
+            **attributes,
         )
 
         converted_attributes = {}
