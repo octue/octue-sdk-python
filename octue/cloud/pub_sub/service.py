@@ -273,13 +273,16 @@ class Service:
             if analysis.output_manifest is not None:
                 result["output_manifest"] = analysis.output_manifest.to_primitive()
 
-            self._emit_event(
+            future = self._emit_event(
                 event=result,
                 recipient=parent,
                 attributes={"sender_type": CHILD_SENDER_TYPE},
                 timeout=timeout,
                 **routing_metadata,
             )
+
+            # Await successful publishing of the result.
+            future.result()
 
             heartbeater.cancel()
             logger.info("%r answered question %r.", self, question_uuid)
