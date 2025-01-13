@@ -115,33 +115,39 @@ def ask(sruid, input_values, input_manifest, service_config):
 
       e.g. octue question ask local
     """
-    if sruid == "local":
-        service_configuration, app_configuration = load_service_and_app_configuration(service_config)
-        service_namespace, service_name, service_revision_tag = get_sruid_parts(service_configuration)
+    if sruid != "local":
+        pass
 
-        child_sruid = create_sruid(namespace=service_namespace, name=service_name, revision_tag=service_revision_tag)
-        parent_sruid = "local/local:local"
+    service_configuration, app_configuration = load_service_and_app_configuration(service_config)
 
-        question = make_originator_question_event(
-            input_values=input_values,
-            input_manifest=input_manifest,
-            parent_sruid=parent_sruid,
-            child_sruid=child_sruid,
-        )
+    if input_values:
+        input_values = json.loads(input_values)
 
-        backend_configuration_values = (app_configuration.configuration_values or {}).get("backend")
+    if input_manifest:
+        input_manifest = Manifest.deserialise(input_manifest, from_string=True)
 
-        if backend_configuration_values:
-            backend_configuration_values = copy.deepcopy(backend_configuration_values)
-            backend = service_backends.get_backend(backend_configuration_values.pop("name"))(
-                **backend_configuration_values
-            )
-        else:
-            # If no backend details are provided, use Google Pub/Sub with the default project.
-            _, project_name = auth.default()
-            backend = service_backends.get_backend()(project_name=project_name)
+    service_namespace, service_name, service_revision_tag = get_sruid_parts(service_configuration)
+    child_sruid = create_sruid(namespace=service_namespace, name=service_name, revision_tag=service_revision_tag)
+    parent_sruid = "local/local:local"
 
-        answer_question(question=question, project_name=backend.project_name, service_configuration=service_config)
+    question = make_originator_question_event(
+        input_values=input_values,
+        input_manifest=input_manifest,
+        parent_sruid=parent_sruid,
+        child_sruid=child_sruid,
+    )
+
+    backend_configuration_values = (app_configuration.configuration_values or {}).get("backend")
+
+    if backend_configuration_values:
+        backend_configuration_values = copy.deepcopy(backend_configuration_values)
+        backend = service_backends.get_backend(backend_configuration_values.pop("name"))(**backend_configuration_values)
+    else:
+        # If no backend details are provided, use Google Pub/Sub with the default project.
+        _, project_name = auth.default()
+        backend = service_backends.get_backend()(project_name=project_name)
+
+    answer_question(question=question, project_name=backend.project_name, service_configuration=service_config)
 
 
 @octue_cli.command()
