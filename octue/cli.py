@@ -11,6 +11,8 @@ import click
 from google import auth
 
 from octue.cloud import pub_sub, storage
+from octue.cloud.deployment.google.answer_pub_sub_question import answer_question
+from octue.cloud.events.utils import make_originator_question_event
 from octue.cloud.pub_sub.service import Service
 from octue.cloud.service_id import create_sruid, get_sruid_parts
 from octue.cloud.storage import GoogleCloudStorageClient
@@ -68,6 +70,78 @@ def octue_cli(id, logger_uri, log_level, force_reset):
 
     if global_cli_context["logger_uri"]:
         global_cli_context["log_handler"] = get_remote_handler(logger_uri=global_cli_context["logger_uri"])
+
+
+@octue_cli.group()
+def question():
+    """Ask and interact with questions to an Octue Twined data service."""
+
+
+@question.command()
+@click.argument("sruid", type=str)
+@click.option(
+    "-i",
+    "--input-values",
+    type=str,
+    default=None,
+    help="Any input values for the question as a JSON-encoded string.",
+)
+@click.option(
+    "-m",
+    "--input-manifest",
+    type=str,
+    default=None,
+    help="An optional input manifest for the question serialised as a JSON-encoded string.",
+)
+@click.option(
+    "-c",
+    "--service-config",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="The path to an `octue.yaml` file defining the service to run. If not provided, the "
+    "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
+    "is used.",
+)
+def ask(sruid, input_values, input_manifest, service_config):
+    """Ask a question to a local or remote Octue Twined service.
+
+    SRUID should be:
+
+    - For remote services: a valid service revision unique identifier for an existing Octue Twined service
+
+      e.g. octue question ask octue/example-service:1.0.3
+
+    - For a local service: "local"
+
+      e.g. octue question ask local
+    """
+    if sruid == "local":
+        service_configuration, app_configuration = load_service_and_app_configuration(service_config)
+        service_namespace, service_name, service_revision_tag = get_sruid_parts(service_configuration)
+
+        child_sruid = create_sruid(namespace=service_namespace, name=service_name, revision_tag=service_revision_tag)
+        parent_sruid = "local/local:local"
+
+        question = make_originator_question_event(
+            input_values=input_values,
+            input_manifest=input_manifest,
+            parent_sruid=parent_sruid,
+            child_sruid=child_sruid,
+        )
+
+        backend_configuration_values = (app_configuration.configuration_values or {}).get("backend")
+
+        if backend_configuration_values:
+            backend_configuration_values = copy.deepcopy(backend_configuration_values)
+            backend = service_backends.get_backend(backend_configuration_values.pop("name"))(
+                **backend_configuration_values
+            )
+        else:
+            # If no backend details are provided, use Google Pub/Sub with the default project.
+            _, project_name = auth.default()
+            backend = service_backends.get_backend()(project_name=project_name)
+
+        answer_question(question=question, project_name=backend.project_name, service_configuration=service_config)
 
 
 @octue_cli.command()

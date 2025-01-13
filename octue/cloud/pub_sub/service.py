@@ -1,6 +1,5 @@
 import concurrent.futures
 import copy
-import datetime
 import functools
 import importlib.metadata
 import json
@@ -15,7 +14,9 @@ from google.api_core import retry
 from google.cloud import pubsub_v1
 
 import octue.exceptions
+from octue.cloud import LOCAL_SDK_VERSION
 from octue.cloud.events import OCTUE_SERVICES_PREFIX
+from octue.cloud.events.utils import make_attributes
 from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler, extract_event_and_attributes_from_pub_sub_message
@@ -85,7 +86,6 @@ class Service:
         self.service_registries = service_registries
 
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
-        self._local_sdk_version = importlib.metadata.version("octue")
         self._event_handler = None
 
     def __repr__(self):
@@ -288,7 +288,7 @@ class Service:
             if heartbeater is not None:
                 heartbeater.cancel()
 
-            warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
+            warn_if_incompatible(child_sdk_version=LOCAL_SDK_VERSION, parent_sdk_version=parent_sdk_version)
             self.send_exception(timeout=timeout, **routing_metadata)
             raise error
 
@@ -538,19 +538,16 @@ class Service:
         attributes = attributes or {}
 
         attributes.update(
-            {
-                "uuid": str(uuid.uuid4()),
-                "datetime": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
-                "question_uuid": question_uuid,
-                "parent_question_uuid": parent_question_uuid,
-                "originator_question_uuid": originator_question_uuid,
-                "parent": parent,
-                "originator": originator,
-                "sender": self.id,
-                "sender_sdk_version": self._local_sdk_version,
-                "recipient": recipient,
-                "retry_count": retry_count,
-            }
+            make_attributes(
+                question_uuid=question_uuid,
+                parent_question_uuid=parent_question_uuid,
+                originator_question_uuid=originator_question_uuid,
+                parent=parent,
+                originator=originator,
+                sender=self.id,
+                recipient=recipient,
+                retry_count=retry_count,
+            )
         )
 
         converted_attributes = {}

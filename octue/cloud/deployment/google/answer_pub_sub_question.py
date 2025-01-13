@@ -11,14 +11,18 @@ from octue.utils.objects import get_nested_attribute
 logger = logging.getLogger(__name__)
 
 
-def answer_question(question, project_name):
+def answer_question(question, project_name, service_configuration=None, app_configuration=None):
     """Answer a question sent to an app deployed in Google Cloud.
 
-    :param dict|tuple question:
+    :param dict question:
     :param str project_name:
+    :param service_configuration:
+    :param app_configuration:
     :return None:
     """
-    service_configuration, app_configuration = load_service_and_app_configuration()
+    if not service_configuration:
+        service_configuration, app_configuration = load_service_and_app_configuration()
+
     service_namespace, service_name, service_revision_tag = get_sruid_parts(service_configuration)
 
     service_sruid = create_sruid(
