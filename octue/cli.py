@@ -111,7 +111,7 @@ def ask():
     "provided, the project name is detected from the local Google application credentials if present.",
 )
 @click.option(
-    "--async",
+    "--asynchronous",
     is_flag=True,
     default=True,
     help="If provided, ask the question and detach (the result and other events can be retrieved from the event store "
@@ -133,7 +133,7 @@ def remote(sruid, input_values, input_manifest, project_name, asynchronous):
     if not project_name:
         _, project_name = auth.default()
 
-    child = Child(id=sruid, backend=service_backends.get_backend()(project_name=project_name))
+    child = Child(id=sruid, backend={"name": "GCPPubSubBackend", "project_name": project_name})
 
     answer, question_uuid = child.ask(
         input_values=input_values,
