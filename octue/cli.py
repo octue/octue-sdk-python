@@ -188,7 +188,7 @@ def ask_local(input_values, input_manifest, service_config):
     answer_question(question=question, project_name=backend.project_name, service_configuration=service_config)
 
 
-@octue_cli.command()
+@octue_cli.command(deprecated=True)
 @click.option(
     "-c",
     "--service-config",
