@@ -764,11 +764,17 @@ class Service:
         if hasattr(question, "ack"):
             question.ack()
 
-        event, attributes = extract_event_and_attributes_from_pub_sub_message(question)
-        event_for_validation = copy.deepcopy(event)
+        # Support already-extracted questions (e.g. from the `octue question ask-local` CLI command).
+        if "event" in question:
+            event = copy.deepcopy(question["event"])
+            attributes = question["attributes"]
+
+        # Extract question from Cloud Run or Pub/Sub format.
+        else:
+            event, attributes = extract_event_and_attributes_from_pub_sub_message(question)
 
         raise_if_event_is_invalid(
-            event=event_for_validation,
+            event=copy.deepcopy(event),
             attributes=attributes,
             recipient=self.id,
             # Don't assume the presence of specific attributes before validation.
