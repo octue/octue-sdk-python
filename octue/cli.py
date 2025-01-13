@@ -126,7 +126,16 @@ def ask(sruid, input_values, input_manifest, project_name, asynchronous):
         _, project_name = auth.default()
 
     child = Child(id=sruid, backend=service_backends.get_backend()(project_name=project_name))
-    answer, _ = child.ask(input_values=input_values, input_manifest=input_manifest, asynchronous=asynchronous)
+
+    answer, question_uuid = child.ask(
+        input_values=input_values,
+        input_manifest=input_manifest,
+        asynchronous=asynchronous,
+    )
+
+    if asynchronous:
+        return question_uuid
+
     return json.dumps(answer, cls=OctueJSONEncoder)
 
 
