@@ -102,27 +102,12 @@ def question():
     help="If asking a remote question, the name of the Google Cloud project the service is deployed in. If not "
     "provided, the project name is detected from the local Google application credentials if present.",
 )
-@click.option(
-    "-c",
-    "--service-config",
-    type=click.Path(dir_okay=False),
-    default=None,
-    help="If asking a local question, the path to an `octue.yaml` file defining the service to run. If not provided, "
-    "the `OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path "
-    "`octue.yaml` is used. This argument is ignored if a remote question is being asked.",
-)
-def ask(sruid, input_values, input_manifest, project_name, service_config):
-    """Ask a question to a local or remote Octue Twined service.
+def ask(sruid, input_values, input_manifest, project_name):
+    """Ask a question to a remote Octue Twined service.
 
-    SRUID should be:
+    SRUID should be a valid service revision unique identifier for an existing Octue Twined service
 
-    - For remote services: a valid service revision unique identifier for an existing Octue Twined service
-
-      e.g. octue question ask octue/example-service:1.0.3
-
-    - For a local service: "local"
-
-      e.g. octue question ask local
+        e.g. octue question ask octue/example-service:1.0.3
     """
     if input_values:
         input_values = json.loads(input_values, cls=OctueJSONDecoder)
@@ -130,16 +115,49 @@ def ask(sruid, input_values, input_manifest, project_name, service_config):
     if input_manifest:
         input_manifest = Manifest.deserialise(input_manifest, from_string=True)
 
-    if sruid != "local":
-        if not project_name:
-            _, project_name = auth.default()
+    if not project_name:
+        _, project_name = auth.default()
 
-        child = Child(id=sruid, backend=service_backends.get_backend()(project_name=project_name))
-        answer, _ = child.ask(input_values=input_values, input_manifest=input_manifest)
-        return json.dumps(answer, cls=OctueJSONEncoder)
+    child = Child(id=sruid, backend=service_backends.get_backend()(project_name=project_name))
+    answer, _ = child.ask(input_values=input_values, input_manifest=input_manifest)
+    return json.dumps(answer, cls=OctueJSONEncoder)
+
+
+@question.command()
+@click.option(
+    "-i",
+    "--input-values",
+    type=str,
+    default=None,
+    help="Any input values for the question as a JSON-encoded string.",
+)
+@click.option(
+    "-m",
+    "--input-manifest",
+    type=str,
+    default=None,
+    help="An optional input manifest for the question serialised as a JSON-encoded string.",
+)
+@click.option(
+    "-c",
+    "--service-config",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="The path to an `octue.yaml` file defining the service to run. If not provided, the "
+    "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
+    "is used.",
+)
+def ask_local(input_values, input_manifest, service_config):
+    """Ask a question to a local Octue Twined service."""
+    if input_values:
+        input_values = json.loads(input_values, cls=OctueJSONDecoder)
+
+    if input_manifest:
+        input_manifest = Manifest.deserialise(input_manifest, from_string=True)
 
     service_configuration, app_configuration = load_service_and_app_configuration(service_config)
     service_namespace, service_name, service_revision_tag = get_sruid_parts(service_configuration)
+
     child_sruid = create_sruid(namespace=service_namespace, name=service_name, revision_tag=service_revision_tag)
     parent_sruid = "local/local:local"
 
