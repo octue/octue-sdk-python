@@ -12,6 +12,7 @@ from google import auth
 
 from octue.cloud import pub_sub, storage
 from octue.cloud.deployment.google.answer_pub_sub_question import answer_pub_sub_question
+from octue.cloud.events.replayer import EventReplayer
 from octue.cloud.events.utils import make_originator_question_event
 from octue.cloud.events.validation import VALID_EVENT_KINDS
 from octue.cloud.pub_sub.bigquery import get_events
@@ -299,6 +300,133 @@ def raw(
     )
 
     click.echo(events)
+
+
+@events.command()
+@click.option(
+    "--question-uuid",
+    type=str,
+    default=None,
+    help="The UUID of the question to get events for.",
+)
+@click.option(
+    "--parent-question-uuid",
+    type=str,
+    help="The UUID of a parent question to get the sub-question events for",
+)
+@click.option(
+    "--originator-question-uuid",
+    type=str,
+    help="The UUID of an originator question get the full tree of events for",
+)
+@click.option(
+    "-k",
+    "--kinds",
+    type=str,
+    default=None,
+    help="The kinds of event to get as a comma-separated list e.g. 'question,result'. If not provided, all event kinds "
+    "are returned. The valid kinds are "
+    f"{VALID_EVENT_KINDS!r}.",
+)
+@click.option(
+    "-e",
+    "--exclude-kinds",
+    type=str,
+    default=None,
+    help="The kinds of event to exclude as a comma-separated list e.g. 'question,result'. If not provided, all event "
+    "kinds are returned. The valid kinds are "
+    f"{VALID_EVENT_KINDS!r}.",
+)
+@click.option(
+    "-l",
+    "--limit",
+    type=int,
+    default=1000,
+    show_default=True,
+    help="Limit the number of events returned.",
+)
+@click.option(
+    "-c",
+    "--service-config",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="The path to an `octue.yaml` file defining the service to run. If not provided, the "
+    "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
+    "is used.",
+)
+@click.option(
+    "--include-service-metadata-in-logs",
+    is_flag=True,
+    help="Include the SRUIDs and question UUIDs of the service revisions involved in the question at the start of each "
+    "log message.",
+)
+@click.option(
+    "--exclude-logs-containing",
+    type=str,
+    default=None,
+    help="Skip handling log messages containing this string.",
+)
+@click.option(
+    "-r",
+    "--only-handle-result",
+    is_flag=True,
+    help="Skip non-result events and only handle the 'result' event if present.",
+)
+@click.option(
+    "--validate-events",
+    is_flag=True,
+    help="Validate events before attempting to handle them (this is off by default to speed up event handling)",
+)
+def replay(
+    question_uuid,
+    parent_question_uuid,
+    originator_question_uuid,
+    kinds,
+    exclude_kinds,
+    limit,
+    service_config,
+    include_service_metadata_in_logs,
+    exclude_logs_containing,
+    only_handle_result,
+    validate_events,
+):
+    """Replay a question's events, returning the result if there is one. One of the following must be set:
+
+    --question-uuid
+
+    --parent-question-uuid
+
+    --originator-question-uuid
+    """
+    if kinds:
+        kinds = kinds.split(",")
+
+    if exclude_kinds:
+        exclude_kinds = exclude_kinds.split(",")
+
+    service_configuration = ServiceConfiguration.from_file(path=service_config)
+
+    events = get_events(
+        table_id=service_configuration.event_store_table_id,
+        question_uuid=question_uuid,
+        parent_question_uuid=parent_question_uuid,
+        originator_question_uuid=originator_question_uuid,
+        kinds=kinds,
+        exclude_kinds=exclude_kinds,
+        limit=limit,
+    )
+
+    replayer = EventReplayer(
+        include_service_metadata_in_logs=include_service_metadata_in_logs,
+        exclude_logs_containing=exclude_logs_containing,
+        only_handle_result=only_handle_result,
+        validate_events=validate_events,
+    )
+
+    result = replayer.handle_events(events)
+
+    if result:
+        click.echo(result)
 
 
 @octue_cli.command(deprecated=True)
