@@ -172,7 +172,14 @@ def remote(sruid, input_values, input_manifest, project_name, asynchronous):
     "is used.",
 )
 def local(input_values, input_manifest, service_config):
-    """Ask a question to a local Octue Twined service."""
+    """Ask a question to a local Octue Twined service.
+
+    This command is similar to running `octue service start` and asking the resulting local service revision a question
+    via Pub/Sub. Instead of starting a local Pub/Sub service revision, however, no Pub/Sub subscription or subscriber is
+    created; the question is instead passed directly and to local the service revision without Pub/Sub being involved.
+    Everything after this runs the same, though, with any events emitted by the service revision emitted via Pub/Sub as
+    usual.
+    """
     if input_values:
         input_values = json.loads(input_values, cls=OctueJSONDecoder)
 
