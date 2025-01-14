@@ -142,6 +142,7 @@ def remote(sruid, input_values, input_manifest, project_name, asynchronous):
 
     if asynchronous:
         click.echo(question_uuid)
+        return
 
     click.echo(answer)
 
