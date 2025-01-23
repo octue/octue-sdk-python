@@ -19,15 +19,14 @@ from octue.cloud.pub_sub.bigquery import get_events
 from octue.cloud.pub_sub.service import Service
 from octue.cloud.service_id import create_sruid, get_sruid_parts
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.configuration import load_service_and_app_configuration, ServiceConfiguration
+from octue.configuration import ServiceConfiguration, load_service_and_app_configuration
 from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
 from octue.exceptions import ServiceAlreadyExists
 from octue.log_handlers import apply_log_handler, get_remote_handler
-from octue.resources import Manifest, service_backends, Child
+from octue.resources import Child, Manifest, service_backends
 from octue.runner import Runner
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
-
 
 logger = logging.getLogger(__name__)
 
@@ -441,6 +440,76 @@ def replay(
         click.echo(result)
 
 
+@question.command()
+@click.argument(
+    "cloud_path",
+    type=str,
+)
+@click.option(
+    "--local-path",
+    type=click.Path(file_okay=False),
+    default=".",
+    help="The path to a directory to store the directory of diagnostics data in. Defaults to the current working "
+    "directory.",
+)
+@click.option(
+    "--download-datasets",
+    is_flag=True,
+    help="If provided, download any datasets from the diagnostics and update their paths in the configuration and "
+    "input manifests to the new local paths.",
+)
+def diagnostics(cloud_path, local_path, download_datasets):
+    """Download diagnostics for a question from the given directory in Google Cloud Storage. The cloud path should end
+    in the question ID.
+
+    CLOUD_PATH: The path to the directory in Google Cloud Storage containing the diagnostics data.
+    """
+    analysis_id = storage.path.split(cloud_path)[-1]
+    local_path = os.path.join(local_path, analysis_id)
+
+    if download_datasets:
+        filter = None
+    else:
+        filter = lambda blob: any(
+            (
+                blob.name.endswith(f"configuration_{VALUES_FILENAME}"),
+                blob.name.endswith(f"configuration_{MANIFEST_FILENAME}"),
+                blob.name.endswith(f"input_{VALUES_FILENAME}"),
+                blob.name.endswith(f"input_{MANIFEST_FILENAME}"),
+                blob.name.endswith("questions.json"),
+            )
+        )
+
+    local_paths = GoogleCloudStorageClient().download_all_files(
+        local_path=local_path,
+        cloud_path=cloud_path,
+        filter=filter,
+        recursive=True,
+    )
+
+    if not local_paths:
+        logger.warning("No diagnostics found at %r.", cloud_path)
+        return
+
+    # Update the manifests with the local paths of the datasets.
+    if download_datasets:
+        for manifest_type in ("configuration_manifest", "input_manifest"):
+            manifest_path = os.path.join(local_path, manifest_type + ".json")
+
+            if not os.path.exists(manifest_path):
+                continue
+
+            manifest = Manifest.from_file(manifest_path)
+
+            manifest.update_dataset_paths(
+                path_generator=lambda dataset: os.path.join(local_path, f"{manifest_type}_datasets", dataset.name)
+            )
+
+            manifest.to_file(manifest_path)
+
+    logger.info("Downloaded diagnostics from %r to %r.", cloud_path, local_path)
+
+
 @octue_cli.command(deprecated=True)
 @click.option(
     "-c",
@@ -636,76 +705,6 @@ def start(service_config, revision_tag, timeout, no_rm):
 
         service = Service(service_id=service_sruid, backend=backend, run_function=run_function)
         service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=not no_rm)
-
-
-@octue_cli.command()
-@click.argument(
-    "cloud_path",
-    type=str,
-)
-@click.option(
-    "--local-path",
-    type=click.Path(file_okay=False),
-    default=".",
-    help="The path to a directory to store the directory of diagnostics data in. Defaults to the current working "
-    "directory.",
-)
-@click.option(
-    "--download-datasets",
-    is_flag=True,
-    help="If provided, download any datasets from the diagnostics and update their paths in the configuration and "
-    "input manifests to the new local paths.",
-)
-def get_diagnostics(cloud_path, local_path, download_datasets):
-    """Download diagnostics for a question from the given directory in Google Cloud Storage. The cloud path should end
-    in the question ID.
-
-    CLOUD_PATH: The path to the directory in Google Cloud Storage containing the diagnostics data.
-    """
-    analysis_id = storage.path.split(cloud_path)[-1]
-    local_path = os.path.join(local_path, analysis_id)
-
-    if download_datasets:
-        filter = None
-    else:
-        filter = lambda blob: any(
-            (
-                blob.name.endswith(f"configuration_{VALUES_FILENAME}"),
-                blob.name.endswith(f"configuration_{MANIFEST_FILENAME}"),
-                blob.name.endswith(f"input_{VALUES_FILENAME}"),
-                blob.name.endswith(f"input_{MANIFEST_FILENAME}"),
-                blob.name.endswith("questions.json"),
-            )
-        )
-
-    local_paths = GoogleCloudStorageClient().download_all_files(
-        local_path=local_path,
-        cloud_path=cloud_path,
-        filter=filter,
-        recursive=True,
-    )
-
-    if not local_paths:
-        logger.warning("No diagnostics found at %r.", cloud_path)
-        return
-
-    # Update the manifests with the local paths of the datasets.
-    if download_datasets:
-        for manifest_type in ("configuration_manifest", "input_manifest"):
-            manifest_path = os.path.join(local_path, manifest_type + ".json")
-
-            if not os.path.exists(manifest_path):
-                continue
-
-            manifest = Manifest.from_file(manifest_path)
-
-            manifest.update_dataset_paths(
-                path_generator=lambda dataset: os.path.join(local_path, f"{manifest_type}_datasets", dataset.name)
-            )
-
-            manifest.to_file(manifest_path)
-
-    logger.info("Downloaded diagnostics from %r to %r.", cloud_path, local_path)
 
 
 @octue_cli.group()

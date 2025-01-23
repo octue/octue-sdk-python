@@ -6,7 +6,6 @@ import os
 from octue.cloud.pub_sub.service import Service
 from octue.resources import service_backends
 
-
 logger = logging.getLogger(__name__)
 
 BACKEND_TO_SERVICE_MAPPING = {"GCPPubSubBackend": Service}
@@ -144,7 +143,7 @@ class Child:
 
         except Exception as e:
             logger.error(
-                "Question %r failed. Run 'octue get-diagnostics gs://<diagnostics-cloud-path>/%s "
+                "Question %r failed. Run 'octue question diagnostics gs://<diagnostics-cloud-path>/%s "
                 "--download-datasets' to get the crash diagnostics.",
                 question_uuid,
                 question_uuid,

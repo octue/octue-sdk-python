@@ -19,7 +19,6 @@ from octue.utils.patches import MultiPatcher
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
 
-
 TWINE_FILE_PATH = os.path.join(TESTS_DIR, "data", "twines", "valid_schema_twine.json")
 
 
@@ -57,7 +56,7 @@ class TestRunCommand(BaseTestCase):
                 octue_cli,
                 [
                     "run",
-                    f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
+                    f"--input-dir={os.path.join(TESTS_DIR, 'data', 'data_dir_with_no_manifests', 'input')}",
                 ],
             )
 
@@ -73,7 +72,7 @@ class TestRunCommand(BaseTestCase):
                     octue_cli,
                     [
                         "run",
-                        f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
+                        f"--input-dir={os.path.join(TESTS_DIR, 'data', 'data_dir_with_no_manifests', 'input')}",
                         "-o",
                         temporary_file.name,
                     ],
@@ -107,7 +106,7 @@ class TestRunCommand(BaseTestCase):
                     octue_cli,
                     [
                         "run",
-                        f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
+                        f"--input-dir={os.path.join(TESTS_DIR, 'data', 'data_dir_with_no_manifests', 'input')}",
                         f"--output-manifest-file={temporary_manifest.name}",
                     ],
                 )
@@ -136,7 +135,7 @@ class TestRunCommand(BaseTestCase):
                     octue_cli,
                     [
                         "run",
-                        f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
+                        f"--input-dir={os.path.join(TESTS_DIR, 'data', 'data_dir_with_no_manifests', 'input')}",
                         f"--monitor-messages-file={monitor_messages_file.name}",
                     ],
                 )
@@ -155,7 +154,7 @@ class TestRunCommand(BaseTestCase):
                     [
                         "--logger-uri=wss://0.0.0.1:3000",
                         "run",
-                        f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
+                        f"--input-dir={os.path.join(TESTS_DIR, 'data', 'data_dir_with_no_manifests', 'input')}",
                     ],
                 )
 
@@ -253,7 +252,7 @@ class TestGetDiagnosticsCommand(BaseTestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Upload the test diagnostics data to the cloud storage emulator so the `octue get-diagnostics` CLI command can
+        """Upload the test diagnostics data to the cloud storage emulator so the `octue question diagnostics` CLI command can
         be tested.
 
         :return None:
@@ -274,7 +273,8 @@ class TestGetDiagnosticsCommand(BaseTestCase):
             result = CliRunner().invoke(
                 octue_cli,
                 [
-                    "get-diagnostics",
+                    "question",
+                    "diagnostics",
                     storage.path.join(self.DIAGNOSTICS_CLOUD_PATH, "9f4ccee3-15b0-4a03-b5ac-c19e1d66a709"),
                     "--local-path",
                     temporary_directory,
@@ -297,13 +297,14 @@ class TestGetDiagnosticsCommand(BaseTestCase):
 
     def test_get_diagnostics(self):
         """Test that only the values files, manifests, and questions file are downloaded when using the
-        `get-diagnostics` CLI command.
+        `question diagnostics` CLI command.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
             result = CliRunner().invoke(
                 octue_cli,
                 [
-                    "get-diagnostics",
+                    "question",
+                    "diagnostics",
                     storage.path.join(self.DIAGNOSTICS_CLOUD_PATH, self.ANALYSIS_ID),
                     "--local-path",
                     temporary_directory,
@@ -349,13 +350,14 @@ class TestGetDiagnosticsCommand(BaseTestCase):
 
     def test_get_diagnostics_with_datasets(self):
         """Test that datasets are downloaded as well as the values files, manifests, and questions file when the
-        `get-diagnostics` CLI command is run with the `--download-datasets` flag.
+        `question diagnostics` CLI command is run with the `--download-datasets` flag.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
             result = CliRunner().invoke(
                 octue_cli,
                 [
-                    "get-diagnostics",
+                    "question",
+                    "diagnostics",
                     storage.path.join(self.DIAGNOSTICS_CLOUD_PATH, self.ANALYSIS_ID),
                     "--local-path",
                     temporary_directory,
