@@ -11,7 +11,6 @@ from unittest.mock import patch
 import google.api_core.exceptions
 import requests
 
-import twined.exceptions
 from octue import Runner, exceptions
 from octue.cloud.emulators._pub_sub import (
     DifferentMockAnalysis,
@@ -29,7 +28,7 @@ from octue.resources import Analysis, Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from tests.base import BaseTestCase
-
+import twined.exceptions
 
 logger = logging.getLogger(__name__)
 
@@ -121,13 +120,6 @@ class TestService(BaseTestCase):
         with patch("octue.cloud.emulators._pub_sub.TOPICS", set()):
             with self.assertRaises(exceptions.ServiceNotFound):
                 service.services_topic
-
-    def test_error_raised_if_service_revision_not_found_when_not_using_service_registry(self):
-        """Test that an error is raised if a service revision isn't found when not using a service registry."""
-        service = MockService(backend=BACKEND)
-
-        with self.assertRaises(exceptions.ServiceNotFound):
-            service.ask("non/existent:service")
 
     def test_ask_unregistered_service_revision_when_service_registries_specified_results_in_error(self):
         """Test that an error is raised if attempting to ask an unregistered service a question when service registries
