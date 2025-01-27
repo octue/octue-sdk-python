@@ -76,4 +76,7 @@ class IdentifiableTestCase(BaseTestCase):
         with self.assertRaises(AttributeError) as e:
             resource.id = "07d38e81-6b00-4079-901b-e250ea3c7773"
 
-        self.assertIn("object has no setter", e.exception.args[0])
+        # Make test work across python versions.
+        self.assertTrue(
+            ("object has no setter" in e.exception.args[0]) or ("object has no setter" in e.exception.args[0])
+        )
