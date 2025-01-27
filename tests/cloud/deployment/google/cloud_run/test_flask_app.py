@@ -1,9 +1,9 @@
 import copy
 import logging
 import os
-import uuid
 from unittest import TestCase
 from unittest.mock import patch
+import uuid
 
 from google.api_core.exceptions import NotFound
 
@@ -11,7 +11,6 @@ from octue.cloud.deployment.google.cloud_run import flask_app
 from octue.configuration import ServiceConfiguration
 from octue.utils.patches import MultiPatcher
 from tests import TESTS_DIR
-
 
 flask_app.app.testing = True
 
@@ -54,7 +53,9 @@ class TestQuestionRedelivery(TestCase):
         mock_configuration.event_store_table_id = None
 
         with flask_app.app.test_client() as client:
-            with patch("octue.cloud.deployment.google.cloud_run.flask_app.answer_question") as mock_answer_question:
+            with patch(
+                "octue.cloud.deployment.google.cloud_run.flask_app.answer_pub_sub_question"
+            ) as mock_answer_question:
                 with patch("octue.configuration.ServiceConfiguration.from_file", return_value=mock_configuration):
                     with self.assertLogs(level=logging.WARNING) as logging_context:
                         response = client.post(
@@ -98,7 +99,9 @@ class TestQuestionRedelivery(TestCase):
         )
 
         with flask_app.app.test_client() as client:
-            with patch("octue.cloud.deployment.google.cloud_run.flask_app.answer_question") as mock_answer_question:
+            with patch(
+                "octue.cloud.deployment.google.cloud_run.flask_app.answer_pub_sub_question"
+            ) as mock_answer_question:
                 with multi_patcher:
                     with self.assertLogs(level=logging.WARNING) as logging_context:
                         response = client.post(
@@ -138,7 +141,9 @@ class TestQuestionRedelivery(TestCase):
         )
 
         with flask_app.app.test_client() as client:
-            with patch("octue.cloud.deployment.google.cloud_run.flask_app.answer_question") as mock_answer_question:
+            with patch(
+                "octue.cloud.deployment.google.cloud_run.flask_app.answer_pub_sub_question"
+            ) as mock_answer_question:
                 with multi_patcher:
                     with self.assertLogs() as logging_context:
                         response = client.post(
@@ -176,7 +181,9 @@ class TestQuestionRedelivery(TestCase):
         )
 
         with flask_app.app.test_client() as client:
-            with patch("octue.cloud.deployment.google.cloud_run.flask_app.answer_question") as mock_answer_question:
+            with patch(
+                "octue.cloud.deployment.google.cloud_run.flask_app.answer_pub_sub_question"
+            ) as mock_answer_question:
                 with self.assertLogs(level=logging.WARNING) as logging_context:
                     with multi_patcher:
                         response = client.post(
@@ -218,7 +225,9 @@ class TestQuestionRedelivery(TestCase):
         )
 
         with flask_app.app.test_client() as client:
-            with patch("octue.cloud.deployment.google.cloud_run.flask_app.answer_question") as mock_answer_question:
+            with patch(
+                "octue.cloud.deployment.google.cloud_run.flask_app.answer_pub_sub_question"
+            ) as mock_answer_question:
                 with multi_patcher:
                     response = client.post(
                         "/",
