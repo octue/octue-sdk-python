@@ -13,7 +13,7 @@ from google import auth
 from octue.cloud import pub_sub, storage
 from octue.cloud.deployment.google.answer_pub_sub_question import answer_pub_sub_question
 from octue.cloud.events.replayer import EventReplayer
-from octue.cloud.events.utils import make_originator_question_event
+from octue.cloud.events.utils import make_question_event
 from octue.cloud.events.validation import VALID_EVENT_KINDS
 from octue.cloud.pub_sub.bigquery import get_events
 from octue.cloud.pub_sub.service import Service
@@ -152,14 +152,22 @@ def remote(sruid, input_values, input_manifest, project_name, asynchronous):
     "--input-values",
     type=str,
     default=None,
-    help="Any input values for the question as a JSON-encoded string.",
+    help="Any input values for the question, serialised as a JSON-encoded string.",
 )
 @click.option(
     "-m",
     "--input-manifest",
     type=str,
     default=None,
-    help="An optional input manifest for the question serialised as a JSON-encoded string.",
+    help="An optional input manifest for the question, serialised as a JSON-encoded string.",
+)
+@click.option(
+    "-a",
+    "--attributes",
+    type=str,
+    default=None,
+    help="An optional full set of event attributes for the question, serialised as a JSON-encoded string. If not "
+    "provided, the question will be an originator question.",
 )
 @click.option(
     "-c",
@@ -170,7 +178,7 @@ def remote(sruid, input_values, input_manifest, project_name, asynchronous):
     "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
     "is used.",
 )
-def local(input_values, input_manifest, service_config):
+def local(input_values, input_manifest, attributes, service_config):
     """Ask a question to a local Octue Twined service.
 
     This command is similar to running `octue service start` and asking the resulting local service revision a question
@@ -186,16 +194,22 @@ def local(input_values, input_manifest, service_config):
         input_manifest = Manifest.deserialise(input_manifest, from_string=True)
 
     service_configuration, app_configuration = load_service_and_app_configuration(service_config)
-    service_namespace, service_name, service_revision_tag = get_sruid_parts(service_configuration)
 
-    child_sruid = create_sruid(namespace=service_namespace, name=service_name, revision_tag=service_revision_tag)
-    parent_sruid = "local/local:local"
+    if attributes:
+        attributes = json.loads(attributes, cls=OctueJSONDecoder)
+        parent_sruid = None
+        child_sruid = None
+    else:
+        parent_sruid = "local/local:local"
+        service_namespace, service_name, service_revision_tag = get_sruid_parts(service_configuration)
+        child_sruid = create_sruid(namespace=service_namespace, name=service_name, revision_tag=service_revision_tag)
 
-    question = make_originator_question_event(
+    question = make_question_event(
         input_values=input_values,
         input_manifest=input_manifest,
         parent_sruid=parent_sruid,
         child_sruid=child_sruid,
+        attributes=attributes,
     )
 
     backend_configuration_values = (app_configuration.configuration_values or {}).get("backend")
