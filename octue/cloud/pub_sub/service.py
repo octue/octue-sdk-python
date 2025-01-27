@@ -347,7 +347,7 @@ class Service:
                     service_registries=self.service_registries,
                 )
 
-        else:
+        elif not service_revision_tag:
             raise octue.exceptions.InvalidServiceID(
                 f"A service revision tag for {service_id!r} must be provided if service registries aren't being used."
             )
