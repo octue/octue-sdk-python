@@ -8,12 +8,11 @@ import os
 import time
 import uuid
 
-import google.api_core.exceptions
-import jsonschema
 from google.api_core import retry
+import google.api_core.exceptions
 from google.cloud import pubsub_v1
+import jsonschema
 
-import octue.exceptions
 from octue.cloud import LOCAL_SDK_VERSION
 from octue.cloud.events import OCTUE_SERVICES_PREFIX
 from octue.cloud.events.utils import make_attributes
@@ -30,11 +29,11 @@ from octue.cloud.service_id import (
     validate_sruid,
 )
 from octue.compatibility import warn_if_incompatible
+import octue.exceptions
 from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
 from octue.utils.threads import RepeatingTimer
-
 
 logger = logging.getLogger(__name__)
 
@@ -766,7 +765,7 @@ class Service:
             question.ack()
 
         # Support already-extracted questions (e.g. from the `octue question ask-local` CLI command).
-        if "event" in question:
+        if isinstance(question, dict) and "event" in question:
             event = copy.deepcopy(question["event"])
             attributes = question["attributes"]
 
