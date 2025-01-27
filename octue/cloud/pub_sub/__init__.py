@@ -1,9 +1,8 @@
-from octue.cloud.events import OCTUE_SERVICES_PREFIX
+from octue.cloud.events import OCTUE_SERVICES_TOPIC_NAME
 from octue.cloud.service_id import convert_service_id_to_pub_sub_form
 
 from .subscription import Subscription
 from .topic import Topic
-
 
 __all__ = ["Subscription", "Topic"]
 
@@ -34,7 +33,7 @@ def create_push_subscription(
 
     subscription = Subscription(
         name=convert_service_id_to_pub_sub_form(sruid),
-        topic=Topic(name=OCTUE_SERVICES_PREFIX, project_name=project_name),
+        topic=Topic(name=OCTUE_SERVICES_TOPIC_NAME, project_name=project_name),
         filter=subscription_filter,
         expiration_time=expiration_time,
         push_endpoint=push_endpoint,

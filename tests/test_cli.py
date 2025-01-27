@@ -11,7 +11,7 @@ from octue.cli import octue_cli
 from octue.cloud import storage
 from octue.cloud.emulators._pub_sub import MockService, MockSubscription, MockTopic
 from octue.cloud.emulators.service import ServicePatcher
-from octue.cloud.events import OCTUE_SERVICES_PREFIX
+from octue.cloud.events import OCTUE_SERVICES_TOPIC_NAME
 from octue.cloud.pub_sub import Topic
 from octue.configuration import AppConfiguration, ServiceConfiguration
 from octue.resources import Dataset
@@ -465,7 +465,7 @@ class TestDeployCommand(BaseTestCase):
             with patch("octue.cloud.pub_sub.Subscription", new=MockSubscription):
                 subscription = MockSubscription(
                     name=sruid,
-                    topic=Topic(name=OCTUE_SERVICES_PREFIX, project_name="my-project"),
+                    topic=Topic(name=OCTUE_SERVICES_TOPIC_NAME, project_name="my-project"),
                     push_endpoint=push_endpoint,
                 )
 
