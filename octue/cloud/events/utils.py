@@ -70,7 +70,7 @@ def make_attributes(
         "sender_type": sender_type,
         "sender_sdk_version": LOCAL_SDK_VERSION,
         "recipient": recipient,
-        "retry_count": retry_count,
+        "retry_count": int(retry_count),
     }
 
     if sender_type == "PARENT":
@@ -80,7 +80,7 @@ def make_attributes(
                 "'PARENT'."
             )
 
-        attributes["forward_logs"] = forward_logs
+        attributes["forward_logs"] = bool(forward_logs)
         attributes["save_diagnostics"] = save_diagnostics
 
     return attributes
