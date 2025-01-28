@@ -754,14 +754,7 @@ class Service:
         if hasattr(question, "ack"):
             question.ack()
 
-        # Support already-extracted questions (e.g. from the `octue question ask-local` CLI command).
-        if isinstance(question, dict) and "event" in question:
-            event = copy.deepcopy(question["event"])
-            attributes = question["attributes"]
-
-        # Extract question from Cloud Run or Pub/Sub format.
-        else:
-            event, attributes = extract_event_and_attributes_from_pub_sub_message(question)
+        event, attributes = extract_event_and_attributes_from_pub_sub_message(question)
 
         raise_if_event_is_invalid(
             event=copy.deepcopy(event),

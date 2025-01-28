@@ -1,9 +1,9 @@
 import base64
+from datetime import datetime, timedelta
+from functools import cached_property
 import json
 import logging
 import time
-from datetime import datetime, timedelta
-from functools import cached_property
 
 from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
@@ -13,7 +13,6 @@ from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.objects import get_nested_attribute
 from octue.utils.threads import RepeatingTimer
-
 
 logger = logging.getLogger(__name__)
 
@@ -51,12 +50,18 @@ def extract_event_and_attributes_from_pub_sub_message(message):
         else:
             attributes["forward_logs"] = None
 
-    try:
-        # Parse event directly from Pub/Sub or Dataflow.
-        event = json.loads(message.data.decode(), cls=OctueJSONDecoder)
-    except Exception:
-        # Parse event from Google Cloud Run.
-        event = json.loads(base64.b64decode(message["data"]).decode("utf-8").strip(), cls=OctueJSONDecoder)
+    # Support already-extracted questions (e.g. from the `octue question ask local` CLI command).
+    if isinstance(message, dict) and "event" in message:
+        event = message["event"]
+
+    # Extract question from Cloud Run or Pub/Sub format.
+    else:
+        try:
+            # Parse event directly from Pub/Sub or Dataflow.
+            event = json.loads(message.data.decode(), cls=OctueJSONDecoder)
+        except Exception:
+            # Parse event from Google Cloud Run.
+            event = json.loads(base64.b64decode(message["data"]).decode("utf-8").strip(), cls=OctueJSONDecoder)
 
     return event, attributes
 
