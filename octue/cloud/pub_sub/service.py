@@ -755,6 +755,7 @@ class Service:
             question.ack()
 
         event, attributes = extract_event_and_attributes_from_pub_sub_message(question)
+        logger.info("Extracted question event and attributes.")
 
         raise_if_event_is_invalid(
             event=copy.deepcopy(event),
