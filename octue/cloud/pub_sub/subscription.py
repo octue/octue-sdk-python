@@ -1,5 +1,5 @@
-import logging
 from functools import cached_property
+import logging
 
 import google.api_core.exceptions
 from google.cloud.pubsub_v1 import SubscriberClient
@@ -9,10 +9,13 @@ from google.pubsub_v1.types.pubsub import (
     ExpirationPolicy,
     PushConfig,
     RetryPolicy,
-    Subscription as _Subscription,
     UpdateSubscriptionRequest,
 )
+from google.pubsub_v1.types.pubsub import (
+    Subscription as _Subscription,
+)
 
+from octue.cloud.pub_sub.credentials import get_gcp_credentials
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +86,7 @@ class Subscription:
 
         :return google.cloud.pubsub_v1.SubscriberClient:
         """
-        return SubscriberClient()
+        return SubscriberClient(credentials=get_gcp_credentials())
 
     @property
     def creation_triggered_locally(self):

@@ -1,12 +1,13 @@
-import logging
-import time
 from datetime import datetime
 from functools import cached_property
+import logging
+import time
 
 import google.api_core.exceptions
 from google.cloud.pubsub_v1 import PublisherClient
 from google.pubsub_v1.types.pubsub import Topic as Topic_
 
+from octue.cloud.pub_sub.credentials import get_gcp_credentials
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ class Topic:
 
         :return google.cloud.pubsub_v1.PublisherClient:
         """
-        return PublisherClient()
+        return PublisherClient(credentials=get_gcp_credentials())
 
     @property
     def creation_triggered_locally(self):
