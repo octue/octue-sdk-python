@@ -115,13 +115,26 @@ def ask():
     help="If provided, ask the question and detach (the result and other events can be retrieved from the event store "
     "later).",
 )
-def remote(sruid, input_values, input_manifest, project_name, asynchronous):
+@click.option(
+    "-c",
+    "--service-config",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="An optional path to an `octue.yaml` file specifying service registries.",
+)
+def remote(sruid, input_values, input_manifest, project_name, asynchronous, service_config):
     """Ask a question to a remote Octue Twined service.
 
     SRUID should be a valid service revision unique identifier for an existing Octue Twined service
 
         e.g. octue question ask octue/example-service:1.0.3
     """
+    if service_config:
+        service_configuration = ServiceConfiguration.from_file(service_config)
+        service_registries = service_configuration.service_registries
+    else:
+        service_registries = None
+
     if input_values:
         input_values = json.loads(input_values, cls=OctueJSONDecoder)
 
@@ -131,7 +144,11 @@ def remote(sruid, input_values, input_manifest, project_name, asynchronous):
     if not project_name:
         _, project_name = auth.default()
 
-    child = Child(id=sruid, backend={"name": "GCPPubSubBackend", "project_name": project_name})
+    child = Child(
+        id=sruid,
+        backend={"name": "GCPPubSubBackend", "project_name": project_name},
+        service_registries=service_registries,
+    )
 
     answer, question_uuid = child.ask(
         input_values=input_values,
