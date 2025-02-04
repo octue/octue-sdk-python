@@ -120,7 +120,9 @@ def ask():
     "--service-config",
     type=click.Path(dir_okay=False),
     default=None,
-    help="An optional path to an `octue.yaml` file specifying service registries.",
+    help="An optional path to an `octue.yaml` file defining service registries to use. If not provided, the "
+    "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
+    "is used.",
 )
 def remote(sruid, input_values, input_manifest, project_name, asynchronous, service_config):
     """Ask a question to a remote Octue Twined service.
@@ -129,10 +131,10 @@ def remote(sruid, input_values, input_manifest, project_name, asynchronous, serv
 
         e.g. octue question ask octue/example-service:1.0.3
     """
-    if service_config:
+    try:
         service_configuration = ServiceConfiguration.from_file(service_config)
         service_registries = service_configuration.service_registries
-    else:
+    except FileNotFoundError:
         service_registries = None
 
     if input_values:
