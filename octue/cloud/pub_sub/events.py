@@ -10,7 +10,6 @@ from google.cloud.pubsub_v1 import SubscriberClient
 
 from octue.cloud.events.handler import AbstractEventHandler
 from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
-from octue.cloud.pub_sub.credentials import get_gcp_credentials
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.objects import get_nested_attribute
 from octue.utils.threads import RepeatingTimer
@@ -119,7 +118,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
 
         :return google.cloud.pubsub_v1.SubscriberClient:
         """
-        return SubscriberClient(credentials=get_gcp_credentials())
+        return SubscriberClient()
 
     @property
     def total_run_time(self):

@@ -18,7 +18,6 @@ from octue.cloud.events import OCTUE_SERVICES_TOPIC_NAME
 from octue.cloud.events.utils import make_attributes
 from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.credentials import get_gcp_credentials
 from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler, extract_event_and_attributes_from_pub_sub_message
 from octue.cloud.pub_sub.logging import GoogleCloudPubSubHandler
 from octue.cloud.service_id import (
@@ -162,7 +161,7 @@ class Service:
         except google.api_core.exceptions.AlreadyExists:
             raise octue.exceptions.ServiceAlreadyExists(f"A service with the ID {self.id!r} already exists.")
 
-        subscriber = pubsub_v1.SubscriberClient(credentials=get_gcp_credentials())
+        subscriber = pubsub_v1.SubscriberClient()
 
         try:
             future = subscriber.subscribe(subscription=subscription.path, callback=self.answer)
