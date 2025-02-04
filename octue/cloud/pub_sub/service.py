@@ -753,6 +753,7 @@ class Service:
         # Acknowledge the question if it's directly from Pub/Sub.
         if hasattr(question, "ack"):
             question.ack()
+            logger.info("Question acknowledged on Pub/Sub.")
 
         event, attributes = extract_event_and_attributes_from_pub_sub_message(question)
         logger.info("Extracted question event and attributes.")
