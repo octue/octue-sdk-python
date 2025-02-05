@@ -1,4 +1,3 @@
-import base64
 from datetime import datetime, timedelta
 from functools import cached_property
 import json
@@ -20,10 +19,9 @@ MAX_SIMULTANEOUS_MESSAGES_PULL = 50
 
 
 def extract_event_and_attributes_from_pub_sub_message(message):
-    """Extract an Octue service event and its attributes from a Google Pub/Sub message in either direct Pub/Sub format
-    or in the Google Cloud Run format.
+    """Extract an Octue service event and its attributes from a Google Pub/Sub message.
 
-    :param dict|google.cloud.pubsub_v1.subscriber.message.Message message: the message in Google Cloud Run format or Google Pub/Sub format
+    :param dict|google.cloud.pubsub_v1.subscriber.message.Message message: the message in dictionary format or direct Google Pub/Sub format
     :return (any, dict): the extracted event and its attributes
     """
     # Cast attributes to a dictionary to avoid defaultdict-like behaviour from Pub/Sub message attributes container.
@@ -59,14 +57,9 @@ def extract_event_and_attributes_from_pub_sub_message(message):
     if isinstance(message, dict) and "event" in message:
         event = message["event"]
 
-    # Extract question from Cloud Run or Pub/Sub format.
+    # Extract event directly from Pub/Sub.
     else:
-        try:
-            # Parse event directly from Pub/Sub or Dataflow.
-            event = json.loads(message.data.decode(), cls=OctueJSONDecoder)
-        except Exception:
-            # Parse event from Google Cloud Run.
-            event = json.loads(base64.b64decode(message["data"]).decode("utf-8").strip(), cls=OctueJSONDecoder)
+        event = json.loads(message.data.decode(), cls=OctueJSONDecoder)
 
     return event, attributes
 
