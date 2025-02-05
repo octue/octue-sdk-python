@@ -139,6 +139,8 @@ class Child:
         if push_endpoint or asynchronous:
             return subscription, question_uuid
 
+        logger.info("Waiting for question to be accepted...")
+
         try:
             answer = self._service.wait_for_answer(
                 subscription=subscription,
