@@ -68,6 +68,9 @@ class Child:
         push_endpoint=None,
         asynchronous=False,
         retry_count=0,
+        cpus=None,
+        memory=None,
+        ephemeral_storage=None,
         raise_errors=True,
         max_retries=0,
         prevent_retries_when=None,
@@ -96,6 +99,9 @@ class Child:
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True`, don't wait for an answer or create an answer subscription (the result and other events can be retrieved from the event store later)
         :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
+        :param int|None cpus:
+        :param str|None memory:
+        :param str|None ephemeral_storage:
         :param bool raise_errors: if `True` and the question fails, raise the error; if False, return the error in place of the answer
         :param int max_retries: if `raise_errors=False` and the question fails, retry the question up to this number of times
         :param list(type)|None prevent_retries_when: if `raise_errors=False` and the question fails, prevent retrying the question if it fails with an exception type in this list
@@ -122,6 +128,9 @@ class Child:
             "push_endpoint": push_endpoint,
             "asynchronous": asynchronous,
             "retry_count": retry_count,
+            "cpus": cpus,
+            "memory": memory,
+            "ephemeral_storage": ephemeral_storage,
             "timeout": timeout,
         }
 

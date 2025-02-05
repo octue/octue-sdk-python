@@ -57,6 +57,9 @@ def make_attributes(
     retry_count=0,
     forward_logs=None,
     save_diagnostics=None,
+    cpus=None,
+    memory=None,
+    ephemeral_storage=None,
 ):
     attributes = {
         "uuid": str(uuid.uuid4()),
@@ -71,6 +74,9 @@ def make_attributes(
         "sender_sdk_version": LOCAL_SDK_VERSION,
         "recipient": recipient,
         "retry_count": int(retry_count),
+        "cpus": cpus,
+        "memory": memory,
+        "ephemeral_storage": ephemeral_storage,
     }
 
     if sender_type == "PARENT":

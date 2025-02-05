@@ -310,6 +310,9 @@ class Service:
         push_endpoint=None,
         asynchronous=False,
         retry_count=0,
+        cpus=None,
+        memory=None,
+        ephemeral_storage=None,
         timeout=86400,
     ):
         """Ask a child a question (i.e. send it input values for it to analyse and produce output values for) and return
@@ -330,6 +333,9 @@ class Service:
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True` and not using a push endpoint, don't create an answer subscription
         :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
+        :param int|None cpus:
+        :param str|None memory:
+        :param str|None ephemeral_storage:
         :param float|None timeout: time in seconds to keep retrying sending the question
         :return (octue.cloud.pub_sub.subscription.Subscription|None, str): the answer subscription (if the question is synchronous or a push endpoint was used) and question UUID
         """
@@ -400,6 +406,9 @@ class Service:
             originator_question_uuid=originator_question_uuid,
             originator=originator,
             recipient=service_id,
+            cpus=cpus,
+            memory=memory,
+            ephemeral_storage=ephemeral_storage,
             retry_count=retry_count,
         )
 
@@ -576,6 +585,9 @@ class Service:
         originator,
         recipient,
         retry_count,
+        cpus,
+        memory,
+        ephemeral_storage,
         timeout=30,
     ):
         """Send a question to a child service.
@@ -613,6 +625,9 @@ class Service:
                 "forward_logs": forward_logs,
                 "save_diagnostics": save_diagnostics,
                 "sender_type": PARENT_SENDER_TYPE,
+                "cpus": cpus,
+                "memory": memory,
+                "ephemeral_storage": ephemeral_storage,
             },
             timeout=timeout,
         )

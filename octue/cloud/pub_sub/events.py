@@ -41,7 +41,7 @@ def extract_event_and_attributes_from_pub_sub_message(message):
     else:
         attributes["retry_count"] = None
 
-    # Required for question events.
+    # Question events have some extra optional attributes.
     if attributes.get("sender_type") == "PARENT":
         forward_logs = attributes.get("forward_logs")
 
@@ -49,6 +49,11 @@ def extract_event_and_attributes_from_pub_sub_message(message):
             attributes["forward_logs"] = bool(int(forward_logs))
         else:
             attributes["forward_logs"] = None
+
+        cpus = attributes.get("cpus")
+
+        if cpus:
+            attributes["cpus"] = int(cpus)
 
     # Support already-extracted questions (e.g. from the `octue question ask local` CLI command).
     if isinstance(message, dict) and "event" in message:
