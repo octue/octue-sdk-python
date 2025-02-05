@@ -13,10 +13,11 @@ import jsonschema
 
 from octue.cloud import LOCAL_SDK_VERSION
 from octue.cloud.events import OCTUE_SERVICES_TOPIC_NAME
+from octue.cloud.events.extraction import extract_and_convert_attributes
 from octue.cloud.events.utils import make_attributes
 from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler, extract_and_convert_attributes, extract_event
+from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler, extract_event
 from octue.cloud.pub_sub.logging import GoogleCloudPubSubHandler
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
