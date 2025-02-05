@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 import requests
 
-import octue.exceptions
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     get_default_sruid,
@@ -17,6 +16,7 @@ from octue.cloud.service_id import (
     validate_sruid,
 )
 from octue.configuration import ServiceConfiguration
+import octue.exceptions
 from octue.exceptions import InvalidServiceID
 from tests import MOCK_SERVICE_REVISION_TAG
 
@@ -94,8 +94,8 @@ class TestConvertServiceIDToPubSubForm(unittest.TestCase):
 class TestGetSRUIDFromPubSubResourceName(unittest.TestCase):
     def test_get_sruid_from_pub_sub_resource_name(self):
         """Test that an SRUID can be extracted from a Pub/Sub resource name."""
-        sruid = get_sruid_from_pub_sub_resource_name("octue.example-service-cloud-run.0-3-2")
-        self.assertEqual(sruid, "octue/example-service-cloud-run:0.3.2")
+        sruid = get_sruid_from_pub_sub_resource_name("octue.example-service.0-3-2")
+        self.assertEqual(sruid, "octue/example-service:0.3.2")
 
 
 class TestValidateSRUID(unittest.TestCase):
@@ -117,7 +117,7 @@ class TestValidateSRUID(unittest.TestCase):
             "MY-ORG/my-service:1.9.4",
             "my-org/MY-SERVICE:1.9.4",
             "my-org/MY-SERVICE:@",
-            f"my-org/my-service:{'1'*129}",
+            f"my-org/my-service:{'1' * 129}",
             "/my-service",
             "/my-service:",
         ):
@@ -165,7 +165,7 @@ class TestValidateSRUID(unittest.TestCase):
             ("MY-ORG", "my-service", "1.9.4"),
             ("my-org", "MY-SERVICE", "1.9.4"),
             ("my-org", "my-service", "@"),
-            ("my-org", "my-service", f"{'1'*129}"),
+            ("my-org", "my-service", f"{'1' * 129}"),
         ):
             with self.subTest(namespace=namespace, name=name, revision_tag=revision_tag):
                 with self.assertRaises(InvalidServiceID):
