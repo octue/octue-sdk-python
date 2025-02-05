@@ -38,7 +38,6 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_NAMESPACE = "default"
 ANSWERS_NAMESPACE = "answers"
-OCTUE_SERVICE_REGISTRY_ENDPOINT = "services.registry.octue.com"
 
 # Switch message batching off by setting `max_messages` to 1. This minimises latency and is recommended for
 # microservices publishing single messages in a request-response sequence.
