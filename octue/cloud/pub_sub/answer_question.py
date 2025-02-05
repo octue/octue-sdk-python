@@ -7,7 +7,6 @@ from octue.resources.service_backends import GCPPubSubBackend
 from octue.runner import Runner
 from octue.utils.objects import get_nested_attribute
 
-
 logger = logging.getLogger(__name__)
 
 

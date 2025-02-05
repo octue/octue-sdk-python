@@ -5,8 +5,8 @@ from unittest.mock import patch
 
 import yaml
 
-from octue.cloud.deployment.google.answer_pub_sub_question import answer_pub_sub_question
 from octue.cloud.emulators._pub_sub import MockTopic
+from octue.cloud.pub_sub.answer_question import answer_pub_sub_question
 from octue.utils.patches import MultiPatcher
 from tests.mocks import MockOpen
 
@@ -25,13 +25,11 @@ class TestAnswerPubSubQuestion(TestCase):
                     ),
                 ),
                 patch("octue.cloud.pub_sub.service.Topic", new=MockTopic),
-                patch("octue.cloud.deployment.google.answer_pub_sub_question.Service"),
+                patch("octue.cloud.pub_sub.answer_question.Service"),
                 patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "blah"}),
             ]
         ):
-            with patch(
-                "octue.cloud.deployment.google.answer_pub_sub_question.Runner.from_configuration"
-            ) as mock_constructor:
+            with patch("octue.cloud.pub_sub.answer_question.Runner.from_configuration") as mock_constructor:
                 answer_pub_sub_question(
                     question={
                         "data": {},
@@ -85,14 +83,12 @@ class TestAnswerPubSubQuestion(TestCase):
                 "app_configuration.json": json.dumps({"configuration_values": {"hello": "configuration"}}),
             }
 
-        with patch(
-            "octue.cloud.deployment.google.answer_pub_sub_question.Runner.from_configuration"
-        ) as mock_constructor:
+        with patch("octue.cloud.pub_sub.answer_question.Runner.from_configuration") as mock_constructor:
             with MultiPatcher(
                 patches=[
                     patch("octue.configuration.open", mock.mock_open(mock=MockOpenForConfigurationFiles)),
                     patch("octue.cloud.pub_sub.service.Topic", new=MockTopic),
-                    patch("octue.cloud.deployment.google.answer_pub_sub_question.Service"),
+                    patch("octue.cloud.pub_sub.answer_question.Service"),
                     patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "blah"}),
                 ]
             ):

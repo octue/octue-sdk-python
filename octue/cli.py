@@ -11,10 +11,10 @@ import click
 from google import auth
 
 from octue.cloud import pub_sub, storage
-from octue.cloud.deployment.google.answer_pub_sub_question import answer_pub_sub_question
 from octue.cloud.events.replayer import EventReplayer
 from octue.cloud.events.utils import make_question_event
 from octue.cloud.events.validation import VALID_EVENT_KINDS
+from octue.cloud.pub_sub.answer_question import answer_pub_sub_question
 from octue.cloud.pub_sub.bigquery import get_events
 from octue.cloud.pub_sub.service import Service
 from octue.cloud.service_id import create_sruid, get_sruid_parts
