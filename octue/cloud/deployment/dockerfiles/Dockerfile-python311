@@ -1,4 +1,4 @@
-FROM windpioneers/gdal-python:little-gecko-gdal-2.4.1-python-3.9-slim
+FROM windpioneers/gdal-python:modest-heron-gdal-2.4.1-python-3.11-slim
 
 # Ensure print statements and log messages appear promptly in Cloud Logging.
 ENV PYTHONUNBUFFERED=True
@@ -27,7 +27,7 @@ RUN if [ -f "pyproject.toml" ]; then poetry install  \
     fi
 
 # Copy local code to the application root directory.
-COPY . .
+COPY ../google/cloud_run .
 
 # Install local packages if using poetry. Otherwise, install everything if using `setup.py` or `requirements.txt`.
 RUN if [ -f "pyproject.toml" ]; then poetry install --only main;  \
