@@ -4,8 +4,6 @@ import functools
 import importlib.metadata
 import json
 import logging
-import os
-import time
 import uuid
 
 from google.api_core import retry
@@ -233,12 +231,11 @@ class Service:
 
         try:
             self._send_delivery_acknowledgment(**routing_metadata)
-            start_time = time.perf_counter()
 
             heartbeater = RepeatingTimer(
                 interval=heartbeat_interval,
                 function=self._send_heartbeat_and_check_runtime,
-                kwargs={"start_time": start_time, **routing_metadata},
+                kwargs=routing_metadata,
             )
 
             heartbeater.daemon = True
@@ -680,12 +677,9 @@ class Service:
         parent,
         originator,
         retry_count,
-        start_time,
-        runtime_timeout_warning_time=3480,  # This is 58 minutes in seconds.
         timeout=30,
     ):
-        """Send a heartbeat to the parent, indicating that the service is alive. If it's running on Cloud Run and it's
-        been running for longer than the runtime timeout warning time, log a warning that it will be stopped soon.
+        """Send a heartbeat to the parent, indicating that the service is alive.
 
         :param str question_uuid: the UUID of the question this event relates to
         :param str|None parent_question_uuid: the UUID of the question that triggered this question
@@ -710,12 +704,6 @@ class Service:
             attributes={"sender_type": CHILD_SENDER_TYPE},
             timeout=timeout,
         )
-
-        if (
-            os.environ.get("COMPUTE_PROVIDER") == "GOOGLE_CLOUD_RUN"
-            and time.perf_counter() - start_time > runtime_timeout_warning_time
-        ):
-            logger.warning("This analysis will reach the maximum runtime and be stopped soon.")
 
         logger.debug("Heartbeat sent by %r.", self)
 
