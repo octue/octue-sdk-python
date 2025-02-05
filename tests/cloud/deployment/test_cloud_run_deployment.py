@@ -3,12 +3,11 @@ import time
 import unittest
 from unittest import TestCase
 
-import twined.exceptions
 from octue.cloud.events.replayer import EventReplayer
 from octue.cloud.events.validation import is_event_valid
 from octue.cloud.pub_sub.bigquery import get_events
 from octue.resources import Child
-
+import twined.exceptions
 
 EXAMPLE_SERVICE_SRUID = "octue/example-service:0.5.0"
 
