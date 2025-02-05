@@ -74,9 +74,6 @@ def make_attributes(
         "sender_sdk_version": LOCAL_SDK_VERSION,
         "recipient": recipient,
         "retry_count": int(retry_count),
-        "cpus": cpus,
-        "memory": memory,
-        "ephemeral_storage": ephemeral_storage,
     }
 
     if sender_type == "PARENT":
@@ -88,5 +85,6 @@ def make_attributes(
 
         attributes["forward_logs"] = bool(forward_logs)
         attributes["save_diagnostics"] = save_diagnostics
+        attributes.update(make_minimal_dictionary(cpus=cpus, memory=memory, ephemeral_storage=ephemeral_storage))
 
     return attributes
