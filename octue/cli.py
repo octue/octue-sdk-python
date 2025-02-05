@@ -10,7 +10,7 @@ import sys
 import click
 from google import auth
 
-from octue.cloud import pub_sub, storage
+from octue.cloud import storage
 from octue.cloud.events.replayer import EventReplayer
 from octue.cloud.events.utils import make_question_event
 from octue.cloud.events.validation import VALID_EVENT_KINDS
@@ -738,76 +738,6 @@ def start(service_config, revision_tag, timeout, no_rm):
 
         service = Service(service_id=service_sruid, backend=backend, run_function=run_function)
         service.serve(timeout=timeout, delete_topic_and_subscription_on_exit=not no_rm)
-
-
-@octue_cli.group()
-def deploy():
-    """A collection of commands to aid deploying a python app to the cloud as an Octue service or digital twin."""
-
-
-@deploy.command()
-@click.argument("project_name")
-@click.argument("service_namespace")
-@click.argument("service_name")
-@click.argument("push_endpoint")
-@click.option(
-    "--expiration-time",
-    is_flag=False,
-    default=None,
-    show_default=True,
-    help="The number of seconds of inactivity after which the subscription should expire. If not provided, no "
-    "expiration time is applied to the subscription.",
-)
-@click.option(
-    "--revision-tag",
-    is_flag=False,
-    default=None,
-    show_default=True,
-    help="The service revision tag (e.g. 1.0.7). If this option isn't given, a random 'cool name' tag is generated e.g"
-    ". 'curious-capybara'.",
-)
-@click.option(
-    "--no-allow-existing",
-    is_flag=True,
-    help="If provided, raise an error if the push subscription already exists.",
-)
-def create_push_subscription(
-    project_name,
-    service_namespace,
-    service_name,
-    push_endpoint,
-    expiration_time,
-    revision_tag,
-    no_allow_existing,
-):
-    """Create a Google Pub/Sub push subscription for an Octue service for it to receive questions from parents. The
-    subscription name is printed on completion.
-
-    PROJECT_NAME is the name of the Google Cloud project in which the subscription will be created
-
-    SERVICE_NAMESPACE is the namespace the service belongs to in kebab case
-
-    SERVICE_NAME is the name of the service in kebab case, unique within its namespace
-
-    PUSH_ENDPOINT is the HTTP/HTTPS endpoint of the service to push to. It should be fully formed and include the
-    'https://' prefix
-    """
-    sruid = create_sruid(namespace=service_namespace, name=service_name, revision_tag=revision_tag)
-
-    subscription = pub_sub.create_push_subscription(
-        project_name,
-        sruid,
-        push_endpoint,
-        expiration_time=expiration_time,
-        subscription_filter=f'attributes.recipient = "{sruid}" AND attributes.sender_type = "PARENT"',
-        allow_existing=not no_allow_existing,
-    )
-
-    if subscription.creation_triggered_locally:
-        click.echo(f"Subscription for {sruid!r} created.")
-        return
-
-    click.echo(f"Subscription for {sruid!r} already exists.")
 
 
 def _add_monitor_message_to_file(path, monitor_message):
