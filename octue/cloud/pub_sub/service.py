@@ -451,6 +451,31 @@ class Service:
         finally:
             subscription.delete()
 
+    def cancel(
+        self,
+        question_uuid,
+        parent_question_uuid,
+        originator_question_uuid,
+        parent,
+        originator,
+        retry_count,
+        timeout=30,
+    ):
+        self._emit_event(
+            {"kind": "cancellation"},
+            question_uuid=question_uuid,
+            parent_question_uuid=parent_question_uuid,
+            originator_question_uuid=originator_question_uuid,
+            parent=parent,
+            originator=originator,
+            recipient=parent,
+            retry_count=retry_count,
+            attributes={"sender_type": PARENT_SENDER_TYPE},
+            timeout=timeout,
+        )
+
+        logger.info("%r requested cancellation of question %r.", self, question_uuid)
+
     def send_exception(
         self,
         question_uuid,
