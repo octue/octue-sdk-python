@@ -234,7 +234,7 @@ class Service:
 
             heartbeater = RepeatingTimer(
                 interval=heartbeat_interval,
-                function=self._send_heartbeat_and_check_runtime,
+                function=self._send_heartbeat,
                 kwargs=routing_metadata,
             )
 
@@ -669,7 +669,7 @@ class Service:
 
         logger.info("%r acknowledged receipt of question %r.", self, question_uuid)
 
-    def _send_heartbeat_and_check_runtime(
+    def _send_heartbeat(
         self,
         question_uuid,
         parent_question_uuid,
@@ -688,7 +688,6 @@ class Service:
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param int|float start_time: the `time.perf_counter` time that the analysis was started [s]
-        :param int|float runtime_timeout_warning_time: the amount of time after which to warn that the runtime timeout is approaching [s]
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
