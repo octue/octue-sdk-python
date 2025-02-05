@@ -18,11 +18,25 @@ logger = logging.getLogger(__name__)
 MAX_SIMULTANEOUS_MESSAGES_PULL = 50
 
 
-def extract_event_and_attributes_from_pub_sub_message(message):
-    """Extract an Octue service event and its attributes from a Google Pub/Sub message.
+def extract_event(message):
+    """Extract a Twined service event from a dictionary or Pub/Sub message.
 
     :param dict|google.cloud.pubsub_v1.subscriber.message.Message message: the message in dictionary format or direct Google Pub/Sub format
-    :return (any, dict): the extracted event and its attributes
+    :return dict: the extracted event
+    """
+    # Support already-extracted questions (e.g. from the `octue question ask local` CLI command).
+    if isinstance(message, dict) and "event" in message:
+        return message["event"]
+
+    # Extract event directly from Pub/Sub.
+    return json.loads(message.data.decode(), cls=OctueJSONDecoder)
+
+
+def extract_and_convert_attributes(message):
+    """Extract a Twined service event's attributes and convert them to the expected form.
+
+    :param dict|google.cloud.pubsub_v1.subscriber.message.Message message: the message in dictionary format or direct Google Pub/Sub format
+    :return dict: the extracted and converted attributes
     """
     # Cast attributes to a dictionary to avoid defaultdict-like behaviour from Pub/Sub message attributes container.
     attributes = dict(get_nested_attribute(message, "attributes"))
@@ -53,15 +67,7 @@ def extract_event_and_attributes_from_pub_sub_message(message):
         if cpus:
             attributes["cpus"] = int(cpus)
 
-    # Support already-extracted questions (e.g. from the `octue question ask local` CLI command).
-    if isinstance(message, dict) and "event" in message:
-        event = message["event"]
-
-    # Extract event directly from Pub/Sub.
-    else:
-        event = json.loads(message.data.decode(), cls=OctueJSONDecoder)
-
-    return event, attributes
+    return attributes
 
 
 class GoogleCloudPubSubEventHandler(AbstractEventHandler):
@@ -277,4 +283,6 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         :param dict container: a Pub/Sub message
         :return (any, dict): the event and its attributes
         """
-        return extract_event_and_attributes_from_pub_sub_message(container.message)
+        event = extract_event(container.message)
+        attributes = extract_and_convert_attributes(container.message)
+        return event, attributes

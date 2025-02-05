@@ -16,7 +16,7 @@ from octue.cloud.events import OCTUE_SERVICES_TOPIC_NAME
 from octue.cloud.events.utils import make_attributes
 from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler, extract_event_and_attributes_from_pub_sub_message
+from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler, extract_and_convert_attributes, extract_event
 from octue.cloud.pub_sub.logging import GoogleCloudPubSubHandler
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
@@ -757,7 +757,8 @@ class Service:
             question.ack()
             logger.info("Question acknowledged on Pub/Sub.")
 
-        event, attributes = extract_event_and_attributes_from_pub_sub_message(question)
+        event = extract_event(question)
+        attributes = extract_and_convert_attributes(question)
         logger.info("Extracted question event and attributes.")
 
         raise_if_event_is_invalid(
