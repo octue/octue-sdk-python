@@ -572,11 +572,7 @@ def cancel(question_uuid, project_name, service_config):
     if not project_name:
         _, project_name = auth.default()
 
-    child = Child(
-        id=question["attributes"]["recipient"],
-        backend={"name": "GCPPubSubBackend", "project_name": project_name},
-    )
-
+    child = Child(id=None, backend={"name": "GCPPubSubBackend", "project_name": project_name})
     child.cancel(question_uuid=question_uuid, event_store_table_id=service_configuration.event_store_table_id)
 
 
