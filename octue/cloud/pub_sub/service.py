@@ -461,6 +461,15 @@ class Service:
         if len(questions) > 1:
             raise ValueError("Multiple questions found with same question UUID %r.", question_uuid)
 
+        question_finished = get_events(
+            table_id=event_store_table_id,
+            question_uuid=question_uuid,
+            kinds=["result", "exception"],
+        )
+
+        if question_finished:
+            raise ValueError("Question %r has already finished.", question_uuid)
+
         question_attributes = questions[0]
 
         self._emit_event(
