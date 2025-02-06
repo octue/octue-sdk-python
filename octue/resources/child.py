@@ -237,22 +237,5 @@ class Child:
         # Convert dictionary to list in asking order.
         return [answer[1] for answer in sorted(answers.items(), key=lambda item: item[0])]
 
-    def cancel(
-        self,
-        question_uuid,
-        parent_question_uuid,
-        originator_question_uuid,
-        parent,
-        originator,
-        retry_count,
-        timeout=30,
-    ):
-        self._service.cancel(
-            question_uuid,
-            parent_question_uuid,
-            originator_question_uuid,
-            parent,
-            originator,
-            retry_count,
-            timeout=timeout,
-        )
+    def cancel(self, question_uuid, event_store_table_id, timeout=30):
+        self._service.cancel(question_uuid=question_uuid, event_store_table_id=event_store_table_id, timeout=timeout)
