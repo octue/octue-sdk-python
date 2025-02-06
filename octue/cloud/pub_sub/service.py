@@ -456,10 +456,10 @@ class Service:
         questions = get_events(table_id=event_store_table_id, question_uuid=question_uuid, kinds=["question"])
 
         if len(questions) == 0:
-            raise ValueError("No question found with question UUID %r.", question_uuid)
+            raise ValueError(f"No question found with question UUID {question_uuid!r}.")
 
         if len(questions) > 1:
-            raise ValueError("Multiple questions found with same question UUID %r.", question_uuid)
+            raise ValueError(f"Multiple questions found with same question UUID {question_uuid!r}.")
 
         question_finished = get_events(
             table_id=event_store_table_id,
@@ -468,7 +468,7 @@ class Service:
         )
 
         if question_finished:
-            raise ValueError("Question %r has already finished.", question_uuid)
+            raise ValueError(f"Question {question_uuid!r} has already finished.")
 
         question_attributes = questions[0]["attributes"]
 
