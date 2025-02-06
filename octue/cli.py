@@ -543,6 +543,43 @@ def diagnostics(cloud_path, local_path, download_datasets):
     logger.info("Downloaded diagnostics from %r to %r.", cloud_path, local_path)
 
 
+@question.command()
+@click.argument("question_uuid", type=str)
+@click.option(
+    "-p",
+    "--project-name",
+    type=str,
+    default=None,
+    help="If asking a remote question, the name of the Google Cloud project the service is deployed in. If not "
+    "provided, the project name is detected from the local Google application credentials if present.",
+)
+@click.option(
+    "-c",
+    "--service-config",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="An optional path to an `octue.yaml` file defining service registries to use. If not provided, the "
+    "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
+    "is used.",
+)
+def cancel(question_uuid, project_name, service_config):
+    """Cancel a question running on a Twined service.
+
+    QUESTION_UUID: The question UUID of a running question
+    """
+    service_configuration = ServiceConfiguration.from_file(path=service_config)
+
+    if not project_name:
+        _, project_name = auth.default()
+
+    child = Child(
+        id=question["attributes"]["recipient"],
+        backend={"name": "GCPPubSubBackend", "project_name": project_name},
+    )
+
+    child.cancel(question_uuid=question_uuid, event_store_table_id=service_configuration.event_store_table_id)
+
+
 @octue_cli.command(deprecated=True)
 @click.argument(
     "cloud_path",
