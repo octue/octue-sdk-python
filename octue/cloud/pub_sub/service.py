@@ -270,16 +270,13 @@ class Service:
             if analysis.output_manifest is not None:
                 result["output_manifest"] = analysis.output_manifest.to_primitive()
 
-            future = self._emit_event(
+            self._emit_event(
                 event=result,
                 recipient=parent,
                 attributes={"sender_type": CHILD_SENDER_TYPE},
                 timeout=timeout,
                 **routing_metadata,
             )
-
-            # Await successful publishing of the result.
-            future.result()
 
             heartbeater.cancel()
             logger.info("%r answered question %r.", self, question_uuid)
@@ -540,6 +537,7 @@ class Service:
         recipient,
         retry_count,
         attributes=None,
+        wait=True,
         timeout=30,
     ):
         """Emit a JSON-serialised event as a Pub/Sub message to the services topic with optional message attributes.
@@ -566,6 +564,7 @@ class Service:
         :param str recipient: the SRUID of the service the event is intended for
         :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param dict|None attributes: key-value pairs to attach to the event - the values must be strings or bytes
+        :param bool wait: if `True`, wait for the result of the publishing future before continuing execution (this is important if the python process ends promptly after the event is emitted instead of being part of a prolonged stream as the publishing may not complete and the event won't actually be emitted)
         :param int|float timeout: the timeout for sending the event in seconds
         :return google.cloud.pubsub_v1.publisher.futures.Future:
         """
@@ -602,6 +601,9 @@ class Service:
             retry=retry.Retry(deadline=timeout),
             **converted_attributes,
         )
+
+        if wait:
+            future.result()
 
         return future
 
@@ -645,7 +647,7 @@ class Service:
             input_manifest.use_signed_urls_for_datasets()
             question["input_manifest"] = input_manifest.to_primitive()
 
-        future = self._emit_event(
+        self._emit_event(
             event=question,
             question_uuid=question_uuid,
             parent_question_uuid=parent_question_uuid,
@@ -665,8 +667,6 @@ class Service:
             timeout=timeout,
         )
 
-        # Await successful publishing of the question.
-        future.result()
         logger.info("%r asked a question %r to service %r.", self, question_uuid, recipient)
 
     def _send_delivery_acknowledgment(
@@ -701,6 +701,7 @@ class Service:
             recipient=parent,
             retry_count=retry_count,
             attributes={"sender_type": CHILD_SENDER_TYPE},
+            wait=False,
         )
 
         logger.info("%r acknowledged receipt of question %r.", self, question_uuid)
@@ -738,6 +739,7 @@ class Service:
             retry_count=retry_count,
             attributes={"sender_type": CHILD_SENDER_TYPE},
             timeout=timeout,
+            wait=False,
         )
 
         logger.debug("Heartbeat sent by %r.", self)
@@ -776,6 +778,7 @@ class Service:
             retry_count=retry_count,
             timeout=timeout,
             attributes={"sender_type": CHILD_SENDER_TYPE},
+            wait=False,
         )
 
         logger.debug("Monitor message sent by %r.", self)
