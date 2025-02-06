@@ -470,7 +470,7 @@ class Service:
         if question_finished:
             raise ValueError("Question %r has already finished.", question_uuid)
 
-        question_attributes = questions[0]
+        question_attributes = questions[0]["attributes"]
 
         self._emit_event(
             {"kind": "cancellation"},
