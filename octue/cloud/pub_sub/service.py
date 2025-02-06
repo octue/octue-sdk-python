@@ -485,7 +485,7 @@ class Service:
             timeout=timeout,
         )
 
-        logger.info("Cancellation of question %r requested.", self, question_uuid)
+        logger.info("Cancellation of question %r requested.", question_uuid)
 
     def send_exception(
         self,
