@@ -77,14 +77,16 @@ def make_attributes(
     }
 
     if sender_type == "PARENT":
-        if forward_logs is None or save_diagnostics is None:
-            raise ValueError(
-                "`forward_logs` and `save_diagnostics` must be present in the attributes if the sender type is "
-                "'PARENT'."
-            )
+        if forward_logs:
+            attributes["forward_logs"] = bool(forward_logs)
 
-        attributes["forward_logs"] = bool(forward_logs)
-        attributes["save_diagnostics"] = save_diagnostics
-        attributes.update(make_minimal_dictionary(cpus=cpus, memory=memory, ephemeral_storage=ephemeral_storage))
+        attributes.update(
+            make_minimal_dictionary(
+                save_diagnostics=save_diagnostics,
+                cpus=cpus,
+                memory=memory,
+                ephemeral_storage=ephemeral_storage,
+            )
+        )
 
     return attributes
