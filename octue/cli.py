@@ -348,12 +348,12 @@ def get(
 @click.option(
     "--parent-question-uuid",
     type=str,
-    help="The UUID of a parent question to get the sub-question events for",
+    help="The UUID of a parent question to get the sub-question events for.",
 )
 @click.option(
     "--originator-question-uuid",
     type=str,
-    help="The UUID of an originator question get the full tree of events for",
+    help="The UUID of an originator question get the full tree of events for.",
 )
 @click.option(
     "-k",
@@ -361,8 +361,7 @@ def get(
     type=str,
     default=None,
     help="The kinds of event to get as a comma-separated list e.g. 'question,result'. If not provided, all event kinds "
-    "are returned. The valid kinds are "
-    f"{VALID_EVENT_KINDS!r}.",
+    f"are returned. The valid kinds are {VALID_EVENT_KINDS!r}.",
 )
 @click.option(
     "-e",
@@ -370,8 +369,7 @@ def get(
     type=str,
     default=None,
     help="The kinds of event to exclude as a comma-separated list e.g. 'question,result'. If not provided, all event "
-    "kinds are returned. The valid kinds are "
-    f"{VALID_EVENT_KINDS!r}.",
+    f"kinds are returned. The valid kinds are {VALID_EVENT_KINDS!r}.",
 )
 @click.option(
     "-l",
@@ -391,10 +389,10 @@ def get(
     "is used.",
 )
 @click.option(
-    "--include-service-metadata-in-logs",
+    "--include-service-metadata",
     is_flag=True,
     help="Include the SRUIDs and question UUIDs of the service revisions involved in the question at the start of each "
-    "log message.",
+    "log message. This is useful when a child asks its own sub-questions.",
 )
 @click.option(
     "--exclude-logs-containing",
@@ -406,7 +404,8 @@ def get(
     "-r",
     "--only-handle-result",
     is_flag=True,
-    help="Skip non-result events and only handle the 'result' event if present.",
+    help="Skip all events apart from the 'result' event (if there is one). If providing this option, the "
+    "`--include-kinds` and `--exclude-kinds` options are ignored. This option can speed up event handling.",
 )
 @click.option(
     "--validate-events",
@@ -421,18 +420,17 @@ def replay(
     exclude_kinds,
     limit,
     service_config,
-    include_service_metadata_in_logs,
+    include_service_metadata,
     exclude_logs_containing,
     only_handle_result,
     validate_events,
 ):
-    """Replay a question's events, returning the result as JSON if there is one. One of the following must be set:
+    """Replay a question's events, returning the result as JSON at the end if there is one. One of the following must be
+    set:
 
-    --question-uuid
-
-    --parent-question-uuid
-
-    --originator-question-uuid
+    --question-uuid\n
+    --parent-question-uuid\n
+    --originator-question-uuid\n
     """
     if kinds:
         kinds = kinds.split(",")
@@ -453,7 +451,7 @@ def replay(
     )
 
     replayer = EventReplayer(
-        include_service_metadata_in_logs=include_service_metadata_in_logs,
+        include_service_metadata_in_logs=include_service_metadata,
         exclude_logs_containing=exclude_logs_containing,
         only_handle_result=only_handle_result,
         validate_events=validate_events,
