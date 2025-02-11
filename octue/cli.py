@@ -199,9 +199,8 @@ def local(input_values, input_manifest, attributes, service_config):
 
     This command is similar to running `octue service start` and asking the resulting local service revision a question
     via Pub/Sub. Instead of starting a local Pub/Sub service revision, however, no Pub/Sub subscription or subscriber is
-    created; the question is instead passed directly and to local the service revision without Pub/Sub being involved.
-    Everything after this runs the same, though, with any events emitted by the service revision emitted via Pub/Sub as
-    usual.
+    created; the question is instead passed directly to local the service revision without Pub/Sub being involved.
+    Everything after this runs the same, though, with the service revision emitting any events via Pub/Sub as usual.
     """
     if input_values:
         input_values = json.loads(input_values, cls=OctueJSONDecoder)
@@ -213,20 +212,17 @@ def local(input_values, input_manifest, attributes, service_config):
 
     if attributes:
         attributes = json.loads(attributes, cls=OctueJSONDecoder)
-        parent_sruid = None
-        child_sruid = None
+        question = make_question_event(input_values=input_values, input_manifest=input_manifest, attributes=attributes)
     else:
-        parent_sruid = "local/local:local"
-        service_namespace, service_name, service_revision_tag = get_sruid_parts(service_configuration)
-        child_sruid = create_sruid(namespace=service_namespace, name=service_name, revision_tag=service_revision_tag)
+        namespace, name, revision_tag = get_sruid_parts(service_configuration)
+        child_sruid = create_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
 
-    question = make_question_event(
-        input_values=input_values,
-        input_manifest=input_manifest,
-        parent_sruid=parent_sruid,
-        child_sruid=child_sruid,
-        attributes=attributes,
-    )
+        question = make_question_event(
+            input_values=input_values,
+            input_manifest=input_manifest,
+            parent_sruid=create_sruid(),
+            child_sruid=child_sruid,
+        )
 
     backend_configuration_values = (app_configuration.configuration_values or {}).get("backend")
 
