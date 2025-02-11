@@ -449,6 +449,14 @@ class Service:
             subscription.delete()
 
     def cancel(self, question_uuid, event_store_table_id, timeout=30):
+        """Request cancellation of a running question.
+
+        :param str question_uuid: the question UUID of the question to cancel
+        :param str event_store_table_id: the full ID of the Google BigQuery table used as the event store e.g. "your-project.your-dataset.your-table"
+        :param float timeout: time to wait for the cancellation to send before raising a timeout error [s]
+        :raise ValueError: if no question or more than one question is found for the given question UUID, or if the question has already finished
+        :return None:
+        """
         questions = get_events(table_id=event_store_table_id, question_uuid=question_uuid, kinds=["question"])
 
         if len(questions) == 0:

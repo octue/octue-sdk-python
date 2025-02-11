@@ -106,7 +106,7 @@ class Child:
         :param int max_retries: if `raise_errors=False` and the question fails, retry the question up to this number of times
         :param list(type)|None prevent_retries_when: if `raise_errors=False` and the question fails, prevent retrying the question if it fails with an exception type in this list
         :param bool log_errors: if `True`, `raise_errors=False`, and the question fails after its final retry, log the error
-        :param float timeout: time in seconds to wait for an answer before raising a timeout error
+        :param float timeout: time to wait for an answer before raising a timeout error [s]
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
         :raise Exception: if the question raises an error and `raise_errors=True`
@@ -238,4 +238,11 @@ class Child:
         return [answer[1] for answer in sorted(answers.items(), key=lambda item: item[0])]
 
     def cancel(self, question_uuid, event_store_table_id, timeout=30):
+        """Request cancellation of a running question.
+
+        :param str question_uuid: the question UUID of the question to cancel
+        :param str event_store_table_id: the full ID of the Google BigQuery table used as the event store e.g. "your-project.your-dataset.your-table"
+        :param float timeout: time to wait for the cancellation to send before raising a timeout error [s]
+        :return None:
+        """
         self._service.cancel(question_uuid=question_uuid, event_store_table_id=event_store_table_id, timeout=timeout)
