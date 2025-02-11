@@ -1,7 +1,6 @@
 import concurrent.futures
 import copy
 import functools
-import importlib.metadata
 import json
 import logging
 import uuid
@@ -11,7 +10,6 @@ import google.api_core.exceptions
 from google.cloud import pubsub_v1
 import jsonschema
 
-from octue.cloud import LOCAL_SDK_VERSION
 from octue.cloud.events import OCTUE_SERVICES_TOPIC_NAME
 from octue.cloud.events.extraction import extract_and_convert_attributes
 from octue.cloud.events.utils import make_attributes
@@ -29,6 +27,7 @@ from octue.cloud.service_id import (
     validate_sruid,
 )
 from octue.compatibility import warn_if_incompatible
+from octue.definitions import LOCAL_SDK_VERSION
 import octue.exceptions
 from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
@@ -806,7 +805,7 @@ class Service:
             recipient=self.id,
             # Don't assume the presence of specific attributes before validation.
             parent_sdk_version=attributes.get("sender_sdk_version"),
-            child_sdk_version=importlib.metadata.version("octue"),
+            child_sdk_version=LOCAL_SDK_VERSION,
         )
 
         logger.info("%r parsed question %r successfully.", self, attributes["question_uuid"])

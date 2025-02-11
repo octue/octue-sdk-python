@@ -1,7 +1,5 @@
 import copy
 import functools
-import importlib.metadata
-import importlib.util
 import json
 import logging
 import os
@@ -20,7 +18,7 @@ from octue.cloud.pub_sub.service import Service
 from octue.cloud.service_id import create_sruid, get_sruid_parts
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.configuration import ServiceConfiguration, load_service_and_app_configuration
-from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
+from octue.definitions import LOCAL_SDK_VERSION, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.exceptions import ServiceAlreadyExists
 from octue.log_handlers import apply_log_handler, get_remote_handler
 from octue.resources import Child, Manifest, service_backends
@@ -56,7 +54,7 @@ global_cli_context = {}
     show_default=True,
     help="Forces a reset of analysis cache and outputs [For future use, currently not implemented]",
 )
-@click.version_option(version=importlib.metadata.version("octue"))
+@click.version_option(version=LOCAL_SDK_VERSION)
 def octue_cli(id, logger_uri, log_level, force_reset):
     """The CLI for the Octue SDK. Use it to start an Octue data service or digital twin locally or run an analysis on
     one locally.

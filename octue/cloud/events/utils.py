@@ -1,7 +1,7 @@
 import datetime
 import uuid
 
-from octue.cloud import LOCAL_SDK_VERSION
+from octue.definitions import LOCAL_SDK_VERSION
 from octue.utils.dictionaries import make_minimal_dictionary
 
 

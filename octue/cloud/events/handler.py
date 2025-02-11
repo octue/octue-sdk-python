@@ -1,17 +1,15 @@
 import abc
-import importlib.metadata
+from datetime import datetime
 import logging
 import os
 import re
 import time
-from datetime import datetime
 
 from octue.cloud import EXCEPTIONS_MAPPING
 from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA, is_event_valid
-from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
+from octue.definitions import GOOGLE_COMPUTE_PROVIDERS, LOCAL_SDK_VERSION
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
-
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +19,6 @@ if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in GOOGLE_COMPUTE_PROVIDERS:
     colourise = lambda string, text_colour=None, background_colour=None: string
 else:
     from octue.utils.colour import colourise
-
-
-PARENT_SDK_VERSION = importlib.metadata.version("octue")
 
 
 class AbstractEventHandler:
@@ -123,7 +118,7 @@ class AbstractEventHandler:
             event=event,
             attributes=attributes,
             recipient=recipient,
-            parent_sdk_version=PARENT_SDK_VERSION,
+            parent_sdk_version=LOCAL_SDK_VERSION,
             child_sdk_version=child_sdk_version,
             schema=self.schema,
         ):

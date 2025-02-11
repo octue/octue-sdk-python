@@ -1,6 +1,6 @@
-import importlib.metadata
 from abc import abstractmethod
 
+from octue.definitions import LOCAL_SDK_VERSION
 from octue.mixins.hashable import Hashable
 
 
@@ -36,7 +36,7 @@ class Metadata:
         metadata = {name: getattr(self, name) for name in self._METADATA_ATTRIBUTES}
 
         if include_sdk_version:
-            metadata["sdk_version"] = importlib.metadata.version("octue")
+            metadata["sdk_version"] = LOCAL_SDK_VERSION
 
         if not include_id and "id" in metadata:
             del metadata["id"]
