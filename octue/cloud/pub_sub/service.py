@@ -328,8 +328,8 @@ class Service:
         :param bool asynchronous: if `True` and not using a push endpoint, don't create an answer subscription
         :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param int|None cpus: the number of CPUs to request for the question; defaults to the number set by the child service
-        :param str|None memory: the amount of memory to request for the question e.g. "256Mi" or "1GiB"; defaults to the amount set by the child service
-        :param str|None ephemeral_storage: the amount of ephemeral storage to request for the question e.g. "256Mi" or "1GiB"; defaults to the amount set by the child service
+        :param str|None memory: the amount of memory to request for the question e.g. "256Mi" or "1Gi"; defaults to the amount set by the child service
+        :param str|None ephemeral_storage: the amount of ephemeral storage to request for the question e.g. "256Mi" or "1Gi"; defaults to the amount set by the child service
         :param float|None timeout: time in seconds to keep retrying sending the question
         :return (octue.cloud.pub_sub.subscription.Subscription|None, str): the answer subscription (if the question is synchronous or a push endpoint was used) and question UUID
         """
