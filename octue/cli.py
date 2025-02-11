@@ -238,7 +238,8 @@ def local(input_values, input_manifest, attributes, service_config):
         _, project_name = auth.default()
         backend = service_backends.get_backend()(project_name=project_name)
 
-    answer_question(question=question, project_name=backend.project_name, service_configuration=service_config)
+    answer = answer_question(question=question, project_name=backend.project_name, service_configuration=service_config)
+    click.echo(answer)
 
 
 @question.group()

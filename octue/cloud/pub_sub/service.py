@@ -200,7 +200,7 @@ class Service:
         :param int|float heartbeat_interval: the time interval, in seconds, at which to send heartbeats
         :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
-        :return None:
+        :return dict: the result event
         """
         try:
             (
@@ -279,6 +279,7 @@ class Service:
 
             heartbeater.cancel()
             logger.info("%r answered question %r.", self, question_uuid)
+            return result
 
         except BaseException as error:  # noqa
             if heartbeater is not None:

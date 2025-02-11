@@ -17,7 +17,7 @@ def answer_question(question, project_name, service_configuration=None, app_conf
     :param str project_name: the name of the project the service is running on
     :param octue.configuration.ServiceConfiguration|None service_configuration:
     :param octue.configuration.AppConfiguration|None app_configuration:
-    :return None:
+    :return dict: the result event
     """
     if not service_configuration:
         service_configuration, app_configuration = load_service_and_app_configuration()
@@ -42,7 +42,7 @@ def answer_question(question, project_name, service_configuration=None, app_conf
         )
 
         service.run_function = runner.run
-        service.answer(question)
+        return service.answer(question)
 
     except BaseException as error:  # noqa
         service.send_exception(
