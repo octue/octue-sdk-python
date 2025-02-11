@@ -11,12 +11,12 @@ logger = logging.getLogger(__name__)
 
 
 def answer_pub_sub_question(question, project_name, service_configuration=None, app_configuration=None):
-    """Answer a question sent to an app deployed in Google Cloud.
+    """Answer a question received by a service via Pub/Sub.
 
-    :param dict question:
-    :param str project_name:
-    :param service_configuration:
-    :param app_configuration:
+    :param dict question: a question event and its attributes
+    :param str project_name: the name of the project the service is running on
+    :param octue.configuration.ServiceConfiguration|None service_configuration:
+    :param octue.configuration.AppConfiguration|None app_configuration:
     :return None:
     """
     if not service_configuration:
