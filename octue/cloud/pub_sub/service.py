@@ -11,7 +11,7 @@ from google.cloud import pubsub_v1
 import jsonschema
 
 from octue.cloud.events import OCTUE_SERVICES_TOPIC_NAME
-from octue.cloud.events.extraction import extract_and_convert_attributes
+from octue.cloud.events.extraction import extract_and_deserialise_attributes
 from octue.cloud.events.utils import make_attributes
 from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
@@ -804,7 +804,7 @@ class Service:
             logger.info("Question acknowledged on Pub/Sub.")
 
         event = extract_event(question)
-        attributes = extract_and_convert_attributes(question)
+        attributes = extract_and_deserialise_attributes(question)
         logger.info("Extracted question event and attributes.")
 
         raise_if_event_is_invalid(

@@ -1,8 +1,8 @@
 from octue.utils.objects import get_nested_attribute
 
 
-def extract_and_convert_attributes(container):
-    """Extract a Twined service event's attributes and convert them to the expected form.
+def extract_and_deserialise_attributes(container):
+    """Extract a Twined service event's attributes and deserialise them to the expected form.
 
     :param dict|google.cloud.pubsub_v1.subscriber.message.Message container: the event container in dictionary format or direct Google Pub/Sub format
     :return dict: the extracted and converted attributes
