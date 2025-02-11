@@ -454,7 +454,7 @@ class Service:
         :param str question_uuid: the question UUID of the question to cancel
         :param str event_store_table_id: the full ID of the Google BigQuery table used as the event store e.g. "your-project.your-dataset.your-table"
         :param float timeout: time to wait for the cancellation to send before raising a timeout error [s]
-        :raise ValueError: if no question or more than one question is found for the given question UUID, or if the question has already finished
+        :raise ValueError: if no question or more than one question is found for the given question UUID
         :return None:
         """
         questions = get_events(table_id=event_store_table_id, question_uuid=question_uuid, kinds=["question"])
@@ -472,7 +472,7 @@ class Service:
         )
 
         if question_finished:
-            raise ValueError(f"Question {question_uuid!r} has already finished.")
+            logger.warning("Cannot cancel question %r - it has already finished.", question_uuid)
 
         question_attributes = questions[0]["attributes"]
 
