@@ -560,7 +560,7 @@ def diagnostics(cloud_path, local_path, download_datasets):
     "is used.",
 )
 def cancel(question_uuid, project_name, service_config):
-    """Cancel a question running on a Twined service.
+    """Cancel a question running on an Octue Twined service.
 
     QUESTION_UUID: The question UUID of a running question
     """
