@@ -1,7 +1,6 @@
-import datetime
 import uuid
 
-from octue.cloud import LOCAL_SDK_VERSION
+from octue.cloud.events.attributes import EventAttributes
 from octue.utils.dictionaries import make_minimal_dictionary
 
 
@@ -26,7 +25,7 @@ def make_question_event(
     if not attributes:
         question_uuid = question_uuid or str(uuid.uuid4())
 
-        attributes = make_attributes(
+        attributes = EventAttributes(
             question_uuid=question_uuid,
             parent_question_uuid=question_uuid,
             originator_question_uuid=question_uuid,
@@ -41,52 +40,5 @@ def make_question_event(
 
     return {
         "event": make_minimal_dictionary(input_values=input_values, input_manifest=input_manifest, kind="question"),
-        "attributes": attributes,
+        "attributes": attributes.to_dict(),
     }
-
-
-def make_attributes(
-    parent_question_uuid,
-    originator_question_uuid,
-    parent,
-    originator,
-    sender,
-    sender_type,
-    recipient,
-    question_uuid=None,
-    retry_count=0,
-    forward_logs=None,
-    save_diagnostics=None,
-    cpus=None,
-    memory=None,
-    ephemeral_storage=None,
-):
-    attributes = {
-        "uuid": str(uuid.uuid4()),
-        "datetime": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
-        "question_uuid": question_uuid or str(uuid.uuid4()),
-        "parent_question_uuid": parent_question_uuid,
-        "originator_question_uuid": originator_question_uuid,
-        "parent": parent,
-        "originator": originator,
-        "sender": sender,
-        "sender_type": sender_type,
-        "sender_sdk_version": LOCAL_SDK_VERSION,
-        "recipient": recipient,
-        "retry_count": int(retry_count),
-    }
-
-    if sender_type == "PARENT":
-        if forward_logs:
-            attributes["forward_logs"] = bool(forward_logs)
-
-        attributes.update(
-            make_minimal_dictionary(
-                save_diagnostics=save_diagnostics,
-                cpus=cpus,
-                memory=memory,
-                ephemeral_storage=ephemeral_storage,
-            )
-        )
-
-    return attributes

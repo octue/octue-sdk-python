@@ -405,31 +405,28 @@ class MockService(Service):
         # If the originator isn't provided, assume that this service revision is the originator.
         originator = originator or self.id
 
+        attributes = make_minimal_dictionary(
+            datetime="2024-04-11T10:46:48.236064",
+            uuid="a9de11b1-e88f-43fa-b3a4-40a590c3443f",
+            question_uuid=question_uuid,
+            parent_question_uuid=parent_question_uuid,
+            originator_question_uuid=originator_question_uuid,
+            forward_logs=subscribe_to_logs,
+            save_diagnostics=save_diagnostics,
+            parent=self.id,
+            originator=originator,
+            sender=self.id,
+            sender_type=PARENT_SENDER_TYPE,
+            sender_sdk_version=parent_sdk_version,
+            recipient=service_id,
+            retry_count=retry_count,
+            cpus=cpus,
+            memory=memory,
+            ephemeral_storage=ephemeral_storage,
+        )
+
         try:
-            self.children[service_id].answer(
-                MockMessage.from_primitive(
-                    data=question,
-                    attributes={
-                        "datetime": "2024-04-11T10:46:48.236064",
-                        "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
-                        "question_uuid": question_uuid,
-                        "parent_question_uuid": parent_question_uuid,
-                        "originator_question_uuid": originator_question_uuid,
-                        "forward_logs": subscribe_to_logs,
-                        "save_diagnostics": save_diagnostics,
-                        "parent": self.id,
-                        "originator": originator,
-                        "sender": self.id,
-                        "sender_type": PARENT_SENDER_TYPE,
-                        "sender_sdk_version": parent_sdk_version,
-                        "recipient": service_id,
-                        "retry_count": retry_count,
-                        "cpus": cpus,
-                        "memory": memory,
-                        "ephemeral_storage": ephemeral_storage,
-                    },
-                )
-            )
+            self.children[service_id].answer(MockMessage.from_primitive(data=question, attributes=attributes))
         except Exception as e:  # noqa
             logger.exception(e)
 
