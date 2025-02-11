@@ -78,5 +78,5 @@ class IdentifiableTestCase(BaseTestCase):
 
         # Make test work across python versions.
         self.assertTrue(
-            ("object has no setter" in e.exception.args[0]) or ("object has no setter" in e.exception.args[0])
+            ("can't set attribute" in e.exception.args[0]) or ("object has no setter" in e.exception.args[0])
         )
