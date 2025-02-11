@@ -103,14 +103,14 @@ def ask():
     "--project-name",
     type=str,
     default=None,
-    help="If asking a remote question, the name of the Google Cloud project the service is deployed in. If not "
-    "provided, the project name is detected from the local Google application credentials if present.",
+    help="The name of the Google Cloud project the service is deployed in. If not provided, the project name is "
+    "detected from the local Google application credentials if present.",
 )
 @click.option(
     "--asynchronous",
     is_flag=True,
-    help="If provided, ask the question and detach (the result and other events can be retrieved from the event store "
-    "later).",
+    help="If provided, ask the question and detach. The result and other events can be retrieved from the event store "
+    "later.",
 )
 @click.option(
     "-c",
@@ -124,9 +124,9 @@ def ask():
 def remote(sruid, input_values, input_manifest, project_name, asynchronous, service_config):
     """Ask a question to a remote Octue Twined service.
 
-    SRUID should be a valid service revision unique identifier for an existing Octue Twined service
+    SRUID should be a valid service revision unique identifier for an existing Octue Twined service e.g.
 
-        e.g. octue question ask octue/example-service:1.0.3
+        octue question ask remote your-org/example-service:1.2.0
     """
     try:
         service_configuration = ServiceConfiguration.from_file(service_config)
