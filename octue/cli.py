@@ -240,7 +240,7 @@ def local(input_values, input_manifest, attributes, service_config):
 
 @question.group()
 def events():
-    """Get and replay events from questions to Octue Twined services."""
+    """Get and replay events from past and current questions."""
 
 
 @events.command()
@@ -253,12 +253,14 @@ def events():
 @click.option(
     "--parent-question-uuid",
     type=str,
-    help="The UUID of a parent question to get the sub-question events for",
+    default=None,
+    help="The UUID of a parent question to get the sub-question events for.",
 )
 @click.option(
     "--originator-question-uuid",
     type=str,
-    help="The UUID of an originator question get the full tree of events for",
+    default=None,
+    help="The UUID of an originator question get the full tree of events for.",
 )
 @click.option(
     "-k",
@@ -266,8 +268,7 @@ def events():
     type=str,
     default=None,
     help="The kinds of event to get as a comma-separated list e.g. 'question,result'. If not provided, all event kinds "
-    "are returned. The valid kinds are "
-    f"{VALID_EVENT_KINDS!r}.",
+    f"are returned. The valid kinds are {VALID_EVENT_KINDS!r}.",
 )
 @click.option(
     "-e",
@@ -275,8 +276,7 @@ def events():
     type=str,
     default=None,
     help="The kinds of event to exclude as a comma-separated list e.g. 'question,result'. If not provided, all event "
-    "kinds are returned. The valid kinds are "
-    f"{VALID_EVENT_KINDS!r}.",
+    f"kinds are returned. The valid kinds are {VALID_EVENT_KINDS!r}.",
 )
 @click.option(
     "--include-backend-metadata",
@@ -310,13 +310,11 @@ def get(
     limit,
     service_config,
 ):
-    """Get the raw events emitted during a question as JSON. One of the following must be set:
+    """Get the events emitted during a question as JSON. One of the following must be set:
 
-    --question-uuid
-
-    --parent-question-uuid
-
-    --originator-question-uuid
+    --question-uuid\n
+    --parent-question-uuid\n
+    --originator-question-uuid\n
     """
     if kinds:
         kinds = kinds.split(",")
