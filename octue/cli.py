@@ -465,6 +465,9 @@ def replay(
 
     if result:
         click.echo(result)
+        return
+
+    logger.warning("No result was found for this question.")
 
 
 @question.command()
