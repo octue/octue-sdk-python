@@ -24,7 +24,6 @@ from octue.log_handlers import apply_log_handler, get_remote_handler
 from octue.resources import Child, Manifest, service_backends
 from octue.runner import Runner
 from octue.utils.decoders import OctueJSONDecoder
-from octue.utils.encoders import OctueJSONEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -594,104 +593,6 @@ def cancel(question_uuid, project_name, service_config):
 )
 def get_diagnostics(cloud_path, local_path, download_datasets):
     diagnostics(cloud_path, local_path, download_datasets)
-
-
-@octue_cli.command(deprecated=True)
-@click.option(
-    "-c",
-    "--service-config",
-    type=click.Path(dir_okay=False),
-    default=None,
-    help="The path to an `octue.yaml` file defining the service to run. If not provided, the "
-    "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
-    "is used.",
-)
-@click.option(
-    "--input-dir",
-    type=click.Path(file_okay=False, exists=True),
-    default=".",
-    show_default=True,
-    help="The path to a directory containing the input values (in a file called 'values.json') and/or input manifest "
-    "(in a file called 'manifest.json').",
-)
-@click.option(
-    "-o",
-    "--output-file",
-    type=click.Path(dir_okay=False),
-    default=None,
-    show_default=True,
-    help="The path to a JSON file to store the output values in, if required.",
-)
-@click.option(
-    "--output-manifest-file",
-    type=click.Path(dir_okay=False),
-    default=None,
-    help="The path to a JSON file to store the output manifest in. The default is 'output_manifest_<analysis_id>.json'.",
-)
-@click.option(
-    "--monitor-messages-file",
-    type=click.Path(dir_okay=False),
-    default=None,
-    show_default=True,
-    help="The path to a JSON file in which to store any monitor messages received. Monitor messages will be ignored "
-    "if this option isn't provided.",
-)
-def run(service_config, input_dir, output_file, output_manifest_file, monitor_messages_file):
-    """Run an analysis on the given input data using an Octue service or digital twin locally. The output values are
-    printed to `stdout`. If an output manifest is produced, it will be saved locally (see the `--output-manifest-file`
-    option).
-    """
-    service_configuration, app_configuration = load_service_and_app_configuration(service_config)
-
-    input_values_path = os.path.join(input_dir, VALUES_FILENAME)
-    input_manifest_path = os.path.join(input_dir, MANIFEST_FILENAME)
-
-    input_values = None
-    input_manifest = None
-
-    if os.path.exists(input_values_path):
-        input_values = input_values_path
-
-    if os.path.exists(input_manifest_path):
-        input_manifest = input_manifest_path
-
-    runner = Runner.from_configuration(service_configuration=service_configuration, app_configuration=app_configuration)
-
-    if monitor_messages_file:
-        if not os.path.exists(os.path.dirname(monitor_messages_file)):
-            os.makedirs(os.path.dirname(monitor_messages_file))
-
-        monitor_message_handler = lambda message: _add_monitor_message_to_file(monitor_messages_file, message)
-
-    else:
-        monitor_message_handler = None
-
-    analysis = runner.run(
-        analysis_id=global_cli_context["analysis_id"],
-        input_values=input_values,
-        input_manifest=input_manifest,
-        analysis_log_level=global_cli_context["log_level"],
-        analysis_log_handler=global_cli_context["log_handler"],
-        handle_monitor_message=monitor_message_handler,
-    )
-
-    click.echo(json.dumps(analysis.output_values, cls=OctueJSONEncoder))
-
-    if analysis.output_values and output_file:
-        if not os.path.exists(os.path.dirname(output_file)):
-            os.makedirs(os.path.dirname(output_file))
-
-        with open(output_file, "w") as f:
-            json.dump(analysis.output_values, f, cls=OctueJSONEncoder, indent=4)
-
-    if analysis.output_manifest:
-        if not os.path.exists(os.path.dirname(output_manifest_file)):
-            os.makedirs(os.path.dirname(output_manifest_file))
-
-        with open(output_manifest_file or f"output_manifest_{analysis.id}.json", "w") as f:
-            json.dump(analysis.output_manifest.to_primitive(), f, cls=OctueJSONEncoder, indent=4)
-
-    return 0
 
 
 @octue_cli.command()
