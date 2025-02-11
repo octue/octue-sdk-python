@@ -37,7 +37,6 @@ from octue.utils.threads import RepeatingTimer
 logger = logging.getLogger(__name__)
 
 
-DEFAULT_NAMESPACE = "default"
 ANSWERS_NAMESPACE = "answers"
 
 # Switch message batching off by setting `max_messages` to 1. This minimises latency and is recommended for
@@ -68,7 +67,7 @@ class Service:
 
     def __init__(self, backend, service_id=None, run_function=None, service_registries=None):
         if service_id is None:
-            self.id = create_sruid(namespace=DEFAULT_NAMESPACE, name=str(uuid.uuid4()))
+            self.id = create_sruid()
 
         # Raise an error if the service ID is some kind of falsey object that isn't `None`.
         elif not service_id:
